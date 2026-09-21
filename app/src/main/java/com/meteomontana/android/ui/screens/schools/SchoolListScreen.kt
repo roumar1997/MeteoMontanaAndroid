@@ -389,7 +389,7 @@ fun SchoolListScreen(
             item {
                 com.meteomontana.android.ui.components.FirstTimeHint(
                     hintKey = "schools_map",
-                    text = "Toca \"VER MAPA\" para ver todas las escuelas en el mapa, coloreadas por su índice del día."
+                    text = stringResource(R.string.school_list_screen_v3_toca_ver_mapa_para_ver)
                 )
             }
 
@@ -417,7 +417,7 @@ fun SchoolListScreen(
             item {
                 com.meteomontana.android.ui.components.FirstTimeHint(
                     hintKey = "schools_filters",
-                    text = "Usa los filtros de abajo para encontrar escuelas por distancia, tipo de roca o estilo (bloque/vía)."
+                    text = stringResource(R.string.school_list_screen_v3_usa_los_filtros_de_abajo)
                 )
             }
 
@@ -450,7 +450,7 @@ fun SchoolListScreen(
             item {
                 com.meteomontana.android.ui.components.FirstTimeHint(
                     hintKey = "schools_compare",
-                    text = "Mantén pulsada una escuela para compararla con otras (hasta 3). También puedes tocar los días de arriba para ver un tramo de varios días.",
+                    text = stringResource(R.string.school_list_screen_v3_manten_pulsada_una_escuela_para),
                     modifier = Modifier.padding(top = Spacing.sm)
                 )
             }
@@ -589,8 +589,8 @@ private fun DaySelectorRow(
 
     Column(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
         Text(
-            text = if (selectedDays.isEmpty()) "DÍAS · elige hasta 5 para comparar el tramo"
-                   else "DÍAS · ${selectedDays.size} elegido${if (selectedDays.size > 1) "s" else ""}",
+            text = if (selectedDays.isEmpty()) stringResource(R.string.school_list_screen_v3_dias_elige_hasta_5_para)
+                   else stringResource(R.string.school_list_screen_v3_dias_elegido, selectedDays.size, if (selectedDays.size > 1) "s" else ""),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -901,9 +901,7 @@ private fun DonateDialog(onDismiss: () -> Unit) {
                 color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(Spacing.md))
             Text(
-                stringResource(R.string.school_list_screen_v2_climbingteams_es_una_app_gratuita) +
-                "comunidad escaladora. Si te ayuda a elegir el mejor día en la roca, " +
-                "considera invitarme a un café para seguir mejorándola.",
+                stringResource(R.string.school_list_screen_v2_climbingteams_es_una_app_gratuita),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -912,10 +910,10 @@ private fun DonateDialog(onDismiss: () -> Unit) {
                 .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
                 .padding(Spacing.md)) {
                 listOf(
-                    "Condiciones de escalada en tiempo real",
-                    "Escuelas cercanas con previsión",
-                    "Previsión de 7 días",
-                    "Mejor día y análisis de secado"
+                    stringResource(R.string.school_list_screen_v3_condiciones_de_escalada_en_tiempo),
+                    stringResource(R.string.school_list_screen_v3_escuelas_cercanas_con_prevision),
+                    stringResource(R.string.school_list_screen_v3_prevision_de_7_dias),
+                    stringResource(R.string.school_list_screen_v3_mejor_dia_y_analisis_de)
                 ).forEach {
                     Text(it, style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface)

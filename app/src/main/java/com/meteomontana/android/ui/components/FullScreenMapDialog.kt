@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.components
 
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import com.meteomontana.android.data.map.MapStyles
@@ -162,7 +163,7 @@ fun FullScreenMapDialog(
                                     map.addMarker(
                                         MarkerOptions()
                                             .position(LatLng(gLat, gLon))
-                                            .title("Nueva posición")
+                                            .title(AppText.get(R.string.full_screen_map_dialog_v3_nueva_posicion))
                                             .icon(iconFactory.fromBitmap(bmp))
                                     )
                                 }
@@ -176,7 +177,7 @@ fun FullScreenMapDialog(
                                     map.addMarker(
                                         MarkerOptions()
                                             .position(LatLng(lat, lon))
-                                            .title("POSICIÓN ACTUAL${positionCorrectionTargetName?.let { " · $it" } ?: ""}")
+                                            .title(AppText.get(R.string.full_screen_map_dialog_v3_posicion_actual, positionCorrectionTargetName?.let { " · $it" } ?: ""))
                                             .icon(iconFactory.fromBitmap(oldIcon))
                                     )
                                     val newIcon = pinBitmap(
@@ -185,7 +186,7 @@ fun FullScreenMapDialog(
                                     map.addMarker(
                                         MarkerOptions()
                                             .position(LatLng(pLat, pLon))
-                                            .title("PROPUESTA · NUEVA POSICIÓN")
+                                            .title(AppText.get(R.string.full_screen_map_dialog_v3_propuesta_nueva_posicion))
                                             .icon(iconFactory.fromBitmap(newIcon))
                                     )
                                     map.addPolyline(
@@ -209,7 +210,7 @@ fun FullScreenMapDialog(
                                     val marker = map.addMarker(
                                         MarkerOptions()
                                             .position(LatLng(lat, lon))
-                                            .title("PROPUESTA · ${proposalAsBlock.name}")
+                                            .title(AppText.get(R.string.full_screen_map_dialog_v4_propuesta, proposalAsBlock.name))
                                             .icon(iconFactory.fromBitmap(bmp))
                                     )
                                     markerToBlock[marker] = proposalAsBlock
@@ -267,9 +268,9 @@ fun FullScreenMapDialog(
                 ) {
                     Text(
                         if (ghostPosition == null)
-                            "📍 PULSA EN EL MAPA LA NUEVA POSICIÓN DE ${mb.name.uppercase()}"
+                            stringResource(R.string.full_screen_map_dialog_v3_pulsa_en_el_mapa_la, mb.name.uppercase())
                         else
-                            "✓ POSICIÓN FIJADA PARA ${mb.name.uppercase()} · PULSA OTRA VEZ PARA RECORREGIR",
+                            stringResource(R.string.full_screen_map_dialog_v3_posicion_fijada_para_pulsa_otra, mb.name.uppercase()),
                         style = EyebrowTextStyle, color = Color.White
                     )
                     if (ghostPosition != null) {
@@ -337,7 +338,7 @@ fun FullScreenMapDialog(
                     .padding(Spacing.md),
                 horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(Spacing.xs)
             ) {
-                listOf("topo" to "Topo", "sat" to "Satélite").forEach { (id, label) ->
+                listOf("topo" to "Topo", "sat" to stringResource(R.string.full_screen_map_dialog_v3_satelite)).forEach { (id, label) ->
                     val selected = mapStyle == id
                     Box(modifier = Modifier
                         .clip(MaterialTheme.shapes.small)

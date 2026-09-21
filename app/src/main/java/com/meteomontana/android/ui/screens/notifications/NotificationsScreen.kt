@@ -212,7 +212,7 @@ fun NotificationsScreen(
                     com.meteomontana.android.ui.components.EmptyState(
                         icon = Icons.Outlined.Notifications,
                         title = stringResource(R.string.notifications_empty),
-                        message = "Aquí te avisaremos de nuevos seguidores, solicitudes, mensajes y novedades de tus propuestas."
+                        message = stringResource(R.string.notifications_screen_v3_aqui_te_avisaremos_de_nuevos)
                     )
                 } else {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {

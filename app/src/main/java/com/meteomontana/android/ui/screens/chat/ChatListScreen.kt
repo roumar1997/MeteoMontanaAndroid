@@ -97,14 +97,14 @@ fun ChatListScreen(
             com.meteomontana.android.ui.components.EmptyState(
                 icon = Icons.Outlined.ChatBubbleOutline,
                 title = stringResource(R.string.chat_list_screen_v2_aun_no_tienes_conversaciones),
-                message = "Toca el lápiz para escribir a alguien a quien sigues o que te sigue, o crea un grupo con el icono de personas."
+                message = stringResource(R.string.chat_list_screen_v3_toca_el_lapiz_para_escribir)
             )
         } else {
             LazyColumn {
                 item {
                     com.meteomontana.android.ui.components.FirstTimeHint(
                         hintKey = "chat_swipe",
-                        text = "Desliza una conversación: a la izquierda para borrarla, a la derecha para marcarla como no leída."
+                        text = stringResource(R.string.chat_list_screen_v3_desliza_una_conversacion_a_la)
                     )
                 }
                 items(items, key = { it.conversation.id }) { item ->

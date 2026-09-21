@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,6 +24,8 @@ import com.meteomontana.android.domain.util.GradeRange
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.gradeChipColor
 import com.meteomontana.android.ui.theme.gradeStyle
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Selector de grado como GRID DE CHIPS de un toque — sustituye al desplegable
@@ -78,11 +81,11 @@ fun GradeChipsGrid(
 /** Códigos de tipo de inicio (los que viajan al backend) → etiqueta legible.
  *  Antes se mostraban las siglas a pelo (PIE/SIT/LANCE/TRAV) sin explicación. */
 val START_TYPE_LABELS = listOf(
-    "PIE" to "De pie",
+    "PIE" to AppText.get(R.string.grade_pickers_v3_de_pie),
     "SIT" to "Sentado",
     "SEMI" to "Semi-sit",
     "LANCE" to "Lance",
-    "TRAV" to "Travesía"
+    "TRAV" to AppText.get(R.string.grade_pickers_v3_travesia)
 )
 
 /** Chips de tipo de inicio con nombre completo. Tocar el seleccionado lo quita. */

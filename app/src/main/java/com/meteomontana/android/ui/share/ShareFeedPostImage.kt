@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.share
 
+import com.meteomontana.android.util.AppText
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -21,6 +22,7 @@ import com.meteomontana.android.domain.util.renderTopo
 import com.meteomontana.android.ui.screens.topo.parseLineStroke
 import java.io.File
 import com.meteomontana.android.R
+import androidx.compose.ui.res.stringResource
 
 /* ── Paleta Cumbre (ARGB para Canvas, = ShareLineImage) ────────────────────── */
 private const val PAPER = 0xFFFAF7F2.toInt()
@@ -97,7 +99,7 @@ private fun plainText(post: FeedPost): String {
     // Deep link al post: si el receptor tiene Cumbre se abre el detalle
     // (landing /s/p con Open Graph si no la tiene).
     val link = (com.meteomontana.android.ui.share.shareBaseUrl()) + "/s/p/${post.id}"
-    return listOf("🧗 $title", place, "Míralo en Cumbre: $link")
+    return listOf("🧗 $title", place, AppText.get(R.string.share_feed_post_image_v4_miralo_en_cumbre, link))
         .filter { it.isNotBlank() }.joinToString("\n")
 }
 
@@ -130,12 +132,12 @@ private suspend fun renderPostToUri(context: Context, post: FeedPost): Uri? {
 }
 
 private fun kindEyebrow(post: FeedPost): String = when (post.kind) {
-    FeedKind.PROJECT_DONE -> "PROYECTO CONSEGUIDO"
-    FeedKind.NEW_BLOCK -> "PIEDRA NUEVA"
-    FeedKind.NEW_LINE -> "VÍA NUEVA"
+    FeedKind.PROJECT_DONE -> AppText.get(R.string.share_feed_post_image_v4_proyecto_conseguido)
+    FeedKind.NEW_BLOCK -> AppText.get(R.string.share_feed_post_image_v4_piedra_nueva)
+    FeedKind.NEW_LINE -> AppText.get(R.string.share_feed_post_image_v4_via_nueva)
     else -> when {
-        post.discipline.equals("ROUTE", ignoreCase = true) -> "VÍA HECHA"
-        post.discipline.equals("BOULDER", ignoreCase = true) -> "BLOQUE HECHO"
+        post.discipline.equals("ROUTE", ignoreCase = true) -> AppText.get(R.string.share_feed_post_image_v4_via_hecha)
+        post.discipline.equals("BOULDER", ignoreCase = true) -> AppText.get(R.string.share_feed_post_image_v4_bloque_hecho)
         else -> "HECHO"
     }
 }

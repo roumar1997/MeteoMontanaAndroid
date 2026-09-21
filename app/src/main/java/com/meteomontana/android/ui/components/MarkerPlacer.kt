@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -207,7 +208,7 @@ internal class MarkerPlacer {
                 MarkerOptions()
                     .position(LatLng(ghost.newLat, ghost.newLon))
                     .icon(cachedIcon(iconFactory, "ghost") { ghostBitmap() })
-                    .title("Nueva posición")
+                    .title(AppText.get(R.string.marker_placer_v4_nueva_posicion))
             )
         }
     

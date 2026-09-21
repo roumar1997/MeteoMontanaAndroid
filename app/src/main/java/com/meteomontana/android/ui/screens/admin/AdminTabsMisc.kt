@@ -2,6 +2,7 @@
             androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.admin
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.inkButtonColor
 
 import androidx.compose.foundation.background
@@ -400,7 +401,7 @@ internal fun PushTab(
             shape = MaterialTheme.shapes.small
         ) {
             Text(if (busy) "Enviando..."
-                 else if (targetUid == null) "ENVIAR A TODOS LOS USUARIOS"
+                 else if (targetUid == null) stringResource(R.string.admin_tabs_misc_v3_enviar_a_todos_los_usuarios)
                  else stringResource(R.string.common_send))
         }
         if (confirmAll) {
@@ -507,8 +508,8 @@ private fun ContentReportCard(
             Text(
                 when (r.targetType) {
                     "COMMENT" -> "COMENTARIO"; "NOTE" -> "NOTA"
-                    "FEED_POST" -> "POST DEL FEED"
-                    "FEED_COMMENT" -> "COMENTARIO DEL FEED"
+                    "FEED_POST" -> stringResource(R.string.admin_tabs_misc_v4_post_del_feed)
+                    "FEED_COMMENT" -> stringResource(R.string.admin_tabs_misc_v4_comentario_del_feed)
                     else -> "USUARIO"
                 } + " - " + reasonLabel(r.reason),
                 style = MaterialTheme.typography.labelLarge,
@@ -698,7 +699,7 @@ private fun ReportCard(
 
 private fun reasonLabel(reason: String) = when (reason) {
     "SPAM" -> "Spam"
-    "INAPPROPRIATE" -> "Contenido inapropiado"
+    "INAPPROPRIATE" -> AppText.get(R.string.admin_tabs_misc_v4_contenido_inapropiado)
     "HARASSMENT" -> "Acoso"
     else -> "Otro"
 }
@@ -740,9 +741,9 @@ internal fun UserModerationSheet(
                 color = MaterialTheme.colorScheme.onSurface)
             // Estado + contadores
             Text(buildString {
-                append("${mod.reportCount} denuncia(s) · ${mod.warnings} aviso(s)")
-                if (mod.banned) append(" · BANEADO")
-                mod.suspendedUntil?.let { append(" · suspendido hasta ${it.take(10)}") }
+                append(stringResource(R.string.admin_tabs_misc_v4_denuncia_s_aviso_s, mod.reportCount, mod.warnings))
+                if (mod.banned) append(stringResource(R.string.admin_tabs_misc_v4_baneado))
+                mod.suspendedUntil?.let { append(stringResource(R.string.admin_tabs_misc_v4_suspendido_hasta, it.take(10))) }
             }, style = MaterialTheme.typography.labelMedium,
                 color = if (mod.banned) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.onSurfaceVariant)
@@ -828,9 +829,9 @@ internal fun UserModerationSheet(
 }
 
 private fun modActionLabel(a: String) = when (a) {
-    "WARN" -> "Aviso"; "SUSPEND" -> "Suspensión"; "BAN" -> "Baneo"; "UNBAN" -> "Desbaneo"
-    "DELETE_NOTE" -> "Nota borrada"; "DELETE_COMMENT" -> "Comentario borrado"
-    "DELETE_MEETUP" -> "Quedada borrada"; else -> a
+    "WARN" -> "Aviso"; "SUSPEND" -> AppText.get(R.string.admin_tabs_misc_v4_suspension); "BAN" -> "Baneo"; "UNBAN" -> "Desbaneo"
+    "DELETE_NOTE" -> AppText.get(R.string.admin_tabs_misc_v4_nota_borrada); "DELETE_COMMENT" -> AppText.get(R.string.admin_tabs_misc_v4_comentario_borrado)
+    "DELETE_MEETUP" -> AppText.get(R.string.admin_tabs_misc_v4_quedada_borrada); else -> a
 }
 
 @Composable

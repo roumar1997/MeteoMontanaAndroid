@@ -251,8 +251,8 @@ fun ApproachFollowScreen(
                     .padding(Spacing.md)
             ) {
                 Text(
-                    if (placingPin) "Toca el mapa donde quieras dejar la chincheta."
-                    else "Sigue la línea. Si te alejas del camino, comprueba las chinchetas.",
+                    if (placingPin) stringResource(R.string.approach_follow_screen_v3_toca_el_mapa_donde_quieras)
+                    else stringResource(R.string.approach_follow_screen_v3_sigue_la_linea_si_te),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

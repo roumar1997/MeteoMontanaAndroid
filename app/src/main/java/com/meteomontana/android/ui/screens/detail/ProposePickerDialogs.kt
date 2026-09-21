@@ -86,7 +86,7 @@ internal fun TypePickerDialog(
             TypeOption(
                 icon = "↺",
                 label = stringResource(R.string.propose_picker_dialogs_v2_continuar_piedra_a_medias),
-                description = "Tienes una piedra sin terminar en esta escuela. Sigue donde lo dejaste.",
+                description = stringResource(R.string.propose_picker_dialogs_v3_tienes_una_piedra_sin_terminar),
                 enabled = true,
                 onClick = onContinuarBorrador
             )
@@ -95,7 +95,7 @@ internal fun TypePickerDialog(
         TypeOption(
             icon = "▲",
             label = stringResource(R.string.propose_picker_dialogs_v2_piedra),
-            description = "Una roca con sus vías de escalada. Podrás añadir fotos y dibujar las líneas de cada vía.",
+            description = stringResource(R.string.propose_picker_dialogs_v3_una_roca_con_sus_vias),
             enabled = true,
             onClick = onBoulder
         )
@@ -109,7 +109,7 @@ internal fun TypePickerDialog(
             TypeOption(
                 icon = "\u25A3",
                 label = stringResource(R.string.propose_picker_dialogs_v2_piedra_desde_una_foto),
-                description = "Elige una foto tuya de la piedra: se coloca sola en el punto donde la hiciste.",
+                description = stringResource(R.string.propose_picker_dialogs_v3_elige_una_foto_tuya_de),
                 enabled = true,
                 onClick = onBoulderFromPhoto
             )
@@ -118,7 +118,7 @@ internal fun TypePickerDialog(
         TypeOption(
             icon = "+",
             label = stringResource(R.string.propose_picker_dialogs_v2_sector),
-            description = "Una zona que agrupa varias piedras (ej: \"La Isla\", \"Vertedero\"). Luego podrás asignar piedras al sector.",
+            description = stringResource(R.string.propose_picker_dialogs_v3_una_zona_que_agrupa_varias),
             enabled = true,
             onClick = onSector
         )
@@ -126,7 +126,7 @@ internal fun TypePickerDialog(
         TypeOption(
             icon = "▬",
             label = stringResource(R.string.propose_picker_dialogs_v2_parking),
-            description = "El punto donde se aparca para llegar a la escuela. Otros escaladores verán \"Cómo llegar\" con indicaciones.",
+            description = stringResource(R.string.propose_picker_dialogs_v3_el_punto_donde_se_aparca),
             enabled = true,
             onClick = onParking
         )
@@ -134,7 +134,7 @@ internal fun TypePickerDialog(
         TypeOption(
             icon = "↔",
             label = stringResource(R.string.propose_picker_dialogs_v2_corregir),
-            description = "¿Algo está mal colocado en el mapa? Toca el elemento y muévelo al sitio correcto.",
+            description = stringResource(R.string.propose_picker_dialogs_v3_algo_esta_mal_colocado_en),
             enabled = true,
             onClick = onCorrection
         )
@@ -142,7 +142,7 @@ internal fun TypePickerDialog(
         TypeOption(
             icon = "T",
             label = stringResource(R.string.propose_picker_dialogs_v2_corregir_nombre),
-            description = "¿El nombre de la escuela está mal escrito? Propón el correcto.",
+            description = stringResource(R.string.propose_picker_dialogs_v3_el_nombre_de_la_escuela),
             enabled = true,
             onClick = onCorrectSchoolName
         )
@@ -150,7 +150,7 @@ internal fun TypePickerDialog(
         TypeOption(
             icon = "☑",
             label = stringResource(R.string.propose_picker_dialogs_v2_corregir_estilo),
-            description = "¿Esta escuela tiene vía Y bloque pero solo aparece uno? Corrígelo.",
+            description = stringResource(R.string.propose_picker_dialogs_v3_esta_escuela_tiene_via_y),
             enabled = true,
             onClick = onCorrectSchoolStyle
         )

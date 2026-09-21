@@ -332,7 +332,7 @@ fun SchoolChatScreen(
                                 }
                                 Spacer(Modifier.padding(start = Spacing.sm))
                                 Text(
-                                    if (isMe) "Tú" else (person.displayName ?: person.username ?: "Usuario"),
+                                    if (isMe) stringResource(R.string.school_presence_row_v3_tu) else (person.displayName ?: person.username ?: "Usuario"),
                                     style = MaterialTheme.typography.bodyLarge.copy(fontFamily = Serif),
                                     color = MaterialTheme.colorScheme.onBackground,
                                     modifier = Modifier.weight(1f)

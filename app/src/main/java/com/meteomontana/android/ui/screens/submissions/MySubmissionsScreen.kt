@@ -181,12 +181,12 @@ private fun ContributionRow(c: Contribution) {
     val typeLabel = when (c.type) {
         "PARKING"              -> "Parking"
         "BOULDER"              -> when {
-            !c.targetLineId.isNullOrBlank() -> "Corregir vía"
-            !c.targetBlockId.isNullOrBlank() -> "Añadir vías"
-            else                             -> "Piedra nueva"
+            !c.targetLineId.isNullOrBlank() -> stringResource(R.string.my_submissions_screen_v3_corregir_via)
+            !c.targetBlockId.isNullOrBlank() -> stringResource(R.string.my_submissions_screen_v3_anadir_vias)
+            else                             -> stringResource(R.string.my_submissions_screen_v3_piedra_nueva)
         }
         "SECTOR"               -> "Sector"
-        "POSITION_CORRECTION"  -> "Mover ubicación"
+        "POSITION_CORRECTION"  -> stringResource(R.string.my_submissions_screen_v3_mover_ubicacion)
         else                   -> c.type
     }
     Row(

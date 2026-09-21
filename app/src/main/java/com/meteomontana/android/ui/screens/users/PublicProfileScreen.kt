@@ -166,7 +166,7 @@ fun PublicProfileScreen(
     val profileUid = (state as? PublicProfileUiState.Success)?.profile?.uid
     val profileName = (state as? PublicProfileUiState.Success)?.profile?.let {
         it.username?.let { u -> "@" + u } ?: it.displayName
-    } ?: "este usuario"
+    } ?: stringResource(R.string.notes_section_v3_este_usuario)
     val myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -221,7 +221,7 @@ fun PublicProfileScreen(
                         val isBlocked = profileUid in blocked
                         androidx.compose.material3.DropdownMenuItem(
                             text = { Text(if (isBlocked) "Desbloquear"
-                                          else "Bloquear — no verás su contenido y no podrá escribirte",
+                                          else stringResource(R.string.public_profile_screen_v3_bloquear_no_veras_su_contenido),
                                           color = if (isBlocked) MaterialTheme.colorScheme.onSurface
                                                   else MaterialTheme.colorScheme.error) },
                             onClick = {
@@ -442,7 +442,7 @@ private fun ActivityStatsRow(
         // perfil) — antes eran texto rojo con flecha y un feed inline enorme.
         Row(modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatBox("ESTADÍSTICAS", "▸", Modifier.weight(1f), onStatsClick)
+            StatBox(stringResource(R.string.profile_screen_v3_estadisticas), "▸", Modifier.weight(1f), onStatsClick)
             StatBox(stringResource(R.string.feed_posts_section).uppercase(), "▸",
                 Modifier.weight(1f), onPostsClick)
         }

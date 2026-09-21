@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.approach
 
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import androidx.compose.foundation.background
@@ -145,12 +146,12 @@ fun ApproachRecordScreen(
                         Text(stringResource(R.string.approach_record_screen_v2_origen_parking), style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(4.dp))
-                        BlockPicker(parkings, fromBlockId, "Elige un parking") { fromBlockId = it }
+                        BlockPicker(parkings, fromBlockId, stringResource(R.string.approach_record_screen_v3_elige_un_parking)) { fromBlockId = it }
                         Spacer(Modifier.height(Spacing.sm))
                         Text(stringResource(R.string.approach_record_screen_v2_destino_sector_piedra), style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(4.dp))
-                        BlockPicker(sectors, toBlockId, "Elige un sector") { toBlockId = it }
+                        BlockPicker(sectors, toBlockId, stringResource(R.string.approach_record_screen_v3_elige_un_sector)) { toBlockId = it }
                         Spacer(Modifier.height(Spacing.sm))
                     }
                 }
@@ -243,7 +244,7 @@ fun ApproachRecordScreen(
                     Spacer(Modifier.height(Spacing.sm))
                     Text(
                         stringResource(R.string.approach_record_screen_v2_1_s_2_s_3, formatDistance(distanceM), formatElapsed(elapsedSeconds), points.size) +
-                            if (pendingPins.value.isEmpty()) "" else " · ${pendingPins.value.size} chinchetas",
+                            if (pendingPins.value.isEmpty()) "" else stringResource(R.string.approach_record_screen_v4_chinchetas, pendingPins.value.size),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -257,7 +258,7 @@ fun ApproachRecordScreen(
                             .background(terraFillColor(), RoundedCornerShape(2.dp))
                             .clickable(enabled = !saving) {
                                 if (points.size < 2) {
-                                    errorMsg = "El camino grabado es demasiado corto."
+                                    errorMsg = AppText.get(R.string.approach_record_screen_v3_el_camino_grabado_es_demasiado)
                                     return@clickable
                                 }
                                 scope.launch {
@@ -279,7 +280,7 @@ fun ApproachRecordScreen(
                                     val result = onSave(req, pinsReq)
                                     saving = false
                                     if (result.isSuccess) onDismiss()
-                                    else errorMsg = "No se pudo guardar. Inténtalo de nuevo."
+                                    else errorMsg = AppText.get(R.string.approach_record_screen_v3_no_se_pudo_guardar_intentalo)
                                 }
                             }
                             .padding(vertical = Spacing.lg),

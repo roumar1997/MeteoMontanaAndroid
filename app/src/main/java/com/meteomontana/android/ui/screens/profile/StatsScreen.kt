@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.profile
 
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import androidx.compose.foundation.background
@@ -95,9 +96,9 @@ fun StatsScreen(
                             shareScope.launch {
                                 com.meteomontana.android.ui.share.shareStatsAsImage(
                                     context = shareCtx,
-                                    periodLabel = state.year?.let { y -> "MI $y EN ROCA" }
-                                        ?: "MI DIARIO EN ROCA",
-                                    disciplineLabel = if (state.discipline == "ROUTE") "VÍA" else "BLOQUE",
+                                    periodLabel = state.year?.let { y -> AppText.get(R.string.stats_screen_v3_mi_en_roca, y) }
+                                        ?: AppText.get(R.string.stats_screen_v3_mi_diario_en_roca),
+                                    disciplineLabel = if (state.discipline == "ROUTE") AppText.get(R.string.add_block_sheet_v3_via) else "BLOQUE",
                                     summary = sum,
                                     maxGrade = sum.pyramid.firstOrNull()?.first,
                                     progression = state.progression
@@ -113,7 +114,7 @@ fun StatsScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically) {
                 FilterChip("BLOQUE", state.discipline == "BOULDER") { viewModel.setDiscipline("BOULDER") }
-                FilterChip("VÍA", state.discipline == "ROUTE") { viewModel.setDiscipline("ROUTE") }
+                FilterChip(stringResource(R.string.add_block_sheet_v3_via), state.discipline == "ROUTE") { viewModel.setDiscipline("ROUTE") }
                 var gradeMenuOpen by remember { mutableStateOf(false) }
                 Box {
                     VotableChip(text = state.grade?.uppercase() ?: "GRADO") { gradeMenuOpen = true }
@@ -142,7 +143,7 @@ fun StatsScreen(
             // Día concreto activo (desde DÍAS DE ROCA): chip para quitarlo.
             state.day?.let { d ->
                 Spacer(Modifier.height(Spacing.sm))
-                FilterChip("DÍA $d  ✕", true) { viewModel.setDay(null) }
+                FilterChip(stringResource(R.string.stats_screen_v3_dia, d), true) { viewModel.setDay(null) }
             }
             // Meses del año elegido (solo con año concreto).
             if (state.year != null) {
@@ -150,7 +151,7 @@ fun StatsScreen(
                 androidx.compose.foundation.lazy.LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    item { FilterChip("AÑO ENTERO", state.month == null) { viewModel.setMonth(null) } }
+                    item { FilterChip(stringResource(R.string.stats_screen_v3_ano_entero), state.month == null) { viewModel.setMonth(null) } }
                     items(12) { i ->
                         val m = (i + 1).toString().padStart(2, '0')
                         FilterChip(MONTHS[i], state.month == m) { viewModel.setMonth(m) }
@@ -163,7 +164,7 @@ fun StatsScreen(
             val s = state.summary
             if (s != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    MetricCard("DÍAS DE ROCA ▾", s.daysOut.toString(),
+                    MetricCard(stringResource(R.string.stats_screen_v3_dias_de_roca), s.daysOut.toString(),
                         Modifier.weight(1f).clickable { showDaysList = true })
                     MetricCard("RACHA", "${s.currentStreakWeeks} sem", Modifier.weight(1f), terra = true)
                 }
@@ -238,8 +239,8 @@ fun StatsScreen(
                 }
                 Spacer(Modifier.height(Spacing.sm))
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    MetricCard("PROYECTOS CAÍDOS", s.projectsFallen.toString(), Modifier.weight(1f))
-                    MetricCard("MEDIA/DÍA", s.avgPerDay.toString(), Modifier.weight(1f))
+                    MetricCard(stringResource(R.string.stats_screen_v3_proyectos_caidos), s.projectsFallen.toString(), Modifier.weight(1f))
+                    MetricCard(stringResource(R.string.stats_screen_v3_media_dia), s.avgPerDay.toString(), Modifier.weight(1f))
                 }
                 Spacer(Modifier.height(Spacing.lg))
 
@@ -298,7 +299,7 @@ fun StatsScreen(
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.onSurface)
                                         Text((e.schoolName ?: "—") +
-                                            (if (e.schoolId != null) "  ·  VER ▸" else ""),
+                                            (if (e.schoolId != null) stringResource(R.string.stats_screen_v3_ver) else ""),
                                             style = EyebrowTextStyle.copy(fontSize = 9.sp),
                                             color = Terra)
                                     }
@@ -315,7 +316,7 @@ fun StatsScreen(
                     Box(Modifier.clickable {
                         viewModel.setYear(bm.take(4)); viewModel.setMonth(bm.substringAfter('-'))
                     }) {
-                        InfoCard("Tu mejor mes: ${formatMonth(bm)} (${s.bestMonthCount} ascensos). Toca para verlo ▾")
+                        InfoCard(stringResource(R.string.stats_screen_v3_tu_mejor_mes_ascensos_toca, formatMonth(bm), s.bestMonthCount))
                     }
                 }
                 Spacer(Modifier.height(Spacing.lg))
@@ -416,7 +417,7 @@ fun StatsScreen(
             }
 
             if (state.summary == null && !state.loading) {
-                InfoCard("Marca vías como hechas y aquí verás tu pirámide, tu racha y tu progresión.")
+                InfoCard(stringResource(R.string.stats_screen_v3_marca_vias_como_hechas_y))
             }
         }
     }

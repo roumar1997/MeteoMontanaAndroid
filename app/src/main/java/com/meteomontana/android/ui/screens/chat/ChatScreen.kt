@@ -158,7 +158,7 @@ fun ChatScreen(
         } else {
             // Cita del mensaje al que respondo (estilo WhatsApp).
             state.replyingTo?.let { reply ->
-                val who = if (reply.fromUid == (state.myUid ?: state.myProfile?.uid)) "Tú"
+                val who = if (reply.fromUid == (state.myUid ?: state.myProfile?.uid)) stringResource(R.string.school_presence_row_v3_tu)
                           else (state.otherProfile?.username ?: state.otherProfile?.displayName ?: "")
                 Row(
                     modifier = Modifier.fillMaxWidth()
@@ -337,7 +337,7 @@ private fun MessageBubble(
                 // y Kotlin no permite smart-cast directo tras el null-check.
                 val replyText = msg.replyText
                 if (msg.replyToId != null && replyText != null) {
-                    val who = if (msg.replyFromUid == myUid) "Tú" else otherName
+                    val who = if (msg.replyFromUid == myUid) stringResource(R.string.school_presence_row_v3_tu) else otherName
                     Row(
                         modifier = Modifier.fillMaxWidth()
                             .clip(RoundedCornerShape(4.dp))

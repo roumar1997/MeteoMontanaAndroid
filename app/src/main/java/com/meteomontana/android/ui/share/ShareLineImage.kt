@@ -91,7 +91,8 @@ suspend fun shareLineAsImage(
     file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 
-    val kind = if (block.discipline.equals("ROUTE", ignoreCase = true)) "vía" else "bloque"
+    val kind = context.getString(
+        if (block.discipline.equals("ROUTE", ignoreCase = true)) R.string.kind_route else R.string.kind_boulder)
     // Enlace que ABRE la app directamente en esta piedra (landing /s/v/... con
     // Open Graph → "abrir en app" o descargar si no la tienen). Recupera el
     // deep-link que el compartir de texto ya tenía.
@@ -100,7 +101,7 @@ suspend fun shareLineAsImage(
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "image/png"
         putExtra(Intent.EXTRA_STREAM, uri)
-        putExtra(Intent.EXTRA_TEXT, shareText(block, line, schoolName, sectorName, link))
+        putExtra(Intent.EXTRA_TEXT, shareText(context, block, line, schoolName, sectorName, link))
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_utils_v3_compartir_1_s, kind)))
@@ -112,6 +113,7 @@ suspend fun shareLineAsImage(
  * y debajo piedra · escuela · sector, más el enlace que abre la app en la piedra.
  */
 private fun shareText(
+    context: Context,
     block: Block,
     line: BlockLine,
     schoolName: String,
@@ -119,17 +121,15 @@ private fun shareText(
     link: String
 ): String {
     val isRoute = block.discipline.equals("ROUTE", ignoreCase = true)
-    val kind = if (isRoute) "vía" else "bloque"
-    val article = if (isRoute) "esta" else "este"
     val grade = line.grade?.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
     val place = buildString {
         append(block.name)
         if (schoolName.isNotBlank()) append(" · ").append(schoolName)
         if (!sectorName.isNullOrBlank()) append(" · ").append(sectorName)
     }
-    return "🧗 Mira $article $kind: «${line.name}»$grade\n" +
-        "📍 $place\n" +
-        "👉 Míralo en la app:\n$link"
+    return context.getString(
+        if (isRoute) R.string.share_line_image_route else R.string.share_line_image_boulder,
+        line.name, grade, place, link)
 }
 
 /** topoAspectRatio de TopoPhotoCanvas: recorta el ratio a un rango razonable. */

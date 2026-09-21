@@ -239,10 +239,10 @@ private fun CompareTable(items: List<CompareItem>, onSchoolDetail: (String) -> U
                 minIndices(items.map { it.wind.toDouble() })),
             CompareMetric("HUMEDAD", items.map { "${it.humidity}%" },
                 minIndices(items.map { it.humidity.toDouble() })),
-            CompareMetric("PROB. LLUVIA", items.map { "${it.rainProb}%" },
+            CompareMetric(stringResource(R.string.compare_screen_v3_prob_lluvia), items.map { "${it.rainProb}%" },
                 minIndices(items.map { it.rainProb.toDouble() })),
-            CompareMetric("ÓPTIMO", items.map { it.optimal ?: "—" }, emptySet()),
-            CompareMetric("MEJOR DÍA", items.map { it.bestDay?.replaceFirstChar { c -> c.uppercase() } ?: "—" }, emptySet())
+            CompareMetric(stringResource(R.string.compare_screen_v3_optimo), items.map { it.optimal ?: "—" }, emptySet()),
+            CompareMetric(stringResource(R.string.compare_screen_v3_mejor_dia), items.map { it.bestDay?.replaceFirstChar { c -> c.uppercase() } ?: "—" }, emptySet())
         )
         Column(
             Modifier.fillMaxWidth()

@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.profile
 
+import com.meteomontana.android.util.AppText
 import android.content.Context
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.CoroutineScope
@@ -218,7 +219,7 @@ private fun shareProfile(ctx: Context, scope: CoroutineScope, p: PrivateProfile,
     scope.launch {
         com.meteomontana.android.ui.share.shareProfileAsImage(
             ctx, handle,
-            p.username?.let { "@$it" } ?: (p.displayName ?: "mi perfil"),
+            p.username?.let { "@$it" } ?: (p.displayName ?: AppText.get(R.string.profile_screen_v4_mi_perfil)),
             username = p.username, photoUrl = p.photoUrl,
             topGrade = stats.maxGrade, bio = p.bio,
             boulders = stats.boulderCount, routes = stats.routeCount, schools = stats.schoolCount
@@ -395,7 +396,7 @@ private fun Header(
         Spacer(Modifier.height(12.dp))
         // Nombre grande serif.
         Text(
-            p.displayName ?: p.username ?: "Tú",
+            p.displayName ?: p.username ?: stringResource(R.string.school_presence_row_v3_tu),
             fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 28.sp,
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -724,7 +725,7 @@ private fun StatsRow(
             StatCell(stringResource(R.string.feed_my_posts_section).uppercase(), "›", Modifier.weight(1f).clickable(onClick = onMyPosts))
         }
         // Fila 4: ESTADÍSTICAS a todo el ancho, como en iOS.
-        StatCell("ESTADÍSTICAS", "▃▅▇", Modifier.fillMaxWidth().clickable(onClick = onOpenStats))
+        StatCell(stringResource(R.string.profile_screen_v3_estadisticas), "▃▅▇", Modifier.fillMaxWidth().clickable(onClick = onOpenStats))
     }
 }
 

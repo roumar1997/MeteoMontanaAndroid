@@ -117,10 +117,10 @@ fun ReportDialog(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.sm))
             listOf(
-                "SPAM" to "Spam o publicidad",
-                "OFFENSIVE" to "Ofensivo o acoso",
-                "FALSE_INFO" to "Información falsa o peligrosa",
-                "OTHER" to "Otro motivo"
+                "SPAM" to stringResource(R.string.report_dialog_v3_spam_o_publicidad),
+                "OFFENSIVE" to stringResource(R.string.report_dialog_v3_ofensivo_o_acoso),
+                "FALSE_INFO" to stringResource(R.string.report_dialog_v3_informacion_falsa_o_peligrosa),
+                "OTHER" to stringResource(R.string.report_dialog_v3_otro_motivo)
             ).forEach { (code, label) ->
                 Box(
                     modifier = Modifier.fillMaxWidth()

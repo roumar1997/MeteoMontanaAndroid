@@ -170,7 +170,7 @@ fun MeetupAlertScreen(
                 }
                 if (selectedSchoolId != null) {
                     IconButton(onClick = { selectedSchoolId = null; selectedSchoolName = null }) {
-                        Icon(Icons.Outlined.Close, "Quitar filtro de escuela")
+                        Icon(Icons.Outlined.Close, stringResource(R.string.meetup_alert_screen_v3_quitar_filtro_de_escuela))
                     }
                 }
             }
@@ -182,13 +182,13 @@ fun MeetupAlertScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 AlertChip("Ambas", discipline == null, enabled = enabled) { if (enabled) discipline = null }
                 AlertChip("Bloque", discipline == "BOULDER", enabled = enabled) { if (enabled) discipline = "BOULDER" }
-                AlertChip("Vía", discipline == "ROUTE", enabled = enabled) { if (enabled) discipline = "ROUTE" }
+                AlertChip(stringResource(R.string.school_map_v3_via), discipline == "ROUTE", enabled = enabled) { if (enabled) discipline = "ROUTE" }
             }
 
             HorizontalDivider()
 
             // Privacidad
-            SectionLabel("TIPO DE QUEDADA")
+            SectionLabel(stringResource(R.string.meetup_alert_screen_v3_tipo_de_quedada))
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
@@ -196,7 +196,7 @@ fun MeetupAlertScreen(
                 AlertChip("Todas", privacy == null, enabled = enabled) { if (enabled) privacy = null }
                 AlertChip("Abiertas", privacy == "OPEN", enabled = enabled) { if (enabled) privacy = "OPEN" }
                 AlertChip("Seguidos/Seguidores", privacy == "FOLLOWERS", enabled = enabled) { if (enabled) privacy = "FOLLOWERS" }
-                AlertChip("No mixto", privacy == "WOMEN", enabled = enabled && isWoman) {
+                AlertChip(stringResource(R.string.meetup_alert_screen_v3_no_mixto), privacy == "WOMEN", enabled = enabled && isWoman) {
                     if (enabled && isWoman) privacy = "WOMEN"
                 }
             }
@@ -213,7 +213,7 @@ fun MeetupAlertScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                AlertChip("Sin límite", maxDistanceKm == null, enabled = enabled) { if (enabled) maxDistanceKm = null }
+                AlertChip(stringResource(R.string.meetup_alert_screen_v3_sin_limite), maxDistanceKm == null, enabled = enabled) { if (enabled) maxDistanceKm = null }
                 AlertChip("50 km", maxDistanceKm == 50, enabled = enabled) { if (enabled) maxDistanceKm = 50 }
                 AlertChip("100 km", maxDistanceKm == 100, enabled = enabled) { if (enabled) maxDistanceKm = 100 }
                 AlertChip("200 km", maxDistanceKm == 200, enabled = enabled) { if (enabled) maxDistanceKm = 200 }
@@ -222,7 +222,7 @@ fun MeetupAlertScreen(
             HorizontalDivider()
 
             // Días concretos (próximos 14, mismo rango que crear)
-            SectionLabel("DÍAS")
+            SectionLabel(stringResource(R.string.meetup_alert_screen_v3_dias))
             Text(stringResource(R.string.meetup_alert_screen_avisame_si_la_quedada),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)

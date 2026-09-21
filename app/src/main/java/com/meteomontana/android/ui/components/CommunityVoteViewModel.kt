@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.AppText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.domain.model.GradeSummary
@@ -15,6 +16,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Estado de la votación comunitaria (C2/C5): orientación por superficie,
@@ -65,7 +68,7 @@ class CommunityVoteViewModel @Inject constructor(
                     _orientation.value = it
                     loadSun(blockId, photoIndex)   // la tira usa el consenso nuevo
                 }
-                .onFailure { _error.value = "No se pudo registrar el voto" }
+                .onFailure { _error.value = AppText.get(R.string.community_vote_view_model_v4_no_se_pudo_registrar_el) }
         }
     }
 
@@ -83,8 +86,8 @@ class CommunityVoteViewModel @Inject constructor(
                 .onFailure { e ->
                     _error.value = if (e.message?.contains("403") == true ||
                         e.message?.contains("GRADE_VOTE_REQUIRES_JOURNAL") == true)
-                        "Solo puede votar el grado quien la tiene en su diario"
-                    else "No se pudo registrar el voto"
+                        AppText.get(R.string.community_vote_view_model_v4_solo_puede_votar_el_grado)
+                    else AppText.get(R.string.community_vote_view_model_v4_no_se_pudo_registrar_el)
                 }
         }
     }

@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -243,7 +244,7 @@ fun HelpSheet(topicKey: String, onDismiss: () -> Unit) {
                         resetAllHints(ctx)
                         android.widget.Toast.makeText(
                             ctx,
-                            "Pistas reactivadas — vuelve a cada pantalla para verlas",
+                            AppText.get(R.string.help_sheet_v3_pistas_reactivadas_vuelve_a_cada),
                             android.widget.Toast.LENGTH_SHORT
                         ).show()
                     }

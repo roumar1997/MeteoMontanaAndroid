@@ -72,7 +72,7 @@ fun MyGearSheet(
 
     Column(Modifier.fillMaxWidth()) {
         CumbreSheetHeader(
-            titulo = "MI MATERIAL",
+            titulo = stringResource(R.string.my_gear_sheet_v3_mi_material),
             onClose = onClose,
             accion = {
                 TextButton(

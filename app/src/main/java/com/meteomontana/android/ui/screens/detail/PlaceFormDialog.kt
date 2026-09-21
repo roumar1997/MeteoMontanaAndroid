@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.detail
 
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -41,10 +42,10 @@ internal fun ParkingFormDialog(
 ) = PlaceFormDialog(
     title = stringResource(R.string.place_form_dialog_v2_nuevo_parking),
     subtitle = stringResource(R.string.place_form_dialog_v2_anade_un_punto_de_aparcamiento),
-    nameLabel = "NOMBRE (OPCIONAL)",
-    namePlaceholder = "Ej: Parking principal, Área forestal…",
+    nameLabel = stringResource(R.string.place_form_dialog_v3_nombre_opcional),
+    namePlaceholder = stringResource(R.string.place_form_dialog_v3_ej_parking_principal_area_forestal),
     nameRequired = false,
-    notesPlaceholder = "Capacidad, restricciones, horario…",
+    notesPlaceholder = stringResource(R.string.place_form_dialog_v4_capacidad_restricciones_horario),
     notesFieldHeight = 100.dp,
     showPositionBadge = true,
     lat = lat, lon = lon,
@@ -62,9 +63,9 @@ internal fun SectorFormDialog(
     title = stringResource(R.string.place_form_dialog_v2_nuevo_sector),
     subtitle = stringResource(R.string.place_form_dialog_v2_un_sector_agrupa_varias_piedras),
     nameLabel = "NOMBRE",
-    namePlaceholder = "Ej: La Isla, Vertedero, Cuevas…",
+    namePlaceholder = stringResource(R.string.place_form_dialog_v3_ej_la_isla_vertedero_cuevas),
     nameRequired = true,
-    notesPlaceholder = "Tipo de roca, orientación, accesos…",
+    notesPlaceholder = stringResource(R.string.place_form_dialog_v3_tipo_de_roca_orientacion_accesos),
     notesFieldHeight = 80.dp,
     showPositionBadge = false,
     lat = lat, lon = lon,
@@ -155,7 +156,7 @@ private fun PlaceFormDialog(
                 scope.launch {
                     val ok = onSubmit(name, notes)
                     sending = false
-                    if (!ok) error = "No se pudo enviar. Revisa la conexión — tus datos siguen aquí."
+                    if (!ok) error = AppText.get(R.string.place_form_dialog_v3_no_se_pudo_enviar_revisa)
                 }
             },
             onSaveOffline = onSaveOffline?.let { save -> { save(name, notes) } }

@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.share
 
 
+import com.meteomontana.android.util.AppText
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -12,6 +13,7 @@ import androidx.core.content.FileProvider
 import com.meteomontana.android.domain.usecase.journal.JournalStatsCalculator
 import java.io.File
 import com.meteomontana.android.R
+import androidx.compose.ui.res.stringResource
 
 /* Paleta Cumbre (= ShareProfileImage/ShareLineImage). */
 private const val PAPER = 0xFFFAF7F2.toInt()
@@ -55,7 +57,7 @@ suspend fun shareStatsAsImage(
         putExtra(Intent.EXTRA_STREAM, uri)
         putExtra(
             Intent.EXTRA_TEXT,
-            "Mis estadísticas de escalada en Cumbre:\nhttps://api.climbingteams.com/app"
+            AppText.get(R.string.share_stats_image_v4_mis_estadisticas_de_escalada_en)
         )
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
@@ -170,8 +172,8 @@ private fun renderStatsCard(
         val months = listOf("enero", "febrero", "marzo", "abril", "mayo", "junio",
             "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre")
         val label = runCatching {
-            "Mejor mes: ${months[bm.substringAfter('-').toInt() - 1]} (${s.bestMonthCount} ascensos)"
-        }.getOrDefault("Mejor mes: $bm")
+            AppText.get(R.string.share_stats_image_v4_mejor_mes_ascensos, months[bm.substringAfter('-').toInt() - 1], s.bestMonthCount)
+        }.getOrDefault(AppText.get(R.string.share_stats_image_v4_mejor_mes, bm))
         c.drawText(label, cx, y, Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = INK; textSize = 44f; textAlign = Paint.Align.CENTER
         })

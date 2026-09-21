@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -310,7 +311,7 @@ private fun RainSummaryTag(range: com.meteomontana.android.domain.model.RangeSco
     ) {
         if (range.rainDays == 0) {
             Text(
-                text = "● SIN LLUVIA",
+                text = stringResource(R.string.school_list_item_v3_sin_lluvia),
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp
                 ),
@@ -345,7 +346,7 @@ private fun weekdayLetter(iso: String): String = try {
 private fun scoreLabel(score: Int?): String = when {
     score == null -> ""
     score >= 85   -> "EXCELENTE"
-    score >= 70   -> "MUY BUENO"
+    score >= 70   -> AppText.get(R.string.school_list_item_v4_muy_bueno)
     score >= 55   -> "BUENO"
     score >= 40   -> "REGULAR"
     else          -> "MALO"

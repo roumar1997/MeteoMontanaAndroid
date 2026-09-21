@@ -54,7 +54,7 @@ fun SchoolFiltersBar(
             )
         }
         // TIPO DE ROCA con chip "Todas" al principio (limpia la selección), como iOS.
-        Section("TIPO DE ROCA") {
+        Section(stringResource(R.string.school_filters_bar_v3_tipo_de_roca)) {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -104,7 +104,7 @@ fun SchoolFiltersBar(
                 }
             )
         }
-        Section("ORDENAR POR") {
+        Section(stringResource(R.string.school_filters_bar_v3_ordenar_por)) {
             ChipRow(
                 items = SortBy.entries,
                 isSelected = { it == filters.sortBy },

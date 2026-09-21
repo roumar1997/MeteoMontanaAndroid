@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.meetups
 
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.data.map.MapStyles
 
 import android.graphics.Bitmap
@@ -146,7 +147,7 @@ fun MeetupsMapPanel(
                 modifier = Modifier.size(18.dp),
                 tint = MaterialTheme.colorScheme.primary)
             Text(
-                if (expanded) "OCULTAR MAPA" else "VER MAPA DE QUEDADAS",
+                if (expanded) stringResource(R.string.meetups_map_panel_v4_ocultar_mapa) else stringResource(R.string.meetups_map_panel_v4_ver_mapa_de_quedadas),
                 style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f)
@@ -312,7 +313,7 @@ private fun MeetupsMapView(
             map.addMarker(
                 MarkerOptions()
                     .position(LatLng(userLat, userLon))
-                    .title("Tu ubicación")
+                    .title(AppText.get(R.string.meetups_map_panel_v4_tu_ubicacion))
                     .icon(iconFactory.fromBitmap(dot))
             )
         }
@@ -573,7 +574,7 @@ private fun FullScreenMeetupsMap(
         val iconFactory = IconFactory.getInstance(context)
         if (userLat != null && userLon != null) {
             map.addMarker(MarkerOptions().position(LatLng(userLat, userLon))
-                .title("Tu ubicación").icon(iconFactory.fromBitmap(createUserDot())))
+                .title(AppText.get(R.string.meetups_map_panel_v4_tu_ubicacion)).icon(iconFactory.fromBitmap(createUserDot())))
         }
         groups.forEach { group ->
             val marker = map.addMarker(

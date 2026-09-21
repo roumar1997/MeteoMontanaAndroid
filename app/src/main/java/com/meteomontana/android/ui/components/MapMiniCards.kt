@@ -124,7 +124,7 @@ internal fun SchoolViaSearchBar(
                             sub = b.name, lineId = l.id, name = l.name))
                     }
                     if (b.name.contains(q, ignoreCase = true)) add(Hit(
-                        label = b.name, sub = "${b.lines.size} vías", lineId = null, name = b.name))
+                        label = b.name, sub = stringResource(R.string.grade_filter_bar_v3_vias, b.lines.size), lineId = null, name = b.name))
                 }
             }.take(8)
             if (hits.isEmpty()) {
@@ -264,7 +264,7 @@ internal fun MiniBlockCard(
     }
     val subtitle = buildString {
         append(if (isParking) "Parking" else "Sector")
-        if (!isParking && stoneCount > 0) append(" · $stoneCount piedra${if (stoneCount == 1) "" else "s"}")
+        if (!isParking && stoneCount > 0) append(stringResource(R.string.map_mini_cards_v3_piedra, stoneCount, if (stoneCount == 1) "" else "s"))
         distance?.let { append(" · $it") }
     }
 

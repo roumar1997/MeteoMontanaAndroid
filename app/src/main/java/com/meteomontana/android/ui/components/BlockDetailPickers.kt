@@ -93,9 +93,9 @@ internal fun BlockDeleteConfirmDialog(
         text = {
             Text(
                 if (block.type == "BLOCK")
-                    "Se borrará \"${block.name}\" y todas sus vías. Esta acción no se puede deshacer."
+                    stringResource(R.string.block_detail_pickers_v3_se_borrara_y_todas_sus, block.name)
                 else
-                    "Se borrará \"${block.name}\". Esta acción no se puede deshacer."
+                    stringResource(R.string.block_detail_pickers_v3_se_borrara_esta_accion_no, block.name)
             )
         },
         confirmButton = {

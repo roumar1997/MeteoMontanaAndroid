@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.profile
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.inkButtonColor
 
 import androidx.compose.foundation.background
@@ -156,7 +157,7 @@ private fun EditForm(
                     setHideBottomControls(false)
                     setFreeStyleCropEnabled(false)
                     setCompressionQuality(85)
-                    setToolbarTitle("Recortar foto")
+                    setToolbarTitle(AppText.get(R.string.edit_profile_screen_v3_recortar_foto))
                     // Colores Cumbre: barra de papel y el ✓/✕ en tinta encima
                     // (con los de serie, blancos sobre blanco, el ✓ apenas se
                     // distinguía). DÓNDE se dibuja la barra lo arregla
@@ -212,16 +213,16 @@ private fun EditForm(
             }
             Spacer(Modifier.padding(start = 16.dp))
             Text(
-                if (s.uploadingPhoto) "Subiendo foto…" else "Tocar la foto para cambiarla",
+                if (s.uploadingPhoto) stringResource(R.string.edit_profile_screen_v3_subiendo_foto) else stringResource(R.string.edit_profile_screen_v3_tocar_la_foto_para_cambiarla),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         Field("USERNAME", username, { username = it.lowercase().replace(" ", "_") },
             placeholder = stringResource(R.string.edit_profile_screen_v2_ej_ana_escaladora))
-        Field("NOMBRE PARA MOSTRAR", displayName, { displayName = it },
+        Field(stringResource(R.string.edit_profile_screen_v3_nombre_para_mostrar), displayName, { displayName = it },
             placeholder = stringResource(R.string.edit_profile_screen_v2_alvaro_jara))
-        Field("BIO (max 150)", bio, { if (it.length <= 150) bio = it },
+        Field(stringResource(R.string.edit_profile_screen_v4_bio_max_150), bio, { if (it.length <= 150) bio = it },
             placeholder = stringResource(R.string.edit_profile_screen_cuentate_en_una_linea), height = 80.dp)
         // GRADO MÁXIMO: automático desde el diario (tope de bloque y de vía por
         // separado). Ya no es manual → no hay campo, solo el aviso.
@@ -320,7 +321,7 @@ private fun GearSelector(gearState: MutableMap<String, Int>, version: Int, onCha
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun GenderSelector(selected: String, onSelect: (String) -> Unit) {
-    val options = listOf("WOMAN" to "Mujer", "MAN" to "Hombre", "OTHER" to "Otro", "" to "No indicar")
+    val options = listOf("WOMAN" to "Mujer", "MAN" to "Hombre", "OTHER" to "Otro", "" to stringResource(R.string.edit_profile_screen_v3_no_indicar))
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.edit_profile_screen_genero_privado_solo_para),
             style = MaterialTheme.typography.labelMedium,

@@ -2,6 +2,7 @@
             androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.admin
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.data.map.MapStyles
 
 import androidx.compose.foundation.background
@@ -250,7 +251,7 @@ internal fun redrawContributionMarkers(
     } else {
         val icon = pinBitmap(android.graphics.Color.parseColor("#F59E0B"), "★", 40)
         map.addMarker(MarkerOptions().position(LatLng(c.lat, c.lon))
-            .title("PROPUESTA · ${c.name ?: c.type}")
+            .title(AppText.get(R.string.full_screen_map_dialog_v4_propuesta, c.name ?: c.type))
             .icon(iconFactory.fromBitmap(icon)))
     }
     // Muro: polilínea vieja (gris) + nueva (sólida terra).

@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.components
 
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -112,8 +113,7 @@ fun BlocksSection(
                 // de ella. Quite este control al entrar desde la escuela
                 // pensando que "ya sabemos cual es" — y Rodrigo colo una foto de
                 // Valsain en Zarzalejo, a 32 km.
-                avisoFoto = "Esa foto se hizo a ${km.toInt()} km de $schoolName. " +
-                    "Elige una foto tomada en esta escuela."
+                avisoFoto = AppText.get(R.string.blocks_section_photo_far, km.toInt(), schoolName)
             } else {
                 photoSeed = com.meteomontana.android.ui.screens.detail.PhotoSeed(
                     photoUri = uri,

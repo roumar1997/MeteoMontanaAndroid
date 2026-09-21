@@ -202,7 +202,7 @@ internal fun PropuestasTab(
         // School submissions (propuestas de escuelas nuevas) si filtro = TODAS
         if (filter == ContribFilter.TODAS && submissions.isNotEmpty()) {
             item {
-                SchoolGroupHeader("ESCUELAS NUEVAS", submissions.size)
+                SchoolGroupHeader(stringResource(R.string.propuestas_tab_v3_escuelas_nuevas), submissions.size)
             }
             items(submissions) { s ->
                 SubmissionCard(s, onApproveSubmission, onRejectSubmission)

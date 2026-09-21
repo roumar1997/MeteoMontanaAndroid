@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.components
 
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -107,6 +108,6 @@ private fun labelFor(score: Int): String = when {
     score >= 65 -> "Bueno"
     score >= 50 -> "Regular"
     score >= 30 -> "Malo"
-    else        -> "Muy malo"
+    else        -> AppText.get(R.string.monthly_stats_section_v4_muy_malo)
 }
 

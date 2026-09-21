@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.animation.AnimatedVisibility
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.expandVertically
@@ -165,7 +166,7 @@ fun MeetupsScreen(
                 // contador donde el iPhone tiene el nombre de la pantalla. El
                 // número ya se ve en la lista, no hace falta de titular.
                 Text(
-                    text = "Quedar a escalar",
+                    text = stringResource(R.string.meetups_screen_v4_quedar_a_escalar),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -224,11 +225,11 @@ fun MeetupsScreen(
                         Column {
                             com.meteomontana.android.ui.components.FirstTimeHint(
                                 hintKey = "meetups_intro",
-                                text = "Crea quedadas, filtra por día o distancia, y toca una quedada para ver su detalle o entrar al chat si ya estás unido."
+                                text = stringResource(R.string.meetups_screen_v4_crea_quedadas_filtra_por_dia)
                             )
                             com.meteomontana.android.ui.components.FirstTimeHint(
                                 hintKey = "meetups_alert_v2",
-                                text = "🔔 Toca la campana de arriba para crear ALERTAS: te avisamos cuando alguien cree una quedada en los días, escuela o distancia que te interesan."
+                                text = stringResource(R.string.meetups_screen_v4_toca_la_campana_de_arriba)
                             )
                         }
                     }
@@ -301,7 +302,7 @@ fun MeetupsScreen(
                                     .padding(Spacing.md),
                                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
                             ) {
-                                FilterGroupLabel("TIPO DE GRUPO")
+                                FilterGroupLabel(stringResource(R.string.meetups_screen_v4_tipo_de_grupo))
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     FilterChip(stringResource(R.string.meetups_filter_all), state.filterRelation == null && state.filterPrivacy == null) {
@@ -339,11 +340,11 @@ fun MeetupsScreen(
                                         }
                                     }
                                 }
-                                FilterGroupLabel("DÍAS")
+                                FilterGroupLabel(stringResource(R.string.meetups_screen_v4_dias))
                                 val next10 = remember { nextNDaysFilter(14) }
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    FilterChip("Cualquier día", state.filterDays.isEmpty()) { viewModel.clearFilterDays() }
+                                    FilterChip(stringResource(R.string.meetups_screen_v4_cualquier_dia), state.filterDays.isEmpty()) { viewModel.clearFilterDays() }
                                     next10.forEach { (iso, label) ->
                                         FilterChip(label, state.filterDays.contains(iso)) { viewModel.toggleFilterDay(iso) }
                                     }
@@ -420,8 +421,7 @@ fun MeetupsScreen(
             onDismissRequest = { showWomenGateDialog = false },
             title = { Text(stringResource(R.string.meetups_screen_v2_quedadas_no_mixto)) },
             text = {
-                Text(stringResource(R.string.meetups_screen_v2_para_ver_y_participar_en) +
-                     "tu género como Mujer en tu perfil.\n\nVe a Perfil → Editar perfil → Género.")
+                Text(stringResource(R.string.meetups_screen_v2_para_ver_y_participar_en))
             },
             confirmButton = {
                 TextButton(onClick = { showWomenGateDialog = false }) { Text(stringResource(R.string.meetups_screen_v2_entendido)) }
@@ -677,13 +677,13 @@ private fun scoreColor(score: Int): Color = when {
 
 internal fun privacyLabel(privacy: String) = when (privacy) {
     "FOLLOWERS" -> "Siguiendo"
-    "WOMEN"     -> "No mixto"
+    "WOMEN"     -> AppText.get(R.string.meetups_screen_v4_no_mixto)
     else        -> "Abierta"
 }
 
 internal fun disciplineLabel(discipline: String) = when (discipline) {
     "BOULDER" -> "Bloque"
     "ROUTE"   -> "Vía"
-    "BOTH"    -> "Bloque + Vía"
+    "BOTH"    -> AppText.get(R.string.meetups_screen_v4_bloque_via)
     else      -> discipline
 }

@@ -102,7 +102,7 @@ fun SearchUsersScreen(
             // sí lo hace) — Álvaro, 2026-08-24, paridad con iOS.
             Box(Modifier.fillMaxSize(), Alignment.Center) {
                 Text(
-                    if (q.length < 2) "Escribe al menos 2 letras" else "Sin resultados",
+                    if (q.length < 2) stringResource(R.string.search_users_screen_v3_escribe_al_menos_2_letras) else stringResource(R.string.search_users_screen_v3_sin_resultados),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

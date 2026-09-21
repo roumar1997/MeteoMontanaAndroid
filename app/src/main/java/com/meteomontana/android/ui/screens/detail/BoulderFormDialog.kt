@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.CumbrePillShape
 import com.meteomontana.android.ui.theme.terraFillColor
 
@@ -134,7 +135,7 @@ internal fun BoulderFormDialog(
         // Si la copia falla se avisa AHORA, no al guardar: así una cara nunca se
         // queda creyendo que tiene foto (era el camino por el que se perdían
         // fotos en silencio).
-        onError = { error = "No se pudo usar esa foto. Prueba a elegirla otra vez." }
+        onError = { error = AppText.get(R.string.boulder_form_dialog_v4_no_se_pudo_usar_esa) }
     ) { uri ->
         uri?.let(ponerFoto)   // null = salio del selector sin elegir: no hay nada que hacer
     }
@@ -166,7 +167,7 @@ internal fun BoulderFormDialog(
         submitScope.launch {
             val ok = onSubmit()
             sending = false
-            if (!ok) error = "No se pudo enviar. Revisa la conexión — la foto y las vías siguen aquí."
+            if (!ok) error = AppText.get(R.string.boulder_form_dialog_v4_no_se_pudo_enviar_revisa)
         }
     }
 
@@ -185,7 +186,7 @@ internal fun BoulderFormDialog(
         Spacer(Modifier.height(Spacing.sm))
         com.meteomontana.android.ui.components.FirstTimeHint(
             hintKey = "boulder_form_guide",
-            text = "Pasos: 1) Añade una foto de la piedra, 2) marca sus vías con grado, 3) dibuja las líneas sobre la foto, 4) envía."
+            text = stringResource(R.string.boulder_form_dialog_v4_pasos_1_anade_una_foto)
         )
         Spacer(Modifier.height(Spacing.md))
 
@@ -267,9 +268,9 @@ internal fun BoulderFormDialog(
                 ) {
                     Text(
                         when {
-                            traced -> "✓ MURO DE ${path.size} PUNTOS · RE-TRAZAR"
-                            path.size == 1 -> "TRAZAR EL MURO (1 PUNTO, FALTAN MÁS)"
-                            else -> "✎ TRAZAR EL MURO EN EL MAPA"
+                            traced -> stringResource(R.string.boulder_form_dialog_v4_muro_de_puntos_re_trazar, path.size)
+                            path.size == 1 -> stringResource(R.string.boulder_form_dialog_v4_trazar_el_muro_1_punto)
+                            else -> stringResource(R.string.boulder_form_dialog_v4_trazar_el_muro_en_el)
                         },
                         style = EyebrowTextStyle,
                         color = if (traced) MaterialTheme.colorScheme.onSurface else Color.White
@@ -299,7 +300,7 @@ internal fun BoulderFormDialog(
                     onExpandedChange = { sectorExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value = selectedSectorName ?: "Sin sector",
+                        value = selectedSectorName ?: stringResource(R.string.boulder_form_dialog_v4_sin_sector),
                         onValueChange = {}, readOnly = true,
                         modifier = Modifier.menuAnchor().fillMaxWidth(),
                         trailingIcon = {
@@ -620,7 +621,7 @@ internal fun BoulderFormDialog(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                if (hasLines) "✎ EDITAR LÍNEAS" else "✎ DIBUJAR LÍNEAS",
+                if (hasLines) stringResource(R.string.boulder_form_dialog_v4_editar_lineas) else stringResource(R.string.boulder_form_dialog_v4_dibujar_lineas),
                 style = EyebrowTextStyle,
                 color = if (photoUri != null) Color.White
                         else MaterialTheme.colorScheme.onSurfaceVariant
@@ -812,9 +813,9 @@ private fun OrientationPickRow(label: String, selected: String?, onPick: (String
                     rumbo, modifier = Modifier.size(64.dp))
                 Column {
                     Text(
-                        stringResource(R.string.boulder_form_dialog_v2_estas_mirando_al) +
-                            com.meteomontana.android.domain.util.Aspect.fromDegrees(rumbo) +
-                            " · " + com.meteomontana.android.domain.util.Aspect.degreesLabel(rumbo),
+                        stringResource(R.string.boulder_form_dialog_v2_estas_mirando_al,
+                            com.meteomontana.android.domain.util.Aspect.fromDegrees(rumbo),
+                            com.meteomontana.android.domain.util.Aspect.degreesLabel(rumbo)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

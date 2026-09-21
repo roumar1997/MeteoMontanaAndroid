@@ -89,7 +89,7 @@ fun ContributionTopoDialog(
      *  "editar y aprobar" y "GUARDAR\nLÍNEAS" no dejaba claro que el toque
      *  aprueba la propuesta (AdminEditApproveSheet.swift sí dice "APROBAR
      *  CON MIS CAMBIOS") — Álvaro, 2026-08-24, paridad con iOS. */
-    saveLabel: String = "GUARDAR\nLÍNEAS"
+    saveLabel: String = stringResource(R.string.contribution_topo_dialog_v3_guardar_lineas)
 ) {
     var selectedIdx by remember { mutableStateOf(0) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
@@ -510,7 +510,7 @@ fun ContributionTopoDialog(
                         .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                 ) {
                     Text(
-                        if (iman) "UNIR: SÍ" else "UNIR: NO",
+                        if (iman) stringResource(R.string.contribution_topo_dialog_v4_unir_si) else stringResource(R.string.contribution_topo_dialog_v4_unir_no),
                         style = EyebrowTextStyle,
                         color = if (iman) Color.White else MaterialTheme.colorScheme.onSurface
                     )
@@ -530,7 +530,7 @@ fun ContributionTopoDialog(
                         .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                 ) {
                     Text(
-                        if (soloEsta) "SOLO ESTA" else "VER TODAS",
+                        if (soloEsta) stringResource(R.string.contribution_topo_dialog_v4_solo_esta) else stringResource(R.string.contribution_topo_dialog_v4_ver_todas),
                         style = EyebrowTextStyle,
                         color = if (soloEsta) Color.White else MaterialTheme.colorScheme.onSurface
                     )
@@ -545,9 +545,9 @@ fun ContributionTopoDialog(
             }
             Text(
                 if (iman)
-                    "Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Cerca de otra vía, el trazo se pega a ella (tramo compartido)."
+                    stringResource(R.string.contribution_topo_dialog_v4_toca_punto_a_punto_para_2)
                 else
-                    "Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Con UNIR en NO, el trazo va libre aunque pases pegado a otra vía.",
+                    stringResource(R.string.contribution_topo_dialog_v4_toca_punto_a_punto_para),
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surface)

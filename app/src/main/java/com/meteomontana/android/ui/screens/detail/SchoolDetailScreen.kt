@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.clickable
@@ -344,15 +345,15 @@ private fun Content(
     ) {
         com.meteomontana.android.ui.components.FirstTimeHint(
             hintKey = "detail_offline",
-            text = "Toca ↓ (arriba) para guardar esta escuela y verla sin conexión, incluyendo el mapa y las piedras."
+            text = stringResource(R.string.school_detail_screen_v3_toca_arriba_para_guardar_esta)
         )
         com.meteomontana.android.ui.components.FirstTimeHint(
             hintKey = "detail_propose",
-            text = "Despliega el mapa de abajo y usa + PROPONER para añadir piedras, parkings o sectores que falten. Un admin lo revisa."
+            text = stringResource(R.string.school_detail_screen_v3_despliega_el_mapa_de_abajo)
         )
         com.meteomontana.android.ui.components.FirstTimeHint(
             hintKey = "detail_tick",
-            text = "Toca una piedra en el mapa para ver sus vías. El círculo ○ marca una vía como hecha y la guarda en tu diario."
+            text = stringResource(R.string.school_detail_screen_v3_toca_una_piedra_en_el)
         )
         // Sección de piedras/mapa: UNA sola definición (lambda) — se pinta en
         // su sitio de siempre cuando hay forecast, y SIN esperar al forecast
@@ -534,9 +535,9 @@ private fun OfflineBanner(timestamp: Long) {
 private fun StaleForecastBanner(timestamp: Long, onRetry: () -> Unit) {
     val ageMin = ((System.currentTimeMillis() - timestamp) / 60_000L).coerceAtLeast(0)
     val ageLabel = when {
-        ageMin < 60        -> "hace $ageMin min"
-        ageMin < 60 * 24   -> "hace ${ageMin / 60} h"
-        else               -> "hace ${ageMin / (60 * 24)} días"
+        ageMin < 60        -> stringResource(R.string.school_detail_screen_v4_hace_min, ageMin)
+        ageMin < 60 * 24   -> stringResource(R.string.school_detail_screen_v4_hace_h, ageMin / 60)
+        else               -> stringResource(R.string.school_detail_screen_v3_hace_dias, ageMin / (60 * 24))
     }
     Row(
         modifier = Modifier.fillMaxWidth()
@@ -580,15 +581,15 @@ private fun shareSchool(
     sb.append("\n")
     if (forecast != null) {
         val c = forecast.current
-        sb.append("📊 Índice *").append(c.score).append("/100* (").append(c.scoreLabel).append(")\n")
+        sb.append(AppText.get(R.string.school_detail_screen_v4_indice)).append(c.score).append("/100* (").append(c.scoreLabel).append(")\n")
         forecast.bestWindow?.let {
-            sb.append("🕐 Óptimo *").append(it.start).append("–").append(it.end).append("*\n")
+            sb.append(AppText.get(R.string.school_detail_screen_v4_optimo)).append(it.start).append("–").append(it.end).append("*\n")
         }
-        sb.append(if (c.dryRock) "🪨 Roca seca" else "💧 Roca mojada")
-        sb.append(" · ").append(c.temperature.toInt()).append("° · viento ")
+        sb.append(if (c.dryRock) AppText.get(R.string.school_detail_screen_v4_roca_seca) else AppText.get(R.string.school_detail_screen_v4_roca_mojada))
+        sb.append(" · ").append(c.temperature.toInt()).append(AppText.get(R.string.school_detail_screen_v4_viento))
             .append(c.windSpeed.toInt()).append(" km/h\n")
     }
-    sb.append("\n👉 Ábrela en Cumbre:\n").append(base).append("s/e/").append(school.id)
+    sb.append(AppText.get(R.string.school_detail_screen_v4_n_abrela_en_cumbre_n)).append(base).append("s/e/").append(school.id)
     val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(android.content.Intent.EXTRA_TEXT, sb.toString())

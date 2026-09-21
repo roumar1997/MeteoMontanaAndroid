@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.chat
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.animation.core.Animatable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
@@ -221,8 +222,7 @@ class GroupChatViewModel @Inject constructor(
     fun shareInvite(context: Context, meetupId: String, groupName: String) {
         viewModelScope.launch {
             val link = runCatching { meetupApi.getInviteLink(meetupId) }.getOrNull() ?: return@launch
-            val text = "🧗 Te invito a la quedada *" + groupName + "* en Cumbre\n" +
-                "👉 Únete desde aquí:\n" + link
+            val text = context.getString(R.string.share_group_invite, groupName, link)
             val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 putExtra(android.content.Intent.EXTRA_TEXT, text)
@@ -328,7 +328,7 @@ fun GroupChatScreen(
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 Text(
-                    if (state.meetupId != null) "Ver detalles ›"
+                    if (state.meetupId != null) stringResource(R.string.group_chat_screen_v3_ver_detalles)
                     else "${state.memberNames.size + 1} miembros",
                     style = MaterialTheme.typography.labelSmall,
                     color = if (state.meetupId != null) MaterialTheme.colorScheme.primary
@@ -339,7 +339,7 @@ fun GroupChatScreen(
                 IconButton(onClick = {
                     openDirections(context, state.schoolLat!!, state.schoolLon!!, state.schoolName)
                 }) {
-                    Icon(Icons.Outlined.Directions, "Cómo llegar",
+                    Icon(Icons.Outlined.Directions, stringResource(R.string.group_chat_screen_v3_como_llegar),
                         tint = MaterialTheme.colorScheme.primary)
                 }
             }
@@ -347,7 +347,7 @@ fun GroupChatScreen(
             // relación de follows (los grupos "no mixto" siguen exigiendo género).
             state.meetupId?.let { meetupId ->
                 IconButton(onClick = { viewModel.shareInvite(context, meetupId, state.name) }) {
-                    Icon(Icons.Outlined.PersonAdd, "Invitar al grupo",
+                    Icon(Icons.Outlined.PersonAdd, stringResource(R.string.group_chat_screen_v4_invitar_al_grupo),
                         tint = MaterialTheme.colorScheme.primary)
                 }
             }
@@ -484,7 +484,7 @@ fun GroupChatScreen(
                     msg = msg,
                     myUid = state.myUid,
                     senderName = state.memberNames[msg.fromUid] ?: "",
-                    nameFor = { uid -> if (uid == state.myUid) "Tú" else state.memberNames[uid] ?: "" },
+                    nameFor = { uid -> if (uid == state.myUid) AppText.get(R.string.school_presence_row_v3_tu) else state.memberNames[uid] ?: "" },
                     onReply = { viewModel.startReply(msg) }
                 )
             }
@@ -505,7 +505,7 @@ fun GroupChatScreen(
             }
         } else {
             state.replyingTo?.let { reply ->
-                val who = if (reply.fromUid == state.myUid) "Tú" else (state.memberNames[reply.fromUid] ?: "")
+                val who = if (reply.fromUid == state.myUid) stringResource(R.string.school_presence_row_v3_tu) else (state.memberNames[reply.fromUid] ?: "")
                 Row(
                     modifier = Modifier.fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surfaceVariant)

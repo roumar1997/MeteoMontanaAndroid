@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.detail
 
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -237,7 +238,7 @@ fun ProposeContributionFlow(
         if (step is ProposeStep.CorrectionPickTarget) {
             val isSchool = tappedBlock.id == "__SCHOOL__"
             val targetId = if (isSchool) null else tappedBlock.id
-            val targetName = if (isSchool) "la escuela" else tappedBlock.name
+            val targetName = if (isSchool) AppText.get(R.string.propose_contribution_flow_v3_la_escuela) else tappedBlock.name
             step = ProposeStep.CorrectionMoving(
                 targetId = targetId,
                 targetName = targetName,
@@ -510,9 +511,9 @@ fun ProposeContributionFlow(
                         val perdidas = preparadas.count { (f, ruta) -> f.photoUri != null && ruta == null }
                         if (perdidas > 0) {
                             offlineError = if (perdidas == 1)
-                                "No se pudo preparar una de las fotos. Vuelve a elegirla y reinténtalo."
+                                AppText.get(R.string.propose_contribution_flow_v3_no_se_pudo_preparar_una)
                             else
-                                "No se pudieron preparar $perdidas fotos. Vuelve a elegirlas y reinténtalo."
+                                AppText.get(R.string.propose_contribution_flow_v3_no_se_pudieron_preparar_fotos, perdidas)
                             return@launch
                         }
                         val qFaces = preparadas.map { (f, ruta) ->

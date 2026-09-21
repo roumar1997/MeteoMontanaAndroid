@@ -110,7 +110,7 @@ fun SubmitSchoolScreen(
             val paises by viewModel.countries.collectAsStateWithLifecycle()
             if (paises.size > 1) {
                 DropdownField(
-                    "PAÍS",
+                    stringResource(R.string.submit_school_screen_v3_pais),
                     paises.firstOrNull { it.code == country }?.name ?: "España",
                     paises.map { it.name },
                     onChange = { elegido ->
@@ -120,7 +120,7 @@ fun SubmitSchoolScreen(
                     }
                 )
             }
-            DropdownField("REGIÓN", region,
+            DropdownField(stringResource(R.string.submit_school_screen_v3_region), region,
                 viewModel.regionOptions(country).ifEmpty { options.regions },
                 onChange = {
                     region = it
@@ -144,14 +144,14 @@ fun SubmitSchoolScreen(
                     }
                 }
             }
-            DropdownField("TIPO DE ROCA", rockType, options.rockTypes, onChange = { rockType = it })
+            DropdownField(stringResource(R.string.school_filters_bar_v3_tipo_de_roca), rockType, options.rockTypes, onChange = { rockType = it })
 
             // ── Pegar coordenadas de Google Maps (lat, lon) ──────────────────
             // Acepta "40.4168, -3.7038" o "40.4168,-3.7038" o solo dos números
             // separados por espacio. Detecta y rellena los dos campos automáticamente.
             var pasted by remember { mutableStateOf("") }
             Field(
-                "PEGAR COORDENADAS (GOOGLE MAPS)",
+                stringResource(R.string.submit_school_screen_v4_pegar_coordenadas_google_maps),
                 pasted,
                 { value ->
                     pasted = value
@@ -174,7 +174,7 @@ fun SubmitSchoolScreen(
                 }
             }
             // Localidad filtrada por la región elegida (igual que iOS).
-            DropdownField("UBICACIÓN", location, viewModel.locationOptions(region),
+            DropdownField(stringResource(R.string.submit_school_screen_v3_ubicacion), location, viewModel.locationOptions(region),
                 onChange = { location = it })
             Field(stringResource(R.string.submit_school_screen_notas), notes, { notes = it }, placeholder = stringResource(R.string.submit_school_screen_cualquier_info_util), height = 80.dp)
 

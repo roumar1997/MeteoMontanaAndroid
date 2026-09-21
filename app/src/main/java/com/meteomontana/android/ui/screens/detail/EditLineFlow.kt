@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.detail
 
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.CumbrePillShape
 import com.meteomontana.android.ui.theme.terraFillColor
 
@@ -113,8 +114,7 @@ fun EditLineFlow(
                 color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(Spacing.xs))
             Text(
-                stringResource(R.string.edit_line_flow_v2_estas_proponiendo_una_correccion_de, line.name, block.name) +
-                "Un admin revisará la propuesta antes de aplicar.",
+                stringResource(R.string.edit_line_flow_v2_estas_proponiendo_una_correccion_de, line.name, block.name),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -145,8 +145,8 @@ fun EditLineFlow(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        if (hasLine) "✎ EDITAR LÍNEA SOBRE LA FOTO"
-                        else "✎ DIBUJAR LÍNEA SOBRE LA FOTO",
+                        if (hasLine) stringResource(R.string.edit_line_flow_v3_editar_linea_sobre_la_foto)
+                        else stringResource(R.string.edit_line_flow_v3_dibujar_linea_sobre_la_foto),
                         style = EyebrowTextStyle, color = Color.White
                     )
                 }
@@ -200,7 +200,7 @@ fun EditLineFlow(
                                 if (result.isSuccess) onSuccess()
                                 else {
                                     sending = false
-                                    error = "No se pudo enviar la propuesta. Inténtalo de nuevo."
+                                    error = AppText.get(R.string.edit_line_flow_v3_no_se_pudo_enviar_la)
                                 }
                             }
                         }

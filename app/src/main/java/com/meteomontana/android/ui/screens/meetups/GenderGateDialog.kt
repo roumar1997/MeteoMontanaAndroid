@@ -26,9 +26,7 @@ fun GenderGateDialog(onEditProfile: () -> Unit, onDismiss: () -> Unit) {
         title = { Text(stringResource(R.string.gender_gate_dialog_quedadas_no_mixto)) },
         text = {
             Text(
-                stringResource(R.string.gender_gate_dialog_v2_las_quedadas_no_mixto_son) +
-                    "Si eres mujer y aún no lo has indicado, ponlo en tu perfil y podrás " +
-                    "crearlas y unirte.",
+                stringResource(R.string.gender_gate_dialog_v2_las_quedadas_no_mixto_son),
                 style = MaterialTheme.typography.bodyMedium
             )
         },

@@ -279,7 +279,7 @@ fun AddBlockSheet(
                 color = MaterialTheme.colorScheme.onBackground)
 
             // ─── SECTOR con autocomplete (sectores previos del usuario) ───
-            Label("SECTOR (opcional)")
+            Label(stringResource(R.string.add_block_sheet_v3_sector_opcional))
             OutlinedTextField(
                 value = sector,
                 onValueChange = { sector = it; selectedSectorBlockId = null },
@@ -306,7 +306,7 @@ fun AddBlockSheet(
             ModalityToggle(selected = discipline, onSelect = { discipline = it })
 
             // ─── NOMBRE con autocomplete (bloques/vías previos + de la escuela) ───
-            Label(if (discipline == "ROUTE") "VÍA" else "BLOQUE")
+            Label(if (discipline == "ROUTE") stringResource(R.string.add_block_sheet_v3_via) else "BLOQUE")
             OutlinedTextField(
                 value = blockName, onValueChange = { blockName = it },
                 placeholder = { Text(stringResource(R.string.add_block_sheet_v2_ej_el_pollito)) },
@@ -357,7 +357,7 @@ fun AddBlockSheet(
                 }
             }
 
-            Label("NOTAS (opcional)")
+            Label(stringResource(R.string.add_block_sheet_v3_notas_opcional))
             OutlinedTextField(
                 value = notes, onValueChange = { notes = it },
                 placeholder = { Text(stringResource(R.string.add_block_sheet_que_tal_fue)) },
@@ -407,7 +407,7 @@ private fun Label(text: String) {
 private fun ModalityToggle(selected: String, onSelect: (String) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         ModalityOption("BLOQUE", selected == "BOULDER", Modifier.weight(1f)) { onSelect("BOULDER") }
-        ModalityOption("VÍA", selected == "ROUTE", Modifier.weight(1f)) { onSelect("ROUTE") }
+        ModalityOption(stringResource(R.string.add_block_sheet_v3_via), selected == "ROUTE", Modifier.weight(1f)) { onSelect("ROUTE") }
     }
 }
 

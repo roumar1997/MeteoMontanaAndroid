@@ -179,7 +179,7 @@ private fun GradeGroup(
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, color = Color.White)
             }
             Spacer(Modifier.width(8.dp))
-            Text(if (matches.size == 1) stringResource(R.string.grade_filter_bar_1_via) else "${matches.size} vías", fontSize = 12.sp, color = Ink3)
+            Text(if (matches.size == 1) stringResource(R.string.grade_filter_bar_1_via) else stringResource(R.string.grade_filter_bar_v3_vias, matches.size), fontSize = 12.sp, color = Ink3)
             Spacer(Modifier.weight(1f))
             Icon(
                 if (open) Icons.Outlined.KeyboardArrowDown else Icons.Outlined.KeyboardArrowRight,

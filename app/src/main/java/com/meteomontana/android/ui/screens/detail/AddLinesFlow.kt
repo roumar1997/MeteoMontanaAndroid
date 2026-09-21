@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.CumbrePillShape
 import com.meteomontana.android.ui.theme.terraFillColor
 
@@ -246,7 +247,7 @@ internal fun AddLinesFlow(
                         }
                     }
                     if (faces.indices.any { faces[it].newPhotoUri != null && copiadas[it] == null }) {
-                        error = "No se pudo preparar una de las fotos. Vuelve a elegirla."
+                        error = AppText.get(R.string.add_lines_flow_v4_no_se_pudo_preparar_una)
                         sending = false
                         return@launch
                     }
@@ -289,7 +290,7 @@ internal fun AddLinesFlow(
                 // Si una foto no subió NO seguimos: antes esa cara quedaba
                 // sin foto y se colapsaba en la FOTO 1 con las demás.
                 if (uploadFailed >= 0) {
-                    error = "No se pudo subir la foto ${uploadFailed + 1}. Revisa la conexión y reinténtalo (si no, las caras se mezclarían en una sola)."
+                    error = AppText.get(R.string.add_lines_flow_v4_no_se_pudo_subir_la, uploadFailed + 1)
                     sending = false
                     return@launch
                 }

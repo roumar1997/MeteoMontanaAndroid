@@ -88,7 +88,7 @@ private fun VoteBars(votes: Map<String, Int>, highlight: String?, myVote: String
                         RoundedCornerShape(7.dp)))
             }
             Text(
-                "$count" + if (option == myVote) " · tú ✓" else "",
+                "$count" + if (option == myVote) stringResource(R.string.community_vote_ui_v3_tu) else "",
                 fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -125,9 +125,9 @@ fun OrientationVoteContent(
                    modifier = Modifier.fillMaxWidth()) {
                 CompassDial(rumbo)
                 Text(
-                    stringResource(R.string.community_vote_ui_v2_estas_mirando_al) +
-                        com.meteomontana.android.domain.util.Aspect.fromDegrees(rumbo) +
-                        " · " + com.meteomontana.android.domain.util.Aspect.degreesLabel(rumbo),
+                    stringResource(R.string.community_vote_ui_v2_estas_mirando_al,
+                        com.meteomontana.android.domain.util.Aspect.fromDegrees(rumbo),
+                        com.meteomontana.android.domain.util.Aspect.degreesLabel(rumbo)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -176,9 +176,9 @@ fun GradeVoteContent(
         Text(stringResource(R.string.community_vote_ui_que_grado_le_das), style = EyebrowTextStyle, color = Terra)
         Text(
             if (canVote)
-                "El grado que se muestra es el consenso (con 3+ votos). El del equipador queda como referencia."
+                stringResource(R.string.community_vote_ui_v3_el_grado_que_se_muestra)
             else
-                "Solo puede votar quien la tiene en su diario (próbala o encadénala primero).",
+                stringResource(R.string.community_vote_ui_v3_solo_puede_votar_quien_la),
             fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
         )
@@ -195,7 +195,7 @@ fun GradeVoteContent(
             Text(
                 (s.displayedGrade ?: "—") +
                     (s.setterGrade?.takeIf { it != s.displayedGrade }
-                        ?.let { "  ·  equipador: $it" } ?: ""),
+                        ?.let { stringResource(R.string.community_vote_ui_v4_equipador, it) } ?: ""),
                 style = EyebrowTextStyle.copy(fontSize = 12.sp), color = Terra
             )
         }

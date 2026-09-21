@@ -146,7 +146,7 @@ fun CreateMeetupScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             // Foto del grupo
-            FieldLabel("FOTO DEL GRUPO (opcional)")
+            FieldLabel(stringResource(R.string.create_meetup_screen_v3_foto_del_grupo_opcional))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -216,7 +216,7 @@ fun CreateMeetupScreen(
             }
 
             // Días (picker de próximos 14 días)
-            FieldLabel("DÍAS (elige uno o varios)")
+            FieldLabel(stringResource(R.string.create_meetup_screen_v3_dias_elige_uno_o_varios))
             DayPickerRow(
                 selected = selectedDays.value,
                 scores = dayScores,
@@ -231,20 +231,18 @@ fun CreateMeetupScreen(
             PrivacySelector(selected = privacy, onSelected = { privacy = it })
             if (privacy == "WOMEN") {
                 Text(
-                    stringResource(R.string.create_meetup_screen_v2_quedada_no_mixto_solo_pueden) +
-                    "Mujer en su perfil. Si no lo tienes configurado, ve a " +
-                    "Perfil → Editar perfil → Género.",
+                    stringResource(R.string.create_meetup_screen_v2_quedada_no_mixto_solo_pueden),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             // Disciplina
-            FieldLabel("DISCIPLINA (opcional)")
+            FieldLabel(stringResource(R.string.create_meetup_screen_v3_disciplina_opcional))
             DisciplineSelector(selected = discipline, onSelected = { discipline = it })
 
             // Límite
-            FieldLabel("LÍMITE DE PARTICIPANTES (opcional)")
+            FieldLabel(stringResource(R.string.create_meetup_screen_v3_limite_de_participantes_opcional))
             OutlinedTextField(
                 value = limitText, onValueChange = { limitText = it.filter { c -> c.isDigit() } },
                 placeholder = { Text(stringResource(R.string.create_meetup_no_limit)) },
@@ -418,7 +416,7 @@ private fun DisciplineSelector(selected: String?, onSelected: (String?) -> Unit)
     val options = listOf(
         null to "Cualquiera",
         "BOULDER" to "Bloque",
-        "ROUTE" to "Vía",
+        "ROUTE" to stringResource(R.string.school_map_v3_via),
         "BOTH" to "Ambas"
     )
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {

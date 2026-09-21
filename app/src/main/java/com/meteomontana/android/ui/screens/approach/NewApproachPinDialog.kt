@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.approach
 
 
+import com.meteomontana.android.util.AppText
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -59,10 +60,10 @@ import com.meteomontana.android.R
  * Espejo de NewApproachPinSheet/NewPinDraftSheet (iOS).
  */
 private val KINDS = listOf(
-    "FORK" to "◆ Bifurcación",
-    "LANDMARK" to "● Referencia",
-    "HAZARD" to "▲ Peligro",
-    "KEY" to "★ Paso clave"
+    "FORK" to AppText.get(R.string.new_approach_pin_dialog_v4_bifurcacion),
+    "LANDMARK" to AppText.get(R.string.new_approach_pin_dialog_v4_referencia),
+    "HAZARD" to AppText.get(R.string.new_approach_pin_dialog_v4_peligro),
+    "KEY" to AppText.get(R.string.new_approach_pin_dialog_v4_paso_clave)
 )
 
 @HiltViewModel

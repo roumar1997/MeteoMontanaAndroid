@@ -20,6 +20,7 @@ class MeteoMontanaApp : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+        com.meteomontana.android.util.AppText.init(this)
         MapLibre.getInstance(this)
         outboxFlusher.start()
         savedSchoolsSync.start()

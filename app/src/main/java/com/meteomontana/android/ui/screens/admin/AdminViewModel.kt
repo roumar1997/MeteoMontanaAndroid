@@ -1,4 +1,5 @@
 package com.meteomontana.android.ui.screens.admin
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
@@ -37,6 +38,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 data class AdminUiState(
     val loading: Boolean = true,
@@ -315,20 +318,20 @@ class AdminViewModel @Inject constructor(
 
     private fun applyModResult(res: com.meteomontana.android.domain.model.UserModeration?, okMsg: String) {
         if (res != null) { _userMod.value = res; _modMsg.value = okMsg }
-        else _modMsg.value = "No se pudo (revisa conexión o permisos)"
+        else _modMsg.value = AppText.get(R.string.admin_view_model_v4_no_se_pudo_revisa_conexion)
     }
 
     fun warnUser(uid: String, reason: String?) {
-        viewModelScope.launch { applyModResult(warnUserUseCase(uid, reason), "Aviso enviado") }
+        viewModelScope.launch { applyModResult(warnUserUseCase(uid, reason), AppText.get(R.string.admin_view_model_v4_aviso_enviado)) }
     }
     fun suspendUser(uid: String, days: Int, reason: String?) {
-        viewModelScope.launch { applyModResult(suspendUserUseCase(uid, days, reason), "Suspendido $days día(s)") }
+        viewModelScope.launch { applyModResult(suspendUserUseCase(uid, days, reason), AppText.get(R.string.admin_view_model_v4_suspendido_dia_s, days)) }
     }
     fun banUser(uid: String, reason: String?) {
-        viewModelScope.launch { applyModResult(banUserUseCase(uid, reason), "Cuenta baneada") }
+        viewModelScope.launch { applyModResult(banUserUseCase(uid, reason), AppText.get(R.string.admin_view_model_v4_cuenta_baneada)) }
     }
     fun unbanUser(uid: String, reason: String?) {
-        viewModelScope.launch { applyModResult(unbanUserUseCase(uid, reason), "Baneo retirado") }
+        viewModelScope.launch { applyModResult(unbanUserUseCase(uid, reason), AppText.get(R.string.admin_view_model_v4_baneo_retirado)) }
     }
 
     /** Denuncia de QUEDADA: eliminar la quedada denunciada (además de resolver). */
@@ -344,7 +347,7 @@ class AdminViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val r = sendPushUseCase(targetUid, title, body)
-                _state.update { it.copy(pushBusy = false, pushResult = "Enviado a ${r.sent}/${r.recipients}") }
+                _state.update { it.copy(pushBusy = false, pushResult = AppText.get(R.string.admin_view_model_v4_enviado_a, r.sent, r.recipients)) }
             } catch (t: Throwable) {
                 _state.update { it.copy(pushBusy = false, pushResult = "Error: ${t.message}") }
             }

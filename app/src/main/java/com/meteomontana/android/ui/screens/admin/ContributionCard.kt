@@ -2,6 +2,7 @@
             androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.admin
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import androidx.compose.foundation.background
@@ -264,7 +265,7 @@ internal fun ContributionCard(
         var mapStyle by remember { mutableStateOf("topo") }
         Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            listOf("topo" to "Topográfico", "sat" to "Satélite").forEach { (id, label) ->
+            listOf("topo" to stringResource(R.string.contribution_card_v3_topografico), "sat" to stringResource(R.string.full_screen_map_dialog_v3_satelite)).forEach { (id, label) ->
                 val selected = mapStyle == id
                 Box(modifier = Modifier
                     .clip(RoundedCornerShape(2.dp))
@@ -353,13 +354,13 @@ internal fun ContributionCard(
                                     map.addMarker(
                                         MarkerOptions()
                                             .position(LatLng(c.lat, c.lon))
-                                            .title("POSICIÓN ACTUAL")
+                                            .title(AppText.get(R.string.contribution_card_v3_posicion_actual))
                                             .icon(iconFactory.fromBitmap(oldIcon))
                                     )
                                     map.addMarker(
                                         MarkerOptions()
                                             .position(LatLng(pLat, pLon))
-                                            .title("PROPUESTA · ${c.name ?: "Nueva posición"}")
+                                            .title(AppText.get(R.string.full_screen_map_dialog_v4_propuesta, c.name ?: "Nueva posición"))
                                             .icon(iconFactory.fromBitmap(proposalIcon))
                                     )
                                     map.addPolyline(
@@ -382,7 +383,7 @@ internal fun ContributionCard(
                                     map.addMarker(
                                         MarkerOptions()
                                             .position(LatLng(c.lat, c.lon))
-                                            .title("PROPUESTA · ${c.name ?: c.type}")
+                                            .title(AppText.get(R.string.full_screen_map_dialog_v4_propuesta, c.name ?: c.type))
                                             .icon(iconFactory.fromBitmap(proposalIcon))
                                     )
                                 }
@@ -514,7 +515,7 @@ internal fun ContributionCard(
                     // simple "guardar líneas") — misma etiqueta que
                     // AdminEditApproveSheet.swift en iOS.
                     saveLabel = if (editableFaces.size > 1 && faceIdx < editableFaces.size - 1)
-                        "SIGUIENTE\nCARA" else "APROBAR CON\nMIS CAMBIOS"
+                        stringResource(R.string.contribution_card_v3_siguiente_cara) else stringResource(R.string.contribution_card_v3_aprobar_con_mis_cambios)
                 )
             }
         }

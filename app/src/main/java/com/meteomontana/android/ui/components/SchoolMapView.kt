@@ -407,13 +407,13 @@ internal fun SchoolMapView(
         // Banner contextual con estado preciso del flujo.
         if (bridge.waitingMapTap || bridge.correctionMode) {
             val bannerText = when {
-                !bridge.correctionMode -> "ℹ PULSA EN EL MAPA EN LA POSICIÓN ELEGIDA"
+                !bridge.correctionMode -> stringResource(R.string.school_map_view_v3_pulsa_en_el_mapa_en)
                 bridge.correctionTargetName == null ->
-                    "ℹ PULSA EL MARKER (PIEDRA / PARKING / ZONA / ESCUELA) QUE QUIERES MOVER"
+                    stringResource(R.string.school_map_view_v3_pulsa_el_marker_piedra_parking)
                 bridge.correctionGhost?.newLat == null ->
-                    "✓ HAS PULSADO \"${bridge.correctionTargetName}\" · AHORA PULSA LA NUEVA POSICIÓN EN EL MAPA"
+                    stringResource(R.string.school_map_view_v3_has_pulsado_ahora_pulsa_la, bridge.correctionTargetName ?: "")
                 else ->
-                    "✓ POSICIÓN FIJADA PARA \"${bridge.correctionTargetName}\" · PULSA OTRA VEZ PARA RECORREGIR O ACEPTAR"
+                    stringResource(R.string.school_map_view_v3_posicion_fijada_para_pulsa_otra, bridge.correctionTargetName ?: "")
             }
             Column(
                 modifier = Modifier.fillMaxWidth().background(terraFillColor())

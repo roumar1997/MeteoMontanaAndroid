@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.components
 
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -163,7 +164,7 @@ fun MountainBulletinSection(bulletin: MountainBulletin) {
  */
 private fun bulletinAlert(b: MountainBulletin): String? {
     val tormentas = b.texts["tormentas"] ?: return null
-    if (tormentas.startsWith("No se esperan")) return null
+    if (tormentas.startsWith(AppText.get(R.string.mountain_bulletin_section_v4_no_se_esperan))) return null
     return "TORMENTAS: ${tormentas.removeSuffix(".").lowercase()}"
 }
 

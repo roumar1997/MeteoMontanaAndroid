@@ -801,7 +801,7 @@ private fun MarkerPreviewCard(
                 modifier = Modifier.weight(1f)
             )
             FilledAction(
-                text = "VER DETALLE ▸",
+                text = stringResource(R.string.schools_map_panel_v3_ver_detalle),
                 onClick = onSchoolDetail,
                 modifier = Modifier.weight(1f)
             )

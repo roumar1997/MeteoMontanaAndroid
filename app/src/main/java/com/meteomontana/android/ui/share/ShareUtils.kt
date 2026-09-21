@@ -1,8 +1,10 @@
 package com.meteomontana.android.ui.share
 
+import com.meteomontana.android.util.AppText
 import android.content.Context
 import android.content.Intent
 import com.meteomontana.android.R
+import androidx.compose.ui.res.stringResource
 
 private const val PLAY_URL = "https://play.google.com/store/apps/details?id=com.meteomontana.android"
 private const val APPSTORE_URL = "https://apps.apple.com/app/id6785776686"
@@ -22,10 +24,10 @@ fun shareMeetup(
     inviteLink: String? = null
 ) {
     val daysText = days.joinToString(", ") { formatShareDay(it) }
-    val plazas = memberLimit?.let { "$memberCount/$it plazas" } ?: "$memberCount participantes"
+    val plazas = memberLimit?.let { AppText.get(R.string.share_utils_v4_plazas, memberCount, it) } ?: "$memberCount participantes"
     val discText = discipline?.let {
         when (it) {
-            "BOULDER" -> " · Bloque"; "ROUTE" -> " · Vía"; "BOTH" -> " · Bloque + Vía"; else -> ""
+            "BOULDER" -> AppText.get(R.string.share_utils_v4_bloque); "ROUTE" -> AppText.get(R.string.share_utils_v4_via); "BOTH" -> AppText.get(R.string.share_utils_v4_bloque_via); else -> ""
         }
     } ?: ""
 
@@ -34,10 +36,10 @@ fun shareMeetup(
         schoolName?.let { append("Escuela: $it\n") }
         append("$daysText$discText · $plazas\n\n")
         if (!inviteLink.isNullOrBlank()) {
-            append("👉 Únete desde aquí:\n$inviteLink")
+            append(AppText.get(R.string.share_utils_v4_unete_desde_aqui_n, inviteLink))
         } else {
-            append("👉 Búscala en Cumbre (pestaña Quedadas)\n\n")
-            append("Descarga Cumbre:\n")
+            append(AppText.get(R.string.share_utils_v4_buscala_en_cumbre_pestana_quedadas))
+            append(AppText.get(R.string.share_utils_v4_descarga_cumbre_n))
             append("Android: $PLAY_URL\n")
             append("iOS: $APPSTORE_URL")
         }
@@ -56,12 +58,12 @@ fun shareSchool(
 ) {
     val text = buildString {
         append("$schoolName")
-        score?.let { append(" — $it/100 para escalar hoy") }
+        score?.let { append(AppText.get(R.string.share_utils_v4_100_para_escalar_hoy, it)) }
         append("\n")
         val details = listOfNotNull(rockType, style, temperature).joinToString(" · ")
         if (details.isNotBlank()) append("$details\n")
-        optimalWindow?.let { append("Mejor momento: $it\n") }
-        append("\nDescarga Cumbre:\n")
+        optimalWindow?.let { append(AppText.get(R.string.share_utils_v4_mejor_momento_n, it)) }
+        append(AppText.get(R.string.share_utils_v4_ndescarga_cumbre_n))
         append("Android: $PLAY_URL\n")
         append("iOS: $APPSTORE_URL")
     }
@@ -71,7 +73,7 @@ fun shareSchool(
 /** Comparte un perfil con su enlace /s/u/ (lo abre la app o lleva a la store). */
 fun shareProfile(context: Context, handle: String, displayLabel: String) {
     val text = buildString {
-        append("Perfil de $displayLabel en Cumbre:\n")
+        append(AppText.get(R.string.share_utils_v4_perfil_de_en_cumbre_n, displayLabel))
         append((com.meteomontana.android.ui.share.shareBaseUrl()) + "/s/u/$handle")
     }
     shareText(context, text, context.getString(R.string.share_utils_v3_compartir_perfil))

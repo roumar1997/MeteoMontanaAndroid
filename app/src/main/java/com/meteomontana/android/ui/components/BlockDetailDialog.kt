@@ -420,13 +420,13 @@ fun BlockDetailDialog(
                 if (onTickLine != null && !isProposal && block.lines.isNotEmpty()) {
                     com.meteomontana.android.ui.components.FirstTimeHint(
                         hintKey = "via_tick",
-                        text = "Toca el círculo de una vía para apuntarla como hecha en tu diario."
+                        text = stringResource(R.string.block_detail_dialog_v4_toca_el_circulo_de_una)
                     )
                 }
                 if (onToggleProject != null && !isProposal && block.lines.isNotEmpty()) {
                     com.meteomontana.android.ui.components.FirstTimeHint(
                         hintKey = "via_project",
-                        text = "Toca la P de una vía para marcarla como PROYECTO (la estás probando, aún no te ha salido)."
+                        text = stringResource(R.string.block_detail_dialog_v4_toca_la_p_de_una)
                     )
                 }
                 // Si venimos de pulsar una vía (deep-link del diario), su cara va
@@ -456,7 +456,7 @@ fun BlockDetailDialog(
                                 )
                                 // C2: cada cara de un muro vota su propia orientacion.
                                 if (!isProposal) VotableChip(
-                                    text = orientationOf(originalIdx)?.consensus?.let { c -> "PARED " + c } ?: "ORIENTAR ESTA CARA",
+                                    text = orientationOf(originalIdx)?.consensus?.let { c -> "PARED " + c } ?: stringResource(R.string.block_detail_dialog_v4_orientar_esta_cara),
                                 ) {
                                     orientationTarget = originalIdx
                                     orientationOpen = true

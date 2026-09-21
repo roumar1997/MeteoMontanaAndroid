@@ -336,7 +336,7 @@ internal fun FeedPublishSheet(
                     sessionDate = today.minusDays(1).toString()
                 }
                 val custom = sessionDate?.takeIf { it != today.minusDays(1).toString() }
-                DateChip(custom?.let { formatShortDate(it) } ?: "Otra fecha…",
+                DateChip(custom?.let { formatShortDate(it) } ?: stringResource(R.string.feed_publish_sheet_v4_otra_fecha),
                     selected = custom != null) { showDatePicker = true }
             }
             Spacer(Modifier.height(12.dp))
@@ -344,8 +344,8 @@ internal fun FeedPublishSheet(
             // ── Estilo de ascensión: dos chips independientes, sin etiqueta
             // "Estilo" encima — se pulsan directamente (Rodrigo, 2026-08-21).
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                DateChip("A vista", selected = aVista) { aVista = !aVista }
-                DateChip("Al flash", selected = alFlash) { alFlash = !alFlash }
+                DateChip(stringResource(R.string.feed_publish_sheet_v4_a_vista), selected = aVista) { aVista = !aVista }
+                DateChip(stringResource(R.string.feed_publish_sheet_v4_al_flash), selected = alFlash) { alFlash = !alFlash }
             }
             Spacer(Modifier.height(12.dp))
 

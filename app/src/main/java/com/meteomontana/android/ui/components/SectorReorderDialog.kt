@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -110,7 +111,7 @@ fun SectorReorderDialog(
                     .padding(horizontal = Spacing.md),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
-                SectorChip("SIN SECTOR", selectedSectorId == null) { selectedSectorId = null }
+                SectorChip(stringResource(R.string.sector_reorder_dialog_v4_sin_sector), selectedSectorId == null) { selectedSectorId = null }
                 sectors.forEach { z ->
                     SectorChip(z.name.ifBlank { "SECTOR" }.uppercase(), selectedSectorId == z.id) {
                         selectedSectorId = z.id
@@ -142,7 +143,7 @@ fun SectorReorderDialog(
                                 color = Terra, modifier = Modifier.padding(end = Spacing.sm)
                             )
                             Text(
-                                block.name.ifBlank { "(sin número)" },
+                                block.name.ifBlank { stringResource(R.string.sector_reorder_dialog_v4_sin_numero) },
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.weight(1f)
@@ -185,7 +186,7 @@ fun SectorReorderDialog(
                         localBusy = true; errorMsg = null
                         onAutoReorder(selectedSectorId) { ok ->
                             localBusy = false
-                            if (ok) recompute() else errorMsg = "No se pudo calcular el orden."
+                            if (ok) recompute() else errorMsg = AppText.get(R.string.sector_reorder_dialog_v4_no_se_pudo_calcular_el)
                         }
                     },
                     enabled = !busy && !localBusy && ordered.isNotEmpty(),
@@ -200,7 +201,7 @@ fun SectorReorderDialog(
                         localBusy = true; errorMsg = null
                         onReorder(selectedSectorId, ordered.map { it.id }) { ok ->
                             localBusy = false
-                            if (ok) recompute() else errorMsg = "No se pudo guardar."
+                            if (ok) recompute() else errorMsg = AppText.get(R.string.sector_reorder_dialog_v4_no_se_pudo_guardar)
                         }
                     },
                     enabled = !busy && !localBusy && dirty,

@@ -124,7 +124,7 @@ fun NotesSection(
     reportTarget?.let { n ->
         ReportDialog(
             title = stringResource(R.string.notes_section_v2_denunciar_nota),
-            authorLabel = n.author ?: "este usuario",
+            authorLabel = n.author ?: stringResource(R.string.notes_section_v3_este_usuario),
             onReport = { reason, alsoBlock ->
                 moderation.report("NOTE", n.id, reason,
                     alsoBlockUid = if (alsoBlock) n.uid else null)
@@ -294,7 +294,7 @@ private fun ComposerRow(onPublish: (String, FileRef?) -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    if (photoUri == null) "📷 FOTO" else "📷 CAMBIAR",
+                    if (photoUri == null) stringResource(R.string.notes_section_v3_foto) else "📷 CAMBIAR",
                     color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.labelLarge
                 )

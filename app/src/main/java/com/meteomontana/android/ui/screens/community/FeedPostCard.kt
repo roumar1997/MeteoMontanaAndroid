@@ -189,8 +189,8 @@ internal fun FeedPostCard(
                 // incompleta: "dibujé 8 y salen 3" (Rodrigo, 2026-08-17).
                 if (post.otherFacesLines > 0) {
                     Text(
-                        text = if (post.otherFacesLines == 1) "+1 VÍA EN OTRA FOTO"
-                               else "+${post.otherFacesLines} VÍAS EN OTRAS FOTOS",
+                        text = if (post.otherFacesLines == 1) stringResource(R.string.feed_post_card_v3_1_via_en_otra_foto)
+                               else stringResource(R.string.feed_post_card_v3_vias_en_otras_fotos, post.otherFacesLines),
                         style = EyebrowTextStyle,
                         color = Color.White,
                         modifier = Modifier

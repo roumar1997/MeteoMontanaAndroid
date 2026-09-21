@@ -186,7 +186,7 @@ private fun SectorRow(name: String, count: Int, onClick: () -> Unit) {
             Column {
                 Text(name, style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground)
-                val countText = if (count == 1) "1 bloque" else "$count bloques"
+                val countText = if (count == 1) stringResource(R.string.journal_sectors_screen_v3_1_bloque) else "$count bloques"
                 Text(countText, style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

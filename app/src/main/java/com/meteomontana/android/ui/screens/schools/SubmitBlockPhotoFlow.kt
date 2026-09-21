@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.schools
 
 
+import com.meteomontana.android.util.AppText
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -93,7 +94,7 @@ fun SubmitBlockPhotoFlow(
             if (donde == null) {
                 android.widget.Toast.makeText(
                     context,
-                    "Esta foto no trae ubicación: coloca tú el punto en el mapa.",
+                    AppText.get(R.string.submit_block_photo_flow_v4_esta_foto_no_trae_ubicacion),
                     android.widget.Toast.LENGTH_LONG
                 ).show()
             }
@@ -240,9 +241,7 @@ fun SubmitBlockPhotoFlow(
                 Text(stringResource(R.string.submit_block_photo_flow_en_que_escuela_es),
                     style = MaterialTheme.typography.titleMedium)
                 Text(
-                    stringResource(R.string.submit_block_photo_flow_v2_esta_foto_no_trae_ubicacion) +
-                        "borra esos datos al reenviarla). Elige la escuela y coloca " +
-                        "el punto a mano en el mapa.",
+                    stringResource(R.string.submit_block_photo_flow_v2_esta_foto_no_trae_ubicacion),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)

@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -150,7 +151,7 @@ fun RockStatusBand(cur: Current) {
     val accent = if (dry) MaterialTheme.colorScheme.secondary
                  else MaterialTheme.colorScheme.error
     val subtitle = cur.drying?.message
-        ?: if (dry) "Lista para escalar" else "Mejor esperar a que seque"
+        ?: if (dry) stringResource(R.string.forecast_body_v3_lista_para_escalar) else stringResource(R.string.forecast_body_v3_mejor_esperar_a_que_seque)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -224,20 +225,20 @@ fun CurrentWeather(cur: Current) {
 @Composable
 fun ConditionsGrid(cur: Current) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        SectionTitle("CONDICIONES AHORA")
+        SectionTitle(stringResource(R.string.forecast_body_v3_condiciones_ahora))
         Spacer(Modifier.height(8.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ConditionCell("HUMEDAD", "${cur.humidity.toInt()}", "%", Modifier.weight(1f))
             ConditionCell("VIENTO", "${cur.windSpeed.toInt()}", "km/h", Modifier.weight(1f))
-            ConditionCell("LLUVIA 24H", "${cur.precip24h}", "mm", Modifier.weight(1f))
+            ConditionCell(stringResource(R.string.forecast_body_v3_lluvia_24h), "${cur.precip24h}", "mm", Modifier.weight(1f))
             ConditionCell("NUBES", "${cur.cloudCover}", "%", Modifier.weight(1f))
         }
         Spacer(Modifier.height(8.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ConditionCell("LLUVIA 72H", "${cur.precip72h}", "mm", Modifier.weight(1f))
-            ConditionCell("ROCÍO", cur.dewPoint?.let { "${it.toInt()}" } ?: "—", "°", Modifier.weight(1f))
-            ConditionCell("PROB LLUVIA", "${cur.precipitationProbability}", "%", Modifier.weight(1f))
-            ConditionCell("ROCA", if (cur.dryRock) stringResource(R.string.schools_rock_dry) else "HÚM", "", Modifier.weight(1f))
+            ConditionCell(stringResource(R.string.forecast_body_v3_lluvia_72h), "${cur.precip72h}", "mm", Modifier.weight(1f))
+            ConditionCell(stringResource(R.string.forecast_body_v3_rocio), cur.dewPoint?.let { "${it.toInt()}" } ?: "—", "°", Modifier.weight(1f))
+            ConditionCell(stringResource(R.string.forecast_body_v3_prob_lluvia), "${cur.precipitationProbability}", "%", Modifier.weight(1f))
+            ConditionCell("ROCA", if (cur.dryRock) stringResource(R.string.schools_rock_dry) else stringResource(R.string.forecast_body_v3_hum), "", Modifier.weight(1f))
         }
     }
 }
@@ -294,7 +295,7 @@ fun SectionTitle(text: String) {
 
 private fun cloudCoverLabel(cover: Int): String = when {
     cover < 20 -> "Despejado"
-    cover < 50 -> "Parcialmente nublado"
-    cover < 80 -> "Mayormente nublado"
+    cover < 50 -> AppText.get(R.string.forecast_body_v4_parcialmente_nublado)
+    cover < 80 -> AppText.get(R.string.forecast_body_v4_mayormente_nublado)
     else       -> "Cubierto"
 }

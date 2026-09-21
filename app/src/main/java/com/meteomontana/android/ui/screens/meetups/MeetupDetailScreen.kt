@@ -378,8 +378,8 @@ fun MeetupDetailScreen(
                                 Text(meetup.description!!, style = MaterialTheme.typography.bodyMedium)
                             } else {
                                 Text(
-                                    if (isCreator) "Añade detalles (material, nivel, hora...)"
-                                    else "Sin detalles",
+                                    if (isCreator) stringResource(R.string.meetup_detail_screen_v3_anade_detalles_material_nivel_hora)
+                                    else stringResource(R.string.meetup_detail_screen_v3_sin_detalles),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontStyle = FontStyle.Italic,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -564,8 +564,8 @@ private fun EditDescriptionDialog(initial: String, saving: Boolean,
 
 @Composable
 private fun ReportMeetupDialog(onDismiss: () -> Unit, onReport: (String) -> Unit) {
-    val reasons = listOf("SPAM" to "Spam o publicidad", "INAPPROPRIATE" to "Contenido inapropiado",
-        "HARASSMENT" to "Acoso", "OTHER" to "Otro motivo")
+    val reasons = listOf("SPAM" to stringResource(R.string.report_dialog_v3_spam_o_publicidad), "INAPPROPRIATE" to "Contenido inapropiado",
+        "HARASSMENT" to "Acoso", "OTHER" to stringResource(R.string.report_dialog_v3_otro_motivo))
     AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.meetup_detail_screen_v2_denunciar_quedada)) },
         text = { Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Text(stringResource(R.string.meetup_detail_screen_v2_selecciona_el_motivo), style = MaterialTheme.typography.bodyMedium)

@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import androidx.compose.foundation.background
@@ -153,7 +154,7 @@ private fun ApproachCard(
         Spacer(Modifier.padding(top = Spacing.xs))
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(
-                if (approach.isVerified) "✓ VERIFICADA" else "⚠ SIN VERIFICAR",
+                if (approach.isVerified) "✓ VERIFICADA" else stringResource(R.string.approaches_section_v3_sin_verificar),
                 style = EyebrowTextStyle,
                 color = if (approach.isVerified) Ok else Warn,
                 modifier = Modifier.weight(1f)
@@ -178,8 +179,8 @@ private fun summaryLine(a: Approach): String {
         parts += if (d >= 1000) String.format(Locale.US, "%.1f km", d / 1000.0) else "$d m"
     }
     a.ascentM?.let { parts += "+$it m" }
-    a.durationMin?.let { parts += "~$it min" }
+    a.durationMin?.let { parts += AppText.get(R.string.approaches_section_v4_min, it) }
     val pinCount = a.pins.size
-    if (pinCount > 0) parts += if (pinCount == 1) "1 chincheta" else "$pinCount chinchetas"
+    if (pinCount > 0) parts += if (pinCount == 1) AppText.get(R.string.approaches_section_v4_1_chincheta) else "$pinCount chinchetas"
     return parts.joinToString(" · ")
 }

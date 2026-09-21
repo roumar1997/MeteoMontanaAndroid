@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.profile
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.runtime.setValue
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import androidx.compose.foundation.background
@@ -101,15 +102,15 @@ class JournalEntriesViewModel @Inject constructor(
         ?.substringAfter("|sector:")
 
     val title: String = when {
-        filter == null               -> if (isMine) "Todos mis bloques" else "Todos los bloques"
+        filter == null               -> if (isMine) AppText.get(R.string.journal_entries_screen_v4_todos_mis_bloques) else AppText.get(R.string.journal_entries_screen_v4_todos_los_bloques)
         sectorName != null           -> sectorName
         filter.startsWith("school:") -> filter.removePrefix("school:")
-        filter == "grade-max"        -> "Grado máximo"
-        filter == "discipline:BOULDER" -> if (isMine) "Mis bloques" else "Bloques"
-        filter == "discipline:ROUTE"   -> if (isMine) "Mis vías" else "Vías"
-        filter == "project"          -> if (isMine) "Mis proyectos" else "Proyectos"
-        filter == "project:BOULDER"  -> if (isMine) "Mis proyectos · bloques" else "Proyectos · bloques"
-        filter == "project:ROUTE"    -> if (isMine) "Mis proyectos · vías" else "Proyectos · vías"
+        filter == "grade-max"        -> AppText.get(R.string.journal_entries_screen_v4_grado_maximo)
+        filter == "discipline:BOULDER" -> if (isMine) AppText.get(R.string.journal_entries_screen_v4_mis_bloques) else "Bloques"
+        filter == "discipline:ROUTE"   -> if (isMine) AppText.get(R.string.journal_entries_screen_v4_mis_vias) else AppText.get(R.string.journal_entries_screen_v4_vias)
+        filter == "project"          -> if (isMine) AppText.get(R.string.journal_entries_screen_v4_mis_proyectos) else "Proyectos"
+        filter == "project:BOULDER"  -> if (isMine) AppText.get(R.string.journal_entries_screen_v4_mis_proyectos_bloques) else AppText.get(R.string.journal_entries_screen_v4_proyectos_bloques)
+        filter == "project:ROUTE"    -> if (isMine) AppText.get(R.string.journal_entries_screen_v4_mis_proyectos_vias) else AppText.get(R.string.journal_entries_screen_v4_proyectos_vias)
         else                         -> "Diario"
     }
 
@@ -265,14 +266,14 @@ fun JournalEntriesScreen(
                     com.meteomontana.android.ui.components.EmptyState(
                         icon = Icons.AutoMirrored.Outlined.MenuBook,
                         title = stringResource(R.string.journal_entries_screen_v2_tu_diario_esta_vacio),
-                        message = "Marca el ✓ de una vía dentro de su piedra (en el detalle de una escuela) y aparecerá aquí, con su grado y sector."
+                        message = stringResource(R.string.journal_entries_screen_v3_marca_el_de_una_via)
                     )
                 } else {
                     LazyColumn {
                         item {
                             com.meteomontana.android.ui.components.FirstTimeHint(
                                 hintKey = "journal_tap_via",
-                                text = "Toca una vía para ir directamente a su piedra en la escuela."
+                                text = stringResource(R.string.journal_entries_screen_v3_toca_una_via_para_ir)
                             )
                         }
                         // Si estamos viendo una escuela concreta, fila para abrir
@@ -336,10 +337,10 @@ fun JournalEntriesScreen(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                                 ) {
-                                    StyleBadge("A VISTA", active = styleFilter == "aVista") {
+                                    StyleBadge(stringResource(R.string.journal_entries_screen_v4_a_vista), active = styleFilter == "aVista") {
                                         styleFilter = if (styleFilter == "aVista") null else "aVista"
                                     }
-                                    StyleBadge("AL FLASH", active = styleFilter == "alFlash") {
+                                    StyleBadge(stringResource(R.string.journal_entries_screen_v4_al_flash), active = styleFilter == "alFlash") {
                                         styleFilter = if (styleFilter == "alFlash") null else "alFlash"
                                     }
                                 }
@@ -457,11 +458,11 @@ internal fun EntryRow(
                 // (ajeno) o si es editable (propio, para poder añadirlo
                 // aunque no se marcara al principio).
                 if (e.aVista || onChangeStyle != null) {
-                    StyleBadge("A VISTA", active = e.aVista,
+                    StyleBadge(stringResource(R.string.journal_entries_screen_v4_a_vista), active = e.aVista,
                         onClick = onChangeStyle?.let { { it(!e.aVista, e.alFlash) } })
                 }
                 if (e.alFlash || onChangeStyle != null) {
-                    StyleBadge("AL FLASH", active = e.alFlash,
+                    StyleBadge(stringResource(R.string.journal_entries_screen_v4_al_flash), active = e.alFlash,
                         onClick = onChangeStyle?.let { { it(e.aVista, !e.alFlash) } })
                 }
             }

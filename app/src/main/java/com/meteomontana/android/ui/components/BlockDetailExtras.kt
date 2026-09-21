@@ -272,8 +272,7 @@ private fun shareLine(
     schoolName: String,
     sectorName: String?
 ) {
-    val kind = if (block.discipline.equals("ROUTE", ignoreCase = true)) "vía" else "bloque"
-    val article = if (kind == "vía") "esta" else "este"
+    val isRoute = block.discipline.equals("ROUTE", ignoreCase = true)
     val grade = line.grade?.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
     val where = buildString {
         append(block.name)
@@ -282,15 +281,14 @@ private fun shareLine(
     }
     val base = com.meteomontana.android.BuildConfig.API_BASE_URL.removeSuffix("api/")
     val link = "${base}s/v/${block.schoolId}/${line.id}"
-    val text = "🧗 Mira $article $kind: «${line.name}»$grade\n" +
-        "📍 $where\n" +
-        "👉 Míralo en Cumbre (foto con la línea dibujada):\n" +
-        link
+    val text = context.getString(
+        if (isRoute) R.string.share_line_extra_route else R.string.share_line_extra_boulder,
+        line.name, grade, where, link)
     val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(android.content.Intent.EXTRA_TEXT, text)
     }
     runCatching {
-        context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.share_utils_v3_compartir_1_s, kind)))
+        context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.share_utils_v3_compartir_1_s, context.getString(if (isRoute) R.string.kind_route else R.string.kind_boulder))))
     }
 }

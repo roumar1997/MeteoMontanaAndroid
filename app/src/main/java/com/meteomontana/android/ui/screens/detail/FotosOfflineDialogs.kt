@@ -39,11 +39,8 @@ fun FotosOfflineDialogs(
             title = { Text(stringResource(R.string.fotos_offline_dialogs_guardar_tambien_las_fotos)) },
             text = {
                 Text(
-                    stringResource(R.string.fotos_offline_dialogs_v2_la_escuela_ya_esta_guardada, o.cuantas) +
-                        "(${enMegas(o.bytesEstimados)}) te deja ver los topos en la roca " +
-                        "aunque no haya cobertura.\n\n" +
-                        "Si dices que no, tendrás los nombres, los grados y las líneas, " +
-                        "pero no las fotos sobre las que van dibujadas."
+                    stringResource(R.string.fotos_offline_dialogs_v2_la_escuela_ya_esta_guardada,
+                        o.cuantas, enMegas(o.bytesEstimados))
                 )
             },
             confirmButton = { TextButton(onClick = onDescargar) { Text(stringResource(R.string.fotos_offline_dialogs_v2_descargar)) } },
@@ -84,8 +81,8 @@ fun FotosOfflineDialogs(
             title = { Text(stringResource(R.string.fotos_offline_dialogs_v2_faltaron_algunas_fotos)) },
             text = {
                 Text(
-                    if (n == 1) "Una foto no se pudo guardar. Vuelve a guardar la escuela con mejor cobertura y se reintentará solo esa."
-                    else "$n fotos no se pudieron guardar. Vuelve a guardar la escuela con mejor cobertura y se reintentarán solo esas."
+                    if (n == 1) stringResource(R.string.fotos_offline_dialogs_v3_una_foto_no_se_pudo)
+                    else stringResource(R.string.fotos_offline_dialogs_v3_fotos_no_se_pudieron_guardar, n)
                 )
             },
             confirmButton = { TextButton(onClick = onCerrarAviso) { Text(stringResource(R.string.fotos_offline_dialogs_v2_entendido)) } }

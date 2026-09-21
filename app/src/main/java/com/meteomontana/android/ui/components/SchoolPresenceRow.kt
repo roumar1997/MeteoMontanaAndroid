@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -79,7 +80,7 @@ class SchoolPresenceViewModel @Inject constructor(
                 // dice nada al usuario — se registra para depurar y se
                 // muestra uno normal (Álvaro, 2026-09-04).
                 android.util.Log.w("SchoolPresence", "No se pudo cargar la presencia", e)
-                errorText = "No se pudo cargar quién hay aquí. Comprueba tu conexión."
+                errorText = AppText.get(R.string.school_presence_row_v4_no_se_pudo_cargar_quien)
             }
         }
     }
@@ -253,7 +254,7 @@ private fun PresenceMarkButton(iAmHere: Boolean, loading: Boolean, onClick: () -
             tint = Color.White, modifier = Modifier.size(11.dp))
         Spacer(Modifier.padding(start = 4.dp))
         Text(
-            if (iAmHere) "Ya no estoy" else "Estoy aquí",
+            if (iAmHere) stringResource(R.string.school_presence_row_v3_ya_no_estoy) else stringResource(R.string.school_presence_row_v3_estoy_aqui),
             style = MaterialTheme.typography.labelSmall.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
             color = Color.White
         )
@@ -352,7 +353,7 @@ private fun PresenceAllSheet(
                             PresenceAvatar(url = person.photoUrl, size = 36.dp)
                             Spacer(Modifier.padding(start = Spacing.sm))
                             Text(
-                                if (isMe) "Tú" else (person.displayName ?: person.username ?: "Usuario"),
+                                if (isMe) stringResource(R.string.school_presence_row_v3_tu) else (person.displayName ?: person.username ?: "Usuario"),
                                 style = MaterialTheme.typography.bodyLarge.copy(fontFamily = Serif),
                                 color = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.weight(1f)

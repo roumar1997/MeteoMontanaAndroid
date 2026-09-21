@@ -71,7 +71,7 @@ private fun LoadedBody(s: DayDetailUiState.Loaded, onBack: () -> Unit) {
         item { Spacer(Modifier.height(Spacing.md)) }
         item { ConditionsTable(day = s.day, hoursOfDay = s.hoursOfDay) }
         item { Spacer(Modifier.height(Spacing.xl)) }
-        item { SectionTitle("PRÓXIMAS 24H") }
+        item { SectionTitle(stringResource(R.string.day_detail_screen_v3_proximas_24h)) }
         if (s.hoursOfDay.isEmpty()) {
             item {
                 Box(Modifier.fillMaxWidth().padding(Spacing.lg), contentAlignment = Alignment.Center) {
@@ -178,8 +178,8 @@ private fun ConditionsTable(day: DayForecast, hoursOfDay: List<HourForecast>) {
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp)),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Cell("MÁX", "${day.tempMax.toInt()}°", Modifier.weight(1f))
-            Cell("MÍN", "${day.tempMin.toInt()}°", Modifier.weight(1f))
+            Cell(stringResource(R.string.day_detail_screen_v3_max), "${day.tempMax.toInt()}°", Modifier.weight(1f))
+            Cell(stringResource(R.string.day_detail_screen_v3_min), "${day.tempMin.toInt()}°", Modifier.weight(1f))
             Cell("VIENTO", "${windMax.toInt()}", Modifier.weight(1f))
             Cell("UV", "—", Modifier.weight(1f))
         }

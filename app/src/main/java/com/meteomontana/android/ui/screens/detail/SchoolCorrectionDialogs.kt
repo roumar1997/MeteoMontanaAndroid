@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -80,7 +81,7 @@ internal fun SchoolNameCorrectionDialog(
                 scope.launch {
                     val ok = onSubmit(name.trim())
                     sending = false
-                    if (!ok) error = "No se pudo enviar. Revisa la conexión — tus datos siguen aquí."
+                    if (!ok) error = AppText.get(R.string.place_form_dialog_v3_no_se_pudo_enviar_revisa)
                 }
             }
         )
@@ -101,7 +102,7 @@ internal fun SchoolStyleCorrectionDialog(
         (currentStyle ?: "").split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
     }
     var selected by remember(currentStyle) { mutableStateOf(currentSet) }
-    val options = remember(currentSet) { (currentSet + setOf("Vía", "Bloque")).sorted() }
+    val options = remember(currentSet) { (currentSet + setOf(AppText.get(R.string.school_map_v3_via), "Bloque")).sorted() }
     var sending by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -116,7 +117,7 @@ internal fun SchoolStyleCorrectionDialog(
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         Text(
-            if (!currentStyle.isNullOrBlank()) currentStyle else "sin especificar",
+            if (!currentStyle.isNullOrBlank()) currentStyle else stringResource(R.string.school_correction_dialogs_v3_sin_especificar),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -147,7 +148,7 @@ internal fun SchoolStyleCorrectionDialog(
                 scope.launch {
                     val ok = onSubmit(selected.sorted().joinToString(","))
                     sending = false
-                    if (!ok) error = "No se pudo enviar. Revisa la conexión — tus datos siguen aquí."
+                    if (!ok) error = AppText.get(R.string.place_form_dialog_v3_no_se_pudo_enviar_revisa)
                 }
             }
         )

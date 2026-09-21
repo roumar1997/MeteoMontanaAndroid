@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -420,9 +421,9 @@ fun SchoolMap(
                         sectorBlockId = sectorId
                     )
                     successMessage = if (r.isSuccess)
-                        if (fichaIsAdmin) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
+                        if (fichaIsAdmin) AppText.get(R.string.school_map_v3_publicado_en_el_mapa) else AppText.get(R.string.school_map_v3_propuesta_enviada_un_admin_la)
                     else
-                        "No se pudo enviar la propuesta: ${r.exceptionOrNull()?.message ?: "error"}"
+                        AppText.get(R.string.school_map_v3_no_se_pudo_enviar_la, r.exceptionOrNull()?.message ?: "error")
                 }
             }) else null,
             onDelete = if (fichaIsAdmin) ({
@@ -437,7 +438,7 @@ fun SchoolMap(
     // Hoja de publicar el tick (estilo Cumbre).
     pendingTick?.let { pt ->
         FeedPublishSheet(
-            lineLabel = pt.line.name.ifBlank { "Vía ${pt.index + 1}" } +
+            lineLabel = pt.line.name.ifBlank { stringResource(R.string.school_map_v3_via_2, pt.index + 1) } +
                 (pt.line.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
             wasProject = pt.wasProject,
             onPublish = { always, caption, photoUri, sessionDate, aVista, alFlash ->
@@ -455,7 +456,7 @@ fun SchoolMap(
                             onPublishFailed = {
                                 android.widget.Toast.makeText(
                                     fichaCtx,
-                                    "No se pudo publicar el ascenso (queda en tu diario)",
+                                    AppText.get(R.string.school_map_v3_no_se_pudo_publicar_el),
                                     android.widget.Toast.LENGTH_LONG
                                 ).show()
                             },
@@ -556,7 +557,7 @@ fun SchoolMap(
                     com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.clear(fichaCtx, block.id)
                     wallEdit.target = null
                     selectedBlock = null
-                    successMessage = if (fichaIsAdmin) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
+                    successMessage = if (fichaIsAdmin) AppText.get(R.string.school_map_v3_publicado_en_el_mapa) else AppText.get(R.string.school_map_v3_propuesta_enviada_un_admin_la)
                 }
             )
         }
@@ -595,7 +596,7 @@ fun SchoolMap(
             onSuccess = {
                 wallEdit.editingLine = null
                 selectedBlock = null
-                successMessage = if (fichaIsAdmin) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
+                successMessage = if (fichaIsAdmin) AppText.get(R.string.school_map_v3_publicado_en_el_mapa) else AppText.get(R.string.school_map_v3_propuesta_enviada_un_admin_la)
             }
         )
     }
@@ -624,7 +625,7 @@ private fun StyleFilterRow(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        listOf("Vía", "Bloque").forEach { opt ->
+        listOf(stringResource(R.string.school_map_v3_via), "Bloque").forEach { opt ->
             val active = opt in selected
             Box(
                 modifier = Modifier
