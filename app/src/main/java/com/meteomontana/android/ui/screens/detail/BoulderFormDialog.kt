@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.util.CatalogLabels
 import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.CumbrePillShape
 import com.meteomontana.android.ui.theme.terraFillColor
@@ -814,7 +815,7 @@ private fun OrientationPickRow(label: String, selected: String?, onPick: (String
                 Column {
                     Text(
                         stringResource(R.string.boulder_form_dialog_v2_estas_mirando_al,
-                            com.meteomontana.android.domain.util.Aspect.fromDegrees(rumbo),
+                            CatalogLabels.aspect(com.meteomontana.android.domain.util.Aspect.fromDegrees(rumbo)),
                             com.meteomontana.android.domain.util.Aspect.degreesLabel(rumbo)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

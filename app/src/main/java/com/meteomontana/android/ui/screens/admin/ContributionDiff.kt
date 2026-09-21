@@ -233,10 +233,10 @@ private fun FieldChangeRow(label: String, old: String?, new: String?) {
 /** Etiqueta visible de cada campo del diff (la lógica vive en `shared`). */
 private fun lineFieldLabel(f: com.meteomontana.android.domain.usecase.contributions.LineField): String =
     when (f) {
-        com.meteomontana.android.domain.usecase.contributions.LineField.NAME -> "Nombre"
-        com.meteomontana.android.domain.usecase.contributions.LineField.GRADE -> "Grado"
-        com.meteomontana.android.domain.usecase.contributions.LineField.VARIANT -> "Variante"
-        com.meteomontana.android.domain.usecase.contributions.LineField.START_TYPE -> "Tipo"
+        com.meteomontana.android.domain.usecase.contributions.LineField.NAME -> AppText.get(R.string.w_name)
+        com.meteomontana.android.domain.usecase.contributions.LineField.GRADE -> AppText.get(R.string.w_grade)
+        com.meteomontana.android.domain.usecase.contributions.LineField.VARIANT -> AppText.get(R.string.w_variant)
+        com.meteomontana.android.domain.usecase.contributions.LineField.START_TYPE -> AppText.get(R.string.w_type)
         com.meteomontana.android.domain.usecase.contributions.LineField.DESCRIPTION -> AppText.get(R.string.contribution_diff_v4_descripcion)
     }
 

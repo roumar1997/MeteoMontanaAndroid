@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import com.meteomontana.android.data.local.saveCelebrationToGallery
@@ -331,8 +332,8 @@ internal fun FeedPublishSheet(
             Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val today = java.time.LocalDate.now()
-                DateChip("Hoy", selected = sessionDate == null) { sessionDate = null }
-                DateChip("Ayer", selected = sessionDate == today.minusDays(1).toString()) {
+                DateChip(stringResource(R.string.w_today), selected = sessionDate == null) { sessionDate = null }
+                DateChip(stringResource(R.string.w_yesterday), selected = sessionDate == today.minusDays(1).toString()) {
                     sessionDate = today.minusDays(1).toString()
                 }
                 val custom = sessionDate?.takeIf { it != today.minusDays(1).toString() }
@@ -542,6 +543,5 @@ private fun DateChip(label: String, selected: Boolean, onClick: () -> Unit) {
 
 internal fun formatShortDate(iso: String): String = runCatching {
     val d = java.time.LocalDate.parse(iso)
-    "%d %s".format(d.dayOfMonth, listOf("ENE","FEB","MAR","ABR","MAY","JUN",
-        "JUL","AGO","SEP","OCT","NOV","DIC")[d.monthValue - 1])
+    "%d %s".format(d.dayOfMonth, CalendarLabels.monthsShort()[d.monthValue - 1].uppercase())
 }.getOrDefault(iso)

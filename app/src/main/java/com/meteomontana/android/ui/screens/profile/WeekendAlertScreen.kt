@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.profile
 
+import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -190,7 +191,7 @@ class WeekendAlertViewModel @Inject constructor(
     }
 }
 
-private val DAY_LABELS = listOf("L", "M", "X", "J", "V", "S", "D")
+private val DAY_LABELS get() = CalendarLabels.dayLettersMonFirst()
 private val HOUR_OPTIONS = listOf(7, 8, 9, 10, 20, 21)
 
 @OptIn(ExperimentalLayoutApi::class)

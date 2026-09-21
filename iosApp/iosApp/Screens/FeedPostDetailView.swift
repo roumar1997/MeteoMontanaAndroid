@@ -59,7 +59,7 @@ final class FeedPostDetailViewModel: ObservableObject {
 
     func addComment(_ text: String, _ parentId: String?) async -> Bool {
         guard let p = post else { return false }
-        guard let created = await reporting("No se pudo enviar el comentario", {
+        guard let created = await reporting(L("No se pudo enviar el comentario"), {
             try await container.addFeedComment.invoke(
             postId: p.id, text: text, parentId: parentId)
         }) else { return false }
@@ -128,7 +128,7 @@ struct FeedPostDetailView: View {
         .sheet(isPresented: $reportPost) {
             if let post = vm.post {
                 ReportSheet(
-                    title: "DENUNCIAR PUBLICACIÓN",
+                    title: L("DENUNCIAR PUBLICACIÓN"),
                     authorLabel: feedAuthorLabel(post.author)
                 ) { reason, alsoBlock in
                     moderation.report(
@@ -139,7 +139,7 @@ struct FeedPostDetailView: View {
         }
         .sheet(item: $reportComment) { c in
             ReportSheet(
-                title: "DENUNCIAR COMENTARIO",
+                title: L("DENUNCIAR COMENTARIO"),
                 authorLabel: feedAuthorLabel(c.author)
             ) { reason, alsoBlock in
                 let blockUid = c.author?.uid ?? c.uid
@@ -218,7 +218,7 @@ struct FeedPostDetailView: View {
             // Banner "Respondiendo a X" con ✕ (vuelve a comentario raíz).
             if let target = replyTo {
                 HStack {
-                    Text("Respondiendo a " + (feedAuthorLabel(target.author) ?? ""))
+                    Text(L("Respondiendo a %@", feedAuthorLabel(target.author) ?? ""))
                         .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                     Spacer()
                     Button { replyTo = nil } label: {

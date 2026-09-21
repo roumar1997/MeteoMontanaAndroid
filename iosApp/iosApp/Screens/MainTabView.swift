@@ -97,8 +97,8 @@ struct WeatherRadarToggle: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            segment("TIEMPO", active: !showRadar) { onSelect(false) }
-            segment("RADAR", active: showRadar) { onSelect(true) }
+            segment(L("TIEMPO"), active: !showRadar) { onSelect(false) }
+            segment(L("RADAR"), active: showRadar) { onSelect(true) }
         }
         .background(Cumbre.bg.opacity(0.95))
         .clipShape(RoundedRectangle(cornerRadius: 2))

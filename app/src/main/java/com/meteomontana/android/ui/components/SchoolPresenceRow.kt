@@ -94,7 +94,7 @@ class SchoolPresenceViewModel @Inject constructor(
                 if (iAmHere) clearPresence.execute(schoolId) else markPresence.execute(schoolId)
             } catch (e: Exception) {
                 android.util.Log.w("SchoolPresence", "No se pudo marcar/quitar la presencia", e)
-                errorText = "${if (iAmHere) "No se pudo quitar" else "No se pudo marcar"} la presencia. Comprueba tu conexión."
+                errorText = AppText.get(if (iAmHere) R.string.presence_error_remove else R.string.presence_error_mark)
             }
             loading = false
             load(schoolId, myUid)
@@ -345,7 +345,7 @@ private fun PresenceAllSheet(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable(enabled = !isMe) {
-                                    onOpenChat(person.uid, person.displayName ?: person.username ?: "Usuario")
+                                    onOpenChat(person.uid, person.displayName ?: person.username ?: AppText.get(R.string.w_user))
                                 }
                                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
                             verticalAlignment = Alignment.CenterVertically

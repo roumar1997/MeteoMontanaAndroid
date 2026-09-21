@@ -107,7 +107,7 @@ import kotlin.math.roundToInt
 
 data class GroupChatUiState(
     val convId: String,
-    val name: String = "Grupo",
+    val name: String = AppText.get(R.string.w_group),
     val messages: List<ChatService.ChatMessage> = emptyList(),
     /** uid -> nombre para mostrar, para etiquetar quién escribe cada mensaje. */
     val memberNames: Map<String, String> = emptyMap(),
@@ -188,7 +188,7 @@ class GroupChatViewModel @Inject constructor(
                 val conv = convs.firstOrNull { it.id == convId } ?: return@collect
                 resolveNames(conv.participants)
                 _state.value = _state.value.copy(
-                    name = conv.name ?: "Grupo",
+                    name = conv.name ?: AppText.get(R.string.w_group),
                     canWrite = me in conv.participants,
                     memberNames = nameCache.toMap()
                 )
@@ -356,7 +356,7 @@ fun GroupChatScreen(
                 Icon(
                     if (state.muted) Icons.Outlined.NotificationsOff
                     else Icons.Outlined.NotificationsActive,
-                    contentDescription = if (state.muted) "Activar" else "Silenciar",
+                    contentDescription = if (state.muted) stringResource(R.string.w_unmute) else stringResource(R.string.w_mute),
                     tint = if (state.muted) MaterialTheme.colorScheme.onSurfaceVariant
                            else MaterialTheme.colorScheme.primary
                 )

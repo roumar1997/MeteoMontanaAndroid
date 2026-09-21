@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -263,7 +264,7 @@ fun MeetupDetailScreen(
                                 MemberAvatar(meetup.creatorPhotoUrl, 28.dp)
                                 val creatorName = meetup.members.firstOrNull { it.uid == meetup.creatorUid }
                                     ?.let { it.displayName ?: it.username }
-                                    ?: meetup.creatorUsername ?: "Organizador"
+                                    ?: meetup.creatorUsername ?: AppText.get(R.string.w_organizer)
                                 Column {
                                     Text(stringResource(R.string.meetup_detail_organized_by), style = EyebrowTextStyle,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -603,9 +604,10 @@ internal fun buildGearJson(gear: Map<String, Int>): String {
 }
 
 internal fun gearItemsForDiscipline(discipline: String?): List<Pair<String, String>> = when (discipline) {
-    "BOULDER" -> listOf("crashpads" to "Crashpads")
-    "ROUTE" -> listOf("cintas" to "Cintas", "cuerda" to "Cuerdas", "grigri" to "Gri-gri")
-    else -> listOf("crashpads" to "Crashpads", "cintas" to "Cintas", "cuerda" to "Cuerdas", "grigri" to "Gri-gri")
+    "BOULDER" -> listOf("crashpads" to AppText.get(R.string.gear_crashpads))
+    "ROUTE" -> listOf("cintas" to AppText.get(R.string.gear_quickdraws), "cuerda" to AppText.get(R.string.gear_ropes), "grigri" to AppText.get(R.string.gear_grigri))
+    else -> listOf("crashpads" to AppText.get(R.string.gear_crashpads), "cintas" to AppText.get(R.string.gear_quickdraws),
+        "cuerda" to AppText.get(R.string.gear_ropes), "grigri" to AppText.get(R.string.gear_grigri))
 }
 
 internal fun gearLabel(key: String): String = when (key) {
@@ -825,7 +827,7 @@ internal fun GearStepper(label: String, value: Int, onMinus: () -> Unit, onPlus:
                 modifier = Modifier.size(32.dp),
                 enabled = value > 0
             ) {
-                Icon(Icons.Outlined.Remove, "Menos", Modifier.size(18.dp))
+                Icon(Icons.Outlined.Remove, stringResource(R.string.w_less), Modifier.size(18.dp))
             }
             Text("$value", style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold, modifier = Modifier.widthIn(min = 28.dp),
@@ -834,7 +836,7 @@ internal fun GearStepper(label: String, value: Int, onMinus: () -> Unit, onPlus:
                 onClick = onPlus,
                 modifier = Modifier.size(32.dp)
             ) {
-                Icon(Icons.Outlined.Add, "Mas", Modifier.size(18.dp))
+                Icon(Icons.Outlined.Add, stringResource(R.string.w_more), Modifier.size(18.dp))
             }
         }
     }

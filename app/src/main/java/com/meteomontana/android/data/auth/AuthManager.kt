@@ -1,5 +1,6 @@
 package com.meteomontana.android.data.auth
 
+import com.meteomontana.android.util.AppText
 import android.content.Context
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
@@ -105,12 +106,12 @@ class AuthManager @Inject constructor(
                 else
                     AuthState.Error("No Firebase user")
             } else {
-                _authState.value = AuthState.Error("Tipo de credencial no soportado")
+                _authState.value = AuthState.Error(AppText.get(R.string.auth_unsupported_credential))
             }
         } catch (e: GetCredentialException) {
-            _authState.value = AuthState.Error(e.message ?: "Sign-in cancelado")
+            _authState.value = AuthState.Error(e.message ?: AppText.get(R.string.auth_signin_cancelled))
         } catch (e: GoogleIdTokenParsingException) {
-            _authState.value = AuthState.Error("Token inválido")
+            _authState.value = AuthState.Error(AppText.get(R.string.auth_invalid_token))
         } catch (e: Throwable) {
             _authState.value = AuthState.Error(e.message ?: "Error desconocido")
         }

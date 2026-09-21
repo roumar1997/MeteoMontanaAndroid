@@ -693,7 +693,7 @@ private fun FullScreenMeetupsMap(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(stringResource(R.string.meetups_map_panel_v2_dist), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        DisciplineFilterPill("Todas", mapDistanceKm == null) { onMapDistanceKmChange(null) }
+                        DisciplineFilterPill(stringResource(R.string.w_all), mapDistanceKm == null) { onMapDistanceKmChange(null) }
                         DisciplineFilterPill("50 km", mapDistanceKm == 50) { onMapDistanceKmChange(50) }
                         DisciplineFilterPill("100 km", mapDistanceKm == 100) { onMapDistanceKmChange(100) }
                         DisciplineFilterPill("200 km", mapDistanceKm == 200) { onMapDistanceKmChange(200) }
@@ -704,9 +704,9 @@ private fun FullScreenMeetupsMap(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(stringResource(R.string.meetups_map_panel_v2_modalidad), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    DisciplineFilterPill("Ambas", disciplineFilter == null) { onDisciplineFilterChange(null) }
-                    DisciplineFilterPill("Bloque", disciplineFilter == "BOULDER") { onDisciplineFilterChange("BOULDER") }
-                    DisciplineFilterPill("Vía", disciplineFilter == "ROUTE") { onDisciplineFilterChange("ROUTE") }
+                    DisciplineFilterPill(stringResource(R.string.w_both), disciplineFilter == null) { onDisciplineFilterChange(null) }
+                    DisciplineFilterPill(stringResource(R.string.w_boulder), disciplineFilter == "BOULDER") { onDisciplineFilterChange("BOULDER") }
+                    DisciplineFilterPill(stringResource(R.string.w_route), disciplineFilter == "ROUTE") { onDisciplineFilterChange("ROUTE") }
                 }
             }
         }

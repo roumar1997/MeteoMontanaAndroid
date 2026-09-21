@@ -14,9 +14,9 @@ enum FeedPublishMode: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .ask: return "Preguntar"
-        case .always: return "Siempre"
-        case .never: return "Nunca"
+        case .ask: return L("Preguntar")
+        case .always: return L("Siempre")
+        case .never: return L("Nunca")
         }
     }
 }
@@ -86,7 +86,7 @@ struct FeedPublishSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(wasProject ? "PROYECTO CONSEGUIDO" : "HECHO")
+            Text(wasProject ? L("PROYECTO CONSEGUIDO") : L("HECHO"))
                 .font(Cumbre.mono(10, .bold)).tracking(1.8)
                 .foregroundStyle(Cumbre.terra)
             Text("¿Marcar como hecha?")
@@ -102,14 +102,14 @@ struct FeedPublishSheet: View {
             Text("CUANDO LA ENCADENASTE").font(Cumbre.mono(10, .bold)).tracking(1)
                 .foregroundStyle(Cumbre.ink3)
             HStack(spacing: 8) {
-                dateChip("Hoy", selected: sessionDate == nil) { sessionDate = nil }
-                dateChip("Ayer", selected: sessionDate == FeedPublishSheet.iso(daysAgo: 1)) {
+                dateChip(L("Hoy"), selected: sessionDate == nil) { sessionDate = nil }
+                dateChip(L("Ayer"), selected: sessionDate == FeedPublishSheet.iso(daysAgo: 1)) {
                     sessionDate = FeedPublishSheet.iso(daysAgo: 1)
                 }
                 let custom = sessionDate.flatMap { d in
                     d == FeedPublishSheet.iso(daysAgo: 1) ? nil : d
                 }
-                dateChip(custom.map { FeedPublishSheet.shortDate($0) } ?? "Otra fecha…",
+                dateChip(custom.map { FeedPublishSheet.shortDate($0) } ?? L("Otra fecha…"),
                          selected: custom != nil) { showDatePicker = true }
             }
             .sheet(isPresented: $showDatePicker) {
@@ -132,8 +132,8 @@ struct FeedPublishSheet: View {
             // encima — se pulsan directamente (Rodrigo, 2026-08-21).
             Spacer().frame(height: 10)
             HStack(spacing: 8) {
-                dateChip("A vista", selected: aVista) { aVista.toggle() }
-                dateChip("Al flash", selected: alFlash) { alFlash.toggle() }
+                dateChip(L("A vista"), selected: aVista) { aVista.toggle() }
+                dateChip(L("Al flash"), selected: alFlash) { alFlash.toggle() }
             }
 
             // Aire tras los chips de fecha: iban pegados al campo (feedback).
@@ -359,7 +359,7 @@ extension FeedPublishSheet {
     static func shortDate(_ iso: String) -> String {
         let parts = iso.split(separator: "-")
         guard parts.count == 3, let m = Int(parts[1]), let d = Int(parts[2]) else { return iso }
-        let months = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"]
+        let months = CalendarLabels.monthsShort().map { $0.uppercased() }
         return "\(d) \(months[m - 1])"
     }
 

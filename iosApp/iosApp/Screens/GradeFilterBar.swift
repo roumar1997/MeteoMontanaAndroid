@@ -67,7 +67,7 @@ struct GradeFilterBar: View {
                     }
 
                     if isActive {
-                        Text("Mostrando \(result.matchingLines) vías de \(result.totalLines)")
+                        Text(L("Mostrando %@ vías de %@", result.matchingLines, result.totalLines))
                             .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
                             .padding(.horizontal, 16)
 
@@ -127,7 +127,7 @@ struct GradeFilterBar: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 9).padding(.vertical, 3)
                     .background(RoundedRectangle(cornerRadius: 2).fill(accent))
-                Text(matches.count == 1 ? "1 vía" : "\(matches.count) vías")
+                Text(matches.count == 1 ? "1 vía" : L("%@ vías", matches.count))
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                 Spacer()
                 Image(systemName: isOpen ? "chevron.down" : "chevron.right")

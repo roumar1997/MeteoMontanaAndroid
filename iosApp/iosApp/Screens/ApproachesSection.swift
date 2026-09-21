@@ -90,7 +90,7 @@ struct ApproachesSection: View {
                 loader.reload(schoolId: school.id)
             }
         }
-        .alert("¿Borrar «\(deleting?.name ?? "esta aproximación")»?", isPresented: Binding(
+        .alert(L("¿Borrar «%@»?", deleting?.name ?? "esta aproximación"), isPresented: Binding(
             get: { deleting != nil }, set: { if !$0 { deleting = nil } }
         )) {
             Button("CANCELAR", role: .cancel) { deleting = nil }
@@ -151,9 +151,9 @@ struct ApproachesSection: View {
         var parts: [String] = []
         if let d = a.distanceM?.intValue { parts.append(d >= 1000 ? String(format: "%.1f km", Double(d) / 1000) : "\(d) m") }
         if let asc = a.ascentM?.intValue { parts.append("+\(asc) m") }
-        if let dur = a.durationMin?.intValue { parts.append("~\(dur) min") }
+        if let dur = a.durationMin?.intValue { parts.append(L("~%@ min", dur)) }
         let pinCount = a.pins.count
-        if pinCount > 0 { parts.append(pinCount == 1 ? "1 chincheta" : "\(pinCount) chinchetas") }
+        if pinCount > 0 { parts.append(pinCount == 1 ? L("1 chincheta") : L("%@ chinchetas", pinCount)) }
         return parts.joined(separator: " · ")
     }
 }

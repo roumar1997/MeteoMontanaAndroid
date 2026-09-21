@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.community
 
+import com.meteomontana.android.util.CatalogLabels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -251,7 +252,7 @@ internal fun FeedPostCard(
             // Tipo de roca (si el backend lo manda), como texto secundario.
             post.rockType?.takeIf { it.isNotBlank() }?.let {
                 if (isNotEmpty()) append(" · ")
-                append(it)
+                append(CatalogLabels.rock(it))
             }
         }
         Column(

@@ -59,10 +59,10 @@ struct ReportSheet: View {
     @State private var alsoBlock = false
 
     private let reasons: [(String, String)] = [
-        ("SPAM", "Spam o publicidad"),
-        ("OFFENSIVE", "Ofensivo o acoso"),
-        ("FALSE_INFO", "Información falsa o peligrosa"),
-        ("OTHER", "Otro motivo")
+        ("SPAM", L("Spam o publicidad")),
+        ("OFFENSIVE", L("Ofensivo o acoso")),
+        ("FALSE_INFO", L("Información falsa o peligrosa")),
+        ("OTHER", L("Otro motivo"))
     ]
 
     var body: some View {
@@ -88,7 +88,7 @@ struct ReportSheet: View {
                     HStack(spacing: 8) {
                         Image(systemName: alsoBlock ? "checkmark.square.fill" : "square")
                             .foregroundStyle(alsoBlock ? Cumbre.terra : Cumbre.ink3)
-                        Text("TAMBIÉN BLOQUEAR A \(author.uppercased())")
+                        Text(L("TAMBIÉN BLOQUEAR A %@", author.uppercased()))
                             .font(Cumbre.mono(11, .bold)).tracking(0.6)
                             .foregroundStyle(alsoBlock ? Cumbre.terra : Cumbre.ink3)
                     }

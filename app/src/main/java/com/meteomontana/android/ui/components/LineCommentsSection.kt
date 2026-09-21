@@ -125,7 +125,7 @@ fun LineCommentsThread(
     blockId: String,
     lineId: String?,
     myUid: String?,
-    title: String = "COMENTARIOS",
+    title: String = stringResource(R.string.w_comments_caps),
     viewModel: LineCommentsViewModel = hiltViewModel()
 ) {
     androidx.compose.runtime.LaunchedEffect(blockId) { viewModel.load(blockId) }

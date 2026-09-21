@@ -228,10 +228,10 @@ fun ConditionsGrid(cur: Current) {
         SectionTitle(stringResource(R.string.forecast_body_v3_condiciones_ahora))
         Spacer(Modifier.height(8.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ConditionCell("HUMEDAD", "${cur.humidity.toInt()}", "%", Modifier.weight(1f))
-            ConditionCell("VIENTO", "${cur.windSpeed.toInt()}", "km/h", Modifier.weight(1f))
+            ConditionCell(stringResource(R.string.w_humidity_caps), "${cur.humidity.toInt()}", "%", Modifier.weight(1f))
+            ConditionCell(stringResource(R.string.w_wind_caps), "${cur.windSpeed.toInt()}", "km/h", Modifier.weight(1f))
             ConditionCell(stringResource(R.string.forecast_body_v3_lluvia_24h), "${cur.precip24h}", "mm", Modifier.weight(1f))
-            ConditionCell("NUBES", "${cur.cloudCover}", "%", Modifier.weight(1f))
+            ConditionCell(stringResource(R.string.w_clouds_caps), "${cur.cloudCover}", "%", Modifier.weight(1f))
         }
         Spacer(Modifier.height(8.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -294,8 +294,8 @@ fun SectionTitle(text: String) {
 }
 
 private fun cloudCoverLabel(cover: Int): String = when {
-    cover < 20 -> "Despejado"
+    cover < 20 -> AppText.get(R.string.w_clear_sky)
     cover < 50 -> AppText.get(R.string.forecast_body_v4_parcialmente_nublado)
     cover < 80 -> AppText.get(R.string.forecast_body_v4_mayormente_nublado)
-    else       -> "Cubierto"
+    else       -> AppText.get(R.string.w_overcast)
 }

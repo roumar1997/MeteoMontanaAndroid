@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -338,10 +339,10 @@ fun MainScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
-                                Icon(tab.icon, contentDescription = tab.label,
+                                Icon(tab.icon, contentDescription = stringResource(tab.labelRes),
                                     tint = tint, modifier = Modifier.size(20.dp))
                                 Text(
-                                    tab.label,
+                                    stringResource(tab.labelRes),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = tint,
                                     maxLines = 1,

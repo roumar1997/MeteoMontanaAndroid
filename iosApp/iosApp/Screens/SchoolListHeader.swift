@@ -19,7 +19,7 @@ struct CompareBar: View {
                 Image(systemName: "xmark").font(.system(size: 16)).foregroundStyle(.white)
                     .frame(width: 36, height: 36)
             }
-            Text("\(count) seleccionada\(count == 1 ? "" : "s")")
+            Text(L("%@ seleccionada%@", count, count == 1 ? "" : "s"))
                 .font(.system(size: 14)).foregroundStyle(.white)
             Spacer()
             if canCompare {
@@ -159,7 +159,7 @@ struct HeaderEscuelas: View {
                     .font(Cumbre.serif(34, .bold))
                     .foregroundStyle(Cumbre.ink)
                 if let count {
-                    Text("\(count) escuelas")
+                    Text(L("%@ escuelas", count))
                         .font(.system(size: 14))
                         .foregroundStyle(Cumbre.ink3)
                 }
@@ -169,7 +169,7 @@ struct HeaderEscuelas: View {
             // de aportar viven en la hoja, donde cada una cabe con su
             // explicación — "enviar piedra" no se entiende a secas.
             Button { aportando = true } label: {
-                OutlinedCumbreButton(text: "+ Aportar", tint: Cumbre.terra)
+                OutlinedCumbreButton(text: L("+ Aportar"), tint: Cumbre.terra)
             }
             .buttonStyle(.plain)
         }
@@ -223,10 +223,10 @@ struct DonateView: View {
                 .font(.system(size: 15)).foregroundStyle(Cumbre.ink2)
                 .multilineTextAlignment(.center).padding(.horizontal, 24)
             VStack(alignment: .leading, spacing: 6) {
-                feature("Previsión de escalada por hora")
-                feature("Mapas, bloques y vías de cada escuela")
-                feature("Notas y fotos de la comunidad")
-                feature("Sin anuncios, sin rastreadores")
+                feature(L("Previsión de escalada por hora"))
+                feature(L("Mapas, bloques y vías de cada escuela"))
+                feature(L("Notas y fotos de la comunidad"))
+                feature(L("Sin anuncios, sin rastreadores"))
             }.padding(.horizontal, 24).padding(.top, 4)
             Button {
                 openURL(URL(string: "https://ko-fi.com/climbingteams")!)
@@ -534,27 +534,27 @@ struct FilterChips: View {
     @ObservedObject var vm: SchoolListViewModel
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            section("DISTANCIA") {
+            section(L("DISTANCIA")) {
                 chipRow(SchoolListViewModel.distanceOptions, id: { $0.map { String(Int($0)) } ?? "all" },
                         isSel: { $0 == vm.maxDistanceKm },
                         label: { $0 == nil ? NSLocalizedString("schools_filter_all", comment: "") : "\(Int($0!)) km" }) { vm.maxDistanceKm = $0 }
             }
-            section("ESTILO") {
+            section(L("ESTILO")) {
                 chipRow([String?.none] + vm.styles.map { Optional($0) }, id: { $0 ?? "all" },
                         isSel: { $0 == vm.style },
                         label: { $0 ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.style = $0 }
             }
-            section("TIPO DE ROCA") {
+            section(L("TIPO DE ROCA")) {
                 chipRow([String?.none] + vm.rocks.map { Optional($0) }, id: { $0 ?? "all" },
                         isSel: { $0 == vm.rock },
                         label: { $0 ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.rock = $0 }
             }
-            section("MOSTRAR") {
+            section(L("MOSTRAR")) {
                 chipRow(SchoolListViewModel.ShowMode.allCases, id: { $0.rawValue },
                         isSel: { $0 == vm.showMode },
                         label: { $0.rawValue }) { vm.showMode = $0 }
             }
-            section("ORDENAR POR") {
+            section(L("ORDENAR POR")) {
                 chipRow(SchoolListViewModel.SortMode.allCases, id: { $0.rawValue },
                         isSel: { $0 == vm.sortBy },
                         label: { $0.rawValue }) { vm.sortBy = $0 }
@@ -607,10 +607,10 @@ struct AportarSheet: View {
             Text("APORTAR AL CATÁLOGO")
                 .font(Cumbre.mono(11, .bold)).tracking(1.2)
                 .foregroundStyle(Cumbre.terra)
-            opcion("Una piedra, desde una foto",
-                   "La foto dice en qué escuela se hizo", onPiedra)
-            opcion("Una escuela nueva",
-                   "Si el sitio no está en el catálogo", onEscuela)
+            opcion(L("Una piedra, desde una foto"),
+                   L("La foto dice en qué escuela se hizo"), onPiedra)
+            opcion(L("Una escuela nueva"),
+                   L("Si el sitio no está en el catálogo"), onEscuela)
             Spacer()
         }
         .padding(20)

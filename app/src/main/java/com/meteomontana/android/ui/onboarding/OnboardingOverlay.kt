@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.onboarding
 
+import com.meteomontana.android.util.AppText
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -49,44 +50,23 @@ fun markOnboardingDone(context: Context) {
 /** Un paso del tour. `showScale` pinta la leyenda de colores del índice. */
 private data class OnbStep(
     val emoji: String,
-    val eyebrow: String,
-    val title: String,
-    val body: String,
+    @androidx.annotation.StringRes val eyebrowRes: Int,
+    @androidx.annotation.StringRes val titleRes: Int,
+    @androidx.annotation.StringRes val bodyRes: Int,
     val showScale: Boolean = false
 )
 
 private val STEPS = listOf(
-    OnbStep("⛰", "BIENVENIDO", "Cumbre",
-        "Tiempo para escalar. Te decimos cuándo y dónde se puede escalar, " +
-        "con la roca seca, en 191 escuelas."),
-    OnbStep("🌡", "EL ÍNDICE 0–100", "¿Hoy se puede?",
-        "Un número resume las condiciones de cada escuela: temperatura, humedad, " +
-        "viento, lluvia reciente y cuánto tarda en secar SU tipo de roca " +
-        "(la arenisca tarda días; el granito, horas).",
+    OnbStep("⛰", R.string.onb_1_eyebrow, R.string.onb_1_title, R.string.onb_1_body),
+    OnbStep("🌡", R.string.onb_2_eyebrow, R.string.onb_2_title, R.string.onb_2_body,
         showScale = true),
-    OnbStep("🗺", "MAPA Y TOPOS", "Cada piedra, al detalle",
-        "Abre una escuela y verás parkings, sectores y piedras en el mapa. " +
-        "Toca una piedra y aparece su foto con las VÍAS dibujadas, su grado y " +
-        "cómo llegar."),
-    OnbStep("📅", "PLANIFICA EL FINDE", "La mejor ventana",
-        "Ventana óptima del día, mejor día de la semana, comparador de escuelas " +
-        "y selector de días para decidir adónde ir."),
-    OnbStep("⭐", "FAVORITAS Y ALERTAS", "No te pierdas el buen día",
-        "Marca tus escuelas favoritas, míralas de un vistazo en el widget de inicio " +
-        "y activa la alerta para que te avise cuando vaya a haber buena ventana."),
-    OnbStep("📓", "TU DIARIO", "Lleva la cuenta",
-        "Marca las vías que encadenas: la app guarda tu diario con tus estadísticas " +
-        "y tu grado máximo, escuela por escuela."),
-    OnbStep("🧗", "SUMA A LA GUÍA", "Comunidad",
-        "Propón escuelas, piedras y sectores nuevos y deja notas con foto. Un admin " +
-        "las revisa antes de publicarlas para toda la comunidad."),
-    OnbStep("💬", "PERFIL, GENTE Y CHAT", "Conecta",
-        "Crea tu perfil, busca y sigue a otros escaladores, mira sus diarios y " +
-        "chatea 1 a 1. Las notificaciones te avisan de seguidores y mensajes."),
-    OnbStep("📍", "OFFLINE + UBICACIÓN", "Listo para el monte",
-        "Guarda escuelas para verlas SIN cobertura. Te pediremos la ubicación solo " +
-        "para ordenar por cercanía y centrar el mapa: se usa en tu móvil, nunca se " +
-        "comparte.")
+    OnbStep("🗺", R.string.onb_3_eyebrow, R.string.onb_3_title, R.string.onb_3_body),
+    OnbStep("📅", R.string.onb_4_eyebrow, R.string.onb_4_title, R.string.onb_4_body),
+    OnbStep("⭐", R.string.onb_5_eyebrow, R.string.onb_5_title, R.string.onb_5_body),
+    OnbStep("📓", R.string.onb_6_eyebrow, R.string.onb_6_title, R.string.onb_6_body),
+    OnbStep("🧗", R.string.onb_7_eyebrow, R.string.onb_7_title, R.string.onb_7_body),
+    OnbStep("💬", R.string.onb_8_eyebrow, R.string.onb_8_title, R.string.onb_8_body),
+    OnbStep("📍", R.string.onb_9_eyebrow, R.string.onb_9_title, R.string.onb_9_body)
 )
 
 /**
@@ -124,14 +104,14 @@ fun OnboardingOverlay(onFinish: () -> Unit) {
         ) {
             Text(s.emoji, style = MaterialTheme.typography.displayLarge)
             Spacer(Modifier.height(Spacing.lg))
-            Text(s.eyebrow, style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(s.eyebrowRes), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(Spacing.xs))
-            Text(s.title,
+            Text(stringResource(s.titleRes),
                 style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center)
             Spacer(Modifier.height(Spacing.md))
-            Text(s.body,
+            Text(stringResource(s.bodyRes),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center)
@@ -177,7 +157,7 @@ fun OnboardingOverlay(onFinish: () -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    if (step < last) "SIGUIENTE" else "PERMITIR UBICACIÓN Y EMPEZAR",
+                    stringResource(if (step < last) R.string.onb_next else R.string.onb_allow_location_start),
                     style = MaterialTheme.typography.labelLarge,
                     color = androidx.compose.ui.graphics.Color.White
                 )

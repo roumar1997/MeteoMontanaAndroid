@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.profile
 
 
+import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.terraFillColor
 
@@ -113,11 +114,11 @@ fun StatsScreen(
             // ── Filtros: disciplina + año desplegable + mes ──────────────────
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically) {
-                FilterChip("BLOQUE", state.discipline == "BOULDER") { viewModel.setDiscipline("BOULDER") }
+                FilterChip(stringResource(R.string.w_boulder_caps2), state.discipline == "BOULDER") { viewModel.setDiscipline("BOULDER") }
                 FilterChip(stringResource(R.string.add_block_sheet_v3_via), state.discipline == "ROUTE") { viewModel.setDiscipline("ROUTE") }
                 var gradeMenuOpen by remember { mutableStateOf(false) }
                 Box {
-                    VotableChip(text = state.grade?.uppercase() ?: "GRADO") { gradeMenuOpen = true }
+                    VotableChip(text = state.grade?.uppercase() ?: stringResource(R.string.w_grade_caps)) { gradeMenuOpen = true }
                     DropdownMenu(expanded = gradeMenuOpen, onDismissRequest = { gradeMenuOpen = false }) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.stats_screen_v2_todos)) },
                             onClick = { viewModel.setGrade(null); gradeMenuOpen = false })
@@ -129,7 +130,7 @@ fun StatsScreen(
                     }
                 }
                 Box {
-                    VotableChip(text = state.year ?: "TODO") { yearMenuOpen = true }
+                    VotableChip(text = state.year ?: stringResource(R.string.w_all_caps2)) { yearMenuOpen = true }
                     DropdownMenu(expanded = yearMenuOpen, onDismissRequest = { yearMenuOpen = false }) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.stats_screen_v2_todo)) },
                             onClick = { viewModel.setYear(null); yearMenuOpen = false })
@@ -166,7 +167,7 @@ fun StatsScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     MetricCard(stringResource(R.string.stats_screen_v3_dias_de_roca), s.daysOut.toString(),
                         Modifier.weight(1f).clickable { showDaysList = true })
-                    MetricCard("RACHA", "${s.currentStreakWeeks} sem", Modifier.weight(1f), terra = true)
+                    MetricCard(stringResource(R.string.w_streak_caps), "${s.currentStreakWeeks} sem", Modifier.weight(1f), terra = true)
                 }
                 if (showDaysList) {
                     // Bottom sheet suave (paridad iOS), no dialog a pantalla
@@ -431,7 +432,7 @@ private fun gradeAccent(grade: String?): Color {
     return if (gs.dark) MaterialTheme.colorScheme.onSurface else gs.stroke
 }
 
-private val MONTHS = listOf("ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC")
+private val MONTHS get() = CalendarLabels.monthsShort().map { it.uppercase() }
 
 private fun formatMonth(yyyyMm: String): String = runCatching {
     MONTHS[yyyyMm.substringAfter('-').toInt() - 1].lowercase() + " " + yyyyMm.take(4)

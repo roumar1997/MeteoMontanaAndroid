@@ -113,7 +113,7 @@ fun ChatListScreen(
                         SwipeableConvRow(
                             avatarUrl = null,
                             isGroup = true,
-                            name = conv.name ?: "Grupo",
+                            name = conv.name ?: stringResource(R.string.w_group),
                             lastMessage = conv.lastMessage ?: "",
                             unread = conv.unreadCount,
                             onClick = { onOpenGroup(conv.id) },

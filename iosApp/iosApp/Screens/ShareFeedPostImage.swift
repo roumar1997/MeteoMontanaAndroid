@@ -110,7 +110,7 @@ enum ShareFeedPostImage {
                      font: mono(34, bold: true), color: terra, kern: 5, align: .left)
 
             // Vía + grado (serif grande, hasta 2 líneas).
-            let title = feedPostTitle(post).isEmpty ? "Ascenso" : feedPostTitle(post)
+            let title = feedPostTitle(post).isEmpty ? L("Ascenso") : feedPostTitle(post)
             let titleFont = serif(78)
             let para = NSMutableParagraphStyle()
             para.lineBreakMode = .byTruncatingTail

@@ -71,8 +71,8 @@ final class GroupChatVM: ObservableObject {
                 // Enlace de invitación al grupo (los miembros pueden invitar).
                 if let link = try? await AppDependencies.shared.container.meetupApi
                     .getInviteLink(id: m.id), !link.isEmpty {
-                    self.inviteText = "🧗 Te invito a la quedada *\(m.name)* en Cumbre\n"
-                        + "👉 Únete desde aquí:\n\(link)"
+                    self.inviteText = L("🧗 Te invito a la quedada *%@* en Cumbre\n", m.name)
+                        + L("👉 Únete desde aquí:\n%@", link)
                 }
             }
         }
@@ -536,7 +536,7 @@ struct NewGroupView: View {
                 TextField("Nombre del grupo", text: $vm.name)
                     .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                     .padding(16)
-                Text("ELIGE MIEMBROS (\(vm.selected.count))")
+                Text(L("ELIGE MIEMBROS (%@)", vm.selected.count))
                     .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 16)
                 if vm.contacts.isEmpty {
@@ -561,7 +561,7 @@ struct NewGroupView: View {
                         }.buttonStyle(.plain)
                     }
                     .listStyle(.plain)
-                    .searchable(text: $query, prompt: "Buscar contacto")
+                    .searchable(text: $query, prompt: L("Buscar contacto"))
                 }
                 Button { vm.create(onCreated: onCreated) } label: {
                     Group {

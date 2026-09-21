@@ -45,7 +45,7 @@ struct StatsView: View {
                             Button(g) { store.grade = g; store.recompute() }
                         }
                     } label: {
-                        VotableChip(text: store.grade?.uppercased() ?? "GRADO") {}
+                        VotableChip(text: store.grade?.uppercased() ?? L("GRADO")) {}
                             .allowsHitTesting(false)
                     }
                     Menu {
@@ -59,14 +59,14 @@ struct StatsView: View {
                     }
                 }
                 if let d = store.day {
-                    filterChip("DÍA \(d)  ✕", selected: true) {
+                    filterChip(L("DÍA %@  ✕", d), selected: true) {
                         store.day = nil; store.recompute()
                     }
                 }
                 if store.year != nil {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
-                            filterChip("AÑO ENTERO", selected: store.month == nil) {
+                            filterChip(L("AÑO ENTERO"), selected: store.month == nil) {
                                 store.month = nil; store.recompute()
                             }
                             ForEach(0..<12, id: \.self) { i in
@@ -83,13 +83,13 @@ struct StatsView: View {
                 if let s = store.summary {
                     HStack(spacing: 8) {
                         Button { showDaysList = true } label: {
-                            metric("\(s.daysOut)", "DÍAS DE ROCA ▾")
+                            metric("\(s.daysOut)", L("DÍAS DE ROCA ▾"))
                         }.buttonStyle(.plain)
-                        metric("\(s.currentStreakWeeks) sem", "RACHA", terra: true)
+                        metric(L("%@ sem", s.currentStreakWeeks), L("RACHA"), terra: true)
                     }
                     HStack(spacing: 8) {
-                        metric("\(s.projectsFallen)", "PROYECTOS CAÍDOS")
-                        metric(String(format: "%.1f", s.avgPerDay), "MEDIA/DÍA")
+                        metric("\(s.projectsFallen)", L("PROYECTOS CAÍDOS"))
+                        metric(String(format: "%.1f", s.avgPerDay), L("MEDIA/DÍA"))
                     }
 
                     // ── Pirámide ────────────────────────────────────────────
@@ -125,7 +125,7 @@ struct StatsView: View {
                             store.month = String(bm.suffix(2))
                             store.recompute()
                         } label: {
-                            infoCard("Tu mejor mes: \(formatMonth(bm)) (\(s.bestMonthCount) ascensos). Toca para verlo ▾")
+                            infoCard(L("Tu mejor mes: %@ (%@ ascensos). Toca para verlo ▾", formatMonth(bm), s.bestMonthCount))
                         }.buttonStyle(.plain)
                     }
                 }
@@ -175,7 +175,7 @@ struct StatsView: View {
                                     .foregroundStyle(Cumbre.ink)
                                 Spacer()
                                 Text("\(t.second!.intValue)"
-                                     + ((t.third as? String).map { " · máx \($0)" } ?? "")
+                                     + ((t.third as? String).map { L(" · máx %@", $0) } ?? "")
                                      + (isOpen ? " ▴" : " ▾"))
                                     .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
                             }
@@ -190,7 +190,7 @@ struct StatsView: View {
                 }
 
                 if store.summary == nil && !store.loading {
-                    infoCard("Marca vías como hechas y aquí verás tu pirámide, tu racha y tu progresión.")
+                    infoCard(L("Marca vías como hechas y aquí verás tu pirámide, tu racha y tu progresión."))
                 }
             }
             .padding(16)
@@ -205,7 +205,7 @@ struct StatsView: View {
                     Button {
                         Task {
                             await ShareStatsImage.share(
-                                periodLabel: store.year.map { "MI \($0) EN ROCA" } ?? "MI DIARIO EN ROCA",
+                                periodLabel: store.year.map { L("MI %@ EN ROCA", $0) } ?? L("MI DIARIO EN ROCA"),
                                 disciplineLabel: store.discipline == "ROUTE" ? "VÍA" : "BLOQUE",
                                 summary: sum,
                                 maxGrade: (sum.pyramid.first?.first).map { $0 as String },
@@ -225,7 +225,7 @@ struct StatsView: View {
             // el sheet a medio cerrar y el watchdog mataba la app).
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("TUS \(grade.uppercased())")
+                    Text(L("TUS %@", grade.uppercased()))
                         .font(Cumbre.mono(11, .bold)).tracking(1.5)
                         .foregroundStyle(Cumbre.terra).padding(.bottom, 8)
                     ForEach(Array(store.entriesForGrade(grade).enumerated()),
@@ -264,7 +264,7 @@ struct StatsView: View {
                             HStack {
                                 Text(day).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
                                 Spacer()
-                                Text("\(count) ascensos" + (expandedDay == day ? " ▴" : " ▾"))
+                                Text(L("%@ ascensos", count) + (expandedDay == day ? " ▴" : " ▾"))
                                     .font(Cumbre.mono(10, .bold))
                                     .foregroundStyle(Cumbre.terra)
                             }
@@ -342,7 +342,7 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(e.blockName).font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Cumbre.ink)
-            Text((e.schoolName ?? "—") + (navigable ? "  ·  VER ▸" : ""))
+            Text((e.schoolName ?? "—") + (navigable ? L("  ·  VER ▸") : ""))
                 .font(Cumbre.mono(9, .bold)).tracking(0.8)
                 .foregroundStyle(Cumbre.terra)
         }

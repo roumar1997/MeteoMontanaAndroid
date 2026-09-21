@@ -1,5 +1,6 @@
 package com.meteomontana.android
 
+import com.meteomontana.android.util.AppText
 import android.app.Application
 import coil.ImageLoader
 import coil.ImageLoaderFactory
@@ -17,6 +18,10 @@ class MeteoMontanaApp : Application(), ImageLoaderFactory {
     @Inject lateinit var outboxFlusher: OutboxFlusher
     @Inject lateinit var savedSchoolsSync: SavedSchoolsSync
     @Inject lateinit var cacheFotos: CacheFotosOffline
+
+    override fun attachBaseContext(base: android.content.Context) {
+        super.attachBaseContext(com.meteomontana.android.util.AppLanguage.wrap(base))
+    }
 
     override fun onCreate() {
         super.onCreate()

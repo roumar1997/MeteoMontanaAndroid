@@ -241,8 +241,8 @@ internal fun redrawContributionMarkers(
     if (c.type == "POSITION_CORRECTION" && pLat != null && pLon != null) {
         val oldIcon = pinBitmap(android.graphics.Color.parseColor("#8A8478"), "✕", 36)
         val newIcon = pinBitmap(android.graphics.Color.parseColor("#F59E0B"), "★", 40)
-        map.addMarker(MarkerOptions().position(LatLng(c.lat, c.lon)).title("ACTUAL").icon(iconFactory.fromBitmap(oldIcon)))
-        map.addMarker(MarkerOptions().position(LatLng(pLat, pLon)).title("NUEVA").icon(iconFactory.fromBitmap(newIcon)))
+        map.addMarker(MarkerOptions().position(LatLng(c.lat, c.lon)).title(AppText.get(R.string.w_current_caps)).icon(iconFactory.fromBitmap(oldIcon)))
+        map.addMarker(MarkerOptions().position(LatLng(pLat, pLon)).title(AppText.get(R.string.w_new_caps)).icon(iconFactory.fromBitmap(newIcon)))
         map.addPolyline(
             org.maplibre.android.annotations.PolylineOptions()
                 .add(LatLng(c.lat, c.lon)).add(LatLng(pLat, pLon))

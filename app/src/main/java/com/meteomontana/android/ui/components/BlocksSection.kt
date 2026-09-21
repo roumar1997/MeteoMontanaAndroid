@@ -184,9 +184,9 @@ private fun BlockCard(b: Block, onClick: () -> Unit) {
 }
 
 private fun typeLabel(type: String) = when (type) {
-    "BLOCK"   -> "PIEDRA"
+    "BLOCK"   -> AppText.get(R.string.w_boulder_caps)
     "PARKING" -> "PARKING"
-    "ZONE"    -> "ZONA"
+    "ZONE"    -> AppText.get(R.string.w_zone_caps)
     else      -> type
 }
 

@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.profile
 
+import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.util.AppText
 import androidx.compose.runtime.setValue
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
@@ -111,7 +112,7 @@ class JournalEntriesViewModel @Inject constructor(
         filter == "project"          -> if (isMine) AppText.get(R.string.journal_entries_screen_v4_mis_proyectos) else "Proyectos"
         filter == "project:BOULDER"  -> if (isMine) AppText.get(R.string.journal_entries_screen_v4_mis_proyectos_bloques) else AppText.get(R.string.journal_entries_screen_v4_proyectos_bloques)
         filter == "project:ROUTE"    -> if (isMine) AppText.get(R.string.journal_entries_screen_v4_mis_proyectos_vias) else AppText.get(R.string.journal_entries_screen_v4_proyectos_vias)
-        else                         -> "Diario"
+        else                         -> AppText.get(R.string.w_logbook)
     }
 
     init { load() }
@@ -545,10 +546,6 @@ private fun StyleBadge(label: String, active: Boolean, onClick: (() -> Unit)?) {
     }
 }
 
-private val MONTH_NAMES = listOf(
-    "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
-    "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE")
-
 internal fun formatMonthHeader(yyyyMm: String): String = runCatching {
-    MONTH_NAMES[yyyyMm.substringAfter('-').toInt() - 1] + " " + yyyyMm.take(4)
+    CalendarLabels.monthsLong()[yyyyMm.substringAfter('-').toInt() - 1].uppercase() + " " + yyyyMm.take(4)
 }.getOrDefault(yyyyMm)

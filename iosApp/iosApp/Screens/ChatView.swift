@@ -202,7 +202,7 @@ struct ChatView: View {
             // Nombre del chat → abre el perfil del otro usuario.
             ToolbarItem(placement: .principal) {
                 NavigationLink(destination: PublicProfileView(uid: vm.otherUid)) {
-                    Text(vm.otherName.isEmpty ? "Chat" : vm.otherName)
+                    Text(vm.otherName.isEmpty ? L("Chat") : vm.otherName)
                         .font(Cumbre.serif(17, .semibold)).foregroundStyle(Cumbre.ink)
                         // Zona de toque generosa: costaba acertar al nombre.
                         .padding(.horizontal, 24).padding(.vertical, 10)

@@ -82,9 +82,9 @@ fun GradeChipsGrid(
  *  Antes se mostraban las siglas a pelo (PIE/SIT/LANCE/TRAV) sin explicación. */
 val START_TYPE_LABELS = listOf(
     "PIE" to AppText.get(R.string.grade_pickers_v3_de_pie),
-    "SIT" to "Sentado",
+    "SIT" to AppText.get(R.string.w_sit_start),
     "SEMI" to "Semi-sit",
-    "LANCE" to "Lance",
+    "LANCE" to AppText.get(R.string.w_dyno),
     "TRAV" to AppText.get(R.string.grade_pickers_v3_travesia)
 )
 

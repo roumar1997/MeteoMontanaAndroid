@@ -413,11 +413,11 @@ fun RadarScreen(
                 .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                DayChip("HOY", state.day == RadarDay.HOY) {
+                DayChip(stringResource(R.string.w_today_caps), state.day == RadarDay.HOY) {
                     playing = false; frameIndex = 0; viewModel.load(RadarDay.HOY)
                 }
                 Spacer(Modifier.width(5.dp))
-                DayChip("AYER", state.day == RadarDay.AYER) {
+                DayChip(stringResource(R.string.w_yesterday_caps), state.day == RadarDay.AYER) {
                     playing = false; frameIndex = 0; viewModel.load(RadarDay.AYER)
                 }
                 Spacer(Modifier.weight(1f))
@@ -439,7 +439,7 @@ fun RadarScreen(
                 ) {
                     Icon(
                         if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        contentDescription = if (playing) "Pausar" else "Reproducir",
+                        contentDescription = if (playing) stringResource(R.string.w_pause) else stringResource(R.string.w_play),
                         tint = Color.White)
                 }
                 Column(Modifier.weight(1f)) {

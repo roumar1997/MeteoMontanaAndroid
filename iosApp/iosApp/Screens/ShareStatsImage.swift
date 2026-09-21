@@ -12,7 +12,7 @@ enum ShareStatsImage {
                       progression: JournalStatsCalculator.Progression? = nil) async {
         let image = render(periodLabel: periodLabel, disciplineLabel: disciplineLabel,
                            summary: summary, maxGrade: maxGrade, progression: progression)
-        let text = "Mis estadísticas de escalada en Cumbre:\n\(ShareBase.url)/app"
+        let text = L("Mis estadísticas de escalada en Cumbre:\n%@/app", ShareBase.url)
         await MainActor.run {
             guard let scene = UIApplication.shared.connectedScenes
                 .compactMap({ $0 as? UIWindowScene }).first,
@@ -81,7 +81,7 @@ enum ShareStatsImage {
                     c.strokeEllipse(in: rect.insetBy(dx: -6, dy: -6))
                 }
                 let mono = UIFont.monospacedSystemFont(ofSize: 32, weight: .bold)
-                draw("CUMBRE · \(disciplineLabel)", x: w / 2, y: 290,
+                draw(L("CUMBRE · %@", disciplineLabel), x: w / 2, y: 290,
                      font: mono, color: terra, kern: 6)
                 draw(periodLabel, x: w / 2, y: 352,
                      font: UIFont(name: "Georgia-Bold", size: 92)
@@ -90,9 +90,9 @@ enum ShareStatsImage {
 
                 // 4 métricas 2×2.
                 let metrics: [(String, String, Bool)] = [
-                    ("\(s.daysOut)", "DÍAS DE ROCA", false),
-                    ("\(s.currentStreakWeeks) sem", "RACHA", true),
-                    ("\(s.projectsFallen)", "PROYECTOS CAÍDOS", false),
+                    ("\(s.daysOut)", L("DÍAS DE ROCA"), false),
+                    (L("%@ sem", s.currentStreakWeeks), L("RACHA"), true),
+                    ("\(s.projectsFallen)", L("PROYECTOS CAÍDOS"), false),
                     (maxGrade ?? "—", "GRADO MÁXIMO", true)
                 ]
                 let boxW = (w - 200) / 2, boxH: CGFloat = 220
@@ -144,7 +144,7 @@ enum ShareStatsImage {
                                   "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
                     let parts = bm.split(separator: "-")
                     let name = parts.count == 2 ? months[(Int(parts[1]) ?? 1) - 1] : bm
-                    draw("Mejor mes: \(name) (\(s.bestMonthCount) ascensos)",
+                    draw(L("Mejor mes: %@ (%@ ascensos)", name, s.bestMonthCount),
                          x: w / 2, y: y, font: .systemFont(ofSize: 42), color: ink)
                 }
 
@@ -155,7 +155,7 @@ enum ShareStatsImage {
                 if let p = progression {
                     var py: CGFloat = y + 80
                     if py + 110 < footerTop {
-                        draw("ÚLT. 12 SEMANAS", x: 80, y: py,
+                        draw(L("ÚLT. 12 SEMANAS"), x: 80, y: py,
                              font: UIFont.monospacedSystemFont(ofSize: 27, weight: .bold),
                              color: inkSoft, centered: false, kern: 4)
                         py += 44

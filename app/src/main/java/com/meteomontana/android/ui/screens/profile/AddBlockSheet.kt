@@ -253,7 +253,7 @@ fun AddBlockSheet(
 
             // ─── ESCUELA con autocomplete ───
             val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
-            Label("ESCUELA")
+            Label(stringResource(R.string.w_school_caps))
             OutlinedTextField(
                 value = selectedSchool?.name ?: schoolQuery,
                 onValueChange = { schoolQuery = it; selectedSchool = null },
@@ -274,7 +274,7 @@ fun AddBlockSheet(
                 }
             }
 
-            Label("FECHA")
+            Label(stringResource(R.string.w_date_caps))
             Text(today, style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onBackground)
 
@@ -302,7 +302,7 @@ fun AddBlockSheet(
             }
 
             // ─── MODALIDAD: bloque o vía (decide en qué lista del diario cae) ───
-            Label("MODALIDAD")
+            Label(stringResource(R.string.w_discipline_caps))
             ModalityToggle(selected = discipline, onSelect = { discipline = it })
 
             // ─── NOMBRE con autocomplete (bloques/vías previos + de la escuela) ───
@@ -334,7 +334,7 @@ fun AddBlockSheet(
                 }
             }
 
-            Label("GRADO")
+            Label(stringResource(R.string.w_grade_caps))
             ExposedDropdownMenuBox(
                 expanded = gradeMenuExpanded,
                 onExpandedChange = { gradeMenuExpanded = !gradeMenuExpanded }
@@ -406,7 +406,7 @@ private fun Label(text: String) {
 @Composable
 private fun ModalityToggle(selected: String, onSelect: (String) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ModalityOption("BLOQUE", selected == "BOULDER", Modifier.weight(1f)) { onSelect("BOULDER") }
+        ModalityOption(stringResource(R.string.w_boulder_caps2), selected == "BOULDER", Modifier.weight(1f)) { onSelect("BOULDER") }
         ModalityOption(stringResource(R.string.add_block_sheet_v3_via), selected == "ROUTE", Modifier.weight(1f)) { onSelect("ROUTE") }
     }
 }

@@ -90,8 +90,8 @@ struct UsernameGateView: View {
                 // 409 = ya cogido; el resto, mensaje genérico.
                 let desc = String(describing: error)
                 self.error = desc.contains("409") || desc.lowercased().contains("conflict")
-                    ? "Ese nombre de usuario ya está cogido"
-                    : "No se pudo guardar. Inténtalo de nuevo."
+                    ? L("Ese nombre de usuario ya está cogido")
+                    : L("No se pudo guardar. Inténtalo de nuevo.")
             }
         }
     }

@@ -14,7 +14,7 @@ struct DaySelectorRow: View {
     private static let isoFmt: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX"); return f
     }()
-    private let dayLetters = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"]  // weekday 1=domingo
+    private let dayLetters = CalendarLabels.weekdaysShortSunFirst().map { $0.uppercased() }  // weekday 1=domingo
 
     private var next7: [Date] {
         let cal = Calendar(identifier: .gregorian)
@@ -25,7 +25,7 @@ struct DaySelectorRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(vm.selectedDates.isEmpty ? "DÍAS · elige hasta 5 para comparar el tramo"
-                 : "DÍAS · \(vm.selectedDates.count) elegido\(vm.selectedDates.count > 1 ? "s" : "")")
+                 : L("DÍAS · %@ elegido%@", vm.selectedDates.count, vm.selectedDates.count > 1 ? "s" : ""))
                 .eyebrow().padding(.horizontal, 12)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
@@ -94,7 +94,7 @@ struct RainSummaryTag: View {
                 Text("LLUEVE \(rainy)").font(.system(size: 11, weight: .semibold)).tracking(0.8)
                     .foregroundStyle(Cumbre.bad)
                 if range.maxRainMm > 0 {
-                    Text(String(format: "máx %.1f mm", range.maxRainMm))
+                    Text(String(format: L("máx %.1f mm"), range.maxRainMm))
                         .font(.system(size: 10)).foregroundStyle(Cumbre.ink3)
                 }
             }
@@ -252,7 +252,7 @@ struct DryWetTag: View {
     var body: some View {
         VStack(alignment: .trailing, spacing: 2) {
             if let dry {
-                Text(dry ? "● SECA" : "● MOJADA")
+                Text(dry ? L("● SECA") : L("● MOJADA"))
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.8)
                     .foregroundStyle(dry ? Cumbre.ok : Cumbre.bad)

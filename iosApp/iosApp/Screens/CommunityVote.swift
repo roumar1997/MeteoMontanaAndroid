@@ -62,7 +62,7 @@ final class CommunityVoteStore: ObservableObject {
 
     func voteOrientation(blockId: String, photoIndex: Int?, aspect: String) async {
         let kotlinIdx: KotlinInt? = photoIndex.map { KotlinInt(int: Int32($0)) }
-        if let list = await reporting("No se pudo registrar el voto", {
+        if let list = await reporting(L("No se pudo registrar el voto"), {
             try await self.container.voteOrientation.invoke(
                 blockId: blockId, photoIndex: kotlinIdx, aspect: aspect)
         }) {
@@ -85,8 +85,8 @@ final class CommunityVoteStore: ObservableObject {
             let text = String(describing: error)
             ErrorPresenter.shared.show(
                 text.contains("403") || text.contains("GRADE_VOTE")
-                    ? "Solo puede votar el grado quien la tiene en su diario"
-                    : ErrorPresenter.friendly(error, fallback: "No se pudo registrar el voto"))
+                    ? L("Solo puede votar el grado quien la tiene en su diario")
+                    : ErrorPresenter.friendly(error, fallback: L("No se pudo registrar el voto")))
         }
     }
 }
@@ -114,7 +114,7 @@ struct VoteBars: View {
                         }
                     }
                     .frame(height: 14)
-                    Text("\(count)" + (option == myVote ? " · tú ✓" : ""))
+                    Text("\(count)" + (option == myVote ? L(" · tú ✓") : ""))
                         .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
                 }
             }
@@ -154,8 +154,8 @@ struct OrientationVoteSheet: View {
                 VStack(spacing: 4) {
                     CompassDial(headingDegrees: Double(rumbo))
                         .frame(width: 120, height: 120)
-                    Text("Estás mirando al " + Aspect.shared.fromDegrees(degrees: Float(rumbo)) +
-                         " · " + Aspect.shared.degreesLabel(degrees: Float(rumbo)))
+                    Text(L("Estás mirando al %@ · %@", aspectLabel(Aspect.shared.fromDegrees(degrees: Float(rumbo))),
+                           Aspect.shared.degreesLabel(degrees: Float(rumbo))))
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                 }
                 .frame(maxWidth: .infinity)
@@ -167,7 +167,7 @@ struct OrientationVoteSheet: View {
                     Button {
                         Task { await store.voteOrientation(blockId: blockId, photoIndex: photoIndex, aspect: a) }
                     } label: {
-                        Text(a + (selected ? " ✓" : ""))
+                        Text(aspectLabel(a) + (selected ? " ✓" : ""))
                             .font(Cumbre.mono(11, .bold))
                             .foregroundStyle(selected ? .white : Cumbre.ink)
                             .frame(maxWidth: .infinity).padding(.vertical, 8)
@@ -206,8 +206,8 @@ struct GradeVoteSheet: View {
             Text("¿QUÉ GRADO LE DAS?")
                 .font(Cumbre.mono(11, .bold)).tracking(1).foregroundStyle(Cumbre.terra)
             Text(canVote
-                 ? "El grado que se muestra es el consenso (con 3+ votos). El del equipador queda como referencia."
-                 : "Solo puede votar quien la tiene en su diario (pruébala o encadénala primero).")
+                 ? L("El grado que se muestra es el consenso (con 3+ votos). El del equipador queda como referencia.")
+                 : L("Solo puede votar quien la tiene en su diario (pruébala o encadénala primero)."))
                 .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
             if let s = store.grade {
                 if !s.votes.isEmpty {
@@ -219,7 +219,7 @@ struct GradeVoteSheet: View {
                     Spacer()
                     Text((s.displayedGrade ?? "—") +
                          ((s.setterGrade != nil && s.setterGrade != s.displayedGrade)
-                          ? "  ·  equipador: \(s.setterGrade!)" : ""))
+                          ? L("  ·  equipador: %@", s.setterGrade!) : ""))
                         .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
                 }
                 .padding(10)
@@ -276,7 +276,7 @@ struct SunStripView: View {
                     Text("SOL EN ESTA PARED · HOY")
                         .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
                     Spacer()
-                    legend(sunColor, "Sol"); legend(shadeColor, "Sombra")
+                    legend(sunColor, L("Sol")); legend(shadeColor, L("Sombra"))
                 }
                 HStack(spacing: 2) {
                     ForEach(Array(sun.hours.enumerated()), id: \.offset) { _, h in

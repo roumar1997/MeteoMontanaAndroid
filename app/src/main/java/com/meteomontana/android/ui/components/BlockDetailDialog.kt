@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.CatalogLabels
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import android.content.Intent
@@ -193,10 +194,10 @@ fun BlockDetailDialog(
                 .imePadding()
         ) {
             val (badgeColor, badgeLabel) = when {
-                isProposal              -> Color(0xFFF59E0B) to "PROPUESTA"
+                isProposal              -> Color(0xFFF59E0B) to stringResource(R.string.w_proposal_caps)
                 block.type == "PARKING" -> Color(0xFF1D6DD6) to "PARKING"
-                block.type == "ZONE"    -> Color(0xFF1FA84E) to "ZONA"
-                else                    -> Terra to "PIEDRA"
+                block.type == "ZONE"    -> Color(0xFF1FA84E) to stringResource(R.string.w_zone_caps)
+                else                    -> Terra to stringResource(R.string.w_boulder_caps)
             }
             // Barra fija: Cerrar · Cómo llegar · Compartir · ⚙ Opciones.
             // Espejo de la de iOS (Álvaro, 2026-08-24): estaban todas al fondo
@@ -370,7 +371,7 @@ fun BlockDetailDialog(
                 Row(verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     VotableChip(
-                        text = orientationOf(null)?.consensus?.let { c -> "PARED " + c } ?: "ORIENTACION",
+                        text = orientationOf(null)?.consensus?.let { c -> stringResource(R.string.aspect_wall, CatalogLabels.aspect(c)) } ?: stringResource(R.string.w_aspect_caps),
                     ) { orientationTarget = null; orientationOpen = true }
                     val votesTotal = orientationOf(null)?.votes?.values?.sum() ?: 0
                     if (votesTotal > 0) Text(
@@ -456,7 +457,7 @@ fun BlockDetailDialog(
                                 )
                                 // C2: cada cara de un muro vota su propia orientacion.
                                 if (!isProposal) VotableChip(
-                                    text = orientationOf(originalIdx)?.consensus?.let { c -> "PARED " + c } ?: stringResource(R.string.block_detail_dialog_v4_orientar_esta_cara),
+                                    text = orientationOf(originalIdx)?.consensus?.let { c -> stringResource(R.string.aspect_wall, CatalogLabels.aspect(c)) } ?: stringResource(R.string.block_detail_dialog_v4_orientar_esta_cara),
                                 ) {
                                     orientationTarget = originalIdx
                                     orientationOpen = true

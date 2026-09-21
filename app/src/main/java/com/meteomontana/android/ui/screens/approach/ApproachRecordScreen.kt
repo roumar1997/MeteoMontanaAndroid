@@ -204,7 +204,7 @@ fun ApproachRecordScreen(
                                     .clickable { paused = !paused }
                                     .padding(vertical = Spacing.md),
                                 contentAlignment = Alignment.Center
-                            ) { Text(if (paused) "REANUDAR" else "PAUSAR", style = EyebrowTextStyle) }
+                            ) { Text(if (paused) stringResource(R.string.w_resume_caps) else stringResource(R.string.w_pause_caps), style = EyebrowTextStyle) }
                             Box(
                                 modifier = Modifier.weight(1f)
                                     .background(terraFillColor(), RoundedCornerShape(2.dp))

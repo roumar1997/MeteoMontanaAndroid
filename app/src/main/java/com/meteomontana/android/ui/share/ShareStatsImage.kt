@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.share
 
 
+import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.util.AppText
 import android.content.Context
 import android.content.Intent
@@ -169,8 +170,7 @@ private fun renderStatsCard(
     // ── Mejor mes (fluye tras la pirámide — nada de posiciones fijas) ───────
     s.bestMonth?.let { bm ->
         y += 44f
-        val months = listOf("enero", "febrero", "marzo", "abril", "mayo", "junio",
-            "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre")
+        val months = CalendarLabels.monthsLong()
         val label = runCatching {
             AppText.get(R.string.share_stats_image_v4_mejor_mes_ascensos, months[bm.substringAfter('-').toInt() - 1], s.bestMonthCount)
         }.getOrDefault(AppText.get(R.string.share_stats_image_v4_mejor_mes, bm))

@@ -79,7 +79,7 @@ final class JournalViewModel: ObservableObject {
 
     /** C3: cambiar la fecha de una entrada y recargar. */
     func changeDate(_ id: String, _ newDate: String) async {
-        if await reporting("No se pudo cambiar la fecha", {
+        if await reporting(L("No se pudo cambiar la fecha"), {
             try await AppDependencies.shared.container.updateJournalDate.invoke(id: id, date: newDate)
         }) != nil {
             await load()
@@ -182,9 +182,9 @@ struct JournalStatsRow: View {
     let stats: JournalStats
     var body: some View {
         HStack(spacing: 0) {
-            cell("\(stats.blockCount)", "BLOQUES")
-            cell("\(stats.schoolCount)", "ESCUELAS")
-            cell(stats.maxGrade ?? "—", "GRADO MÁX")
+            cell("\(stats.blockCount)", L("BLOQUES"))
+            cell("\(stats.schoolCount)", L("ESCUELAS"))
+            cell(stats.maxGrade ?? "—", L("GRADO MÁX"))
         }
         .padding(.vertical, 16)
         .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
@@ -218,7 +218,7 @@ struct JournalRow: View {
     private var subtitle: String {
         var parts: [String] = []
         if let sn = entry.schoolName, !sn.isEmpty { parts.append(sn) }
-        if let n = info?.boulderNumber, !n.isEmpty { parts.append("Piedra \(n)") }
+        if let n = info?.boulderNumber, !n.isEmpty { parts.append(L("Piedra %@", n)) }
         if let s = info?.sector, !s.isEmpty { parts.append(s) }
         return parts.joined(separator: " · ")
     }
@@ -240,12 +240,12 @@ struct JournalRow: View {
                 if entry.aVista || entry.alFlash || onChangeStyle != nil {
                     HStack(spacing: 4) {
                         if entry.aVista || onChangeStyle != nil {
-                            styleBadge("A VISTA", active: entry.aVista) {
+                            styleBadge(L("A VISTA"), active: entry.aVista) {
                                 onChangeStyle?(!entry.aVista, entry.alFlash)
                             }
                         }
                         if entry.alFlash || onChangeStyle != nil {
-                            styleBadge("AL FLASH", active: entry.alFlash) {
+                            styleBadge(L("AL FLASH"), active: entry.alFlash) {
                                 onChangeStyle?(entry.aVista, !entry.alFlash)
                             }
                         }
@@ -517,7 +517,7 @@ struct AddBlockSheet: View {
                     modalityField
                     blockField
                     gradeField
-                    field("NOTAS", $notes, "Comentarios")
+                    field(L("NOTAS"), $notes, L("Comentarios"))
                 }.padding(16)
             }
             .background(Cumbre.bg.ignoresSafeArea())
@@ -576,7 +576,7 @@ struct AddBlockSheet: View {
             if !sugs.isEmpty {
                 suggestionsBox {
                     ForEach(sugs, id: \.name) { sug in
-                        suggestionRow(sug.blockId != nil ? "\(sug.name) · catalogado" : sug.name) {
+                        suggestionRow(sug.blockId != nil ? L("%@ · catalogado", sug.name) : sug.name) {
                             sector = sug.name; selectedSectorId = sug.blockId
                         }
                     }
@@ -711,7 +711,7 @@ struct JournalSchoolsView: View {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(s.schoolName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
                                         let blocks = "\(s.blockCount) \(s.blockCount == 1 ? "bloque" : "bloques")"
-                                        let grade = s.maxGrade.map { " · máx \($0)" } ?? ""
+                                        let grade = s.maxGrade.map { L(" · máx %@", $0) } ?? ""
                                         Text(blocks + grade).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
                                     }
                                     Spacer()
@@ -777,7 +777,7 @@ struct SchoolJournalSectorsView: View {
                                     Image(systemName: "folder").font(.system(size: 16)).foregroundStyle(Cumbre.terra)
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(sec.name).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
-                                        Text(sec.count == 1 ? "1 bloque" : "\(sec.count) bloques")
+                                        Text(sec.count == 1 ? L("1 bloque") : L("%@ bloques", sec.count))
                                             .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
                                     }
                                     Spacer()
@@ -936,31 +936,31 @@ struct JournalStatsNav: View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 NavigationLink(destination: JournalBlocksListView(title: "Bloques", entries: entries, viaInfo: viaInfo, routeOnly: false)) {
-                    cell("\(stats.boulderCount)", "BLOQUES")
+                    cell("\(stats.boulderCount)", L("BLOQUES"))
                 }.buttonStyle(.plain)
                 NavigationLink(destination: JournalBlocksListView(title: "Vías", entries: entries, viaInfo: viaInfo, routeOnly: true)) {
-                    cell("\(stats.routeCount)", "VÍAS")
+                    cell("\(stats.routeCount)", L("VÍAS"))
                 }.buttonStyle(.plain)
                 NavigationLink(destination: JournalSchoolsView(schools: stats.bySchool, entries: entries, viaInfo: viaInfo)) {
-                    cell("\(stats.schoolCount)", "ESCUELAS")
+                    cell("\(stats.schoolCount)", L("ESCUELAS"))
                 }.buttonStyle(.plain)
             }
             HStack(spacing: 8) {
-                cell(stats.maxBoulderGrade ?? "—", "MÁX BLOQUE")
-                cell(stats.maxRouteGrade ?? "—", "MÁX VÍA")
+                cell(stats.maxBoulderGrade ?? "—", L("MÁX BLOQUE"))
+                cell(stats.maxRouteGrade ?? "—", L("MÁX VÍA"))
             }
             // Proyectos: misma celda pulsable que el resto, mismo caché offline
             // (viene en la misma llamada de stats).
             NavigationLink(destination: ProjectsView(uid: projectsUid)) {
-                cell("\(stats.projectCount)", "PROYECTOS")
+                cell("\(stats.projectCount)", L("PROYECTOS"))
             }.buttonStyle(.plain)
             if showStatsAndPosts {
                 HStack(spacing: 8) {
                     NavigationLink(destination: StatsView(uid: projectsUid)) {
-                        cell("▸", "ESTADÍSTICAS")
+                        cell("▸", L("ESTADÍSTICAS"))
                     }.buttonStyle(.plain)
                     NavigationLink(destination: MyPostsView(uid: projectsUid)) {
-                        cell("▸", "PUBLICACIONES")
+                        cell("▸", L("PUBLICACIONES"))
                     }.buttonStyle(.plain)
                 }
             }
@@ -983,8 +983,7 @@ private extension String { var nilIfBlank: String? { trimmingCharacters(in: .whi
 
 extension JournalView {
     static func monthHeader(_ yyyyMm: String) -> String {
-        let names = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO",
-                     "JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"]
+        let names = CalendarLabels.monthsLong().map { $0.uppercased() }
         let parts = yyyyMm.split(separator: "-")
         guard parts.count == 2, let m = Int(parts[1]), m >= 1, m <= 12 else { return yyyyMm }
         return names[m - 1] + " " + parts[0]

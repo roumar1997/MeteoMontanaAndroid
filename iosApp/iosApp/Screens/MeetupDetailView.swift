@@ -120,7 +120,7 @@ final class MeetupDetailViewModel: ObservableObject {
             if let http = response as? HTTPURLResponse, http.statusCode < 300 {
                 return true
             }
-            self.error = "Error al eliminar"
+            self.error = L("Error al eliminar")
             return false
         } catch {
             self.error = error.localizedDescription
@@ -231,7 +231,7 @@ struct MeetupDetailView: View {
                                 // Organizer with ORGANIZA eyebrow
                                 let creatorName = meetup.members.first(where: { $0.uid == meetup.creatorUid })
                                     .flatMap { $0.displayName ?? $0.username }
-                                    ?? meetup.creatorUsername ?? "Organizador"
+                                    ?? meetup.creatorUsername ?? L("Organizador")
                                 NavigationLink(destination: PublicProfileView(uid: meetup.creatorUid)) {
                                     HStack(spacing: 8) {
                                         MeetupAvatarCircle(url: meetup.creatorPhotoUrl, size: 28)
@@ -353,8 +353,8 @@ struct MeetupDetailView: View {
                                     Text(desc).font(.subheadline)
                                 } else {
                                     Text(isCreator
-                                         ? "Anade detalles (material, nivel, punto de encuentro...)"
-                                         : "Sin detalles")
+                                         ? L("Anade detalles (material, nivel, punto de encuentro...)")
+                                         : L("Sin detalles"))
                                         .font(.caption).italic().foregroundColor(Cumbre.ink.opacity(0.5))
                                 }
                             }
@@ -416,7 +416,7 @@ struct MeetupDetailView: View {
                             }()
                             HStack(spacing: 6) {
                                 Image(systemName: "person").font(.caption).foregroundColor(Cumbre.ink.opacity(0.5))
-                                Text("\(limitText) PARTICIPANTES")
+                                Text(L("%@ PARTICIPANTES", limitText))
                                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                                     .tracking(1.5)
                                     .foregroundColor(Cumbre.ink.opacity(0.6))
@@ -582,7 +582,7 @@ struct MeetupDetailView: View {
             Text("Se eliminara la quedada y su chat de grupo. Esta accion no se puede deshacer.")
         }
         .confirmationDialog(
-            "Expulsar a \(kickTarget?.displayName ?? kickTarget?.username ?? "este participante")?",
+            L("Expulsar a %@?", kickTarget?.displayName ?? kickTarget?.username ?? "este participante"),
             isPresented: $showKickConfirm,
             titleVisibility: .visible
         ) {
@@ -617,14 +617,14 @@ func openDirections(lat: Double, lon: Double) {
 /// unirse aunque no haya relación de follows (espejo de Android).
 func meetupShareText(_ meetup: Meetup, inviteLink: String?) -> String {
     let days = meetup.days.map { detailFormatDayMonth($0) }.joined(separator: ", ")
-    var text = "🧗 Te invito a la quedada *\(meetup.name)*"
+    var text = L("🧗 Te invito a la quedada *%@*", meetup.name)
     if let s = meetup.schoolName { text += " en \(s)" }
     if !days.isEmpty { text += " (\(days))" }
     text += "\n"
     if let link = inviteLink, !link.isEmpty {
-        text += "👉 Únete desde aquí:\n\(link)"
+        text += L("👉 Únete desde aquí:\n%@", link)
     } else {
-        text += "👉 Búscala en Cumbre (pestaña Quedadas)"
+        text += L("👉 Búscala en Cumbre (pestaña Quedadas)")
     }
     return text
 }
@@ -769,9 +769,9 @@ func buildGearJson(_ gear: [String: Int]) -> String {
 
 func gearItemsForDiscipline(_ discipline: String?) -> [(key: String, label: String)] {
     switch discipline {
-    case "BOULDER": return [("crashpads", "Crashpads")]
-    case "ROUTE": return [("cintas", "Cintas"), ("cuerda", "Cuerdas"), ("grigri", "Gri-gri")]
-    default: return [("crashpads", "Crashpads"), ("cintas", "Cintas"), ("cuerda", "Cuerdas"), ("grigri", "Gri-gri")]
+    case "BOULDER": return [("crashpads", L("Crashpads"))]
+    case "ROUTE": return [("cintas", L("Cintas")), ("cuerda", L("Cuerdas")), ("grigri", "Gri-gri")]
+    default: return [("crashpads", L("Crashpads")), ("cintas", L("Cintas")), ("cuerda", L("Cuerdas")), ("grigri", "Gri-gri")]
     }
 }
 

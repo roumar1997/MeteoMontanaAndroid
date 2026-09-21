@@ -287,3 +287,4 @@ score por hora, mapa con piedras/parkings/zonas, flujo de contribuciones
 (proponer piedra/parking/sector/corrección con revisión admin), editor de
 topos (líneas sobre foto), tema visual Cumbre, autenticación Firebase.
 
+- 2026-09-21 · i18n: barrido por forma (Android ~1700 claves ES=EN, iOS ~1130 entradas), AppText/CalendarLabels/CatalogLabels, selector de idioma en Ajustes (Android AppLanguage, iOS LanguageManager + L()), ayuda con idioma, orientaciones traducidas. Pendiente: textos del servidor (push/bandeja) y probar todo en EN en móvil.

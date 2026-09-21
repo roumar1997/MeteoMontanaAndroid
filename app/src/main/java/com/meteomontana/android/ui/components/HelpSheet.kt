@@ -113,7 +113,7 @@ private fun helpIcon(name: String): ImageVector = when (name) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HelpSheet(topicKey: String, onDismiss: () -> Unit) {
-    val topic: HelpTopic = HelpCatalog.byKey(topicKey) ?: return
+    val topic: HelpTopic = HelpCatalog.byKey(topicKey, androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language) ?: return
     // ARRASTRAR PARA CERRAR, solo desde arriba (mismo arreglo que
     // BlockDetailDialog.kt/AddLinesFlow.kt): hojas largas competían el gesto
     // de cierre con el scroll.

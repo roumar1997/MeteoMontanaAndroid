@@ -56,7 +56,7 @@ struct MeetupsMapPanel: View {
         if let lat = userLat, let lon = userLon {
             ms.append(CumbreMarker(
                 id: "__USER__", coordinate: .init(latitude: lat, longitude: lon),
-                title: "Tu ubicacion", kind: .user
+                title: L("Tu ubicacion"), kind: .user
             ))
         }
         for g in groups {
@@ -86,12 +86,12 @@ struct MeetupsMapPanel: View {
             Button { withAnimation { show.toggle() } } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "map").font(.system(size: 13)).foregroundColor(Cumbre.terra)
-                    Text(show ? "OCULTAR MAPA" : "VER MAPA DE QUEDADAS")
+                    Text(show ? L("OCULTAR MAPA") : L("VER MAPA DE QUEDADAS"))
                         .font(Cumbre.mono(11, .bold)).tracking(0.8)
                         .foregroundColor(Cumbre.terra)
                     Spacer()
                     if !groups.isEmpty {
-                        Text("\(groups.count) escuela\(groups.count == 1 ? "" : "s")")
+                        Text(L("%@ escuela%@", groups.count, groups.count == 1 ? "" : "s"))
                             .font(.caption).foregroundColor(Cumbre.ink.opacity(0.5))
                     }
                     Image(systemName: show ? "chevron.up" : "chevron.down")
@@ -189,18 +189,18 @@ struct MeetupsMapPanel: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         Text("DIST.").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
-                        filterPill(label: "Todas", selected: mapDistanceKm == nil) { mapDistanceKm = nil }
-                        filterPill(label: "50 km", selected: mapDistanceKm == 50) { mapDistanceKm = 50 }
-                        filterPill(label: "100 km", selected: mapDistanceKm == 100) { mapDistanceKm = 100 }
-                        filterPill(label: "200 km", selected: mapDistanceKm == 200) { mapDistanceKm = 200 }
+                        filterPill(label: L("Todas"), selected: mapDistanceKm == nil) { mapDistanceKm = nil }
+                        filterPill(label: L("50 km"), selected: mapDistanceKm == 50) { mapDistanceKm = 50 }
+                        filterPill(label: L("100 km"), selected: mapDistanceKm == 100) { mapDistanceKm = 100 }
+                        filterPill(label: L("200 km"), selected: mapDistanceKm == 200) { mapDistanceKm = 200 }
                     }
                 }
             }
             HStack(spacing: 6) {
                 Text("MODALIDAD").font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
-                filterPill(label: "Ambas", selected: disciplineFilter == nil) { disciplineFilter = nil }
-                filterPill(label: "Bloque", selected: disciplineFilter == "BOULDER") { disciplineFilter = "BOULDER" }
-                filterPill(label: "Via", selected: disciplineFilter == "ROUTE") { disciplineFilter = "ROUTE" }
+                filterPill(label: L("Ambas"), selected: disciplineFilter == nil) { disciplineFilter = nil }
+                filterPill(label: L("Bloque"), selected: disciplineFilter == "BOULDER") { disciplineFilter = "BOULDER" }
+                filterPill(label: L("Via"), selected: disciplineFilter == "ROUTE") { disciplineFilter = "ROUTE" }
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
@@ -234,7 +234,7 @@ struct MeetupsMapPanel: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(g.schoolName).font(.body).fontWeight(.medium)
                     .foregroundColor(Cumbre.ink)
-                Text("\(g.count) quedada\(g.count == 1 ? "" : "s") activa\(g.count == 1 ? "" : "s")")
+                Text(L("%@ quedada%@ activa%@", g.count, g.count == 1 ? "" : "s", g.count == 1 ? "" : "s"))
                     .font(.caption).foregroundColor(Cumbre.ink2)
             }
             Spacer()
@@ -312,7 +312,7 @@ struct MeetupAlertView: View {
                         Divider()
                         // Escuela
                         VStack(alignment: .leading, spacing: 6) {
-                            FilterGroupLabel(text: "ESCUELA")
+                            FilterGroupLabel(text: L("ESCUELA"))
                             Text("Avisame solo de una escuela en concreto, o de cualquiera")
                                 .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
                             HStack {
@@ -321,7 +321,7 @@ struct MeetupAlertView: View {
                                 } label: {
                                     HStack {
                                         Image(systemName: "magnifyingglass").font(.system(size: 13))
-                                        Text(schoolName ?? "Cualquier escuela").lineLimit(1)
+                                        Text(schoolName ?? L("Cualquier escuela")).lineLimit(1)
                                         Spacer()
                                     }
                                     .padding(.vertical, 10).padding(.horizontal, 12)
@@ -342,23 +342,23 @@ struct MeetupAlertView: View {
                         Divider()
                         // Modalidad
                         VStack(alignment: .leading, spacing: 6) {
-                            FilterGroupLabel(text: "MODALIDAD")
+                            FilterGroupLabel(text: L("MODALIDAD"))
                             HStack(spacing: 6) {
-                                FilterPill(label: "Ambas", selected: discipline == nil) { discipline = nil }
-                                FilterPill(label: "Bloque", selected: discipline == "BOULDER") { discipline = "BOULDER" }
-                                FilterPill(label: "Via", selected: discipline == "ROUTE") { discipline = "ROUTE" }
+                                FilterPill(label: L("Ambas"), selected: discipline == nil) { discipline = nil }
+                                FilterPill(label: L("Bloque"), selected: discipline == "BOULDER") { discipline = "BOULDER" }
+                                FilterPill(label: L("Via"), selected: discipline == "ROUTE") { discipline = "ROUTE" }
                             }
                         }
 
                         Divider()
                         // Privacidad
                         VStack(alignment: .leading, spacing: 6) {
-                            FilterGroupLabel(text: "TIPO DE QUEDADA")
+                            FilterGroupLabel(text: L("TIPO DE QUEDADA"))
                             FlowLayoutView(spacing: 6) {
-                                FilterPill(label: "Todas", selected: privacy == nil) { privacy = nil }
-                                FilterPill(label: "Abiertas", selected: privacy == "OPEN") { privacy = "OPEN" }
-                                FilterPill(label: "Seguidos/Seguidores", selected: privacy == "FOLLOWERS") { privacy = "FOLLOWERS" }
-                                FilterPill(label: "No mixto", selected: privacy == "WOMEN") {
+                                FilterPill(label: L("Todas"), selected: privacy == nil) { privacy = nil }
+                                FilterPill(label: L("Abiertas"), selected: privacy == "OPEN") { privacy = "OPEN" }
+                                FilterPill(label: L("Seguidos/Seguidores"), selected: privacy == "FOLLOWERS") { privacy = "FOLLOWERS" }
+                                FilterPill(label: L("No mixto"), selected: privacy == "WOMEN") {
                                     if isWoman { privacy = "WOMEN" }
                                 }
                                 .opacity(isWoman ? 1 : 0.4)
@@ -372,21 +372,21 @@ struct MeetupAlertView: View {
                         Divider()
                         // Distancia
                         VStack(alignment: .leading, spacing: 6) {
-                            FilterGroupLabel(text: "DISTANCIA")
+                            FilterGroupLabel(text: L("DISTANCIA"))
                             Text("Avisame solo de quedadas a menos de X km de mi ubicacion")
                                 .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
                             HStack(spacing: 6) {
-                                FilterPill(label: "Sin limite", selected: maxDistanceKm == nil) { maxDistanceKm = nil }
-                                FilterPill(label: "50 km", selected: maxDistanceKm == 50) { maxDistanceKm = 50 }
-                                FilterPill(label: "100 km", selected: maxDistanceKm == 100) { maxDistanceKm = 100 }
-                                FilterPill(label: "200 km", selected: maxDistanceKm == 200) { maxDistanceKm = 200 }
+                                FilterPill(label: L("Sin limite"), selected: maxDistanceKm == nil) { maxDistanceKm = nil }
+                                FilterPill(label: L("50 km"), selected: maxDistanceKm == 50) { maxDistanceKm = 50 }
+                                FilterPill(label: L("100 km"), selected: maxDistanceKm == 100) { maxDistanceKm = 100 }
+                                FilterPill(label: L("200 km"), selected: maxDistanceKm == 200) { maxDistanceKm = 200 }
                             }
                         }
 
                         Divider()
                         // Días
                         VStack(alignment: .leading, spacing: 6) {
-                            FilterGroupLabel(text: "DIAS")
+                            FilterGroupLabel(text: L("DIAS"))
                             Text("Avisame si la quedada incluye alguno de estos dias (vacio = cualquier dia)")
                                 .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
                             FlowLayoutView(spacing: 6) {
@@ -418,7 +418,7 @@ struct MeetupAlertView: View {
                     dismiss()
                 }
             } label: {
-                Text(enabled ? "GUARDAR ALERTA" : "DESACTIVAR ALERTA")
+                Text(enabled ? L("GUARDAR ALERTA") : L("DESACTIVAR ALERTA"))
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)

@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.share
 
 
+import com.meteomontana.android.util.CatalogLabels
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -80,7 +81,7 @@ private fun renderConditionsCard(context: Context, school: School, forecast: For
 
     // Subtítulo región · roca
     val sub = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK_SOFT; textSize = 32f }
-    val subText = listOfNotNull(school.region, school.rockType).joinToString(" · ")
+    val subText = listOfNotNull(school.region, school.rockType?.let { CatalogLabels.rock(it) }).joinToString(" · ")
     if (subText.isNotEmpty()) c.drawText(subText, pad, pad + 170f, sub)
 
     val cur = forecast?.current

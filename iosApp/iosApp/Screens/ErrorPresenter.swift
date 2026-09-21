@@ -74,11 +74,11 @@ final class ErrorPresenter: ObservableObject {
     /// vista ("No se pudo enviar el comentario", etc.).
     nonisolated static func friendly(_ error: Error, fallback: String) -> String {
         let ns = error as NSError
-        if ns.domain == NSURLErrorDomain { return "Sin conexión. Inténtalo de nuevo." }
+        if ns.domain == NSURLErrorDomain { return L("Sin conexión. Inténtalo de nuevo.") }
         let text = String(describing: error).lowercased()
         if text.contains("internet") || text.contains("connect") || text.contains("network")
             || text.contains("timeout") || text.contains("hostname") {
-            return "Sin conexión. Inténtalo de nuevo."
+            return L("Sin conexión. Inténtalo de nuevo.")
         }
         // Código HTTP si se puede sacar del texto de la excepción de Ktor
         // (ClientRequestException/ServerResponseException lo incluyen) — sin
@@ -86,7 +86,7 @@ final class ErrorPresenter: ObservableObject {
         // genérico y no había forma de diagnosticarlo a distancia
         // (Rodrigo, 2026-08-22: "no se pudo cambiar estilo", sin más pista).
         if let match = text.range(of: #"\b[45]\d\d\b"#, options: .regularExpression) {
-            return "\(fallback) (código \(text[match]))"
+            return L("%@ (código %@)", fallback, text[match])
         }
         return fallback
     }

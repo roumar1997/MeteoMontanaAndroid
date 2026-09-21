@@ -28,8 +28,8 @@ struct SavedSchoolsView: View {
             if vm.schools.isEmpty {
                 EmptyStateView(
                     icon: "arrow.down.circle",
-                    title: "No tienes escuelas guardadas",
-                    message: "Abre una escuela y pulsa el icono de descarga para verla sin conexión (previsión, mapa y piedras)."
+                    title: L("No tienes escuelas guardadas"),
+                    message: L("Abre una escuela y pulsa el icono de descarga para verla sin conexión (previsión, mapa y piedras).")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -86,13 +86,13 @@ struct OfflineSchoolView: View {
                     offlineMap(s.school)
                 }
             } else {
-                ContentUnavailableView("No guardada", systemImage: "tray",
+                ContentUnavailableView(L("No guardada"), systemImage: "tray",
                     description: Text("Esta escuela no está guardada offline."))
                     .padding(.top, 60)
             }
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle(snapshot?.school.name ?? "Offline")
+        .navigationTitle(snapshot?.school.name ?? L("Offline"))
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $selectedDay) { d in DayDetailView(day: d, allHours: snapshot?.forecast?.hours ?? []) }
         .sheet(item: $selectedBlock) { b in
@@ -137,7 +137,7 @@ struct OfflineSchoolView: View {
                 .padding(.horizontal, 16)
             ForEach(blocks.filter { $0.type.uppercased() == "BLOCK" }, id: \.id) { b in
                 if let p = b.photoPath, !p.isEmpty {
-                    Text(b.name.isEmpty ? "PIEDRA" : b.name)
+                    Text(b.name.isEmpty ? L("PIEDRA") : b.name)
                         .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink2)
                         .padding(.horizontal, 16)
                     TopoPhotoView(photoUrl: p, lines: b.lines.map { TopoLineVM($0) })

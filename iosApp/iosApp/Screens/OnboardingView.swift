@@ -13,25 +13,25 @@ private struct OnbStep {
 }
 
 private let onbSteps: [OnbStep] = [
-    OnbStep(emoji: "⛰", eyebrow: "BIENVENIDO", title: "Cumbre",
-            body: "Tiempo para escalar. Te decimos cuándo y dónde se puede escalar, con la roca seca, en 191 escuelas."),
-    OnbStep(emoji: "🌡", eyebrow: "EL ÍNDICE 0–100", title: "¿Hoy se puede?",
-            body: "Un número resume las condiciones de cada escuela: temperatura, humedad, viento, lluvia reciente y cuánto tarda en secar SU tipo de roca (la arenisca tarda días; el granito, horas).",
+    OnbStep(emoji: "⛰", eyebrow: L("BIENVENIDO"), title: "Cumbre",
+            body: L("Tiempo para escalar. Te decimos cuándo y dónde se puede escalar, con la roca seca, en 191 escuelas.")),
+    OnbStep(emoji: "🌡", eyebrow: L("EL ÍNDICE 0–100"), title: L("¿Hoy se puede?"),
+            body: L("Un número resume las condiciones de cada escuela: temperatura, humedad, viento, lluvia reciente y cuánto tarda en secar SU tipo de roca (la arenisca tarda días; el granito, horas)."),
             showScale: true),
-    OnbStep(emoji: "🗺", eyebrow: "MAPA Y TOPOS", title: "Cada piedra, al detalle",
-            body: "Abre una escuela y verás parkings, sectores y piedras en el mapa. Toca una piedra y aparece su foto con las VÍAS dibujadas, su grado y cómo llegar."),
-    OnbStep(emoji: "📅", eyebrow: "PLANIFICA EL FINDE", title: "La mejor ventana",
-            body: "Ventana óptima del día, mejor día de la semana, comparador de escuelas y selector de días para decidir adónde ir."),
-    OnbStep(emoji: "⭐", eyebrow: "FAVORITAS Y ALERTAS", title: "No te pierdas el buen día",
-            body: "Marca tus escuelas favoritas, míralas de un vistazo en el widget de inicio y activa la alerta para que te avise cuando vaya a haber buena ventana."),
-    OnbStep(emoji: "📓", eyebrow: "TU DIARIO", title: "Lleva la cuenta",
-            body: "Marca las vías que encadenas: la app guarda tu diario con tus estadísticas y tu grado máximo, escuela por escuela."),
-    OnbStep(emoji: "🧗", eyebrow: "SUMA A LA GUÍA", title: "Comunidad",
-            body: "Propón escuelas, piedras y sectores nuevos y deja notas con foto. Un admin las revisa antes de publicarlas para toda la comunidad."),
-    OnbStep(emoji: "💬", eyebrow: "PERFIL, GENTE Y CHAT", title: "Conecta",
-            body: "Crea tu perfil, busca y sigue a otros escaladores, mira sus diarios y chatea 1 a 1. Las notificaciones te avisan de seguidores y mensajes."),
-    OnbStep(emoji: "📍", eyebrow: "OFFLINE + UBICACIÓN", title: "Listo para el monte",
-            body: "Guarda escuelas para verlas SIN cobertura. Te pediremos la ubicación solo para ordenar por cercanía y centrar el mapa: se usa en tu móvil, nunca se comparte.")
+    OnbStep(emoji: "🗺", eyebrow: L("MAPA Y TOPOS"), title: L("Cada piedra, al detalle"),
+            body: L("Abre una escuela y verás parkings, sectores y piedras en el mapa. Toca una piedra y aparece su foto con las VÍAS dibujadas, su grado y cómo llegar.")),
+    OnbStep(emoji: "📅", eyebrow: L("PLANIFICA EL FINDE"), title: L("La mejor ventana"),
+            body: L("Ventana óptima del día, mejor día de la semana, comparador de escuelas y selector de días para decidir adónde ir.")),
+    OnbStep(emoji: "⭐", eyebrow: L("FAVORITAS Y ALERTAS"), title: L("No te pierdas el buen día"),
+            body: L("Marca tus escuelas favoritas, míralas de un vistazo en el widget de inicio y activa la alerta para que te avise cuando vaya a haber buena ventana.")),
+    OnbStep(emoji: "📓", eyebrow: L("TU DIARIO"), title: L("Lleva la cuenta"),
+            body: L("Marca las vías que encadenas: la app guarda tu diario con tus estadísticas y tu grado máximo, escuela por escuela.")),
+    OnbStep(emoji: "🧗", eyebrow: L("SUMA A LA GUÍA"), title: L("Comunidad"),
+            body: L("Propón escuelas, piedras y sectores nuevos y deja notas con foto. Un admin las revisa antes de publicarlas para toda la comunidad.")),
+    OnbStep(emoji: "💬", eyebrow: L("PERFIL, GENTE Y CHAT"), title: L("Conecta"),
+            body: L("Crea tu perfil, busca y sigue a otros escaladores, mira sus diarios y chatea 1 a 1. Las notificaciones te avisan de seguidores y mensajes.")),
+    OnbStep(emoji: "📍", eyebrow: L("OFFLINE + UBICACIÓN"), title: L("Listo para el monte"),
+            body: L("Guarda escuelas para verlas SIN cobertura. Te pediremos la ubicación solo para ordenar por cercanía y centrar el mapa: se usa en tu móvil, nunca se comparte."))
 ]
 
 struct OnboardingView: View {
@@ -63,9 +63,9 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
                 if s.showScale {
                     VStack(spacing: 6) {
-                        legend(Cumbre.score(80), "70+ a escalar")
-                        legend(Cumbre.score(58), "50–69 regular")
-                        legend(Cumbre.score(30), "<50 mal día")
+                        legend(Cumbre.score(80), L("70+ a escalar"))
+                        legend(Cumbre.score(58), L("50–69 regular"))
+                        legend(Cumbre.score(30), L("<50 mal día"))
                     }.padding(.top, 4)
                 }
             }

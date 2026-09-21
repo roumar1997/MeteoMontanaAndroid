@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.profile
 
+import androidx.compose.material.icons.outlined.Language
 import com.meteomontana.android.util.AppText
 import android.content.Context
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -467,6 +468,50 @@ private fun FollowCount(value: Long, label: String, onClick: () -> Unit) {
     }
 }
 
+/** Fila "Idioma" de Ajustes: abre un diálogo Automático / Español / English. */
+@Composable
+private fun LanguageRow() {
+    val ctx = LocalContext.current
+    var open by remember { mutableStateOf(false) }
+    val current = com.meteomontana.android.util.AppLanguage.get(ctx)
+    val options = listOf(
+        com.meteomontana.android.util.AppLanguage.SYSTEM to stringResource(R.string.language_system),
+        com.meteomontana.android.util.AppLanguage.ES to stringResource(R.string.language_es),
+        com.meteomontana.android.util.AppLanguage.EN to stringResource(R.string.language_en),
+    )
+    MenuRow(Icons.Outlined.Language, stringResource(R.string.settings_language)) { open = true }
+    if (open) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { open = false },
+            title = { Text(stringResource(R.string.language_dialog_title)) },
+            text = {
+                Column {
+                    options.forEach { (value, label) ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                open = false
+                                if (value != current) {
+                                    com.meteomontana.android.util.AppLanguage.set(ctx, value)
+                                    com.meteomontana.android.util.AppText.init(ctx)   // refresca el contexto de textos
+                                    (ctx as? android.app.Activity)?.recreate()
+                                }
+                            }.padding(vertical = 10.dp)
+                        ) {
+                            androidx.compose.material3.RadioButton(selected = value == current, onClick = null)
+                            Spacer(Modifier.padding(start = 12.dp))
+                            Text(label, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { open = false }) { Text(stringResource(R.string.w_close)) }
+            }
+        )
+    }
+}
+
 /**
  * Hoja de ajustes (⚙️): agrupa lo que antes ocupaba el perfil — cuenta, mi
  * actividad, preferencias y sesión. Bottom sheet (paridad iOS).
@@ -512,6 +557,7 @@ private fun ProfileSettingsScreen(
             SettingsSectionLabel(stringResource(R.string.profile_section_prefs))
             MenuRow(Icons.Outlined.Notifications, stringResource(R.string.profile_weather_alert), onWeekendAlert)
             FeedPublishSettingRow()
+            LanguageRow()
             val ctx = LocalContext.current
             MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(R.string.profile_show_hints)) {
                 com.meteomontana.android.ui.components.resetAllHints(ctx)

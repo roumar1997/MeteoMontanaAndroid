@@ -138,8 +138,8 @@ internal fun PropuestasTab(
             // P6: PENDIENTES / APROBADAS / RECHAZADAS (historial navegable).
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                listOf("PENDING" to "PENDIENTES", "APPROVED" to "APROBADAS",
-                    "REJECTED" to "RECHAZADAS").forEach { (value, label) ->
+                listOf("PENDING" to stringResource(R.string.w_pending_caps), "APPROVED" to stringResource(R.string.w_approved_caps),
+                    "REJECTED" to stringResource(R.string.w_rejected_caps)).forEach { (value, label) ->
                     val selected = contributionsStatus == value
                     Box(Modifier
                         .clip(RoundedCornerShape(6.dp))

@@ -111,7 +111,7 @@ fun ChatScreen(
         .imePadding()
     ) {
         ChatSheetHeader(
-            name = state.otherProfile?.username ?: state.otherProfile?.displayName ?: "Usuario",
+            name = state.otherProfile?.username ?: state.otherProfile?.displayName ?: stringResource(R.string.w_user),
             avatarUrl = state.otherProfile?.photoUrl,
             onClose = onBack,
             onOpenProfile = { onOpenProfile(state.otherUid) }
@@ -133,7 +133,7 @@ fun ChatScreen(
                     msg = msg,
                     myUid = state.myUid ?: state.myProfile?.uid,
                     otherName = state.otherProfile?.username
-                        ?: state.otherProfile?.displayName ?: "Usuario",
+                        ?: state.otherProfile?.displayName ?: stringResource(R.string.w_user),
                     onReply = { viewModel.startReply(msg) }
                 )
             }

@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.schools
 
+import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import androidx.compose.foundation.background
@@ -585,7 +586,7 @@ private fun DaySelectorRow(
 ) {
     val today = remember { java.time.LocalDate.now() }
     val days = remember(today) { (0..6).map { today.plusDays(it.toLong()) } }
-    val dayLetters = arrayOf("LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM")  // ISO 1=lunes
+    val dayLetters = CalendarLabels.daysShortMonFirst().map { it.uppercase() }  // ISO 1=lunes
 
     Column(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
         Text(

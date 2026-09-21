@@ -145,7 +145,7 @@ struct SchoolChatView: View {
                 Button { showAllPresent = true } label: {
                     HStack(spacing: 6) {
                         Circle().fill(Cumbre.terraFill).frame(width: 7, height: 7)
-                        Text("\(vm.presentList.count) aquí ahora")
+                        Text(L("%@ aquí ahora", vm.presentList.count))
                             .font(.system(size: 11, weight: .bold, design: .monospaced))
                             .foregroundStyle(Cumbre.terra)
                         Text("· ver todos")
@@ -181,7 +181,7 @@ struct SchoolChatView: View {
                 }
                 .disabled(person.uid == vm.me)
             }
-            .navigationTitle("\(vm.presentList.count) aquí ahora")
+            .navigationTitle(L("%@ aquí ahora", vm.presentList.count))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

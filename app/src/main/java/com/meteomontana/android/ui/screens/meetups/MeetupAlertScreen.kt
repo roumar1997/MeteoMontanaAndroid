@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.util.CalendarLabels
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -152,7 +153,7 @@ fun MeetupAlertScreen(
             HorizontalDivider()
 
             // Escuela concreta (opcional)
-            SectionLabel("ESCUELA")
+            SectionLabel(stringResource(R.string.w_school_caps))
             Text(stringResource(R.string.meetup_alert_screen_avisame_solo_de_una),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -178,10 +179,10 @@ fun MeetupAlertScreen(
             HorizontalDivider()
 
             // Disciplina
-            SectionLabel("MODALIDAD")
+            SectionLabel(stringResource(R.string.w_discipline_caps))
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                AlertChip("Ambas", discipline == null, enabled = enabled) { if (enabled) discipline = null }
-                AlertChip("Bloque", discipline == "BOULDER", enabled = enabled) { if (enabled) discipline = "BOULDER" }
+                AlertChip(stringResource(R.string.w_both), discipline == null, enabled = enabled) { if (enabled) discipline = null }
+                AlertChip(stringResource(R.string.w_boulder), discipline == "BOULDER", enabled = enabled) { if (enabled) discipline = "BOULDER" }
                 AlertChip(stringResource(R.string.school_map_v3_via), discipline == "ROUTE", enabled = enabled) { if (enabled) discipline = "ROUTE" }
             }
 
@@ -193,8 +194,8 @@ fun MeetupAlertScreen(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
-                AlertChip("Todas", privacy == null, enabled = enabled) { if (enabled) privacy = null }
-                AlertChip("Abiertas", privacy == "OPEN", enabled = enabled) { if (enabled) privacy = "OPEN" }
+                AlertChip(stringResource(R.string.w_all), privacy == null, enabled = enabled) { if (enabled) privacy = null }
+                AlertChip(stringResource(R.string.w_open_pl), privacy == "OPEN", enabled = enabled) { if (enabled) privacy = "OPEN" }
                 AlertChip("Seguidos/Seguidores", privacy == "FOLLOWERS", enabled = enabled) { if (enabled) privacy = "FOLLOWERS" }
                 AlertChip(stringResource(R.string.meetup_alert_screen_v3_no_mixto), privacy == "WOMEN", enabled = enabled && isWoman) {
                     if (enabled && isWoman) privacy = "WOMEN"
@@ -208,7 +209,7 @@ fun MeetupAlertScreen(
             HorizontalDivider()
 
             // Distancia
-            SectionLabel("DISTANCIA")
+            SectionLabel(stringResource(R.string.w_distance_caps))
             Text(stringResource(R.string.meetup_alert_screen_avisame_solo_de_quedadas),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -267,8 +268,8 @@ fun MeetupAlertScreen(
 }
 
 private fun nextNDaysAlert(n: Int): List<Pair<String, String>> {
-    val dayNames = listOf("dom","lun","mar","mié","jue","vie","sáb")
-    val monthNames = listOf("ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic")
+    val dayNames = CalendarLabels.daysShortSunFirst().map { it.lowercase() }
+    val monthNames = CalendarLabels.monthsShort().map { it.lowercase() }
     val result = mutableListOf<Pair<String, String>>()
     val now = System.currentTimeMillis()
     val dayMs = 86_400_000L

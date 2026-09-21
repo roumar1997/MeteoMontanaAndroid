@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.share
 
+import com.meteomontana.android.util.AppText
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -25,6 +26,7 @@ import com.meteomontana.android.domain.util.renderTopo
 import com.meteomontana.android.ui.screens.topo.parseLineStroke
 import java.io.File
 import com.meteomontana.android.R
+import androidx.compose.ui.res.stringResource
 
 /* ── Paleta Cumbre (ARGB para Canvas, = ShareConditionsImage) ──────────────── */
 private const val PAPER = 0xFFFAF7F2.toInt()
@@ -164,7 +166,7 @@ private fun renderLineCard(
     )
 
     // ── Cabecera ───────────────────────────────────────────────────────────
-    val kind = if (block.discipline.equals("ROUTE", ignoreCase = true)) "VÍA" else "BLOQUE"
+    val kind = if (block.discipline.equals("ROUTE", ignoreCase = true)) "VÍA" else AppText.get(R.string.w_boulder_caps2)
     c.drawText(
         context.getString(R.string.share_line_image_v2_1_s_en_cumbre, kind), pad, pad + 40f,
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -221,8 +223,8 @@ private fun renderLineCard(
 
         // Estado a la derecha (se dibuja antes para reservar su ancho).
         val statusPair = when {
-            tickedIds.contains(bl.id) -> "HECHO" to GREEN
-            projectIds.contains(bl.id) -> "PROYECTO" to TERRA
+            tickedIds.contains(bl.id) -> AppText.get(R.string.w_done_caps) to GREEN
+            projectIds.contains(bl.id) -> AppText.get(R.string.w_project_caps) to TERRA
             else -> null
         }
         var rightLimit = w - pad

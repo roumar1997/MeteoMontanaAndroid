@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.util.AppText
 import androidx.compose.animation.AnimatedVisibility
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -320,20 +321,20 @@ fun MeetupsScreen(
                                         else showWomenGateDialog = true
                                     }
                                 }
-                                FilterGroupLabel("DISTANCIA")
+                                FilterGroupLabel(stringResource(R.string.w_distance_caps))
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    val distances = listOf(null to "Cualquiera", 25 to "< 25 km", 50 to "< 50 km",
+                                    val distances = listOf(null to stringResource(R.string.w_any), 25 to "< 25 km", 50 to "< 50 km",
                                         100 to "< 100 km", 200 to "< 200 km", 500 to "< 500 km")
                                     distances.forEach { (km, label) ->
                                         FilterChip(label, state.maxDistanceKm == km) { viewModel.setMaxDistance(km) }
                                     }
                                 }
-                                FilterGroupLabel("DISCIPLINA")
+                                FilterGroupLabel(stringResource(R.string.w_discipline2_caps))
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    val disciplines = listOf(null to "Cualquiera", "BOULDER" to "Bloque",
-                                        "ROUTE" to "Vía", "BOTH" to "Ambas")
+                                    val disciplines = listOf(null to stringResource(R.string.w_any), "BOULDER" to stringResource(R.string.w_boulder),
+                                        "ROUTE" to stringResource(R.string.w_route), "BOTH" to stringResource(R.string.w_both))
                                     disciplines.forEach { (key, label) ->
                                         FilterChip(label, state.filterDiscipline == key) {
                                             viewModel.setFilterDiscipline(key)
@@ -349,7 +350,7 @@ fun MeetupsScreen(
                                         FilterChip(label, state.filterDays.contains(iso)) { viewModel.toggleFilterDay(iso) }
                                     }
                                 }
-                                FilterGroupLabel("ESCUELA")
+                                FilterGroupLabel(stringResource(R.string.w_school_caps))
                                 Row(
                                     modifier = Modifier.fillMaxWidth()
                                         .clip(RoundedCornerShape(2.dp))
@@ -639,10 +640,11 @@ private fun MeetupSchoolFilterDialog(
 
 // ── Helpers ──
 
-private val MONTH_NAMES = listOf("ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic")
+private fun monthNames() = CalendarLabels.monthsShort().map { it.lowercase() }
 
 private fun nextNDaysFilter(n: Int): List<Pair<String, String>> {
-    val dayNames = listOf("dom","lun","mar","mié","jue","vie","sáb")
+    val dayNames = CalendarLabels.daysShortSunFirst().map { it.lowercase() }
+    val monthNames = monthNames()
     val result = mutableListOf<Pair<String, String>>()
     val now = System.currentTimeMillis()
     val dayMs = 86_400_000L
@@ -654,7 +656,7 @@ private fun nextNDaysFilter(n: Int): List<Pair<String, String>> {
         val d = cal.get(java.util.Calendar.DAY_OF_MONTH)
         val dow = cal.get(java.util.Calendar.DAY_OF_WEEK) - 1
         val iso = "%04d-%02d-%02d".format(y, mo, d)
-        val label = "${dayNames[dow]} $d ${MONTH_NAMES[mo - 1]}"
+        val label = "${dayNames[dow]} $d ${monthNames[mo - 1]}"
         result.add(iso to label)
     }
     return result
@@ -665,7 +667,7 @@ internal fun formatDayMonth(iso: String): String {
     if (parts.size != 3) return iso
     val month = parts[1].toIntOrNull() ?: return iso
     val day = parts[2].toIntOrNull() ?: return iso
-    return "$day ${MONTH_NAMES.getOrElse(month - 1) { "?" }}"
+    return "$day ${monthNames().getOrElse(month - 1) { "?" }}"
 }
 
 private fun scoreColor(score: Int): Color = when {
@@ -676,14 +678,14 @@ private fun scoreColor(score: Int): Color = when {
 }
 
 internal fun privacyLabel(privacy: String) = when (privacy) {
-    "FOLLOWERS" -> "Siguiendo"
+    "FOLLOWERS" -> AppText.get(R.string.w_following)
     "WOMEN"     -> AppText.get(R.string.meetups_screen_v4_no_mixto)
-    else        -> "Abierta"
+    else        -> AppText.get(R.string.w_open)
 }
 
 internal fun disciplineLabel(discipline: String) = when (discipline) {
-    "BOULDER" -> "Bloque"
-    "ROUTE"   -> "Vía"
+    "BOULDER" -> AppText.get(R.string.w_boulder)
+    "ROUTE"   -> AppText.get(R.string.w_route)
     "BOTH"    -> AppText.get(R.string.meetups_screen_v4_bloque_via)
     else      -> discipline
 }

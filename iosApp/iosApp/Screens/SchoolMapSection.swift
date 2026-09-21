@@ -206,7 +206,7 @@ struct SchoolMapSection: View {
                 blockOrientations = (m as NSDictionary as? [String: String]) ?? [:]
             }
         }
-        .alert("¿Eliminar «\(miniBlock?.name ?? "")»?", isPresented: $confirmDeleteMini) {
+        .alert(L("¿Eliminar «%@»?", miniBlock?.name ?? ""), isPresented: $confirmDeleteMini) {
             Button("ELIMINAR", role: .destructive) {
                 guard let mb = miniBlock else { return }
                 miniBlock = nil
@@ -310,21 +310,21 @@ struct SchoolMapSection: View {
                         // equivoca entre 10 y 30 metros y las piedras están a
                         // metros, así que la última palabra es del usuario.
                         mapBanner(fotoSemilla?.aproximada == true
-                                  ? "NO SE PUDO UBICAR LA FOTO · TOCA DÓNDE ESTÁ LA PIEDRA"
-                                  : "LA FOTO SE HIZO AQUÍ · ¿ES DONDE ESTÁ LA PIEDRA?",
+                                  ? L("NO SE PUDO UBICAR LA FOTO · TOCA DÓNDE ESTÁ LA PIEDRA")
+                                  : L("LA FOTO SE HIZO AQUÍ · ¿ES DONDE ESTÁ LA PIEDRA?"),
                                   accept: {
                                       confirmandoFoto = nil
                                       flow.boulderCoord = punto
                                   },
-                                  aceptarTexto: "SÍ, SIGUE",
-                                  cancelarTexto: "MOVERLA",
+                                  aceptarTexto: L("SÍ, SIGUE"),
+                                  cancelarTexto: L("MOVERLA"),
                                   cancel: {
                                       confirmandoFoto = nil
                                       flow.waitingTap = true   // toca tú el sitio
                                   })
                     } else if flow.waitingTap {
                         // Banner "PULSA EN EL MAPA" (parking/sector/piedra).
-                        mapBanner("PULSA EN EL MAPA PARA FIJAR LA POSICIÓN",
+                        mapBanner(L("PULSA EN EL MAPA PARA FIJAR LA POSICIÓN"),
                                   cancel: { flow.waitingTap = false })
                     } else if flow.correctionMode {
                         mapBanner(correctionBannerText,
@@ -651,7 +651,7 @@ struct SchoolMapSection: View {
                     }
                     ForEach(Self.aspectOrder, id: \.self) { aspect in
                         if let n = counts[aspect], n > 0 {
-                            orientationChip("\(aspect) · \(n)", active: orientationFilter == aspect) {
+                            orientationChip("\(aspectLabel(aspect)) · \(n)", active: orientationFilter == aspect) {
                                 orientationFilter = orientationFilter == aspect ? nil : aspect
                             }
                         }
@@ -754,7 +754,7 @@ struct SchoolMapSection: View {
             flow.corrOld = CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)
         } else if id == school.id {
             flow.corrTargetId = nil
-            flow.corrTargetName = "la escuela"
+            flow.corrTargetName = L("la escuela")
             flow.corrOld = CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon)
         } else { return }
         flow.corrActive = true
@@ -782,9 +782,9 @@ struct SchoolMapSection: View {
     }
 
     private var correctionBannerText: String {
-        if !flow.corrActive { return "PULSA EL MARCADOR QUE QUIERES MOVER" }
-        if flow.corrNew == nil { return "MOVIENDO «\(flow.corrTargetName)» · PULSA LA NUEVA POSICIÓN" }
-        return "POSICIÓN FIJADA · PULSA OTRA VEZ PARA RECORREGIR O ACEPTA"
+        if !flow.corrActive { return L("PULSA EL MARCADOR QUE QUIERES MOVER") }
+        if flow.corrNew == nil { return L("MOVIENDO «%@» · PULSA LA NUEVA POSICIÓN", flow.corrTargetName) }
+        return L("POSICIÓN FIJADA · PULSA OTRA VEZ PARA RECORREGIR O ACEPTA")
     }
 
     /// Recoge la foto que dejó el atajo "piedra desde una foto" y prepara el
@@ -830,8 +830,8 @@ struct SchoolMapSection: View {
 
     /// Banner superior + botón cancelar (y aceptar opcional) sobre el mapa.
     private func mapBanner(_ text: String, accept: (() -> Void)? = nil,
-                           aceptarTexto: String = "ACEPTAR",
-                           cancelarTexto: String = "CANCELAR",
+                           aceptarTexto: String = L("ACEPTAR"),
+                           cancelarTexto: String = L("CANCELAR"),
                            cancel: @escaping () -> Void) -> some View {
         // Los botones van PEGADOS al texto, dentro de la misma tira terracota:
         // sueltos abajo y en blanco y negro parecían de otra cosa. Espejo del
@@ -1030,13 +1030,13 @@ struct SchoolMapSection: View {
         // pregunta "¿es el sitio?" no se puede responder: no se ve dónde cae.
         if let f = confirmandoFoto {
             ms.append(CumbreMarker(
-                id: "__FOTO__", coordinate: f, title: "Aquí se hizo la foto",
+                id: "__FOTO__", coordinate: f, title: L("Aquí se hizo la foto"),
                 kind: .block, color: UIColor(hex: 0xF59E0B), name: "★"))
         }
         // Fantasma de la nueva posición al corregir.
         if let nw = flow.corrNew {
             ms.append(CumbreMarker(
-                id: "__GHOST__", coordinate: nw, title: "Nueva posición",
+                id: "__GHOST__", coordinate: nw, title: L("Nueva posición"),
                 kind: .block, color: UIColor(hex: 0xF59E0B), name: "★"))
         }
         return ms
@@ -1118,8 +1118,8 @@ struct SchoolMapSection: View {
         let isParking = mb.type.uppercased() == "PARKING"
         let stoneCount = vm.blocks.filter { $0.sectorBlockId == mb.id }.count
         let collapsed = vm.collapsedSectors.contains(mb.id)
-        var subtitle = isParking ? "Parking" : "Sector"
-        if !isParking && stoneCount > 0 { subtitle += " · \(stoneCount) piedra\(stoneCount == 1 ? "" : "s")" }
+        var subtitle = isParking ? L("Parking") : L("Sector")
+        if !isParking && stoneCount > 0 { subtitle += L(" · %@ piedra%@", stoneCount, stoneCount == 1 ? "" : "s") }
         if let u = userCoord {
             let km = Geo.shared.haversineKm(lat1: u.latitude, lon1: u.longitude, lat2: mb.lat, lon2: mb.lon)
             subtitle += km < 1 ? " · \(Int(km * 1000)) m" : String(format: " · %.1f km", km)
@@ -1132,7 +1132,7 @@ struct SchoolMapSection: View {
                     .background(isParking ? Color(parkingColor) : Color(zoneColor))
                     .clipShape(RoundedRectangle(cornerRadius: isParking ? 6 : 12))
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(mb.name.isEmpty ? (isParking ? "Parking" : "Sector") : mb.name)
+                    Text(mb.name.isEmpty ? (isParking ? L("Parking") : L("Sector")) : mb.name)
                         .font(.system(size: 14, weight: .medium)).foregroundStyle(Cumbre.ink).lineLimit(1)
                     Text(subtitle).font(.system(size: 11)).foregroundStyle(Cumbre.ink3).lineLimit(1)
                 }
@@ -1175,7 +1175,7 @@ struct SchoolMapSection: View {
                 Button {
                     if collapsed { vm.collapsedSectors.remove(mb.id) } else { vm.collapsedSectors.insert(mb.id) }
                 } label: {
-                    Text(collapsed ? "VER PIEDRAS" : "OCULTAR PIEDRAS")
+                    Text(collapsed ? L("VER PIEDRAS") : L("OCULTAR PIEDRAS"))
                         .font(Cumbre.mono(10, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink)
                         .frame(maxWidth: .infinity).padding(.vertical, 7)
                         .overlay(RoundedRectangle(cornerRadius: 9).stroke(Cumbre.rule, lineWidth: 1))
@@ -1267,7 +1267,7 @@ struct SchoolMapSection: View {
     /// cambian qué sector está más cerca.
     private func etiquetaSector(_ s: Block) -> String {
         let piedras = vm.blocks.filter { $0.sectorBlockId == s.id }.count
-        let nombre = s.name.isEmpty ? "Sector" : s.name
+        let nombre = s.name.isEmpty ? L("Sector") : s.name
         return piedras > 0 ? "\(nombre) · \(piedras)" : nombre
     }
 
@@ -1352,7 +1352,7 @@ struct SchoolMapSection: View {
         // ayuda. La cercanía se nota en el ORDEN de la fila. La distancia exacta
         // sigue estando en la mini-ficha al tocar el parking, que es donde se
         // mira una vez y no cambia delante de tus ojos.
-        p.name.isEmpty ? "Parking" : p.name
+        p.name.isEmpty ? L("Parking") : p.name
     }
 
     private func color(for type: String) -> UIColor {
@@ -1365,8 +1365,8 @@ struct SchoolMapSection: View {
     private func typeLabel(_ t: String) -> String {
         switch t.uppercased() {
         case "PARKING": return "PARKING"
-        case "ZONE": return "ZONA"
-        default: return "PIEDRA"
+        case "ZONE": return L("ZONA")
+        default: return L("PIEDRA")
         }
     }
 }

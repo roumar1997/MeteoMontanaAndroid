@@ -37,14 +37,14 @@ func feedMatchesFilter(_ post: FeedPost, _ filter: FeedFilter) -> Bool {
 /// kindLabel de FeedScreen.kt).
 func feedKindLabel(_ kind: String, _ discipline: String?) -> String {
     switch kind {
-    case "PROJECT_DONE": return "PROYECTO CONSEGUIDO"
-    case "NEW_BLOCK": return "PIEDRA NUEVA"
-    case "NEW_LINE": return "VÍA NUEVA"
+    case "PROJECT_DONE": return L("PROYECTO CONSEGUIDO")
+    case "NEW_BLOCK": return L("PIEDRA NUEVA")
+    case "NEW_LINE": return L("VÍA NUEVA")
     default:
         let d = (discipline ?? "").uppercased()
-        if d == "BOULDER" { return "BLOQUE HECHO" }
-        if d == "ROUTE" { return "VÍA HECHA" }
-        return "HECHO"
+        if d == "BOULDER" { return L("BLOQUE HECHO") }
+        if d == "ROUTE" { return L("VÍA HECHA") }
+        return L("HECHO")
     }
 }
 
@@ -63,19 +63,19 @@ func feedRelativeTime(_ createdAt: String) -> String {
     guard let date = df.date(from: String(createdAt.prefix(19))) else { return "" }
     let minutes = max(Int(Date().timeIntervalSince(date) / 60), 0)
     if minutes < 1 { return "ahora" }
-    if minutes < 60 { return "hace \(minutes) min" }
-    if minutes < 60 * 24 { return "hace \(minutes / 60) h" }
-    return "hace \(minutes / (60 * 24)) días"
+    if minutes < 60 { return L("hace %@ min", minutes) }
+    if minutes < 60 * 24 { return L("hace %@ h", minutes / 60) }
+    return L("hace %@ días", minutes / (60 * 24))
 }
 
 /// Tipo de inicio → etiqueta legible (mismo mapeo que StartTypeLabel.kt de
 /// Android: SIT/STAND/JUMP/TRAV). nil si no se reconoce.
 func feedStartTypeLabel(_ startType: String?) -> String? {
     switch startType?.uppercased() {
-    case "SIT": return "Sentado"
+    case "SIT": return L("Sentado")
     case "SEMI": return "Semi-sit"
-    case "STAND": return "Pie"
-    case "JUMP": return "Lance"
+    case "STAND": return L("Pie")
+    case "JUMP": return L("Lance")
     case "TRAV": return "Trav."
     default: return nil
     }
@@ -207,7 +207,7 @@ final class FeedViewModel: ObservableObject {
                     copyPost($0, likedByMe: post.likedByMe, likeCount: post.likeCount)
                 }
                 ErrorPresenter.shared.show(
-                    ErrorPresenter.friendly(error, fallback: "No se pudo registrar el me gusta"))
+                    ErrorPresenter.friendly(error, fallback: L("No se pudo registrar el me gusta")))
             }
         }
     }
@@ -219,7 +219,7 @@ final class FeedViewModel: ObservableObject {
                 posts.removeAll { $0.id == post.id }
             } catch {
                 ErrorPresenter.shared.show(
-                    ErrorPresenter.friendly(error, fallback: "No se pudo borrar la publicación"))
+                    ErrorPresenter.friendly(error, fallback: L("No se pudo borrar la publicación")))
             }
         }
     }
@@ -235,7 +235,7 @@ final class FeedViewModel: ObservableObject {
     }
 
     func addComment(_ postId: Int64, _ text: String, _ parentId: String?) async -> FeedComment? {
-        guard let created = await reporting("No se pudo enviar el comentario", {
+        guard let created = await reporting(L("No se pudo enviar el comentario"), {
             try await container.addFeedComment.invoke(postId: postId, text: text, parentId: parentId)
         }) else { return nil }
         updatePost(postId) { copyPost($0, commentCount: $0.commentCount + 1) }
@@ -359,7 +359,7 @@ struct FeedView: View {
         // /api/reports, 409 idempotente lo traga KtorModerationApi).
         .sheet(item: $reportPost) { post in
             ReportSheet(
-                title: "DENUNCIAR PUBLICACIÓN",
+                title: L("DENUNCIAR PUBLICACIÓN"),
                 authorLabel: feedAuthorLabel(post.author)
             ) { reason, alsoBlock in
                 moderation.report(
@@ -397,9 +397,9 @@ struct FeedView: View {
     /// borde interior terra), en vez del subrayado de antes.
     private var tabsRow: some View {
         HStack(spacing: 8) {
-            feedCardTab("Explorar", selected: vm.tab == .all) { vm.selectTab(.all) }
-            feedCardTab("Siguiendo", selected: vm.tab == .following) { vm.selectTab(.following) }
-            feedCardTab("Mías", selected: vm.tab == .mine) { vm.selectTab(.mine) }
+            feedCardTab(L("Explorar"), selected: vm.tab == .all) { vm.selectTab(.all) }
+            feedCardTab(L("Siguiendo"), selected: vm.tab == .following) { vm.selectTab(.following) }
+            feedCardTab(L("Mías"), selected: vm.tab == .mine) { vm.selectTab(.mine) }
             Button { vm.selectTab(.ranking) } label: {
                 Image(systemName: "trophy")
                     .font(.system(size: 16))
@@ -440,9 +440,9 @@ struct FeedView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 Text("Mostrar:").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                filterPill("Todo", selected: vm.filter == .all) { vm.selectFilter(.all) }
-                filterPill("Ascensos", selected: vm.filter == .sends) { vm.selectFilter(.sends) }
-                filterPill("Piedras nuevas", selected: vm.filter == .newBlocks) { vm.selectFilter(.newBlocks) }
+                filterPill(L("Todo"), selected: vm.filter == .all) { vm.selectFilter(.all) }
+                filterPill(L("Ascensos"), selected: vm.filter == .sends) { vm.selectFilter(.sends) }
+                filterPill(L("Piedras nuevas"), selected: vm.filter == .newBlocks) { vm.selectFilter(.newBlocks) }
             }
             .padding(.horizontal, 16).padding(.vertical, 8)
         }
@@ -556,11 +556,11 @@ struct FeedView: View {
     private var emptyText: String {
         switch vm.tab {
         case .following:
-            return "Aún no sigues a nadie.\nSigue a otros escaladores para ver su actividad aquí."
+            return L("Aún no sigues a nadie.\nSigue a otros escaladores para ver su actividad aquí.")
         case .mine:
-            return "Aún no has publicado ningún ascenso."
+            return L("Aún no has publicado ningún ascenso.")
         default:
-            return "Todavía no hay actividad.\nMarca una vía como hecha y estrena el feed."
+            return L("Todavía no hay actividad.\nMarca una vía como hecha y estrena el feed.")
         }
     }
 }

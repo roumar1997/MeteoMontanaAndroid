@@ -128,9 +128,9 @@ final class MyGearViewModel: ObservableObject {
             var initial: [String: Int] = [:]
             for item in gearItemsForDiscipline(nil) { initial[item.key] = current[item.key] ?? 0 }
             gear = initial
-            if p.gearJson == nil { aviso = "El servidor no ha devuelto material." }
+            if p.gearJson == nil { aviso = L("El servidor no ha devuelto material.") }
         } catch {
-            aviso = "No se ha podido cargar tu material."
+            aviso = L("No se ha podido cargar tu material.")
         }
     }
 
@@ -149,7 +149,7 @@ final class MyGearViewModel: ObservableObject {
             print("CUMBRE-GEAR: guardado, el servidor devuelve = \(actualizado.gearJson ?? "<nil>")")
             return true
         } catch {
-            aviso = "No se ha podido guardar."
+            aviso = L("No se ha podido guardar.")
             return false
         }
     }

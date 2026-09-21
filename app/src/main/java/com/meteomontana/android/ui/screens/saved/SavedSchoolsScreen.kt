@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.saved
 
+import com.meteomontana.android.util.CatalogLabels
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.clickable
@@ -102,7 +103,7 @@ fun SavedSchoolsScreen(
                             color = MaterialTheme.colorScheme.onBackground)
                         Spacer(Modifier.height(2.dp))
                         Text(buildString {
-                            e.rockType?.let { append(it.uppercase()).append("  ·  ") }
+                            e.rockType?.let { append(CatalogLabels.rock(it).uppercase()).append("  ·  ") }
                             e.region?.let { append(it) }
                         },
                             style = MaterialTheme.typography.labelMedium,

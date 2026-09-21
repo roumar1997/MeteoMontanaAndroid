@@ -57,6 +57,7 @@ class DayDetailViewModelTest {
         bestDay = null, bestWindow = null)
 
     @Before fun setUp() {
+        com.meteomontana.android.EsTextSource.install()
         Dispatchers.setMain(d)
         getForecast = mockk(); getByLoc = mockk(); savedRepo = mockk(relaxed = true)
     }

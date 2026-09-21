@@ -41,7 +41,7 @@ final class SchoolPresenceViewModel: ObservableObject {
             // nada al usuario — se registra para depurar y se muestra uno
             // normal (Álvaro, 2026-09-04).
             print("SchoolPresence: no se pudo cargar la presencia — \(error)")
-            errorText = "No se pudo cargar quién hay aquí. Comprueba tu conexión."
+            errorText = L("No se pudo cargar quién hay aquí. Comprueba tu conexión.")
         }
     }
 
@@ -60,7 +60,7 @@ final class SchoolPresenceViewModel: ObservableObject {
                 }
             } catch {
                 print("SchoolPresence: no se pudo marcar/quitar la presencia — \(error)")
-                errorText = "\(iAmHere ? "No se pudo quitar" : "No se pudo marcar") la presencia. Comprueba tu conexión."
+                errorText = iAmHere ? L("No se pudo quitar la presencia. Comprueba tu conexión.") : L("No se pudo marcar la presencia. Comprueba tu conexión.")
             }
             await load()
         }
@@ -196,7 +196,7 @@ struct SchoolPresenceRow: View {
                 }
                 .disabled(person.uid == myUid)
             }
-            .navigationTitle("\(vm.people.count) aquí ahora")
+            .navigationTitle(L("%@ aquí ahora", vm.people.count))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -219,7 +219,7 @@ struct SchoolPresenceRow: View {
     }
 
     private var peopleLabel: String {
-        vm.people.isEmpty ? "" : "\(vm.people.count) aquí ahora"
+        vm.people.isEmpty ? "" : L("%@ aquí ahora", vm.people.count)
     }
 
     private var markButton: some View {

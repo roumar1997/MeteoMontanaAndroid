@@ -1551,4 +1551,187 @@
     <string name="contribution_an_element">an element</string>
     <string name="contribution_type_boulder">BOULDER</string>
     <string name="contribution_type_move">MOVE</string>
+
+    <!-- Quinta pasada: etiquetas de una sola palabra -->
+    <string name="w_proposal_caps">PROPOSAL</string>
+    <string name="w_zone_caps">ZONE</string>
+    <string name="w_boulder_caps">BOULDER</string>
+    <string name="w_aspect_caps">ASPECT</string>
+    <string name="w_sun">Sun</string>
+    <string name="w_shade">Shade</string>
+    <string name="w_close">Close</string>
+    <string name="w_today">Today</string>
+    <string name="w_yesterday">Yesterday</string>
+    <string name="w_humidity_caps">HUMIDITY</string>
+    <string name="w_wind_caps">WIND</string>
+    <string name="w_clouds_caps">CLOUDS</string>
+    <string name="w_clear_sky">Clear</string>
+    <string name="w_overcast">Overcast</string>
+    <string name="w_comments_caps">COMMENTS</string>
+    <string name="w_excellent">Excellent</string>
+    <string name="w_good">Good</string>
+    <string name="w_fair">Fair</string>
+    <string name="w_poor">Poor</string>
+    <string name="w_excellent_caps">EXCELLENT</string>
+    <string name="w_good_caps">GOOD</string>
+    <string name="w_fair_caps">FAIR</string>
+    <string name="w_poor_caps">POOR</string>
+    <string name="w_sky_caps">SKY</string>
+    <string name="w_precip_caps">PRECIPITATION</string>
+    <string name="w_storms_caps">STORMS</string>
+    <string name="w_temps_caps">TEMPERATURES</string>
+    <string name="w_all_caps">ALL</string>
+    <string name="w_all">All</string>
+    <string name="w_route">Route</string>
+    <string name="w_boulder">Boulder</string>
+    <string name="w_school_caps">SCHOOL</string>
+    <string name="w_user">User</string>
+    <string name="w_users_caps">USERS</string>
+    <string name="w_notes_caps">NOTES</string>
+    <string name="w_approved_caps">APPROVED</string>
+    <string name="w_rejected_caps">REJECTED</string>
+    <string name="w_pending_caps">PENDING</string>
+    <string name="w_comment_caps">COMMENT</string>
+    <string name="w_note_caps">NOTE</string>
+    <string name="w_user_caps">USER</string>
+    <string name="w_harassment">Harassment</string>
+    <string name="w_other">Other</string>
+    <string name="w_name">Name</string>
+    <string name="w_grade">Grade</string>
+    <string name="w_variant">Variant</string>
+    <string name="w_type">Type</string>
+    <string name="w_current_caps">CURRENT</string>
+    <string name="w_new_caps">NEW</string>
+    <string name="w_resume_caps">RESUME</string>
+    <string name="w_pause_caps">PAUSE</string>
+    <string name="w_group">Group</string>
+    <string name="w_unmute">Unmute</string>
+    <string name="w_mute">Mute</string>
+    <string name="w_compare">Compare</string>
+    <string name="w_rock_caps">ROCK</string>
+    <string name="w_distance_caps">DISTANCE</string>
+    <string name="w_rain_caps">RAIN</string>
+    <string name="w_sunrise_caps">SUNRISE</string>
+    <string name="w_daylight_caps">DAYLIGHT</string>
+    <string name="w_sit_start">Sit start</string>
+    <string name="w_dyno">Dyno</string>
+    <string name="w_name_caps">NAME</string>
+    <string name="w_retry_caps">RETRY</string>
+    <string name="w_send_caps">SEND</string>
+    <string name="w_privacy_caps">PRIVACY</string>
+    <string name="w_any">Any</string>
+    <string name="w_both">Both</string>
+    <string name="w_discipline_caps">DISCIPLINE</string>
+    <string name="w_discipline2_caps">DISCIPLINE</string>
+    <string name="w_open_pl">Open</string>
+    <string name="w_open">Open</string>
+    <string name="w_following">Following</string>
+    <string name="w_date_caps">DATE</string>
+    <string name="w_grade_caps">GRADE</string>
+    <string name="w_boulder_caps2">BOULDER</string>
+    <string name="w_logbook">Logbook</string>
+    <string name="w_boulders_caps">BOULDERS</string>
+    <string name="w_routes_caps">ROUTES</string>
+    <string name="w_all_caps2">ALL</string>
+    <string name="w_streak_caps">STREAK</string>
+    <string name="w_today_caps">TODAY</string>
+    <string name="w_yesterday_caps">YESTERDAY</string>
+    <string name="w_pause">Pause</string>
+    <string name="w_play">Play</string>
+    <string name="w_style_caps">STYLE</string>
+    <string name="w_approved">Approved</string>
+    <string name="w_rejected">Rejected</string>
+    <string name="w_pending">Pending</string>
+    <string name="w_community">Community</string>
+    <string name="w_followers">Followers</string>
+    <string name="w_unblock">Unblock</string>
+    <string name="w_ascent">Ascent</string>
+    <string name="w_done_caps">DONE</string>
+    <string name="w_project_caps">PROJECT</string>
+    <string name="w_schools_caps">SCHOOLS</string>
+
+    <!-- Calendario y textos de detalle del día -->
+    <string name="w_total">Total</string>
+    <string name="w_tomorrow">Tomorrow</string>
+    <string name="day_title_format">%1$s, %3$s %2$s</string>
+    <string name="day_detail_no_data">No data for this day</string>
+    <string name="day_detail_out_of_range">Day out of range</string>
+
+    <!-- Pestañas, orden de escuelas y tipos de roca -->
+    <string name="tab_radar">Radar</string>
+    <string name="tab_feed">Feed</string>
+    <string name="tab_profile">Profile</string>
+    <string name="sort_best_score">Best score</string>
+    <string name="sort_nearest">Nearest</string>
+    <string name="w_show_caps_tristate">SHOW</string>
+    <string name="rock_granite">Granite</string>
+    <string name="rock_limestone">Limestone</string>
+    <string name="rock_sandstone">Sandstone</string>
+    <string name="rock_basalt">Basalt</string>
+    <string name="rock_conglomerate">Conglomerate</string>
+    <string name="rock_slate">Slate</string>
+
+    <!-- Filtro MOSTRAR -->
+    <string name="w_favourites">Favourites</string>
+    <string name="w_saved">Saved</string>
+
+    <!-- Autenticación y canal de notificaciones -->
+    <string name="auth_unsupported_credential">Unsupported credential type</string>
+    <string name="auth_invalid_token">Invalid token</string>
+    <string name="auth_signin_cancelled">Sign-in cancelled</string>
+    <string name="push_channel_name">Alerts</string>
+    <string name="push_channel_description">Messages, approved proposals, new followers</string>
+
+    <!-- Onboarding (tour de primera apertura) -->
+    <string name="onb_1_eyebrow">WELCOME</string>
+    <string name="onb_1_title">Cumbre</string>
+    <string name="onb_1_body">Weather for climbing. We tell you when and where you can climb, with dry rock, across 191 schools.</string>
+    <string name="onb_2_eyebrow">THE 0–100 INDEX</string>
+    <string name="onb_2_title">Can I climb today?</string>
+    <string name="onb_2_body">One number sums up the conditions at each school: temperature, humidity, wind, recent rain and how long THEIR rock type takes to dry (sandstone takes days; granite, hours).</string>
+    <string name="onb_3_eyebrow">MAP AND TOPOS</string>
+    <string name="onb_3_title">Every boulder, in detail</string>
+    <string name="onb_3_body">Open a school and you\'ll see parkings, sectors and boulders on the map. Tap a boulder and its photo appears with the ROUTES drawn on it, its grade and how to get there.</string>
+    <string name="onb_4_eyebrow">PLAN YOUR WEEKEND</string>
+    <string name="onb_4_title">The best window</string>
+    <string name="onb_4_body">Best window of the day, best day of the week, a school comparator and a day picker to decide where to go.</string>
+    <string name="onb_5_eyebrow">FAVOURITES AND ALERTS</string>
+    <string name="onb_5_title">Don\'t miss the good day</string>
+    <string name="onb_5_body">Mark your favourite schools, see them at a glance in the home widget and turn on the alert so it warns you when a good window is coming.</string>
+    <string name="onb_6_eyebrow">YOUR LOGBOOK</string>
+    <string name="onb_6_title">Keep count</string>
+    <string name="onb_6_body">Tick the routes you send: the app keeps your logbook with your stats and your max grade, school by school.</string>
+    <string name="onb_7_eyebrow">ADD TO THE GUIDE</string>
+    <string name="onb_7_title">Community</string>
+    <string name="onb_7_body">Propose new schools, boulders and sectors and leave notes with photos. An admin reviews them before publishing them for the whole community.</string>
+    <string name="onb_8_eyebrow">PROFILE, PEOPLE AND CHAT</string>
+    <string name="onb_8_title">Connect</string>
+    <string name="onb_8_body">Create your profile, find and follow other climbers, see their logbooks and chat 1 to 1. Notifications let you know about followers and messages.</string>
+    <string name="onb_9_eyebrow">OFFLINE + LOCATION</string>
+    <string name="onb_9_title">Ready for the mountains</string>
+    <string name="onb_9_body">Save schools to view them WITHOUT coverage. We\'ll ask for your location only to sort by distance and centre the map: it stays on your phone and is never shared.</string>
+    <string name="onb_next">NEXT</string>
+    <string name="onb_allow_location_start">ALLOW LOCATION AND START</string>
+
+    <!-- Presencia, material de quedada y contador -->
+    <string name="presence_error_remove">Could not remove your presence. Check your connection.</string>
+    <string name="presence_error_mark">Could not mark your presence. Check your connection.</string>
+    <string name="gear_quickdraws">Quickdraws</string>
+    <string name="gear_ropes">Ropes</string>
+    <string name="w_more">More</string>
+
+    <!-- Detalle de quedada -->
+    <string name="w_organizer">Organizer</string>
+    <string name="w_less">Less</string>
+
+    <!-- Selector de idioma y orientaciones -->
+    <string name="settings_language">Language</string>
+    <string name="language_dialog_title">App language</string>
+    <string name="language_system">Automatic (phone language)</string>
+    <string name="language_es">Español</string>
+    <string name="language_en">English</string>
+    <string name="aspect_sw">SW</string>
+    <string name="aspect_w">W</string>
+    <string name="aspect_nw">NW</string>
+    <string name="aspect_wall">WALL FACING %1$s</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.share
 
+import com.meteomontana.android.util.CatalogLabels
 import com.meteomontana.android.util.AppText
 import android.content.Context
 import android.content.Intent
@@ -138,7 +139,7 @@ private fun kindEyebrow(post: FeedPost): String = when (post.kind) {
     else -> when {
         post.discipline.equals("ROUTE", ignoreCase = true) -> AppText.get(R.string.share_feed_post_image_v4_via_hecha)
         post.discipline.equals("BOULDER", ignoreCase = true) -> AppText.get(R.string.share_feed_post_image_v4_bloque_hecho)
-        else -> "HECHO"
+        else -> AppText.get(R.string.w_done_caps)
     }
 }
 
@@ -180,7 +181,7 @@ private fun renderPostCard(
         append(post.lineName ?: post.blockName ?: "")
         post.grade?.takeIf { it.isNotBlank() }?.let { append(" · ").append(it) }
         startLabel?.let { append(" · ").append(it) }
-    }.ifBlank { "Ascenso" }
+    }.ifBlank { AppText.get(R.string.w_ascent) }
     val titleLines = wrapTextShare(title, titlePaint, w - 2 * pad, maxLines = 2)
     var y = pad + 140f
     titleLines.forEach { l -> c.drawText(l, pad, y, titlePaint); y += 86f }
@@ -189,7 +190,7 @@ private fun renderPostCard(
     val place = listOfNotNull(
         post.blockName?.takeIf { it.isNotBlank() && post.lineName != null },
         post.schoolName?.takeIf { it.isNotBlank() },
-        post.rockType?.takeIf { it.isNotBlank() }
+        post.rockType?.takeIf { it.isNotBlank() }?.let { CatalogLabels.rock(it) }
     ).joinToString(" · ")
     if (place.isNotBlank()) {
         c.drawText(place, pad, y - 4f,

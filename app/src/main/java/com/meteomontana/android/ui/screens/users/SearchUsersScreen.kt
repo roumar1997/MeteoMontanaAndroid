@@ -141,7 +141,7 @@ private fun UserRow(user: PublicProfile, onClick: () -> Unit) {
             Text(
                 user.displayName?.takeIf { it.isNotBlank() }
                     ?: user.username?.takeIf { it.isNotBlank() }
-                    ?: "Usuario",
+                    ?: stringResource(R.string.w_user),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )

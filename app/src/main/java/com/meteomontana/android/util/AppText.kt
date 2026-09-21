@@ -1,6 +1,7 @@
 package com.meteomontana.android.util
 
 import android.content.Context
+import androidx.annotation.ArrayRes
 import androidx.annotation.StringRes
 
 /**
@@ -12,13 +13,28 @@ import androidx.annotation.StringRes
  * Se inicializa una vez en [com.meteomontana.android.MeteoMontanaApp].
  */
 object AppText {
+    /** Origen alternativo de textos (tests JVM, donde no hay recursos de Android). */
+    interface Source {
+        fun string(@StringRes id: Int, args: List<Any?>): String
+        fun array(@ArrayRes id: Int): List<String>
+    }
+
     private lateinit var appContext: Context
+
+    /** Solo lo usan los tests unitarios; en la app es siempre `null`. */
+    @androidx.annotation.VisibleForTesting
+    var overrideSource: Source? = null
 
     fun init(context: Context) {
         appContext = context.applicationContext
     }
 
-    fun get(@StringRes id: Int, vararg args: Any?): String =
-        if (args.isEmpty()) appContext.getString(id)
+    fun array(@ArrayRes id: Int): List<String> =
+        overrideSource?.array(id) ?: appContext.resources.getStringArray(id).toList()
+
+    fun get(@StringRes id: Int, vararg args: Any?): String {
+        overrideSource?.let { return it.string(id, args.toList()) }
+        return if (args.isEmpty()) appContext.getString(id)
         else appContext.getString(id, *args.map { it ?: "" }.toTypedArray())
+    }
 }

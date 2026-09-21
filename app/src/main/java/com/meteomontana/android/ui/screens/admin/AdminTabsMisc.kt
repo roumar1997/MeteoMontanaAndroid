@@ -118,7 +118,7 @@ internal fun StatsTab(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatCard("USUARIOS", stats.totalUsers, Modifier.weight(1f)) {
+            StatCard(stringResource(R.string.w_users_caps), stats.totalUsers, Modifier.weight(1f)) {
                 onLoadUsers(); openList = "users"
             }
             StatCard("ADMINS", stats.totalAdmins, Modifier.weight(1f)) {
@@ -126,16 +126,16 @@ internal fun StatsTab(
             }
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatCard("ESCUELAS", stats.totalSchools, Modifier.weight(1f)) { onGoToTab("gestionar") }
-            StatCard("NOTAS", stats.totalNotes, Modifier.weight(1f)) {
+            StatCard(stringResource(R.string.w_schools_caps), stats.totalSchools, Modifier.weight(1f)) { onGoToTab("gestionar") }
+            StatCard(stringResource(R.string.w_notes_caps), stats.totalNotes, Modifier.weight(1f)) {
                 onLoadNotes(); openList = "notes"
             }
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCard("PENDING", stats.submissionsPending, Modifier.weight(1f)) { onGoToTab("propuestas") }
             // P6: cada cifra abre PROPUESTAS ya filtrada por su estado.
-            StatCard("APROBADAS", stats.submissionsApproved, Modifier.weight(1f)) { onGoToTab("propuestas:APPROVED") }
-            StatCard("RECHAZADAS", stats.submissionsRejected, Modifier.weight(1f)) { onGoToTab("propuestas:REJECTED") }
+            StatCard(stringResource(R.string.w_approved_caps), stats.submissionsApproved, Modifier.weight(1f)) { onGoToTab("propuestas:APPROVED") }
+            StatCard(stringResource(R.string.w_rejected_caps), stats.submissionsRejected, Modifier.weight(1f)) { onGoToTab("propuestas:REJECTED") }
         }
     }
 
@@ -155,7 +155,7 @@ internal fun StatsTab(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically) {
                     Text(when (kind) {
-                        "users" -> "USUARIOS"; "admins" -> "ADMINS"; else -> "NOTAS"
+                        "users" -> stringResource(R.string.w_users_caps); "admins" -> "ADMINS"; else -> stringResource(R.string.w_notes_caps)
                     }, style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurface)
                     Text(stringResource(R.string.admin_tabs_misc_v2_cerrar_3), style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
@@ -507,10 +507,10 @@ private fun ContentReportCard(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
                 when (r.targetType) {
-                    "COMMENT" -> "COMENTARIO"; "NOTE" -> "NOTA"
+                    "COMMENT" -> stringResource(R.string.w_comment_caps); "NOTE" -> stringResource(R.string.w_note_caps)
                     "FEED_POST" -> stringResource(R.string.admin_tabs_misc_v4_post_del_feed)
                     "FEED_COMMENT" -> stringResource(R.string.admin_tabs_misc_v4_comentario_del_feed)
-                    else -> "USUARIO"
+                    else -> stringResource(R.string.w_user_caps)
                 } + " - " + reasonLabel(r.reason),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
@@ -700,8 +700,8 @@ private fun ReportCard(
 private fun reasonLabel(reason: String) = when (reason) {
     "SPAM" -> "Spam"
     "INAPPROPRIATE" -> AppText.get(R.string.admin_tabs_misc_v4_contenido_inapropiado)
-    "HARASSMENT" -> "Acoso"
-    else -> "Otro"
+    "HARASSMENT" -> AppText.get(R.string.w_harassment)
+    else -> AppText.get(R.string.w_other)
 }
 
 /**

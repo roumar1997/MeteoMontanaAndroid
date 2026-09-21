@@ -133,8 +133,8 @@ class PushService : FirebaseMessagingService() {
 
     private fun ensureChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val ch = NotificationChannel(CHANNEL_ID, "Avisos", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "Mensajes, propuestas aprobadas, nuevos seguidores"
+            val ch = NotificationChannel(CHANNEL_ID, getString(R.string.push_channel_name), NotificationManager.IMPORTANCE_HIGH).apply {
+                description = getString(R.string.push_channel_description)
             }
             (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(ch)
         }

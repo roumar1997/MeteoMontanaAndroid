@@ -92,7 +92,7 @@ struct ApproachFollowView: View {
                         Button {
                             placingPin.toggle()
                         } label: {
-                            Text(placingPin ? "TOCA EL MAPA" : "+ CHINCHETA")
+                            Text(placingPin ? L("TOCA EL MAPA") : L("+ CHINCHETA"))
                                 .font(Cumbre.mono(10, .bold)).tracking(1)
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 12).padding(.vertical, 9)
@@ -103,7 +103,7 @@ struct ApproachFollowView: View {
                 .padding(.horizontal, 12).padding(.top, 8)
 
                 HStack(spacing: 6) {
-                    Text(approach.name ?? "\(schoolName): aproximación")
+                    Text(approach.name ?? L("%@: aproximación", schoolName))
                         .font(.system(size: 13, weight: .bold)).foregroundStyle(Cumbre.ink)
                     Spacer()
                     Text(approach.isVerified ? "✓ VERIFICADA" : "⚠ SIN VERIFICAR")
@@ -119,8 +119,8 @@ struct ApproachFollowView: View {
             VStack {
                 Spacer()
                 Text(placingPin
-                     ? "Toca el mapa donde quieras dejar la chincheta."
-                     : "Sigue la línea naranja. Si te alejas del camino, comprueba las chinchetas.")
+                     ? L("Toca el mapa donde quieras dejar la chincheta.")
+                     : L("Sigue la línea naranja. Si te alejas del camino, comprueba las chinchetas."))
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
                     .padding(10)
                     .frame(maxWidth: .infinity)
@@ -148,7 +148,7 @@ struct ApproachFollowView: View {
             }
             .presentationDetents([.large])
         }
-        .alert("¿Borrar «\(approach.name ?? "esta aproximación")»?", isPresented: $confirmDelete) {
+        .alert(L("¿Borrar «%@»?", approach.name ?? "esta aproximación"), isPresented: $confirmDelete) {
             Button("CANCELAR", role: .cancel) {}
             Button("BORRAR", role: .destructive) {
                 Task {
@@ -242,8 +242,8 @@ private struct NewApproachPinSheet: View {
     @State private var errorMessage: String?
 
     private let kinds: [(String, String)] = [
-        ("FORK", "◆ Bifurcación"), ("LANDMARK", "● Referencia"),
-        ("HAZARD", "▲ Peligro"), ("KEY", "★ Paso clave")
+        ("FORK", L("◆ Bifurcación")), ("LANDMARK", L("● Referencia")),
+        ("HAZARD", L("▲ Peligro")), ("KEY", L("★ Paso clave"))
     ]
 
     private var canSave: Bool { !message.trimmingCharacters(in: .whitespaces).isEmpty || image != nil }
@@ -352,7 +352,7 @@ private struct NewApproachPinSheet: View {
             dismiss()
         } catch {
             uploading = false
-            errorMessage = "No se pudo guardar. Inténtalo de nuevo."
+            errorMessage = L("No se pudo guardar. Inténtalo de nuevo.")
         }
     }
 }

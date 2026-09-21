@@ -109,7 +109,7 @@ struct FeedCommentsSheet: View {
         }
         .sheet(item: $reportComment) { c in
             ReportSheet(
-                title: "DENUNCIAR COMENTARIO",
+                title: L("DENUNCIAR COMENTARIO"),
                 authorLabel: feedAuthorLabel(c.author)
             ) { reason, alsoBlock in
                 let blockUid = c.author?.uid ?? c.uid
@@ -167,7 +167,7 @@ struct FeedCommentsSheet: View {
     @ViewBuilder private var replyBanner: some View {
         if let target = replyTo {
             HStack {
-                Text("Respondiendo a " + (feedAuthorLabel(target.author) ?? ""))
+                Text(L("Respondiendo a %@", feedAuthorLabel(target.author) ?? ""))
                     .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                 Spacer()
                 Button { replyTo = nil } label: {

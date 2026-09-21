@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.share
 
+import com.meteomontana.android.util.CatalogLabels
 import com.meteomontana.android.util.AppText
 import android.content.Context
 import android.content.Intent
@@ -60,7 +61,7 @@ fun shareSchool(
         append("$schoolName")
         score?.let { append(AppText.get(R.string.share_utils_v4_100_para_escalar_hoy, it)) }
         append("\n")
-        val details = listOfNotNull(rockType, style, temperature).joinToString(" · ")
+        val details = listOfNotNull(rockType?.let { CatalogLabels.rock(it) }, style?.let { CatalogLabels.style(it) }, temperature).joinToString(" · ")
         if (details.isNotBlank()) append("$details\n")
         optimalWindow?.let { append(AppText.get(R.string.share_utils_v4_mejor_momento_n, it)) }
         append(AppText.get(R.string.share_utils_v4_ndescarga_cumbre_n))

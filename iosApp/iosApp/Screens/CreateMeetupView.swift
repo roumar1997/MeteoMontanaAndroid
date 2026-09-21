@@ -99,7 +99,7 @@ struct CreateMeetupView: View {
                                         photoUrl = url
                                     } catch {
                                         photoUrl = nil
-                                        photoUploadError = "No se pudo subir la foto. Inténtalo de nuevo."
+                                        photoUploadError = L("No se pudo subir la foto. Inténtalo de nuevo.")
                                     }
                                     uploadingPhoto = false
                                 }
@@ -328,7 +328,7 @@ private func createScoreColor(_ score: Int) -> Color {
 
 private struct PrivacyPickerView: View {
     @Binding var selected: String
-    let options: [(String, String)] = [("OPEN","Abierta"),("FOLLOWERS","Solo seguidores"),("WOMEN","No mixto")]
+    let options: [(String, String)] = [("OPEN",L("Abierta")),("FOLLOWERS",L("Solo seguidores")),("WOMEN",L("No mixto"))]
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
@@ -342,7 +342,7 @@ private struct PrivacyPickerView: View {
 
 private struct DisciplinePickerView: View {
     @Binding var selected: String?
-    let options: [(String?, String)] = [(nil,"Cualquiera"),("BOULDER","Bloque"),("ROUTE","Vía"),("BOTH","Ambas")]
+    let options: [(String?, String)] = [(nil,L("Cualquiera")),("BOULDER",L("Bloque")),("ROUTE",L("Vía")),("BOTH",L("Ambas"))]
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
@@ -387,7 +387,7 @@ private struct CumbreFieldStyle: TextFieldStyle {
 private struct DayInfo { let dow: String; let short: String; let iso: String }
 
 private func nextNDays(_ n: Int) -> [DayInfo] {
-    let dowNames = ["DOM","LUN","MAR","MIÉ","JUE","VIE","SÁB"]
+    let dowNames = CalendarLabels.weekdaysShortSunFirst().map { $0.uppercased() }
     var result: [DayInfo] = []
     let cal = Calendar.current
     let today = cal.startOfDay(for: Date())

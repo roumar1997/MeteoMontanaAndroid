@@ -125,8 +125,8 @@ fun ProjectsScreen(
                 } else {
                     Row(modifier = Modifier.fillMaxWidth().padding(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ProjectStatCell("BLOQUES", s.boulderCount, Modifier.weight(1f), onOpenBoulders)
-                        ProjectStatCell("VÍAS", s.routeCount, Modifier.weight(1f), onOpenRoutes)
+                        ProjectStatCell(stringResource(R.string.w_boulders_caps), s.boulderCount, Modifier.weight(1f), onOpenBoulders)
+                        ProjectStatCell(stringResource(R.string.w_routes_caps), s.routeCount, Modifier.weight(1f), onOpenRoutes)
                     }
                 }
             }

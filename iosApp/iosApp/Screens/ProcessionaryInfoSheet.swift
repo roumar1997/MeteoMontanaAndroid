@@ -91,13 +91,13 @@ struct ProcessionaryInfoSheet: View {
                 // Botones arriba del todo: lo primero que hay que poder
                 // pulsar, sin scroll de por medio.
                 ToggleButton(
-                    label: "Sí que hay en este sector",
+                    label: L("Sí que hay en este sector"),
                     pressed: vm.hasKnownProcessionary,
                     accent: Cumbre.terraFill,
                     action: { vm.hasKnownProcessionary ? onRetract() : onConfirm() }
                 )
                 ToggleButton(
-                    label: "Las he visto antes de tiempo",
+                    label: L("Las he visto antes de tiempo"),
                     pressed: vm.processionaryActiveNowSet,
                     accent: Cumbre.bad,
                     action: { vm.processionaryActiveNowSet ? onClearActiveNow() : onActiveNow() }

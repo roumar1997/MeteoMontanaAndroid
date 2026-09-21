@@ -111,8 +111,8 @@ struct FeedPostCard: View {
                 // incompleta: "dibujé 8 y salen 3" (Rodrigo, 2026-08-17).
                 if post.otherFacesLines > 0 {
                     Text(post.otherFacesLines == 1
-                         ? "+1 VÍA EN OTRA FOTO"
-                         : "+\(post.otherFacesLines) VÍAS EN OTRAS FOTOS")
+                         ? L("+1 VÍA EN OTRA FOTO")
+                         : L("+%@ VÍAS EN OTRAS FOTOS", post.otherFacesLines))
                         .font(Cumbre.mono(10, .bold)).tracking(0.8)
                         .foregroundStyle(.white)
                         .padding(.horizontal, 8).padding(.vertical, 4)

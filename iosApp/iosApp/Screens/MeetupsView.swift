@@ -150,7 +150,7 @@ final class MeetupsViewModel: ObservableObject {
             alertMaxDistanceKm = state.maxDistanceKm?.int32Value
         } catch {
             if error.localizedDescription.contains("GENDER_REQUIRED") {
-                alertError = "Para filtrar por No Mixto necesitas indicar tu género como Mujer en tu perfil."
+                alertError = L("Para filtrar por No Mixto necesitas indicar tu género como Mujer en tu perfil.")
             } else {
                 alertError = error.localizedDescription
             }
@@ -268,7 +268,7 @@ struct MeetupsView: View {
                             .font(.system(size: 10, weight: .bold, design: .monospaced))
                             .tracking(1.8)
                             .foregroundColor(Cumbre.ink.opacity(0.6))
-                        Text(displayedMeetups.isEmpty ? "Quedar a escalar" : "\(displayedMeetups.count) activas")
+                        Text(displayedMeetups.isEmpty ? L("Quedar a escalar") : L("%@ activas", displayedMeetups.count))
                             .font(.headline)
                     }
                     Spacer()
@@ -309,11 +309,11 @@ struct MeetupsView: View {
                 // ── Coach marks ──
                 FirstTimeHint(
                     hintKey: "meetups_intro",
-                    text: "Crea quedadas, filtra por dia o distancia, y toca una quedada para ver su detalle o entrar al chat si ya estas unido."
+                    text: L("Crea quedadas, filtra por dia o distancia, y toca una quedada para ver su detalle o entrar al chat si ya estas unido.")
                 )
                 FirstTimeHint(
                     hintKey: "meetups_alert_v2",
-                    text: "🔔 Toca la campana de arriba para crear ALERTAS: te avisamos cuando alguien cree una quedada en los dias, escuela o distancia que te interesan."
+                    text: L("🔔 Toca la campana de arriba para crear ALERTAS: te avisamos cuando alguien cree una quedada en los dias, escuela o distancia que te interesan.")
                 )
 
                 // ── Mapa desplegable (dentro del scroll) ──
@@ -362,18 +362,18 @@ struct MeetupsView: View {
                     if filtersExpanded {
                         VStack(alignment: .leading, spacing: 10) {
                             // TIPO DE GRUPO
-                            FilterGroupLabel(text: "TIPO DE GRUPO")
+                            FilterGroupLabel(text: L("TIPO DE GRUPO"))
                             FlowLayoutView {
-                                FilterPill(label: "Todos", selected: vm.filterRelation == nil && vm.filterPrivacy == nil) {
+                                FilterPill(label: L("Todos"), selected: vm.filterRelation == nil && vm.filterPrivacy == nil) {
                                     vm.setFilter(nil); vm.setFilterPrivacy(nil)
                                 }
-                                FilterPill(label: "Siguiendo", selected: vm.filterRelation == "following") {
+                                FilterPill(label: L("Siguiendo"), selected: vm.filterRelation == "following") {
                                     vm.setFilter(vm.filterRelation == "following" ? nil : "following")
                                 }
-                                FilterPill(label: "Seguidos/Seguidores", selected: vm.filterPrivacy == "FOLLOWERS") {
+                                FilterPill(label: L("Seguidos/Seguidores"), selected: vm.filterPrivacy == "FOLLOWERS") {
                                     vm.setFilterPrivacy(vm.filterPrivacy == "FOLLOWERS" ? nil : "FOLLOWERS")
                                 }
-                                FilterPill(label: "No mixto", selected: vm.filterPrivacy == "WOMEN") {
+                                FilterPill(label: L("No mixto"), selected: vm.filterPrivacy == "WOMEN") {
                                     if vm.filterPrivacy == "WOMEN" {
                                         vm.setFilterPrivacy(nil)
                                     } else if vm.myGender == "WOMAN" {
@@ -385,30 +385,30 @@ struct MeetupsView: View {
                             }
 
                             // DISTANCIA
-                            FilterGroupLabel(text: "DISTANCIA")
+                            FilterGroupLabel(text: L("DISTANCIA"))
                             FlowLayoutView {
-                                FilterPill(label: "Cualquiera", selected: vm.filterMaxDistanceKm == nil) { vm.setFilterMaxDistance(nil) }
-                                FilterPill(label: "< 25 km", selected: vm.filterMaxDistanceKm == 25) { vm.setFilterMaxDistance(25) }
-                                FilterPill(label: "< 50 km", selected: vm.filterMaxDistanceKm == 50) { vm.setFilterMaxDistance(50) }
-                                FilterPill(label: "< 100 km", selected: vm.filterMaxDistanceKm == 100) { vm.setFilterMaxDistance(100) }
-                                FilterPill(label: "< 200 km", selected: vm.filterMaxDistanceKm == 200) { vm.setFilterMaxDistance(200) }
-                                FilterPill(label: "< 500 km", selected: vm.filterMaxDistanceKm == 500) { vm.setFilterMaxDistance(500) }
+                                FilterPill(label: L("Cualquiera"), selected: vm.filterMaxDistanceKm == nil) { vm.setFilterMaxDistance(nil) }
+                                FilterPill(label: L("< 25 km"), selected: vm.filterMaxDistanceKm == 25) { vm.setFilterMaxDistance(25) }
+                                FilterPill(label: L("< 50 km"), selected: vm.filterMaxDistanceKm == 50) { vm.setFilterMaxDistance(50) }
+                                FilterPill(label: L("< 100 km"), selected: vm.filterMaxDistanceKm == 100) { vm.setFilterMaxDistance(100) }
+                                FilterPill(label: L("< 200 km"), selected: vm.filterMaxDistanceKm == 200) { vm.setFilterMaxDistance(200) }
+                                FilterPill(label: L("< 500 km"), selected: vm.filterMaxDistanceKm == 500) { vm.setFilterMaxDistance(500) }
                             }
 
                             // DISCIPLINA
-                            FilterGroupLabel(text: "DISCIPLINA")
+                            FilterGroupLabel(text: L("DISCIPLINA"))
                             FlowLayoutView {
-                                FilterPill(label: "Cualquiera", selected: vm.filterDiscipline == nil) { vm.setFilterDiscipline(nil) }
-                                FilterPill(label: "Bloque", selected: vm.filterDiscipline == "BOULDER") { vm.setFilterDiscipline("BOULDER") }
-                                FilterPill(label: "Via", selected: vm.filterDiscipline == "ROUTE") { vm.setFilterDiscipline("ROUTE") }
-                                FilterPill(label: "Ambas", selected: vm.filterDiscipline == "BOTH") { vm.setFilterDiscipline("BOTH") }
+                                FilterPill(label: L("Cualquiera"), selected: vm.filterDiscipline == nil) { vm.setFilterDiscipline(nil) }
+                                FilterPill(label: L("Bloque"), selected: vm.filterDiscipline == "BOULDER") { vm.setFilterDiscipline("BOULDER") }
+                                FilterPill(label: L("Via"), selected: vm.filterDiscipline == "ROUTE") { vm.setFilterDiscipline("ROUTE") }
+                                FilterPill(label: L("Ambas"), selected: vm.filterDiscipline == "BOTH") { vm.setFilterDiscipline("BOTH") }
                             }
 
                             // DIAS
-                            FilterGroupLabel(text: "DIAS")
+                            FilterGroupLabel(text: L("DIAS"))
                             let nextDays = generateNextDays(14)
                             FlowLayoutView {
-                                FilterPill(label: "Cualquier dia", selected: vm.filterDays.isEmpty) {
+                                FilterPill(label: L("Cualquier dia"), selected: vm.filterDays.isEmpty) {
                                     vm.clearFilterDays()
                                 }
                                 ForEach(nextDays, id: \.iso) { d in
@@ -419,9 +419,9 @@ struct MeetupsView: View {
                             }
 
                             // ESCUELA
-                            FilterGroupLabel(text: "ESCUELA")
+                            FilterGroupLabel(text: L("ESCUELA"))
                             HStack(spacing: 8) {
-                                Text(vm.filterSchoolName ?? "Buscar escuela...")
+                                Text(vm.filterSchoolName ?? L("Buscar escuela..."))
                                     .font(.system(size: 13))
                                     .foregroundColor(vm.filterSchoolName != nil ? Cumbre.ink : Cumbre.ink.opacity(0.5))
                                     .onTapGesture { activeSheet = .schoolFilter }

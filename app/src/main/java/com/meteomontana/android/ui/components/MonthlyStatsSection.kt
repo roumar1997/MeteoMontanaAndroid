@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.components
 
 
+import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -63,7 +64,7 @@ fun MonthlyStatsSection(stats: MonthlyStats?, isLoading: Boolean) {
             }
             androidx.compose.foundation.layout.Spacer(Modifier.height(Spacing.sm))
         }
-        val names = listOf("Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic")
+        val names = CalendarLabels.monthsShort()
         stats.scores.forEachIndexed { i, score ->
             MonthBar(name = names[i], score = score)
         }
@@ -104,10 +105,10 @@ private fun MonthBar(name: String, score: Int) {
 }
 
 private fun labelFor(score: Int): String = when {
-    score >= 80 -> "Excelente"
-    score >= 65 -> "Bueno"
-    score >= 50 -> "Regular"
-    score >= 30 -> "Malo"
+    score >= 80 -> AppText.get(R.string.w_excellent)
+    score >= 65 -> AppText.get(R.string.w_good)
+    score >= 50 -> AppText.get(R.string.w_fair)
+    score >= 30 -> AppText.get(R.string.w_poor)
     else        -> AppText.get(R.string.monthly_stats_section_v4_muy_malo)
 }
 

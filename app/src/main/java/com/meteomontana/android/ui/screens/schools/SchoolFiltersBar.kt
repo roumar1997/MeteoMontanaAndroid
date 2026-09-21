@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.schools
 
+import com.meteomontana.android.util.CatalogLabels
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -37,19 +39,19 @@ fun SchoolFiltersBar(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Section("DISTANCIA") {
+        Section(stringResource(R.string.w_distance_caps)) {
             ChipRow(
                 items = DISTANCE_OPTIONS,
                 isSelected = { it == filters.maxDistanceKm },
-                label = { if (it == null) "Todas" else "${it.toInt()} km" },
+                label = { if (it == null) AppText.get(R.string.w_all) else "${it.toInt()} km" },
                 onClick = onDistance
             )
         }
-        Section("ESTILO") {
+        Section(stringResource(R.string.w_style_caps)) {
             ChipRow(
                 items = StyleFilter.entries,
                 isSelected = { it == filters.style },
-                label = { it.label },
+                label = { AppText.get(it.labelRes) },
                 onClick = onStyle
             )
         }
@@ -68,7 +70,7 @@ fun SchoolFiltersBar(
                 }
                 items(ROCK_TYPES) { rock ->
                     CumbreChip(
-                        label = rock,
+                        label = CatalogLabels.rock(rock),
                         selected = rock in filters.rockTypes,
                         onClick = { onRockToggle(rock) }
                     )
@@ -76,23 +78,23 @@ fun SchoolFiltersBar(
             }
         }
         // MOSTRAR: una sola fila tri-estado (Todas/Favoritos/Guardados), como iOS.
-        Section("MOSTRAR") {
+        Section(stringResource(R.string.w_show_caps_tristate)) {
             val current = when {
-                filters.onlyFavorites -> "Favoritos"
-                filters.onlySavedOffline -> "Guardados"
-                else -> "Todas"
+                filters.onlyFavorites -> ShowMode.Favorites
+                filters.onlySavedOffline -> ShowMode.Saved
+                else -> ShowMode.All
             }
             ChipRow(
-                items = listOf("Todas", "Favoritos", "Guardados"),
+                items = ShowMode.entries,
                 isSelected = { it == current },
-                label = { it },
+                label = { AppText.get(it.labelRes) },
                 onClick = { sel ->
                     when (sel) {
-                        "Favoritos" -> {
+                        ShowMode.Favorites -> {
                             if (filters.onlySavedOffline) onOnlySavedOffline(false)
                             onOnlyFavorites(true)
                         }
-                        "Guardados" -> {
+                        ShowMode.Saved -> {
                             if (filters.onlyFavorites) onOnlyFavorites(false)
                             onOnlySavedOffline(true)
                         }
@@ -108,11 +110,16 @@ fun SchoolFiltersBar(
             ChipRow(
                 items = SortBy.entries,
                 isSelected = { it == filters.sortBy },
-                label = { it.label },
+                label = { AppText.get(it.labelRes) },
                 onClick = onSort
             )
         }
     }
+}
+
+/** Los tres estados de la fila MOSTRAR (excluyentes entre sí). */
+private enum class ShowMode(@androidx.annotation.StringRes val labelRes: Int) {
+    All(R.string.w_all), Favorites(R.string.w_favourites), Saved(R.string.w_saved)
 }
 
 @Composable

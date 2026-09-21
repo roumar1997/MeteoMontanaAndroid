@@ -35,7 +35,7 @@ final class HangReporter: NSObject, MXMetricManagerSubscriber {
                 }
                 let err = NSError(domain: "MainThreadHang", code: Int(seconds * 10),
                                   userInfo: [NSLocalizedDescriptionKey:
-                                    "Cuelgue del hilo principal de \(String(format: "%.1f", seconds))s (MetricKit)"])
+                                    L("Cuelgue del hilo principal de %@s (MetricKit)", String(format: "%.1f", seconds))])
                 crashlytics.record(error: err)
             }
         }

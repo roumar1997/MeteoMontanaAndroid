@@ -647,7 +647,7 @@ private fun StyleFilterRow(
 
 /** "ROUTE" en el backend = estilo "Vía"; "BOULDER" = "Bloque". */
 private fun styleLabelForDiscipline(discipline: String): String =
-    if (discipline.uppercase() == "ROUTE") "Vía" else "Bloque"
+    if (discipline.uppercase() == "ROUTE") AppText.get(R.string.w_route) else AppText.get(R.string.w_boulder)
 
 /**
  * ¿Esta piedra/sector pasa el filtro Vía/Bloque? Vacío = sin filtrar. Un

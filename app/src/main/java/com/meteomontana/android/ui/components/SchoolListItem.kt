@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.CatalogLabels
 import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -345,11 +346,11 @@ private fun weekdayLetter(iso: String): String = try {
 
 private fun scoreLabel(score: Int?): String = when {
     score == null -> ""
-    score >= 85   -> "EXCELENTE"
+    score >= 85   -> AppText.get(R.string.w_excellent_caps)
     score >= 70   -> AppText.get(R.string.school_list_item_v4_muy_bueno)
-    score >= 55   -> "BUENO"
-    score >= 40   -> "REGULAR"
-    else          -> "MALO"
+    score >= 55   -> AppText.get(R.string.w_good_caps)
+    score >= 40   -> AppText.get(R.string.w_fair_caps)
+    else          -> AppText.get(R.string.w_poor_caps)
 }
 
 /**
@@ -379,7 +380,7 @@ private fun HourlyHeatmapBar(scores: List<Int>?, modifier: Modifier = Modifier) 
 
 private fun buildSubtitle(school: School, distanceKm: Double?): String {
     val parts = buildList {
-        school.rockType?.let { add(it.uppercase()) }
+        school.rockType?.let { add(CatalogLabels.rock(it).uppercase()) }
         school.region?.let   { add(it) }
         distanceKm?.let      { add("${it.toInt()} KM") }
     }

@@ -47,7 +47,7 @@ final class SchoolMapViewModel: ObservableObject {
                 out.append(SearchHit(id: l.id, label: l.name + grade, sub: b.name, viaName: l.name, block: b))
             }
             if b.name.localizedCaseInsensitiveContains(q) {
-                out.append(SearchHit(id: b.id, label: b.name, sub: "\(b.lines.count) vías", viaName: nil, block: b))
+                out.append(SearchHit(id: b.id, label: b.name, sub: L("%@ vías", b.lines.count), viaName: nil, block: b))
             }
         }
         return Array(out.prefix(8))

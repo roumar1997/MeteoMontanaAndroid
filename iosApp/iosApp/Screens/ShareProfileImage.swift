@@ -28,7 +28,7 @@ enum ShareProfileImage {
                      avatar: avatar, topGrade: topGrade, bio: bio,
                      boulders: boulders, routes: routes, schools: schools)
         }
-        let text = "Perfil de \(displayLabel) en Cumbre:\n"
+        let text = L("Perfil de %@ en Cumbre:\n", displayLabel)
             + "\(ShareBase.url)/s/u/\(handle)"
         await present([image, text])
     }
@@ -129,9 +129,9 @@ enum ShareProfileImage {
             // OJO Swift: construir el array paso a paso (una expresión larga
             // dispara "unable to type-check in reasonable time").
             var statCols: [(String, String)] = []
-            if let b = boulders, b > 0 { statCols.append(("\(b)", "BLOQUES")) }
-            if let r = routes, r > 0 { statCols.append(("\(r)", "VÍAS")) }
-            if let s = schools, s > 0 { statCols.append(("\(s)", "ESCUELAS")) }
+            if let b = boulders, b > 0 { statCols.append(("\(b)", L("BLOQUES"))) }
+            if let r = routes, r > 0 { statCols.append(("\(r)", L("VÍAS"))) }
+            if let s = schools, s > 0 { statCols.append(("\(s)", L("ESCUELAS"))) }
             if !statCols.isEmpty {
                 y += 20
                 let colW = (w - 240) / CGFloat(statCols.count)

@@ -62,7 +62,7 @@ internal fun SectorFormDialog(
 ) = PlaceFormDialog(
     title = stringResource(R.string.place_form_dialog_v2_nuevo_sector),
     subtitle = stringResource(R.string.place_form_dialog_v2_un_sector_agrupa_varias_piedras),
-    nameLabel = "NOMBRE",
+    nameLabel = stringResource(R.string.w_name_caps),
     namePlaceholder = stringResource(R.string.place_form_dialog_v3_ej_la_isla_vertedero_cuevas),
     nameRequired = true,
     notesPlaceholder = stringResource(R.string.place_form_dialog_v3_tipo_de_roca_orientacion_accesos),

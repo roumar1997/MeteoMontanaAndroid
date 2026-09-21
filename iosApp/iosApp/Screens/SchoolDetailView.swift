@@ -103,7 +103,7 @@ final class SchoolDetailViewModel: ObservableObject {
                 offlineSince = cached.fetchedAtMillis
                 offlineForecast = true
             } else {
-                errorText = "Sin conexión. Conéctate a internet para ver la previsión (esta escuela no tiene previsión guardada)."
+                errorText = L("Sin conexión. Conéctate a internet para ver la previsión (esta escuela no tiene previsión guardada).")
             }
         }
         loading = false
@@ -322,10 +322,7 @@ struct SchoolDetailView: View {
             Button("Ahora no", role: .cancel) { vm.ofertaFotos = nil }
         } message: {
             if let o = vm.ofertaFotos {
-                Text("La escuela ya está guardada. Bajar sus \(o.urls.count) fotos (\(o.pesoTexto)) "
-                     + "te deja ver los topos en la roca aunque no haya cobertura.\n\n"
-                     + "Si dices que no, tendrás los nombres, los grados y las líneas, "
-                     + "pero no las fotos sobre las que van dibujadas.")
+                Text(L("La escuela ya está guardada. Bajar sus %@ fotos (%@) te deja ver los topos en la roca aunque no haya cobertura.\n\nSi dices que no, tendrás los nombres, los grados y las líneas, pero no las fotos sobre las que van dibujadas.", o.urls.count, o.pesoTexto))
             }
         }
         .overlay {
@@ -429,21 +426,21 @@ struct SchoolDetailView: View {
             } else if let f = vm.forecast {
                 FirstTimeHint(
                     hintKey: "detail_offline",
-                    text: "Toca ↓ (arriba) para guardar esta escuela y verla sin conexión, incluyendo el mapa y las piedras."
+                    text: L("Toca ↓ (arriba) para guardar esta escuela y verla sin conexión, incluyendo el mapa y las piedras.")
                 )
                 FirstTimeHint(
                     hintKey: "detail_propose",
-                    text: "Despliega el mapa de abajo y usa + PROPONER para añadir piedras, parkings o sectores que falten. Un admin lo revisa."
+                    text: L("Despliega el mapa de abajo y usa + PROPONER para añadir piedras, parkings o sectores que falten. Un admin lo revisa.")
                 )
                 FirstTimeHint(
                     hintKey: "detail_tick",
-                    text: "Toca una piedra en el mapa para ver sus vías. El círculo ○ marca una vía como hecha y la guarda en tu diario."
+                    text: L("Toca una piedra en el mapa para ver sus vías. El círculo ○ marca una vía como hecha y la guarda en tu diario.")
                 )
                 if vm.offlineForecast {
                     HStack(spacing: 6) {
                         Image(systemName: "wifi.slash").font(.system(size: 11))
-                        Text(vm.offlineSince.map { "SIN CONEXIÓN · ACTUALIZADO \(relativeUpdated($0).uppercased())" }
-                             ?? "SIN CONEXIÓN · PREVISIÓN GUARDADA").eyebrow()
+                        Text(vm.offlineSince.map { L("SIN CONEXIÓN · ACTUALIZADO %@", relativeUpdated($0).uppercased()) }
+                             ?? L("SIN CONEXIÓN · PREVISIÓN GUARDADA")).eyebrow()
                     }
                     .foregroundStyle(Cumbre.terra)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -496,9 +493,9 @@ private struct MonthlyStatsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionTitle("MEJORES MESES")
+            SectionTitle(L("MEJORES MESES"))
             if let r = bestRange, !r.isEmpty {
-                Text("Mejor época: \(r)")
+                Text(L("Mejor época: %@", r))
                     .font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink2)
                     .padding(.horizontal, 16)
             }
@@ -534,7 +531,7 @@ struct SchoolDetailLoaderView: View {
             if let s = school {
                 SchoolDetailView(school: s)
             } else if failed {
-                ContentUnavailableView("Escuela no encontrada", systemImage: "mappin.slash")
+                ContentUnavailableView(L("Escuela no encontrada"), systemImage: "mappin.slash")
             } else {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             }

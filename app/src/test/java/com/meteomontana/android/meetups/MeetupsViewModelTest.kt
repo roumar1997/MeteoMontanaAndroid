@@ -74,6 +74,7 @@ class MeetupsViewModelTest {
         members = emptyList(), joined = false)
 
     @Before fun setUp() {
+        com.meteomontana.android.EsTextSource.install()
         Dispatchers.setMain(d)
         editor = mockk(relaxed = true)
         every { editor.putString(any(), any()) } returns editor

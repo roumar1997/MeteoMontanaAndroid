@@ -32,22 +32,22 @@ struct ContributionTypePicker: View {
                 // Lo primero, porque es trabajo YA empezado: si esta ahi, es lo
                 // que el usuario venia a terminar.
                 if hayBorrador {
-                    row("CONTINUAR PIEDRA A MEDIAS",
-                        "Tienes una piedra sin terminar en esta escuela. Sigue donde lo dejaste.",
+                    row(L("CONTINUAR PIEDRA A MEDIAS"),
+                        L("Tienes una piedra sin terminar en esta escuela. Sigue donde lo dejaste."),
                         "arrow.uturn.backward.circle", enabled: true) { onPick("BOULDER_DRAFT") }
                 }
-                row("PIEDRA", "Una roca con sus vías. Podrás añadir fotos y dibujar las líneas.", "mountain.2.fill", enabled: true) { onPick("BOULDER") }
+                row(L("PIEDRA"), L("Una roca con sus vías. Podrás añadir fotos y dibujar las líneas."), "mountain.2.fill", enabled: true) { onPick("BOULDER") }
                 // Atajo: si la foto sabe donde se hizo, la piedra se coloca
                 // sola y no hay que tocar el mapa. Aqui la escuela ya se
                 // conoce, asi que -a diferencia del mismo atajo desde la lista
                 // de escuelas- no hay que buscarla por cercania. Pensado para
                 // encadenar varias piedras sin salir de la escuela.
-                row("PIEDRA DESDE UNA FOTO", "Elige una foto tuya de la piedra: se coloca sola en el punto donde la hiciste.", "photo.on.rectangle.angled", enabled: true) { onPick("BOULDER_PHOTO") }
-                row("SECTOR", "Una zona que agrupa piedras (ej: \"La Isla\"). Después asignarás piedras al sector.", "square.dashed", enabled: true) { onPick("SECTOR") }
-                row("PARKING", "El punto de aparcamiento. Otros escaladores verán \"Cómo llegar\".", "car.fill", enabled: true) { onPick("PARKING") }
-                row("CORREGIR", "¿Algo está mal colocado en el mapa? Tócalo y muévelo al sitio correcto.", "mappin.and.ellipse", enabled: true) { onPick("CORRECTION") }
-                row("CORREGIR NOMBRE", "¿El nombre de la escuela está mal escrito? Propón el correcto.", "textformat", enabled: true) { onPick("SCHOOL_NAME_CORRECTION") }
-                row("CORREGIR ESTILO", "¿Esta escuela tiene vía Y bloque pero solo aparece uno? Corrígelo.", "checkmark.square", enabled: true) { onPick("SCHOOL_STYLE_CORRECTION") }
+                row(L("PIEDRA DESDE UNA FOTO"), L("Elige una foto tuya de la piedra: se coloca sola en el punto donde la hiciste."), "photo.on.rectangle.angled", enabled: true) { onPick("BOULDER_PHOTO") }
+                row("SECTOR", L("Una zona que agrupa piedras (ej: \"La Isla\"). Después asignarás piedras al sector."), "square.dashed", enabled: true) { onPick("SECTOR") }
+                row("PARKING", L("El punto de aparcamiento. Otros escaladores verán \"Cómo llegar\"."), "car.fill", enabled: true) { onPick("PARKING") }
+                row(L("CORREGIR"), L("¿Algo está mal colocado en el mapa? Tócalo y muévelo al sitio correcto."), "mappin.and.ellipse", enabled: true) { onPick("CORRECTION") }
+                row(L("CORREGIR NOMBRE"), L("¿El nombre de la escuela está mal escrito? Propón el correcto."), "textformat", enabled: true) { onPick("SCHOOL_NAME_CORRECTION") }
+                row(L("CORREGIR ESTILO"), L("¿Esta escuela tiene vía Y bloque pero solo aparece uno? Corrígelo."), "checkmark.square", enabled: true) { onPick("SCHOOL_STYLE_CORRECTION") }
                 Spacer()
             }
             .padding(16)
@@ -91,19 +91,19 @@ struct ContributionFormSheet: View {
     @State private var queued = false
 
     private var isSector: Bool { type == "SECTOR" }
-    private var title: String { isSector ? "Nueva zona" : "Nuevo parking" }
+    private var title: String { isSector ? L("Nueva zona") : L("Nuevo parking") }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    field("NOMBRE (opcional)", $name, isSector ? "ej: Sector Bajo" : "ej: Parking de arriba")
+                    field(L("NOMBRE (opcional)"), $name, isSector ? L("ej: Sector Bajo") : L("ej: Parking de arriba"))
                     VStack(alignment: .leading, spacing: 6) {
                         Text("COORDENADAS").eyebrow()
                         Text(String(format: "%.5f, %.5f", coord.latitude, coord.longitude))
                             .font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink2)
                     }
-                    field("NOTAS (opcional)", $notes, isSector ? "Descripción de la zona" : "Cómo es el acceso, etc.")
+                    field(L("NOTAS (opcional)"), $notes, isSector ? L("Descripción de la zona") : L("Cómo es el acceso, etc."))
                     if let sendError {
                         Text(sendError).font(.system(size: 12)).foregroundStyle(Cumbre.bad)
                         // Cola offline: guarda la propuesta y el flusher la envía
@@ -149,7 +149,7 @@ struct ContributionFormSheet: View {
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false
         if ok { dismiss(); onDone(true) }
-        else { sendError = "No se pudo enviar. Revisa la conexión — tus datos siguen aquí." }
+        else { sendError = L("No se pudo enviar. Revisa la conexión — tus datos siguen aquí.") }
     }
 
     /// Encola la propuesta para que ContributionOutboxFlusher la envíe al
@@ -235,7 +235,7 @@ struct SchoolNameCorrectionSheet: View {
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false
         if ok { dismiss(); onDone(true) }
-        else { sendError = "No se pudo enviar. Revisa la conexión." }
+        else { sendError = L("No se pudo enviar. Revisa la conexión.") }
     }
 }
 
@@ -276,7 +276,7 @@ struct SchoolStyleCorrectionSheet: View {
                 VStack(alignment: .leading, spacing: 14) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("ESTILO ACTUAL").eyebrow()
-                        Text(currentStyle?.isEmpty == false ? currentStyle! : "sin especificar")
+                        Text(currentStyle?.isEmpty == false ? currentStyle! : L("sin especificar"))
                             .font(.system(size: 15)).foregroundStyle(Cumbre.ink2)
                     }
                     VStack(alignment: .leading, spacing: 6) {
@@ -329,7 +329,7 @@ struct SchoolStyleCorrectionSheet: View {
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false
         if ok { dismiss(); onDone(true) }
-        else { sendError = "No se pudo enviar. Revisa la conexión." }
+        else { sendError = L("No se pudo enviar. Revisa la conexión.") }
     }
 }
 
@@ -344,8 +344,8 @@ struct ContributionSuccessSheet: View {
             Image(systemName: "checkmark.seal.fill").font(.system(size: 56)).foregroundStyle(Cumbre.ok)
             Text(isAdmin ? "¡Publicado!" : "¡Propuesta enviada!").font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
             Text(isAdmin
-                 ? "Ya está en el mapa para toda la comunidad."
-                 : "La revisaremos en 24-48 h. Gracias por mejorar el mapa de la comunidad.")
+                 ? L("Ya está en el mapa para toda la comunidad.")
+                 : L("La revisaremos en 24-48 h. Gracias por mejorar el mapa de la comunidad."))
                 .font(.system(size: 15)).foregroundStyle(Cumbre.ink2)
                 .multilineTextAlignment(.center).padding(.horizontal, 24)
             Button("CERRAR") { dismiss() }

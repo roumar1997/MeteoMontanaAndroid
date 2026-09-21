@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.compare
 
+import com.meteomontana.android.util.CatalogLabels
 import android.content.Intent
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.net.Uri
@@ -146,7 +147,7 @@ fun CompareScreen(
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // Encabezado común de hoja — mismo que Proponer, Editar y la ficha de
         // piedra. Ver CumbreSheetHeader.
-        com.meteomontana.android.ui.components.CumbreSheetHeader("Comparar", onBack)
+        com.meteomontana.android.ui.components.CumbreSheetHeader(stringResource(R.string.w_compare), onBack)
 
         when (val s = state) {
             CompareUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
@@ -230,14 +231,14 @@ private fun CompareTable(items: List<CompareItem>, onSchoolDetail: (String) -> U
         // Tabla de métricas, en una tarjeta con borde. Filas en bandas alternas y
         // columnas separadas por divisorias verticales para que se lea bien.
         val rows = listOf(
-            CompareMetric("ROCA", items.map { it.rockType?.replaceFirstChar { c -> c.uppercase() } ?: "—" },
+            CompareMetric(stringResource(R.string.w_rock_caps), items.map { it.rockType?.let { r -> CatalogLabels.rock(r) } ?: "—" },
                 items.indices.filter { items[it].dryRock }.toSet()),
-            CompareMetric("DISTANCIA", items.map { it.distanceKm?.let { d -> "${d.toInt()} km" } ?: "—" },
+            CompareMetric(stringResource(R.string.w_distance_caps), items.map { it.distanceKm?.let { d -> "${d.toInt()} km" } ?: "—" },
                 minIndices(items.map { it.distanceKm })),
             CompareMetric("TEMP", items.map { "${it.temp}°" }, emptySet()),
-            CompareMetric("VIENTO", items.map { "${it.wind} km/h" },
+            CompareMetric(stringResource(R.string.w_wind_caps), items.map { "${it.wind} km/h" },
                 minIndices(items.map { it.wind.toDouble() })),
-            CompareMetric("HUMEDAD", items.map { "${it.humidity}%" },
+            CompareMetric(stringResource(R.string.w_humidity_caps), items.map { "${it.humidity}%" },
                 minIndices(items.map { it.humidity.toDouble() })),
             CompareMetric(stringResource(R.string.compare_screen_v3_prob_lluvia), items.map { "${it.rainProb}%" },
                 minIndices(items.map { it.rainProb.toDouble() })),

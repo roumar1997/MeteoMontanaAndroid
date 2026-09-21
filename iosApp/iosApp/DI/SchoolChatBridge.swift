@@ -36,9 +36,9 @@ final class SchoolChatBridge: NSObject, IosSchoolChatBridge {
     }
 
     func sendMessage(schoolId: String, text: String, completion: @escaping (String?) -> Void) {
-        guard let me = Auth.auth().currentUser?.uid else { completion("No hay sesión"); return }
+        guard let me = Auth.auth().currentUser?.uid else { completion(L("No hay sesión")); return }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, trimmed.count <= 500 else { completion("Mensaje vacío o muy largo"); return }
+        guard !trimmed.isEmpty, trimmed.count <= 500 else { completion(L("Mensaje vacío o muy largo")); return }
         db.collection("school_chats").document(schoolId).collection("messages")
             .addDocument(data: ["fromUid": me, "text": trimmed, "createdAt": Timestamp(date: Date())]) { err in
                 completion(err?.localizedDescription)

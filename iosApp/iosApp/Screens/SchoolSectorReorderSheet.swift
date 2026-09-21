@@ -39,7 +39,7 @@ struct SchoolSectorReorderSheet: View {
                             HStack(spacing: 10) {
                                 Text("\(idx + 1)").font(Cumbre.mono(13, .bold)).foregroundStyle(Cumbre.terra)
                                     .frame(width: 28, alignment: .leading)
-                                Text(b.name.isEmpty ? "(sin número)" : b.name)
+                                Text(b.name.isEmpty ? L("(sin número)") : b.name)
                                     .font(Cumbre.serif(15, .semibold)).foregroundStyle(Cumbre.ink)
                                 Spacer()
                                 Image(systemName: "line.3.horizontal").foregroundStyle(Cumbre.ink3)
@@ -71,7 +71,7 @@ struct SchoolSectorReorderSheet: View {
     private var sectorPicker: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                chip(title: "SIN SECTOR", isSelected: selectedSectorId == nil) {
+                chip(title: L("SIN SECTOR"), isSelected: selectedSectorId == nil) {
                     selectedSectorId = nil; recomputeOrdered()
                 }
                 ForEach(sectors, id: \.id) { z in
@@ -134,7 +134,7 @@ struct SchoolSectorReorderSheet: View {
                 .invoke(schoolId: school.id, sectorBlockId: selectedSectorId, orderedBlockIds: ids)
             applyResult(result)
         } catch {
-            errorMsg = "No se pudo guardar: \(error.localizedDescription)"
+            errorMsg = L("No se pudo guardar: %@", error.localizedDescription)
         }
         busy = false
     }
@@ -146,7 +146,7 @@ struct SchoolSectorReorderSheet: View {
                 .invoke(schoolId: school.id, sectorBlockId: selectedSectorId)
             applyResult(result)
         } catch {
-            errorMsg = "No se pudo calcular el orden: \(error.localizedDescription)"
+            errorMsg = L("No se pudo calcular el orden: %@", error.localizedDescription)
         }
         busy = false
     }

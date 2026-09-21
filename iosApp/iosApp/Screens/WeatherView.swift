@@ -102,7 +102,7 @@ struct WeatherView: View {
     private var favoriteChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                chip("📍 Ubicación", selected: vm.selectedFavoriteId == nil) { vm.selectFavorite(nil) }
+                chip(L("📍 Ubicación"), selected: vm.selectedFavoriteId == nil) { vm.selectFavorite(nil) }
                 ForEach(vm.favorites, id: \.id) { f in
                     chip(f.name, selected: vm.selectedFavoriteId == f.id) { vm.selectFavorite(f.id) }
                 }

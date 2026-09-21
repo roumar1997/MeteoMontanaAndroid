@@ -47,8 +47,8 @@ final class AuthBridge: NSObject, IosAuthBridge {
         var errorDescription: String? {
             switch self {
             case .noClientID: return "Falta CLIENT_ID en GoogleService-Info.plist"
-            case .noPresenter: return "No hay pantalla desde la que presentar el login"
-            case .noToken: return "Google no devolvió un token válido"
+            case .noPresenter: return L("No hay pantalla desde la que presentar el login")
+            case .noToken: return L("Google no devolvió un token válido")
             }
         }
     }

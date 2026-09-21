@@ -17,9 +17,9 @@ private func statusColor(_ status: String) -> Color {
 
 private func statusLabel(_ status: String) -> String {
     switch status.uppercased() {
-    case "APPROVED", "ACCEPTED": return "APROBADA"
-    case "REJECTED":             return "RECHAZADA"
-    default:                     return "PENDIENTE"
+    case "APPROVED", "ACCEPTED": return L("APROBADA")
+    case "REJECTED":             return L("RECHAZADA")
+    default:                     return L("PENDIENTE")
     }
 }
 
@@ -68,8 +68,8 @@ private struct MyContributionsToggle: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            segment("PROPUESTAS", active: !showContributions) { onSelect(false) }
-            segment("CONTRIBUCIONES", active: showContributions) { onSelect(true) }
+            segment(L("PROPUESTAS"), active: !showContributions) { onSelect(false) }
+            segment(L("CONTRIBUCIONES"), active: showContributions) { onSelect(true) }
         }
         .background(Cumbre.paper)
         .clipShape(RoundedRectangle(cornerRadius: 2))
@@ -111,9 +111,9 @@ struct MySubmissionsView: View {
     @StateObject private var vm = MySubmissionsViewModel()
     var body: some View {
         // Título "Mis contribuciones" (la pantalla unificada engloba las dos listas).
-        listScaffold(title: "Mis contribuciones", loading: vm.loading, empty: vm.items.isEmpty,
-                     emptyText: "Sin propuestas todavía", emptyIcon: "mappin.and.ellipse",
-                     emptyHint: "Desde el mapa de una escuela (+ PROPONER) o con \"+ Enviar escuela\" puedes proponer parkings, piedras, sectores o escuelas nuevas. Aquí verás su estado.") {
+        listScaffold(title: L("Mis contribuciones"), loading: vm.loading, empty: vm.items.isEmpty,
+                     emptyText: L("Sin propuestas todavía"), emptyIcon: "mappin.and.ellipse",
+                     emptyHint: L("Desde el mapa de una escuela (+ PROPONER) o con \"+ Enviar escuela\" puedes proponer parkings, piedras, sectores o escuelas nuevas. Aquí verás su estado.")) {
             ForEach(vm.items, id: \.id) { s in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -167,9 +167,9 @@ final class MyContributionsViewModel: ObservableObject {
 struct MyContributionsView: View {
     @StateObject private var vm = MyContributionsViewModel()
     var body: some View {
-        listScaffold(title: "Mis contribuciones", loading: vm.loading, empty: vm.items.isEmpty,
-                     emptyText: "Sin contribuciones todavía", emptyIcon: "mappin.and.ellipse",
-                     emptyHint: "Desde el mapa de una escuela (+ PROPONER) o con \"+ Enviar escuela\" puedes proponer parkings, piedras, sectores o escuelas nuevas. Aquí verás su estado.") {
+        listScaffold(title: L("Mis contribuciones"), loading: vm.loading, empty: vm.items.isEmpty,
+                     emptyText: L("Sin contribuciones todavía"), emptyIcon: "mappin.and.ellipse",
+                     emptyHint: L("Desde el mapa de una escuela (+ PROPONER) o con \"+ Enviar escuela\" puedes proponer parkings, piedras, sectores o escuelas nuevas. Aquí verás su estado.")) {
             ForEach(vm.items, id: \.id) { c in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -196,10 +196,10 @@ struct MyContributionsView: View {
     private func typeLabel(_ t: String) -> String {
         switch t.uppercased() {
         case "PARKING": return "PARKING"
-        case "BOULDER": return "PIEDRA"
+        case "BOULDER": return L("PIEDRA")
         case "SECTOR":  return "SECTOR"
-        case "POSITION_CORRECTION": return "CORREGIR POSICIÓN"
-        case "ASSIGN_SECTOR": return "ASIGNAR SECTOR"
+        case "POSITION_CORRECTION": return L("CORREGIR POSICIÓN")
+        case "ASSIGN_SECTOR": return L("ASIGNAR SECTOR")
         default: return t.uppercased()
         }
     }
@@ -249,8 +249,8 @@ struct FollowRequestsView: View {
     @StateObject private var vm = FollowRequestsViewModel()
     var body: some View {
         listScaffold(title: NSLocalizedString("profile_follow_requests", comment: ""), loading: vm.loading, empty: vm.items.isEmpty,
-                     emptyText: "Sin solicitudes", emptyIcon: "person.crop.circle.badge.questionmark",
-                     emptyHint: "Cuando alguien pida seguirte (perfil privado), aparecerá aquí para aceptar o rechazar.") {
+                     emptyText: L("Sin solicitudes"), emptyIcon: "person.crop.circle.badge.questionmark",
+                     emptyHint: L("Cuando alguien pida seguirte (perfil privado), aparecerá aquí para aceptar o rechazar.")) {
             ForEach(vm.items, id: \.uid) { u in
                 HStack(spacing: 12) {
                     // Tocar el avatar/nombre abre el perfil público del solicitante

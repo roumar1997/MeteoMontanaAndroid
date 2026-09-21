@@ -29,7 +29,7 @@ final class BetaLinksStore: ObservableObject {
     }
 
     func add(blockId: String, lineId: String?, url: String, heightCategory: String?, authorName: String?) async {
-        if let created = await reporting("No se pudo añadir el enlace", {
+        if let created = await reporting(L("No se pudo añadir el enlace"), {
             try await container.addBetaLink.invoke(blockId: blockId, lineId: lineId, url: url, heightCategory: heightCategory, authorName: authorName)
         }) {
             links.append(created)
@@ -37,7 +37,7 @@ final class BetaLinksStore: ObservableObject {
     }
 
     func delete(linkId: String) async {
-        guard await reporting("No se pudo borrar el enlace", {
+        guard await reporting(L("No se pudo borrar el enlace"), {
             try await container.deleteBetaLink.invoke(linkId: linkId)
         }) != nil else { return }
         links.removeAll { $0.id == linkId }
@@ -52,15 +52,15 @@ private enum HeightFilter: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .any: return "Cualquier altura"
-        case .tall: return "Personas +1,70"
-        case .short: return "Personas -1,70"
+        case .any: return L("Cualquier altura")
+        case .tall: return L("Personas +1,70")
+        case .short: return L("Personas -1,70")
         }
     }
     /// Etiqueta corta para los chips de VER (filtrar la lista).
     var shortLabel: String {
         switch self {
-        case .any: return "Todas"
+        case .any: return L("Todas")
         case .tall: return "+1,70"
         case .short: return "-1,70"
         }
@@ -149,7 +149,7 @@ struct BetaLinksThreadView: View {
                 }
                 if shown.isEmpty {
                     Text(all.isEmpty ? "Sé el primero en dejar un enlace de beta."
-                                      : "No hay enlaces de beta para \(viewFilter.label.lowercased()).")
+                                      : L("No hay enlaces de beta para %@.", viewFilter.label.lowercased()))
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                 }
                 ForEach(Array(shown.enumerated()), id: \.element.id) { idx, l in
@@ -201,7 +201,7 @@ struct BetaLinksThreadView: View {
             }
         }
         .sheet(item: $reportTarget) { l in
-            ReportSheet(title: "DENUNCIAR ENLACE DE BETA") { reason, _ in
+            ReportSheet(title: L("DENUNCIAR ENLACE DE BETA")) { reason, _ in
                 moderation.report(targetType: "BETA_LINK", targetId: l.id, reason: reason)
             }
         }
@@ -232,7 +232,7 @@ private struct BetaLinkUrlSheet: View {
             Text("ENLACE DE BETA").font(Cumbre.mono(11, .bold)).tracking(1.4)
                 .foregroundStyle(Cumbre.ink3)
                 .padding(.top, 18)
-            Text(category == .any ? "Se abrirá fuera de la app." : "Para \(category.label.lowercased()). Se abrirá fuera de la app.")
+            Text(category == .any ? "Se abrirá fuera de la app." : L("Para %@. Se abrirá fuera de la app.", category.label.lowercased()))
                 .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
             TextField("Enlace de Instagram/YouTube", text: $urlDraft)
                 .keyboardType(.URL)
@@ -242,7 +242,7 @@ private struct BetaLinkUrlSheet: View {
                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(showError ? Color.red : Cumbre.rule, lineWidth: 1))
                 .onChange(of: urlDraft) { _ in touched = true }
             if showError {
-                Text(trimmedUrl.isEmpty ? "Falta el enlace de Instagram/YouTube."
+                Text(trimmedUrl.isEmpty ? L("Falta el enlace de Instagram/YouTube.")
                                          : "El enlace debe empezar por http:// o https://")
                     .font(.system(size: 12)).foregroundStyle(.red)
             }
@@ -282,9 +282,9 @@ private struct BetaLinkRow: View {
 
     private var platform: (icon: String, label: String) {
         let host = URL(string: link.url)?.host?.lowercased() ?? ""
-        if host.contains("instagram.com") { return ("camera.fill", "Ver en Instagram") }
-        if host.contains("youtube.com") || host.contains("youtu.be") { return ("play.rectangle.fill", "Ver en YouTube") }
-        return ("link", "Ver enlace")
+        if host.contains("instagram.com") { return ("camera.fill", L("Ver en Instagram")) }
+        if host.contains("youtube.com") || host.contains("youtu.be") { return ("play.rectangle.fill", L("Ver en YouTube")) }
+        return ("link", L("Ver enlace"))
     }
 
     private var categoryLabel: String? {

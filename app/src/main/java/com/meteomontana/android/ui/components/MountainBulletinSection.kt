@@ -107,12 +107,12 @@ fun MountainBulletinSection(bulletin: MountainBulletin) {
                 Modifier.padding(Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                BulletinRow("CIELO", bulletin.texts["nubosidad"])
-                BulletinRow("PRECIPITACIONES", bulletin.texts["pcp"])
-                BulletinRow("TORMENTAS", bulletin.texts["tormentas"],
+                BulletinRow(stringResource(R.string.w_sky_caps), bulletin.texts["nubosidad"])
+                BulletinRow(stringResource(R.string.w_precip_caps), bulletin.texts["pcp"])
+                BulletinRow(stringResource(R.string.w_storms_caps), bulletin.texts["tormentas"],
                     highlight = alert != null)
-                BulletinRow("TEMPERATURAS", bulletin.texts["temperatura"])
-                BulletinRow("VIENTO", bulletin.texts["viento"])
+                BulletinRow(stringResource(R.string.w_temps_caps), bulletin.texts["temperatura"])
+                BulletinRow(stringResource(R.string.w_wind_caps), bulletin.texts["viento"])
 
                 // Atmósfera libre como chips mono (isoterma y viento en altura).
                 val chips = listOfNotNull(

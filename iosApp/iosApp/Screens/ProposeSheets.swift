@@ -21,8 +21,8 @@ struct AssignSectorSheet: View {
                 VStack(alignment: .leading, spacing: 14) {
                     let options = sectors.filter { $0.id != block.sectorBlockId }
                     Text(block.sectorBlockId == nil
-                         ? "Elige el sector (zona) al que pertenece «\(block.name)». Un admin lo revisará."
-                         : "Elige el nuevo sector (zona) de «\(block.name)». Un admin lo revisará.")
+                         ? L("Elige el sector (zona) al que pertenece «%@». Un admin lo revisará.", block.name)
+                         : L("Elige el nuevo sector (zona) de «%@». Un admin lo revisará.", block.name))
                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
                     if options.isEmpty {
                         Text("Esta escuela solo tiene este sector. Crea otro con «+ PROPONER → SECTOR» para poder cambiarlo.")
@@ -40,7 +40,7 @@ struct AssignSectorSheet: View {
                         }.buttonStyle(.plain).disabled(sending)
                     }
                     if let sendError {
-                        Text(sendError + " Toca un sector para reintentar.")
+                        Text(sendError + L(" Toca un sector para reintentar."))
                             .font(.system(size: 12)).foregroundStyle(Cumbre.bad)
                     }
                     if sending { ProgressView().frame(maxWidth: .infinity) }
@@ -66,7 +66,7 @@ struct AssignSectorSheet: View {
         let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
         sending = false
         if ok { dismiss(); onDone(true) }
-        else { sendError = "No se pudo enviar. Revisa la conexión." }
+        else { sendError = L("No se pudo enviar. Revisa la conexión.") }
     }
 }
 
@@ -115,13 +115,13 @@ struct WallTraceSheet: View {
                 .ignoresSafeArea(edges: .bottom)
 
                 VStack(spacing: 8) {
-                    Text("✎ TRAZA EL MURO · \(points.count) PUNTOS · TOCA LA BASE DEL MURO")
+                    Text(L("✎ TRAZA EL MURO · %@ PUNTOS · TOCA LA BASE DEL MURO", points.count))
                         .font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(10).background(Cumbre.terraFill)
                     // Toggle satélite / topográfico (antes estaba fijo).
                     HStack(spacing: 8) {
-                        ForEach([("satellite", "SATÉLITE"), ("topo", "TOPO")], id: \.0) { value, label in
+                        ForEach([("satellite", L("SATÉLITE")), ("topo", L("TOPO"))], id: \.0) { value, label in
                             let on = style.rawValue == value
                             Button { style = MapStyleKind(rawValue: value) ?? .satellite } label: {
                                 Text(label).font(Cumbre.mono(11, .bold))

@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.util.CalendarLabels
 import android.net.Uri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -182,7 +183,7 @@ fun CreateMeetupScreen(
             }
 
             // Nombre
-            FieldLabel("NOMBRE")
+            FieldLabel(stringResource(R.string.w_name_caps))
             OutlinedTextField(
                 value = name, onValueChange = { name = it },
                 placeholder = { Text(stringResource(R.string.create_meetup_screen_v2_ej_quedar_en_pedriza)) },
@@ -193,7 +194,7 @@ fun CreateMeetupScreen(
             )
 
             // Escuela — buscador
-            FieldLabel("ESCUELA")
+            FieldLabel(stringResource(R.string.w_school_caps))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -227,7 +228,7 @@ fun CreateMeetupScreen(
             )
 
             // Privacidad
-            FieldLabel("PRIVACIDAD")
+            FieldLabel(stringResource(R.string.w_privacy_caps))
             PrivacySelector(selected = privacy, onSelected = { privacy = it })
             if (privacy == "WOMEN") {
                 Text(
@@ -376,7 +377,7 @@ private fun scoreColor(score: Int): androidx.compose.ui.graphics.Color = when {
 
 private fun nextNDays(n: Int): List<Pair<Pair<String, String>, String>> {
     val result = mutableListOf<Pair<Pair<String, String>, String>>()
-    val dayNames = listOf("DOM","LUN","MAR","MIÉ","JUE","VIE","SÁB")
+    val dayNames = CalendarLabels.daysShortSunFirst().map { it.uppercase() }
     // Simple: usamos System.currentTimeMillis para calcular los próximos n días
     val now = System.currentTimeMillis()
     val dayMs = 86_400_000L
@@ -414,10 +415,10 @@ private fun PrivacySelector(selected: String, onSelected: (String) -> Unit) {
 @Composable
 private fun DisciplineSelector(selected: String?, onSelected: (String?) -> Unit) {
     val options = listOf(
-        null to "Cualquiera",
-        "BOULDER" to "Bloque",
+        null to stringResource(R.string.w_any),
+        "BOULDER" to stringResource(R.string.w_boulder),
         "ROUTE" to stringResource(R.string.school_map_v3_via),
-        "BOTH" to "Ambas"
+        "BOTH" to stringResource(R.string.w_both)
     )
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         options.forEach { (key, label) ->

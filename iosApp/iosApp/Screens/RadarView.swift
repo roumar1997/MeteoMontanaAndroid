@@ -161,7 +161,7 @@ struct RadarView: View {
                 HStack {
                     Spacer()
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("LLUVIA \(Int(opacity * 100))%")
+                        Text(L("LLUVIA %@%", Int(opacity * 100)))
                             .font(Cumbre.mono(10, .bold)).tracking(1.4)
                             .foregroundStyle(Cumbre.ink2)
                         Slider(value: $opacity, in: 0.2...1.0)
@@ -223,8 +223,8 @@ struct RadarView: View {
     private var player: some View {
         VStack(spacing: 6) {
             HStack {
-                dayChip("HOY", selected: day == .hoy) { switchDay(.hoy) }
-                dayChip("AYER", selected: day == .ayer) { switchDay(.ayer) }
+                dayChip(L("HOY"), selected: day == .hoy) { switchDay(.hoy) }
+                dayChip(L("AYER"), selected: day == .ayer) { switchDay(.ayer) }
                 Spacer()
                 Text(currentLabel).font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
                 if isNow {
@@ -390,7 +390,7 @@ struct RadarView: View {
             RadarFrameCache.prune()
             if playing { startAnim() } else { frameIndex = max(readyFrames.count - 1, 0) }
         } catch {
-            errorText = "No se pudo cargar el radar. Comprueba tu conexión."
+            errorText = L("No se pudo cargar el radar. Comprueba tu conexión.")
         }
     }
 

@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.share
 
 
+import com.meteomontana.android.util.AppText
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -19,6 +20,7 @@ import coil.request.ImageRequest
 import coil.request.SuccessResult
 import java.io.File
 import com.meteomontana.android.R
+import androidx.compose.ui.res.stringResource
 
 /* Paleta Cumbre (= ShareLineImage) */
 private const val PAPER = 0xFFFAF7F2.toInt()
@@ -178,9 +180,9 @@ private fun renderProfileCard(
 
     // Fila de stats: BLOQUES · VÍAS · ESCUELAS (solo las que tengan dato > 0).
     val statCols = listOfNotNull(
-        boulders?.takeIf { it > 0 }?.let { "$it" to "BLOQUES" },
-        routes?.takeIf { it > 0 }?.let { "$it" to "VÍAS" },
-        schools?.takeIf { it > 0 }?.let { "$it" to "ESCUELAS" }
+        boulders?.takeIf { it > 0 }?.let { "$it" to AppText.get(R.string.w_boulders_caps) },
+        routes?.takeIf { it > 0 }?.let { "$it" to AppText.get(R.string.w_routes_caps) },
+        schools?.takeIf { it > 0 }?.let { "$it" to AppText.get(R.string.w_schools_caps) }
     )
     if (statCols.isNotEmpty()) {
         y += 20f

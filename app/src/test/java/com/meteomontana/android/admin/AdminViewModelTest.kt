@@ -68,6 +68,7 @@ class AdminViewModelTest {
     )
 
     @Before fun setUp() {
+        com.meteomontana.android.EsTextSource.install()
         Dispatchers.setMain(testDispatcher)
         getStats = mockk()
         getPendingSubmissions = mockk()

@@ -1,5 +1,8 @@
 package com.meteomontana.android.ui.screens.day
 
+import com.meteomontana.android.util.CalendarLabels
+import com.meteomontana.android.R
+import com.meteomontana.android.util.AppText
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -63,11 +66,11 @@ class DayDetailViewModel @Inject constructor(
             _state.value = if (forecast == null) {
                 DayDetailUiState.Error(
                     forecastResult.exceptionOrNull()?.toUserMessage()
-                        ?: "Sin datos para este día"
+                        ?: AppText.get(R.string.day_detail_no_data)
                 )
             } else {
                 val day = forecast.days.getOrNull(dayIndex)
-                if (day == null) DayDetailUiState.Error("Día fuera de rango")
+                if (day == null) DayDetailUiState.Error(AppText.get(R.string.day_detail_out_of_range))
                 else {
                     val isoDate = day.date.take(10)
                     val hours = forecast.hours.filter { it.time.take(10) == isoDate }
@@ -82,27 +85,19 @@ class DayDetailViewModel @Inject constructor(
     }
 
     private fun formatTitle(isoDate: String, idx: Int): String {
-        if (idx == 0) return "Hoy"
-        if (idx == 1) return "Mañana"
+        if (idx == 0) return AppText.get(R.string.w_today)
+        if (idx == 1) return AppText.get(R.string.w_tomorrow)
         // "2026-06-08" → "lunes, 8 de junio"
         return try {
             val (y, m, d) = isoDate.take(10).split("-").map { it.toInt() }
             val dayName = dayOfWeekName(y, m, d)
-            "$dayName, $d de ${monthName(m)}"
+            AppText.get(R.string.day_title_format, dayName, d, monthName(m))
         } catch (_: Throwable) { isoDate }
     }
 
     private fun dayOfWeekName(y: Int, m: Int, d: Int): String {
-        // Zeller's congruence
-        val (yr, mo) = if (m < 3) y - 1 to m + 12 else y to m
-        val k = yr % 100
-        val j = yr / 100
-        val h = (d + (13 * (mo + 1)) / 5 + k + k / 4 + j / 4 + 5 * j) % 7
-        return listOf("sábado", "domingo", "lunes", "martes", "miércoles", "jueves", "viernes")[h]
+        return CalendarLabels.daysLongMonFirst()[java.time.LocalDate.of(y, m, d).dayOfWeek.value - 1]
     }
 
-    private fun monthName(m: Int) = listOf(
-        "enero", "febrero", "marzo", "abril", "mayo", "junio",
-        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
-    )[m - 1]
+    private fun monthName(m: Int) = CalendarLabels.monthsLong()[m - 1]
 }

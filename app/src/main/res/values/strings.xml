@@ -1610,4 +1610,187 @@
     <string name="contribution_an_element">un elemento</string>
     <string name="contribution_type_boulder">PIEDRA</string>
     <string name="contribution_type_move">MOVER</string>
+
+    <!-- Quinta pasada: etiquetas de una sola palabra -->
+    <string name="w_proposal_caps">PROPUESTA</string>
+    <string name="w_zone_caps">ZONA</string>
+    <string name="w_boulder_caps">PIEDRA</string>
+    <string name="w_aspect_caps">ORIENTACION</string>
+    <string name="w_sun">Sol</string>
+    <string name="w_shade">Sombra</string>
+    <string name="w_close">Cerrar</string>
+    <string name="w_today">Hoy</string>
+    <string name="w_yesterday">Ayer</string>
+    <string name="w_humidity_caps">HUMEDAD</string>
+    <string name="w_wind_caps">VIENTO</string>
+    <string name="w_clouds_caps">NUBES</string>
+    <string name="w_clear_sky">Despejado</string>
+    <string name="w_overcast">Cubierto</string>
+    <string name="w_comments_caps">COMENTARIOS</string>
+    <string name="w_excellent">Excelente</string>
+    <string name="w_good">Bueno</string>
+    <string name="w_fair">Regular</string>
+    <string name="w_poor">Malo</string>
+    <string name="w_excellent_caps">EXCELENTE</string>
+    <string name="w_good_caps">BUENO</string>
+    <string name="w_fair_caps">REGULAR</string>
+    <string name="w_poor_caps">MALO</string>
+    <string name="w_sky_caps">CIELO</string>
+    <string name="w_precip_caps">PRECIPITACIONES</string>
+    <string name="w_storms_caps">TORMENTAS</string>
+    <string name="w_temps_caps">TEMPERATURAS</string>
+    <string name="w_all_caps">TODAS</string>
+    <string name="w_all">Todas</string>
+    <string name="w_route">Vía</string>
+    <string name="w_boulder">Bloque</string>
+    <string name="w_school_caps">ESCUELA</string>
+    <string name="w_user">Usuario</string>
+    <string name="w_users_caps">USUARIOS</string>
+    <string name="w_notes_caps">NOTAS</string>
+    <string name="w_approved_caps">APROBADAS</string>
+    <string name="w_rejected_caps">RECHAZADAS</string>
+    <string name="w_pending_caps">PENDIENTES</string>
+    <string name="w_comment_caps">COMENTARIO</string>
+    <string name="w_note_caps">NOTA</string>
+    <string name="w_user_caps">USUARIO</string>
+    <string name="w_harassment">Acoso</string>
+    <string name="w_other">Otro</string>
+    <string name="w_name">Nombre</string>
+    <string name="w_grade">Grado</string>
+    <string name="w_variant">Variante</string>
+    <string name="w_type">Tipo</string>
+    <string name="w_current_caps">ACTUAL</string>
+    <string name="w_new_caps">NUEVA</string>
+    <string name="w_resume_caps">REANUDAR</string>
+    <string name="w_pause_caps">PAUSAR</string>
+    <string name="w_group">Grupo</string>
+    <string name="w_unmute">Activar</string>
+    <string name="w_mute">Silenciar</string>
+    <string name="w_compare">Comparar</string>
+    <string name="w_rock_caps">ROCA</string>
+    <string name="w_distance_caps">DISTANCIA</string>
+    <string name="w_rain_caps">LLUVIA</string>
+    <string name="w_sunrise_caps">AMANECER</string>
+    <string name="w_daylight_caps">LUZ</string>
+    <string name="w_sit_start">Sentado</string>
+    <string name="w_dyno">Lance</string>
+    <string name="w_name_caps">NOMBRE</string>
+    <string name="w_retry_caps">REINTENTAR</string>
+    <string name="w_send_caps">ENVIAR</string>
+    <string name="w_privacy_caps">PRIVACIDAD</string>
+    <string name="w_any">Cualquiera</string>
+    <string name="w_both">Ambas</string>
+    <string name="w_discipline_caps">MODALIDAD</string>
+    <string name="w_discipline2_caps">DISCIPLINA</string>
+    <string name="w_open_pl">Abiertas</string>
+    <string name="w_open">Abierta</string>
+    <string name="w_following">Siguiendo</string>
+    <string name="w_date_caps">FECHA</string>
+    <string name="w_grade_caps">GRADO</string>
+    <string name="w_boulder_caps2">BLOQUE</string>
+    <string name="w_logbook">Diario</string>
+    <string name="w_boulders_caps">BLOQUES</string>
+    <string name="w_routes_caps">VÍAS</string>
+    <string name="w_all_caps2">TODO</string>
+    <string name="w_streak_caps">RACHA</string>
+    <string name="w_today_caps">HOY</string>
+    <string name="w_yesterday_caps">AYER</string>
+    <string name="w_pause">Pausar</string>
+    <string name="w_play">Reproducir</string>
+    <string name="w_style_caps">ESTILO</string>
+    <string name="w_approved">Aprobada</string>
+    <string name="w_rejected">Rechazada</string>
+    <string name="w_pending">Pendiente</string>
+    <string name="w_community">Comunidad</string>
+    <string name="w_followers">Seguidores</string>
+    <string name="w_unblock">Desbloquear</string>
+    <string name="w_ascent">Ascenso</string>
+    <string name="w_done_caps">HECHO</string>
+    <string name="w_project_caps">PROYECTO</string>
+    <string name="w_schools_caps">ESCUELAS</string>
+
+    <!-- Calendario y textos de detalle del día -->
+    <string name="w_total">Total</string>
+    <string name="w_tomorrow">Mañana</string>
+    <string name="day_title_format">%1$s, %2$s de %3$s</string>
+    <string name="day_detail_no_data">Sin datos para este día</string>
+    <string name="day_detail_out_of_range">Día fuera de rango</string>
+
+    <!-- Pestañas, orden de escuelas y tipos de roca -->
+    <string name="tab_radar">Radar</string>
+    <string name="tab_feed">Feed</string>
+    <string name="tab_profile">Perfil</string>
+    <string name="sort_best_score">Mejor score</string>
+    <string name="sort_nearest">Más cercanos</string>
+    <string name="w_show_caps_tristate">MOSTRAR</string>
+    <string name="rock_granite">Granito</string>
+    <string name="rock_limestone">Caliza</string>
+    <string name="rock_sandstone">Arenisca</string>
+    <string name="rock_basalt">Basalto</string>
+    <string name="rock_conglomerate">Conglomerado</string>
+    <string name="rock_slate">Pizarra</string>
+
+    <!-- Filtro MOSTRAR -->
+    <string name="w_favourites">Favoritos</string>
+    <string name="w_saved">Guardados</string>
+
+    <!-- Autenticación y canal de notificaciones -->
+    <string name="auth_unsupported_credential">Tipo de credencial no soportado</string>
+    <string name="auth_invalid_token">Token inválido</string>
+    <string name="auth_signin_cancelled">Inicio de sesión cancelado</string>
+    <string name="push_channel_name">Avisos</string>
+    <string name="push_channel_description">Mensajes, propuestas aprobadas, nuevos seguidores</string>
+
+    <!-- Onboarding (tour de primera apertura) -->
+    <string name="onb_1_eyebrow">BIENVENIDO</string>
+    <string name="onb_1_title">Cumbre</string>
+    <string name="onb_1_body">Tiempo para escalar. Te decimos cuándo y dónde se puede escalar, con la roca seca, en 191 escuelas.</string>
+    <string name="onb_2_eyebrow">EL ÍNDICE 0–100</string>
+    <string name="onb_2_title">¿Hoy se puede?</string>
+    <string name="onb_2_body">Un número resume las condiciones de cada escuela: temperatura, humedad, viento, lluvia reciente y cuánto tarda en secar SU tipo de roca (la arenisca tarda días; el granito, horas).</string>
+    <string name="onb_3_eyebrow">MAPA Y TOPOS</string>
+    <string name="onb_3_title">Cada piedra, al detalle</string>
+    <string name="onb_3_body">Abre una escuela y verás parkings, sectores y piedras en el mapa. Toca una piedra y aparece su foto con las VÍAS dibujadas, su grado y cómo llegar.</string>
+    <string name="onb_4_eyebrow">PLANIFICA EL FINDE</string>
+    <string name="onb_4_title">La mejor ventana</string>
+    <string name="onb_4_body">Ventana óptima del día, mejor día de la semana, comparador de escuelas y selector de días para decidir adónde ir.</string>
+    <string name="onb_5_eyebrow">FAVORITAS Y ALERTAS</string>
+    <string name="onb_5_title">No te pierdas el buen día</string>
+    <string name="onb_5_body">Marca tus escuelas favoritas, míralas de un vistazo en el widget de inicio y activa la alerta para que te avise cuando vaya a haber buena ventana.</string>
+    <string name="onb_6_eyebrow">TU DIARIO</string>
+    <string name="onb_6_title">Lleva la cuenta</string>
+    <string name="onb_6_body">Marca las vías que encadenas: la app guarda tu diario con tus estadísticas y tu grado máximo, escuela por escuela.</string>
+    <string name="onb_7_eyebrow">SUMA A LA GUÍA</string>
+    <string name="onb_7_title">Comunidad</string>
+    <string name="onb_7_body">Propón escuelas, piedras y sectores nuevos y deja notas con foto. Un admin las revisa antes de publicarlas para toda la comunidad.</string>
+    <string name="onb_8_eyebrow">PERFIL, GENTE Y CHAT</string>
+    <string name="onb_8_title">Conecta</string>
+    <string name="onb_8_body">Crea tu perfil, busca y sigue a otros escaladores, mira sus diarios y chatea 1 a 1. Las notificaciones te avisan de seguidores y mensajes.</string>
+    <string name="onb_9_eyebrow">OFFLINE + UBICACIÓN</string>
+    <string name="onb_9_title">Listo para el monte</string>
+    <string name="onb_9_body">Guarda escuelas para verlas SIN cobertura. Te pediremos la ubicación solo para ordenar por cercanía y centrar el mapa: se usa en tu móvil, nunca se comparte.</string>
+    <string name="onb_next">SIGUIENTE</string>
+    <string name="onb_allow_location_start">PERMITIR UBICACIÓN Y EMPEZAR</string>
+
+    <!-- Presencia, material de quedada y contador -->
+    <string name="presence_error_remove">No se pudo quitar la presencia. Comprueba tu conexión.</string>
+    <string name="presence_error_mark">No se pudo marcar la presencia. Comprueba tu conexión.</string>
+    <string name="gear_quickdraws">Cintas</string>
+    <string name="gear_ropes">Cuerdas</string>
+    <string name="w_more">Más</string>
+
+    <!-- Detalle de quedada -->
+    <string name="w_organizer">Organizador</string>
+    <string name="w_less">Menos</string>
+
+    <!-- Selector de idioma y orientaciones -->
+    <string name="settings_language">Idioma</string>
+    <string name="language_dialog_title">Idioma de la app</string>
+    <string name="language_system">Automático (idioma del móvil)</string>
+    <string name="language_es">Español</string>
+    <string name="language_en">English</string>
+    <string name="aspect_sw">SO</string>
+    <string name="aspect_w">O</string>
+    <string name="aspect_nw">NO</string>
+    <string name="aspect_wall">PARED %1$s</string>
 </resources>

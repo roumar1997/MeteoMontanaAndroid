@@ -28,7 +28,7 @@ final class LineCommentsStore: ObservableObject {
     }
 
     func add(blockId: String, lineId: String?, text: String) async {
-        if let created = await reporting("No se pudo enviar el comentario", {
+        if let created = await reporting(L("No se pudo enviar el comentario"), {
             try await container.addLineComment.invoke(blockId: blockId, lineId: lineId, text: text)
         }) {
             comments.append(created)
@@ -36,7 +36,7 @@ final class LineCommentsStore: ObservableObject {
     }
 
     func vote(commentId: String, value: Int) async {
-        guard let myVote = await reporting("No se pudo registrar el voto", {
+        guard let myVote = await reporting(L("No se pudo registrar el voto"), {
             try await container.voteLineComment.invoke(commentId: commentId, value: Int32(value))
         }) else { return }
         comments = comments.map { c in
@@ -53,7 +53,7 @@ final class LineCommentsStore: ObservableObject {
     }
 
     func delete(commentId: String) async {
-        guard await reporting("No se pudo borrar el comentario", {
+        guard await reporting(L("No se pudo borrar el comentario"), {
             try await container.deleteLineComment.invoke(commentId: commentId)
         }) != nil else { return }
         comments.removeAll { $0.id == commentId }
@@ -171,7 +171,7 @@ struct LineCommentsThreadView: View {
             }
         }
         .sheet(item: $reportTarget) { c in
-            ReportSheet(title: "DENUNCIAR COMENTARIO", authorLabel: c.author) { reason, alsoBlock in
+            ReportSheet(title: L("DENUNCIAR COMENTARIO"), authorLabel: c.author) { reason, alsoBlock in
                 moderation.report(targetType: "COMMENT", targetId: c.id, reason: reason,
                                   alsoBlockUid: alsoBlock ? c.uid : nil)
             }

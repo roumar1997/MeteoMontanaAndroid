@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.users
 
+import com.meteomontana.android.util.CalendarLabels
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -70,12 +72,8 @@ data class RankingScope(val year: Int? = null, val month: Int? = null) {
     }
 }
 
-private val SPANISH_MONTHS_ABBR = listOf(
-    "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
-)
-
 fun RankingScope.label(): String =
-    if (isTotal) "Total" else SPANISH_MONTHS_ABBR[(month!! - 1).coerceIn(0, 11)]
+    if (isTotal) AppText.get(R.string.w_total) else CalendarLabels.monthsShort()[(month!! - 1).coerceIn(0, 11)]
 
 @HiltViewModel
 class CommunityViewModel @Inject constructor(
@@ -126,7 +124,7 @@ fun CommunityScreen(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
     ) {
         if (showHeader) {
-            com.meteomontana.android.ui.components.SheetHeader("Comunidad", onClose = onBack)
+            com.meteomontana.android.ui.components.SheetHeader(stringResource(R.string.w_community), onClose = onBack)
         }
         Text(
             stringResource(R.string.community_screen_v2_mayores_contribuidores),

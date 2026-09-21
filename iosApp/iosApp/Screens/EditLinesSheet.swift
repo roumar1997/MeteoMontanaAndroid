@@ -133,7 +133,7 @@ struct EditLinesSheet: View {
     /// Vía plegada: una sola línea con lo justo para reconocerla.
     @ViewBuilder private func viaCompacta(idx: Int, via: BoulderBlockForm) -> some View {
         let titulo = via.name.trimmingCharacters(in: .whitespaces).isEmpty
-            ? "Sin nombre" : via.name
+            ? L("Sin nombre") : via.name
         HStack(spacing: 8) {
             Text("\(wallNumber(idx) ?? idx + 1)").font(Cumbre.mono(11, .bold))
                 .foregroundStyle(GradeColor.chipStyle(via.grade).dark ? .black : .white)
@@ -165,7 +165,7 @@ struct EditLinesSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Edita «\(block.name)»: corrige o añade vías, añade más fotos, reordénalas y ajusta el muro. Un admin lo revisará.")
+                    Text(L("Edita «%@»: corrige o añade vías, añade más fotos, reordénalas y ajusta el muro. Un admin lo revisará.", block.name))
                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
 
                     // ── Modalidad (Bloque/Vía) ────────────────────────────────────
@@ -177,17 +177,17 @@ struct EditLinesSheet: View {
                     // ── Geometría / sentido ───────────────────────────────────────
                     VStack(alignment: .leading, spacing: 6) {
                         Text(NSLocalizedString("propose_geometry", comment: "")).eyebrow()
-                        WallSeg(options: [("POINT", "PUNTO"), ("LINE", "MURO")], selected: $geometry)
+                        WallSeg(options: [("POINT", L("PUNTO")), ("LINE", L("MURO"))], selected: $geometry)
                     }
                     if isWall {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("SENTIDO DE NUMERACIÓN").eyebrow()
-                            WallSeg(options: [("LTR", "IZQ → DER"), ("RTL", "DER → IZQ")], selected: $direction)
+                            WallSeg(options: [("LTR", L("IZQ → DER")), ("RTL", L("DER → IZQ"))], selected: $direction)
                         }
                         Button { showTrace = true } label: {
                             Text(tracedPath.isEmpty
-                                 ? (parseWallPath(block.path).isEmpty ? "✎ TRAZAR EL MURO EN EL MAPA" : "✎ RE-TRAZAR EL MURO EN EL MAPA")
-                                 : "✓ MURO TRAZADO (\(tracedPath.count) PUNTOS) · RE-TRAZAR")
+                                 ? (parseWallPath(block.path).isEmpty ? "✎ TRAZAR EL MURO EN EL MAPA" : L("✎ RE-TRAZAR EL MURO EN EL MAPA"))
+                                 : L("✓ MURO TRAZADO (%@ PUNTOS) · RE-TRAZAR", tracedPath.count))
                                 .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
                                 .lineLimit(1).minimumScaleFactor(0.8)
                                 .frame(maxWidth: .infinity).padding(.vertical, 10)
@@ -261,12 +261,12 @@ struct EditLinesSheet: View {
                     // ── Orientación (voto inmediato, no pasa por el admin) ────────
                     HStack(spacing: 8) {
                         VotableChip(text: community.summaryFor(nil)?.consensus
-                                    .map { "PIEDRA MIRA AL " + $0 } ?? "ORIENTAR LA PIEDRA") {
+                                    .map { L("PIEDRA MIRA AL %@", aspectLabel($0)) } ?? L("ORIENTAR LA PIEDRA")) {
                             orientationTarget = OrientationTarget(photoIndex: nil)
                         }
                         if facePhotos.count > 1 {
                             VotableChip(text: community.summaryFor(faceIdx)?.consensus
-                                        .map { "CARA \(faceIdx + 1): " + $0 } ?? "ORIENTAR ESTA CARA") {
+                                        .map { L("CARA %@: %@", faceIdx + 1, aspectLabel($0)) } ?? L("ORIENTAR ESTA CARA")) {
                                 orientationTarget = OrientationTarget(photoIndex: faceIdx)
                             }
                         }
@@ -284,8 +284,8 @@ struct EditLinesSheet: View {
                             .clipShape(RoundedRectangle(cornerRadius: 10))
                             .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.rule, lineWidth: 1))
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(facePicked[faceIdx] != nil ? "Foto nueva sin enviar"
-                                 : (hasPhoto ? "Foto actual de la cara \(faceIdx + 1)" : "Esta cara no tiene foto"))
+                            Text(facePicked[faceIdx] != nil ? L("Foto nueva sin enviar")
+                                 : (hasPhoto ? L("Foto actual de la cara %@", faceIdx + 1) : L("Esta cara no tiene foto")))
                                 .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
                             if facePicked[faceIdx] != nil {
                                 Text("Redibuja las líneas sobre ella.")
@@ -294,7 +294,7 @@ struct EditLinesSheet: View {
                         }
                         Spacer()
                         Button { eligiendoOrigenFoto = true } label: {
-                            Text(facePicked[faceIdx] == nil ? "CAMBIAR" : "OTRA")
+                            Text(facePicked[faceIdx] == nil ? L("CAMBIAR") : L("OTRA"))
                                 .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
                                 .padding(.horizontal, 12).padding(.vertical, 8)
                                 .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
@@ -322,7 +322,7 @@ struct EditLinesSheet: View {
                     // añadir la quinta vía no obliga a scrollear los cuatro
                     // formularios anteriores (Álvaro, 2026-08-24).
                     if faceBlocks.indices.contains(faceIdx) {
-                        Text("VÍAS EN ESTA FOTO (\(faceBlocks[faceIdx].count))").eyebrow()
+                        Text(L("VÍAS EN ESTA FOTO (%@)", faceBlocks[faceIdx].count)).eyebrow()
                         ForEach(Array(faceBlocks[faceIdx].enumerated()), id: \.element.id) { idx, via in
                             if via.id == expandedVia {
                                 VStack(alignment: .leading, spacing: 8) {
@@ -398,7 +398,7 @@ struct EditLinesSheet: View {
                         Task { await send() }
                     } label: {
                         if sending { ProgressView().tint(.white) }
-                        else { Text(sendError != nil ? "REINTENTAR" : "ENVIAR")
+                        else { Text(sendError != nil ? L("REINTENTAR") : L("ENVIAR"))
                             .font(Cumbre.mono(11, .bold)).tracking(0.6) }
                     }
                     .buttonStyle(.borderedProminent).tint(Cumbre.terraFill)
@@ -535,7 +535,7 @@ struct EditLinesSheet: View {
                     facePicked[idx] = img
                     sendError = nil
                 } else {
-                    sendError = "No se pudo cargar la foto elegida (¿está en iCloud?). Elígela otra vez."
+                    sendError = L("No se pudo cargar la foto elegida (¿está en iCloud?). Elígela otra vez.")
                 }
                 pickerItem = nil   // permite volver a elegir la MISMA foto
             }
@@ -546,8 +546,7 @@ struct EditLinesSheet: View {
             Button("Reintentar ahora") { Task { await send() } }
             Button("Cancelar", role: .cancel) { }
         } message: {
-            Text("Puedes guardarlo en este móvil y se enviará solo en cuanto recuperes cobertura. "
-                 + "Tus vías y fotos no se pierden.")
+            Text("Puedes guardarlo en este móvil y se enviará solo en cuanto recuperes cobertura. Tus vías y fotos no se pierden.")
         }
         .sheet(isPresented: $showEditor) {
             // Solo las vías de ESTA cara, sobre SU foto (la nueva si la cambiaste).

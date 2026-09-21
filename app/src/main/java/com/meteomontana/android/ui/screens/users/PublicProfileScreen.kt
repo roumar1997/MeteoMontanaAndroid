@@ -220,7 +220,7 @@ fun PublicProfileScreen(
                             onClick = { menuOpen = false; showReport = true })
                         val isBlocked = profileUid in blocked
                         androidx.compose.material3.DropdownMenuItem(
-                            text = { Text(if (isBlocked) "Desbloquear"
+                            text = { Text(if (isBlocked) stringResource(R.string.w_unblock)
                                           else stringResource(R.string.public_profile_screen_v3_bloquear_no_veras_su_contenido),
                                           color = if (isBlocked) MaterialTheme.colorScheme.onSurface
                                                   else MaterialTheme.colorScheme.error) },
@@ -317,7 +317,7 @@ private fun Body(
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
             }
             Spacer(Modifier.height(12.dp))
-            Text(p.displayName ?: p.username ?: "Usuario",
+            Text(p.displayName ?: p.username ?: stringResource(R.string.w_user),
                 fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 28.sp,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center)

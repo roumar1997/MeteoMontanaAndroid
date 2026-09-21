@@ -124,16 +124,16 @@ struct CompareView: View {
                     }
                 }
                 let rows: [(String, [String], Set<Int>)] = [
-                    ("ROCA", items.map { $0.rockType?.capitalized ?? "—" },
+                    (L("ROCA"), items.map { $0.rockType?.capitalized ?? "—" },
                         Set(items.indices.filter { items[$0].dryRock })),
-                    ("DISTANCIA", items.map { $0.distanceKm.map { "\(Int($0)) km" } ?? "—" },
+                    (L("DISTANCIA"), items.map { $0.distanceKm.map { "\(Int($0)) km" } ?? "—" },
                         minIdx(items.map { $0.distanceKm })),
-                    ("TEMP", items.map { "\($0.temp)°" }, []),
-                    ("VIENTO", items.map { "\($0.wind) km/h" }, minIdx(items.map { Double($0.wind) })),
-                    ("HUMEDAD", items.map { "\($0.humidity)%" }, minIdx(items.map { Double($0.humidity) })),
-                    ("PROB. LLUVIA", items.map { "\($0.rainProb)%" }, minIdx(items.map { Double($0.rainProb) })),
-                    ("ÓPTIMO", items.map { $0.optimal ?? "—" }, []),
-                    ("MEJOR DÍA", items.map { $0.bestDay ?? "—" }, [])
+                    (L("TEMP"), items.map { "\($0.temp)°" }, []),
+                    (L("VIENTO"), items.map { "\($0.wind) km/h" }, minIdx(items.map { Double($0.wind) })),
+                    (L("HUMEDAD"), items.map { "\($0.humidity)%" }, minIdx(items.map { Double($0.humidity) })),
+                    (L("PROB. LLUVIA"), items.map { "\($0.rainProb)%" }, minIdx(items.map { Double($0.rainProb) })),
+                    (L("ÓPTIMO"), items.map { $0.optimal ?? "—" }, []),
+                    (L("MEJOR DÍA"), items.map { $0.bestDay ?? "—" }, [])
                 ]
                 VStack(spacing: 0) {
                     ForEach(Array(rows.enumerated()), id: \.offset) { idx, r in

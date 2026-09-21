@@ -132,7 +132,7 @@ struct NotesSectionView: View {
             NotePhotoSheet(note: n)
         }
         .sheet(item: $reportNote) { n in
-            ReportSheet(title: "DENUNCIAR NOTA", authorLabel: n.author ?? "usuario") { reason, alsoBlock in
+            ReportSheet(title: L("DENUNCIAR NOTA"), authorLabel: n.author ?? "usuario") { reason, alsoBlock in
                 moderation.report(targetType: "NOTE", targetId: n.id, reason: reason,
                                   alsoBlockUid: alsoBlock ? n.uid : nil)
             }

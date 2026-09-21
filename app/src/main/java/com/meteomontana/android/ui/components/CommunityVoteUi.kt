@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.components
 
 
+import com.meteomontana.android.util.CatalogLabels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -126,7 +127,7 @@ fun OrientationVoteContent(
                 CompassDial(rumbo)
                 Text(
                     stringResource(R.string.community_vote_ui_v2_estas_mirando_al,
-                        com.meteomontana.android.domain.util.Aspect.fromDegrees(rumbo),
+                        CatalogLabels.aspect(com.meteomontana.android.domain.util.Aspect.fromDegrees(rumbo)),
                         com.meteomontana.android.domain.util.Aspect.degreesLabel(rumbo)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -158,7 +159,7 @@ private fun AspectChip(aspect: String, selected: Boolean, onClick: () -> Unit) {
             .padding(horizontal = 12.dp, vertical = 7.dp)
     ) {
         Text(
-            aspect + if (selected) " ✓" else "",
+            CatalogLabels.aspect(aspect) + if (selected) " ✓" else "",
             style = EyebrowTextStyle.copy(fontSize = 11.sp),
             color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface
         )
@@ -240,7 +241,7 @@ fun SunStrip(sun: SunHours, modifier: Modifier = Modifier) {
             Text(stringResource(R.string.community_vote_ui_sol_en_esta_pared), style = EyebrowTextStyle.copy(fontSize = 10.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                LegendDot(Color(0xFFE8B84B), "Sol"); LegendDot(Color(0xFF3D4A5C), "Sombra")
+                LegendDot(Color(0xFFE8B84B), stringResource(R.string.w_sun)); LegendDot(Color(0xFF3D4A5C), stringResource(R.string.w_shade))
             }
         }
         Row(

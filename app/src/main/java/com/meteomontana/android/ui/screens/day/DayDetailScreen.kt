@@ -180,7 +180,7 @@ private fun ConditionsTable(day: DayForecast, hoursOfDay: List<HourForecast>) {
         ) {
             Cell(stringResource(R.string.day_detail_screen_v3_max), "${day.tempMax.toInt()}°", Modifier.weight(1f))
             Cell(stringResource(R.string.day_detail_screen_v3_min), "${day.tempMin.toInt()}°", Modifier.weight(1f))
-            Cell("VIENTO", "${windMax.toInt()}", Modifier.weight(1f))
+            Cell(stringResource(R.string.w_wind_caps), "${windMax.toInt()}", Modifier.weight(1f))
             Cell("UV", "—", Modifier.weight(1f))
         }
         Row(
@@ -188,10 +188,10 @@ private fun ConditionsTable(day: DayForecast, hoursOfDay: List<HourForecast>) {
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp)),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Cell("LLUVIA", "%.1f mm".format(day.precipitationTotal), Modifier.weight(1f))
+            Cell(stringResource(R.string.w_rain_caps), "%.1f mm".format(day.precipitationTotal), Modifier.weight(1f))
             Cell("PROB.", "${rainProbMax}%", Modifier.weight(1f))
-            Cell("AMANECER", "—", Modifier.weight(1f))
-            Cell("LUZ", "—", Modifier.weight(1f))
+            Cell(stringResource(R.string.w_sunrise_caps), "—", Modifier.weight(1f))
+            Cell(stringResource(R.string.w_daylight_caps), "—", Modifier.weight(1f))
         }
     }
 }

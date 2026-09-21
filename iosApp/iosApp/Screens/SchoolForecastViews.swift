@@ -35,11 +35,11 @@ struct ForecastBodyView: View {
                 mapSlot
                 rule
             }
-            SectionTitle("PRÓXIMAS 16 HORAS")
+            SectionTitle(L("PRÓXIMAS 16 HORAS"))
             HoursGrid(hours: upcomingHours(f.hours, 16)).padding(.vertical, 8)
             ConditionsGrid(current: f.current)
             rule
-            SectionTitle("PRÓXIMOS 7 DÍAS")
+            SectionTitle(L("PRÓXIMOS 7 DÍAS"))
             ForEach(Array(f.days.prefix(7).enumerated()), id: \.offset) { _, d in
                 Button { onSelectDay?(d) } label: { DayRow(day: d) }.buttonStyle(.plain)
                 rule
@@ -66,7 +66,7 @@ private struct HeroSection: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("¿PUEDO ESCALAR HOY?").eyebrow()
                 if let w = forecast.bestWindow {
-                    Text("Óptimo entre \(short(w.start))–\(short(w.end))")
+                    Text(L("Óptimo entre %@–%@", short(w.start), short(w.end)))
                         .font(.system(size: 16)).foregroundStyle(Cumbre.ink)
                 }
             }
@@ -93,7 +93,7 @@ private struct RockStatusBand: View {
     var body: some View {
         let dry = current.dryRock
         let accent = dry ? Cumbre.ok : Cumbre.bad
-        let subtitle = current.drying?.message ?? (dry ? "Lista para escalar" : "Mejor esperar a que seque")
+        let subtitle = current.drying?.message ?? (dry ? L("Lista para escalar") : L("Mejor esperar a que seque"))
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(dry ? "● ROCA SECA" : "● ROCA HÚMEDA")
@@ -171,7 +171,7 @@ private struct CurrentWeather: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(cloudLabel(Int(current.cloudCover)))
                     .font(.system(size: 17, weight: .semibold)).foregroundStyle(Cumbre.ink)
-                Text("VIENTO \(Int(current.windSpeed)) km/h  ·  HUM \(Int(current.humidity))%")
+                Text(L("VIENTO %@ km/h  ·  HUM %@%", Int(current.windSpeed), Int(current.humidity)))
                     .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
             }
             Spacer()
@@ -220,18 +220,18 @@ private struct ConditionsGrid: View {
     var body: some View {
         let c = current
         VStack(alignment: .leading, spacing: 8) {
-            SectionTitle("CONDICIONES AHORA").padding(.horizontal, 0)
+            SectionTitle(L("CONDICIONES AHORA")).padding(.horizontal, 0)
             HStack(spacing: 8) {
-                cell("HUMEDAD", "\(Int(c.humidity))", "%")
-                cell("VIENTO", "\(Int(c.windSpeed))", "km/h")
-                cell("LLUVIA 24H", trim(c.precip24h), "mm")
-                cell("NUBES", "\(Int(c.cloudCover))", "%")
+                cell(L("HUMEDAD"), "\(Int(c.humidity))", "%")
+                cell(L("VIENTO"), "\(Int(c.windSpeed))", "km/h")
+                cell(L("LLUVIA 24H"), trim(c.precip24h), "mm")
+                cell(L("NUBES"), "\(Int(c.cloudCover))", "%")
             }
             HStack(spacing: 8) {
-                cell("LLUVIA 72H", trim(c.precip72h), "mm")
-                cell("ROCÍO", c.dewPoint.map { "\(Int(truncating: $0))" } ?? "—", "°")
-                cell("PROB LLUVIA", "\(Int(c.precipitationProbability))", "%")
-                cell("ROCA", c.dryRock ? "SECA" : "HÚM", "")
+                cell(L("LLUVIA 72H"), trim(c.precip72h), "mm")
+                cell(L("ROCÍO"), c.dewPoint.map { "\(Int(truncating: $0))" } ?? "—", "°")
+                cell(L("PROB LLUVIA"), "\(Int(c.precipitationProbability))", "%")
+                cell(L("ROCA"), c.dryRock ? L("SECA") : L("HÚM"), "")
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
@@ -263,7 +263,7 @@ private struct DayRow: View {
                 .frame(width: 40, alignment: .leading)
             VStack(alignment: .leading, spacing: 2) {
                 Text(dayLabel(day.date)).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
-                Text("MÁX \(Int(day.tempMax))°  ·  MÍN \(Int(day.tempMin))°  ·  \(trim(day.precipitationTotal)) mm")
+                Text(L("MÁX %@°  ·  MÍN %@°  ·  %@ mm", Int(day.tempMax), Int(day.tempMin), trim(day.precipitationTotal)))
                     .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
             }
             Spacer()
@@ -289,7 +289,7 @@ private let dayInFormatter: DateFormatter = {
     let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
 }()
 private let dayOutFormatter: DateFormatter = {
-    let f = DateFormatter(); f.locale = Locale(identifier: "es_ES"); f.dateFormat = "EEE d MMM"; return f
+    let f = DateFormatter(); f.locale = LanguageManager.shared.locale; f.dateFormat = "EEE d MMM"; return f
 }()
 
 private func upcomingHours(_ hours: [HourForecast], _ count: Int) -> [HourForecast] {
@@ -308,10 +308,10 @@ private func trim(_ d: Double) -> String {
 
 private func cloudLabel(_ c: Int) -> String {
     switch c {
-    case ..<20: return "Despejado"
-    case ..<50: return "Parcialmente nublado"
-    case ..<80: return "Mayormente nublado"
-    default:    return "Cubierto"
+    case ..<20: return L("Despejado")
+    case ..<50: return L("Parcialmente nublado")
+    case ..<80: return L("Mayormente nublado")
+    default:    return L("Cubierto")
     }
 }
 

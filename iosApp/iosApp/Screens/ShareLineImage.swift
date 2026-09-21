@@ -29,8 +29,8 @@ enum ShareLineImage {
                       setterGradeRef: String? = nil) async {
         // C6: escuela + pared votada + grado del equipador si diverge.
         let subtitleBits = [schoolName,
-                            orientationBadge.map { "PARED " + $0 },
-                            setterGradeRef.map { "equipador: " + $0 }]
+                            orientationBadge.map { L("PARED %@", aspectLabel($0)) },
+                            setterGradeRef.map { L("equipador: %@", $0) }]
             .compactMap { $0 }.filter { !$0.isEmpty }
         let headerSchool = subtitleBits.isEmpty ? schoolName : subtitleBits.joined(separator: "  ·  ")
         if let image = await renderCard(block: block, line: line, schoolName: headerSchool,
@@ -97,7 +97,7 @@ enum ShareLineImage {
 
             // ── Cabecera ────────────────────────────────────────────────────
             let kind = block.discipline.uppercased() == "ROUTE" ? "VÍA" : "BLOQUE"
-            drawText("\(kind) EN CUMBRE", at: CGRect(x: pad, y: 60, width: availW, height: 44),
+            drawText(L("%@ EN CUMBRE", kind), at: CGRect(x: pad, y: 60, width: availW, height: 44),
                      font: mono(30, bold: true), color: terra, kern: 4, align: .left)
 
             // Nombre de la PIEDRA (serif grande, hasta 2 líneas con elipsis).
@@ -142,7 +142,7 @@ enum ShareLineImage {
                 // Estado a la derecha (reserva su ancho).
                 var rightLimit = w - pad
                 let status: (String, UIColor)? =
-                    tickedIds.contains(l.id) ? ("HECHO", green)
+                    tickedIds.contains(l.id) ? (L("HECHO"), green)
                     : projectIds.contains(l.id) ? ("PROYECTO", terra) : nil
                 if let (label, col) = status {
                     let sFont = mono(30, bold: true)
@@ -159,7 +159,7 @@ enum ShareLineImage {
                 let gradeW: CGFloat = gradeTxt != nil
                     ? (gradeTxt! as NSString).size(withAttributes: [.font: gradeFont]).width + 18 : 0
                 let tx = pad + 56
-                let nm = (l.name?.isEmpty == false) ? l.name! : "Vía \(idx + 1)"
+                let nm = (l.name?.isEmpty == false) ? l.name! : L("Vía %@", idx + 1)
                 drawText(nm, at: CGRect(x: tx, y: listY, width: rightLimit - tx - gradeW, height: 48),
                          font: nameFont, color: ink, kern: 0, align: .left)
                 if let g = gradeTxt {
@@ -169,7 +169,7 @@ enum ShareLineImage {
                 listY += rowH
             }
             if lines.count > maxRows {
-                drawText("+\(lines.count - maxRows) vías más",
+                drawText(L("+%@ vías más", lines.count - maxRows),
                          at: CGRect(x: pad + 56, y: listY, width: availW - 56, height: 48),
                          font: UIFont.systemFont(ofSize: 32), color: inkSoft, kern: 0, align: .left)
                 listY += rowH
@@ -266,7 +266,7 @@ enum ShareLineImage {
     private static func shareLineText(block: Block, line: BlockLine, schoolName: String?,
                                       sectorName: String? = nil, appWording: Bool = false) -> String {
         let isRoute = block.discipline.uppercased() == "ROUTE"
-        let kind = isRoute ? "vía" : "bloque"
+        let kind = isRoute ? L("vía") : "bloque"
         let article = isRoute ? "esta" : "este"
         let grade = (line.grade?.isEmpty == false) ? " \(line.grade!)" : ""
         var place = block.name
@@ -274,8 +274,8 @@ enum ShareLineImage {
         if let sec = sectorName, !sec.isEmpty { place += " · \(sec)" }
         let base = AppConfig.apiBaseUrl.replacingOccurrences(of: "api/", with: "")
         let link = "\(base)s/v/\(block.schoolId)/\(line.id)"
-        let cta = appWording ? "👉 Míralo en la app:" : "👉 Míralo en Cumbre (foto con la línea dibujada):"
-        return "🧗 Mira \(article) \(kind): «\(line.name)»\(grade)\n"
+        let cta = appWording ? L("👉 Míralo en la app:") : L("👉 Míralo en Cumbre (foto con la línea dibujada):")
+        return L("🧗 Mira %@ %@: «%@»%@\n", article, kind, line.name, grade)
             + "📍 \(place)\n"
             + "\(cta)\n\(link)"
     }

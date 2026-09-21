@@ -341,7 +341,7 @@ struct SubmitBlockPhotoFlow: View {
                         return
                     }
                     guard let img = await PhotoExifReader.readImagen(result) else {
-                        aviso = "No se pudo leer esta foto. Prueba con otra."
+                        aviso = L("No se pudo leer esta foto. Prueba con otra.")
                         return
                     }
                     pendienteImagen = img.image
@@ -360,7 +360,7 @@ struct SubmitBlockPhotoFlow: View {
                         lat1: donde.lat, lon1: donde.lon,
                         lat2: fijada.lat, lon2: fijada.lon)
                     if km > PhotoPlacement.shared.RADIO_ESCUELA_KM {
-                        aviso = "Esa foto se hizo a \(Int(km)) km de \(fijada.name). Elige una foto tomada en esta escuela."
+                        aviso = L("Esa foto se hizo a %@ km de %@. Elige una foto tomada en esta escuela.", Int(km), fijada.name)
                         return
                     }
                     PhotoProposalSeedStore.shared.put(.init(
@@ -411,9 +411,7 @@ private struct SchoolPickerForPhoto: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Esta foto no trae ubicación (frecuente si llegó por WhatsApp — "
-                     + "borra esos datos al reenviarla). Elige la escuela y coloca "
-                     + "el punto a mano en el mapa.")
+                Text("Esta foto no trae ubicación (frecuente si llegó por WhatsApp — borra esos datos al reenviarla). Elige la escuela y coloca el punto a mano en el mapa.")
                     .font(.system(size: 13))
                     .foregroundStyle(Cumbre.ink2)
                     .padding(.horizontal, 16).padding(.top, 8)
@@ -421,7 +419,7 @@ private struct SchoolPickerForPhoto: View {
                     Text(escuela.name)
                         .onTapGesture { onPick(escuela) }
                 }
-                .searchable(text: $query, prompt: "Buscar escuela…")
+                .searchable(text: $query, prompt: L("Buscar escuela…"))
                 .listStyle(.plain)
             }
             .navigationTitle("¿En qué escuela es?")

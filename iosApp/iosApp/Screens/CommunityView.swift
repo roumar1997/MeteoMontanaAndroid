@@ -11,10 +11,10 @@ enum RankingScope: Hashable {
 
     var label: String {
         switch self {
-        case .total: return "Total"
+        case .total: return L("Total")
         case .month(let y, let m):
             let df = DateFormatter()
-            df.locale = Locale(identifier: "es_ES")
+            df.locale = LanguageManager.shared.locale
             df.dateFormat = "LLL"
             let cal = Calendar(identifier: .gregorian)
             let date = cal.date(from: DateComponents(year: y, month: m)) ?? Date()
@@ -67,7 +67,7 @@ final class CommunityViewModel: ObservableObject {
                 contributors = try await getTopContributors.invoke(limit: 10, year: KotlinInt(int: Int32(y)), month: KotlinInt(int: Int32(m)))
             }
         } catch {
-            self.error = "No se pudo cargar el ranking"
+            self.error = L("No se pudo cargar el ranking")
         }
         loading = false
     }

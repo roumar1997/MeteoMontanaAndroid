@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.schools
 
+import com.meteomontana.android.util.CatalogLabels
 import com.meteomontana.android.data.map.MapStyles
 
 import android.content.Intent
@@ -446,7 +447,7 @@ private fun MapBody(
                     Text(stringResource(R.string.schools_map_panel_v2_estilo), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     StyleFilter.entries.forEach { s ->
                         MapFilterPill(
-                            label = s.label,
+                            label = stringResource(s.labelRes),
                             selected = s == style,
                             onClick = { onStyleChange(s) }
                         )
@@ -778,7 +779,7 @@ private fun MarkerPreviewCard(
             modifier = Modifier.padding(top = Spacing.xs),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
-            school.rockType?.let { Tag(it) }
+            school.rockType?.let { Tag(CatalogLabels.rock(it)) }
             school.style?.let    { Tag(it) }
             distKm?.let          { Tag("${it.toInt()} km") }
         }

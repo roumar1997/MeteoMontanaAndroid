@@ -121,8 +121,8 @@ func buildFacesBloquesJson(_ faces: [BoulderFaceForm], photoByFace: [UUID: Strin
 // ─── Etiquetas de tipo de inicio ───
 
 let START_TYPE_LABELS: [(String, String)] = [
-    ("PIE", "De pie"), ("SIT", "Sentado"), ("SEMI", "Semi-sit"),
-    ("LANCE", "Lance"), ("TRAV", "Travesía")
+    ("PIE", L("De pie")), ("SIT", L("Sentado")), ("SEMI", "Semi-sit"),
+    ("LANCE", L("Lance")), ("TRAV", L("Travesía"))
 ]
 
 

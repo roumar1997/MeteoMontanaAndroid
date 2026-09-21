@@ -73,8 +73,8 @@ final class WeekendAlertViewModel: ObservableObject {
     }
 
     func save() async {
-        if enabled && !nearby && selected.isEmpty { error = "Elige al menos una escuela"; return }
-        if enabled && alertDays.isEmpty { error = "Elige al menos un día a comparar"; return }
+        if enabled && !nearby && selected.isEmpty { error = L("Elige al menos una escuela"); return }
+        if enabled && alertDays.isEmpty { error = L("Elige al menos un día a comparar"); return }
         saving = true; error = nil
         defer { saving = false }
 
@@ -82,7 +82,7 @@ final class WeekendAlertViewModel: ObservableObject {
         if nearby {
             if let loc = try? await container.locationProvider?.current() { lat = loc.lat; lon = loc.lon }
             if lat == nil {
-                error = "No pudimos obtener tu ubicación — concede el permiso e inténtalo de nuevo"
+                error = L("No pudimos obtener tu ubicación — concede el permiso e inténtalo de nuevo")
                 return
             }
         }
@@ -102,7 +102,7 @@ final class WeekendAlertViewModel: ObservableObject {
         if (try? await container.updateWeekendAlert.invoke(alert: dto)) != nil {
             savedOk = true
         } else {
-            error = "No se pudo guardar. Revisa la conexión."
+            error = L("No se pudo guardar. Revisa la conexión.")
         }
     }
 
@@ -136,9 +136,9 @@ struct WeekendAlertView: View {
                 Text("Te enviamos una notificación comparando hasta 3 escuelas para los días que elijas de la próxima semana: nota global, desglose por día y aviso de lluvia.")
                     .font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
 
-                toggleRow("ACTIVADA", isOn: $vm.enabled)
+                toggleRow(L("ACTIVADA"), isOn: $vm.enabled)
 
-                section("DÍAS A COMPARAR") {
+                section(L("DÍAS A COMPARAR")) {
                     HStack(spacing: 6) {
                         ForEach(1...7, id: \.self) { iso in
                             chip(DAY_LABELS[iso - 1], selected: vm.alertDays.contains(iso)) { vm.toggleDay(iso) }
@@ -146,15 +146,15 @@ struct WeekendAlertView: View {
                     }
                 }
 
-                section("MODO") {
+                section(L("MODO")) {
                     HStack(spacing: 8) {
-                        chip("MIS ESCUELAS", selected: !vm.nearby) { vm.nearby = false; vm.savedOk = false }
-                        chip("POR CERCANÍA", selected: vm.nearby) { vm.nearby = true; vm.savedOk = false }
+                        chip(L("MIS ESCUELAS"), selected: !vm.nearby) { vm.nearby = false; vm.savedOk = false }
+                        chip(L("POR CERCANÍA"), selected: vm.nearby) { vm.nearby = true; vm.savedOk = false }
                     }
                 }
 
                 if vm.nearby {
-                    section("RADIO") {
+                    section(L("RADIO")) {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 6) {
                                 ForEach(RADIUS_OPTIONS, id: \.self) { km in
@@ -169,14 +169,14 @@ struct WeekendAlertView: View {
                     schoolPicker
                 }
 
-                section("DÍA DE AVISO") {
+                section(L("DÍA DE AVISO")) {
                     HStack(spacing: 6) {
                         ForEach(1...7, id: \.self) { iso in
                             chip(DAY_LABELS[iso - 1], selected: vm.notifyDay == iso) { vm.notifyDay = iso; vm.savedOk = false }
                         }
                     }
                 }
-                section("HORA DE AVISO") {
+                section(L("HORA DE AVISO")) {
                     HStack(spacing: 6) {
                         ForEach(HOUR_OPTIONS, id: \.self) { h in
                             chip("\(h):00", selected: vm.notifyHour == h) { vm.notifyHour = h; vm.savedOk = false }
@@ -185,7 +185,7 @@ struct WeekendAlertView: View {
                 }
 
                 Divider().overlay(Cumbre.rule)
-                toggleRow("VENTANA ÓPTIMA HOY", isOn: $vm.optimalEnabled)
+                toggleRow(L("VENTANA ÓPTIMA HOY"), isOn: $vm.optimalEnabled)
                 Text("Aviso si hoy hay una buena franja en tus favoritas.")
                     .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                 if vm.optimalEnabled {
@@ -213,7 +213,7 @@ struct WeekendAlertView: View {
     }
 
     private var schoolPicker: some View {
-        section("ESCUELAS (máx 3)") {
+        section(L("ESCUELAS (máx 3)")) {
             ForEach(vm.selected, id: \.id) { s in
                 HStack {
                     Text(s.name).font(.system(size: 14)).foregroundStyle(Cumbre.ink)

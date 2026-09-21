@@ -65,11 +65,11 @@ enum Cumbre {
     static func scoreLabel(_ s: Int?) -> String {
         guard let s else { return "" }
         switch s {
-        case 85...:   return "EXCELENTE"
-        case 70..<85: return "MUY BUENO"
-        case 55..<70: return "BUENO"
-        case 40..<55: return "REGULAR"
-        default:      return "MALO"
+        case 85...:   return L("EXCELENTE")
+        case 70..<85: return L("MUY BUENO")
+        case 55..<70: return L("BUENO")
+        case 40..<55: return L("REGULAR")
+        default:      return L("MALO")
         }
     }
 

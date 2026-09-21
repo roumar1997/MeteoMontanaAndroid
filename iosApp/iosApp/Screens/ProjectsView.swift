@@ -56,15 +56,15 @@ struct ProjectsView: View {
             } else if vm.boulderCount == 0 && vm.routeCount == 0 {
                 EmptyStateView(
                     icon: "flag",
-                    title: "Sin proyectos todavía",
-                    message: "Marca la P de una vía dentro de su piedra para probarla como proyecto."
+                    title: L("Sin proyectos todavía"),
+                    message: L("Marca la P de una vía dentro de su piedra para probarla como proyecto.")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if filterDiscipline == nil {
                 // Vista de stats: pulsar BLOQUES/VÍAS entra al listado filtrado.
                 HStack(spacing: 12) {
-                    statCell("BLOQUES", vm.boulderCount) { filterDiscipline = "BOULDER" }
-                    statCell("VÍAS", vm.routeCount) { filterDiscipline = "ROUTE" }
+                    statCell(L("BLOQUES"), vm.boulderCount) { filterDiscipline = "BOULDER" }
+                    statCell(L("VÍAS"), vm.routeCount) { filterDiscipline = "ROUTE" }
                 }
                 .padding(16)
                 Spacer()
@@ -84,7 +84,7 @@ struct ProjectsView: View {
         }
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle(filterDiscipline == "BOULDER" ? "Proyectos · bloques"
-                          : filterDiscipline == "ROUTE" ? "Proyectos · vías" : "Proyectos")
+                          : filterDiscipline == "ROUTE" ? L("Proyectos · vías") : L("Proyectos"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if filterDiscipline != nil {

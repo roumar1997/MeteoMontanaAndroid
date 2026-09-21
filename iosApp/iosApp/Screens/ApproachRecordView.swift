@@ -112,9 +112,9 @@ struct ApproachRecordView: View {
             if !recording {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("ORIGEN (parking)").font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
-                    blockPicker(options: parkings, selection: $fromBlockId, placeholder: "Elige un parking")
+                    blockPicker(options: parkings, selection: $fromBlockId, placeholder: L("Elige un parking"))
                     Text("DESTINO (sector/piedra)").font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
-                    blockPicker(options: sectors, selection: $toBlockId, placeholder: "Elige un sector")
+                    blockPicker(options: sectors, selection: $toBlockId, placeholder: L("Elige un sector"))
                 }
                 .padding(16)
             }
@@ -135,7 +135,7 @@ struct ApproachRecordView: View {
                         Button {
                             placingPin.toggle()
                         } label: {
-                            Text(placingPin ? "TOCA EL MAPA" : "+ CHINCHETA")
+                            Text(placingPin ? L("TOCA EL MAPA") : L("+ CHINCHETA"))
                                 .font(Cumbre.mono(10, .bold)).tracking(1)
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 12).padding(.vertical, 9)
@@ -149,7 +149,7 @@ struct ApproachRecordView: View {
 
             VStack(spacing: 10) {
                 if !pendingPins.isEmpty {
-                    Text("\(pendingPins.count) chincheta\(pendingPins.count == 1 ? "" : "s") en este camino")
+                    Text(L("%@ chincheta%@ en este camino", pendingPins.count, pendingPins.count == 1 ? "" : "s"))
                         .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
                 }
                 VStack(spacing: 6) {
@@ -163,7 +163,7 @@ struct ApproachRecordView: View {
                             paused.toggle()
                             if paused { timer?.invalidate() } else { startTimer() }
                         } label: {
-                            Text(paused ? "REANUDAR" : "PAUSAR")
+                            Text(paused ? L("REANUDAR") : L("PAUSAR"))
                                 .font(Cumbre.mono(11, .bold)).tracking(1)
                                 .foregroundStyle(Cumbre.ink).padding(.vertical, 14).frame(maxWidth: .infinity)
                                 .background(Cumbre.paper).overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
@@ -234,8 +234,8 @@ struct ApproachRecordView: View {
                 .background(Cumbre.paper)
                 .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
 
-            Text("\(formattedDistance) · \(formattedElapsed) · \(points.count) puntos"
-                 + (pendingPins.isEmpty ? "" : " · \(pendingPins.count) chinchetas"))
+            Text(L("%@ · %@ · %@ puntos", formattedDistance, formattedElapsed, points.count)
+                 + (pendingPins.isEmpty ? "" : L(" · %@ chinchetas", pendingPins.count)))
                 .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
 
             if let err = errorMessage {
@@ -305,7 +305,7 @@ struct ApproachRecordView: View {
 
     private func save() async {
         guard points.count >= 2 else {
-            errorMessage = "El camino grabado es demasiado corto."
+            errorMessage = L("El camino grabado es demasiado corto.")
             return
         }
         saving = true
@@ -324,7 +324,7 @@ struct ApproachRecordView: View {
             // Las chinchetas se subieron a memoria mientras grabábamos; ahora
             // que existe el id de la aproximación, se suben de una en una.
             for (idx, pin) in pendingPins.enumerated() {
-                uploadProgress = "Subiendo chincheta \(idx + 1) de \(pendingPins.count)…"
+                uploadProgress = L("Subiendo chincheta %@ de %@…", idx + 1, pendingPins.count)
                 var photoPath: String?
                 if let img = pin.image {
                     photoPath = try? await StorageUploader.uploadApproachPinPhoto(img)
@@ -341,7 +341,7 @@ struct ApproachRecordView: View {
         } catch {
             saving = false
             uploadProgress = nil
-            errorMessage = "No se pudo guardar. Inténtalo de nuevo."
+            errorMessage = L("No se pudo guardar. Inténtalo de nuevo.")
         }
     }
 
@@ -371,8 +371,8 @@ private struct NewPinDraftSheet: View {
     @State private var image: UIImage?
 
     private let kinds: [(String, String)] = [
-        ("FORK", "◆ Bifurcación"), ("LANDMARK", "● Referencia"),
-        ("HAZARD", "▲ Peligro"), ("KEY", "★ Paso clave")
+        ("FORK", L("◆ Bifurcación")), ("LANDMARK", L("● Referencia")),
+        ("HAZARD", L("▲ Peligro")), ("KEY", L("★ Paso clave"))
     ]
     private var canSave: Bool { !message.trimmingCharacters(in: .whitespaces).isEmpty || image != nil }
 

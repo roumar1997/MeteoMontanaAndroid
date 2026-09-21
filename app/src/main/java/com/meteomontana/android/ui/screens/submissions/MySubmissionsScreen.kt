@@ -219,9 +219,9 @@ private fun ContributionRow(c: Contribution) {
 @Composable
 private fun StatusChip(status: String) {
     val (label, bg, fg) = when (status) {
-        "APPROVED" -> Triple("Aprobada", MaterialTheme.colorScheme.secondary, androidx.compose.ui.graphics.Color.White)
-        "REJECTED" -> Triple("Rechazada", MaterialTheme.colorScheme.error, androidx.compose.ui.graphics.Color.White)
-        else       -> Triple("Pendiente", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+        "APPROVED" -> Triple(stringResource(R.string.w_approved), MaterialTheme.colorScheme.secondary, androidx.compose.ui.graphics.Color.White)
+        "REJECTED" -> Triple(stringResource(R.string.w_rejected), MaterialTheme.colorScheme.error, androidx.compose.ui.graphics.Color.White)
+        else       -> Triple(stringResource(R.string.w_pending), MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
     }
     val shape = RoundedCornerShape(2.dp)
     Box(

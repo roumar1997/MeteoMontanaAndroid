@@ -208,7 +208,7 @@ struct TopoEditorView: View {
                     // SOLO ESTA: oculta el resto de vías mientras dibujas, sin
                     // apagar el imán (sigue pegándose a ellas aunque no se vean).
                     Button { soloEsta.toggle() } label: {
-                        Text(soloEsta ? "SOLO ESTA" : "VER TODAS")
+                        Text(soloEsta ? L("SOLO ESTA") : L("VER TODAS"))
                             .font(Cumbre.mono(11, .bold))
                             .foregroundStyle(soloEsta ? .white : Cumbre.ink)
                             .padding(.horizontal, 10).padding(.vertical, 6)
@@ -221,8 +221,8 @@ struct TopoEditorView: View {
                 .padding(.horizontal, 16)
 
                 Text(iman
-                     ? "Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Cerca de otra vía, el trazo se pega a ella (tramo compartido)."
-                     : "Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Con UNIR en NO, el trazo va libre aunque pases pegado a otra vía.")
+                     ? L("Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Cerca de otra vía, el trazo se pega a ella (tramo compartido).")
+                     : L("Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Con UNIR en NO, el trazo va libre aunque pases pegado a otra vía."))
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3).padding(.horizontal, 16)
                 Spacer()
 

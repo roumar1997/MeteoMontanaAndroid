@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -318,7 +319,7 @@ fun SchoolChatScreen(
                                     .fillMaxWidth()
                                     .clickable(enabled = !isMe) {
                                         showAllPresent = false
-                                        onOpenChat(person.uid, person.displayName ?: person.username ?: "Usuario")
+                                        onOpenChat(person.uid, person.displayName ?: person.username ?: AppText.get(R.string.w_user))
                                     }
                                     .padding(horizontal = Spacing.md, vertical = Spacing.sm),
                                 verticalAlignment = Alignment.CenterVertically

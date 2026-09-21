@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import com.meteomontana.android.data.map.MapStyles
@@ -215,7 +216,7 @@ internal fun SchoolMapView(
     val schoolMarker = remember(schoolName, centerLat, centerLon) {
         Block(
             id = "__SCHOOL__", schoolId = schoolId, type = "SCHOOL",
-            name = schoolName.ifBlank { "ESCUELA" },
+            name = schoolName.ifBlank { AppText.get(R.string.w_school_caps) },
             lat = centerLat, lon = centerLon,
             photoPath = null, description = null,
             createdByUid = "", createdAt = "", lines = emptyList()

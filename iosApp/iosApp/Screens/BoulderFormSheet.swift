@@ -75,8 +75,8 @@ struct BoulderFormSheet: View {
                     CompassDial(headingDegrees: Double(rumbo))
                         .frame(width: 64, height: 64)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Estás mirando al " + Aspect.shared.fromDegrees(degrees: Float(rumbo)) +
-                             " · " + Aspect.shared.degreesLabel(degrees: Float(rumbo)))
+                        Text(L("Estás mirando al %@ · %@", aspectLabel(Aspect.shared.fromDegrees(degrees: Float(rumbo))),
+                               Aspect.shared.degreesLabel(degrees: Float(rumbo))))
                         Text("Si estás mirando la pared, ella mira al contrario.")
                     }
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
@@ -158,7 +158,7 @@ struct BoulderFormSheet: View {
                 // botón de dibujar apagado sin saber por qué — reportado por
                 // Rodrigo al añadir la 3ª foto (build 142).
                 Task { @MainActor in
-                    sendError = "No se pudo abrir el selector de fotos. Vuelve a intentarlo."
+                    sendError = L("No se pudo abrir el selector de fotos. Vuelve a intentarlo.")
                 }
                 return
             }
@@ -169,7 +169,7 @@ struct BoulderFormSheet: View {
                 // persona no la llevan— con un "no se pudo cargar la foto"
                 // que además despistaba (Rodrigo, build 143).
                 guard let donde = await PhotoExifReader.readImagen(result) else {
-                    sendError = "No se pudo cargar la foto elegida. Inténtalo otra vez."
+                    sendError = L("No se pudo cargar la foto elegida. Inténtalo otra vez.")
                     return
                 }
                 faces[idx].photo = donde.image
@@ -208,7 +208,7 @@ struct BoulderFormSheet: View {
     /// mismo componente de EditLinesSheet.
     @ViewBuilder private func viaCompacta(idx: Int, via: BoulderBlockForm) -> some View {
         let titulo = via.name.trimmingCharacters(in: .whitespaces).isEmpty
-            ? "Sin nombre" : via.name
+            ? L("Sin nombre") : via.name
         HStack(spacing: 8) {
             Text("\(idx + 1)").font(Cumbre.mono(11, .bold))
                 .foregroundStyle(GradeColor.style(via.grade).dark ? .black : .white)
@@ -273,7 +273,7 @@ struct BoulderFormSheet: View {
 
                     FirstTimeHint(
                         hintKey: "boulder_form_guide",
-                        text: "Pasos: 1) Añade una foto de la piedra, 2) marca sus vías con grado, 3) dibuja las líneas sobre la foto, 4) envía."
+                        text: L("Pasos: 1) Añade una foto de la piedra, 2) marca sus vías con grado, 3) dibuja las líneas sobre la foto, 4) envía.")
                     )
 
                     // ── Modalidad: BLOQUE o VÍA ────────────────────────────────────
@@ -287,7 +287,7 @@ struct BoulderFormSheet: View {
                     // F: orientación de la piedra según el autor (opcional).
                     // Al aprobarse se convierte en su PRIMER voto; la
                     // comunidad puede seguir votando después.
-                    orientationChips(label: "ORIENTACIÓN DE LA PIEDRA (opcional)",
+                    orientationChips(label: L("ORIENTACIÓN DE LA PIEDRA (opcional)"),
                                      selected: blockOrientation) { a in
                         blockOrientation = blockOrientation == a ? nil : a
                     }
@@ -299,8 +299,8 @@ struct BoulderFormSheet: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Muro, sector y numeración").font(.system(size: 15)).foregroundStyle(Cumbre.ink)
-                                Text(isWall ? "Muro de \(wallPath.count) puntos" + (sectorId != nil ? " · con sector" : "")
-                                     : (sectorId != nil ? "Con sector asignado" : "Solo si es una pared larga o va en un sector"))
+                                Text(isWall ? L("Muro de %@ puntos", wallPath.count) + (sectorId != nil ? L(" · con sector") : "")
+                                     : (sectorId != nil ? L("Con sector asignado") : L("Solo si es una pared larga o va en un sector")))
                                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                             }
                             Spacer()
@@ -318,15 +318,15 @@ struct BoulderFormSheet: View {
                             Text(NSLocalizedString("propose_geometry", comment: "")).eyebrow()
                             Text("Punto = una piedra suelta. Muro = una pared larga que se traza en el mapa.")
                                 .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                            WallSeg(options: [("POINT", "PUNTO"), ("LINE", "MURO")], selected: $geometry)
+                            WallSeg(options: [("POINT", L("PUNTO")), ("LINE", L("MURO"))], selected: $geometry)
                         }
                         if isWall {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("SENTIDO DE NUMERACIÓN").eyebrow()
-                                WallSeg(options: [("LTR", "IZQ → DER"), ("RTL", "DER → IZQ")], selected: $direction)
+                                WallSeg(options: [("LTR", L("IZQ → DER")), ("RTL", L("DER → IZQ"))], selected: $direction)
                             }
                             Button { showTrace = true } label: {
-                                Text(wallPath.isEmpty ? "✎ TRAZAR EL MURO EN EL MAPA" : "✓ MURO TRAZADO (\(wallPath.count) PUNTOS) · RE-TRAZAR")
+                                Text(wallPath.isEmpty ? "✎ TRAZAR EL MURO EN EL MAPA" : L("✓ MURO TRAZADO (%@ PUNTOS) · RE-TRAZAR", wallPath.count))
                                     .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
                                     .lineLimit(1).minimumScaleFactor(0.8)
                                     .frame(maxWidth: .infinity).padding(.vertical, 10)
@@ -340,7 +340,7 @@ struct BoulderFormSheet: View {
                                 Menu {
                                     Button("Sin sector") { sectorId = nil }
                                     ForEach(sectors, id: \.id) { s in
-                                        Button(s.name.isEmpty ? "Zona" : s.name) { sectorId = s.id }
+                                        Button(s.name.isEmpty ? L("Zona") : s.name) { sectorId = s.id }
                                     }
                                 } label: {
                                     HStack {
@@ -414,7 +414,7 @@ struct BoulderFormSheet: View {
                     Button {
                         eligiendoOrigenFotoCara = true
                     } label: {
-                        Text(faces[faceIdx].photo == nil ? "SELECCIONAR FOTO" : "CAMBIAR FOTO")
+                        Text(faces[faceIdx].photo == nil ? L("SELECCIONAR FOTO") : L("CAMBIAR FOTO"))
                             .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(Cumbre.terra)
                             .frame(maxWidth: .infinity).padding(.vertical, 10)
                             .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(Cumbre.rule, lineWidth: 1))
@@ -437,7 +437,7 @@ struct BoulderFormSheet: View {
                     // F: orientación de ESTA cara (opcional). Solo tiene
                     // sentido con varias fotos; con una sola vale la general.
                     if faces.count > 1 {
-                        orientationChips(label: "ORIENTACIÓN DE ESTA CARA (opcional)",
+                        orientationChips(label: L("ORIENTACIÓN DE ESTA CARA (opcional)"),
                                          selected: faces[faceIdx].orientation) { a in
                             faces[faceIdx].orientation =
                                 faces[faceIdx].orientation == a ? nil : a
@@ -448,7 +448,7 @@ struct BoulderFormSheet: View {
                     // Una sola ficha abierta a la vez, igual que al EDITAR: con
                     // los formularios apilados, meter la quinta vía obligaba a
                     // scrollear las cuatro anteriores (Álvaro, 2026-08-24).
-                    Text("VÍAS EN ESTA FOTO (\(faces[faceIdx].blocks.count))").eyebrow().padding(.top, 4)
+                    Text(L("VÍAS EN ESTA FOTO (%@)", faces[faceIdx].blocks.count)).eyebrow().padding(.top, 4)
                     ForEach(Array(faces[faceIdx].blocks.enumerated()), id: \.element.id) { idx, via in
                         if via.id == expandedVia {
                             VStack(alignment: .leading, spacing: 8) {
@@ -591,7 +591,7 @@ struct BoulderFormSheet: View {
                     faces[idx].photo = img
                     sendError = nil
                 } else {
-                    sendError = "No se pudo cargar la foto elegida (¿está en iCloud?). Elígela otra vez."
+                    sendError = L("No se pudo cargar la foto elegida (¿está en iCloud?). Elígela otra vez.")
                 }
                 pickerItem = nil
             }
@@ -608,8 +608,8 @@ struct BoulderFormSheet: View {
     }
 
     private var sectorName: String {
-        guard let sectorId, let s = sectors.first(where: { $0.id == sectorId }) else { return "Sin sector" }
-        return s.name.isEmpty ? "Zona" : s.name
+        guard let sectorId, let s = sectors.first(where: { $0.id == sectorId }) else { return L("Sin sector") }
+        return s.name.isEmpty ? L("Zona") : s.name
     }
 
     private func send() async {
@@ -625,7 +625,7 @@ struct BoulderFormSheet: View {
                 // y que el usuario reintente, sin mezclar caras.
                 guard let url = try? await StorageUploader.uploadBoulderPhoto(photo, schoolId: schoolId, index: i) else {
                     sending = false
-                    sendError = "No se pudo subir la foto \(i + 1). Revisa la conexión y reinténtalo (si no, las caras se mezclarían en una sola)."
+                    sendError = L("No se pudo subir la foto %@. Revisa la conexión y reinténtalo (si no, las caras se mezclarían en una sola).", i + 1)
                     return
                 }
                 photoByFace[face.id] = url
@@ -652,7 +652,7 @@ struct BoulderFormSheet: View {
             dismiss()
             onDone(true)
         } else {
-            sendError = "No se pudo enviar. Revisa la conexión — la foto y las vías siguen aquí."
+            sendError = L("No se pudo enviar. Revisa la conexión — la foto y las vías siguen aquí.")
         }
     }
 
@@ -830,8 +830,8 @@ struct ReorderFacesSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(isWall ? "Las fotos se recorren en este orden (\(direction == "LTR" ? "izq→der" : "der→izq")) para numerar las vías del muro."
-                         : "Ordena las fotos de la piedra.")
+                    Text(isWall ? L("Las fotos se recorren en este orden (%@) para numerar las vías del muro.", direction == "LTR" ? "izq→der" : "der→izq")
+                         : L("Ordena las fotos de la piedra."))
                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(.bottom, 4)
                     ForEach(0..<facePhotos.count, id: \.self) { i in
                         VStack(alignment: .leading, spacing: 8) {
@@ -839,7 +839,7 @@ struct ReorderFacesSheet: View {
                                 Text("\(i + 1)").font(Cumbre.mono(12, .bold)).foregroundStyle(.white)
                                     .frame(width: 28, height: 28).background(Circle().fill(Cumbre.terraFill))
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("FOTO \(i + 1) · \(faceBlocks[i].count) vías")
+                                    Text(L("FOTO %@ · %@ vías", i + 1, faceBlocks[i].count))
                                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
                                     Text(expanded == i ? "▾ ocultar" : "▸ ver vías")
                                         .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)

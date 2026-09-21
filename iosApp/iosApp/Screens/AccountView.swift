@@ -120,7 +120,7 @@ final class AccountViewModel: ObservableObject {
 
     /** N6: cambiar la fecha de una entrada y recargar. */
     func changeDate(_ id: String, _ newDate: String) async {
-        _ = await reporting("No se pudo cambiar la fecha", {
+        _ = await reporting(L("No se pudo cambiar la fecha"), {
             try await AppDependencies.shared.container.updateJournalDate.invoke(id: id, date: newDate)
         })
         await load()
@@ -128,7 +128,7 @@ final class AccountViewModel: ObservableObject {
 
     /** Cambiar el estilo (a vista / al flash) de una entrada. Independientes. */
     func changeStyle(_ id: String, _ aVista: Bool, _ alFlash: Bool) async {
-        _ = await reporting("No se pudo cambiar el estilo", {
+        _ = await reporting(L("No se pudo cambiar el estilo"), {
             try await AppDependencies.shared.container.updateJournalStyle.invoke(
                 id: id, aVista: aVista, alFlash: alFlash)
         })
@@ -338,7 +338,7 @@ struct AccountView: View {
     private func shareProfile() {
         guard let p = vm.profile else { return }
         let handle = (p.username?.isEmpty == false ? p.username! : p.uid)
-        let label = p.username.map { "@" + $0 } ?? (p.displayName ?? "mi perfil")
+        let label = p.username.map { "@" + $0 } ?? (p.displayName ?? L("mi perfil"))
         Task {
             let st = vm.stats
             await ShareProfileImage.share(
@@ -354,10 +354,10 @@ struct AccountView: View {
         if let f = vm.follow, let uid = vm.profile?.uid {
             HStack(spacing: 24) {
                 NavigationLink(destination: FollowListView(uid: uid, mode: .followers)) {
-                    counter("\(f.followers)", "SEGUIDORES")
+                    counter("\(f.followers)", L("SEGUIDORES"))
                 }.buttonStyle(.plain)
                 NavigationLink(destination: FollowListView(uid: uid, mode: .following)) {
-                    counter("\(f.following)", "SIGUIENDO")
+                    counter("\(f.following)", L("SIGUIENDO"))
                 }.buttonStyle(.plain)
             }
         }
@@ -378,7 +378,7 @@ struct AccountView: View {
     }
 
     private var displayName: String {
-        vm.profile?.displayName ?? authBridge.currentDisplayName() ?? "Sin nombre"
+        vm.profile?.displayName ?? authBridge.currentDisplayName() ?? L("Sin nombre")
     }
     private var email: String? {
         vm.profile?.email ?? authBridge.currentEmail()
@@ -405,15 +405,16 @@ struct AccountSettingsView: View {
                 menuRow(NSLocalizedString("profile_edit", comment: ""), "pencil", EditProfileView())
 
                 sectionLabel(NSLocalizedString("profile_section_activity", comment: ""))
-                menuRow("Escuelas guardadas (offline)", "arrow.down.circle", SavedSchoolsView())
-                menuRow("Mis contribuciones", "mappin.and.ellipse", MyContributionsUnifiedView())
+                menuRow(L("Escuelas guardadas (offline)"), "arrow.down.circle", SavedSchoolsView())
+                menuRow(L("Mis contribuciones"), "mappin.and.ellipse", MyContributionsUnifiedView())
                 if vm.profile?.isPublic == false {
-                    menuRow("Solicitudes de seguimiento", "person.badge.plus", FollowRequestsView())
+                    menuRow(L("Solicitudes de seguimiento"), "person.badge.plus", FollowRequestsView())
                 }
 
                 sectionLabel(NSLocalizedString("profile_section_prefs", comment: ""))
                 menuRow(NSLocalizedString("profile_weather_alert", comment: ""), "bell.badge", WeekendAlertView())
                 FeedPublishSettingRow()
+                LanguageSettingRow()
                 Button {
                     FirstTimeHint.resetAll()
                     showHintsReset = true
@@ -475,7 +476,7 @@ struct AccountSettingsView: View {
         let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
         let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
         let entorno = AppConfig.apiBaseUrl.contains("staging") ? " · staging" : ""
-        return Text("Cumbre \(v) (build \(b)) · \(BuildFlags.buildStamp)\(entorno)")
+        return Text(L("Cumbre %@ (build %@) · %@%@", v, b, BuildFlags.buildStamp, entorno))
             .font(Cumbre.mono(11))
             .foregroundStyle(Cumbre.ink3)
             .frame(maxWidth: .infinity)
@@ -506,32 +507,32 @@ private struct AccountJournalStatsNav: View {
             VStack(spacing: 8) {
                 HStack(spacing: 8) {
                     NavigationLink(destination: AccountBlocksList(vm: vm, routeOnly: false)) {
-                        cell("\(s.boulderCount)", "BLOQUES")
+                        cell("\(s.boulderCount)", L("BLOQUES"))
                     }.buttonStyle(.plain)
                     NavigationLink(destination: AccountBlocksList(vm: vm, routeOnly: true)) {
-                        cell("\(s.routeCount)", "VÍAS")
+                        cell("\(s.routeCount)", L("VÍAS"))
                     }.buttonStyle(.plain)
                     NavigationLink(destination: AccountSchoolsList(vm: vm)) {
-                        cell("\(s.schoolCount)", "ESCUELAS")
+                        cell("\(s.schoolCount)", L("ESCUELAS"))
                     }.buttonStyle(.plain)
                 }
                 HStack(spacing: 8) {
-                    cell(s.maxBoulderGrade ?? "—", "MÁX BLOQUE")
-                    cell(s.maxRouteGrade ?? "—", "MÁX VÍA")
+                    cell(s.maxBoulderGrade ?? "—", L("MÁX BLOQUE"))
+                    cell(s.maxRouteGrade ?? "—", L("MÁX VÍA"))
                 }
                 // Proyectos + Mis publicaciones: mismas celdas pulsables que el
                 // resto (decisión de Rodrigo: publicaciones con estilo de stats).
                 HStack(spacing: 8) {
                     NavigationLink(destination: ProjectsView()) {
-                        cell("\(s.projectCount)", "PROYECTOS")
+                        cell("\(s.projectCount)", L("PROYECTOS"))
                     }.buttonStyle(.plain)
                     NavigationLink(destination: MyPostsView()) {
-                        cell("›", "MIS PUBLICACIONES")
+                        cell("›", L("MIS PUBLICACIONES"))
                     }.buttonStyle(.plain)
                 }
                 // C4: MIS ESTADISTICAS (piramide, racha, progresion).
                 NavigationLink(destination: StatsView()) {
-                    cell("▃▅▇", "ESTADÍSTICAS")
+                    cell("▃▅▇", L("ESTADÍSTICAS"))
                 }.buttonStyle(.plain)
             }
         }
@@ -607,8 +608,8 @@ private struct AccountBlocksList: View {
             if entries.isEmpty {
                 EmptyStateView(
                     icon: "book",
-                    title: routeOnly == true ? "Aún no has registrado vías" : "Aún no has registrado bloques",
-                    message: "Marca el ✓ de una vía dentro de su piedra (en el detalle de una escuela) y aparecerá aquí."
+                    title: routeOnly == true ? L("Aún no has registrado vías") : L("Aún no has registrado bloques"),
+                    message: L("Marca el ✓ de una vía dentro de su piedra (en el detalle de una escuela) y aparecerá aquí.")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -616,7 +617,7 @@ private struct AccountBlocksList: View {
                     LazyVStack(spacing: 0) {
                         FirstTimeHint(
                             hintKey: "journal_tap_via",
-                            text: "Toca una vía para ir directamente a su piedra en la escuela."
+                            text: L("Toca una vía para ir directamente a su piedra en la escuela.")
                         )
                         // Filtro por GRADO. Estaba escrito en JournalView, que
                         // es una pantalla a la que no se llega desde el perfil:
@@ -645,10 +646,10 @@ private struct AccountBlocksList: View {
                         // Filtro por ESTILO: solo si hay al menos una entrada marcada.
                         if entries.contains(where: { $0.aVista || $0.alFlash }) {
                             HStack(spacing: 6) {
-                                styleFilterChip("A VISTA", active: styleFilter == "aVista") {
+                                styleFilterChip(L("A VISTA"), active: styleFilter == "aVista") {
                                     styleFilter = styleFilter == "aVista" ? nil : "aVista"
                                 }
-                                styleFilterChip("AL FLASH", active: styleFilter == "alFlash") {
+                                styleFilterChip(L("AL FLASH"), active: styleFilter == "alFlash") {
                                     styleFilter = styleFilter == "alFlash" ? nil : "alFlash"
                                 }
                                 Spacer()
@@ -709,7 +710,7 @@ private struct AccountSchoolsList: View {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(s.schoolName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
                                         let blocks = "\(s.blockCount) \(s.blockCount == 1 ? "bloque" : "bloques")"
-                                        let grade = s.maxGrade.map { " · máx \($0)" } ?? ""
+                                        let grade = s.maxGrade.map { L(" · máx %@", $0) } ?? ""
                                         Text(blocks + grade).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
                                     }
                                     Spacer()
@@ -769,7 +770,7 @@ private struct AccountSchoolSectorsList: View {
                                     Image(systemName: "folder").font(.system(size: 16)).foregroundStyle(Cumbre.terra)
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(sec.name).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
-                                        Text(sec.count == 1 ? "1 bloque" : "\(sec.count) bloques")
+                                        Text(sec.count == 1 ? L("1 bloque") : L("%@ bloques", sec.count))
                                             .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
                                     }
                                     Spacer()
@@ -844,3 +845,36 @@ private struct AccountSchoolBlocksList: View {
 }
 
 private extension String { var nilIfBlank: String? { trimmingCharacters(in: .whitespaces).isEmpty ? nil : self } }
+
+
+/// Fila "Idioma" de Ajustes: Automático / Español / English. Al elegir, la app
+/// entera se reconstruye en el idioma nuevo (ver LanguageManager).
+struct LanguageSettingRow: View {
+    @ObservedObject private var lang = LanguageManager.shared
+    @State private var open = false
+
+    private var currentLabel: String {
+        switch lang.choice {
+        case "es": return NSLocalizedString("language_es", comment: "")
+        case "en": return NSLocalizedString("language_en", comment: "")
+        default: return NSLocalizedString("language_system", comment: "")
+        }
+    }
+
+    var body: some View {
+        Button { open = true } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "globe").font(.system(size: 16)).foregroundStyle(Cumbre.terra).frame(width: 24)
+                Text(NSLocalizedString("settings_language", comment: "")).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                Spacer()
+                Text(currentLabel).font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+            }.padding(.vertical, 12).contentShape(Rectangle())
+        }.buttonStyle(.plain)
+        .confirmationDialog(NSLocalizedString("language_dialog_title", comment: ""), isPresented: $open, titleVisibility: .visible) {
+            Button(NSLocalizedString("language_system", comment: "")) { lang.choice = "system" }
+            Button(NSLocalizedString("language_es", comment: "")) { lang.choice = "es" }
+            Button(NSLocalizedString("language_en", comment: "")) { lang.choice = "en" }
+            Button(NSLocalizedString("common_cancel", comment: ""), role: .cancel) {}
+        }
+    }
+}
