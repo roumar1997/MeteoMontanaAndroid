@@ -1,5 +1,6 @@
 import SwiftUI
 import ObjectiveC
+import Shared
 
 /// Idioma elegido DENTRO de la app (Perfil → Ajustes → Idioma).
 ///
@@ -16,6 +17,7 @@ final class LanguageManager: ObservableObject {
         didSet {
             UserDefaults.standard.set(choice, forKey: Self.storageKey)
             Bundle.applyLanguage(choice)
+            ApiLanguage.shared.code = effectiveCode   // el servidor redacta las notificaciones en este idioma
         }
     }
 
@@ -23,6 +25,7 @@ final class LanguageManager: ObservableObject {
         let saved = UserDefaults.standard.string(forKey: Self.storageKey) ?? "system"
         choice = saved
         Bundle.applyLanguage(saved)
+        ApiLanguage.shared.code = effectiveCode
     }
 
     /// "es" o "en": el idioma con el que se está pintando la app de verdad.

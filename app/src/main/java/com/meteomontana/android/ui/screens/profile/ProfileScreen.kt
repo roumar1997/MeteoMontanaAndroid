@@ -494,6 +494,7 @@ private fun LanguageRow() {
                                 if (value != current) {
                                     com.meteomontana.android.util.AppLanguage.set(ctx, value)
                                     com.meteomontana.android.util.AppText.init(ctx)   // refresca el contexto de textos
+                                    com.meteomontana.android.data.api.ApiLanguage.code = com.meteomontana.android.util.AppLanguage.effective(ctx)
                                     (ctx as? android.app.Activity)?.recreate()
                                 }
                             }.padding(vertical = 10.dp)

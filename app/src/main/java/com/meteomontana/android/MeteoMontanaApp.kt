@@ -26,6 +26,7 @@ class MeteoMontanaApp : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         com.meteomontana.android.util.AppText.init(this)
+        com.meteomontana.android.data.api.ApiLanguage.code = com.meteomontana.android.util.AppLanguage.effective(this)
         MapLibre.getInstance(this)
         outboxFlusher.start()
         savedSchoolsSync.start()
