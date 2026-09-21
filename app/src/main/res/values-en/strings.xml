@@ -752,7 +752,7 @@
     <string name="map_mini_cards_v2_sectores_desde_aqui">SECTORS FROM HERE</string>
     <string name="map_mini_cards_v2_sin_resultados_en_esta_escuela">No results in this school</string>
     <string name="monthly_stats_section_v2_indice_por_mes_ult_3">INDEX BY MONTH (LAST 3 YEARS)</string>
-    <string name="mountain_bulletin_section_v2_fuente_aemet">Source: AEMET</string>
+    <string name="mountain_bulletin_section_v2_fuente_aemet">Source: AEMET (official text, in Spanish)</string>
     <string name="mountain_bulletin_section_v2_temperaturas_por_cotas">TEMPERATURES BY ALTITUDE</string>
     <string name="network_banner_v2_sin_conexion_usando_datos_guardados">● OFFLINE — using saved data</string>
     <string name="notes_section_v2_publicar">Post</string>

@@ -124,7 +124,7 @@ struct CompareView: View {
                     }
                 }
                 let rows: [(String, [String], Set<Int>)] = [
-                    (L("ROCA"), items.map { $0.rockType?.capitalized ?? "—" },
+                    (L("ROCA"), items.map { $0.rockType.map(rockLabel)?.capitalized ?? "—" },
                         Set(items.indices.filter { items[$0].dryRock })),
                     (L("DISTANCIA"), items.map { $0.distanceKm.map { "\(Int($0)) km" } ?? "—" },
                         minIdx(items.map { $0.distanceKm })),

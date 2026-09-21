@@ -577,7 +577,7 @@ private fun shareSchool(
     val base = com.meteomontana.android.BuildConfig.API_BASE_URL.removeSuffix("api/")
     val sb = StringBuilder()
     sb.append("🧗 *").append(school.name).append("*")
-    school.region?.let { sb.append(" · ").append(it) }
+    school.region?.let { sb.append(" · ").append(com.meteomontana.android.util.CatalogLabels.region(it)) }
     sb.append("\n")
     if (forecast != null) {
         val c = forecast.current

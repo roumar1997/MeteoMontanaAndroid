@@ -47,7 +47,10 @@ func rockLabel(_ raw: String) -> String {
     case "basalto": return L("rock_basalt")
     case "conglomerado": return L("rock_conglomerate")
     case "pizarra": return L("rock_slate")
-    default: return raw
+    default:
+        let extra = ["Cuarcita": "Quartzite", "Volcánica": "Volcanic", "Caliza / calcoarenita": "Limestone / calcarenite",
+                     "Otra / muro barrenado": "Other / drilled wall"]
+        return LanguageManager.shared.effectiveCode == "en" ? (extra[raw.trimmingCharacters(in: .whitespaces)] ?? raw) : raw
     }
 }
 
@@ -120,4 +123,41 @@ enum ForecastText {
         }
         return out
     }
+}
+
+/// Comunidad autónoma / región del catálogo ("Comunidad de Madrid"): llega en español
+/// del servidor; en inglés se muestra traducida. Admite varias separadas por " / ".
+func regionLabel(_ raw: String) -> String {
+    guard LanguageManager.shared.effectiveCode == "en" else { return raw }
+    let regions: [String: String] = [
+        "Cataluña": "Catalonia",
+        "Castilla y León": "Castile and León",
+        "Aragón": "Aragon",
+        "Andalucía": "Andalusia",
+        "Comunidad Valenciana": "Valencian Community",
+        "Comunidad de Madrid": "Community of Madrid",
+        "Galicia": "Galicia",
+        "Asturias": "Asturias",
+        "País Vasco": "Basque Country",
+        "Navarra": "Navarre",
+        "Canarias": "Canary Islands",
+        "Extremadura": "Extremadura",
+        "Islas Baleares": "Balearic Islands",
+        "Cantabria": "Cantabria",
+        "Región de Murcia": "Region of Murcia",
+        "Castilla-La Mancha": "Castilla-La Mancha",
+        "Nueva Aquitania": "Nouvelle-Aquitaine",
+        "Comunidad Autónoma de Cantabria": "Cantabria",
+        "Leon": "León",
+        "Burgos": "Burgos",
+        "Jaén": "Jaén"
+    ]
+    return raw.components(separatedBy: " / ")
+        .map { regions[$0.trimmingCharacters(in: .whitespaces)] ?? $0.trimmingCharacters(in: .whitespaces) }
+        .joined(separator: " / ")
+}
+
+/// Estilo del catálogo ("Vía", "Bloque" o "Bloque,Vía").
+func styleLabel(_ raw: String) -> String {
+    raw.split(separator: ",").map { L($0.trimmingCharacters(in: .whitespaces)) }.joined(separator: ", ")
 }

@@ -522,7 +522,7 @@ struct SchoolMapPopup: View {
     }
 
     private var tags: String {
-        [school.rockType?.uppercased(), school.region, school.style]
+        [school.rockType.map { rockLabel($0).uppercased() }, school.region.map(regionLabel), school.style.map(styleLabel)]
             .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "  ·  ")
     }
 }
@@ -542,12 +542,12 @@ struct FilterChips: View {
             section(L("ESTILO")) {
                 chipRow([String?.none] + vm.styles.map { Optional($0) }, id: { $0 ?? "all" },
                         isSel: { $0 == vm.style },
-                        label: { $0 ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.style = $0 }
+                        label: { $0.map(styleLabel) ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.style = $0 }
             }
             section(L("TIPO DE ROCA")) {
                 chipRow([String?.none] + vm.rocks.map { Optional($0) }, id: { $0 ?? "all" },
                         isSel: { $0 == vm.rock },
-                        label: { $0 ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.rock = $0 }
+                        label: { $0.map(rockLabel) ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.rock = $0 }
             }
             section(L("MOSTRAR")) {
                 chipRow(SchoolListViewModel.ShowMode.allCases, id: { $0.rawValue },

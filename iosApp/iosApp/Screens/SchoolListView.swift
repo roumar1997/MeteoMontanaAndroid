@@ -600,7 +600,7 @@ struct SchoolListView: View {
                                     Text(school.name).font(.system(size: 14))
                                         .foregroundStyle(Cumbre.ink).lineLimit(1)
                                     if let r = school.region, !r.isEmpty {
-                                        Text(r).font(.system(size: 12))
+                                        Text(regionLabel(r)).font(.system(size: 12))
                                             .foregroundStyle(Cumbre.ink3).lineLimit(1)
                                     }
                                 }

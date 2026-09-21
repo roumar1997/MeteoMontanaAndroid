@@ -201,8 +201,8 @@ struct SchoolListItemView: View {
 
     private var subtitle: String {
         var parts: [String] = []
-        if let r = school.rockType, !r.isEmpty { parts.append(r.uppercased()) }
-        if let reg = school.region, !reg.isEmpty { parts.append(reg) }
+        if let r = school.rockType, !r.isEmpty { parts.append(rockLabel(r).uppercased()) }
+        if let reg = school.region, !reg.isEmpty { parts.append(regionLabel(reg)) }
         if let km = distanceKm { parts.append("\(km) KM") }
         return parts.joined(separator: "  ·  ")
     }

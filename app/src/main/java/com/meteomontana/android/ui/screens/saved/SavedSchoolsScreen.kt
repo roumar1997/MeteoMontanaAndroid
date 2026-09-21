@@ -104,7 +104,7 @@ fun SavedSchoolsScreen(
                         Spacer(Modifier.height(2.dp))
                         Text(buildString {
                             e.rockType?.let { append(CatalogLabels.rock(it).uppercase()).append("  ·  ") }
-                            e.region?.let { append(it) }
+                            e.region?.let { append(com.meteomontana.android.util.CatalogLabels.region(it)) }
                         },
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)

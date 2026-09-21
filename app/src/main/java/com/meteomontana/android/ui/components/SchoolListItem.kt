@@ -381,7 +381,7 @@ private fun HourlyHeatmapBar(scores: List<Int>?, modifier: Modifier = Modifier) 
 private fun buildSubtitle(school: School, distanceKm: Double?): String {
     val parts = buildList {
         school.rockType?.let { add(CatalogLabels.rock(it).uppercase()) }
-        school.region?.let   { add(it) }
+        school.region?.let   { add(com.meteomontana.android.util.CatalogLabels.region(it)) }
         distanceKm?.let      { add("${it.toInt()} KM") }
     }
     return parts.joinToString("  ·  ")

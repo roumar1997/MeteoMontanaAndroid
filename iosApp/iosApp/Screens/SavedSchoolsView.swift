@@ -37,7 +37,7 @@ struct SavedSchoolsView: View {
                     NavigationLink(destination: OfflineSchoolView(schoolId: s.id)) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(s.name).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
-                            let sub = [s.region, s.rockType].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
+                            let sub = [s.region.map(regionLabel), s.rockType.map(rockLabel)].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
                             if !sub.isEmpty { Text(sub).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3) }
                         }
                     }

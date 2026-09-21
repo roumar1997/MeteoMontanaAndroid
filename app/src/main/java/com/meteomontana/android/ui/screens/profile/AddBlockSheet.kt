@@ -265,7 +265,7 @@ fun AddBlockSheet(
                 SuggestionsBox {
                     results.take(5).forEach { sch ->
                         SuggestionRow(
-                            text = "${sch.name}${sch.region?.let { " · $it" } ?: ""}",
+                            text = "${sch.name}${sch.region?.let { " · " + com.meteomontana.android.util.CatalogLabels.region(it) } ?: ""}",
                             onClick = {
                                 closeKeyboard(); selectedSchool = sch; schoolQuery = sch.name
                             }

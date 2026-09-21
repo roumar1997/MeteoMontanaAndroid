@@ -861,7 +861,7 @@
 "TORMENTAS" = "STORMS";
 "TEMPERATURAS" = "TEMPERATURES";
 "ISO 0° · %@" = "ISO 0° · %@";
-"Fuente: AEMET" = "Source: AEMET";
+"Fuente: AEMET" = "Source: AEMET (official text, in Spanish)";
 "APROBADA" = "APPROVED";
 "RECHAZADA" = "REJECTED";
 "PENDIENTE" = "PENDING";

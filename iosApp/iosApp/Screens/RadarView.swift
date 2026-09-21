@@ -482,7 +482,7 @@ struct RadarView: View {
                 Text(school.name).font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Cumbre.ink)
                 if let region = school.region {
-                    Text(region).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
+                    Text(regionLabel(region)).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
                 }
             }
             Spacer()

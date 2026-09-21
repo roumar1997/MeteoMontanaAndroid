@@ -94,7 +94,7 @@ func feedPostPlace(_ post: FeedPost) -> String {
     var parts: [String] = []
     if let b = post.blockName, !b.isEmpty, post.lineName != nil { parts.append(b) }
     if let s = post.schoolName, !s.isEmpty { parts.append(s) }
-    if let r = post.rockType, !r.isEmpty { parts.append(r) }
+    if let r = post.rockType, !r.isEmpty { parts.append(rockLabel(r)) }
     return parts.joined(separator: " · ")
 }
 

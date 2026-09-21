@@ -554,7 +554,7 @@ struct AddBlockSheet: View {
             if selectedSchool == nil, !vm.schoolResults.isEmpty {
                 suggestionsBox {
                     ForEach(vm.schoolResults.prefix(5), id: \.id) { s in
-                        suggestionRow(s.region.map { "\(s.name) · \($0)" } ?? s.name) {
+                        suggestionRow(s.region.map { "\(s.name) · \(regionLabel($0))" } ?? s.name) {
                             selectedSchool = s; schoolQuery = s.name; vm.schoolResults = []
                             Task { await vm.onSchoolSelected(s) }
                         }
