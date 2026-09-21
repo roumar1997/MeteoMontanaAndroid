@@ -15,9 +15,15 @@ final class SchoolListViewModel: ObservableObject {
     @Published var loading = true
     @Published var errorText: String?
 
-    enum SortMode: String, CaseIterable { case score = L("Mejor score"), distance = L("Más cercanos") }
+    enum SortMode: String, CaseIterable {
+        case score = "Mejor score", distance = "Más cercanos"
+        var label: String { L(rawValue) }   // rawValue = clave en español; L() da el texto del idioma activo
+    }
     // Filtro rápido: todas / solo favoritas / solo guardadas offline.
-    enum ShowMode: String, CaseIterable { case all = "Todas", favorites = L("Favoritos"), saved = L("Guardados") }
+    enum ShowMode: String, CaseIterable {
+        case all = "Todas", favorites = "Favoritos", saved = "Guardados"
+        var label: String { L(rawValue) }
+    }
     static let distanceOptions: [Double?] = [nil, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]
 
     @Published var query = ""

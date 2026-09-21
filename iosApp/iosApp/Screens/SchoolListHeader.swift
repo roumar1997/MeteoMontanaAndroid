@@ -552,12 +552,12 @@ struct FilterChips: View {
             section(L("MOSTRAR")) {
                 chipRow(SchoolListViewModel.ShowMode.allCases, id: { $0.rawValue },
                         isSel: { $0 == vm.showMode },
-                        label: { $0.rawValue }) { vm.showMode = $0 }
+                        label: { $0.label }) { vm.showMode = $0 }
             }
             section(L("ORDENAR POR")) {
                 chipRow(SchoolListViewModel.SortMode.allCases, id: { $0.rawValue },
                         isSel: { $0 == vm.sortBy },
-                        label: { $0.rawValue }) { vm.sortBy = $0 }
+                        label: { $0.label }) { vm.sortBy = $0 }
             }
         }
         .padding(.vertical, 8)
