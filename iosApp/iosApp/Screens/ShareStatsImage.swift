@@ -93,7 +93,7 @@ enum ShareStatsImage {
                     ("\(s.daysOut)", L("DÍAS DE ROCA"), false),
                     (L("%@ sem", s.currentStreakWeeks), L("RACHA"), true),
                     ("\(s.projectsFallen)", L("PROYECTOS CAÍDOS"), false),
-                    (maxGrade ?? "—", "GRADO MÁXIMO", true)
+                    (maxGrade ?? "—", L("GRADO MÁXIMO"), true)
                 ]
                 let boxW = (w - 200) / 2, boxH: CGFloat = 220
                 for (i, m) in metrics.enumerated() {
@@ -113,7 +113,7 @@ enum ShareStatsImage {
 
                 // Pirámide.
                 var y: CGFloat = 1070
-                draw("PIRÁMIDE DE GRADOS", x: 80, y: y,
+                draw(L("PIRÁMIDE DE GRADOS"), x: 80, y: y,
                      font: UIFont.monospacedSystemFont(ofSize: 29, weight: .bold),
                      color: inkSoft, centered: false, kern: 5)
                 y += 60

@@ -96,7 +96,7 @@ private struct RockStatusBand: View {
         let subtitle = current.drying?.message ?? (dry ? L("Lista para escalar") : L("Mejor esperar a que seque"))
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(dry ? "● ROCA SECA" : "● ROCA HÚMEDA")
+                Text(dry ? L("● ROCA SECA") : L("● ROCA HÚMEDA"))
                     .font(Cumbre.mono(13, .bold)).foregroundStyle(accent)
                 Text(subtitle).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
             }
@@ -147,9 +147,9 @@ private struct FactorsAccordion: View {
                         HStack(spacing: 10) {
                             Image(systemName: f.passes ? "checkmark.circle.fill" : "xmark.circle")
                                 .foregroundStyle(f.passes ? Cumbre.ok : Cumbre.bad)
-                            Text(f.name).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                            Text(ForecastText.factorName(f.name)).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
                             Spacer()
-                            Text(f.display).font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink2)
+                            Text(ForecastText.factorDisplay(f.display)).font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink2)
                         }
                         .padding(.horizontal, 16).padding(.vertical, 8)
                     }

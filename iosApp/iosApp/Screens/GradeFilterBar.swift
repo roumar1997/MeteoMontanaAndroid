@@ -127,7 +127,7 @@ struct GradeFilterBar: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 9).padding(.vertical, 3)
                     .background(RoundedRectangle(cornerRadius: 2).fill(accent))
-                Text(matches.count == 1 ? "1 vía" : L("%@ vías", matches.count))
+                Text(matches.count == 1 ? L("1 vía") : L("%@ vías", matches.count))
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                 Spacer()
                 Image(systemName: isOpen ? "chevron.down" : "chevron.right")

@@ -96,7 +96,7 @@ enum ShareLineImage {
             border.lineWidth = 3; border.stroke()
 
             // ── Cabecera ────────────────────────────────────────────────────
-            let kind = block.discipline.uppercased() == "ROUTE" ? "VÍA" : "BLOQUE"
+            let kind = block.discipline.uppercased() == "ROUTE" ? L("VÍA") : L("BLOQUE")
             drawText(L("%@ EN CUMBRE", kind), at: CGRect(x: pad, y: 60, width: availW, height: 44),
                      font: mono(30, bold: true), color: terra, kern: 4, align: .left)
 
@@ -199,7 +199,7 @@ enum ShareLineImage {
             let photoBorder = UIBezierPath(rect: photoRect); photoBorder.lineWidth = 3; photoBorder.stroke()
 
             // ── Pie de marca ────────────────────────────────────────────────
-            drawText("⛰ CUMBRE", at: CGRect(x: pad, y: h - 110, width: availW, height: 44),
+            drawText(L("⛰ CUMBRE"), at: CGRect(x: pad, y: h - 110, width: availW, height: 44),
                      font: mono(30, bold: true), color: terra, kern: 4, align: .right, vCenter: true)
         }
     }

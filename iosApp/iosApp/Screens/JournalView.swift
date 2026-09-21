@@ -590,8 +590,8 @@ struct AddBlockSheet: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("MODALIDAD").eyebrow()
             HStack(spacing: 8) {
-                modalityOption("BLOQUE", active: discipline == "BOULDER") { discipline = "BOULDER" }
-                modalityOption("VÍA", active: discipline == "ROUTE") { discipline = "ROUTE" }
+                modalityOption(L("BLOQUE"), active: discipline == "BOULDER") { discipline = "BOULDER" }
+                modalityOption(L("VÍA"), active: discipline == "ROUTE") { discipline = "ROUTE" }
             }
         }
     }
@@ -610,7 +610,7 @@ struct AddBlockSheet: View {
     // ─── BLOQUE / VÍA con autocomplete ───
     private var blockField: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(discipline == "ROUTE" ? "VÍA" : "BLOQUE").eyebrow()
+            Text(discipline == "ROUTE" ? L("VÍA") : L("BLOQUE")).eyebrow()
             TextField("ej: El Pollito", text: $block)
                 .font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                 .padding(10).background(Cumbre.paper).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
@@ -899,7 +899,7 @@ struct JournalBlocksListView: View {
         }
         Group {
             if shown.isEmpty {
-                Text(routeOnly == true ? "Sin vías registradas." : "Sin bloques registrados.")
+                Text(routeOnly == true ? L("Sin vías registradas.") : L("Sin bloques registrados."))
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -935,10 +935,10 @@ struct JournalStatsNav: View {
     var body: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
-                NavigationLink(destination: JournalBlocksListView(title: "Bloques", entries: entries, viaInfo: viaInfo, routeOnly: false)) {
+                NavigationLink(destination: JournalBlocksListView(title: L("Bloques"), entries: entries, viaInfo: viaInfo, routeOnly: false)) {
                     cell("\(stats.boulderCount)", L("BLOQUES"))
                 }.buttonStyle(.plain)
-                NavigationLink(destination: JournalBlocksListView(title: "Vías", entries: entries, viaInfo: viaInfo, routeOnly: true)) {
+                NavigationLink(destination: JournalBlocksListView(title: L("Vías"), entries: entries, viaInfo: viaInfo, routeOnly: true)) {
                     cell("\(stats.routeCount)", L("VÍAS"))
                 }.buttonStyle(.plain)
                 NavigationLink(destination: JournalSchoolsView(schools: stats.bySchool, entries: entries, viaInfo: viaInfo)) {

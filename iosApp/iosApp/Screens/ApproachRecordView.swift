@@ -83,7 +83,7 @@ struct ApproachRecordView: View {
                 }
             }
             .background(Cumbre.bg)
-            .navigationTitle(savingStep ? "Guardar camino" : "Grabar aproximación")
+            .navigationTitle(savingStep ? L("Guardar camino") : L("Grabar aproximación"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

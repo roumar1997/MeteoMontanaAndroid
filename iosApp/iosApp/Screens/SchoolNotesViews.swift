@@ -154,7 +154,7 @@ private struct NoteRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(note.author ?? "Anónimo")
+                Text(note.author ?? L("Anónimo"))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Cumbre.ink)
                 Spacer()

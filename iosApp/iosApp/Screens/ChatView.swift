@@ -233,7 +233,7 @@ struct ChatView: View {
             HStack(spacing: 8) {
                 Rectangle().fill(Cumbre.terraFill).frame(width: 3, height: 34)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Respondiendo a \(who)").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                    Text(L("Respondiendo a %@", who)).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
                     Text(r.text).font(.system(size: 13)).foregroundStyle(Cumbre.ink2).lineLimit(1)
                 }
                 Spacer()

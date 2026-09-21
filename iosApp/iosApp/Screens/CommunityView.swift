@@ -173,7 +173,7 @@ private struct ContributorRow: View {
             AvatarCircle(url: contributor.photoUrl, size: 40)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(contributor.displayName ?? contributor.username.map { "@" + $0 } ?? "Usuario")
+                Text(contributor.displayName ?? contributor.username.map { "@" + $0 } ?? L("Usuario"))
                     .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
                 if let u = contributor.username, !u.isEmpty {
                     Text("@\(u)").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)

@@ -421,7 +421,7 @@ struct SchoolDetailView: View {
                 ProgressView().padding(.top, 60)
                     .frame(maxWidth: .infinity, minHeight: 320)
             } else if let err = vm.errorText {
-                ContentUnavailableView("Sin previsión", systemImage: "cloud.slash", description: Text(err))
+                ContentUnavailableView(L("Sin previsión"), systemImage: "cloud.slash", description: Text(err))
                     .padding(.top, 60)
             } else if let f = vm.forecast {
                 FirstTimeHint(
@@ -495,7 +495,7 @@ private struct MonthlyStatsSection: View {
         VStack(alignment: .leading, spacing: 10) {
             SectionTitle(L("MEJORES MESES"))
             if let r = bestRange, !r.isEmpty {
-                Text(L("Mejor época: %@", r))
+                Text(L("Mejor época: %@", ForecastText.monthsIn(r)))
                     .font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink2)
                     .padding(.horizontal, 16)
             }

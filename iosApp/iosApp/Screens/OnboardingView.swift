@@ -81,7 +81,7 @@ struct OnboardingView: View {
             Button {
                 if step < last { step += 1 } else { onFinish() }
             } label: {
-                Text(step < last ? "SIGUIENTE" : "PERMITIR UBICACIÓN Y EMPEZAR")
+                Text(step < last ? L("SIGUIENTE") : L("PERMITIR UBICACIÓN Y EMPEZAR"))
                     .font(Cumbre.mono(13, .bold)).tracking(0.8)
                     .foregroundStyle(.white)
                     .padding(.vertical, 16).frame(maxWidth: .infinity)

@@ -89,7 +89,7 @@ struct LineCommentsThreadView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "bubble.right")
                         .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
-                    Text("COMENTARIOS" + (mine.isEmpty ? "" : " · \(mine.count)"))
+                    Text(L("COMENTARIOS") + (mine.isEmpty ? "" : " · \(mine.count)"))
                         .font(Cumbre.mono(10, .bold)).tracking(1.0)
                         .foregroundStyle(Cumbre.ink3)
                     Spacer()

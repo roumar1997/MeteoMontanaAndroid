@@ -682,7 +682,7 @@ private struct AccountBlocksList: View {
             }
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle(routeOnly == true ? "Vías" : "Bloques")
+        .navigationTitle(routeOnly == true ? L("Vías") : L("Bloques"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }

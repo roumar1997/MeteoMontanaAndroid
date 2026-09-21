@@ -201,7 +201,7 @@ struct WeekendAlertView: View {
                 Button { Task { await vm.save() } } label: {
                     HStack {
                         if vm.saving { ProgressView().tint(.white) }
-                        Text(vm.savedOk ? "GUARDADO ✓" : "GUARDAR").font(Cumbre.mono(13, .bold)).tracking(0.8)
+                        Text(vm.savedOk ? L("GUARDADO ✓") : L("GUARDAR")).font(Cumbre.mono(13, .bold)).tracking(0.8)
                     }
                     .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
                     .background(vm.savedOk ? Cumbre.ok : Cumbre.terra)

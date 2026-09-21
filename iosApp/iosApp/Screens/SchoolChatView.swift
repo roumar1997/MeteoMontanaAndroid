@@ -166,11 +166,11 @@ struct SchoolChatView: View {
                 Button {
                     guard person.uid != vm.me else { return }
                     showAllPresent = false
-                    openChatFor = SchoolChatTarget(uid: person.uid, name: person.displayName ?? person.username ?? "Usuario")
+                    openChatFor = SchoolChatTarget(uid: person.uid, name: person.displayName ?? person.username ?? L("Usuario"))
                 } label: {
                     HStack(spacing: 12) {
                         AvatarCircle(url: person.photoUrl, size: 36)
-                        Text(person.uid == vm.me ? "Tú" : (person.displayName ?? person.username ?? "Usuario"))
+                        Text(person.uid == vm.me ? "Tú" : (person.displayName ?? person.username ?? L("Usuario")))
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Cumbre.ink)
                         Spacer()

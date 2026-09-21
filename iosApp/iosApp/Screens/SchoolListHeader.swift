@@ -199,7 +199,7 @@ struct CoffeeBanner: View {
                     .foregroundStyle(Cumbre.ink2.opacity(0.8))
             }
             Spacer()
-            Button { showDonate = true } label: { OutlinedCumbreButton(text: "Apóyanos", tint: Cumbre.ink) }
+            Button { showDonate = true } label: { OutlinedCumbreButton(text: L("Apóyanos"), tint: Cumbre.ink) }
                 .buttonStyle(.plain)
         }
         .padding(12)

@@ -128,7 +128,7 @@ struct MySubmissionsView: View {
                         Text(n).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
                     }
                     if let reason = s.reviewReason, !reason.isEmpty {
-                        Text("Motivo: \(reason)").font(.system(size: 13)).foregroundStyle(Cumbre.bad)
+                        Text(L("Motivo: %@", reason)).font(.system(size: 13)).foregroundStyle(Cumbre.bad)
                     }
                 }
                 .padding(.horizontal, 16).padding(.vertical, 12)
@@ -183,7 +183,7 @@ struct MyContributionsView: View {
                         Text(n).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
                     }
                     if let reason = c.reviewReason, !reason.isEmpty {
-                        Text("Motivo: \(reason)").font(.system(size: 13)).foregroundStyle(Cumbre.bad)
+                        Text(L("Motivo: %@", reason)).font(.system(size: 13)).foregroundStyle(Cumbre.bad)
                     }
                 }
                 .padding(.horizontal, 16).padding(.vertical, 12)
@@ -259,7 +259,7 @@ struct FollowRequestsView: View {
                         HStack(spacing: 12) {
                             AvatarCircle(url: u.photoUrl, size: 40)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(u.displayName ?? u.username ?? "Usuario")
+                                Text(u.displayName ?? u.username ?? L("Usuario"))
                                     .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
                                 if let n = u.username, !n.isEmpty {
                                     Text("@\(n)").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)

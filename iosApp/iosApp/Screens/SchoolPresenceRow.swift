@@ -181,11 +181,11 @@ struct SchoolPresenceRow: View {
                 Button {
                     guard person.uid != myUid else { return }
                     showAllPresent = false
-                    openChatFor = ChatTarget(uid: person.uid, name: person.displayName ?? person.username ?? "Usuario")
+                    openChatFor = ChatTarget(uid: person.uid, name: person.displayName ?? person.username ?? L("Usuario"))
                 } label: {
                     HStack(spacing: 12) {
                         AvatarCircle(url: person.photoUrl, size: 36)
-                        Text(person.uid == myUid ? "Tú" : (person.displayName ?? person.username ?? "Usuario"))
+                        Text(person.uid == myUid ? "Tú" : (person.displayName ?? person.username ?? L("Usuario")))
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Cumbre.ink)
                         Spacer()
@@ -232,7 +232,7 @@ struct SchoolPresenceRow: View {
         } label: {
             HStack(spacing: 4) {
                 Image(systemName: "mappin.circle.fill").font(.system(size: 11))
-                Text(vm.iAmHere ? "Ya no estoy" : "Estoy aquí")
+                Text(vm.iAmHere ? L("Ya no estoy") : L("Estoy aquí"))
                     .font(.system(size: 11, weight: .bold, design: .serif))
             }
             .foregroundStyle(.white)

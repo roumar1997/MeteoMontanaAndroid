@@ -205,7 +205,7 @@ enum ShareFeedPostImage {
             }
 
             // ── Pie de marca ──
-            drawText("⛰ CUMBRE", at: CGRect(x: pad, y: h - 110, width: availW, height: 44),
+            drawText(L("⛰ CUMBRE"), at: CGRect(x: pad, y: h - 110, width: availW, height: 44),
                      font: mono(34, bold: true), color: terra, kern: 5, align: .right)
         }
     }

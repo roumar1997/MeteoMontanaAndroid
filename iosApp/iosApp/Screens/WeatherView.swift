@@ -90,7 +90,7 @@ struct WeatherView: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(NSLocalizedString("weather_title", comment: "")).font(Cumbre.serif(34, .bold)).foregroundStyle(Cumbre.ink)
-                Text(vm.selectedName ?? "En tu ubicación")
+                Text(vm.selectedName ?? L("En tu ubicación"))
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
             }
             Spacer()
@@ -131,7 +131,7 @@ struct WeatherView: View {
             permissionPrompt
         case .error(let message):
             Spacer()
-            ContentUnavailableView("Sin previsión", systemImage: "cloud.slash", description: Text(message))
+            ContentUnavailableView(L("Sin previsión"), systemImage: "cloud.slash", description: Text(message))
             Spacer()
         case .success(let forecast):
             ScrollView {
@@ -241,7 +241,7 @@ private struct FavoritesGridView: View {
         }
         // weekday: 1=domingo … 7=sábado
         let weekday = Calendar(identifier: .gregorian).component(.weekday, from: date)
-        let labels = ["DOM", "LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB"]
+        let labels = CalendarLabels.weekdaysShortSunFirst().map { $0.uppercased() }
         return labels[(weekday - 1) % 7]
     }
 }

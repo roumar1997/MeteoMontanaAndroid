@@ -66,3 +66,58 @@ enum CalendarLabels {
     /// Domingo primero (índice 0 = domingo), como `Calendar.component(.weekday)` - 1.
     static func weekdaysShortSunFirst() -> [String] { cal.shortWeekdaySymbols.map(clean) }
 }
+
+/// Textos que genera el SERVIDOR en español dentro de la previsión (desglose
+/// "¿Por qué este índice?" y mejor temporada). Se traducen al mostrarlos; lo que
+/// no se reconoce se deja igual. Solo actúa en inglés. Parche del lado cliente a
+/// propósito (funciona ya contra producción); lo limpio sería que el servidor
+/// los redacte según Accept-Language, que la app ya manda.
+enum ForecastText {
+    private static var english: Bool { LanguageManager.shared.effectiveCode == "en" }
+
+    private static let names: [String: String] = [
+        "TEMPERATURA": "TEMPERATURE", "HUMEDAD": "HUMIDITY", "VIENTO": "WIND",
+        "LLUVIA 24H": "RAIN 24H", "LLUVIA 72H": "RAIN 72H", "SEQUEDAD AIRE": "AIR DRYNESS", "ROCA": "ROCK",
+    ]
+
+    static func factorName(_ name: String) -> String {
+        guard english else { return name }
+        if let n = names[name] { return n }
+        if name.hasPrefix("ROCA · ") { return "ROCK · " + rockLabel(String(name.dropFirst(7))).uppercased() }
+        return name
+    }
+
+    private static func capture(_ pattern: String, in s: String) -> [String]? {
+        guard let re = try? NSRegularExpression(pattern: pattern),
+              let m = re.firstMatch(in: s, range: NSRange(s.startIndex..., in: s)) else { return nil }
+        return (1..<m.numberOfRanges).compactMap { Range(m.range(at: $0), in: s).map { String(s[$0]) } }
+    }
+
+    static func factorDisplay(_ display: String) -> String {
+        guard english else { return display }
+        if display == "Roca seca" { return "Dry rock" }
+        if display == "Roca húmeda" { return "Damp rock" }
+        if let g = capture(#"^Aún templada \((\d+)°\): guarda el calor (~\d+ h) tras el sol$"#, in: display) {
+            return "Still warm (\(g[0])°): holds the heat \(g[1]) after sun"
+        }
+        if let g = capture(#"^Fría \((\d+)°\): buena fricción · se enfría en (~\d+ h)$"#, in: display) {
+            return "Cold (\(g[0])°): good friction · cools down in \(g[1])"
+        }
+        if let g = capture(#"^Templada \((\d+)°\) · inercia (~\d+ h)$"#, in: display) {
+            return "Mild (\(g[0])°) · inertia \(g[1])"
+        }
+        return display
+    }
+
+    /// "Enero-Febrero" → "January-February".
+    static func monthsIn(_ text: String) -> String {
+        guard english else { return text }
+        let es = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+        let long = CalendarLabels.monthsLong()
+        var out = text
+        for (i, m) in es.enumerated() {
+            out = out.replacingOccurrences(of: m, with: long[i].capitalized, options: .caseInsensitive)
+        }
+        return out
+    }
+}

@@ -1734,4 +1734,7 @@
     <string name="aspect_w">W</string>
     <string name="aspect_nw">NW</string>
     <string name="aspect_wall">WALL FACING %1$s</string>
+
+    <!-- Código de idioma para lógica dependiente del idioma -->
+    <string name="lang_code">en</string>
 </resources>

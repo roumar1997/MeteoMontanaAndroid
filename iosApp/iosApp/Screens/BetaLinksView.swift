@@ -116,7 +116,7 @@ struct BetaLinksThreadView: View {
                             .offset(x: 0.5)
                     }
                     .frame(width: 15, height: 15)
-                    Text("BETA" + (all.isEmpty ? "" : " · \(all.count)"))
+                    Text(L("BETA") + (all.isEmpty ? "" : " · \(all.count)"))
                         .font(Cumbre.mono(10, .bold)).tracking(1.0)
                         .foregroundStyle(all.isEmpty ? Cumbre.ink3 : Cumbre.terra)
                     Spacer()
@@ -148,7 +148,7 @@ struct BetaLinksThreadView: View {
                     .padding(.bottom, 4)
                 }
                 if shown.isEmpty {
-                    Text(all.isEmpty ? "Sé el primero en dejar un enlace de beta."
+                    Text(all.isEmpty ? L("Sé el primero en dejar un enlace de beta.")
                                       : L("No hay enlaces de beta para %@.", viewFilter.label.lowercased()))
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                 }
@@ -232,7 +232,7 @@ private struct BetaLinkUrlSheet: View {
             Text("ENLACE DE BETA").font(Cumbre.mono(11, .bold)).tracking(1.4)
                 .foregroundStyle(Cumbre.ink3)
                 .padding(.top, 18)
-            Text(category == .any ? "Se abrirá fuera de la app." : L("Para %@. Se abrirá fuera de la app.", category.label.lowercased()))
+            Text(category == .any ? L("Se abrirá fuera de la app.") : L("Para %@. Se abrirá fuera de la app.", category.label.lowercased()))
                 .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
             TextField("Enlace de Instagram/YouTube", text: $urlDraft)
                 .keyboardType(.URL)

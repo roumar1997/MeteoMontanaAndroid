@@ -53,7 +53,7 @@ enum ShareProfileImage {
             border.lineWidth = 3; border.stroke()
 
             // Eyebrow superior, centrado.
-            drawCenteredText("ESCALA CONMIGO EN CUMBRE", cx: cx, y: 150,
+            drawCenteredText(L("ESCALA CONMIGO EN CUMBRE"), cx: cx, y: 150,
                              font: mono(30, bold: true), color: terra, kern: 4)
 
             // Avatar circular (o monograma con inicial) + anillo terra.
@@ -116,7 +116,7 @@ enum ShareProfileImage {
                 let box = CGRect(x: cx - boxW / 2, y: y, width: boxW, height: 200)
                 rule.setStroke()
                 let bp = UIBezierPath(rect: box); bp.lineWidth = 3; bp.stroke()
-                drawCenteredText("GRADO MÁXIMO", cx: cx, y: box.minY + 28,
+                drawCenteredText(L("GRADO MÁXIMO"), cx: cx, y: box.minY + 28,
                                  font: mono(26, bold: false), color: inkSoft, kern: 4)
                 drawCenteredText(g, cx: cx, y: box.minY + 78,
                                  font: gradeFont, color: ink, kern: 0)
@@ -159,9 +159,9 @@ enum ShareProfileImage {
             }
 
             // Pie: CTA + marca.
-            drawCenteredText("Descarga Cumbre", cx: cx, y: h - 230,
+            drawCenteredText(L("Descarga Cumbre"), cx: cx, y: h - 230,
                              font: UIFont.systemFont(ofSize: 42), color: ink, kern: 0)
-            drawCenteredText("⛰ CUMBRE", cx: cx, y: h - 150,
+            drawCenteredText(L("⛰ CUMBRE"), cx: cx, y: h - 150,
                              font: mono(36, bold: true), color: terra, kern: 4)
         }
     }

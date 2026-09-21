@@ -182,9 +182,9 @@ struct RadarView: View {
 
                 HStack {
                     HStack(spacing: 5) {
-                        legendDot(Color(red: 0.40, green: 0.66, blue: 0.96)); legendText("DÉBIL")
-                        legendDot(Color(red: 0.17, green: 0.43, blue: 0.89)); legendText("MEDIA")
-                        legendDot(Color(red: 0.05, green: 0.23, blue: 0.61)); legendText("FUERTE")
+                        legendDot(Color(red: 0.40, green: 0.66, blue: 0.96)); legendText(L("DÉBIL"))
+                        legendDot(Color(red: 0.17, green: 0.43, blue: 0.89)); legendText(L("MEDIA"))
+                        legendDot(Color(red: 0.05, green: 0.23, blue: 0.61)); legendText(L("FUERTE"))
                     }
                     .padding(.horizontal, 8).padding(.vertical, 5)
                     .background(Cumbre.bg.opacity(0.9))

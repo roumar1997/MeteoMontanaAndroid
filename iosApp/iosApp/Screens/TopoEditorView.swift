@@ -198,7 +198,7 @@ struct TopoEditorView: View {
                     // UNIR: se puede apagar y encender EN MITAD del dibujo, que
                     // es lo que permite compartir solo el tramo del medio.
                     Button { iman.toggle() } label: {
-                        Text(iman ? "UNIR: SÍ" : "UNIR: NO")
+                        Text(iman ? L("UNIR: SÍ") : L("UNIR: NO"))
                             .font(Cumbre.mono(11, .bold))
                             .foregroundStyle(iman ? .white : Cumbre.ink)
                             .padding(.horizontal, 10).padding(.vertical, 6)

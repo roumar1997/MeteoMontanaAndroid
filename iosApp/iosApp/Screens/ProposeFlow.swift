@@ -14,7 +14,7 @@ struct DisciplineSelector: View {
     @Binding var selected: String
     var body: some View {
         HStack(spacing: 8) {
-            ForEach([("BOULDER", "BLOQUE"), ("ROUTE", "VÍA")], id: \.0) { value, label in
+            ForEach([("BOULDER", L("BLOQUE")), ("ROUTE", L("VÍA"))], id: \.0) { value, label in
                 let on = selected == value
                 Button { selected = value } label: {
                     Text(label).font(Cumbre.mono(12, .bold)).tracking(0.6)

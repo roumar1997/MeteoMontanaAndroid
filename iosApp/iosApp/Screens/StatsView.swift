@@ -26,17 +26,17 @@ struct StatsView: View {
     // Escuela desplegada inline en TUS ESCUELAS (nil = ninguna).
     @State private var expandedSchool: String? = nil
 
-    private let monthShort = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"]
+    private var monthShort: [String] { CalendarLabels.monthsShort().map { $0.uppercased() } }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 // ── Filtros ─────────────────────────────────────────────────
                 HStack(spacing: 8) {
-                    filterChip("BLOQUE", selected: store.discipline == "BOULDER") {
+                    filterChip(L("BLOQUE"), selected: store.discipline == "BOULDER") {
                         store.discipline = "BOULDER"; store.recompute()
                     }
-                    filterChip("VÍA", selected: store.discipline == "ROUTE") {
+                    filterChip(L("VÍA"), selected: store.discipline == "ROUTE") {
                         store.discipline = "ROUTE"; store.recompute()
                     }
                     Menu {
@@ -54,7 +54,7 @@ struct StatsView: View {
                             Button(y) { store.year = y; store.month = nil; store.day = nil; store.recompute() }
                         }
                     } label: {
-                        VotableChip(text: store.year ?? "TODO") {}
+                        VotableChip(text: store.year ?? L("TODO")) {}
                             .allowsHitTesting(false)
                     }
                 }
@@ -206,7 +206,7 @@ struct StatsView: View {
                         Task {
                             await ShareStatsImage.share(
                                 periodLabel: store.year.map { L("MI %@ EN ROCA", $0) } ?? L("MI DIARIO EN ROCA"),
-                                disciplineLabel: store.discipline == "ROUTE" ? "VÍA" : "BLOQUE",
+                                disciplineLabel: store.discipline == "ROUTE" ? L("VÍA") : L("BLOQUE"),
                                 summary: sum,
                                 maxGrade: (sum.pyramid.first?.first).map { $0 as String },
                                 progression: store.progression)

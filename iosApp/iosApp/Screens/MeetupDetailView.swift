@@ -582,7 +582,7 @@ struct MeetupDetailView: View {
             Text("Se eliminara la quedada y su chat de grupo. Esta accion no se puede deshacer.")
         }
         .confirmationDialog(
-            L("Expulsar a %@?", kickTarget?.displayName ?? kickTarget?.username ?? "este participante"),
+            L("Expulsar a %@?", kickTarget?.displayName ?? kickTarget?.username ?? L("este participante")),
             isPresented: $showKickConfirm,
             titleVisibility: .visible
         ) {

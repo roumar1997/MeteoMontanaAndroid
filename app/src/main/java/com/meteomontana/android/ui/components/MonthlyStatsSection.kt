@@ -58,7 +58,7 @@ fun MonthlyStatsSection(stats: MonthlyStats?, isLoading: Boolean) {
                     ),
                     color = MaterialTheme.colorScheme.secondary)
                 androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
-                Text(range,
+                Text(com.meteomontana.android.util.ForecastText.monthsIn(range),
                     style = TextStyle(fontFamily = Serif, fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
                     color = MaterialTheme.colorScheme.onBackground)
             }

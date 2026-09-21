@@ -54,7 +54,7 @@ struct CreateMeetupView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         // Foto del grupo
                         VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel("FOTO DEL GRUPO (opcional)")
+                            FieldLabel(L("FOTO DEL GRUPO (opcional)"))
                             PhotosPicker(selection: $photoItem, matching: .images) {
                                 ZStack {
                                     if let img = photoImage {
@@ -111,14 +111,14 @@ struct CreateMeetupView: View {
 
                         // Nombre
                         VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel("NOMBRE")
+                            FieldLabel(L("NOMBRE"))
                             TextField("Ej. Quedar en Pedriza", text: $name)
                                 .textFieldStyle(CumbreFieldStyle())
                         }
 
                         // Escuela
                         VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel("ESCUELA")
+                            FieldLabel(L("ESCUELA"))
                             Button { showSchoolPicker = true } label: {
                                 HStack(spacing: 8) {
                                     Image(systemName: "building.2").foregroundColor(Cumbre.ink.opacity(0.5))
@@ -136,13 +136,13 @@ struct CreateMeetupView: View {
 
                         // Días
                         VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel("DÍAS (elige uno o varios)")
+                            FieldLabel(L("DÍAS (elige uno o varios)"))
                             DayPickerView(selected: $selectedDays, schoolId: schoolId, dayScores: dayScores)
                         }
 
                         // Privacidad
                         VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel("PRIVACIDAD")
+                            FieldLabel(L("PRIVACIDAD"))
                             PrivacyPickerView(selected: $privacy)
                         }
                         if privacy == "WOMEN" {
@@ -153,13 +153,13 @@ struct CreateMeetupView: View {
 
                         // Disciplina
                         VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel("DISCIPLINA (opcional)")
+                            FieldLabel(L("DISCIPLINA (opcional)"))
                             DisciplinePickerView(selected: $discipline)
                         }
 
                         // Límite
                         VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel("LÍMITE DE PARTICIPANTES (opcional)")
+                            FieldLabel(L("LÍMITE DE PARTICIPANTES (opcional)"))
                             TextField("Sin límite", text: $limitText)
                                 .keyboardType(.numberPad)
                                 .textFieldStyle(CumbreFieldStyle())

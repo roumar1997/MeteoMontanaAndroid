@@ -63,7 +63,7 @@ struct ContributionTypePicker: View {
                 Image(systemName: icon).font(.system(size: 18)).foregroundStyle(enabled ? Cumbre.terra : Cumbre.ink3).frame(width: 28)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(t).font(Cumbre.mono(13, .bold)).tracking(0.6).foregroundStyle(enabled ? Cumbre.ink : Cumbre.ink3)
-                    Text(enabled ? sub : "\(sub) · próximamente").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    Text(enabled ? sub : L("%@ · próximamente", sub)).font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                 }
                 Spacer()
             }
@@ -342,7 +342,7 @@ struct ContributionSuccessSheet: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.seal.fill").font(.system(size: 56)).foregroundStyle(Cumbre.ok)
-            Text(isAdmin ? "¡Publicado!" : "¡Propuesta enviada!").font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
+            Text(isAdmin ? L("¡Publicado!") : L("¡Propuesta enviada!")).font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
             Text(isAdmin
                  ? L("Ya está en el mapa para toda la comunidad.")
                  : L("La revisaremos en 24-48 h. Gracias por mejorar el mapa de la comunidad."))

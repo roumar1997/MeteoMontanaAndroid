@@ -83,7 +83,7 @@ struct ProjectsView: View {
             }
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle(filterDiscipline == "BOULDER" ? "Proyectos · bloques"
+        .navigationTitle(filterDiscipline == "BOULDER" ? L("Proyectos · bloques")
                           : filterDiscipline == "ROUTE" ? L("Proyectos · vías") : L("Proyectos"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

@@ -189,7 +189,7 @@ struct BlockInfoSheet: View {
                         let votesTotal = community.summaryFor(nil)?.votes.values
                             .reduce(0) { $0 + $1.intValue } ?? 0
                         if votesTotal > 0 {
-                            Text("\(votesTotal) votos").font(.system(size: 11))
+                            Text(L("%@ votos", votesTotal)).font(.system(size: 11))
                                 .foregroundStyle(Cumbre.ink3)
                         }
                     }
@@ -199,7 +199,7 @@ struct BlockInfoSheet: View {
 
                     // Sector al que pertenece (si lo tiene).
                     if let sn = sectorName, !sn.isEmpty {
-                        Text("SECTOR · \(sn.uppercased())").font(Cumbre.mono(10, .bold))
+                        Text(L("SECTOR · %@", sn.uppercased())).font(Cumbre.mono(10, .bold))
                             .foregroundStyle(.white).padding(.horizontal, 8).padding(.vertical, 4)
                             .background(Cumbre.ok)
                     }

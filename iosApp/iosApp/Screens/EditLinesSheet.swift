@@ -186,7 +186,7 @@ struct EditLinesSheet: View {
                         }
                         Button { showTrace = true } label: {
                             Text(tracedPath.isEmpty
-                                 ? (parseWallPath(block.path).isEmpty ? "✎ TRAZAR EL MURO EN EL MAPA" : L("✎ RE-TRAZAR EL MURO EN EL MAPA"))
+                                 ? (parseWallPath(block.path).isEmpty ? L("✎ TRAZAR EL MURO EN EL MAPA") : L("✎ RE-TRAZAR EL MURO EN EL MAPA"))
                                  : L("✓ MURO TRAZADO (%@ PUNTOS) · RE-TRAZAR", tracedPath.count))
                                 .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
                                 .lineLimit(1).minimumScaleFactor(0.8)
@@ -194,7 +194,7 @@ struct EditLinesSheet: View {
                                 .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
                                     .stroke(Cumbre.terra, lineWidth: 1))
                         }.buttonStyle(.plain)
-                        Text(tracedPath.isEmpty ? "Se conserva el trazado actual si no lo re-trazas." : "Se enviará el trazado nuevo.")
+                        Text(tracedPath.isEmpty ? L("Se conserva el trazado actual si no lo re-trazas.") : L("Se enviará el trazado nuevo."))
                             .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                     }
 
@@ -215,7 +215,7 @@ struct EditLinesSheet: View {
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
                                             .overlay(RoundedRectangle(cornerRadius: 12)
                                                 .stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: on ? 2 : 1))
-                                        Text("FOTO \(i + 1)").font(Cumbre.mono(10, .bold))
+                                        Text(L("FOTO %@", i + 1)).font(Cumbre.mono(10, .bold))
                                             .foregroundStyle(on ? Cumbre.terra : Cumbre.ink2)
                                     }
                                 }.buttonStyle(.plain)
@@ -249,7 +249,7 @@ struct EditLinesSheet: View {
                                 // foto" sonaba a que solo tocaba la imagen (para eso ya
                                 // está "CAMBIAR FOTO DE ESTA CARA" arriba) — Rodrigo,
                                 // 2026-08-20.
-                                Text("✕ ELIMINAR CARA \(faceIdx + 1)").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.bad)
+                                Text(L("✕ ELIMINAR CARA %@", faceIdx + 1)).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.bad)
                                     .lineLimit(1).minimumScaleFactor(0.8)
                                     .padding(.horizontal, 10).padding(.vertical, 8)
                                     .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
@@ -326,7 +326,7 @@ struct EditLinesSheet: View {
                         ForEach(Array(faceBlocks[faceIdx].enumerated()), id: \.element.id) { idx, via in
                             if via.id == expandedVia {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Text(faceBlocks[faceIdx][idx].existingLineId != nil ? "VÍA EXISTENTE" : "NUEVA VÍA")
+                                    Text(faceBlocks[faceIdx][idx].existingLineId != nil ? L("VÍA EXISTENTE") : L("NUEVA VÍA"))
                                         .font(Cumbre.mono(9, .bold))
                                         .foregroundStyle(faceBlocks[faceIdx][idx].existingLineId != nil ? Cumbre.ink3 : Cumbre.terra)
                                     BoulderBlockRow(block: $faceBlocks[faceIdx][idx], index: idx,

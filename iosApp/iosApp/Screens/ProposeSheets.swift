@@ -31,7 +31,7 @@ struct AssignSectorSheet: View {
                     ForEach(options, id: \.id) { s in
                         Button { Task { await assign(s.id) } } label: {
                             HStack {
-                                Text(s.name.isEmpty ? "Zona" : s.name).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                                Text(s.name.isEmpty ? L("Zona") : s.name).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                                 Spacer()
                                 Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                             }

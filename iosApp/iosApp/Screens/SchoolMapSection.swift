@@ -646,7 +646,7 @@ struct SchoolMapSection: View {
                 .mapValues { $0.count }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
-                    orientationChip("TODAS", active: orientationFilter == nil) {
+                    orientationChip(L("TODAS"), active: orientationFilter == nil) {
                         orientationFilter = nil
                     }
                     ForEach(Self.aspectOrder, id: \.self) { aspect in
@@ -937,7 +937,7 @@ struct SchoolMapSection: View {
                 Button {
                     if active { styleFilter.remove(opt) } else { styleFilter.insert(opt) }
                 } label: {
-                    Text(opt.uppercased()).font(Cumbre.mono(11, .bold)).tracking(0.5)
+                    Text(L(opt).uppercased()).font(Cumbre.mono(11, .bold)).tracking(0.5)
                         .foregroundStyle(active ? .white : Cumbre.ink2)
                         .padding(.horizontal, 12).padding(.vertical, 6)
                         .background(active ? Cumbre.terra : Cumbre.paper)
@@ -1074,9 +1074,9 @@ struct SchoolMapSection: View {
 
     private var legend: some View {
         HStack(spacing: 14) {
-            legendItem("Parking", Color(parkingColor))
-            legendItem("Piedra", Color(blockColor))
-            legendItem("Zona", Color(zoneColor))
+            legendItem(L("Parking"), Color(parkingColor))
+            legendItem(L("Piedra"), Color(blockColor))
+            legendItem(L("Zona"), Color(zoneColor))
         }
         .padding(.horizontal, 16).padding(.top, 8)
     }

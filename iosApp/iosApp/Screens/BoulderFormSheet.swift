@@ -326,7 +326,7 @@ struct BoulderFormSheet: View {
                                 WallSeg(options: [("LTR", L("IZQ → DER")), ("RTL", L("DER → IZQ"))], selected: $direction)
                             }
                             Button { showTrace = true } label: {
-                                Text(wallPath.isEmpty ? "✎ TRAZAR EL MURO EN EL MAPA" : L("✓ MURO TRAZADO (%@ PUNTOS) · RE-TRAZAR", wallPath.count))
+                                Text(wallPath.isEmpty ? L("✎ TRAZAR EL MURO EN EL MAPA") : L("✓ MURO TRAZADO (%@ PUNTOS) · RE-TRAZAR", wallPath.count))
                                     .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
                                     .lineLimit(1).minimumScaleFactor(0.8)
                                     .frame(maxWidth: .infinity).padding(.vertical, 10)
@@ -377,7 +377,7 @@ struct BoulderFormSheet: View {
                                         .clipShape(RoundedRectangle(cornerRadius: 12))
                                         .overlay(RoundedRectangle(cornerRadius: 12)
                                             .stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: on ? 2 : 1))
-                                        Text("FOTO \(idx + 1)").font(Cumbre.mono(10, .bold))
+                                        Text(L("FOTO %@", idx + 1)).font(Cumbre.mono(10, .bold))
                                             .foregroundStyle(on ? Cumbre.terra : Cumbre.ink2)
                                     }
                                 }.buttonStyle(.plain)
@@ -489,7 +489,7 @@ struct BoulderFormSheet: View {
                     // ── Dibujar líneas de esta foto ────────────────────────────────
                     let hasPhoto = faces[faceIdx].photo != nil
                     Button { showEditor = true } label: {
-                        Text(faces[faceIdx].blocks.contains { !$0.line.isEmpty } ? "✎ EDITAR LÍNEAS" : "✎ DIBUJAR LÍNEAS")
+                        Text(faces[faceIdx].blocks.contains { !$0.line.isEmpty } ? L("✎ EDITAR LÍNEAS") : L("✎ DIBUJAR LÍNEAS"))
                             .font(Cumbre.mono(12, .bold)).tracking(0.6)
                             .foregroundStyle(hasPhoto ? .white : Cumbre.ink3)
                             .frame(maxWidth: .infinity).padding(.vertical, 12)
@@ -830,7 +830,7 @@ struct ReorderFacesSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(isWall ? L("Las fotos se recorren en este orden (%@) para numerar las vías del muro.", direction == "LTR" ? "izq→der" : "der→izq")
+                    Text(isWall ? L("Las fotos se recorren en este orden (%@) para numerar las vías del muro.", direction == "LTR" ? L("izq→der") : L("der→izq"))
                          : L("Ordena las fotos de la piedra."))
                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(.bottom, 4)
                     ForEach(0..<facePhotos.count, id: \.self) { i in
@@ -841,7 +841,7 @@ struct ReorderFacesSheet: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(L("FOTO %@ · %@ vías", i + 1, faceBlocks[i].count))
                                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
-                                    Text(expanded == i ? "▾ ocultar" : "▸ ver vías")
+                                    Text(expanded == i ? L("▾ ocultar") : L("▸ ver vías"))
                                         .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
                                 }
                                 Spacer()

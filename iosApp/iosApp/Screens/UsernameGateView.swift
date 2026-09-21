@@ -44,7 +44,7 @@ struct UsernameGateView: View {
             .background(Cumbre.paper)
             .overlay(RoundedRectangle(cornerRadius: 2)
                 .stroke(error == nil ? Cumbre.rule : .red, lineWidth: 1))
-            Text(error ?? "3-20 caracteres: minúsculas, números y _")
+            Text(error ?? L("3-20 caracteres: minúsculas, números y _"))
                 .font(Cumbre.mono(10))
                 .foregroundStyle(error == nil ? Cumbre.ink3 : .red)
                 .padding(.top, 6)

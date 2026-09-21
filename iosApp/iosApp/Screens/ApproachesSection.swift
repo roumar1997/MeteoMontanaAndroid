@@ -90,7 +90,7 @@ struct ApproachesSection: View {
                 loader.reload(schoolId: school.id)
             }
         }
-        .alert(L("¿Borrar «%@»?", deleting?.name ?? "esta aproximación"), isPresented: Binding(
+        .alert(L("¿Borrar «%@»?", deleting?.name ?? L("esta aproximación")), isPresented: Binding(
             get: { deleting != nil }, set: { if !$0 { deleting = nil } }
         )) {
             Button("CANCELAR", role: .cancel) { deleting = nil }
@@ -112,7 +112,7 @@ struct ApproachesSection: View {
     private func approachCard(_ a: Approach) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .top) {
-                Text(a.name ?? "Aproximación")
+                Text(a.name ?? L("Aproximación"))
                     .font(.system(size: 14, weight: .bold)).foregroundStyle(Cumbre.ink)
                 Spacer()
                 if isAdmin {
@@ -126,7 +126,7 @@ struct ApproachesSection: View {
             Text(summaryLine(a))
                 .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
             HStack {
-                Text(a.isVerified ? "✓ VERIFICADA" : "⚠ SIN VERIFICAR")
+                Text(a.isVerified ? L("✓ VERIFICADA") : L("⚠ SIN VERIFICAR"))
                     .font(Cumbre.mono(9, .bold)).tracking(1)
                     .foregroundStyle(a.isVerified ? Color(hex: 0x3F6B4A) : Color(hex: 0xB45309))
                 Spacer()

@@ -18,7 +18,7 @@ final class ChatListVM: ObservableObject {
         c.participants.compactMap { $0 as? String }.first { $0 != me } ?? ""
     }
     func name(_ uid: String) -> String {
-        profiles[uid].flatMap { $0.displayName ?? $0.username } ?? "Usuario"
+        profiles[uid].flatMap { $0.displayName ?? $0.username } ?? L("Usuario")
     }
 
     func start() {
@@ -253,12 +253,12 @@ private struct NewChatView: View {
                 } else {
                     List(filtered, id: \.uid) { p in
                         Button {
-                            onPick(p.uid, p.displayName ?? p.username ?? "Usuario")
+                            onPick(p.uid, p.displayName ?? p.username ?? L("Usuario"))
                         } label: {
                             HStack(spacing: 12) {
                                 AvatarCircle(url: p.photoUrl, size: 40)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(p.displayName ?? p.username ?? "Usuario")
+                                    Text(p.displayName ?? p.username ?? L("Usuario"))
                                         .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
                                     if let u = p.username, !u.isEmpty {
                                         Text("@\(u)").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)

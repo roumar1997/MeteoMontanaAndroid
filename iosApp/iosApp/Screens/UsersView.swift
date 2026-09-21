@@ -88,7 +88,7 @@ private struct UserRow: View {
         HStack(spacing: 12) {
             AvatarCircle(url: profile.photoUrl, size: 40)
             VStack(alignment: .leading, spacing: 2) {
-                Text(profile.displayName ?? profile.username ?? "Usuario")
+                Text(profile.displayName ?? profile.username ?? L("Usuario"))
                     .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
                 if let u = profile.username, !u.isEmpty {
                     Text("@\(u)").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
@@ -199,7 +199,7 @@ struct PublicProfileView: View {
                 // Avatar ampliable con zoom al tocarlo (si tiene foto).
                 AvatarCircle(url: vm.profile?.photoUrl, size: 88)
                     .onTapGesture { if vm.profile?.photoUrl != nil { zoomPhoto = true } }
-                Text(vm.profile?.displayName ?? vm.profile?.username ?? "Usuario")
+                Text(vm.profile?.displayName ?? vm.profile?.username ?? L("Usuario"))
                     .font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
                 if let u = vm.profile?.username, !u.isEmpty {
                     Text("@\(u)").font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink3)
@@ -236,7 +236,7 @@ struct PublicProfileView: View {
                         // Chat 1-a-1 con este usuario (Firestore).
                         NavigationLink(destination: ChatView(
                             otherUid: realUid,
-                            otherName: vm.profile?.displayName ?? vm.profile?.username ?? "Usuario")) {
+                            otherName: vm.profile?.displayName ?? vm.profile?.username ?? L("Usuario"))) {
                             Text(NSLocalizedString("chat_message", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
                                 .frame(maxWidth: .infinity).padding(.vertical, 12)
                                 .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1))
@@ -539,7 +539,7 @@ struct FollowListView: View {
                                     followButton(u.uid)
                                 }
                                 if canRemove {
-                                    rowButton("ELIMINAR", filled: false) { vm.remove(followerUid: u.uid) }
+                                    rowButton(L("ELIMINAR"), filled: false) { vm.remove(followerUid: u.uid) }
                                 }
                             }
                             .padding(.trailing, 12)

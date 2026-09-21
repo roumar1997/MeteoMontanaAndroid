@@ -106,7 +106,7 @@ struct ApproachFollowView: View {
                     Text(approach.name ?? L("%@: aproximación", schoolName))
                         .font(.system(size: 13, weight: .bold)).foregroundStyle(Cumbre.ink)
                     Spacer()
-                    Text(approach.isVerified ? "✓ VERIFICADA" : "⚠ SIN VERIFICAR")
+                    Text(approach.isVerified ? L("✓ VERIFICADA") : L("⚠ SIN VERIFICAR"))
                         .font(Cumbre.mono(9, .bold)).tracking(1)
                         .foregroundStyle(approach.isVerified ? Color(hex: 0x3F6B4A) : Color(hex: 0xB45309))
                 }
@@ -148,7 +148,7 @@ struct ApproachFollowView: View {
             }
             .presentationDetents([.large])
         }
-        .alert(L("¿Borrar «%@»?", approach.name ?? "esta aproximación"), isPresented: $confirmDelete) {
+        .alert(L("¿Borrar «%@»?", approach.name ?? L("esta aproximación")), isPresented: $confirmDelete) {
             Button("CANCELAR", role: .cancel) {}
             Button("BORRAR", role: .destructive) {
                 Task {

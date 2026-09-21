@@ -24,7 +24,7 @@ struct DaySelectorRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(vm.selectedDates.isEmpty ? "DÍAS · elige hasta 5 para comparar el tramo"
+            Text(vm.selectedDates.isEmpty ? L("DÍAS · elige hasta 5 para comparar el tramo")
                  : L("DÍAS · %@ elegido%@", vm.selectedDates.count, vm.selectedDates.count > 1 ? "s" : ""))
                 .eyebrow().padding(.horizontal, 12)
             ScrollView(.horizontal, showsIndicators: false) {
@@ -91,7 +91,7 @@ struct RainSummaryTag: View {
                     .foregroundStyle(Cumbre.ok)
             } else {
                 let rainy = range.days.filter { $0.rainy }.map { weekdayLetter($0.date) }.joined(separator: " ")
-                Text("LLUEVE \(rainy)").font(.system(size: 11, weight: .semibold)).tracking(0.8)
+                Text(L("LLUEVE %@", rainy)).font(.system(size: 11, weight: .semibold)).tracking(0.8)
                     .foregroundStyle(Cumbre.bad)
                 if range.maxRainMm > 0 {
                     Text(String(format: L("máx %.1f mm"), range.maxRainMm))
@@ -301,7 +301,7 @@ struct ErrorRow: View {
     let onRetry: () -> Void
     var body: some View {
         VStack(spacing: 12) {
-            Text("Error: \(message)").font(.system(size: 15)).foregroundStyle(Cumbre.bad)
+            Text(L("Error: %@", message)).font(.system(size: 15)).foregroundStyle(Cumbre.bad)
             Button(action: onRetry) { OutlinedCumbreButton(text: NSLocalizedString("common_retry", comment: "")) }
         }
         .frame(maxWidth: .infinity).padding(40)
