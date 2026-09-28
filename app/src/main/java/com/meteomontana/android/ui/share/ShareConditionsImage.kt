@@ -105,7 +105,7 @@ private fun renderConditionsCard(context: Context, school: School, forecast: For
         val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = INK; textSize = 44f; isFakeBoldText = true
         }
-        c.drawText(cur.scoreLabel.uppercase(), dataX, 348f, label)
+        c.drawText(com.meteomontana.android.util.CatalogLabels.scoreLabel(cur.score).uppercase(), dataX, 348f, label)
         val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK_SOFT; textSize = 34f }
         c.drawText(context.getString(R.string.share_conditions_image_v2_1_s_c_2_s, cur.temperature.toInt(), cur.humidity.toInt(), cur.windSpeed.toInt()), dataX, 404f, line)
         val rockLine = Paint(Paint.ANTI_ALIAS_FLAG).apply {

@@ -493,7 +493,14 @@ private fun LanguageRow() {
                                 open = false
                                 if (value != current) {
                                     com.meteomontana.android.util.AppLanguage.set(ctx, value)
-                                    com.meteomontana.android.util.AppText.init(ctx)   // refresca el contexto de textos
+                                    // OJO: ctx.applicationContext es el MISMO objeto desde que arrancó el
+                                    // proceso, con la configuración (idioma) que tenía entonces — reenvolverlo
+                                    // aquí es lo que de verdad hace que AppText/CatalogLabels lean el idioma
+                                    // nuevo sin esperar a que se mate y reabra la app (Álvaro, 2026-09-28:
+                                    // tras cambiar de idioma, "Granito" y "Malo" seguían en español).
+                                    com.meteomontana.android.util.AppText.init(
+                                        com.meteomontana.android.util.AppLanguage.wrap(ctx.applicationContext)
+                                    )
                                     com.meteomontana.android.data.api.ApiLanguage.code = com.meteomontana.android.util.AppLanguage.effective(ctx)
                                     (ctx as? android.app.Activity)?.recreate()
                                 }

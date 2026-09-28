@@ -344,14 +344,7 @@ private fun weekdayLetter(iso: String): String = try {
     labels[java.time.LocalDate.parse(iso).dayOfWeek.value - 1]
 } catch (_: Throwable) { iso.takeLast(2) }
 
-private fun scoreLabel(score: Int?): String = when {
-    score == null -> ""
-    score >= 85   -> AppText.get(R.string.w_excellent_caps)
-    score >= 70   -> AppText.get(R.string.school_list_item_v4_muy_bueno)
-    score >= 55   -> AppText.get(R.string.w_good_caps)
-    score >= 40   -> AppText.get(R.string.w_fair_caps)
-    else          -> AppText.get(R.string.w_poor_caps)
-}
+private fun scoreLabel(score: Int?): String = com.meteomontana.android.util.CatalogLabels.scoreLabel(score)
 
 /**
  * Tira horizontal de 10 celdas saturadas. Sin gap entre celdas (como la PWA).

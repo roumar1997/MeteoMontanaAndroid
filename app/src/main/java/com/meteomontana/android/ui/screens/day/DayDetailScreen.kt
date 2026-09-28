@@ -144,7 +144,8 @@ private fun DayScoreHero(day: DayForecast) {
         }
         Spacer(Modifier.height(Spacing.xs))
         Text(
-            stringResource(R.string.day_detail_screen_v2_1_s_para_escalar, day.scoreLabel.uppercase()),
+            stringResource(R.string.day_detail_screen_v2_1_s_para_escalar,
+                com.meteomontana.android.util.CatalogLabels.scoreLabel(day.avgScore)),
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp
             ),

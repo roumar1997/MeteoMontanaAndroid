@@ -581,7 +581,8 @@ private fun shareSchool(
     sb.append("\n")
     if (forecast != null) {
         val c = forecast.current
-        sb.append(AppText.get(R.string.school_detail_screen_v4_indice)).append(c.score).append("/100* (").append(c.scoreLabel).append(")\n")
+        sb.append(AppText.get(R.string.school_detail_screen_v4_indice)).append(c.score).append("/100* (")
+            .append(com.meteomontana.android.util.CatalogLabels.scoreLabel(c.score)).append(")\n")
         forecast.bestWindow?.let {
             sb.append(AppText.get(R.string.school_detail_screen_v4_optimo)).append(it.start).append("–").append(it.end).append("*\n")
         }

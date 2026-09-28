@@ -73,4 +73,19 @@ object CatalogLabels {
             else -> one.trim()
         }
     }
+
+    /**
+     * Etiqueta del índice (0-100) en el idioma de la app. El servidor manda un
+     * campo `scoreLabel` ya redactado en español ("MALO", "BUENO"…) — NUNCA se
+     * muestra tal cual, se recalcula aquí a partir del número. Espejo de
+     * `CumbreTheme.scoreLabel` en iOS.
+     */
+    fun scoreLabel(score: Int?): String = when {
+        score == null -> ""
+        score >= 85 -> AppText.get(R.string.w_excellent_caps)
+        score >= 70 -> AppText.get(R.string.school_list_item_v4_muy_bueno)
+        score >= 55 -> AppText.get(R.string.w_good_caps)
+        score >= 40 -> AppText.get(R.string.w_fair_caps)
+        else -> AppText.get(R.string.w_poor_caps)
+    }
 }

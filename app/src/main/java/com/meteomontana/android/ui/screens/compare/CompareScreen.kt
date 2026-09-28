@@ -113,7 +113,7 @@ class CompareViewModel @Inject constructor(
                                 name = fc.schoolName,
                                 lat = fc.lat, lon = fc.lon,
                                 score = fc.current.score,
-                                scoreLabel = fc.current.scoreLabel,
+                                scoreLabel = com.meteomontana.android.util.CatalogLabels.scoreLabel(fc.current.score),
                                 rockType = school?.rockType,
                                 distanceKm = dist,
                                 temp = fc.current.temperature.toInt(),
