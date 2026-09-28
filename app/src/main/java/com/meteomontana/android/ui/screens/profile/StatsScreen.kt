@@ -1,5 +1,8 @@
 package com.meteomontana.android.ui.screens.profile
 
+
+import com.meteomontana.android.util.CalendarLabels
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import androidx.compose.foundation.background
@@ -45,6 +48,8 @@ import com.meteomontana.android.ui.components.VotableChip
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * MIS ESTADÍSTICAS (C4): pirámide, racha, progresión — todo calculado en
@@ -80,21 +85,21 @@ fun StatsScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("‹", fontSize = 26.sp, color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.clickable(onClick = onBack).padding(end = Spacing.sm))
-                Text("MIS ESTADÍSTICAS", style = EyebrowTextStyle, color = Terra)
+                Text(stringResource(R.string.stats_screen_mis_estadisticas), style = EyebrowTextStyle, color = Terra)
                 Spacer(Modifier.weight(1f))
                 // C6: compartir como imagen (formato historia, estilo Wrapped).
                 state.summary?.takeIf { state.isOwn }?.let { sum ->
                     androidx.compose.material3.Icon(
                         Icons.Outlined.Share,
-                        contentDescription = "Compartir estadísticas",
+                        contentDescription = stringResource(R.string.stats_screen_compartir_estadisticas),
                         tint = Terra,
                         modifier = Modifier.clickable {
                             shareScope.launch {
                                 com.meteomontana.android.ui.share.shareStatsAsImage(
                                     context = shareCtx,
-                                    periodLabel = state.year?.let { y -> "MI $y EN ROCA" }
-                                        ?: "MI DIARIO EN ROCA",
-                                    disciplineLabel = if (state.discipline == "ROUTE") "VÍA" else "BLOQUE",
+                                    periodLabel = state.year?.let { y -> AppText.get(R.string.stats_screen_v3_mi_en_roca, y) }
+                                        ?: AppText.get(R.string.stats_screen_v3_mi_diario_en_roca),
+                                    disciplineLabel = if (state.discipline == "ROUTE") AppText.get(R.string.add_block_sheet_v3_via) else "BLOQUE",
                                     summary = sum,
                                     maxGrade = sum.pyramid.firstOrNull()?.first,
                                     progression = state.progression
@@ -109,13 +114,13 @@ fun StatsScreen(
             // ── Filtros: disciplina + año desplegable + mes ──────────────────
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically) {
-                FilterChip("BLOQUE", state.discipline == "BOULDER") { viewModel.setDiscipline("BOULDER") }
-                FilterChip("VÍA", state.discipline == "ROUTE") { viewModel.setDiscipline("ROUTE") }
+                FilterChip(stringResource(R.string.w_boulder_caps2), state.discipline == "BOULDER") { viewModel.setDiscipline("BOULDER") }
+                FilterChip(stringResource(R.string.add_block_sheet_v3_via), state.discipline == "ROUTE") { viewModel.setDiscipline("ROUTE") }
                 var gradeMenuOpen by remember { mutableStateOf(false) }
                 Box {
-                    VotableChip(text = state.grade?.uppercase() ?: "GRADO") { gradeMenuOpen = true }
+                    VotableChip(text = state.grade?.uppercase() ?: stringResource(R.string.w_grade_caps)) { gradeMenuOpen = true }
                     DropdownMenu(expanded = gradeMenuOpen, onDismissRequest = { gradeMenuOpen = false }) {
-                        DropdownMenuItem(text = { Text("Todos") },
+                        DropdownMenuItem(text = { Text(stringResource(R.string.stats_screen_v2_todos)) },
                             onClick = { viewModel.setGrade(null); gradeMenuOpen = false })
                         state.availableGrades.forEach { g ->
                             DropdownMenuItem(text = { Text(g, color = gradeAccent(g),
@@ -125,9 +130,9 @@ fun StatsScreen(
                     }
                 }
                 Box {
-                    VotableChip(text = state.year ?: "TODO") { yearMenuOpen = true }
+                    VotableChip(text = state.year ?: stringResource(R.string.w_all_caps2)) { yearMenuOpen = true }
                     DropdownMenu(expanded = yearMenuOpen, onDismissRequest = { yearMenuOpen = false }) {
-                        DropdownMenuItem(text = { Text("Todo") },
+                        DropdownMenuItem(text = { Text(stringResource(R.string.stats_screen_v2_todo)) },
                             onClick = { viewModel.setYear(null); yearMenuOpen = false })
                         state.availableYears.forEach { y ->
                             DropdownMenuItem(text = { Text(y) },
@@ -139,7 +144,7 @@ fun StatsScreen(
             // Día concreto activo (desde DÍAS DE ROCA): chip para quitarlo.
             state.day?.let { d ->
                 Spacer(Modifier.height(Spacing.sm))
-                FilterChip("DÍA $d  ✕", true) { viewModel.setDay(null) }
+                FilterChip(stringResource(R.string.stats_screen_v3_dia, d), true) { viewModel.setDay(null) }
             }
             // Meses del año elegido (solo con año concreto).
             if (state.year != null) {
@@ -147,7 +152,7 @@ fun StatsScreen(
                 androidx.compose.foundation.lazy.LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    item { FilterChip("AÑO ENTERO", state.month == null) { viewModel.setMonth(null) } }
+                    item { FilterChip(stringResource(R.string.stats_screen_v3_ano_entero), state.month == null) { viewModel.setMonth(null) } }
                     items(12) { i ->
                         val m = (i + 1).toString().padStart(2, '0')
                         FilterChip(MONTHS[i], state.month == m) { viewModel.setMonth(m) }
@@ -160,9 +165,9 @@ fun StatsScreen(
             val s = state.summary
             if (s != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    MetricCard("DÍAS DE ROCA ▾", s.daysOut.toString(),
+                    MetricCard(stringResource(R.string.stats_screen_v3_dias_de_roca), s.daysOut.toString(),
                         Modifier.weight(1f).clickable { showDaysList = true })
-                    MetricCard("RACHA", "${s.currentStreakWeeks} sem", Modifier.weight(1f), terra = true)
+                    MetricCard(stringResource(R.string.w_streak_caps), "${s.currentStreakWeeks} sem", Modifier.weight(1f), terra = true)
                 }
                 if (showDaysList) {
                     // Bottom sheet suave (paridad iOS), no dialog a pantalla
@@ -179,7 +184,7 @@ fun StatsScreen(
                         Column(Modifier.fillMaxWidth()
                             .cumbreSheetSurface(MaterialTheme.colorScheme.background)
                             .padding(horizontal = Spacing.md)) {
-                            Text("TUS DÍAS DE ROCA", style = EyebrowTextStyle, color = Terra)
+                            Text(stringResource(R.string.stats_screen_tus_dias_de_roca), style = EyebrowTextStyle, color = Terra)
                             Spacer(Modifier.height(Spacing.sm))
                             LazyColumn(Modifier.height(420.dp)) {
                                 items(days.size) { i ->
@@ -191,13 +196,13 @@ fun StatsScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween) {
                                         Text(day, style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurface)
-                                        Text("$count ascensos" + (if (isOpen) " ▴" else " ▾"),
+                                        Text(stringResource(R.string.stats_screen_v2_1_s_ascensos, count) + (if (isOpen) " ▴" else " ▾"),
                                             style = EyebrowTextStyle.copy(fontSize = 10.sp),
                                             color = Terra)
                                     }
                                     if (isOpen) {
                                         // S4: cargar TODA la pantalla con ese día.
-                                        Text("VER ESTADÍSTICAS DE ESTE DÍA ▸",
+                                        Text(stringResource(R.string.stats_screen_ver_estadisticas_de_este),
                                             style = EyebrowTextStyle.copy(fontSize = 9.sp),
                                             color = Terra,
                                             modifier = Modifier
@@ -235,13 +240,13 @@ fun StatsScreen(
                 }
                 Spacer(Modifier.height(Spacing.sm))
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    MetricCard("PROYECTOS CAÍDOS", s.projectsFallen.toString(), Modifier.weight(1f))
-                    MetricCard("MEDIA/DÍA", s.avgPerDay.toString(), Modifier.weight(1f))
+                    MetricCard(stringResource(R.string.stats_screen_v3_proyectos_caidos), s.projectsFallen.toString(), Modifier.weight(1f))
+                    MetricCard(stringResource(R.string.stats_screen_v3_media_dia), s.avgPerDay.toString(), Modifier.weight(1f))
                 }
                 Spacer(Modifier.height(Spacing.lg))
 
                 // ── Pirámide ────────────────────────────────────────────────
-                Text("PIRÁMIDE DE GRADOS", style = EyebrowTextStyle,
+                Text(stringResource(R.string.stats_screen_piramide_de_grados), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
                 val maxCount = s.pyramid.maxOfOrNull { it.second } ?: 1
@@ -278,7 +283,7 @@ fun StatsScreen(
                         Column(Modifier.fillMaxWidth()
                             .cumbreSheetSurface(MaterialTheme.colorScheme.background)
                             .padding(horizontal = Spacing.md)) {
-                            Text("TUS ${grade.uppercase()}", style = EyebrowTextStyle, color = Terra)
+                            Text(stringResource(R.string.stats_screen_v2_tus_1_s, grade.uppercase()), style = EyebrowTextStyle, color = Terra)
                             Spacer(Modifier.height(Spacing.sm))
                             LazyColumn(Modifier.height(420.dp)) {
                                 items(gradeEntries.size) { i ->
@@ -295,7 +300,7 @@ fun StatsScreen(
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.onSurface)
                                         Text((e.schoolName ?: "—") +
-                                            (if (e.schoolId != null) "  ·  VER ▸" else ""),
+                                            (if (e.schoolId != null) stringResource(R.string.stats_screen_v3_ver) else ""),
                                             style = EyebrowTextStyle.copy(fontSize = 9.sp),
                                             color = Terra)
                                     }
@@ -312,7 +317,7 @@ fun StatsScreen(
                     Box(Modifier.clickable {
                         viewModel.setYear(bm.take(4)); viewModel.setMonth(bm.substringAfter('-'))
                     }) {
-                        InfoCard("Tu mejor mes: ${formatMonth(bm)} (${s.bestMonthCount} ascensos). Toca para verlo ▾")
+                        InfoCard(stringResource(R.string.stats_screen_v3_tu_mejor_mes_ascensos_toca, formatMonth(bm), s.bestMonthCount))
                     }
                 }
                 Spacer(Modifier.height(Spacing.lg))
@@ -321,14 +326,14 @@ fun StatsScreen(
             // ── Progresión ──────────────────────────────────────────────────
             val p = state.progression
             if (p != null) {
-                Text("ASCENSOS POR MES · ÚLT. 12", style = EyebrowTextStyle,
+                Text(stringResource(R.string.stats_screen_ascensos_por_mes_ult), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
                 MonthBars(p.monthlyCounts)
                 Spacer(Modifier.height(Spacing.lg))
 
                 if (p.maxGradePerQuarter.isNotEmpty()) {
-                    Text("GRADO MÁXIMO POR TRIMESTRE", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.stats_screen_grado_maximo_por_trimestre), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(Spacing.xs))
                     Row(horizontalArrangement = Arrangement.SpaceBetween,
@@ -348,7 +353,7 @@ fun StatsScreen(
                     Spacer(Modifier.height(Spacing.lg))
                 }
 
-                Text("ÚLTIMAS 12 SEMANAS", style = EyebrowTextStyle,
+                Text(stringResource(R.string.stats_screen_ultimas_12_semanas), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
                 Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -359,12 +364,12 @@ fun StatsScreen(
                                 RoundedCornerShape(4.dp)))
                     }
                 }
-                Text("Cada casilla = 1 semana · terra = saliste", fontSize = 10.sp,
+                Text(stringResource(R.string.stats_screen_cada_casilla_1_semana), fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 3.dp))
                 Spacer(Modifier.height(Spacing.lg))
 
-                Text("TUS ESCUELAS", style = EyebrowTextStyle,
+                Text(stringResource(R.string.stats_screen_v2_tus_escuelas), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
                 p.perSchool.take(8).forEach { (school, count, maxGrade) ->
@@ -375,7 +380,7 @@ fun StatsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(school, style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface)
-                        Text("$count" + (maxGrade?.let { " · máx $it" } ?: "") +
+                        Text("$count" + (maxGrade?.let { stringResource(R.string.stats_screen_max_grade_suffix, it) } ?: "") +
                             (if (isOpen) " ▴" else " ▾"),
                             style = EyebrowTextStyle.copy(fontSize = 11.sp), color = Terra)
                     }
@@ -401,7 +406,7 @@ fun StatsScreen(
                                         color = gradeAccent(e.grade))
                                 }
                             }
-                            Text("VER EN EL DIARIO ▸", style = EyebrowTextStyle.copy(fontSize = 9.sp),
+                            Text(stringResource(R.string.stats_screen_v2_ver_en_el_diario), style = EyebrowTextStyle.copy(fontSize = 9.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .clickable { onOpenSchool(school) }
@@ -413,7 +418,7 @@ fun StatsScreen(
             }
 
             if (state.summary == null && !state.loading) {
-                InfoCard("Marca vías como hechas y aquí verás tu pirámide, tu racha y tu progresión.")
+                InfoCard(stringResource(R.string.stats_screen_v3_marca_vias_como_hechas_y))
             }
         }
     }
@@ -427,7 +432,7 @@ private fun gradeAccent(grade: String?): Color {
     return if (gs.dark) MaterialTheme.colorScheme.onSurface else gs.stroke
 }
 
-private val MONTHS = listOf("ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC")
+private val MONTHS get() = CalendarLabels.monthsShort().map { it.uppercase() }
 
 private fun formatMonth(yyyyMm: String): String = runCatching {
     MONTHS[yyyyMm.substringAfter('-').toInt() - 1].lowercase() + " " + yyyyMm.take(4)

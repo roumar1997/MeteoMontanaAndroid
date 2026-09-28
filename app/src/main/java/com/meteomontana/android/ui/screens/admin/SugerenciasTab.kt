@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.admin
 
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import com.meteomontana.android.domain.model.AdminSuggestionRow
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Pestaña "SUGERENCIAS" del panel admin: buzón del botón "?" de ayuda
@@ -46,7 +49,7 @@ internal fun SugerenciasTab(
     }
     if (rows.isEmpty()) {
         Box(Modifier.fillMaxSize(), Alignment.Center) {
-            Text("Sin sugerencias todavía", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.sugerencias_tab_sin_sugerencias_todavia), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         return
     }
@@ -78,7 +81,7 @@ private fun SuggestionCard(row: AdminSuggestionRow, onRespond: (String, Boolean?
                 color = MaterialTheme.colorScheme.primary
             )
             if (row.resolved) {
-                Text("ATENDIDA", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.sugerencias_tab_v2_atendida), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         Text(row.message, style = MaterialTheme.typography.bodyMedium,
@@ -91,7 +94,7 @@ private fun SuggestionCard(row: AdminSuggestionRow, onRespond: (String, Boolean?
             Column(
                 modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs),
             ) {
-                Text("TU RESPUESTA", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.sugerencias_tab_v2_tu_respuesta), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(reply, style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface)
             }
@@ -105,17 +108,17 @@ private fun SuggestionCard(row: AdminSuggestionRow, onRespond: (String, Boolean?
                 value = replyText,
                 onValueChange = { replyText = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Responder…") },
+                placeholder = { Text(stringResource(R.string.sugerencias_tab_v2_responder)) },
                 singleLine = true
             )
             Button(
                 onClick = { onRespond(row.id, null, replyText); replyText = "" },
                 enabled = replyText.isNotBlank()
-            ) { Text("ENVIAR") }
+            ) { Text(stringResource(R.string.sugerencias_tab_v2_enviar)) }
         }
         if (!row.resolved) {
             TextButton(onClick = { onRespond(row.id, true, null) }) {
-                Text("MARCAR ATENDIDA")
+                Text(stringResource(R.string.sugerencias_tab_v2_marcar_atendida))
             }
         }
     }

@@ -115,7 +115,7 @@ final class SubmitSchoolViewModel: ObservableObject {
             _ = try await submitSchool.invoke(req: req)
             done = true
         } catch {
-            errorText = "No se pudo enviar la propuesta. Revisa la conexión."
+            errorText = L("No se pudo enviar la propuesta. Revisa la conexión.")
         }
     }
 
@@ -163,10 +163,10 @@ struct SubmitSchoolView: View {
     private var form: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                field("NOMBRE", $vm.name, "ej: La Pedriza")
+                field(L("NOMBRE"), $vm.name, L("ej: La Pedriza"))
                 // PAÍS antes que REGIÓN: las regiones dependen del país.
                 if vm.countries.count > 1 {
-                    pickerField("PAÍS", Binding(
+                    pickerField(L("PAÍS"), Binding(
                         get: { vm.countries.first { $0.code == vm.country }?.name ?? "España" },
                         set: { nombre in
                             vm.country = vm.countries.first { $0.name == nombre }?.code ?? "ES"
@@ -174,10 +174,10 @@ struct SubmitSchoolView: View {
                             vm.location = ""
                         }), vm.countries.map { $0.name })
                 }
-                pickerField("REGIÓN", $vm.region, vm.regionsForCountry)
+                pickerField(L("REGIÓN"), $vm.region, vm.regionsForCountry)
                     .onChange(of: vm.region) { _, _ in vm.location = "" }   // resetea localidad al cambiar región
                 styleChips
-                pickerField("TIPO DE ROCA", $vm.rockType, vm.rockOptions)
+                pickerField(L("TIPO DE ROCA"), $vm.rockType, vm.rockOptions)
 
                 // Pegar coordenadas de Google Maps.
                 VStack(alignment: .leading, spacing: 6) {
@@ -192,12 +192,12 @@ struct SubmitSchoolView: View {
                     }
                 }
                 HStack(spacing: 10) {
-                    field("LATITUD", $vm.lat, "40.42").frame(maxWidth: .infinity)
-                    field("LONGITUD", $vm.lon, "-3.70").frame(maxWidth: .infinity)
+                    field(L("LATITUD"), $vm.lat, "40.42").frame(maxWidth: .infinity)
+                    field(L("LONGITUD"), $vm.lon, "-3.70").frame(maxWidth: .infinity)
                 }
 
-                pickerField("UBICACIÓN", $vm.location, vm.locationOptions(forRegion: vm.region))
-                field("NOTAS", $vm.notes, "Cualquier info útil")
+                pickerField(L("UBICACIÓN"), $vm.location, vm.locationOptions(forRegion: vm.region))
+                field(L("NOTAS"), $vm.notes, L("Cualquier info útil"))
 
                 if let e = vm.errorText {
                     Text(e).font(.system(size: 13)).foregroundStyle(Cumbre.bad)
@@ -284,7 +284,7 @@ struct SubmitSchoolView: View {
                 Button("Otro…") { value.wrappedValue = " " }   // espacio → modo "otro"
             } label: {
                 HStack {
-                    Text(value.wrappedValue.trimmingCharacters(in: .whitespaces).isEmpty ? "Seleccionar…" : value.wrappedValue)
+                    Text(value.wrappedValue.trimmingCharacters(in: .whitespaces).isEmpty ? L("Seleccionar…") : value.wrappedValue)
                         .foregroundStyle(value.wrappedValue.trimmingCharacters(in: .whitespaces).isEmpty ? Cumbre.ink3 : Cumbre.ink)
                     Spacer()
                     Image(systemName: "chevron.down").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)

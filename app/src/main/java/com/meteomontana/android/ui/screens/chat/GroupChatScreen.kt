@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.chat
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.animation.core.Animatable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
@@ -106,7 +107,7 @@ import kotlin.math.roundToInt
 
 data class GroupChatUiState(
     val convId: String,
-    val name: String = "Grupo",
+    val name: String = AppText.get(R.string.w_group),
     val messages: List<ChatService.ChatMessage> = emptyList(),
     /** uid -> nombre para mostrar, para etiquetar quién escribe cada mensaje. */
     val memberNames: Map<String, String> = emptyMap(),
@@ -187,7 +188,7 @@ class GroupChatViewModel @Inject constructor(
                 val conv = convs.firstOrNull { it.id == convId } ?: return@collect
                 resolveNames(conv.participants)
                 _state.value = _state.value.copy(
-                    name = conv.name ?: "Grupo",
+                    name = conv.name ?: AppText.get(R.string.w_group),
                     canWrite = me in conv.participants,
                     memberNames = nameCache.toMap()
                 )
@@ -221,14 +222,13 @@ class GroupChatViewModel @Inject constructor(
     fun shareInvite(context: Context, meetupId: String, groupName: String) {
         viewModelScope.launch {
             val link = runCatching { meetupApi.getInviteLink(meetupId) }.getOrNull() ?: return@launch
-            val text = "🧗 Te invito a la quedada *" + groupName + "* en Cumbre\n" +
-                "👉 Únete desde aquí:\n" + link
+            val text = context.getString(R.string.share_group_invite, groupName, link)
             val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 putExtra(android.content.Intent.EXTRA_TEXT, text)
             }
             runCatching {
-                context.startActivity(android.content.Intent.createChooser(intent, "Invitar al grupo"))
+                context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.share_utils_v3_invitar_al_grupo)))
             }
         }
     }
@@ -328,7 +328,7 @@ fun GroupChatScreen(
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 Text(
-                    if (state.meetupId != null) "Ver detalles ›"
+                    if (state.meetupId != null) stringResource(R.string.group_chat_screen_v3_ver_detalles)
                     else "${state.memberNames.size + 1} miembros",
                     style = MaterialTheme.typography.labelSmall,
                     color = if (state.meetupId != null) MaterialTheme.colorScheme.primary
@@ -339,7 +339,7 @@ fun GroupChatScreen(
                 IconButton(onClick = {
                     openDirections(context, state.schoolLat!!, state.schoolLon!!, state.schoolName)
                 }) {
-                    Icon(Icons.Outlined.Directions, "Cómo llegar",
+                    Icon(Icons.Outlined.Directions, stringResource(R.string.group_chat_screen_v3_como_llegar),
                         tint = MaterialTheme.colorScheme.primary)
                 }
             }
@@ -347,7 +347,7 @@ fun GroupChatScreen(
             // relación de follows (los grupos "no mixto" siguen exigiendo género).
             state.meetupId?.let { meetupId ->
                 IconButton(onClick = { viewModel.shareInvite(context, meetupId, state.name) }) {
-                    Icon(Icons.Outlined.PersonAdd, "Invitar al grupo",
+                    Icon(Icons.Outlined.PersonAdd, stringResource(R.string.group_chat_screen_v4_invitar_al_grupo),
                         tint = MaterialTheme.colorScheme.primary)
                 }
             }
@@ -356,7 +356,7 @@ fun GroupChatScreen(
                 Icon(
                     if (state.muted) Icons.Outlined.NotificationsOff
                     else Icons.Outlined.NotificationsActive,
-                    contentDescription = if (state.muted) "Activar" else "Silenciar",
+                    contentDescription = if (state.muted) stringResource(R.string.w_unmute) else stringResource(R.string.w_mute),
                     tint = if (state.muted) MaterialTheme.colorScheme.onSurfaceVariant
                            else MaterialTheme.colorScheme.primary
                 )
@@ -392,7 +392,7 @@ fun GroupChatScreen(
                             color = MaterialTheme.colorScheme.onSurface, maxLines = 1,
                             modifier = Modifier.weight(1f))
                     } else {
-                        Text("Sin material indicado", style = MaterialTheme.typography.labelSmall.copy(
+                        Text(stringResource(R.string.group_chat_screen_v2_sin_material_indicado), style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = androidx.compose.ui.unit.TextUnit(13f, androidx.compose.ui.unit.TextUnitType.Sp)),
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             modifier = Modifier.weight(1f))
@@ -403,7 +403,7 @@ fun GroupChatScreen(
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                             modifier = Modifier.height(26.dp)
                         ) {
-                            Text("+ Anadir", style = MaterialTheme.typography.labelSmall.copy(
+                            Text(stringResource(R.string.group_chat_screen_v2_anadir), style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold, fontSize = androidx.compose.ui.unit.TextUnit(11f, androidx.compose.ui.unit.TextUnitType.Sp)),
                                 color = MaterialTheme.colorScheme.primary)
                         }
@@ -435,7 +435,7 @@ fun GroupChatScreen(
                                         fontSize = androidx.compose.ui.unit.TextUnit(12f, androidx.compose.ui.unit.TextUnitType.Sp)),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 } else {
-                                    Text("sin material", style = MaterialTheme.typography.bodySmall.copy(
+                                    Text(stringResource(R.string.group_chat_screen_v2_sin_material), style = MaterialTheme.typography.bodySmall.copy(
                                         fontSize = androidx.compose.ui.unit.TextUnit(12f, androidx.compose.ui.unit.TextUnitType.Sp),
                                         fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
@@ -451,7 +451,7 @@ fun GroupChatScreen(
                         ) {
                             Icon(Icons.Outlined.Edit, null, Modifier.height(14.dp).width(14.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Editar mi material", style = MaterialTheme.typography.labelSmall.copy(
+                            Text(stringResource(R.string.group_chat_screen_v2_editar_mi_material), style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold, fontSize = androidx.compose.ui.unit.TextUnit(12f, androidx.compose.ui.unit.TextUnitType.Sp)))
                         }
                     }
@@ -484,7 +484,7 @@ fun GroupChatScreen(
                     msg = msg,
                     myUid = state.myUid,
                     senderName = state.memberNames[msg.fromUid] ?: "",
-                    nameFor = { uid -> if (uid == state.myUid) "Tú" else state.memberNames[uid] ?: "" },
+                    nameFor = { uid -> if (uid == state.myUid) AppText.get(R.string.school_presence_row_v3_tu) else state.memberNames[uid] ?: "" },
                     onReply = { viewModel.startReply(msg) }
                 )
             }
@@ -499,13 +499,13 @@ fun GroupChatScreen(
 
         if (!state.canWrite) {
             Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                Text("Ya no eres miembro de este grupo",
+                Text(stringResource(R.string.group_chat_screen_v2_ya_no_eres_miembro_de),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             state.replyingTo?.let { reply ->
-                val who = if (reply.fromUid == state.myUid) "Tú" else (state.memberNames[reply.fromUid] ?: "")
+                val who = if (reply.fromUid == state.myUid) stringResource(R.string.school_presence_row_v3_tu) else (state.memberNames[reply.fromUid] ?: "")
                 Row(
                     modifier = Modifier.fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -514,14 +514,14 @@ fun GroupChatScreen(
                 ) {
                     Box(Modifier.width(3.dp).height(34.dp).background(MaterialTheme.colorScheme.primary))
                     Column(Modifier.weight(1f).padding(start = 8.dp)) {
-                        Text(if (who.isNotBlank()) "Respondiendo a $who" else "Respondiendo",
+                        Text(if (who.isNotBlank()) stringResource(R.string.chat_screen_v3_respondiendo_a, who) else stringResource(R.string.chat_screen_v3_respondiendo),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary)
                         Text(reply.text, style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                     }
                     IconButton(onClick = { viewModel.cancelReply() }) {
-                        Icon(Icons.Outlined.Close, contentDescription = "Cancelar respuesta",
+                        Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.group_chat_screen_v2_cancelar_respuesta),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }

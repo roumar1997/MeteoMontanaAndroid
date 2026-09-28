@@ -109,7 +109,7 @@ internal fun ZoomableTopo(photoUrl: String, lines: List<TopoLine>) {
     androidx.compose.foundation.layout.Box {
         TopoPhotoCanvas(photoUrl = photoUrl, lines = lines,
             modifier = Modifier.clickable { open = true })
-        Text("TOCA PARA AMPLIAR", style = EyebrowTextStyle, color = Color.White,
+        Text(stringResource(R.string.contribution_topo_preview_v2_toca_para_ampliar), style = EyebrowTextStyle, color = Color.White,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(Spacing.xs)
@@ -132,7 +132,7 @@ internal fun ZoomableTopo(photoUrl: String, lines: List<TopoLine>) {
                 com.meteomontana.android.ui.components.TopoPhotoViewer(
                     photoUrl = photoUrl, lines = lines,
                     modifier = Modifier.align(Alignment.Center))
-                Text("✕ CERRAR", style = EyebrowTextStyle, color = Color.White,
+                Text(stringResource(R.string.contribution_topo_preview_v2_cerrar), style = EyebrowTextStyle, color = Color.White,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(Spacing.md)

@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.components
 
+
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.ui.screens.detail.SchoolDetailViewModel
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @Composable
 fun BlocksSection(
@@ -82,11 +86,11 @@ fun BlocksSection(
     avisoFoto?.let { texto ->
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { avisoFoto = null },
-            title = { androidx.compose.material3.Text("No se puede usar esa foto") },
+            title = { androidx.compose.material3.Text(stringResource(R.string.blocks_section_v2_no_se_puede_usar_esa)) },
             text = { androidx.compose.material3.Text(texto) },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { avisoFoto = null }) {
-                    androidx.compose.material3.Text("ENTENDIDO")
+                    androidx.compose.material3.Text(stringResource(R.string.blocks_section_v2_entendido))
                 }
             }
         )
@@ -109,8 +113,7 @@ fun BlocksSection(
                 // de ella. Quite este control al entrar desde la escuela
                 // pensando que "ya sabemos cual es" — y Rodrigo colo una foto de
                 // Valsain en Zarzalejo, a 32 km.
-                avisoFoto = "Esa foto se hizo a ${km.toInt()} km de $schoolName. " +
-                    "Elige una foto tomada en esta escuela."
+                avisoFoto = AppText.get(R.string.blocks_section_photo_far, km.toInt(), schoolName)
             } else {
                 photoSeed = com.meteomontana.android.ui.screens.detail.PhotoSeed(
                     photoUri = uri,
@@ -173,7 +176,7 @@ private fun BlockCard(b: Block, onClick: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1)
         if (b.lines.isNotEmpty()) {
-            Text("${b.lines.size} ${if (b.lines.size == 1) "línea" else "líneas"}",
+            Text("${b.lines.size} " + if (b.lines.size == 1) stringResource(R.string.block_card_line_one) else stringResource(R.string.block_card_line_other),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -181,9 +184,9 @@ private fun BlockCard(b: Block, onClick: () -> Unit) {
 }
 
 private fun typeLabel(type: String) = when (type) {
-    "BLOCK"   -> "PIEDRA"
+    "BLOCK"   -> AppText.get(R.string.w_boulder_caps)
     "PARKING" -> "PARKING"
-    "ZONE"    -> "ZONA"
+    "ZONE"    -> AppText.get(R.string.w_zone_caps)
     else      -> type
 }
 

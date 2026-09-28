@@ -2,6 +2,7 @@
             androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.admin
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.data.map.MapStyles
 
 import androidx.compose.foundation.background
@@ -115,7 +116,7 @@ internal fun SubmissionCard(
             Box(modifier = Modifier
                 .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
                 .padding(horizontal = Spacing.sm, vertical = 2.dp)) {
-                Text("ESCUELA", style = EyebrowTextStyle, color = Color.White)
+                Text(stringResource(R.string.submission_card_v2_escuela), style = EyebrowTextStyle, color = Color.White)
             }
             Text(s.proposedName, style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface)
@@ -171,7 +172,7 @@ internal fun BloquesSummary(bloquesJson: String) {
 
     if (bloques.isEmpty()) return
 
-    Text("BLOQUES", style = EyebrowTextStyle,
+    Text(stringResource(R.string.submission_card_v2_bloques), style = EyebrowTextStyle,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(4.dp))
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -240,8 +241,8 @@ internal fun redrawContributionMarkers(
     if (c.type == "POSITION_CORRECTION" && pLat != null && pLon != null) {
         val oldIcon = pinBitmap(android.graphics.Color.parseColor("#8A8478"), "✕", 36)
         val newIcon = pinBitmap(android.graphics.Color.parseColor("#F59E0B"), "★", 40)
-        map.addMarker(MarkerOptions().position(LatLng(c.lat, c.lon)).title("ACTUAL").icon(iconFactory.fromBitmap(oldIcon)))
-        map.addMarker(MarkerOptions().position(LatLng(pLat, pLon)).title("NUEVA").icon(iconFactory.fromBitmap(newIcon)))
+        map.addMarker(MarkerOptions().position(LatLng(c.lat, c.lon)).title(AppText.get(R.string.w_current_caps)).icon(iconFactory.fromBitmap(oldIcon)))
+        map.addMarker(MarkerOptions().position(LatLng(pLat, pLon)).title(AppText.get(R.string.w_new_caps)).icon(iconFactory.fromBitmap(newIcon)))
         map.addPolyline(
             org.maplibre.android.annotations.PolylineOptions()
                 .add(LatLng(c.lat, c.lon)).add(LatLng(pLat, pLon))
@@ -250,7 +251,7 @@ internal fun redrawContributionMarkers(
     } else {
         val icon = pinBitmap(android.graphics.Color.parseColor("#F59E0B"), "★", 40)
         map.addMarker(MarkerOptions().position(LatLng(c.lat, c.lon))
-            .title("PROPUESTA · ${c.name ?: c.type}")
+            .title(AppText.get(R.string.full_screen_map_dialog_v4_propuesta, c.name ?: c.type))
             .icon(iconFactory.fromBitmap(icon)))
     }
     // Muro: polilínea vieja (gris) + nueva (sólida terra).

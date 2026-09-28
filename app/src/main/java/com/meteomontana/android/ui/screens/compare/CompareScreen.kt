@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.compare
 
+import com.meteomontana.android.util.CatalogLabels
 import android.content.Intent
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.net.Uri
@@ -52,6 +53,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /** Datos de una escuela ya listos para la tabla de comparación. */
 data class CompareItem(
@@ -110,7 +113,7 @@ class CompareViewModel @Inject constructor(
                                 name = fc.schoolName,
                                 lat = fc.lat, lon = fc.lon,
                                 score = fc.current.score,
-                                scoreLabel = fc.current.scoreLabel,
+                                scoreLabel = com.meteomontana.android.util.CatalogLabels.scoreLabel(fc.current.score),
                                 rockType = school?.rockType,
                                 distanceKm = dist,
                                 temp = fc.current.temperature.toInt(),
@@ -144,14 +147,14 @@ fun CompareScreen(
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // Encabezado común de hoja — mismo que Proponer, Editar y la ficha de
         // piedra. Ver CumbreSheetHeader.
-        com.meteomontana.android.ui.components.CumbreSheetHeader("Comparar", onBack)
+        com.meteomontana.android.ui.components.CumbreSheetHeader(stringResource(R.string.w_compare), onBack)
 
         when (val s = state) {
             CompareUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
             is CompareUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.compare_screen_v2_error_1_s, s.message), color = MaterialTheme.colorScheme.error)
             }
             is CompareUiState.Success -> CompareTable(
                 items = s.items,
@@ -183,7 +186,7 @@ private fun CompareTable(items: List<CompareItem>, onSchoolDetail: (String) -> U
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("HOY MEJOR", style = EyebrowTextStyle,
+                Text(stringResource(R.string.compare_screen_v2_hoy_mejor), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(winner.name, style = MaterialTheme.typography.titleLarge,
@@ -228,19 +231,19 @@ private fun CompareTable(items: List<CompareItem>, onSchoolDetail: (String) -> U
         // Tabla de métricas, en una tarjeta con borde. Filas en bandas alternas y
         // columnas separadas por divisorias verticales para que se lea bien.
         val rows = listOf(
-            CompareMetric("ROCA", items.map { it.rockType?.replaceFirstChar { c -> c.uppercase() } ?: "—" },
+            CompareMetric(stringResource(R.string.w_rock_caps), items.map { it.rockType?.let { r -> CatalogLabels.rock(r) } ?: "—" },
                 items.indices.filter { items[it].dryRock }.toSet()),
-            CompareMetric("DISTANCIA", items.map { it.distanceKm?.let { d -> "${d.toInt()} km" } ?: "—" },
+            CompareMetric(stringResource(R.string.w_distance_caps), items.map { it.distanceKm?.let { d -> "${d.toInt()} km" } ?: "—" },
                 minIndices(items.map { it.distanceKm })),
             CompareMetric("TEMP", items.map { "${it.temp}°" }, emptySet()),
-            CompareMetric("VIENTO", items.map { "${it.wind} km/h" },
+            CompareMetric(stringResource(R.string.w_wind_caps), items.map { "${it.wind} km/h" },
                 minIndices(items.map { it.wind.toDouble() })),
-            CompareMetric("HUMEDAD", items.map { "${it.humidity}%" },
+            CompareMetric(stringResource(R.string.w_humidity_caps), items.map { "${it.humidity}%" },
                 minIndices(items.map { it.humidity.toDouble() })),
-            CompareMetric("PROB. LLUVIA", items.map { "${it.rainProb}%" },
+            CompareMetric(stringResource(R.string.compare_screen_v3_prob_lluvia), items.map { "${it.rainProb}%" },
                 minIndices(items.map { it.rainProb.toDouble() })),
-            CompareMetric("ÓPTIMO", items.map { it.optimal ?: "—" }, emptySet()),
-            CompareMetric("MEJOR DÍA", items.map { it.bestDay?.replaceFirstChar { c -> c.uppercase() } ?: "—" }, emptySet())
+            CompareMetric(stringResource(R.string.compare_screen_v3_optimo), items.map { it.optimal ?: "—" }, emptySet()),
+            CompareMetric(stringResource(R.string.compare_screen_v3_mejor_dia), items.map { it.bestDay?.replaceFirstChar { c -> c.uppercase() } ?: "—" }, emptySet())
         )
         Column(
             Modifier.fillMaxWidth()

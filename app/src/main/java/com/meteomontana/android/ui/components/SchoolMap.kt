@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -420,9 +421,9 @@ fun SchoolMap(
                         sectorBlockId = sectorId
                     )
                     successMessage = if (r.isSuccess)
-                        if (fichaIsAdmin) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
+                        if (fichaIsAdmin) AppText.get(R.string.school_map_v3_publicado_en_el_mapa) else AppText.get(R.string.school_map_v3_propuesta_enviada_un_admin_la)
                     else
-                        "No se pudo enviar la propuesta: ${r.exceptionOrNull()?.message ?: "error"}"
+                        AppText.get(R.string.school_map_v3_no_se_pudo_enviar_la, r.exceptionOrNull()?.message ?: "error")
                 }
             }) else null,
             onDelete = if (fichaIsAdmin) ({
@@ -437,7 +438,7 @@ fun SchoolMap(
     // Hoja de publicar el tick (estilo Cumbre).
     pendingTick?.let { pt ->
         FeedPublishSheet(
-            lineLabel = pt.line.name.ifBlank { "Vía ${pt.index + 1}" } +
+            lineLabel = pt.line.name.ifBlank { stringResource(R.string.school_map_v3_via_2, pt.index + 1) } +
                 (pt.line.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
             wasProject = pt.wasProject,
             onPublish = { always, caption, photoUri, sessionDate, aVista, alFlash ->
@@ -455,7 +456,7 @@ fun SchoolMap(
                             onPublishFailed = {
                                 android.widget.Toast.makeText(
                                     fichaCtx,
-                                    "No se pudo publicar el ascenso (queda en tu diario)",
+                                    AppText.get(R.string.school_map_v3_no_se_pudo_publicar_el),
                                     android.widget.Toast.LENGTH_LONG
                                 ).show()
                             },
@@ -488,8 +489,8 @@ fun SchoolMap(
     borradorEncontrado?.let { borrador ->
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { borradorEncontrado = null },
-            title = { Text("Tienes cambios sin enviar") },
-            text = { Text("Dejaste esta piedra a medias de editar. ¿Sigues donde lo dejaste o empiezas de cero?") },
+            title = { Text(stringResource(R.string.school_map_v2_tienes_cambios_sin_enviar)) },
+            text = { Text(stringResource(R.string.school_map_dejaste_esta_piedra_a)) },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     // Del borrador se recuperan SOLO las VÍAS y las fotos
@@ -509,13 +510,13 @@ fun SchoolMap(
                         cara.copy(existingPhotoPath = actuales.getOrNull(i)?.existingPhotoPath)
                     }
                     borradorEncontrado = null
-                }) { Text("CONTINUAR EDITANDO") }
+                }) { Text(stringResource(R.string.school_map_v2_continuar_editando)) }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.clear(fichaCtx, borrador.blockId)
                     borradorEncontrado = null
-                }) { Text("DESCARTAR") }
+                }) { Text(stringResource(R.string.school_map_v2_descartar_2)) }
             }
         )
     }
@@ -556,7 +557,7 @@ fun SchoolMap(
                     com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.clear(fichaCtx, block.id)
                     wallEdit.target = null
                     selectedBlock = null
-                    successMessage = if (fichaIsAdmin) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
+                    successMessage = if (fichaIsAdmin) AppText.get(R.string.school_map_v3_publicado_en_el_mapa) else AppText.get(R.string.school_map_v3_propuesta_enviada_un_admin_la)
                 }
             )
         }
@@ -565,21 +566,21 @@ fun SchoolMap(
         wallEdit.target?.let { block ->
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { preguntandoGuardarEdicion = false },
-                title = { Text("¿Guardar para terminar luego?") },
-                text = { Text("Se queda guardado en este móvil. No se envía a nadie hasta que lo termines.") },
+                title = { Text(stringResource(R.string.school_map_guardar_para_terminar_luego)) },
+                text = { Text(stringResource(R.string.school_map_se_queda_guardado_en)) },
                 confirmButton = {
                     androidx.compose.material3.TextButton(onClick = {
                         com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.save(fichaCtx, block.id, wallEdit.faces)
                         preguntandoGuardarEdicion = false
                         wallEdit.target = null; selectedBlock = null
-                    }) { Text("GUARDAR") }
+                    }) { Text(stringResource(R.string.school_map_v2_guardar)) }
                 },
                 dismissButton = {
                     androidx.compose.material3.TextButton(onClick = {
                         com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.clear(fichaCtx, block.id)
                         preguntandoGuardarEdicion = false
                         wallEdit.target = null; selectedBlock = null
-                    }) { Text("DESCARTAR") }
+                    }) { Text(stringResource(R.string.school_map_v2_descartar)) }
                 }
             )
         }
@@ -595,7 +596,7 @@ fun SchoolMap(
             onSuccess = {
                 wallEdit.editingLine = null
                 selectedBlock = null
-                successMessage = if (fichaIsAdmin) "Publicado en el mapa." else "Propuesta enviada. Un admin la revisará en 24-48h."
+                successMessage = if (fichaIsAdmin) AppText.get(R.string.school_map_v3_publicado_en_el_mapa) else AppText.get(R.string.school_map_v3_propuesta_enviada_un_admin_la)
             }
         )
     }
@@ -624,7 +625,7 @@ private fun StyleFilterRow(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        listOf("Vía", "Bloque").forEach { opt ->
+        listOf(stringResource(R.string.school_map_v3_via), "Bloque").forEach { opt ->
             val active = opt in selected
             Box(
                 modifier = Modifier
@@ -646,7 +647,7 @@ private fun StyleFilterRow(
 
 /** "ROUTE" en el backend = estilo "Vía"; "BOULDER" = "Bloque". */
 private fun styleLabelForDiscipline(discipline: String): String =
-    if (discipline.uppercase() == "ROUTE") "Vía" else "Bloque"
+    if (discipline.uppercase() == "ROUTE") AppText.get(R.string.w_route) else AppText.get(R.string.w_boulder)
 
 /**
  * ¿Esta piedra/sector pasa el filtro Vía/Bloque? Vacío = sin filtrar. Un

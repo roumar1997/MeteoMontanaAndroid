@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.chat
 
+
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -48,6 +49,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @Composable
 fun ChatListScreen(
@@ -65,18 +68,18 @@ fun ChatListScreen(
     Column(modifier = Modifier.fillMaxSize()
         .background(MaterialTheme.colorScheme.background)) {
         com.meteomontana.android.ui.components.SheetHeader(
-            title = "Chats",
+            title = stringResource(R.string.chat_list_screen_v2_chats),
             onClose = onBack,
             leading = {
                 com.meteomontana.android.ui.components.HelpButton(topicKey = "chat")
             },
             actions = {
                 IconButton(onClick = onNewGroup) {
-                    Icon(Icons.Outlined.GroupAdd, contentDescription = "Nuevo grupo",
+                    Icon(Icons.Outlined.GroupAdd, contentDescription = stringResource(R.string.chat_list_screen_v2_nuevo_grupo),
                         tint = MaterialTheme.colorScheme.primary)
                 }
                 IconButton(onClick = { viewModel.loadContacts(); showPicker = true }) {
-                    Icon(Icons.Outlined.Edit, contentDescription = "Nuevo mensaje",
+                    Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.chat_list_screen_v2_nuevo_mensaje_2),
                         tint = MaterialTheme.colorScheme.primary)
                 }
             }
@@ -93,15 +96,15 @@ fun ChatListScreen(
         if (items.isEmpty()) {
             com.meteomontana.android.ui.components.EmptyState(
                 icon = Icons.Outlined.ChatBubbleOutline,
-                title = "Aún no tienes conversaciones",
-                message = "Toca el lápiz para escribir a alguien a quien sigues o que te sigue, o crea un grupo con el icono de personas."
+                title = stringResource(R.string.chat_list_screen_v2_aun_no_tienes_conversaciones),
+                message = stringResource(R.string.chat_list_screen_v3_toca_el_lapiz_para_escribir)
             )
         } else {
             LazyColumn {
                 item {
                     com.meteomontana.android.ui.components.FirstTimeHint(
                         hintKey = "chat_swipe",
-                        text = "Desliza una conversación: a la izquierda para borrarla, a la derecha para marcarla como no leída."
+                        text = stringResource(R.string.chat_list_screen_v3_desliza_una_conversacion_a_la)
                     )
                 }
                 items(items, key = { it.conversation.id }) { item ->
@@ -110,7 +113,7 @@ fun ChatListScreen(
                         SwipeableConvRow(
                             avatarUrl = null,
                             isGroup = true,
-                            name = conv.name ?: "Grupo",
+                            name = conv.name ?: stringResource(R.string.w_group),
                             lastMessage = conv.lastMessage ?: "",
                             unread = conv.unreadCount,
                             onClick = { onOpenGroup(conv.id) },
@@ -157,19 +160,19 @@ private fun NewChatDialog(
                 .background(MaterialTheme.colorScheme.surface)
                 .padding(16.dp)
         ) {
-            Text("Nuevo mensaje", style = MaterialTheme.typography.titleMedium,
+            Text(stringResource(R.string.chat_list_screen_v2_nuevo_mensaje), style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.size(8.dp))
             val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
             OutlinedTextField(
                 value = query, onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Buscar entre seguidores/seguidos…") },
+                placeholder = { Text(stringResource(R.string.chat_list_screen_v2_buscar_entre_seguidores_seguidos)) },
                 singleLine = true
             )
             Spacer(Modifier.size(8.dp))
             if (contacts.isEmpty()) {
-                Text("Sigue a alguien (o que te sigan) para poder escribirle.",
+                Text(stringResource(R.string.chat_list_screen_v2_sigue_a_alguien_o_que),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 12.dp))
@@ -232,12 +235,12 @@ private fun SwipeableConvRow(
             when (state.dismissDirection) {
                 SwipeToDismissBoxValue.EndToStart -> SwipeBg(
                     color = MaterialTheme.colorScheme.errorContainer,
-                    icon = Icons.Outlined.Delete, label = "Borrar",
+                    icon = Icons.Outlined.Delete, label = stringResource(R.string.chat_list_screen_v2_borrar),
                     alignment = Alignment.CenterEnd,
                     tint = MaterialTheme.colorScheme.onErrorContainer)
                 SwipeToDismissBoxValue.StartToEnd -> SwipeBg(
                     color = MaterialTheme.colorScheme.primaryContainer,
-                    icon = Icons.Outlined.Email, label = "No leído",
+                    icon = Icons.Outlined.Email, label = stringResource(R.string.chat_list_screen_no_leido),
                     alignment = Alignment.CenterStart,
                     tint = MaterialTheme.colorScheme.onPrimaryContainer)
                 else -> {}

@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.day
 
+
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -38,6 +39,8 @@ import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.scoreColor
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @Composable
 fun DayDetailScreen(
@@ -68,11 +71,11 @@ private fun LoadedBody(s: DayDetailUiState.Loaded, onBack: () -> Unit) {
         item { Spacer(Modifier.height(Spacing.md)) }
         item { ConditionsTable(day = s.day, hoursOfDay = s.hoursOfDay) }
         item { Spacer(Modifier.height(Spacing.xl)) }
-        item { SectionTitle("PRÓXIMAS 24H") }
+        item { SectionTitle(stringResource(R.string.day_detail_screen_v3_proximas_24h)) }
         if (s.hoursOfDay.isEmpty()) {
             item {
                 Box(Modifier.fillMaxWidth().padding(Spacing.lg), contentAlignment = Alignment.Center) {
-                    Text("Sin datos horarios para este día.",
+                    Text(stringResource(R.string.day_detail_screen_sin_datos_horarios_para),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -92,7 +95,7 @@ private fun Header(title: String, onBack: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            "‹ Volver",
+            stringResource(R.string.day_detail_screen_v2_volver),
             modifier = Modifier
                 .clip(RoundedCornerShape(4.dp))
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
@@ -113,7 +116,7 @@ private fun Header(title: String, onBack: () -> Unit) {
 @Composable
 private fun DayScoreHero(day: DayForecast) {
     Column(Modifier.padding(horizontal = Spacing.lg)) {
-        Text("ÍNDICE DEL DÍA",
+        Text(stringResource(R.string.day_detail_screen_indice_del_dia),
             style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 1.5.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.sm))
@@ -141,7 +144,8 @@ private fun DayScoreHero(day: DayForecast) {
         }
         Spacer(Modifier.height(Spacing.xs))
         Text(
-            "● ${day.scoreLabel.uppercase()} PARA ESCALAR",
+            stringResource(R.string.day_detail_screen_v2_1_s_para_escalar,
+                com.meteomontana.android.util.CatalogLabels.scoreLabel(day.avgScore)),
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp
             ),
@@ -175,9 +179,9 @@ private fun ConditionsTable(day: DayForecast, hoursOfDay: List<HourForecast>) {
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp)),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Cell("MÁX", "${day.tempMax.toInt()}°", Modifier.weight(1f))
-            Cell("MÍN", "${day.tempMin.toInt()}°", Modifier.weight(1f))
-            Cell("VIENTO", "${windMax.toInt()}", Modifier.weight(1f))
+            Cell(stringResource(R.string.day_detail_screen_v3_max), "${day.tempMax.toInt()}°", Modifier.weight(1f))
+            Cell(stringResource(R.string.day_detail_screen_v3_min), "${day.tempMin.toInt()}°", Modifier.weight(1f))
+            Cell(stringResource(R.string.w_wind_caps), "${windMax.toInt()}", Modifier.weight(1f))
             Cell("UV", "—", Modifier.weight(1f))
         }
         Row(
@@ -185,10 +189,10 @@ private fun ConditionsTable(day: DayForecast, hoursOfDay: List<HourForecast>) {
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp)),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Cell("LLUVIA", "%.1f mm".format(day.precipitationTotal), Modifier.weight(1f))
+            Cell(stringResource(R.string.w_rain_caps), "%.1f mm".format(day.precipitationTotal), Modifier.weight(1f))
             Cell("PROB.", "${rainProbMax}%", Modifier.weight(1f))
-            Cell("AMANECER", "—", Modifier.weight(1f))
-            Cell("LUZ", "—", Modifier.weight(1f))
+            Cell(stringResource(R.string.w_sunrise_caps), "—", Modifier.weight(1f))
+            Cell(stringResource(R.string.w_daylight_caps), "—", Modifier.weight(1f))
         }
     }
 }
@@ -256,7 +260,7 @@ private fun HourRow(h: HourForecast) {
                 modifier = Modifier.size(64.dp, 20.dp)
             )
             Spacer(Modifier.weight(1f))
-            Text("${h.windSpeed.toInt()} km/h",
+            Text(stringResource(R.string.day_detail_screen_v2_1_s_km_h, h.windSpeed.toInt()),
                 style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Mono),
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

@@ -1,11 +1,14 @@
 package com.meteomontana.android.data.api
 
+import com.meteomontana.android.data.api.dto.AutoReorderRequest
 import com.meteomontana.android.data.api.dto.BlockDto
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
+import com.meteomontana.android.data.api.dto.ReorderBlocksRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
@@ -36,6 +39,18 @@ class KtorBlockApi(private val client: HttpClient) {
         client.delete("blocks/$blockId")
     }
 
+    /** Renumera las piedras de un sector (o las sin sector) según el orden
+     *  exacto que se le pase. Solo admin. */
+    @Throws(Exception::class)
+    suspend fun reorderBlocks(schoolId: String, req: ReorderBlocksRequest): List<BlockDto> =
+        client.put("schools/$schoolId/blocks/reorder") { setBody(req) }.body()
+
+    /** Sugiere y aplica un primer orden por distancia al parking más
+     *  cercano. Solo admin. */
+    @Throws(Exception::class)
+    suspend fun autoReorderBlocks(schoolId: String, req: AutoReorderRequest): List<BlockDto> =
+        client.post("schools/$schoolId/blocks/auto-reorder") { setBody(req) }.body()
+
     @Serializable
     data class RatingResult(val avgStars: Float, val ratingCount: Long, val myStars: Int)
 
@@ -52,6 +67,30 @@ class KtorBlockApi(private val client: HttpClient) {
     @Throws(Exception::class)
     suspend fun unrateLine(blockId: String, lineId: String): RatingResult =
         client.delete("blocks/$blockId/lines/$lineId/rate").body()
+
+    // ── Enlaces de beta (Instagram/YouTube) — directo, como comentar ─────
+
+    /** Enlaces de la piedra, o de una vía concreta con [lineId]. */
+    @Throws(Exception::class)
+    suspend fun getBetaLinks(blockId: String, lineId: String? = null): List<com.meteomontana.android.data.api.dto.BetaLinkDto> =
+        client.get("blocks/$blockId/beta-links") {
+            if (lineId != null) parameter("lineId", lineId)
+        }.body()
+
+    @Throws(Exception::class)
+    suspend fun addBetaLink(
+        blockId: String,
+        req: com.meteomontana.android.data.api.dto.CreateBetaLinkRequest
+    ): com.meteomontana.android.data.api.dto.BetaLinkDto =
+        client.post("blocks/$blockId/beta-links") {
+            contentType(ContentType.Application.Json)
+            setBody(req)
+        }.body()
+
+    @Throws(Exception::class)
+    suspend fun deleteBetaLink(linkId: String) {
+        client.delete("beta-links/$linkId")
+    }
 
     // ── Comentarios de piedras/vías (con votos de utilidad) ──────────────
 

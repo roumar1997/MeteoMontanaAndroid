@@ -244,3 +244,19 @@
 
 /* Submit school */
 "submit_school_title" = "Enviar escuela";
+
+/* Selector de idioma, orientaciones y rocas */
+"settings_language" = "Idioma";
+"language_dialog_title" = "Idioma de la app";
+"language_system" = "Automático (idioma del móvil)";
+"language_es" = "Español";
+"language_en" = "English";
+"aspect_sw" = "SO";
+"aspect_w" = "O";
+"aspect_nw" = "NO";
+"rock_granite" = "Granito";
+"rock_limestone" = "Caliza";
+"rock_sandstone" = "Arenisca";
+"rock_basalt" = "Basalto";
+"rock_conglomerate" = "Conglomerado";
+"rock_slate" = "Pizarra";

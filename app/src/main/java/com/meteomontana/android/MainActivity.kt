@@ -45,6 +45,10 @@ class MainActivity : ComponentActivity() {
             PermissionsGate.open.value = true
         }
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(com.meteomontana.android.util.AppLanguage.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Splash Screen API: pinta fondo papel + montaña al instante en vez de
         // pantalla en blanco mientras la app inicializa. Debe ir antes de super.

@@ -68,7 +68,7 @@ internal fun SubmitFooter(
                 .clickable(enabled = !sending, onClick = onSaveOffline)
                 .padding(vertical = Spacing.md),
                 contentAlignment = Alignment.Center) {
-                Text("GUARDAR Y ENVIAR CON COBERTURA", style = EyebrowTextStyle,
+                Text(stringResource(R.string.propose_common_ui_v2_guardar_y_enviar_con_cobertura_2), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurface)
             }
         }
@@ -134,7 +134,7 @@ internal fun SubmitHeader(
                 else Text(
                     // "ENVIAR" a secas en la cabecera: "ENVIAR PROPUESTA" no
                     // cabe junto a Cancelar y el título. Igual que en iOS.
-                    if (error != null) "REINTENTAR" else "ENVIAR",
+                    if (error != null) stringResource(R.string.w_retry_caps) else stringResource(R.string.w_send_caps),
                     style = EyebrowTextStyle, color = Color.White, maxLines = 1
                 )
             }
@@ -161,7 +161,7 @@ internal fun SubmitFooterOffline(
         .clickable(enabled = !sending, onClick = onSaveOffline)
         .padding(vertical = Spacing.md),
         contentAlignment = Alignment.Center) {
-        Text("GUARDAR Y ENVIAR CON COBERTURA", style = EyebrowTextStyle,
+        Text(stringResource(R.string.propose_common_ui_v2_guardar_y_enviar_con_cobertura), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurface)
     }
 }

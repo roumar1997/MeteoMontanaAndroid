@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.users
 
+
 import com.meteomontana.android.ui.theme.inkButtonColor
 
 import androidx.compose.foundation.background
@@ -49,6 +50,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 sealed interface FollowRequestsUiState {
     data object Loading : FollowRequestsUiState
@@ -120,10 +123,10 @@ fun FollowRequestsScreen(
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
+                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.follow_requests_screen_v2_volver),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
-            Text("Solicitudes", style = MaterialTheme.typography.headlineMedium,
+            Text(stringResource(R.string.follow_requests_screen_v2_solicitudes), style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -133,12 +136,12 @@ fun FollowRequestsScreen(
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
             is FollowRequestsUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.follow_requests_screen_v2_error_1_s, s.message), color = MaterialTheme.colorScheme.error)
             }
             is FollowRequestsUiState.Success -> {
                 if (s.items.isEmpty()) {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Text("No tienes solicitudes pendientes.",
+                        Text(stringResource(R.string.follow_requests_screen_v2_no_tienes_solicitudes_pendientes),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -187,16 +190,16 @@ private fun RequestRow(
                 Text("@${profile.username ?: profile.displayName ?: "usuario"}",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground)
-                Text("quiere seguirte · toca para ver su perfil",
+                Text(stringResource(R.string.follow_requests_screen_quiere_seguirte_toca_para),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         Row(modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SmallButton(text = "Aceptar y seguir", filled = true, onClick = onAcceptAndFollow)
-            SmallButton(text = "Aceptar", filled = false, onClick = onAccept)
-            SmallButton(text = "Rechazar", filled = false, onClick = onReject)
+            SmallButton(text = stringResource(R.string.follow_requests_screen_v3_aceptar_y_seguir), filled = true, onClick = onAcceptAndFollow)
+            SmallButton(text = stringResource(R.string.follow_requests_screen_v3_aceptar), filled = false, onClick = onAccept)
+            SmallButton(text = stringResource(R.string.follow_requests_screen_v3_rechazar), filled = false, onClick = onReject)
         }
     }
 }

@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.CatalogLabels
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import android.content.Intent
@@ -193,10 +194,10 @@ fun BlockDetailDialog(
                 .imePadding()
         ) {
             val (badgeColor, badgeLabel) = when {
-                isProposal              -> Color(0xFFF59E0B) to "PROPUESTA"
+                isProposal              -> Color(0xFFF59E0B) to stringResource(R.string.w_proposal_caps)
                 block.type == "PARKING" -> Color(0xFF1D6DD6) to "PARKING"
-                block.type == "ZONE"    -> Color(0xFF1FA84E) to "ZONA"
-                else                    -> Terra to "PIEDRA"
+                block.type == "ZONE"    -> Color(0xFF1FA84E) to stringResource(R.string.w_zone_caps)
+                else                    -> Terra to stringResource(R.string.w_boulder_caps)
             }
             // Barra fija: Cerrar · Cómo llegar · Compartir · ⚙ Opciones.
             // Espejo de la de iOS (Álvaro, 2026-08-24): estaban todas al fondo
@@ -248,7 +249,7 @@ fun BlockDetailDialog(
                             androidx.compose.material3.IconButton(onClick = { optionsOpen = true }) {
                                 androidx.compose.material3.Icon(
                                     Icons.Outlined.Settings,
-                                    contentDescription = "Opciones",
+                                    contentDescription = stringResource(R.string.block_detail_dialog_v2_opciones),
                                     tint = MaterialTheme.colorScheme.onSurface
                                 )
                             }
@@ -284,13 +285,13 @@ fun BlockDetailDialog(
                                 }
                                 if (onEdit != null) {
                                     androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text("EDITAR") },
+                                        text = { Text(stringResource(R.string.block_detail_dialog_v2_editar)) },
                                         onClick = { optionsOpen = false; onEdit() }
                                     )
                                 }
                                 if (onDelete != null) {
                                     androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text("ELIMINAR", color = MaterialTheme.colorScheme.error) },
+                                        text = { Text(stringResource(R.string.block_detail_dialog_v2_eliminar), color = MaterialTheme.colorScheme.error) },
                                         onClick = { optionsOpen = false; showDeleteConfirm = true }
                                     )
                                 }
@@ -335,7 +336,7 @@ fun BlockDetailDialog(
                 ) {
                     carasOrdenadas.forEachIndexed { idx, cara ->
                         if (!cara.photoPath.isNullOrBlank()) {
-                            MochilaCard(label = "FOTO ${idx + 1}", selected = idx == caraActual) {
+                            MochilaCard(label = stringResource(R.string.block_detail_dialog_v2_foto_1_s_2, idx + 1), selected = idx == caraActual) {
                                 posicionDeCara[idx]?.let { y ->
                                     shareScope.launch { contenidoScroll.animateScrollTo(y) }
                                 }
@@ -370,7 +371,7 @@ fun BlockDetailDialog(
                 Row(verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     VotableChip(
-                        text = orientationOf(null)?.consensus?.let { c -> "PARED " + c } ?: "ORIENTACION",
+                        text = orientationOf(null)?.consensus?.let { c -> stringResource(R.string.aspect_wall, CatalogLabels.aspect(c)) } ?: stringResource(R.string.w_aspect_caps),
                     ) { orientationTarget = null; orientationOpen = true }
                     val votesTotal = orientationOf(null)?.votes?.values?.sum() ?: 0
                     if (votesTotal > 0) Text(
@@ -405,7 +406,7 @@ fun BlockDetailDialog(
                         // llevaba solo la palabra y el nombre iba suelto al
                         // lado, y se leían como dos cosas distintas.
                         Text(
-                            "SECTOR · " + (sectorName ?: "SIN NOMBRE").uppercase(),
+                            stringResource(R.string.block_detail_dialog_v2_sector) + (sectorName ?: "SIN NOMBRE").uppercase(),
                             style = EyebrowTextStyle, color = Color.White
                         )
                     }
@@ -420,13 +421,13 @@ fun BlockDetailDialog(
                 if (onTickLine != null && !isProposal && block.lines.isNotEmpty()) {
                     com.meteomontana.android.ui.components.FirstTimeHint(
                         hintKey = "via_tick",
-                        text = "Toca el círculo de una vía para apuntarla como hecha en tu diario."
+                        text = stringResource(R.string.block_detail_dialog_v4_toca_el_circulo_de_una)
                     )
                 }
                 if (onToggleProject != null && !isProposal && block.lines.isNotEmpty()) {
                     com.meteomontana.android.ui.components.FirstTimeHint(
                         hintKey = "via_project",
-                        text = "Toca la P de una vía para marcarla como PROYECTO (la estás probando, aún no te ha salido)."
+                        text = stringResource(R.string.block_detail_dialog_v4_toca_la_p_de_una)
                     )
                 }
                 // Si venimos de pulsar una vía (deep-link del diario), su cara va
@@ -450,13 +451,13 @@ fun BlockDetailDialog(
                             Row(verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                 Text(
-                                    "FOTO ${faceIdx + 1}",
+                                    stringResource(R.string.block_detail_dialog_v2_foto_1_s, faceIdx + 1),
                                     style = EyebrowTextStyle,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 // C2: cada cara de un muro vota su propia orientacion.
                                 if (!isProposal) VotableChip(
-                                    text = orientationOf(originalIdx)?.consensus?.let { c -> "PARED " + c } ?: "ORIENTAR ESTA CARA",
+                                    text = orientationOf(originalIdx)?.consensus?.let { c -> stringResource(R.string.aspect_wall, CatalogLabels.aspect(c)) } ?: stringResource(R.string.block_detail_dialog_v4_orientar_esta_cara),
                                 ) {
                                     orientationTarget = originalIdx
                                     orientationOpen = true
@@ -538,7 +539,7 @@ fun BlockDetailDialog(
                                 if (!isProposal) {
                                     androidx.compose.material3.Icon(
                                         Icons.Outlined.Share,
-                                        contentDescription = "Compartir",
+                                        contentDescription = stringResource(R.string.block_detail_dialog_v2_compartir),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier
                                             .clip(CircleShape)
@@ -651,6 +652,16 @@ fun BlockDetailDialog(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(start = 28.dp, bottom = 2.dp))
                             }
+                            // Enlaces de beta de ESTA vía (desplegable) — Álvaro, 2026-09-15.
+                            if (!isProposal) {
+                                Box(Modifier.padding(start = 28.dp)) {
+                                    BetaLinksThread(
+                                        blockId = block.id,
+                                        lineId = line.id,
+                                        myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                                    )
+                                }
+                            }
                             // Comentarios de ESTA vía (desplegable).
                             if (!isProposal) {
                                 Box(Modifier.padding(start = 28.dp)) {
@@ -672,6 +683,16 @@ fun BlockDetailDialog(
                 Spacer(Modifier.height(Spacing.sm))
                 Text(it, style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface)
+            }
+
+            // Enlaces de beta de la PIEDRA en sí (bloques sin vías nombradas)
+            // — Álvaro, 2026-09-15.
+            if (!isProposal) {
+                Spacer(Modifier.height(Spacing.sm))
+                BetaLinksThread(
+                    blockId = block.id, lineId = null,
+                    myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                )
             }
 
             // (Los comentarios viven en cada vía, no en la piedra entera —
@@ -705,7 +726,7 @@ fun BlockDetailDialog(
             onDismissRequest = { orientationOpen = false },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { orientationOpen = false }) {
-                    Text("CERRAR", style = EyebrowTextStyle, color = Terra)
+                    Text(stringResource(R.string.block_detail_dialog_v2_cerrar_2), style = EyebrowTextStyle, color = Terra)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface,
@@ -726,7 +747,7 @@ fun BlockDetailDialog(
             onDismissRequest = { gradeVoteLine = null },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = { gradeVoteLine = null }) {
-                    Text("CERRAR", style = EyebrowTextStyle, color = Terra)
+                    Text(stringResource(R.string.block_detail_dialog_v2_cerrar), style = EyebrowTextStyle, color = Terra)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface,

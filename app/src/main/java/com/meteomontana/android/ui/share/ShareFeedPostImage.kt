@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.share
 
+import com.meteomontana.android.util.CatalogLabels
+import com.meteomontana.android.util.AppText
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -20,6 +22,8 @@ import com.meteomontana.android.domain.util.TopoLineData
 import com.meteomontana.android.domain.util.renderTopo
 import com.meteomontana.android.ui.screens.topo.parseLineStroke
 import java.io.File
+import com.meteomontana.android.R
+import androidx.compose.ui.res.stringResource
 
 /* ── Paleta Cumbre (ARGB para Canvas, = ShareLineImage) ────────────────────── */
 private const val PAPER = 0xFFFAF7F2.toInt()
@@ -59,7 +63,7 @@ suspend fun shareFeedPostAsImage(context: Context, post: FeedPost) {
         putExtra(Intent.EXTRA_TEXT, plainText(post))
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(intent, "Compartir"))
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.common_share)))
 }
 
 /**
@@ -96,7 +100,7 @@ private fun plainText(post: FeedPost): String {
     // Deep link al post: si el receptor tiene Cumbre se abre el detalle
     // (landing /s/p con Open Graph si no la tiene).
     val link = (com.meteomontana.android.ui.share.shareBaseUrl()) + "/s/p/${post.id}"
-    return listOf("🧗 $title", place, "Míralo en Cumbre: $link")
+    return listOf("🧗 $title", place, AppText.get(R.string.share_feed_post_image_v4_miralo_en_cumbre, link))
         .filter { it.isNotBlank() }.joinToString("\n")
 }
 
@@ -116,7 +120,7 @@ private suspend fun renderPostToUri(context: Context, post: FeedPost): Uri? {
     // Etiqueta traducida del tipo de inicio (mismo mapeo que el editor de topos).
     val startLabel = com.meteomontana.android.ui.components.startTypeLabelRes(post.startType)
         ?.let(context::getString)
-    val bmp = renderPostCard(post, photo, startLabel, drawLine = topoPhoto != null, corner = corner)
+    val bmp = renderPostCard(context, post, photo, startLabel, drawLine = topoPhoto != null, corner = corner)
     return runCatching {
         val dir = File(context.cacheDir, "share").apply { mkdirs() }
         // Nombre ÚNICO por post: con nombre fijo, el receptor (WhatsApp) cachea
@@ -129,17 +133,18 @@ private suspend fun renderPostToUri(context: Context, post: FeedPost): Uri? {
 }
 
 private fun kindEyebrow(post: FeedPost): String = when (post.kind) {
-    FeedKind.PROJECT_DONE -> "PROYECTO CONSEGUIDO"
-    FeedKind.NEW_BLOCK -> "PIEDRA NUEVA"
-    FeedKind.NEW_LINE -> "VÍA NUEVA"
+    FeedKind.PROJECT_DONE -> AppText.get(R.string.share_feed_post_image_v4_proyecto_conseguido)
+    FeedKind.NEW_BLOCK -> AppText.get(R.string.share_feed_post_image_v4_piedra_nueva)
+    FeedKind.NEW_LINE -> AppText.get(R.string.share_feed_post_image_v4_via_nueva)
     else -> when {
-        post.discipline.equals("ROUTE", ignoreCase = true) -> "VÍA HECHA"
-        post.discipline.equals("BOULDER", ignoreCase = true) -> "BLOQUE HECHO"
-        else -> "HECHO"
+        post.discipline.equals("ROUTE", ignoreCase = true) -> AppText.get(R.string.share_feed_post_image_v4_via_hecha)
+        post.discipline.equals("BOULDER", ignoreCase = true) -> AppText.get(R.string.share_feed_post_image_v4_bloque_hecho)
+        else -> AppText.get(R.string.w_done_caps)
     }
 }
 
 private fun renderPostCard(
+    context: Context,
     post: FeedPost,
     photo: Bitmap?,
     startLabel: String? = null,
@@ -176,7 +181,7 @@ private fun renderPostCard(
         append(post.lineName ?: post.blockName ?: "")
         post.grade?.takeIf { it.isNotBlank() }?.let { append(" · ").append(it) }
         startLabel?.let { append(" · ").append(it) }
-    }.ifBlank { "Ascenso" }
+    }.ifBlank { AppText.get(R.string.w_ascent) }
     val titleLines = wrapTextShare(title, titlePaint, w - 2 * pad, maxLines = 2)
     var y = pad + 140f
     titleLines.forEach { l -> c.drawText(l, pad, y, titlePaint); y += 86f }
@@ -185,7 +190,7 @@ private fun renderPostCard(
     val place = listOfNotNull(
         post.blockName?.takeIf { it.isNotBlank() && post.lineName != null },
         post.schoolName?.takeIf { it.isNotBlank() },
-        post.rockType?.takeIf { it.isNotBlank() }
+        post.rockType?.takeIf { it.isNotBlank() }?.let { CatalogLabels.rock(it) }
     ).joinToString(" · ")
     if (place.isNotBlank()) {
         c.drawText(place, pad, y - 4f,
@@ -197,7 +202,7 @@ private fun renderPostCard(
     val authorLabel = post.author.username?.let { "@$it" }
         ?: post.author.displayName ?: ""
     if (authorLabel.isNotBlank()) {
-        c.drawText("por $authorLabel", pad, y,
+        c.drawText(context.getString(R.string.share_feed_post_image_v2_por_1_s, authorLabel), pad, y,
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = TERRA; textSize = 36f; isFakeBoldText = true
             })
@@ -304,7 +309,7 @@ private fun renderPostCard(
 
     // ── Pie de marca ──
     c.drawText(
-        "⛰ CUMBRE", w - pad, h - 56f,
+        context.getString(R.string.share_feed_post_image_v2_cumbre), w - pad, h - 56f,
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = TERRA; textSize = 34f; typeface = Typeface.MONOSPACE
             letterSpacing = 0.18f; isFakeBoldText = true; textAlign = Paint.Align.RIGHT

@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.schools
 
+import com.meteomontana.android.util.CatalogLabels
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.meteomontana.android.ui.components.CumbreChip
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Barra de filtros estilo PWA: 5 secciones apiladas (distancia, estilo, roca,
@@ -35,38 +39,38 @@ fun SchoolFiltersBar(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Section("DISTANCIA") {
+        Section(stringResource(R.string.w_distance_caps)) {
             ChipRow(
                 items = DISTANCE_OPTIONS,
                 isSelected = { it == filters.maxDistanceKm },
-                label = { if (it == null) "Todas" else "${it.toInt()} km" },
+                label = { if (it == null) AppText.get(R.string.w_all) else "${it.toInt()} km" },
                 onClick = onDistance
             )
         }
-        Section("ESTILO") {
+        Section(stringResource(R.string.w_style_caps)) {
             ChipRow(
                 items = StyleFilter.entries,
                 isSelected = { it == filters.style },
-                label = { it.label },
+                label = { AppText.get(it.labelRes) },
                 onClick = onStyle
             )
         }
         // TIPO DE ROCA con chip "Todas" al principio (limpia la selección), como iOS.
-        Section("TIPO DE ROCA") {
+        Section(stringResource(R.string.school_filters_bar_v3_tipo_de_roca)) {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item {
                     CumbreChip(
-                        label = "Todas",
+                        label = stringResource(R.string.school_filters_bar_v2_todas),
                         selected = filters.rockTypes.isEmpty(),
                         onClick = onClearRocks
                     )
                 }
                 items(ROCK_TYPES) { rock ->
                     CumbreChip(
-                        label = rock,
+                        label = CatalogLabels.rock(rock),
                         selected = rock in filters.rockTypes,
                         onClick = { onRockToggle(rock) }
                     )
@@ -74,23 +78,23 @@ fun SchoolFiltersBar(
             }
         }
         // MOSTRAR: una sola fila tri-estado (Todas/Favoritos/Guardados), como iOS.
-        Section("MOSTRAR") {
+        Section(stringResource(R.string.w_show_caps_tristate)) {
             val current = when {
-                filters.onlyFavorites -> "Favoritos"
-                filters.onlySavedOffline -> "Guardados"
-                else -> "Todas"
+                filters.onlyFavorites -> ShowMode.Favorites
+                filters.onlySavedOffline -> ShowMode.Saved
+                else -> ShowMode.All
             }
             ChipRow(
-                items = listOf("Todas", "Favoritos", "Guardados"),
+                items = ShowMode.entries,
                 isSelected = { it == current },
-                label = { it },
+                label = { AppText.get(it.labelRes) },
                 onClick = { sel ->
                     when (sel) {
-                        "Favoritos" -> {
+                        ShowMode.Favorites -> {
                             if (filters.onlySavedOffline) onOnlySavedOffline(false)
                             onOnlyFavorites(true)
                         }
-                        "Guardados" -> {
+                        ShowMode.Saved -> {
                             if (filters.onlyFavorites) onOnlyFavorites(false)
                             onOnlySavedOffline(true)
                         }
@@ -102,15 +106,20 @@ fun SchoolFiltersBar(
                 }
             )
         }
-        Section("ORDENAR POR") {
+        Section(stringResource(R.string.school_filters_bar_v3_ordenar_por)) {
             ChipRow(
                 items = SortBy.entries,
                 isSelected = { it == filters.sortBy },
-                label = { it.label },
+                label = { AppText.get(it.labelRes) },
                 onClick = onSort
             )
         }
     }
+}
+
+/** Los tres estados de la fila MOSTRAR (excluyentes entre sí). */
+private enum class ShowMode(@androidx.annotation.StringRes val labelRes: Int) {
+    All(R.string.w_all), Favorites(R.string.w_favourites), Saved(R.string.w_saved)
 }
 
 @Composable

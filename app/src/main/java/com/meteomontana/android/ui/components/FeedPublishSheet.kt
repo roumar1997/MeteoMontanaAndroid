@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import com.meteomontana.android.data.local.saveCelebrationToGallery
@@ -129,11 +130,11 @@ internal fun CumbreSuccessDialog(
                         color = Color.White)
                 }
                 Spacer(Modifier.height(Spacing.lg))
-                Text("PROPUESTA ENVIADA",
+                Text(stringResource(R.string.feed_publish_sheet_v2_propuesta_enviada),
                     style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(Spacing.sm))
-                Text("Un admin la revisará en ",
+                Text(stringResource(R.string.feed_publish_sheet_un_admin_la_revisara),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("24-48h.",
@@ -141,7 +142,7 @@ internal fun CumbreSuccessDialog(
                     color = Terra)
                 Spacer(Modifier.height(Spacing.xs))
                 Text(
-                    "Te avisaremos por email y notificación\npush cuando haya respuesta.",
+                    stringResource(R.string.feed_publish_sheet_v2_te_avisaremos_por_email_y),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -163,7 +164,7 @@ internal fun CumbreSuccessDialog(
                         .clickable(onClick = onMyProposals)
                         .padding(vertical = Spacing.md),
                         contentAlignment = Alignment.Center) {
-                        Text("VER MIS PROPUESTAS", style = EyebrowTextStyle,
+                        Text(stringResource(R.string.feed_publish_sheet_v2_ver_mis_propuestas), style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.background)
                     }
                 }
@@ -324,19 +325,19 @@ internal fun FeedPublishSheet(
             // Autocompletado de @menciones al escribir la descripción.
             // ── C3: ¿CUANDO LA ENCADENASTE? (Hoy / Ayer / Otra fecha) ────────
             Text(
-                "CUANDO LA ENCADENASTE",
+                stringResource(R.string.feed_publish_sheet_v2_cuando_la_encadenaste),
                 style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val today = java.time.LocalDate.now()
-                DateChip("Hoy", selected = sessionDate == null) { sessionDate = null }
-                DateChip("Ayer", selected = sessionDate == today.minusDays(1).toString()) {
+                DateChip(stringResource(R.string.w_today), selected = sessionDate == null) { sessionDate = null }
+                DateChip(stringResource(R.string.w_yesterday), selected = sessionDate == today.minusDays(1).toString()) {
                     sessionDate = today.minusDays(1).toString()
                 }
                 val custom = sessionDate?.takeIf { it != today.minusDays(1).toString() }
-                DateChip(custom?.let { formatShortDate(it) } ?: "Otra fecha…",
+                DateChip(custom?.let { formatShortDate(it) } ?: stringResource(R.string.feed_publish_sheet_v4_otra_fecha),
                     selected = custom != null) { showDatePicker = true }
             }
             Spacer(Modifier.height(12.dp))
@@ -344,8 +345,8 @@ internal fun FeedPublishSheet(
             // ── Estilo de ascensión: dos chips independientes, sin etiqueta
             // "Estilo" encima — se pulsan directamente (Rodrigo, 2026-08-21).
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                DateChip("A vista", selected = aVista) { aVista = !aVista }
-                DateChip("Al flash", selected = alFlash) { alFlash = !alFlash }
+                DateChip(stringResource(R.string.feed_publish_sheet_v4_a_vista), selected = aVista) { aVista = !aVista }
+                DateChip(stringResource(R.string.feed_publish_sheet_v4_al_flash), selected = alFlash) { alFlash = !alFlash }
             }
             Spacer(Modifier.height(12.dp))
 
@@ -542,6 +543,5 @@ private fun DateChip(label: String, selected: Boolean, onClick: () -> Unit) {
 
 internal fun formatShortDate(iso: String): String = runCatching {
     val d = java.time.LocalDate.parse(iso)
-    "%d %s".format(d.dayOfMonth, listOf("ENE","FEB","MAR","ABR","MAY","JUN",
-        "JUL","AGO","SEP","OCT","NOV","DIC")[d.monthValue - 1])
+    "%d %s".format(d.dayOfMonth, CalendarLabels.monthsShort()[d.monthValue - 1].uppercase())
 }.getOrDefault(iso)

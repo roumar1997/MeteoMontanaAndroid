@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.CumbrePillShape
 import com.meteomontana.android.ui.theme.terraFillColor
 
@@ -246,7 +247,7 @@ internal fun AddLinesFlow(
                         }
                     }
                     if (faces.indices.any { faces[it].newPhotoUri != null && copiadas[it] == null }) {
-                        error = "No se pudo preparar una de las fotos. Vuelve a elegirla."
+                        error = AppText.get(R.string.add_lines_flow_v4_no_se_pudo_preparar_una)
                         sending = false
                         return@launch
                     }
@@ -289,7 +290,7 @@ internal fun AddLinesFlow(
                 // Si una foto no subió NO seguimos: antes esa cara quedaba
                 // sin foto y se colapsaba en la FOTO 1 con las demás.
                 if (uploadFailed >= 0) {
-                    error = "No se pudo subir la foto ${uploadFailed + 1}. Revisa la conexión y reinténtalo (si no, las caras se mezclarían en una sola)."
+                    error = AppText.get(R.string.add_lines_flow_v4_no_se_pudo_subir_la, uploadFailed + 1)
                     sending = false
                     return@launch
                 }
@@ -568,13 +569,13 @@ internal fun AddLinesFlow(
         // pulsable en cualquier móvil.
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { eligiendoOrigenFoto = false },
-            title = { Text("¿Cómo quieres la foto?") },
+            title = { Text(stringResource(R.string.add_lines_flow_como_quieres_la_foto)) },
             text = {
                 Column {
                     androidx.compose.material3.TextButton(
                         onClick = { eligiendoOrigenFoto = false; launchCamera() },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text("HACER FOTO AHORA", modifier = Modifier.fillMaxWidth()) }
+                    ) { Text(stringResource(R.string.add_lines_flow_v2_hacer_foto_ahora), modifier = Modifier.fillMaxWidth()) }
                     androidx.compose.material3.TextButton(
                         onClick = {
                             eligiendoOrigenFoto = false
@@ -585,12 +586,12 @@ internal fun AddLinesFlow(
                             )
                         },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text("ELEGIR DE GALERÍA", modifier = Modifier.fillMaxWidth()) }
+                    ) { Text(stringResource(R.string.add_lines_flow_elegir_de_galeria), modifier = Modifier.fillMaxWidth()) }
                 }
             },
             confirmButton = {},
             dismissButton = {
-                TextButton(onClick = { eligiendoOrigenFoto = false }) { Text("CANCELAR") }
+                TextButton(onClick = { eligiendoOrigenFoto = false }) { Text(stringResource(R.string.add_lines_flow_v2_cancelar)) }
             }
         )
     }

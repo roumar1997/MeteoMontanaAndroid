@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.approach
 
+
+import com.meteomontana.android.util.AppText
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -48,6 +50,8 @@ import com.meteomontana.android.ui.theme.Terra
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Alta de una chincheta (foto y/o texto, NUNCA vacía — APPROACH_DESIGN.md
@@ -56,10 +60,10 @@ import javax.inject.Inject
  * Espejo de NewApproachPinSheet/NewPinDraftSheet (iOS).
  */
 private val KINDS = listOf(
-    "FORK" to "◆ Bifurcación",
-    "LANDMARK" to "● Referencia",
-    "HAZARD" to "▲ Peligro",
-    "KEY" to "★ Paso clave"
+    "FORK" to AppText.get(R.string.new_approach_pin_dialog_v4_bifurcacion),
+    "LANDMARK" to AppText.get(R.string.new_approach_pin_dialog_v4_referencia),
+    "HAZARD" to AppText.get(R.string.new_approach_pin_dialog_v4_peligro),
+    "KEY" to AppText.get(R.string.new_approach_pin_dialog_v4_paso_clave)
 )
 
 @HiltViewModel
@@ -108,10 +112,10 @@ fun NewApproachPinDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nueva chincheta", style = MaterialTheme.typography.titleMedium) },
+        title = { Text(stringResource(R.string.new_approach_pin_dialog_v2_nueva_chincheta), style = MaterialTheme.typography.titleMedium) },
         text = {
             Column {
-                Text("TIPO", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.new_approach_pin_dialog_v2_tipo), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(6.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(KINDS) { (k, label) ->
@@ -143,26 +147,26 @@ fun NewApproachPinDialog(
                             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
                             .clickable { launchCamera() }.padding(vertical = 10.dp),
                         contentAlignment = androidx.compose.ui.Alignment.Center
-                    ) { Text("HACER FOTO", style = EyebrowTextStyle) }
+                    ) { Text(stringResource(R.string.new_approach_pin_dialog_v2_hacer_foto), style = EyebrowTextStyle) }
                     Box(
                         modifier = Modifier.weight(1f)
                             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
                             .clickable { pickGallery() }.padding(vertical = 10.dp),
                         contentAlignment = androidx.compose.ui.Alignment.Center
-                    ) { Text("GALERÍA", style = EyebrowTextStyle) }
+                    ) { Text(stringResource(R.string.new_approach_pin_dialog_galeria), style = EyebrowTextStyle) }
                 }
                 Spacer(Modifier.height(10.dp))
-                Text("NOTA (opcional si hay foto)", style = EyebrowTextStyle,
+                Text(stringResource(R.string.new_approach_pin_dialog_v2_nota_opcional_si_hay_foto), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(4.dp))
                 OutlinedTextField(
                     value = message, onValueChange = { message = it },
-                    placeholder = { Text("p. ej. En la bifurcación, a la derecha") },
+                    placeholder = { Text(stringResource(R.string.new_approach_pin_dialog_p_ej_en_la)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (!canSave) {
                     Spacer(Modifier.height(6.dp))
-                    Text("Añade una foto o una nota.", style = MaterialTheme.typography.labelSmall,
+                    Text(stringResource(R.string.new_approach_pin_dialog_anade_una_foto_o), style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -185,9 +189,9 @@ fun NewApproachPinDialog(
                             )
                         )
                     }
-                }) { Text("GUARDAR") }
+                }) { Text(stringResource(R.string.new_approach_pin_dialog_v2_guardar)) }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("CANCELAR") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.new_approach_pin_dialog_v2_cancelar)) } }
     )
 }

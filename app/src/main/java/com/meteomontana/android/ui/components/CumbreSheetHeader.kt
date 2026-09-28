@@ -11,6 +11,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Encabezado de una hoja: botón de salida en pastilla a la izquierda y título
@@ -35,7 +37,7 @@ import androidx.compose.ui.unit.dp
 fun CumbreSheetHeader(
     titulo: String,
     onClose: () -> Unit,
-    textoSalida: String = "Cerrar",
+    textoSalida: String = stringResource(R.string.w_close),
     modifier: Modifier = Modifier,
     /**
      * Accion principal a la DERECHA, en su propia pastilla (Guardar, Enviar...).

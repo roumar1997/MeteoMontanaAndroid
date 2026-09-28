@@ -2,6 +2,7 @@
             androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.admin
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -104,11 +105,11 @@ import org.maplibre.android.maps.Style
 // y diff de muros. Reparto del antiguo ContributionCard.kt de 955 lineas.
 
 internal fun contributionTypeLabel(type: String): String = when (type) {
-    "BOULDER" -> "PIEDRA"
+    "BOULDER" -> AppText.get(R.string.contribution_type_boulder)
     "PARKING" -> "PARKING"
     "SECTOR" -> "SECTOR"
-    "ASSIGN_SECTOR" -> "SECTOR DE PIEDRA"
-    "POSITION_CORRECTION" -> "MOVER"
+    "ASSIGN_SECTOR" -> AppText.get(R.string.contribution_diff_v4_sector_de_piedra)
+    "POSITION_CORRECTION" -> AppText.get(R.string.contribution_type_move)
     else -> type
 }
 
@@ -123,22 +124,23 @@ internal fun contributionSummary(
 ): String {
     val target = blocks.firstOrNull { it.id == c.targetBlockId }
     return when (c.type) {
-        "PARKING" -> "Añade un parking nuevo" +
-            (c.name?.takeIf { it.isNotBlank() }?.let { " «$it»" } ?: "")
-        "SECTOR" -> "Añade un sector nuevo" +
-            (c.name?.takeIf { it.isNotBlank() }?.let { " «$it»" } ?: "")
+        "PARKING" -> AppText.get(R.string.contribution_add_parking,
+            c.name?.takeIf { it.isNotBlank() }?.let { " «$it»" } ?: "")
+        "SECTOR" -> AppText.get(R.string.contribution_add_sector,
+            c.name?.takeIf { it.isNotBlank() }?.let { " «$it»" } ?: "")
         "ASSIGN_SECTOR" -> {
             val sector = blocks.firstOrNull { it.id == c.sectorBlockId }
-            "Mueve «${target?.name ?: "una piedra"}» al sector «${sector?.name ?: "?"}»"
+            AppText.get(R.string.contribution_diff_v4_mueve_al_sector, target?.name ?: AppText.get(R.string.contribution_a_boulder), sector?.name ?: "?")
         }
         "POSITION_CORRECTION" -> {
-            val what = if (c.targetBlockId.isNullOrBlank()) "la ESCUELA entera"
-                       else "«${target?.name ?: c.name ?: "un elemento"}»"
+            val what = if (c.targetBlockId.isNullOrBlank()) AppText.get(R.string.contribution_diff_v4_la_escuela_entera)
+                       else "«${target?.name ?: c.name ?: AppText.get(R.string.contribution_an_element)}»"
             val meters = if (c.proposedLat != null && c.proposedLon != null)
                 (com.meteomontana.android.domain.util.Geo.haversineKm(
                     c.lat, c.lon, c.proposedLat!!, c.proposedLon!!) * 1000).toInt()
             else null
-            "Mueve $what" + (meters?.let { " unos $it m" } ?: "")
+            AppText.get(R.string.contribution_move_element, what,
+                meters?.let { AppText.get(R.string.contribution_diff_v4_unos_m, it) } ?: "")
         }
         "BOULDER" -> {
             val vias = parseProposedVias(c.bloquesJson)
@@ -146,21 +148,22 @@ internal fun contributionSummary(
             val corrige = vias.size - nuevas
             val esMuro = c.geometry.equals("LINE", true)
             if (target == null) {
-                (if (esMuro) "Muro NUEVO" else "Piedra NUEVA") +
-                    " con ${vias.size} vía${if (vias.size == 1) "" else "s"}"
+                AppText.get(R.string.contribution_new_with_routes,
+                    if (esMuro) AppText.get(R.string.contribution_diff_v4_muro_nuevo) else AppText.get(R.string.contribution_diff_v4_piedra_nueva),
+                    vias.size, if (vias.size == 1) "" else "s")
             } else {
                 buildString {
-                    append(if (esMuro) "Muro" else "Piedra")
-                    append(" «${target.name}»: ")
+                    append(AppText.get(R.string.contribution_target_named,
+                        AppText.get(if (esMuro) R.string.contribution_wall else R.string.contribution_boulder), target.name))
                     val parts = mutableListOf<String>()
-                    if (nuevas > 0) parts.add("añade $nuevas vía${if (nuevas == 1) "" else "s"}")
-                    if (corrige > 0) parts.add("corrige $corrige")
-                    if (parts.isEmpty()) parts.add("cambios en el trazado/orden")
-                    append(parts.joinToString(" y "))
+                    if (nuevas > 0) parts.add(AppText.get(R.string.contribution_diff_v4_anade_via, nuevas, if (nuevas == 1) "" else "s"))
+                    if (corrige > 0) parts.add(AppText.get(R.string.contribution_fixes, corrige))
+                    if (parts.isEmpty()) parts.add(AppText.get(R.string.contribution_diff_v4_cambios_en_el_trazado_orden))
+                    append(parts.joinToString(AppText.get(R.string.contribution_and)))
                 }
             }
         }
-        else -> "Propuesta de tipo ${c.type}"
+        else -> AppText.get(R.string.contribution_diff_v4_propuesta_de_tipo, c.type)
     }
 }
 
@@ -230,11 +233,11 @@ private fun FieldChangeRow(label: String, old: String?, new: String?) {
 /** Etiqueta visible de cada campo del diff (la lógica vive en `shared`). */
 private fun lineFieldLabel(f: com.meteomontana.android.domain.usecase.contributions.LineField): String =
     when (f) {
-        com.meteomontana.android.domain.usecase.contributions.LineField.NAME -> "Nombre"
-        com.meteomontana.android.domain.usecase.contributions.LineField.GRADE -> "Grado"
-        com.meteomontana.android.domain.usecase.contributions.LineField.VARIANT -> "Variante"
-        com.meteomontana.android.domain.usecase.contributions.LineField.START_TYPE -> "Tipo"
-        com.meteomontana.android.domain.usecase.contributions.LineField.DESCRIPTION -> "Descripción"
+        com.meteomontana.android.domain.usecase.contributions.LineField.NAME -> AppText.get(R.string.w_name)
+        com.meteomontana.android.domain.usecase.contributions.LineField.GRADE -> AppText.get(R.string.w_grade)
+        com.meteomontana.android.domain.usecase.contributions.LineField.VARIANT -> AppText.get(R.string.w_variant)
+        com.meteomontana.android.domain.usecase.contributions.LineField.START_TYPE -> AppText.get(R.string.w_type)
+        com.meteomontana.android.domain.usecase.contributions.LineField.DESCRIPTION -> AppText.get(R.string.contribution_diff_v4_descripcion)
     }
 
 /**
@@ -262,16 +265,16 @@ internal fun ViaChangeRows(
             v.name?.takeIf { it.isNotBlank() }, v.grade,
             v.variant?.let { "($it)" }, v.startType, v.description
         ).joinToString(" · ")
-        Text("• NUEVA: $txt", style = MaterialTheme.typography.bodyMedium, color = Terra)
+        Text(stringResource(R.string.contribution_diff_v2_nueva_1_s, txt), style = MaterialTheme.typography.bodyMedium, color = Terra)
         return
     }
-    Text("• ${diff.displayName ?: "(sin nombre)"}" + if (!diff.hasAnyChange) "  (sin cambios)" else "",
+    Text("• ${diff.displayName ?: "(sin nombre)"}" + if (!diff.hasAnyChange) stringResource(R.string.contribution_diff_v3_sin_cambios) else "",
         style = MaterialTheme.typography.bodyMedium,
         color = if (diff.hasAnyChange) MaterialTheme.colorScheme.onSurface
                 else MaterialTheme.colorScheme.onSurfaceVariant)
     diff.changes.forEach { ch -> FieldChangeRow(lineFieldLabel(ch.field), ch.old, ch.new) }
     if (diff.drawingChanged) {
-        Text("    Trazado: redibujado (ver foto)",
+        Text(stringResource(R.string.contribution_diff_v2_trazado_redibujado_ver_foto),
             modifier = Modifier.padding(start = Spacing.md),
             style = MaterialTheme.typography.bodyMedium, color = Terra)
     }
@@ -316,17 +319,17 @@ internal fun BoulderReviewSection(
 
             if (faceDrawingChanged) {
                 if (isNewFace) {
-                    Text("CARA NUEVA (FOTO AÑADIDA)", style = EyebrowTextStyle, color = Moss)
+                    Text(stringResource(R.string.contribution_diff_cara_nueva_foto_anadida), style = EyebrowTextStyle, color = Moss)
                     Spacer(Modifier.height(Spacing.xs))
                 } else if (!oldPhoto.isNullOrBlank()) {
-                    Text(if (photoChanged) "FOTO ACTUAL" else "ACTUAL",
+                    Text(if (photoChanged) stringResource(R.string.contribution_diff_v3_foto_actual) else stringResource(R.string.contribution_diff_v3_actual),
                         style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(Spacing.xs))
                     ZoomableTopo(photoUrl = oldPhoto, lines = (oldFace?.lines ?: emptyList()).toTopoLines())
                 }
 
                 Spacer(Modifier.height(Spacing.sm))
-                Text(if (isNewFace) "FOTO NUEVA" else if (photoChanged) "FOTO PROPUESTA (NUEVA)" else "PROPUESTA",
+                Text(if (isNewFace) stringResource(R.string.contribution_diff_v3_foto_nueva) else if (photoChanged) stringResource(R.string.contribution_diff_v3_foto_propuesta_nueva) else stringResource(R.string.contribution_diff_v3_propuesta),
                     style = EyebrowTextStyle, color = Terra)
                 Spacer(Modifier.height(Spacing.xs))
                 val proposedLines: List<TopoLine> = if (photoChanged) {
@@ -340,7 +343,7 @@ internal fun BoulderReviewSection(
                     ZoomableTopo(photoUrl = propostaPhoto, lines = proposedLines)
                 }
             } else {
-                Text("SOLO TEXTO · el dibujo y la foto no cambian",
+                Text(stringResource(R.string.contribution_diff_solo_texto_el_dibujo),
                     style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
@@ -360,7 +363,7 @@ internal fun BoulderReviewSection(
                 Spacer(Modifier.height(Spacing.md))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                 Spacer(Modifier.height(Spacing.sm))
-                Text("FOTO", style = EyebrowTextStyle, color = Terra)
+                Text(stringResource(R.string.contribution_diff_v2_foto), style = EyebrowTextStyle, color = Terra)
                 Spacer(Modifier.height(Spacing.xs))
                 if (!facePhoto.isNullOrBlank()) {
                     ZoomableTopo(photoUrl = facePhoto, lines = vias.map { it.toTopoLine() })
@@ -377,7 +380,7 @@ internal fun BoulderReviewSection(
             }
         } else if (proposed.isNotEmpty()) {
             Spacer(Modifier.height(Spacing.xs))
-            Text("SIN FOTO — el proponente no adjuntó imagen",
+            Text(stringResource(R.string.contribution_diff_sin_foto_el_proponente),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             c.bloquesJson?.takeIf { it.isNotBlank() }?.let { BloquesSummary(it) }
@@ -430,7 +433,7 @@ internal fun buildWallDiff(
     )
 }
 
-private fun dirLabel(d: String?): String = if (d.equals("RTL", true)) "DER→IZQ" else "IZQ→DER"
+private fun dirLabel(d: String?): String = if (d.equals("RTL", true)) AppText.get(R.string.contribution_diff_v4_der_izq) else AppText.get(R.string.contribution_diff_v4_izq_der)
 
 @Composable
 internal fun WallDiffSection(
@@ -441,23 +444,23 @@ internal fun WallDiffSection(
     Spacer(Modifier.height(Spacing.md))
     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
     Spacer(Modifier.height(Spacing.sm))
-    Text("MURO · CAMBIOS", style = EyebrowTextStyle, color = Terra)
+    Text(stringResource(R.string.contribution_diff_muro_cambios), style = EyebrowTextStyle, color = Terra)
     Spacer(Modifier.height(Spacing.xs))
 
     if (targetBlock == null) {
-        Text("Muro NUEVO · numeración ${dirLabel(c.direction)}",
+        Text(stringResource(R.string.contribution_diff_v2_muro_nuevo_numeracion_1_s, dirLabel(c.direction)),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface)
     } else {
         val dirChanged = (targetBlock.direction ?: "LTR") != (c.direction ?: "LTR")
         Text(
-            if (dirChanged) "Dirección: ${dirLabel(targetBlock.direction)}  →  ${dirLabel(c.direction)}"
-            else "Dirección: ${dirLabel(c.direction)} (sin cambio)",
+            if (dirChanged) stringResource(R.string.contribution_diff_v3_direccion, dirLabel(targetBlock.direction), dirLabel(c.direction))
+            else stringResource(R.string.contribution_diff_v3_direccion_sin_cambio, dirLabel(c.direction)),
             style = MaterialTheme.typography.bodyMedium,
             color = if (dirChanged) Terra else MaterialTheme.colorScheme.onSurfaceVariant
         )
         if (diff.pathChanged) {
-            Text("⚠ El trazado/longitud del muro cambia (ver mapa: gris=actual, terra=propuesto)",
+            Text(stringResource(R.string.contribution_diff_el_trazado_longitud_del),
                 style = MaterialTheme.typography.bodyMedium, color = Terra)
         }
     }
@@ -472,12 +475,12 @@ private fun WallChangeRow(ch: com.meteomontana.android.domain.usecase.walls.Wall
     val oldN = (ch.oldPos ?: 0) + 1
     val newN = (ch.newPos ?: 0) + 1
     val (label, color) = when (ch.status) {
-        WallRouteStatus.NEW -> "NUEVA #$newN" to Moss
-        WallRouteStatus.MOVED -> "MOVIDA #$oldN→#$newN" to Terra
-        WallRouteStatus.MODIFIED -> "MODIFICADA #$newN" to Terra
-        WallRouteStatus.MOVED_MODIFIED -> "MOVIDA+MODIF #$oldN→#$newN" to Terra
-        WallRouteStatus.REMOVED -> "QUITADA #$oldN" to MaterialTheme.colorScheme.error
-        WallRouteStatus.CONFLICT -> "CONFLICTO #$newN" to MaterialTheme.colorScheme.error
+        WallRouteStatus.NEW -> stringResource(R.string.contribution_diff_v3_nueva, newN) to Moss
+        WallRouteStatus.MOVED -> stringResource(R.string.contribution_diff_v4_movida, oldN, newN) to Terra
+        WallRouteStatus.MODIFIED -> stringResource(R.string.contribution_diff_v4_modificada, newN) to Terra
+        WallRouteStatus.MOVED_MODIFIED -> stringResource(R.string.contribution_diff_v4_movida_modif, oldN, newN) to Terra
+        WallRouteStatus.REMOVED -> stringResource(R.string.contribution_diff_v4_quitada, oldN) to MaterialTheme.colorScheme.error
+        WallRouteStatus.CONFLICT -> stringResource(R.string.contribution_diff_v4_conflicto, newN) to MaterialTheme.colorScheme.error
         WallRouteStatus.SAME -> "= #$newN" to MaterialTheme.colorScheme.onSurfaceVariant
     }
     Row(
@@ -493,7 +496,7 @@ private fun WallChangeRow(ch: com.meteomontana.android.domain.usecase.walls.Wall
         ) {
             Text(label, style = EyebrowTextStyle, color = Color.White)
         }
-        val name = ch.name?.takeIf { it.isNotBlank() } ?: "(sin nombre)"
+        val name = ch.name?.takeIf { it.isNotBlank() } ?: stringResource(R.string.contribution_diff_v3_sin_nombre)
         val gradeTxt = when (ch.status) {
             WallRouteStatus.MODIFIED, WallRouteStatus.MOVED_MODIFIED ->
                 if (ch.oldGrade != ch.newGrade) "  ${ch.oldGrade ?: "—"} → ${ch.newGrade ?: "—"}" else ch.newGrade?.let { "  $it" } ?: ""

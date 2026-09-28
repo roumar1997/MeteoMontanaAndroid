@@ -1,4 +1,5 @@
 package com.meteomontana.android.ui.screens.users
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.util.toUserMessage
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -89,7 +90,7 @@ class FollowListViewModel @Inject constructor(
     private val _state = MutableStateFlow<FollowListUiState>(FollowListUiState.Loading)
     val state: StateFlow<FollowListUiState> = _state.asStateFlow()
 
-    val title: String = if (mode == "followers") "Seguidores" else "Siguiendo"
+    val title: String = if (mode == "followers") AppText.get(R.string.w_followers) else AppText.get(R.string.w_following)
 
     // Solo puedo eliminar seguidores en MI propia lista de "Seguidores".
     val canRemove: Boolean = mode == "followers" && uid == myUid
@@ -232,7 +233,7 @@ fun FollowListScreen(
                 }
                 if (visible.isEmpty()) {
                     Box(Modifier.fillMaxSize(), Alignment.Center) {
-                        Text(if (q.isEmpty()) "Vacío" else stringResource(R.string.follow_search_empty),
+                        Text(if (q.isEmpty()) stringResource(R.string.follow_list_screen_vacio) else stringResource(R.string.follow_search_empty),
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {

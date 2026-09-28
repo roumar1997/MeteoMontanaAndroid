@@ -15,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.meteomontana.android.domain.model.HourForecast
 import com.meteomontana.android.ui.theme.scoreColor
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Heatmap horizontal del día actual.
@@ -36,7 +38,7 @@ fun HourlyHeatmap(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                "VENTANA ÓPTIMA",
+                stringResource(R.string.hourly_heatmap_v2_ventana_optima),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

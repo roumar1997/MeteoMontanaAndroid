@@ -1,4 +1,5 @@
 package com.meteomontana.android.ui.screens.admin
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
@@ -26,6 +27,8 @@ import com.meteomontana.android.domain.usecase.admin.SendPushUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
+import com.meteomontana.android.domain.usecase.blocks.ReorderBlocksUseCase
+import com.meteomontana.android.domain.usecase.blocks.AutoReorderBlocksUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -35,6 +38,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 data class AdminUiState(
     val loading: Boolean = true,
@@ -83,6 +88,8 @@ class AdminViewModel @Inject constructor(
     private val getBlocks: GetBlocksUseCase,
     private val updateBlockUseCase: UpdateBlockUseCase,
     private val deleteBlockUseCase: DeleteBlockUseCase,
+    private val reorderBlocksUseCase: ReorderBlocksUseCase,
+    private val autoReorderBlocksUseCase: AutoReorderBlocksUseCase,
     private val getSchoolsUseCase: GetSchoolsUseCase
 ) : ViewModel() {
     private val _state = MutableStateFlow(AdminUiState())
@@ -199,6 +206,31 @@ class AdminViewModel @Inject constructor(
         }
     }
 
+    /** Renumera las piedras de un sector (o "sin sector" si sectorBlockId es
+     *  null) según el orden exacto que se le pase. */
+    fun reorderBlocks(schoolId: String, sectorBlockId: String?, orderedBlockIds: List<String>, onDone: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val ok = runCatching { reorderBlocksUseCase(schoolId, sectorBlockId, orderedBlockIds) }.isSuccess
+            try {
+                val blocks = getBlocks(schoolId)
+                _state.update { it.copy(schoolBlocks = it.schoolBlocks + (schoolId to blocks)) }
+            } catch (_: Throwable) {}
+            onDone(ok)
+        }
+    }
+
+    /** Sugiere y aplica un primer orden por distancia al parking más cercano. */
+    fun autoReorderBlocks(schoolId: String, sectorBlockId: String?, onDone: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val ok = runCatching { autoReorderBlocksUseCase(schoolId, sectorBlockId) }.isSuccess
+            try {
+                val blocks = getBlocks(schoolId)
+                _state.update { it.copy(schoolBlocks = it.schoolBlocks + (schoolId to blocks)) }
+            } catch (_: Throwable) {}
+            onDone(ok)
+        }
+    }
+
     fun resolveReport(id: String, action: String) {
         viewModelScope.launch {
             runCatching { resolveReportUseCase(id, action) }
@@ -286,20 +318,20 @@ class AdminViewModel @Inject constructor(
 
     private fun applyModResult(res: com.meteomontana.android.domain.model.UserModeration?, okMsg: String) {
         if (res != null) { _userMod.value = res; _modMsg.value = okMsg }
-        else _modMsg.value = "No se pudo (revisa conexión o permisos)"
+        else _modMsg.value = AppText.get(R.string.admin_view_model_v4_no_se_pudo_revisa_conexion)
     }
 
     fun warnUser(uid: String, reason: String?) {
-        viewModelScope.launch { applyModResult(warnUserUseCase(uid, reason), "Aviso enviado") }
+        viewModelScope.launch { applyModResult(warnUserUseCase(uid, reason), AppText.get(R.string.admin_view_model_v4_aviso_enviado)) }
     }
     fun suspendUser(uid: String, days: Int, reason: String?) {
-        viewModelScope.launch { applyModResult(suspendUserUseCase(uid, days, reason), "Suspendido $days día(s)") }
+        viewModelScope.launch { applyModResult(suspendUserUseCase(uid, days, reason), AppText.get(R.string.admin_view_model_v4_suspendido_dia_s, days)) }
     }
     fun banUser(uid: String, reason: String?) {
-        viewModelScope.launch { applyModResult(banUserUseCase(uid, reason), "Cuenta baneada") }
+        viewModelScope.launch { applyModResult(banUserUseCase(uid, reason), AppText.get(R.string.admin_view_model_v4_cuenta_baneada)) }
     }
     fun unbanUser(uid: String, reason: String?) {
-        viewModelScope.launch { applyModResult(unbanUserUseCase(uid, reason), "Baneo retirado") }
+        viewModelScope.launch { applyModResult(unbanUserUseCase(uid, reason), AppText.get(R.string.admin_view_model_v4_baneo_retirado)) }
     }
 
     /** Denuncia de QUEDADA: eliminar la quedada denunciada (además de resolver). */
@@ -315,7 +347,7 @@ class AdminViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val r = sendPushUseCase(targetUid, title, body)
-                _state.update { it.copy(pushBusy = false, pushResult = "Enviado a ${r.sent}/${r.recipients}") }
+                _state.update { it.copy(pushBusy = false, pushResult = AppText.get(R.string.admin_view_model_v4_enviado_a, r.sent, r.recipients)) }
             } catch (t: Throwable) {
                 _state.update { it.copy(pushBusy = false, pushResult = "Error: ${t.message}") }
             }

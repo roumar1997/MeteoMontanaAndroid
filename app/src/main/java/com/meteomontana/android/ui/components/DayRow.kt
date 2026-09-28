@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.CalendarLabels
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,15 +18,9 @@ import com.meteomontana.android.domain.model.DayForecast
 import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.scoreColor
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
-private val DAY_NAMES = mapOf(
-    "MON" to "Lun", "TUE" to "Mar", "WED" to "Mié", "THU" to "Jue",
-    "FRI" to "Vie", "SAT" to "Sáb", "SUN" to "Dom"
-)
-private val MONTH_NAMES = listOf(
-    "Ene", "Feb", "Mar", "Abr", "May", "Jun",
-    "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
-)
 
 /**
  * Fila de un día del forecast — RÉPLICA del layout iOS (que quedó mejor):
@@ -36,8 +31,7 @@ private val MONTH_NAMES = listOf(
 @Composable
 fun DayRow(day: DayForecast, dayIndex: Int, onClick: (() -> Unit)? = null) {
     val dt = java.time.LocalDate.parse(day.date)
-    val dow = dt.dayOfWeek.name.take(3).uppercase()
-    val title = "${DAY_NAMES[dow] ?: dow} ${dt.dayOfMonth} ${MONTH_NAMES[dt.monthValue - 1]}"
+    val title = "${CalendarLabels.daysShortMonFirst()[dt.dayOfWeek.value - 1]} ${dt.dayOfMonth} ${CalendarLabels.monthsShort()[dt.monthValue - 1]}"
     val mm = if (day.precipitationTotal < 0.05) "0 mm"
              else "%.1f mm".format(day.precipitationTotal)
 
@@ -59,7 +53,7 @@ fun DayRow(day: DayForecast, dayIndex: Int, onClick: (() -> Unit)? = null) {
             Text(title, style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface)
             Text(
-                "MÁX ${day.tempMax.toInt()}°  ·  MÍN ${day.tempMin.toInt()}°  ·  $mm",
+                stringResource(R.string.day_row_v2_max_1_s_min_2, day.tempMax.toInt(), day.tempMin.toInt(), mm),
                 style = MaterialTheme.typography.labelMedium.copy(fontFamily = Mono),
                 color = if (day.precipitationTotal >= 1.0) MaterialTheme.colorScheme.error
                         else MaterialTheme.colorScheme.onSurfaceVariant

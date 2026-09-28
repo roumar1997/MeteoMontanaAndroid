@@ -1,5 +1,8 @@
 package com.meteomontana.android.ui.components
 
+
+import com.meteomontana.android.util.CalendarLabels
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,12 +27,14 @@ import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.scoreColor
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @Composable
 fun MonthlyStatsSection(stats: MonthlyStats?, isLoading: Boolean) {
     Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
         Text(
-            "ÍNDICE POR MES (ÚLT. 3 AÑOS)",
+            stringResource(R.string.monthly_stats_section_v2_indice_por_mes_ult_3),
             style = MaterialTheme.typography.labelMedium.copy(
                 fontFamily = Mono, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp
             ),
@@ -47,19 +52,19 @@ fun MonthlyStatsSection(stats: MonthlyStats?, isLoading: Boolean) {
         stats.bestRange?.let { range ->
             Row(verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.xs)) {
-                Text("✓ MEJOR TEMPORADA",
+                Text(stringResource(R.string.monthly_stats_section_mejor_temporada),
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontFamily = Mono, letterSpacing = 1.2.sp, fontWeight = FontWeight.Bold
                     ),
                     color = MaterialTheme.colorScheme.secondary)
                 androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
-                Text(range,
+                Text(com.meteomontana.android.util.ForecastText.monthsIn(range),
                     style = TextStyle(fontFamily = Serif, fontWeight = FontWeight.SemiBold, fontSize = 14.sp),
                     color = MaterialTheme.colorScheme.onBackground)
             }
             androidx.compose.foundation.layout.Spacer(Modifier.height(Spacing.sm))
         }
-        val names = listOf("Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic")
+        val names = CalendarLabels.monthsShort()
         stats.scores.forEachIndexed { i, score ->
             MonthBar(name = names[i], score = score)
         }
@@ -100,10 +105,10 @@ private fun MonthBar(name: String, score: Int) {
 }
 
 private fun labelFor(score: Int): String = when {
-    score >= 80 -> "Excelente"
-    score >= 65 -> "Bueno"
-    score >= 50 -> "Regular"
-    score >= 30 -> "Malo"
-    else        -> "Muy malo"
+    score >= 80 -> AppText.get(R.string.w_excellent)
+    score >= 65 -> AppText.get(R.string.w_good)
+    score >= 50 -> AppText.get(R.string.w_fair)
+    score >= 30 -> AppText.get(R.string.w_poor)
+    else        -> AppText.get(R.string.monthly_stats_section_v4_muy_malo)
 }
 

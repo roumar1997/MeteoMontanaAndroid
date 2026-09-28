@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.meetups
 
+
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -7,6 +8,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * RC3: diálogo del gate «No Mixto». Antes salía un texto de error críptico abajo;
@@ -20,20 +23,18 @@ fun GenderGateDialog(onEditProfile: () -> Unit, onDismiss: () -> Unit) {
         // Cumbre usa esquinas afiladas (radius 0/2/4) → el diálogo por defecto salía
         // "cuadrado". Lo redondeamos aquí para que se vea moderno, como el de iOS.
         shape = RoundedCornerShape(24.dp),
-        title = { Text("Quedadas «No Mixto»") },
+        title = { Text(stringResource(R.string.gender_gate_dialog_quedadas_no_mixto)) },
         text = {
             Text(
-                "Las quedadas «No Mixto» son solo para perfiles con género Mujer. " +
-                    "Si eres mujer y aún no lo has indicado, ponlo en tu perfil y podrás " +
-                    "crearlas y unirte.",
+                stringResource(R.string.gender_gate_dialog_v2_las_quedadas_no_mixto_son),
                 style = MaterialTheme.typography.bodyMedium
             )
         },
         confirmButton = {
-            TextButton(onClick = { onDismiss(); onEditProfile() }) { Text("Editar perfil") }
+            TextButton(onClick = { onDismiss(); onEditProfile() }) { Text(stringResource(R.string.gender_gate_dialog_v2_editar_perfil)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Entendido") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.gender_gate_dialog_v2_entendido)) }
         }
     )
 }

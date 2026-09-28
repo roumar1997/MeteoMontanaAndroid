@@ -1,0 +1,448 @@
+package com.meteomontana.android.ui.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.PlayCircleOutline
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import com.meteomontana.android.R
+import com.meteomontana.android.domain.model.BetaLink
+import com.meteomontana.android.domain.usecase.blocks.AddBetaLinkUseCase
+import com.meteomontana.android.domain.usecase.blocks.DeleteBetaLinkUseCase
+import com.meteomontana.android.domain.usecase.blocks.GetBetaLinksUseCase
+import com.meteomontana.android.ui.theme.EyebrowTextStyle
+import com.meteomontana.android.ui.theme.Spacing
+import com.meteomontana.android.ui.theme.Terra
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+/**
+ * Enlaces de la comunidad a vídeos de beta (Instagram/YouTube) en piedras/
+ * vías, con categoría opcional de altura — Álvaro, 2026-09-15: "que se pueda
+ * poner igual que se vota... que se pueda tener varios, beta personas +1.70
+ * y personas -1.70". Directo, sin revisión de admin — mismo patrón que
+ * LineCommentsSection.kt: un fetch por piedra, cada hilo filtra los suyos.
+ */
+@HiltViewModel
+class BetaLinksViewModel @Inject constructor(
+    private val getBetaLinks: GetBetaLinksUseCase,
+    private val addBetaLink: AddBetaLinkUseCase,
+    private val deleteBetaLink: DeleteBetaLinkUseCase
+) : ViewModel() {
+
+    private val _links = MutableStateFlow<List<BetaLink>>(emptyList())
+    val links: StateFlow<List<BetaLink>> = _links
+
+    fun load(blockId: String) {
+        viewModelScope.launch {
+            runCatching { getBetaLinks(blockId, null) }
+                .onSuccess { _links.value = it }
+        }
+    }
+
+    fun add(blockId: String, lineId: String?, url: String, heightCategory: String?, authorName: String?, onDone: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            val result = runCatching { addBetaLink(blockId, lineId, url, heightCategory, authorName) }
+            result.onSuccess { created -> _links.value = _links.value + created }
+            onDone(result.isSuccess)
+        }
+    }
+
+    fun delete(linkId: String) {
+        viewModelScope.launch {
+            runCatching { deleteBetaLink(linkId) }
+                .onSuccess { _links.value = _links.value.filter { it.id != linkId } }
+        }
+    }
+}
+
+/** Categoría de altura para etiquetar la beta — Álvaro, 2026-09-15. */
+private enum class HeightFilter(val raw: String?) {
+    ANY(null), TALL("TALL"), SHORT("SHORT")
+}
+
+@Composable
+private fun HeightFilter.label(): String = when (this) {
+    HeightFilter.ANY -> stringResource(R.string.beta_height_any)
+    HeightFilter.TALL -> stringResource(R.string.beta_height_tall)
+    HeightFilter.SHORT -> stringResource(R.string.beta_height_short)
+}
+
+@Composable
+private fun HeightFilter.shortLabel(): String = when (this) {
+    HeightFilter.ANY -> stringResource(R.string.beta_height_any_short)
+    HeightFilter.TALL -> stringResource(R.string.beta_height_tall_short)
+    HeightFilter.SHORT -> stringResource(R.string.beta_height_short_short)
+}
+
+/** Mismo criterio que BetaLinkService.validUrl() en el backend: solo http(s). */
+private fun isValidBetaUrl(url: String): Boolean {
+    val t = url.trim()
+    return t.startsWith("http://", ignoreCase = true) || t.startsWith("https://", ignoreCase = true)
+}
+
+/**
+ * Hilo desplegable de enlaces de beta: la CABECERA ENTERA es pulsable.
+ * lineId=null → enlaces de la piedra entera. Añadir es un flujo de DOS
+ * PASOS (elegir para quién → pegar el enlace), espejo de iOS.
+ */
+@Composable
+fun BetaLinksThread(
+    blockId: String,
+    lineId: String?,
+    myUid: String?,
+    viewModel: BetaLinksViewModel = hiltViewModel()
+) {
+    LaunchedEffect(blockId) { viewModel.load(blockId) }
+    val allLinks by viewModel.links.collectAsStateWithLifecycle()
+    // Denuncia (requisito App Store para UGC) — mismo patrón que comentarios:
+    // se oculta al instante para quien denuncia; si denuncia un admin se
+    // borra ya en el servidor (Álvaro, 2026-09-16: "la gente puede subir lo
+    // que quiera, debe poder denunciar... y yo como admin eliminar cualquiera").
+    val moderation: ModerationViewModel = hiltViewModel()
+    val hiddenIds by moderation.hiddenIds.collectAsStateWithLifecycle()
+    val mine = remember(allLinks, blockId, lineId, hiddenIds) {
+        allLinks.filter { it.blockId == blockId && it.lineId == lineId && "BETA_LINK:${it.id}" !in hiddenIds }
+            .sortedByDescending { it.createdAt ?: "" }
+    }
+
+    var expanded by remember { mutableStateOf(false) }
+    var viewFilter by remember { mutableStateOf(HeightFilter.ANY) }
+    var choosingCategory by remember { mutableStateOf(false) }
+    var pastingUrlFor by remember { mutableStateOf<HeightFilter?>(null) }
+    var urlDraft by remember { mutableStateOf("") }
+    var urlTouched by remember { mutableStateOf(false) }
+    var authorNameDraft by remember { mutableStateOf("") }
+    var justAdded by remember { mutableStateOf(false) }
+    var reportTarget by remember { mutableStateOf<BetaLink?>(null) }
+
+    val shown = remember(mine, viewFilter) {
+        if (viewFilter == HeightFilter.ANY) mine else mine.filter { it.heightCategory == viewFilter.raw }
+    }
+
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(2.dp))
+                .clickable { expanded = !expanded }
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            // Círculo relleno en terracota cuando HAY vídeos, contorno gris
+            // cuando no — para que se note de un vistazo si esta vía tiene
+            // beta en vídeo (Álvaro, 2026-09-16).
+            Box(
+                modifier = Modifier
+                    .size(15.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .then(
+                        if (mine.isEmpty())
+                            Modifier.border(1.dp, MaterialTheme.colorScheme.onSurfaceVariant, androidx.compose.foundation.shape.CircleShape)
+                        else Modifier.background(Terra)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.PlayArrow, contentDescription = null,
+                    tint = if (mine.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.size(9.dp))
+            }
+            Text(
+                stringResource(R.string.beta_links_section_v2_beta) + if (mine.isNotEmpty()) " · ${mine.size}" else "",
+                style = EyebrowTextStyle,
+                color = if (mine.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else Terra,
+                modifier = Modifier.weight(1f)
+            )
+            Text(if (expanded) "▴" else "▾",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelLarge)
+        }
+
+        if (expanded) {
+            // VER: qué enlaces se muestran — todos, o solo los de una altura.
+            if (mine.size > 1) {
+                Row(
+                    Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    HeightFilter.entries.forEach { f ->
+                        val active = viewFilter == f
+                        Text(
+                            f.shortLabel(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = if (active) FontWeight.Bold else null,
+                            color = if (active) MaterialTheme.colorScheme.surface
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .then(
+                                    if (active) Modifier
+                                    else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+                                )
+                                .let { if (active) it.background(MaterialTheme.colorScheme.onSurface) else it }
+                                .clickable { viewFilter = f }
+                                .padding(horizontal = 9.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+            if (shown.isEmpty()) {
+                Text(
+                    if (mine.isEmpty()) stringResource(R.string.beta_empty_generic)
+                    else stringResource(R.string.beta_empty_filtered, viewFilter.label().lowercase()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            shown.forEachIndexed { idx, l ->
+                if (idx > 0) androidx.compose.material3.HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), thickness = 1.dp)
+                BetaLinkRow(link = l, isMine = myUid != null && myUid == l.uid,
+                    onDelete = { viewModel.delete(l.id) },
+                    onReport = { reportTarget = l })
+            }
+            if (justAdded) {
+                Row(verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.padding(top = 2.dp)) {
+                    Icon(Icons.Outlined.CheckCircle, contentDescription = null,
+                        tint = com.meteomontana.android.ui.theme.Moss, modifier = Modifier.size(14.dp))
+                    Text(stringResource(R.string.beta_added_toast), style = MaterialTheme.typography.bodySmall,
+                        color = com.meteomontana.android.ui.theme.Moss)
+                }
+            }
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(2.dp))
+                    .clickable { choosingCategory = true }
+                    .padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(Icons.Outlined.Add, contentDescription = null, tint = Terra, modifier = Modifier.size(14.dp))
+                Text(stringResource(R.string.beta_add_cta), style = MaterialTheme.typography.bodySmall, color = Terra)
+            }
+        }
+    }
+
+    // Paso 1: ¿para quién es esta beta?
+    if (choosingCategory) {
+        AlertDialog(
+            onDismissRequest = { choosingCategory = false },
+            title = { Text(stringResource(R.string.beta_choose_category_title)) },
+            text = {
+                Column {
+                    HeightFilter.entries.forEach { f ->
+                        Text(f.label(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    choosingCategory = false
+                                    urlDraft = ""
+                                    urlTouched = false
+                                    authorNameDraft = ""
+                                    pastingUrlFor = f
+                                }
+                                .padding(vertical = 12.dp))
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton({ choosingCategory = false }) { Text(stringResource(R.string.common_cancel)) } }
+        )
+    }
+
+    // Paso 2: pegar el enlace.
+    pastingUrlFor?.let { category ->
+        AlertDialog(
+            onDismissRequest = { pastingUrlFor = null },
+            title = { Text(stringResource(R.string.beta_dialog_title)) },
+            text = {
+                Column {
+                    Text(
+                        if (category == HeightFilter.ANY) stringResource(R.string.beta_open_hint_any)
+                        else stringResource(R.string.beta_open_hint_for, category.label().lowercase()),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = Spacing.sm)
+                    )
+                    val urlValid = isValidBetaUrl(urlDraft)
+                    OutlinedTextField(
+                        value = urlDraft,
+                        onValueChange = { urlDraft = it; urlTouched = true },
+                        placeholder = { Text(stringResource(R.string.beta_url_placeholder)) },
+                        singleLine = true,
+                        isError = urlTouched && !urlValid,
+                        supportingText = {
+                            if (urlTouched && !urlValid) {
+                                Text(
+                                    if (urlDraft.isBlank()) stringResource(R.string.beta_url_error_empty)
+                                    else stringResource(R.string.beta_url_error_format),
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = authorNameDraft,
+                        onValueChange = { authorNameDraft = it },
+                        placeholder = { Text(stringResource(R.string.beta_author_placeholder)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = isValidBetaUrl(urlDraft),
+                    onClick = {
+                        val u = urlDraft.trim()
+                        val target = pastingUrlFor
+                        val name = authorNameDraft.trim().ifEmpty { null }
+                        pastingUrlFor = null
+                        viewModel.add(blockId, lineId, u, target?.raw, name) { ok ->
+                            if (ok) justAdded = true
+                        }
+                    }
+                ) { Text(stringResource(R.string.common_save)) }
+            },
+            dismissButton = { TextButton({ pastingUrlFor = null }) { Text(stringResource(R.string.common_cancel)) } }
+        )
+    }
+
+    reportTarget?.let { l ->
+        ReportDialog(
+            title = stringResource(R.string.beta_report_title),
+            authorLabel = null,
+            onReport = { reason, _ ->
+                moderation.report("BETA_LINK", l.id, reason)
+                reportTarget = null
+            },
+            onDismiss = { reportTarget = null }
+        )
+    }
+
+    LaunchedEffect(justAdded) {
+        if (justAdded) {
+            delay(2000)
+            justAdded = false
+        }
+    }
+}
+
+@Composable
+private fun BetaLinkRow(link: BetaLink, isMine: Boolean, onDelete: () -> Unit, onReport: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val host = remember(link.url) { runCatching { java.net.URI(link.url).host?.lowercase() }.getOrNull() ?: "" }
+    val (platformIcon, label) = when {
+        host.contains("instagram.com") -> Icons.Outlined.PhotoCamera to stringResource(R.string.beta_platform_instagram)
+        host.contains("youtube.com") || host.contains("youtu.be") -> Icons.Outlined.PlayCircleOutline to stringResource(R.string.beta_platform_youtube)
+        else -> Icons.Outlined.Link to stringResource(R.string.beta_platform_generic)
+    }
+    val categoryLabel = when (link.heightCategory) {
+        "TALL" -> stringResource(R.string.beta_height_tall_short)
+        "SHORT" -> stringResource(R.string.beta_height_short_short)
+        else -> null
+    }
+
+    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link.url))
+                        context.startActivity(intent)
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(platformIcon, contentDescription = null, tint = Terra, modifier = Modifier.size(15.dp))
+                Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                categoryLabel?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Terra,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(3.dp))
+                            .border(1.dp, Terra, RoundedCornerShape(3.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp))
+                }
+                Icon(Icons.Outlined.OpenInNew, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(12.dp))
+            }
+            if (isMine) {
+                Icon(Icons.Outlined.DeleteOutline, contentDescription = stringResource(R.string.common_delete),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(2.dp))
+                        .clickable(onClick = onDelete)
+                        .padding(6.dp)
+                        .size(16.dp))
+            } else {
+                Icon(Icons.Outlined.Flag, contentDescription = stringResource(R.string.common_report),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(2.dp))
+                        .clickable(onClick = onReport)
+                        .padding(6.dp)
+                        .size(16.dp))
+            }
+        }
+        if (!link.authorName.isNullOrBlank()) {
+            Text(
+                stringResource(R.string.beta_author_prefix, link.authorName ?: ""),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 21.dp)
+            )
+        }
+    }
+}

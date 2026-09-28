@@ -85,6 +85,8 @@ struct BlockInfoSheet: View {
     @State private var pendingTick: PendingFeedTick? = nil
     // Comentarios de la piedra/vías (un fetch por piedra; los hilos filtran).
     @StateObject private var commentsStore = LineCommentsStore()
+    // Enlaces de beta (un fetch por piedra; los hilos filtran) — Álvaro, 2026-09-15.
+    @StateObject private var betaLinksStore = BetaLinksStore()
     /// Cara marcada en las pestañas de salto (piedras con varias fotos).
     @State private var caraVisible = 0
 
@@ -163,7 +165,7 @@ struct BlockInfoSheet: View {
                     HStack(spacing: 8) {
                         ForEach(Array(orderedFaces.enumerated()), id: \.offset) { faceIdx, face in
                             if !(face.photoPath ?? "").isEmpty {
-                                caraTab("FOTO \(faceIdx + 1)", selected: caraVisible == faceIdx) {
+                                caraTab(L("FOTO %@", faceIdx + 1), selected: caraVisible == faceIdx) {
                                     caraVisible = faceIdx
                                     withAnimation { proxy.scrollTo(anclaDeCara(faceIdx), anchor: .top) }
                                 }
@@ -181,13 +183,13 @@ struct BlockInfoSheet: View {
 
                     // C2: orientacion votable de la piedra/sector entero + tira de sol.
                     HStack(spacing: 8) {
-                        VotableChip(text: community.summaryFor(nil)?.consensus.map { "PARED " + $0 } ?? "ORIENTACION") {
+                        VotableChip(text: community.summaryFor(nil)?.consensus.map { L("PARED %@", aspectLabel($0)) } ?? L("ORIENTACION")) {
                             orientationTarget = OrientationTarget(photoIndex: nil)
                         }
                         let votesTotal = community.summaryFor(nil)?.votes.values
                             .reduce(0) { $0 + $1.intValue } ?? 0
                         if votesTotal > 0 {
-                            Text("\(votesTotal) votos").font(.system(size: 11))
+                            Text(L("%@ votos", votesTotal)).font(.system(size: 11))
                                 .foregroundStyle(Cumbre.ink3)
                         }
                     }
@@ -197,7 +199,7 @@ struct BlockInfoSheet: View {
 
                     // Sector al que pertenece (si lo tiene).
                     if let sn = sectorName, !sn.isEmpty {
-                        Text("SECTOR · \(sn.uppercased())").font(Cumbre.mono(10, .bold))
+                        Text(L("SECTOR · %@", sn.uppercased())).font(Cumbre.mono(10, .bold))
                             .foregroundStyle(.white).padding(.horizontal, 8).padding(.vertical, 4)
                             .background(Cumbre.ok)
                     }
@@ -209,11 +211,11 @@ struct BlockInfoSheet: View {
                         if !block.lines.isEmpty {
                             FirstTimeHint(
                                 hintKey: "via_tick",
-                                text: "Toca el círculo de una vía para apuntarla como hecha en tu diario."
+                                text: L("Toca el círculo de una vía para apuntarla como hecha en tu diario.")
                             )
                             FirstTimeHint(
                                 hintKey: "via_project",
-                                text: "Toca la P de una vía para marcarla como PROYECTO (la estás probando, aún no te ha salido)."
+                                text: L("Toca la P de una vía para marcarla como PROYECTO (la estás probando, aún no te ha salido).")
                             )
                         }
                         ForEach(Array(orderedFaces.enumerated()), id: \.offset) { faceIdx, face in
@@ -223,9 +225,9 @@ struct BlockInfoSheet: View {
                                     // iOS no reordena las caras (solo scroll) => el indice ya es el original.
                                     let originalIdx = faceIdx
                                     HStack(spacing: 8) {
-                                        Text("FOTO \(faceIdx + 1)").eyebrow()
+                                        Text(L("FOTO %@", faceIdx + 1)).eyebrow()
                                         // C2: cada cara de un muro vota su orientacion.
-                                        VotableChip(text: community.summaryFor(originalIdx)?.consensus.map { "PARED " + $0 } ?? "ORIENTAR ESTA CARA") {
+                                        VotableChip(text: community.summaryFor(originalIdx)?.consensus.map { L("PARED %@", aspectLabel($0)) } ?? L("ORIENTAR ESTA CARA")) {
                                             orientationTarget = OrientationTarget(photoIndex: originalIdx)
                                             Task { await community.loadSun(blockId: block.id, photoIndex: originalIdx) }
                                         }
@@ -237,7 +239,7 @@ struct BlockInfoSheet: View {
                                     .padding(.top, 4)
                             }
                             if !face.lines.isEmpty {
-                                Text("VÍAS (\(face.lines.count))").eyebrow().padding(.top, 4)
+                                Text(L("VÍAS (%@)", face.lines.count)).eyebrow().padding(.top, 4)
                                 ForEach(Array(face.lines.enumerated()), id: \.element.id) { idx, l in
                                     VStack(alignment: .leading, spacing: 2) {
                                     HStack(spacing: 10) {
@@ -253,7 +255,7 @@ struct BlockInfoSheet: View {
                                                 Task { await community.loadGrade(lineId: l.id) }
                                             }
                                         }
-                                        Text(l.name.isEmpty ? "Vía \(idx + 1)" : l.displayName)
+                                        Text(l.name.isEmpty ? L("Vía %@", idx + 1) : l.displayName)
                                             .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
                                         Spacer()
                                         if let st = l.startType, !st.isEmpty {
@@ -344,6 +346,13 @@ struct BlockInfoSheet: View {
                                         Text(d).font(.system(size: 12))
                                             .foregroundStyle(Cumbre.ink3)
                                     }
+                                    // Enlaces a vídeos de beta (Instagram/YouTube) — se
+                                    // abren fuera de la app, sin embeber nada. Puede haber
+                                    // VARIOS, cada uno con categoría de altura opcional
+                                    // (Álvaro, 2026-09-15: "beta personas +1.70 y personas
+                                    // -1.70"). Directo, como comentar — sin entrar a editar.
+                                    BetaLinksThreadView(store: betaLinksStore,
+                                                        blockId: block.id, lineId: l.id)
                                     // Comentarios de ESTA vía (desplegable).
                                     LineCommentsThreadView(store: commentsStore,
                                                            blockId: block.id, lineId: l.id)
@@ -365,6 +374,9 @@ struct BlockInfoSheet: View {
 
                     // (Comentarios solo en cada vía, no en la piedra entera.)
 
+                    // Enlaces de beta de la PIEDRA en sí (bloques sin vías nombradas).
+                    BetaLinksThreadView(store: betaLinksStore, blockId: block.id, lineId: nil)
+
                     // Coordenadas (espejo de BlockDetailDialog).
                     Text(String(format: "%.5f, %.5f", block.lat, block.lon))
                         .font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink3).padding(.top, 2)
@@ -377,6 +389,7 @@ struct BlockInfoSheet: View {
             }
             .background(Cumbre.bg.ignoresSafeArea())
             .task { await commentsStore.load(blockId: block.id) }
+            .task { await betaLinksStore.load(blockId: block.id) }
             .task(id: block.id) {
                 await community.loadOrientation(blockId: block.id)
                 await community.loadSun(blockId: block.id, photoIndex: nil)
@@ -438,7 +451,7 @@ struct BlockInfoSheet: View {
                     }
                 }
             }
-            .alert("¿Eliminar \(typeLabel.lowercased())?", isPresented: $showDeleteConfirm) {
+            .alert(L("¿Eliminar %@?", typeLabel.lowercased()), isPresented: $showDeleteConfirm) {
                 Button("Cancelar", role: .cancel) {}
                 Button("Eliminar", role: .destructive) { if let onDelete { dismiss(); onDelete() } }
             } message: {
@@ -522,7 +535,7 @@ struct BlockInfoSheet: View {
         var done = Set<String>()
         var projects = Set<String>()
         for (idx, l) in block.lines.enumerated() {
-            let viaName = l.name.isEmpty ? "Vía \(idx + 1)" : l.name
+            let viaName = l.name.isEmpty ? L("Vía %@", idx + 1) : l.name
             // Clave por id + clave por nombre (LEGADO: entradas sin lineId).
             let idKey = "\(block.schoolId)|#\(l.id)"
             let nameKey = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
@@ -542,8 +555,8 @@ struct BlockInfoSheet: View {
     private var typeLabel: String {
         switch block.type.uppercased() {
         case "PARKING": return "PARKING"
-        case "ZONE": return "ZONA"
-        default: return "PIEDRA"
+        case "ZONE": return L("ZONA")
+        default: return L("PIEDRA")
         }
     }
 
@@ -572,7 +585,7 @@ struct BlockInfoSheet: View {
 
     /// Etiqueta "vía · grado" de la hoja de publicar.
     private func feedTickLabel(_ line: BlockLine, index: Int) -> String {
-        var label = line.name.isEmpty ? "Vía \(index + 1)" : line.name
+        var label = line.name.isEmpty ? L("Vía %@", index + 1) : line.name
         if let g = line.grade, !g.isEmpty { label += " · \(g)" }
         return label
     }
@@ -587,7 +600,7 @@ struct BlockInfoSheet: View {
         let lineId: String? = line.id.isEmpty ? nil : line.id
         Task {
             let container = AppDependencies.shared.container
-            guard let postId = await reporting("No se pudo publicar el ascenso", {
+            guard let postId = await reporting(L("No se pudo publicar el ascenso"), {
                 try await container.publishFeedPost.invoke(
                     blockId: block.id, lineId: lineId, kind: kind, discipline: discipline,
                     caption: caption)
@@ -617,7 +630,7 @@ struct BlockInfoSheet: View {
                         aVista: Bool = false, alFlash: Bool = false) async {
         tickingLine = line.id
         let container = AppDependencies.shared.container
-        let viaName = line.name.isEmpty ? "Vía \(index + 1)" : line.name
+        let viaName = line.name.isEmpty ? L("Vía %@", index + 1) : line.name
         // Clave por lineId (fix homónimas "La ola") + legado por nombre.
         let key = "\(block.schoolId)|#\(line.id)"
         let legacyKey = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
@@ -689,7 +702,7 @@ struct BlockInfoSheet: View {
         guard !tickedLines.contains(line.id) else { return }
         togglingProject = line.id
         let container = AppDependencies.shared.container
-        let viaName = line.name.isEmpty ? "Vía \(index + 1)" : line.name
+        let viaName = line.name.isEmpty ? L("Vía %@", index + 1) : line.name
         // Clave por lineId + legado por nombre (ver toggle).
         let key = "\(block.schoolId)|#\(line.id)"
         let legacyKey = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
@@ -788,7 +801,7 @@ struct LineStarsRow: View {
                     .padding(.leading, 4)
             }
             if myStars > 0 {
-                Text("· tu voto \(myStars)★")
+                Text(L("· tu voto %@★", myStars))
                     .font(Cumbre.mono(11)).foregroundStyle(amber)
                     .padding(.leading, 4)
             }

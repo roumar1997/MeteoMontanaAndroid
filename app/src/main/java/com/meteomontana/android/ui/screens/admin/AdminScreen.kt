@@ -2,6 +2,7 @@
             androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.admin
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -195,7 +196,9 @@ fun AdminScreen(
                 onLoadSchools = viewModel::loadAllSchools,
                 onFetchSchoolBlocks = viewModel::fetchSchoolBlocks,
                 onDeleteBlock = viewModel::deleteBlock,
-                onUpdateBlock = viewModel::updateBlock
+                onUpdateBlock = viewModel::updateBlock,
+                onReorderBlocks = viewModel::reorderBlocks,
+                onAutoReorderBlocks = viewModel::autoReorderBlocks
             )
             AdminTab.Denuncias -> DenunciasTab(
                 reports = state.reports,
@@ -300,6 +303,6 @@ private fun TabSelector(current: AdminTab, onChange: (AdminTab) -> Unit) {
 
 internal enum class ContribFilter(val label: String) {
     TODAS("TODAS"), PIEDRAS("PIEDRAS"), SECTORES("SECTORES"),
-    PARKINGS("PARKINGS"), MOVER("MOVER ESCUELA")
+    PARKINGS("PARKINGS"), MOVER(AppText.get(R.string.admin_screen_v3_mover_escuela))
 }
 

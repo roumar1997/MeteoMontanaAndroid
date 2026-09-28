@@ -102,7 +102,7 @@ fun SubmitSchoolScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Field("NOMBRE", name, { name = it }, placeholder = "ej: La Pedriza")
+            Field("NOMBRE", name, { name = it }, placeholder = stringResource(R.string.submit_school_screen_v2_ej_la_pedriza))
             // Desplegables con valores del catálogo (+ "Otro…") para evitar erratas.
             // PAIS antes que REGION: las regiones dependen del país elegido, y
             // salen del catálogo del servidor — si se dedujeran de las escuelas
@@ -110,7 +110,7 @@ fun SubmitSchoolScreen(
             val paises by viewModel.countries.collectAsStateWithLifecycle()
             if (paises.size > 1) {
                 DropdownField(
-                    "PAÍS",
+                    stringResource(R.string.submit_school_screen_v3_pais),
                     paises.firstOrNull { it.code == country }?.name ?: "España",
                     paises.map { it.name },
                     onChange = { elegido ->
@@ -120,14 +120,14 @@ fun SubmitSchoolScreen(
                     }
                 )
             }
-            DropdownField("REGIÓN", region,
+            DropdownField(stringResource(R.string.submit_school_screen_v3_region), region,
                 viewModel.regionOptions(country).ifEmpty { options.regions },
                 onChange = {
                     region = it
                     location = "" // resetea la localidad al cambiar de región
                 })
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("ESTILO", style = MaterialTheme.typography.labelMedium,
+                Text(stringResource(R.string.submit_school_screen_v2_estilo), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 androidx.compose.foundation.lazy.LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -144,14 +144,14 @@ fun SubmitSchoolScreen(
                     }
                 }
             }
-            DropdownField("TIPO DE ROCA", rockType, options.rockTypes, onChange = { rockType = it })
+            DropdownField(stringResource(R.string.school_filters_bar_v3_tipo_de_roca), rockType, options.rockTypes, onChange = { rockType = it })
 
             // ── Pegar coordenadas de Google Maps (lat, lon) ──────────────────
             // Acepta "40.4168, -3.7038" o "40.4168,-3.7038" o solo dos números
             // separados por espacio. Detecta y rellena los dos campos automáticamente.
             var pasted by remember { mutableStateOf("") }
             Field(
-                "PEGAR COORDENADAS (GOOGLE MAPS)",
+                stringResource(R.string.submit_school_screen_v4_pegar_coordenadas_google_maps),
                 pasted,
                 { value ->
                     pasted = value
@@ -162,7 +162,7 @@ fun SubmitSchoolScreen(
                         pasted = "" // limpia para uso repetido
                     }
                 },
-                placeholder = "Pega aquí ej: 40.4168, -3.7038"
+                placeholder = stringResource(R.string.submit_school_screen_pega_aqui_ej_40)
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -174,9 +174,9 @@ fun SubmitSchoolScreen(
                 }
             }
             // Localidad filtrada por la región elegida (igual que iOS).
-            DropdownField("UBICACIÓN", location, viewModel.locationOptions(region),
+            DropdownField(stringResource(R.string.submit_school_screen_v3_ubicacion), location, viewModel.locationOptions(region),
                 onChange = { location = it })
-            Field("NOTAS", notes, { notes = it }, placeholder = "Cualquier info útil", height = 80.dp)
+            Field(stringResource(R.string.submit_school_screen_notas), notes, { notes = it }, placeholder = stringResource(R.string.submit_school_screen_cualquier_info_util), height = 80.dp)
 
             if (state is SubmitState.Error) {
                 Text((state as SubmitState.Error).message,
@@ -266,7 +266,7 @@ private fun DropdownField(
                 value = if (value.isBlank()) "" else value,
                 onValueChange = {},
                 readOnly = true,
-                placeholder = { Text("Seleccionar…") },
+                placeholder = { Text(stringResource(R.string.submit_school_screen_v2_seleccionar)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier.menuAnchor().fillMaxWidth()
             )
@@ -281,7 +281,7 @@ private fun DropdownField(
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("Otro…") },
+                    text = { Text(stringResource(R.string.submit_school_screen_v2_otro)) },
                     onClick = { onChange(" "); expanded = false }
                 )
             }
@@ -290,7 +290,7 @@ private fun DropdownField(
             OutlinedTextField(
                 value = value.trimStart(),
                 onValueChange = { onChange(it) },
-                placeholder = { Text("Escribe el valor") },
+                placeholder = { Text(stringResource(R.string.submit_school_screen_v2_escribe_el_valor)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )

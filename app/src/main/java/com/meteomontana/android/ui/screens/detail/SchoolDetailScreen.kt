@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.clickable
@@ -156,7 +157,7 @@ fun SchoolDetailScreen(
                 is SchoolDetailUiState.Loading -> Center { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
                 is SchoolDetailUiState.Error -> Center {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.school_detail_screen_v2_error_1_s, s.message), color = MaterialTheme.colorScheme.error)
                         Spacer(Modifier.height(Spacing.md))
                         androidx.compose.material3.OutlinedButton(onClick = viewModel::load) {
                             Text(stringResource(R.string.common_retry))
@@ -299,7 +300,7 @@ private fun TopBar(
                 IconButton(onClick = onToggleFavorite, modifier = Modifier.size(38.dp)) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                        contentDescription = if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos",
+                        contentDescription = if (isFavorite) stringResource(R.string.school_detail_screen_quitar_de_favoritos) else stringResource(R.string.school_detail_screen_anadir_a_favoritos),
                         tint = if (isFavorite) MaterialTheme.colorScheme.primary
                                else MaterialTheme.colorScheme.onBackground
                     )
@@ -344,15 +345,15 @@ private fun Content(
     ) {
         com.meteomontana.android.ui.components.FirstTimeHint(
             hintKey = "detail_offline",
-            text = "Toca ↓ (arriba) para guardar esta escuela y verla sin conexión, incluyendo el mapa y las piedras."
+            text = stringResource(R.string.school_detail_screen_v3_toca_arriba_para_guardar_esta)
         )
         com.meteomontana.android.ui.components.FirstTimeHint(
             hintKey = "detail_propose",
-            text = "Despliega el mapa de abajo y usa + PROPONER para añadir piedras, parkings o sectores que falten. Un admin lo revisa."
+            text = stringResource(R.string.school_detail_screen_v3_despliega_el_mapa_de_abajo)
         )
         com.meteomontana.android.ui.components.FirstTimeHint(
             hintKey = "detail_tick",
-            text = "Toca una piedra en el mapa para ver sus vías. El círculo ○ marca una vía como hecha y la guarda en tu diario."
+            text = stringResource(R.string.school_detail_screen_v3_toca_una_piedra_en_el)
         )
         // Sección de piedras/mapa: UNA sola definición (lambda) — se pinta en
         // su sitio de siempre cuando hay forecast, y SIN esperar al forecast
@@ -438,7 +439,7 @@ private fun Content(
                     .padding(Spacing.lg)
                 ) {
                     Column {
-                        Text("Tiempo no disponible",
+                        Text(stringResource(R.string.school_detail_screen_v2_tiempo_no_disponible),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onBackground)
                         Spacer(Modifier.height(Spacing.xs))
@@ -459,7 +460,7 @@ private fun Content(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(Modifier.padding(start = Spacing.sm))
-                    Text("Cargando el tiempo…",
+                    Text(stringResource(R.string.school_detail_screen_v2_cargando_el_tiempo),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -516,11 +517,11 @@ private fun OfflineBanner(timestamp: Long) {
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("● SIN CONEXIÓN",
+        Text(stringResource(R.string.school_detail_screen_sin_conexion),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.error)
         Spacer(Modifier.padding(start = Spacing.sm))
-        Text("Datos del $label",
+        Text(stringResource(R.string.school_detail_screen_v2_datos_del_1_s, label),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -534,9 +535,9 @@ private fun OfflineBanner(timestamp: Long) {
 private fun StaleForecastBanner(timestamp: Long, onRetry: () -> Unit) {
     val ageMin = ((System.currentTimeMillis() - timestamp) / 60_000L).coerceAtLeast(0)
     val ageLabel = when {
-        ageMin < 60        -> "hace $ageMin min"
-        ageMin < 60 * 24   -> "hace ${ageMin / 60} h"
-        else               -> "hace ${ageMin / (60 * 24)} días"
+        ageMin < 60        -> stringResource(R.string.school_detail_screen_v4_hace_min, ageMin)
+        ageMin < 60 * 24   -> stringResource(R.string.school_detail_screen_v4_hace_h, ageMin / 60)
+        else               -> stringResource(R.string.school_detail_screen_v3_hace_dias, ageMin / (60 * 24))
     }
     Row(
         modifier = Modifier.fillMaxWidth()
@@ -544,7 +545,7 @@ private fun StaleForecastBanner(timestamp: Long, onRetry: () -> Unit) {
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("⚠ PREVISIÓN DE $ageLabel".uppercase(),
+        Text(stringResource(R.string.school_detail_screen_stale_forecast, ageLabel).uppercase(),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier.weight(1f))
@@ -576,25 +577,26 @@ private fun shareSchool(
     val base = com.meteomontana.android.BuildConfig.API_BASE_URL.removeSuffix("api/")
     val sb = StringBuilder()
     sb.append("🧗 *").append(school.name).append("*")
-    school.region?.let { sb.append(" · ").append(it) }
+    school.region?.let { sb.append(" · ").append(com.meteomontana.android.util.CatalogLabels.region(it)) }
     sb.append("\n")
     if (forecast != null) {
         val c = forecast.current
-        sb.append("📊 Índice *").append(c.score).append("/100* (").append(c.scoreLabel).append(")\n")
+        sb.append(AppText.get(R.string.school_detail_screen_v4_indice)).append(c.score).append("/100* (")
+            .append(com.meteomontana.android.util.CatalogLabels.scoreLabel(c.score)).append(")\n")
         forecast.bestWindow?.let {
-            sb.append("🕐 Óptimo *").append(it.start).append("–").append(it.end).append("*\n")
+            sb.append(AppText.get(R.string.school_detail_screen_v4_optimo)).append(it.start).append("–").append(it.end).append("*\n")
         }
-        sb.append(if (c.dryRock) "🪨 Roca seca" else "💧 Roca mojada")
-        sb.append(" · ").append(c.temperature.toInt()).append("° · viento ")
+        sb.append(if (c.dryRock) AppText.get(R.string.school_detail_screen_v4_roca_seca) else AppText.get(R.string.school_detail_screen_v4_roca_mojada))
+        sb.append(" · ").append(c.temperature.toInt()).append(AppText.get(R.string.school_detail_screen_v4_viento))
             .append(c.windSpeed.toInt()).append(" km/h\n")
     }
-    sb.append("\n👉 Ábrela en Cumbre:\n").append(base).append("s/e/").append(school.id)
+    sb.append(AppText.get(R.string.school_detail_screen_v4_n_abrela_en_cumbre_n)).append(base).append("s/e/").append(school.id)
     val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(android.content.Intent.EXTRA_TEXT, sb.toString())
         putExtra(android.content.Intent.EXTRA_SUBJECT, school.name)
     }
-    context.startActivity(android.content.Intent.createChooser(intent, "Compartir escuela"))
+    context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.share_utils_v3_compartir_escuela)))
 }
 
 private val CONTADOR_DETALLES = java.util.concurrent.atomic.AtomicInteger(0)

@@ -51,6 +51,8 @@ struct MeteoMontanaApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @StateObject private var session = SessionStore()
     @StateObject private var shareRouter = ShareLinkRouter.shared
+    /// Idioma elegido en la app: al cambiarlo se reconstruye el árbol de vistas.
+    @StateObject private var language = LanguageManager.shared
     @Environment(\.scenePhase) private var scenePhase
 
     /// Binding del destino del enlace compartido (para el fullScreenCover).
@@ -64,6 +66,8 @@ struct MeteoMontanaApp: App {
             // MainTabView (igual que AppRoot.kt en Android).
             RootView()
                 .environmentObject(session)
+                .environment(\.locale, language.locale)
+                .id(language.choice)
                 // Enlaces compartidos (Universal Links /s/...) o, si no es
                 // nuestro, el callback del navegador tras el login de Google.
                 .onOpenURL { url in

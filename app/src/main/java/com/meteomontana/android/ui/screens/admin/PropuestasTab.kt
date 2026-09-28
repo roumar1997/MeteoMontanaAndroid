@@ -92,6 +92,8 @@ import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 
 @Composable
@@ -136,8 +138,8 @@ internal fun PropuestasTab(
             // P6: PENDIENTES / APROBADAS / RECHAZADAS (historial navegable).
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                listOf("PENDING" to "PENDIENTES", "APPROVED" to "APROBADAS",
-                    "REJECTED" to "RECHAZADAS").forEach { (value, label) ->
+                listOf("PENDING" to stringResource(R.string.w_pending_caps), "APPROVED" to stringResource(R.string.w_approved_caps),
+                    "REJECTED" to stringResource(R.string.w_rejected_caps)).forEach { (value, label) ->
                     val selected = contributionsStatus == value
                     Box(Modifier
                         .clip(RoundedCornerShape(6.dp))
@@ -159,7 +161,7 @@ internal fun PropuestasTab(
         }
         item {
             Text(
-                "$total propuestas pendientes",
+                stringResource(R.string.propuestas_tab_v2_1_s_propuestas_pendientes, total),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = Spacing.xs)
@@ -200,7 +202,7 @@ internal fun PropuestasTab(
         // School submissions (propuestas de escuelas nuevas) si filtro = TODAS
         if (filter == ContribFilter.TODAS && submissions.isNotEmpty()) {
             item {
-                SchoolGroupHeader("ESCUELAS NUEVAS", submissions.size)
+                SchoolGroupHeader(stringResource(R.string.propuestas_tab_v3_escuelas_nuevas), submissions.size)
             }
             items(submissions) { s ->
                 SubmissionCard(s, onApproveSubmission, onRejectSubmission)
@@ -231,7 +233,7 @@ internal fun PropuestasTab(
         if (filtered.isEmpty() && (filter != ContribFilter.TODAS || submissions.isEmpty())) {
             item {
                 Box(Modifier.fillMaxWidth().padding(Spacing.xxl), Alignment.Center) {
-                    Text("No hay propuestas pendientes",
+                    Text(stringResource(R.string.propuestas_tab_v2_no_hay_propuestas_pendientes),
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }

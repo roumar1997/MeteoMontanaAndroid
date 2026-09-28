@@ -28,7 +28,7 @@ enum ShareProfileImage {
                      avatar: avatar, topGrade: topGrade, bio: bio,
                      boulders: boulders, routes: routes, schools: schools)
         }
-        let text = "Perfil de \(displayLabel) en Cumbre:\n"
+        let text = L("Perfil de %@ en Cumbre:\n", displayLabel)
             + "\(ShareBase.url)/s/u/\(handle)"
         await present([image, text])
     }
@@ -53,7 +53,7 @@ enum ShareProfileImage {
             border.lineWidth = 3; border.stroke()
 
             // Eyebrow superior, centrado.
-            drawCenteredText("ESCALA CONMIGO EN CUMBRE", cx: cx, y: 150,
+            drawCenteredText(L("ESCALA CONMIGO EN CUMBRE"), cx: cx, y: 150,
                              font: mono(30, bold: true), color: terra, kern: 4)
 
             // Avatar circular (o monograma con inicial) + anillo terra.
@@ -116,7 +116,7 @@ enum ShareProfileImage {
                 let box = CGRect(x: cx - boxW / 2, y: y, width: boxW, height: 200)
                 rule.setStroke()
                 let bp = UIBezierPath(rect: box); bp.lineWidth = 3; bp.stroke()
-                drawCenteredText("GRADO MÁXIMO", cx: cx, y: box.minY + 28,
+                drawCenteredText(L("GRADO MÁXIMO"), cx: cx, y: box.minY + 28,
                                  font: mono(26, bold: false), color: inkSoft, kern: 4)
                 drawCenteredText(g, cx: cx, y: box.minY + 78,
                                  font: gradeFont, color: ink, kern: 0)
@@ -129,9 +129,9 @@ enum ShareProfileImage {
             // OJO Swift: construir el array paso a paso (una expresión larga
             // dispara "unable to type-check in reasonable time").
             var statCols: [(String, String)] = []
-            if let b = boulders, b > 0 { statCols.append(("\(b)", "BLOQUES")) }
-            if let r = routes, r > 0 { statCols.append(("\(r)", "VÍAS")) }
-            if let s = schools, s > 0 { statCols.append(("\(s)", "ESCUELAS")) }
+            if let b = boulders, b > 0 { statCols.append(("\(b)", L("BLOQUES"))) }
+            if let r = routes, r > 0 { statCols.append(("\(r)", L("VÍAS"))) }
+            if let s = schools, s > 0 { statCols.append(("\(s)", L("ESCUELAS"))) }
             if !statCols.isEmpty {
                 y += 20
                 let colW = (w - 240) / CGFloat(statCols.count)
@@ -159,9 +159,9 @@ enum ShareProfileImage {
             }
 
             // Pie: CTA + marca.
-            drawCenteredText("Descarga Cumbre", cx: cx, y: h - 230,
+            drawCenteredText(L("Descarga Cumbre"), cx: cx, y: h - 230,
                              font: UIFont.systemFont(ofSize: 42), color: ink, kern: 0)
-            drawCenteredText("⛰ CUMBRE", cx: cx, y: h - 150,
+            drawCenteredText(L("⛰ CUMBRE"), cx: cx, y: h - 150,
                              font: mono(36, bold: true), color: terra, kern: 4)
         }
     }

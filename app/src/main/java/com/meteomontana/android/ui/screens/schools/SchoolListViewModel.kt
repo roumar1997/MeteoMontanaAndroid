@@ -1,4 +1,5 @@
 package com.meteomontana.android.ui.screens.schools
+import com.meteomontana.android.R
 import com.meteomontana.android.util.toUserMessage
 
 import androidx.lifecycle.ViewModel
@@ -24,16 +25,16 @@ import javax.inject.Inject
 import com.meteomontana.android.domain.util.Geo
 
 // Orden y etiquetas alineados con iOS (Todas/Bloque/Vía).
-enum class StyleFilter(val label: String, val apiValue: String?) {
-    All("Todas", null),
-    Boulder("Bloque", "Bloque"),
-    Via("Vía", "Vía")
+enum class StyleFilter(@androidx.annotation.StringRes val labelRes: Int, val apiValue: String?) {
+    All(R.string.w_all, null),
+    Boulder(R.string.w_boulder, "Bloque"),   // apiValue: valor del catálogo, NO se traduce
+    Via(R.string.w_route, "Vía")
 }
 
 // iOS muestra "Mejor score" primero.
-enum class SortBy(val label: String) {
-    Score("Mejor score"),
-    Distance("Más cercanos")
+enum class SortBy(@androidx.annotation.StringRes val labelRes: Int) {
+    Score(R.string.sort_best_score),
+    Distance(R.string.sort_nearest)
 }
 
 val DISTANCE_OPTIONS = listOf<Double?>(null, 50.0, 100.0, 150.0, 200.0, 250.0, 300.0, 350.0, 400.0, 450.0, 500.0)

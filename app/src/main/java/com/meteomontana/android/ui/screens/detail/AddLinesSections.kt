@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.CumbrePillShape
 import com.meteomontana.android.ui.theme.terraFillColor
 

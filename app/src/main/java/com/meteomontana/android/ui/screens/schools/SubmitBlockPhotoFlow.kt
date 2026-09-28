@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.schools
 
+
+import com.meteomontana.android.util.AppText
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,6 +34,7 @@ import com.meteomontana.android.domain.util.PhotoPlacement
 import com.meteomontana.android.ui.components.readPhotoLocation
 import com.meteomontana.android.ui.theme.Spacing
 import kotlinx.coroutines.tasks.await
+import androidx.compose.ui.res.stringResource
 
 /**
  * "Enviar piedra": eliges una foto y la app deduce en que escuela se hizo.
@@ -91,7 +94,7 @@ fun SubmitBlockPhotoFlow(
             if (donde == null) {
                 android.widget.Toast.makeText(
                     context,
-                    "Esta foto no trae ubicación: coloca tú el punto en el mapa.",
+                    AppText.get(R.string.submit_block_photo_flow_v4_esta_foto_no_trae_ubicacion),
                     android.widget.Toast.LENGTH_LONG
                 ).show()
             }
@@ -203,22 +206,22 @@ fun SubmitBlockPhotoFlow(
         // pulsable, que es lo que de verdad importa.
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { eligiendoOrigen = false; onDismiss() },
-            title = { Text("¿Cómo quieres la foto?") },
+            title = { Text(stringResource(R.string.submit_block_photo_flow_como_quieres_la_foto)) },
             text = {
                 Column {
                     androidx.compose.material3.TextButton(
                         onClick = { eligiendoOrigen = false; launchCamera() },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text("HACER FOTO AHORA", modifier = Modifier.fillMaxWidth()) }
+                    ) { Text(stringResource(R.string.submit_block_photo_flow_v2_hacer_foto_ahora), modifier = Modifier.fillMaxWidth()) }
                     androidx.compose.material3.TextButton(
                         onClick = { eligiendoOrigen = false; elegirFoto() },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text("ELEGIR DE GALERÍA", modifier = Modifier.fillMaxWidth()) }
+                    ) { Text(stringResource(R.string.submit_block_photo_flow_elegir_de_galeria), modifier = Modifier.fillMaxWidth()) }
                 }
             },
             confirmButton = {},
             dismissButton = {
-                TextButton(onClick = { eligiendoOrigen = false; onDismiss() }) { Text("CANCELAR") }
+                TextButton(onClick = { eligiendoOrigen = false; onDismiss() }) { Text(stringResource(R.string.submit_block_photo_flow_v2_cancelar_2)) }
             }
         )
     }
@@ -235,19 +238,17 @@ fun SubmitBlockPhotoFlow(
                     .background(MaterialTheme.colorScheme.surface)
                     .padding(Spacing.md)
             ) {
-                Text("¿En qué escuela es esta piedra?",
+                Text(stringResource(R.string.submit_block_photo_flow_en_que_escuela_es),
                     style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Esta foto no trae ubicación (frecuente si llegó por WhatsApp — " +
-                        "borra esos datos al reenviarla). Elige la escuela y coloca " +
-                        "el punto a mano en el mapa.",
+                    stringResource(R.string.submit_block_photo_flow_v2_esta_foto_no_trae_ubicacion),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
                 )
                 androidx.compose.material3.OutlinedTextField(
                     value = query, onValueChange = { query = it },
-                    placeholder = { Text("Buscar escuela…") },
+                    placeholder = { Text(stringResource(R.string.submit_block_photo_flow_v2_buscar_escuela)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -274,7 +275,7 @@ fun SubmitBlockPhotoFlow(
                 TextButton(
                     onClick = { eligiendoEscuela = false; onDismiss() },
                     modifier = Modifier.align(androidx.compose.ui.Alignment.End)
-                ) { Text("CANCELAR") }
+                ) { Text(stringResource(R.string.submit_block_photo_flow_v2_cancelar)) }
             }
         }
     }

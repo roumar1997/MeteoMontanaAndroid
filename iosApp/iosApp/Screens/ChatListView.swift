@@ -18,7 +18,7 @@ final class ChatListVM: ObservableObject {
         c.participants.compactMap { $0 as? String }.first { $0 != me } ?? ""
     }
     func name(_ uid: String) -> String {
-        profiles[uid].flatMap { $0.displayName ?? $0.username } ?? "Usuario"
+        profiles[uid].flatMap { $0.displayName ?? $0.username } ?? L("Usuario")
     }
 
     func start() {
@@ -112,15 +112,15 @@ struct ChatListView: View {
             } else if vm.conversations.isEmpty {
                 EmptyStateView(
                     icon: "bubble.left.and.bubble.right",
-                    title: "Aún no tienes conversaciones",
-                    message: "Toca el lápiz para escribir a alguien a quien sigues o que te sigue, o crea un grupo con el icono de personas."
+                    title: L("Aún no tienes conversaciones"),
+                    message: L("Toca el lápiz para escribir a alguien a quien sigues o que te sigue, o crea un grupo con el icono de personas.")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
                     FirstTimeHint(
                         hintKey: "chat_swipe",
-                        text: "Desliza una conversación: a la izquierda para borrarla, a la derecha para marcarla como no leída."
+                        text: L("Desliza una conversación: a la izquierda para borrarla, a la derecha para marcarla como no leída.")
                     )
                     .listRowInsets(EdgeInsets()).listRowSeparator(.hidden).listRowBackground(Color.clear)
                     ForEach(vm.conversations, id: \.id) { c in
@@ -184,7 +184,7 @@ struct ChatListView: View {
     /// Destino de cada fila: grupo o chat 1-a-1.
     @ViewBuilder private func convDestination(_ c: ChatServiceConversation) -> some View {
         if c.isGroup {
-            GroupChatView(convId: c.id, groupName: c.name ?? "Grupo")
+            GroupChatView(convId: c.id, groupName: c.name ?? L("Grupo"))
         } else {
             ChatView(otherUid: vm.other(c), otherName: vm.name(vm.other(c)))
         }
@@ -203,7 +203,7 @@ struct ChatListView: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
-                    Text(c.isGroup ? (c.name ?? "Grupo") : vm.name(vm.other(c)))
+                    Text(c.isGroup ? (c.name ?? L("Grupo")) : vm.name(vm.other(c)))
                         .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
                     Spacer()
                     Text(chatTime(c.lastAtMillis?.int64Value ?? -1))
@@ -253,12 +253,12 @@ private struct NewChatView: View {
                 } else {
                     List(filtered, id: \.uid) { p in
                         Button {
-                            onPick(p.uid, p.displayName ?? p.username ?? "Usuario")
+                            onPick(p.uid, p.displayName ?? p.username ?? L("Usuario"))
                         } label: {
                             HStack(spacing: 12) {
                                 AvatarCircle(url: p.photoUrl, size: 40)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(p.displayName ?? p.username ?? "Usuario")
+                                    Text(p.displayName ?? p.username ?? L("Usuario"))
                                         .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
                                     if let u = p.username, !u.isEmpty {
                                         Text("@\(u)").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
@@ -268,7 +268,7 @@ private struct NewChatView: View {
                         }.buttonStyle(.plain)
                     }
                     .listStyle(.plain)
-                    .searchable(text: $query, prompt: "Buscar entre seguidores/seguidos")
+                    .searchable(text: $query, prompt: L("Buscar entre seguidores/seguidos"))
                 }
             }
             .background(Cumbre.bg.ignoresSafeArea())

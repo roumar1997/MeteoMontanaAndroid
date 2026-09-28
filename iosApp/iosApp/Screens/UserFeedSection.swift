@@ -90,7 +90,7 @@ final class UserFeedViewModel: ObservableObject {
     }
 
     func addComment(_ postId: Int64, _ text: String, _ parentId: String?) async -> FeedComment? {
-        guard let created = await reporting("No se pudo enviar el comentario", {
+        guard let created = await reporting(L("No se pudo enviar el comentario"), {
             try await container.addFeedComment.invoke(
             postId: postId, text: text, parentId: parentId)
         }) else { return nil }
@@ -137,7 +137,7 @@ struct UserFeedSection: View {
     @State private var deleteCandidate: FeedPost? = nil
     @State private var navTarget: FeedNav? = nil
 
-    init(uid: String?, title: String = "PUBLICACIONES", ownProfile: Bool = false,
+    init(uid: String?, title: String = L("PUBLICACIONES"), ownProfile: Bool = false,
          showTitle: Bool = true) {
         self.uid = uid
         self.title = title
@@ -199,7 +199,7 @@ struct UserFeedSection: View {
         }
         .sheet(item: $reportPost) { post in
             ReportSheet(
-                title: "DENUNCIAR PUBLICACIÓN",
+                title: L("DENUNCIAR PUBLICACIÓN"),
                 authorLabel: feedAuthorLabel(post.author)
             ) { reason, alsoBlock in
                 moderation.report(
@@ -276,7 +276,7 @@ struct MyPostsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle(uid == nil ? "Mis publicaciones" : "Publicaciones")
+        .navigationTitle(uid == nil ? L("Mis publicaciones") : L("Publicaciones"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }

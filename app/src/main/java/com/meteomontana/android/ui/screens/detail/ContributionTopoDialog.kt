@@ -59,6 +59,8 @@ import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
 import com.meteomontana.android.ui.theme.gradeStyle
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Todas las vias con las que el trazo puede compartir tramo: las que ya existen
@@ -87,7 +89,7 @@ fun ContributionTopoDialog(
      *  "editar y aprobar" y "GUARDAR\nLÍNEAS" no dejaba claro que el toque
      *  aprueba la propuesta (AdminEditApproveSheet.swift sí dice "APROBAR
      *  CON MIS CAMBIOS") — Álvaro, 2026-08-24, paridad con iOS. */
-    saveLabel: String = "GUARDAR\nLÍNEAS"
+    saveLabel: String = stringResource(R.string.contribution_topo_dialog_v3_guardar_lineas)
 ) {
     var selectedIdx by remember { mutableStateOf(0) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
@@ -154,7 +156,7 @@ fun ContributionTopoDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Dibujar líneas",
+                    stringResource(R.string.contribution_topo_dialog_v2_dibujar_lineas),
                     style = MaterialTheme.typography.titleMedium.copy(fontFamily = Serif),
                     color = Terra,
                     modifier = Modifier.weight(1f)
@@ -180,7 +182,7 @@ fun ContributionTopoDialog(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 Text(
-                    "Dibujando para:",
+                    stringResource(R.string.contribution_topo_dialog_v2_dibujando_para),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -487,7 +489,7 @@ fun ContributionTopoDialog(
                         .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                 ) {
                     Text(
-                        "DESHACER",
+                        stringResource(R.string.contribution_topo_dialog_v2_deshacer),
                         style = EyebrowTextStyle,
                         color = if (hayQueDeshacer) MaterialTheme.colorScheme.onSurface
                         else MaterialTheme.colorScheme.onSurfaceVariant
@@ -508,7 +510,7 @@ fun ContributionTopoDialog(
                         .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                 ) {
                     Text(
-                        if (iman) "UNIR: SÍ" else "UNIR: NO",
+                        if (iman) stringResource(R.string.contribution_topo_dialog_v4_unir_si) else stringResource(R.string.contribution_topo_dialog_v4_unir_no),
                         style = EyebrowTextStyle,
                         color = if (iman) Color.White else MaterialTheme.colorScheme.onSurface
                     )
@@ -528,13 +530,13 @@ fun ContributionTopoDialog(
                         .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                 ) {
                     Text(
-                        if (soloEsta) "SOLO ESTA" else "VER TODAS",
+                        if (soloEsta) stringResource(R.string.contribution_topo_dialog_v4_solo_esta) else stringResource(R.string.contribution_topo_dialog_v4_ver_todas),
                         style = EyebrowTextStyle,
                         color = if (soloEsta) Color.White else MaterialTheme.colorScheme.onSurface
                     )
                 }
                 Text(
-                    "Un dedo dibuja · dos amplían y mueven · doble toque acerca",
+                    stringResource(R.string.contribution_topo_dialog_v2_un_dedo_dibuja_dos_amplian),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
@@ -543,9 +545,9 @@ fun ContributionTopoDialog(
             }
             Text(
                 if (iman)
-                    "Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Cerca de otra vía, el trazo se pega a ella (tramo compartido)."
+                    stringResource(R.string.contribution_topo_dialog_v4_toca_punto_a_punto_para_2)
                 else
-                    "Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Con UNIR en NO, el trazo va libre aunque pases pegado a otra vía.",
+                    stringResource(R.string.contribution_topo_dialog_v4_toca_punto_a_punto_para),
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surface)
@@ -573,7 +575,7 @@ fun ContributionTopoDialog(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("✕ BORRAR", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.contribution_topo_dialog_v2_borrar), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.error)
                 }
 
@@ -587,7 +589,7 @@ fun ContributionTopoDialog(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("CANCELAR", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.contribution_topo_dialog_v2_cancelar), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurface)
                 }
 

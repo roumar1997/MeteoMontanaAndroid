@@ -132,7 +132,7 @@ struct NotesSectionView: View {
             NotePhotoSheet(note: n)
         }
         .sheet(item: $reportNote) { n in
-            ReportSheet(title: "DENUNCIAR NOTA", authorLabel: n.author ?? "usuario") { reason, alsoBlock in
+            ReportSheet(title: L("DENUNCIAR NOTA"), authorLabel: n.author ?? "usuario") { reason, alsoBlock in
                 moderation.report(targetType: "NOTE", targetId: n.id, reason: reason,
                                   alsoBlockUid: alsoBlock ? n.uid : nil)
             }
@@ -154,7 +154,7 @@ private struct NoteRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(note.author ?? "Anónimo")
+                Text(note.author ?? L("Anónimo"))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Cumbre.ink)
                 Spacer()

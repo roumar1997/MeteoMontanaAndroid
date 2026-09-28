@@ -117,6 +117,12 @@ fun BlockDto.toDomain() = Block(
 fun BlockLineDto.toDomain(coverPhoto: String? = null) =
     BlockLine(id, name, grade, startType, linePath, sortOrder, photoPath ?: coverPhoto, faceOrder, avgStars, myStars, description, variant)
 
+fun BetaLinkDto.toDomain() = com.meteomontana.android.domain.model.BetaLink(
+    id = id, blockId = blockId, lineId = lineId, url = url,
+    heightCategory = heightCategory, uid = uid, createdAt = createdAt,
+    authorName = authorName
+)
+
 fun BlockFaceDto.toDomain(coverPhoto: String? = null): BlockFace {
     val facePhoto = photoPath ?: coverPhoto
     return BlockFace(facePhoto, sortOrder, lines.map { it.toDomain(facePhoto) })

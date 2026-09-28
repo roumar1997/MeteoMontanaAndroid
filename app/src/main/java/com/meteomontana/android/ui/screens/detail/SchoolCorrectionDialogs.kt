@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +25,8 @@ import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 // Corregir NOMBRE / ESTILO de la escuela — tipos SCHOOL_NAME_CORRECTION y
 // SCHOOL_STYLE_CORRECTION, sin tocar el mapa (a diferencia de CORRECTION, que
@@ -42,25 +45,25 @@ internal fun SchoolNameCorrectionDialog(
     val scope = rememberCoroutineScope()
 
     CumbreDialog(onDismiss = onCancel, scrollable = true, fullHeight = true) {
-        Text("Corregir nombre",
+        Text(stringResource(R.string.school_correction_dialogs_v2_corregir_nombre),
             style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
             color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.height(Spacing.lg))
 
-        Text("NOMBRE ACTUAL", style = EyebrowTextStyle,
+        Text(stringResource(R.string.school_correction_dialogs_v2_nombre_actual), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         Text(currentName, style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.md))
 
-        Text("NOMBRE PROPUESTO", style = EyebrowTextStyle,
+        Text(stringResource(R.string.school_correction_dialogs_v2_nombre_propuesto), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         OutlinedTextField(
             value = name, onValueChange = { name = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Nombre correcto", style = MaterialTheme.typography.bodyMedium,
+            placeholder = { Text(stringResource(R.string.school_correction_dialogs_v2_nombre_correcto), style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant) },
             singleLine = true,
             shape = MaterialTheme.shapes.small,
@@ -78,7 +81,7 @@ internal fun SchoolNameCorrectionDialog(
                 scope.launch {
                     val ok = onSubmit(name.trim())
                     sending = false
-                    if (!ok) error = "No se pudo enviar. Revisa la conexión — tus datos siguen aquí."
+                    if (!ok) error = AppText.get(R.string.place_form_dialog_v3_no_se_pudo_enviar_revisa)
                 }
             }
         )
@@ -99,28 +102,28 @@ internal fun SchoolStyleCorrectionDialog(
         (currentStyle ?: "").split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
     }
     var selected by remember(currentStyle) { mutableStateOf(currentSet) }
-    val options = remember(currentSet) { (currentSet + setOf("Vía", "Bloque")).sorted() }
+    val options = remember(currentSet) { (currentSet + setOf(AppText.get(R.string.school_map_v3_via), "Bloque")).sorted() }
     var sending by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     CumbreDialog(onDismiss = onCancel, scrollable = true, fullHeight = true) {
-        Text("Corregir estilo",
+        Text(stringResource(R.string.school_correction_dialogs_v2_corregir_estilo),
             style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
             color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.height(Spacing.lg))
 
-        Text("ESTILO ACTUAL", style = EyebrowTextStyle,
+        Text(stringResource(R.string.school_correction_dialogs_v2_estilo_actual), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         Text(
-            if (!currentStyle.isNullOrBlank()) currentStyle else "sin especificar",
+            if (!currentStyle.isNullOrBlank()) currentStyle else stringResource(R.string.school_correction_dialogs_v3_sin_especificar),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(Spacing.md))
 
-        Text("ESTILO PROPUESTO", style = EyebrowTextStyle,
+        Text(stringResource(R.string.school_correction_dialogs_v2_estilo_propuesto), style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(Spacing.xs))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -145,7 +148,7 @@ internal fun SchoolStyleCorrectionDialog(
                 scope.launch {
                     val ok = onSubmit(selected.sorted().joinToString(","))
                     sending = false
-                    if (!ok) error = "No se pudo enviar. Revisa la conexión — tus datos siguen aquí."
+                    if (!ok) error = AppText.get(R.string.place_form_dialog_v3_no_se_pudo_enviar_revisa)
                 }
             }
         )

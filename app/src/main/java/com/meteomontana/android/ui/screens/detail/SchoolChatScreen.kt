@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -58,6 +59,8 @@ import com.meteomontana.android.ui.theme.Terra
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @HiltViewModel
 class SchoolChatViewModel @Inject constructor(
@@ -173,7 +176,7 @@ fun SchoolChatScreen(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = "Atrás",
+                    Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.school_chat_screen_atras),
                         tint = MaterialTheme.colorScheme.onBackground)
                 }
                 Text(
@@ -183,7 +186,7 @@ fun SchoolChatScreen(
                     modifier = Modifier.weight(1f)
                 )
                 Text(
-                    "se borra solo pasados unos días",
+                    stringResource(R.string.school_chat_screen_v2_se_borra_solo_pasados_unos),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -201,12 +204,12 @@ fun SchoolChatScreen(
                         .size(7.dp))
                     Spacer(Modifier.padding(start = Spacing.xs))
                     Text(
-                        "${viewModel.presentList.size} aquí ahora",
+                        stringResource(R.string.school_chat_screen_v2_1_s_aqui_ahora_2, viewModel.presentList.size),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = Terra
                     )
                     Text(
-                        " · ver todos",
+                        stringResource(R.string.school_chat_screen_v2_ver_todos),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -262,7 +265,7 @@ fun SchoolChatScreen(
             OutlinedTextField(
                 value = viewModel.text,
                 onValueChange = { viewModel.text = it },
-                placeholder = { Text("Escribe algo...", style = MaterialTheme.typography.bodySmall) },
+                placeholder = { Text(stringResource(R.string.school_chat_screen_v2_escribe_algo), style = MaterialTheme.typography.bodySmall) },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(50),
                 colors = TextFieldDefaults.colors(
@@ -278,7 +281,7 @@ fun SchoolChatScreen(
             ) {
                 Icon(
                     Icons.Outlined.Send,
-                    contentDescription = "Enviar",
+                    contentDescription = stringResource(R.string.school_chat_screen_v2_enviar),
                     tint = if (viewModel.text.trim().isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else Terra
                 )
             }
@@ -299,12 +302,12 @@ fun SchoolChatScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            "${viewModel.presentList.size} aquí ahora",
+                            stringResource(R.string.school_chat_screen_v2_1_s_aqui_ahora, viewModel.presentList.size),
                             style = MaterialTheme.typography.titleMedium.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.weight(1f)
                         )
-                        Text("Cerrar", style = MaterialTheme.typography.bodyMedium, color = Terra,
+                        Text(stringResource(R.string.school_chat_screen_v2_cerrar), style = MaterialTheme.typography.bodyMedium, color = Terra,
                             modifier = Modifier.clickable { showAllPresent = false })
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
@@ -316,7 +319,7 @@ fun SchoolChatScreen(
                                     .fillMaxWidth()
                                     .clickable(enabled = !isMe) {
                                         showAllPresent = false
-                                        onOpenChat(person.uid, person.displayName ?: person.username ?: "Usuario")
+                                        onOpenChat(person.uid, person.displayName ?: person.username ?: AppText.get(R.string.w_user))
                                     }
                                     .padding(horizontal = Spacing.md, vertical = Spacing.sm),
                                 verticalAlignment = Alignment.CenterVertically
@@ -330,7 +333,7 @@ fun SchoolChatScreen(
                                 }
                                 Spacer(Modifier.padding(start = Spacing.sm))
                                 Text(
-                                    if (isMe) "Tú" else (person.displayName ?: person.username ?: "Usuario"),
+                                    if (isMe) stringResource(R.string.school_presence_row_v3_tu) else (person.displayName ?: person.username ?: "Usuario"),
                                     style = MaterialTheme.typography.bodyLarge.copy(fontFamily = Serif),
                                     color = MaterialTheme.colorScheme.onBackground,
                                     modifier = Modifier.weight(1f)
@@ -381,7 +384,7 @@ private fun MessageBubble(
                                 .background(Terra)
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
-                            Text("AQUÍ AHORA", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            Text(stringResource(R.string.school_chat_screen_aqui_ahora), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                 color = Color.White)
                         }
                     }

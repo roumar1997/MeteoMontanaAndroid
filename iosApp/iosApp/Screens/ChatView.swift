@@ -202,7 +202,7 @@ struct ChatView: View {
             // Nombre del chat → abre el perfil del otro usuario.
             ToolbarItem(placement: .principal) {
                 NavigationLink(destination: PublicProfileView(uid: vm.otherUid)) {
-                    Text(vm.otherName.isEmpty ? "Chat" : vm.otherName)
+                    Text(vm.otherName.isEmpty ? L("Chat") : vm.otherName)
                         .font(Cumbre.serif(17, .semibold)).foregroundStyle(Cumbre.ink)
                         // Zona de toque generosa: costaba acertar al nombre.
                         .padding(.horizontal, 24).padding(.vertical, 10)
@@ -233,7 +233,7 @@ struct ChatView: View {
             HStack(spacing: 8) {
                 Rectangle().fill(Cumbre.terraFill).frame(width: 3, height: 34)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Respondiendo a \(who)").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                    Text(L("Respondiendo a %@", who)).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
                     Text(r.text).font(.system(size: 13)).foregroundStyle(Cumbre.ink2).lineLimit(1)
                 }
                 Spacer()

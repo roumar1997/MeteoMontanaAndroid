@@ -105,7 +105,7 @@ internal fun SchoolViaSearchBar(
             value = query,
             onValueChange = { query = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Buscar vías/bloques…") },
+            placeholder = { Text(stringResource(R.string.map_mini_cards_buscar_vias_bloques)) },
             singleLine = true,
             shape = MaterialTheme.shapes.small,
             colors = androidx.compose.material3.TextFieldDefaults.colors(
@@ -124,11 +124,11 @@ internal fun SchoolViaSearchBar(
                             sub = b.name, lineId = l.id, name = l.name))
                     }
                     if (b.name.contains(q, ignoreCase = true)) add(Hit(
-                        label = b.name, sub = "${b.lines.size} vías", lineId = null, name = b.name))
+                        label = b.name, sub = stringResource(R.string.grade_filter_bar_v3_vias, b.lines.size), lineId = null, name = b.name))
                 }
             }.take(8)
             if (hits.isEmpty()) {
-                Text("Sin resultados en esta escuela",
+                Text(stringResource(R.string.map_mini_cards_v2_sin_resultados_en_esta_escuela),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 6.dp))
@@ -264,7 +264,7 @@ internal fun MiniBlockCard(
     }
     val subtitle = buildString {
         append(if (isParking) "Parking" else "Sector")
-        if (!isParking && stoneCount > 0) append(" · $stoneCount piedra${if (stoneCount == 1) "" else "s"}")
+        if (!isParking && stoneCount > 0) append(stringResource(R.string.map_mini_cards_v3_piedra, stoneCount, if (stoneCount == 1) "" else "s"))
         distance?.let { append(" · $it") }
     }
 
@@ -318,7 +318,7 @@ internal fun MiniBlockCard(
                     }
                     .padding(horizontal = Spacing.sm, vertical = 7.dp)
             ) {
-                Text("CÓMO LLEGAR", style = EyebrowTextStyle, color = Color.White)
+                Text(stringResource(R.string.map_mini_cards_como_llegar), style = EyebrowTextStyle, color = Color.White)
             }
             Text("✕", style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -331,7 +331,7 @@ internal fun MiniBlockCard(
         // así que no hay dos comportamientos distintos que mantener.
         if (isParking && sectores.isNotEmpty()) {
             Text(
-                "SECTORES DESDE AQUÍ",
+                stringResource(R.string.map_mini_cards_v2_sectores_desde_aqui),
                 style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.xs, bottom = 2.dp)
@@ -361,7 +361,7 @@ internal fun MiniBlockCard(
                     .padding(vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(if (collapsed) "VER PIEDRAS" else "OCULTAR PIEDRAS",
+                Text(if (collapsed) stringResource(R.string.map_mini_cards_v3_ver_piedras) else stringResource(R.string.map_mini_cards_v3_ocultar_piedras),
                     style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onBackground)
             }
         }

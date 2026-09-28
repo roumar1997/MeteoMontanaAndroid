@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.CatalogLabels
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -143,7 +145,7 @@ fun SchoolListItem(
                 }
                 Icon(
                     imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                    contentDescription = if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos",
+                    contentDescription = if (isFavorite) stringResource(R.string.school_list_item_quitar_de_favoritos) else stringResource(R.string.school_list_item_anadir_a_favoritos),
                     tint = if (isFavorite) MaterialTheme.colorScheme.primary
                            else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
@@ -310,7 +312,7 @@ private fun RainSummaryTag(range: com.meteomontana.android.domain.model.RangeSco
     ) {
         if (range.rainDays == 0) {
             Text(
-                text = "● SIN LLUVIA",
+                text = stringResource(R.string.school_list_item_v3_sin_lluvia),
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp
                 ),
@@ -342,14 +344,7 @@ private fun weekdayLetter(iso: String): String = try {
     labels[java.time.LocalDate.parse(iso).dayOfWeek.value - 1]
 } catch (_: Throwable) { iso.takeLast(2) }
 
-private fun scoreLabel(score: Int?): String = when {
-    score == null -> ""
-    score >= 85   -> "EXCELENTE"
-    score >= 70   -> "MUY BUENO"
-    score >= 55   -> "BUENO"
-    score >= 40   -> "REGULAR"
-    else          -> "MALO"
-}
+private fun scoreLabel(score: Int?): String = com.meteomontana.android.util.CatalogLabels.scoreLabel(score)
 
 /**
  * Tira horizontal de 10 celdas saturadas. Sin gap entre celdas (como la PWA).
@@ -378,8 +373,8 @@ private fun HourlyHeatmapBar(scores: List<Int>?, modifier: Modifier = Modifier) 
 
 private fun buildSubtitle(school: School, distanceKm: Double?): String {
     val parts = buildList {
-        school.rockType?.let { add(it.uppercase()) }
-        school.region?.let   { add(it) }
+        school.rockType?.let { add(CatalogLabels.rock(it).uppercase()) }
+        school.region?.let   { add(com.meteomontana.android.util.CatalogLabels.region(it)) }
         distanceKm?.let      { add("${it.toInt()} KM") }
     }
     return parts.joinToString("  ·  ")

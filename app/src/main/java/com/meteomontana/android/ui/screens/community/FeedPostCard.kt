@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.community
 
+import com.meteomontana.android.util.CatalogLabels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -189,8 +190,8 @@ internal fun FeedPostCard(
                 // incompleta: "dibujé 8 y salen 3" (Rodrigo, 2026-08-17).
                 if (post.otherFacesLines > 0) {
                     Text(
-                        text = if (post.otherFacesLines == 1) "+1 VÍA EN OTRA FOTO"
-                               else "+${post.otherFacesLines} VÍAS EN OTRAS FOTOS",
+                        text = if (post.otherFacesLines == 1) stringResource(R.string.feed_post_card_v3_1_via_en_otra_foto)
+                               else stringResource(R.string.feed_post_card_v3_vias_en_otras_fotos, post.otherFacesLines),
                         style = EyebrowTextStyle,
                         color = Color.White,
                         modifier = Modifier
@@ -251,7 +252,7 @@ internal fun FeedPostCard(
             // Tipo de roca (si el backend lo manda), como texto secundario.
             post.rockType?.takeIf { it.isNotBlank() }?.let {
                 if (isNotEmpty()) append(" · ")
-                append(it)
+                append(CatalogLabels.rock(it))
             }
         }
         Column(

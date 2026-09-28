@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.meetups
 
+
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.data.map.MapStyles
 
 import android.graphics.Bitmap
@@ -71,6 +73,7 @@ import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import androidx.compose.ui.res.stringResource
 
 data class SchoolMeetupGroup(
     val schoolId: String,
@@ -144,14 +147,14 @@ fun MeetupsMapPanel(
                 modifier = Modifier.size(18.dp),
                 tint = MaterialTheme.colorScheme.primary)
             Text(
-                if (expanded) "OCULTAR MAPA" else "VER MAPA DE QUEDADAS",
+                if (expanded) stringResource(R.string.meetups_map_panel_v4_ocultar_mapa) else stringResource(R.string.meetups_map_panel_v4_ver_mapa_de_quedadas),
                 style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.weight(1f)
             )
             if (groups.isNotEmpty()) {
                 Text(
-                    "${groups.size} escuela${if (groups.size != 1) "s" else ""}",
+                    stringResource(R.string.meetups_map_panel_v2_1_s_escuela_2_s, groups.size, if (groups.size != 1) "s" else ""),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -187,7 +190,7 @@ fun MeetupsMapPanel(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "No hay quedadas con ubicación para mostrar en el mapa",
+                        stringResource(R.string.meetups_map_panel_v2_no_hay_quedadas_con_ubicacion),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -310,7 +313,7 @@ private fun MeetupsMapView(
             map.addMarker(
                 MarkerOptions()
                     .position(LatLng(userLat, userLon))
-                    .title("Tu ubicación")
+                    .title(AppText.get(R.string.meetups_map_panel_v4_tu_ubicacion))
                     .icon(iconFactory.fromBitmap(dot))
             )
         }
@@ -374,13 +377,13 @@ private fun MeetupsMapView(
         // superior derecha) — mismo icono y sitio que el mapa de Escuelas.
         RoundMapIconButton(
             icon = Icons.Outlined.OpenInFull,
-            contentDescription = "Pantalla completa",
+            contentDescription = stringResource(R.string.meetups_map_panel_v2_pantalla_completa),
             modifier = Modifier.align(Alignment.TopStart).padding(Spacing.sm),
             onClick = onFullscreen
         )
         RoundMapIconButton(
             icon = Icons.Outlined.Layers,
-            contentDescription = "Topográfico/Satélite",
+            contentDescription = stringResource(R.string.meetups_map_panel_topografico_satelite),
             modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm),
             onClick = { isSatellite = !isSatellite }
         )
@@ -420,7 +423,7 @@ private fun MeetupsMapView(
                         Text(group.schoolName,
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium)
-                        Text("${group.count} quedada${if (group.count != 1) "s" else ""} activa${if (group.count != 1) "s" else ""}",
+                        Text(stringResource(R.string.meetups_map_panel_v2_1_s_quedada_2_s_2, group.count, if (group.count != 1) "s" else "", if (group.count != 1) "s" else ""),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -434,7 +437,7 @@ private fun MeetupsMapView(
                             }
                             .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
-                        Text("VER",
+                        Text(stringResource(R.string.meetups_map_panel_v2_ver_2),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = androidx.compose.ui.graphics.Color.White)
@@ -571,7 +574,7 @@ private fun FullScreenMeetupsMap(
         val iconFactory = IconFactory.getInstance(context)
         if (userLat != null && userLon != null) {
             map.addMarker(MarkerOptions().position(LatLng(userLat, userLon))
-                .title("Tu ubicación").icon(iconFactory.fromBitmap(createUserDot())))
+                .title(AppText.get(R.string.meetups_map_panel_v4_tu_ubicacion)).icon(iconFactory.fromBitmap(createUserDot())))
         }
         groups.forEach { group ->
             val marker = map.addMarker(
@@ -612,7 +615,7 @@ private fun FullScreenMeetupsMap(
 
                 RoundMapIconButton(
                     icon = Icons.Outlined.CloseFullscreen,
-                    contentDescription = "Cerrar pantalla completa",
+                    contentDescription = stringResource(R.string.meetups_map_panel_v2_cerrar_pantalla_completa),
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(top = 50.dp, start = Spacing.sm),
@@ -620,7 +623,7 @@ private fun FullScreenMeetupsMap(
                 )
                 RoundMapIconButton(
                     icon = Icons.Outlined.Layers,
-                    contentDescription = "Topográfico/Satélite",
+                    contentDescription = stringResource(R.string.meetups_map_panel_topografico_satelite),
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(top = 50.dp, end = Spacing.sm),
@@ -655,7 +658,7 @@ private fun FullScreenMeetupsMap(
                             }
                             Column(Modifier.weight(1f)) {
                                 Text(group.schoolName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                                Text("${group.count} quedada${if (group.count != 1) "s" else ""} activa${if (group.count != 1) "s" else ""}",
+                                Text(stringResource(R.string.meetups_map_panel_v2_1_s_quedada_2_s, group.count, if (group.count != 1) "s" else "", if (group.count != 1) "s" else ""),
                                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Box(
@@ -665,7 +668,7 @@ private fun FullScreenMeetupsMap(
                                     .clickable { onSchoolSelected(group.schoolId) }
                                     .padding(horizontal = 10.dp, vertical = 6.dp)
                             ) {
-                                Text("VER", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                                Text(stringResource(R.string.meetups_map_panel_v2_ver), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = Color.White)
                             }
                             Text("✕", style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -689,8 +692,8 @@ private fun FullScreenMeetupsMap(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("DIST.", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        DisciplineFilterPill("Todas", mapDistanceKm == null) { onMapDistanceKmChange(null) }
+                        Text(stringResource(R.string.meetups_map_panel_v2_dist), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        DisciplineFilterPill(stringResource(R.string.w_all), mapDistanceKm == null) { onMapDistanceKmChange(null) }
                         DisciplineFilterPill("50 km", mapDistanceKm == 50) { onMapDistanceKmChange(50) }
                         DisciplineFilterPill("100 km", mapDistanceKm == 100) { onMapDistanceKmChange(100) }
                         DisciplineFilterPill("200 km", mapDistanceKm == 200) { onMapDistanceKmChange(200) }
@@ -700,10 +703,10 @@ private fun FullScreenMeetupsMap(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("MODALIDAD", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    DisciplineFilterPill("Ambas", disciplineFilter == null) { onDisciplineFilterChange(null) }
-                    DisciplineFilterPill("Bloque", disciplineFilter == "BOULDER") { onDisciplineFilterChange("BOULDER") }
-                    DisciplineFilterPill("Vía", disciplineFilter == "ROUTE") { onDisciplineFilterChange("ROUTE") }
+                    Text(stringResource(R.string.meetups_map_panel_v2_modalidad), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    DisciplineFilterPill(stringResource(R.string.w_both), disciplineFilter == null) { onDisciplineFilterChange(null) }
+                    DisciplineFilterPill(stringResource(R.string.w_boulder), disciplineFilter == "BOULDER") { onDisciplineFilterChange("BOULDER") }
+                    DisciplineFilterPill(stringResource(R.string.w_route), disciplineFilter == "ROUTE") { onDisciplineFilterChange("ROUTE") }
                 }
             }
         }

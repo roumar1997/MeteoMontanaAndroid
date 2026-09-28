@@ -54,7 +54,7 @@ struct CreateMeetupView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         // Foto del grupo
                         VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel("FOTO DEL GRUPO (opcional)")
+                            FieldLabel(L("FOTO DEL GRUPO (opcional)"))
                             PhotosPicker(selection: $photoItem, matching: .images) {
                                 ZStack {
                                     if let img = photoImage {
@@ -99,7 +99,7 @@ struct CreateMeetupView: View {
                                         photoUrl = url
                                     } catch {
                                         photoUrl = nil
-                                        photoUploadError = "No se pudo subir la foto. Inténtalo de nuevo."
+                                        photoUploadError = L("No se pudo subir la foto. Inténtalo de nuevo.")
                                     }
                                     uploadingPhoto = false
                                 }
@@ -111,14 +111,14 @@ struct CreateMeetupView: View {
 
                         // Nombre
                         VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel("NOMBRE")
+                            FieldLabel(L("NOMBRE"))
                             TextField("Ej. Quedar en Pedriza", text: $name)
                                 .textFieldStyle(CumbreFieldStyle())
                         }
 
                         // Escuela
                         VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel("ESCUELA")
+                            FieldLabel(L("ESCUELA"))
                             Button { showSchoolPicker = true } label: {
                                 HStack(spacing: 8) {
                                     Image(systemName: "building.2").foregroundColor(Cumbre.ink.opacity(0.5))
@@ -136,13 +136,13 @@ struct CreateMeetupView: View {
 
                         // Días
                         VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel("DÍAS (elige uno o varios)")
+                            FieldLabel(L("DÍAS (elige uno o varios)"))
                             DayPickerView(selected: $selectedDays, schoolId: schoolId, dayScores: dayScores)
                         }
 
                         // Privacidad
                         VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel("PRIVACIDAD")
+                            FieldLabel(L("PRIVACIDAD"))
                             PrivacyPickerView(selected: $privacy)
                         }
                         if privacy == "WOMEN" {
@@ -153,13 +153,13 @@ struct CreateMeetupView: View {
 
                         // Disciplina
                         VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel("DISCIPLINA (opcional)")
+                            FieldLabel(L("DISCIPLINA (opcional)"))
                             DisciplinePickerView(selected: $discipline)
                         }
 
                         // Límite
                         VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel("LÍMITE DE PARTICIPANTES (opcional)")
+                            FieldLabel(L("LÍMITE DE PARTICIPANTES (opcional)"))
                             TextField("Sin límite", text: $limitText)
                                 .keyboardType(.numberPad)
                                 .textFieldStyle(CumbreFieldStyle())
@@ -328,7 +328,7 @@ private func createScoreColor(_ score: Int) -> Color {
 
 private struct PrivacyPickerView: View {
     @Binding var selected: String
-    let options: [(String, String)] = [("OPEN","Abierta"),("FOLLOWERS","Solo seguidores"),("WOMEN","No mixto")]
+    let options: [(String, String)] = [("OPEN",L("Abierta")),("FOLLOWERS",L("Solo seguidores")),("WOMEN",L("No mixto"))]
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
@@ -342,7 +342,7 @@ private struct PrivacyPickerView: View {
 
 private struct DisciplinePickerView: View {
     @Binding var selected: String?
-    let options: [(String?, String)] = [(nil,"Cualquiera"),("BOULDER","Bloque"),("ROUTE","Vía"),("BOTH","Ambas")]
+    let options: [(String?, String)] = [(nil,L("Cualquiera")),("BOULDER",L("Bloque")),("ROUTE",L("Vía")),("BOTH",L("Ambas"))]
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
@@ -387,7 +387,7 @@ private struct CumbreFieldStyle: TextFieldStyle {
 private struct DayInfo { let dow: String; let short: String; let iso: String }
 
 private func nextNDays(_ n: Int) -> [DayInfo] {
-    let dowNames = ["DOM","LUN","MAR","MIÉ","JUE","VIE","SÁB"]
+    let dowNames = CalendarLabels.weekdaysShortSunFirst().map { $0.uppercased() }
     var result: [DayInfo] = []
     let cal = Calendar.current
     let today = cal.startOfDay(for: Date())

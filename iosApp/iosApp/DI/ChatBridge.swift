@@ -96,9 +96,9 @@ final class ChatBridge: NSObject, IosChatBridge {
     func sendMessage(otherUid: String, text: String,
                      replyToId: String?, replyText: String?, replyFromUid: String?,
                      completion: @escaping (String?) -> Void) {
-        guard let me = Auth.auth().currentUser?.uid else { completion("No hay sesión"); return }
+        guard let me = Auth.auth().currentUser?.uid else { completion(L("No hay sesión")); return }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, trimmed.count <= 1000 else { completion("Mensaje vacío o muy largo"); return }
+        guard !trimmed.isEmpty, trimmed.count <= 1000 else { completion(L("Mensaje vacío o muy largo")); return }
         let ref = convs.document(convIdFor(me, otherUid))
         let now = Timestamp(date: Date())
         ref.collection("messages").addDocument(data: messageData(me, trimmed, now, replyToId, replyText, replyFromUid)) { err in
@@ -116,9 +116,9 @@ final class ChatBridge: NSObject, IosChatBridge {
     func sendGroupMessage(convId: String, text: String,
                           replyToId: String?, replyText: String?, replyFromUid: String?,
                           completion: @escaping (String?) -> Void) {
-        guard let me = Auth.auth().currentUser?.uid else { completion("No hay sesión"); return }
+        guard let me = Auth.auth().currentUser?.uid else { completion(L("No hay sesión")); return }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, trimmed.count <= 1000 else { completion("Mensaje vacío o muy largo"); return }
+        guard !trimmed.isEmpty, trimmed.count <= 1000 else { completion(L("Mensaje vacío o muy largo")); return }
         let ref = convs.document(convId)
         // Necesito los participantes para subir el contador a todos menos a mí.
         ref.getDocument { snap, _ in

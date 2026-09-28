@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.components
 
+
+import com.meteomontana.android.util.AppText
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,6 +39,8 @@ import com.meteomontana.android.domain.model.MountainBulletin
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Boletín de montaña oficial de AEMET — solo aparece si la escuela cae en
@@ -81,7 +85,7 @@ fun MountainBulletinSection(bulletin: MountainBulletin) {
                     tint = Terra, modifier = Modifier.size(20.dp))
             }
             Column(Modifier.weight(1f)) {
-                Text("BOLETÍN DE MONTAÑA · AEMET", style = EyebrowTextStyle,
+                Text(stringResource(R.string.mountain_bulletin_section_boletin_de_montana_aemet), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(bulletin.areaName,
                     style = MaterialTheme.typography.titleMedium,
@@ -103,12 +107,12 @@ fun MountainBulletinSection(bulletin: MountainBulletin) {
                 Modifier.padding(Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                BulletinRow("CIELO", bulletin.texts["nubosidad"])
-                BulletinRow("PRECIPITACIONES", bulletin.texts["pcp"])
-                BulletinRow("TORMENTAS", bulletin.texts["tormentas"],
+                BulletinRow(stringResource(R.string.w_sky_caps), bulletin.texts["nubosidad"])
+                BulletinRow(stringResource(R.string.w_precip_caps), bulletin.texts["pcp"])
+                BulletinRow(stringResource(R.string.w_storms_caps), bulletin.texts["tormentas"],
                     highlight = alert != null)
-                BulletinRow("TEMPERATURAS", bulletin.texts["temperatura"])
-                BulletinRow("VIENTO", bulletin.texts["viento"])
+                BulletinRow(stringResource(R.string.w_temps_caps), bulletin.texts["temperatura"])
+                BulletinRow(stringResource(R.string.w_wind_caps), bulletin.texts["viento"])
 
                 // Atmósfera libre como chips mono (isoterma y viento en altura).
                 val chips = listOfNotNull(
@@ -127,7 +131,7 @@ fun MountainBulletinSection(bulletin: MountainBulletin) {
 
                 if (bulletin.spots.isNotEmpty()) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-                    Text("TEMPERATURAS POR COTAS", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.mountain_bulletin_section_v2_temperaturas_por_cotas), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     bulletin.spots.forEach { spot ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -145,7 +149,7 @@ fun MountainBulletinSection(bulletin: MountainBulletin) {
                     }
                 }
 
-                Text("Fuente: AEMET",
+                Text(stringResource(R.string.mountain_bulletin_section_v2_fuente_aemet),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -160,7 +164,7 @@ fun MountainBulletinSection(bulletin: MountainBulletin) {
  */
 private fun bulletinAlert(b: MountainBulletin): String? {
     val tormentas = b.texts["tormentas"] ?: return null
-    if (tormentas.startsWith("No se esperan")) return null
+    if (tormentas.startsWith(AppText.get(R.string.mountain_bulletin_section_v4_no_se_esperan))) return null
     return "TORMENTAS: ${tormentas.removeSuffix(".").lowercase()}"
 }
 

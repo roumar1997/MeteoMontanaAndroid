@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.detail
 
+
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.CumbrePillShape
 import com.meteomontana.android.ui.theme.terraFillColor
 
@@ -45,6 +47,8 @@ import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.Terra
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Flujo "✎ CORREGIR VÍA": modifica nombre/grado/tipo/posición de una vía
@@ -105,19 +109,18 @@ fun EditLineFlow(
                 .verticalScroll(rememberScrollState())
                 .padding(Spacing.md)
         ) {
-            Text("Corregir vía",
+            Text(stringResource(R.string.edit_line_flow_corregir_via),
                 style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
                 color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(Spacing.xs))
             Text(
-                "Estás proponiendo una corrección de \"${line.name}\" en \"${block.name}\". " +
-                "Un admin revisará la propuesta antes de aplicar.",
+                stringResource(R.string.edit_line_flow_v2_estas_proponiendo_una_correccion_de, line.name, block.name),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(Modifier.height(Spacing.lg))
 
-            Text("DATOS DE LA VÍA", style = EyebrowTextStyle,
+            Text(stringResource(R.string.edit_line_flow_datos_de_la_via), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.sm))
 
@@ -142,14 +145,14 @@ fun EditLineFlow(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        if (hasLine) "✎ EDITAR LÍNEA SOBRE LA FOTO"
-                        else "✎ DIBUJAR LÍNEA SOBRE LA FOTO",
+                        if (hasLine) stringResource(R.string.edit_line_flow_v3_editar_linea_sobre_la_foto)
+                        else stringResource(R.string.edit_line_flow_v3_dibujar_linea_sobre_la_foto),
                         style = EyebrowTextStyle, color = Color.White
                     )
                 }
             } else {
                 Spacer(Modifier.height(Spacing.xs))
-                Text("Esta piedra no tiene foto, no puedes redibujar.",
+                Text(stringResource(R.string.edit_line_flow_v2_esta_piedra_no_tiene_foto),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -175,7 +178,7 @@ fun EditLineFlow(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("CANCELAR", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.edit_line_flow_v2_cancelar), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurface)
                 }
                 Box(
@@ -197,7 +200,7 @@ fun EditLineFlow(
                                 if (result.isSuccess) onSuccess()
                                 else {
                                     sending = false
-                                    error = "No se pudo enviar la propuesta. Inténtalo de nuevo."
+                                    error = AppText.get(R.string.edit_line_flow_v3_no_se_pudo_enviar_la)
                                 }
                             }
                         }
@@ -206,7 +209,7 @@ fun EditLineFlow(
                 ) {
                     if (sending) CircularProgressIndicator(modifier = Modifier.size(18.dp),
                         color = Color.White, strokeWidth = 2.dp)
-                    else Text("ENVIAR PROPUESTA", style = EyebrowTextStyle, color = Color.White)
+                    else Text(stringResource(R.string.edit_line_flow_v2_enviar_propuesta), style = EyebrowTextStyle, color = Color.White)
                 }
             }
         }

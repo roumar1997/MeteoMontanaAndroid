@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.detail
 
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +13,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Los tres avisos de las fotos para ver una escuela sin cobertura: la oferta,
@@ -33,18 +36,15 @@ fun FotosOfflineDialogs(
     oferta?.let { o ->
         AlertDialog(
             onDismissRequest = onRechazar,
-            title = { Text("¿Guardar también las fotos?") },
+            title = { Text(stringResource(R.string.fotos_offline_dialogs_guardar_tambien_las_fotos)) },
             text = {
                 Text(
-                    "La escuela ya está guardada. Bajar sus ${o.cuantas} fotos " +
-                        "(${enMegas(o.bytesEstimados)}) te deja ver los topos en la roca " +
-                        "aunque no haya cobertura.\n\n" +
-                        "Si dices que no, tendrás los nombres, los grados y las líneas, " +
-                        "pero no las fotos sobre las que van dibujadas."
+                    stringResource(R.string.fotos_offline_dialogs_v2_la_escuela_ya_esta_guardada,
+                        o.cuantas, enMegas(o.bytesEstimados))
                 )
             },
-            confirmButton = { TextButton(onClick = onDescargar) { Text("DESCARGAR") } },
-            dismissButton = { TextButton(onClick = onRechazar) { Text("AHORA NO") } }
+            confirmButton = { TextButton(onClick = onDescargar) { Text(stringResource(R.string.fotos_offline_dialogs_v2_descargar)) } },
+            dismissButton = { TextButton(onClick = onRechazar) { Text(stringResource(R.string.fotos_offline_dialogs_v2_ahora_no)) } }
         )
     }
 
@@ -53,10 +53,10 @@ fun FotosOfflineDialogs(
     progreso?.let { p ->
         AlertDialog(
             onDismissRequest = {},
-            title = { Text("Guardando las fotos…") },
+            title = { Text(stringResource(R.string.fotos_offline_dialogs_v2_guardando_las_fotos)) },
             text = {
                 Column(Modifier.fillMaxWidth()) {
-                    Text("Puedes seguir usando la app.")
+                    Text(stringResource(R.string.fotos_offline_dialogs_v2_puedes_seguir_usando_la_app))
                     Spacer(Modifier.height(12.dp))
                     LinearProgressIndicator(
                         progress = { p.coerceIn(0f, 1f) },
@@ -78,14 +78,14 @@ fun FotosOfflineDialogs(
     fallidas?.let { n ->
         AlertDialog(
             onDismissRequest = onCerrarAviso,
-            title = { Text("Faltaron algunas fotos") },
+            title = { Text(stringResource(R.string.fotos_offline_dialogs_v2_faltaron_algunas_fotos)) },
             text = {
                 Text(
-                    if (n == 1) "Una foto no se pudo guardar. Vuelve a guardar la escuela con mejor cobertura y se reintentará solo esa."
-                    else "$n fotos no se pudieron guardar. Vuelve a guardar la escuela con mejor cobertura y se reintentarán solo esas."
+                    if (n == 1) stringResource(R.string.fotos_offline_dialogs_v3_una_foto_no_se_pudo)
+                    else stringResource(R.string.fotos_offline_dialogs_v3_fotos_no_se_pudieron_guardar, n)
                 )
             },
-            confirmButton = { TextButton(onClick = onCerrarAviso) { Text("ENTENDIDO") } }
+            confirmButton = { TextButton(onClick = onCerrarAviso) { Text(stringResource(R.string.fotos_offline_dialogs_v2_entendido)) } }
         )
     }
 }

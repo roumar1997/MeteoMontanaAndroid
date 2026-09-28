@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -190,7 +191,7 @@ fun MeetupDetailScreen(
                     TextButton(onClick = {
                         showDeleteConfirm = false
                         viewModel.deleteMeetup(meetupId) { onBack() }
-                    }) { Text("Eliminar", color = MaterialTheme.colorScheme.error) }
+                    }) { Text(stringResource(R.string.meetup_detail_screen_v2_eliminar), color = MaterialTheme.colorScheme.error) }
                 },
                 dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.common_cancel)) } }
             )
@@ -198,11 +199,11 @@ fun MeetupDetailScreen(
         if (showLeaveConfirm) {
             AlertDialog(
                 onDismissRequest = { showLeaveConfirm = false },
-                title = { Text("Salir de la quedada") },
-                text = { Text("¿Seguro que quieres salir? Puede que no puedas volver a unirte.") },
+                title = { Text(stringResource(R.string.meetup_detail_screen_v2_salir_de_la_quedada)) },
+                text = { Text(stringResource(R.string.meetup_detail_screen_seguro_que_quieres_salir)) },
                 confirmButton = {
                     TextButton(onClick = { showLeaveConfirm = false; viewModel.leave(meetupId) }) {
-                        Text("SALIR", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.meetup_detail_screen_v2_salir), color = MaterialTheme.colorScheme.error)
                     }
                 },
                 dismissButton = { TextButton(onClick = { showLeaveConfirm = false }) { Text(stringResource(R.string.common_cancel).uppercase()) } }
@@ -224,7 +225,7 @@ fun MeetupDetailScreen(
             state.meetup == null -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("No se pudo cargar la quedada")
+                        Text(stringResource(R.string.meetup_detail_screen_v2_no_se_pudo_cargar_la))
                         Spacer(Modifier.height(Spacing.sm))
                         TextButton(onClick = { viewModel.loadMeetup(meetupId) }) { Text(stringResource(R.string.common_retry)) }
                     }
@@ -263,7 +264,7 @@ fun MeetupDetailScreen(
                                 MemberAvatar(meetup.creatorPhotoUrl, 28.dp)
                                 val creatorName = meetup.members.firstOrNull { it.uid == meetup.creatorUid }
                                     ?.let { it.displayName ?: it.username }
-                                    ?: meetup.creatorUsername ?: "Organizador"
+                                    ?: meetup.creatorUsername ?: AppText.get(R.string.w_organizer)
                                 Column {
                                     Text(stringResource(R.string.meetup_detail_organized_by), style = EyebrowTextStyle,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -378,8 +379,8 @@ fun MeetupDetailScreen(
                                 Text(meetup.description!!, style = MaterialTheme.typography.bodyMedium)
                             } else {
                                 Text(
-                                    if (isCreator) "Añade detalles (material, nivel, hora...)"
-                                    else "Sin detalles",
+                                    if (isCreator) stringResource(R.string.meetup_detail_screen_v3_anade_detalles_material_nivel_hora)
+                                    else stringResource(R.string.meetup_detail_screen_v3_sin_detalles),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontStyle = FontStyle.Italic,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -404,7 +405,7 @@ fun MeetupDetailScreen(
                         HorizontalDivider()
                         Box(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
                             if (isCreator) Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                                Text("Eres el organizador",
+                                Text(stringResource(R.string.meetup_detail_screen_v2_eres_el_organizador),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 OutlinedButton(
@@ -457,11 +458,11 @@ fun MeetupDetailScreen(
                             meetup.isFull -> Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(2.dp))
                                 .background(MaterialTheme.colorScheme.surfaceVariant).padding(Spacing.sm),
                                 contentAlignment = Alignment.Center) {
-                                Text("AFORO COMPLETO", style = EyebrowTextStyle,
+                                Text(stringResource(R.string.meetup_detail_screen_v2_aforo_completo), style = EyebrowTextStyle,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             meetup.privacy == "WOMEN" && viewModel.myGender.collectAsStateWithLifecycle().value != "WOMAN" -> {
-                                Text("Solo pueden unirse personas con género Mujer en su perfil.\nVe a Perfil → Editar perfil → Género.",
+                                Text(stringResource(R.string.meetup_detail_screen_solo_pueden_unirse_personas),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
@@ -525,10 +526,10 @@ private fun MemberRow(member: MeetupMember, canKick: Boolean,
     }
     if (showConfirm) {
         AlertDialog(onDismissRequest = { showConfirm = false },
-            title = { Text("Expulsar participante") },
-            text = { Text("¿Expulsar a ${member.displayName ?: member.username}?") },
+            title = { Text(stringResource(R.string.meetup_detail_screen_v2_expulsar_participante)) },
+            text = { Text(stringResource(R.string.meetup_detail_screen_v2_expulsar_a_1_s, member.displayName ?: member.username ?: "")) },
             confirmButton = { TextButton(onClick = { showConfirm = false; onKick() }) {
-                Text("EXPULSAR", color = MaterialTheme.colorScheme.error) } },
+                Text(stringResource(R.string.meetup_detail_screen_v2_expulsar), color = MaterialTheme.colorScheme.error) } },
             dismissButton = { TextButton(onClick = { showConfirm = false }) { Text(stringResource(R.string.common_cancel).uppercase()) } })
     }
 }
@@ -552,10 +553,10 @@ private fun EditDescriptionDialog(initial: String, saving: Boolean,
                                   onDismiss: () -> Unit, onSave: (String) -> Unit) {
     var text by remember { mutableStateOf(initial) }
     AlertDialog(onDismissRequest = onDismiss,
-        title = { Text("Detalles de la quedada") },
+        title = { Text(stringResource(R.string.meetup_detail_screen_v2_detalles_de_la_quedada)) },
         text = { OutlinedTextField(value = text, onValueChange = { text = it },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Material, nivel, punto de encuentro, hora…") },
+            placeholder = { Text(stringResource(R.string.meetup_detail_screen_v2_material_nivel_punto_de_encuentro)) },
             minLines = 3, maxLines = 8) },
         confirmButton = { TextButton(onClick = { onSave(text) }, enabled = !saving) {
             if (saving) CircularProgressIndicator(Modifier.size(16.dp)) else Text(stringResource(R.string.common_save).uppercase()) } },
@@ -564,11 +565,11 @@ private fun EditDescriptionDialog(initial: String, saving: Boolean,
 
 @Composable
 private fun ReportMeetupDialog(onDismiss: () -> Unit, onReport: (String) -> Unit) {
-    val reasons = listOf("SPAM" to "Spam o publicidad", "INAPPROPRIATE" to "Contenido inapropiado",
-        "HARASSMENT" to "Acoso", "OTHER" to "Otro motivo")
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("Denunciar quedada") },
+    val reasons = listOf("SPAM" to stringResource(R.string.report_dialog_v3_spam_o_publicidad), "INAPPROPRIATE" to "Contenido inapropiado",
+        "HARASSMENT" to "Acoso", "OTHER" to stringResource(R.string.report_dialog_v3_otro_motivo))
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.meetup_detail_screen_v2_denunciar_quedada)) },
         text = { Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text("Selecciona el motivo:", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.meetup_detail_screen_v2_selecciona_el_motivo), style = MaterialTheme.typography.bodyMedium)
             reasons.forEach { (code, label) -> TextButton(onClick = { onReport(code) },
                 modifier = Modifier.fillMaxWidth()) { Text(label, Modifier.fillMaxWidth()) } }
         } }, confirmButton = {},
@@ -603,9 +604,10 @@ internal fun buildGearJson(gear: Map<String, Int>): String {
 }
 
 internal fun gearItemsForDiscipline(discipline: String?): List<Pair<String, String>> = when (discipline) {
-    "BOULDER" -> listOf("crashpads" to "Crashpads")
-    "ROUTE" -> listOf("cintas" to "Cintas", "cuerda" to "Cuerdas", "grigri" to "Gri-gri")
-    else -> listOf("crashpads" to "Crashpads", "cintas" to "Cintas", "cuerda" to "Cuerdas", "grigri" to "Gri-gri")
+    "BOULDER" -> listOf("crashpads" to AppText.get(R.string.gear_crashpads))
+    "ROUTE" -> listOf("cintas" to AppText.get(R.string.gear_quickdraws), "cuerda" to AppText.get(R.string.gear_ropes), "grigri" to AppText.get(R.string.gear_grigri))
+    else -> listOf("crashpads" to AppText.get(R.string.gear_crashpads), "cintas" to AppText.get(R.string.gear_quickdraws),
+        "cuerda" to AppText.get(R.string.gear_ropes), "grigri" to AppText.get(R.string.gear_grigri))
 }
 
 internal fun gearLabel(key: String): String = when (key) {
@@ -755,7 +757,7 @@ internal fun EditGearDialog(
         title = { Text(stringResource(R.string.meetup_detail_my_gear)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                Text("Indica el material que llevas a la quedada",
+                Text(stringResource(R.string.meetup_detail_screen_v2_indica_el_material_que_llevas),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 // Trigger recomposition on version change
@@ -825,7 +827,7 @@ internal fun GearStepper(label: String, value: Int, onMinus: () -> Unit, onPlus:
                 modifier = Modifier.size(32.dp),
                 enabled = value > 0
             ) {
-                Icon(Icons.Outlined.Remove, "Menos", Modifier.size(18.dp))
+                Icon(Icons.Outlined.Remove, stringResource(R.string.w_less), Modifier.size(18.dp))
             }
             Text("$value", style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold, modifier = Modifier.widthIn(min = 28.dp),
@@ -834,7 +836,7 @@ internal fun GearStepper(label: String, value: Int, onMinus: () -> Unit, onPlus:
                 onClick = onPlus,
                 modifier = Modifier.size(32.dp)
             ) {
-                Icon(Icons.Outlined.Add, "Mas", Modifier.size(18.dp))
+                Icon(Icons.Outlined.Add, stringResource(R.string.w_more), Modifier.size(18.dp))
             }
         }
     }

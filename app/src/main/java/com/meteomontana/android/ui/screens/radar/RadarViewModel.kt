@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.radar
 
+import com.meteomontana.android.util.AppText
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -23,6 +24,8 @@ import java.io.File
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /** Día que enseña la timeline del radar. */
 enum class RadarDay { HOY, AYER }
@@ -139,7 +142,7 @@ class RadarViewModel @Inject constructor(
                 _state.value = _state.value.copy(
                     loading = false,
                     framesLoading = false,
-                    error = "No se pudo cargar el radar. Comprueba tu conexión."
+                    error = AppText.get(R.string.radar_view_model_v4_no_se_pudo_cargar_el)
                 )
             }
         }

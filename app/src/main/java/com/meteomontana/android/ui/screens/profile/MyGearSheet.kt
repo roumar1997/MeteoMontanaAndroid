@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.profile
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -39,6 +40,8 @@ import com.meteomontana.android.ui.screens.meetups.isBooleanGearKey
 import com.meteomontana.android.ui.screens.meetups.parseGear
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * "Mi material" como hoja propia, colgada del icono de mochila del perfil.
@@ -69,7 +72,7 @@ fun MyGearSheet(
 
     Column(Modifier.fillMaxWidth()) {
         CumbreSheetHeader(
-            titulo = "MI MATERIAL",
+            titulo = stringResource(R.string.my_gear_sheet_v3_mi_material),
             onClose = onClose,
             accion = {
                 TextButton(
@@ -77,7 +80,7 @@ fun MyGearSheet(
                     enabled = !guardando
                 ) {
                     Text(
-                        if (guardando) "GUARDANDO…" else "GUARDAR",
+                        if (guardando) stringResource(R.string.common_saving_caps) else stringResource(R.string.edit_profile_screen_v2_guardar),
                         style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -91,7 +94,7 @@ fun MyGearSheet(
                 .padding(bottom = 100.dp)
         ) {
             Text(
-                "Lo que sueles llevar. Se usa para repartir el material en las quedadas.",
+                stringResource(R.string.my_gear_sheet_v2_lo_que_sueles_llevar_se),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -131,7 +134,7 @@ fun MyGearSheet(
                                 ) {
                                     Icon(
                                         Icons.Outlined.RemoveCircleOutline,
-                                        contentDescription = "Quitar un $label"
+                                        contentDescription = stringResource(R.string.my_gear_sheet_v2_quitar_un_1_s, label)
                                     )
                                 }
                                 Text(
@@ -143,7 +146,7 @@ fun MyGearSheet(
                                 IconButton(onClick = { gear[key] = (gear[key] ?: 0) + 1 }) {
                                     Icon(
                                         Icons.Outlined.AddCircleOutline,
-                                        contentDescription = "Añadir un $label",
+                                        contentDescription = stringResource(R.string.my_gear_sheet_add_gear_cd, label),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }

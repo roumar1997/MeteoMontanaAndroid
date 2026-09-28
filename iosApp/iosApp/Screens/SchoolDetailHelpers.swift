@@ -18,10 +18,10 @@ func relativeUpdated(_ millis: Int64) -> String {
     guard millis > 0 else { return "" }
     let date = Date(timeIntervalSince1970: Double(millis) / 1000)
     let secs = Date().timeIntervalSince(date)
-    if secs < 90 { return "hace un momento" }
-    let mins = Int(secs / 60); if mins < 60 { return "hace \(mins) min" }
-    let hours = Int(secs / 3600); if hours < 24 { return "hace \(hours) h" }
-    let days = Int(secs / 86400); if days < 30 { return "hace \(days) d" }
+    if secs < 90 { return L("hace un momento") }
+    let mins = Int(secs / 60); if mins < 60 { return L("hace %@ min", mins) }
+    let hours = Int(secs / 3600); if hours < 24 { return L("hace %@ h", hours) }
+    let days = Int(secs / 86400); if days < 30 { return L("hace %@ d", days) }
     let f = DateFormatter(); f.dateFormat = "dd/MM/yy"
     return "el \(f.string(from: date))"
 }
@@ -67,14 +67,14 @@ func conditionsShareSummary(_ forecast: Forecast) -> String {
     // Espejo exacto de shareSchool() en Android.
     let c = forecast.current
     var text = "🧗 *\(forecast.schoolName)*\n"
-    text += "📊 Índice *\(Int(c.score))/100* (\(c.scoreLabel))\n"
+    text += L("📊 Índice *%@/100* (%@)\n", Int(c.score), c.scoreLabel)
     if let w = forecast.bestWindow {
-        text += "🕐 Óptimo *\(w.start)–\(w.end)*\n"
+        text += L("🕐 Óptimo *%@–%@*\n", w.start, w.end)
     }
-    text += c.dryRock ? "🪨 Roca seca" : "💧 Roca mojada"
-    text += " · \(Int(c.temperature))° · viento \(Int(c.windSpeed)) km/h\n"
+    text += c.dryRock ? L("🪨 Roca seca") : L("💧 Roca mojada")
+    text += L(" · %@° · viento %@ km/h\n", Int(c.temperature), Int(c.windSpeed))
     let base = AppConfig.apiBaseUrl.replacingOccurrences(of: "api/", with: "")
-    text += "\n👉 Ábrela en Cumbre:\n\(base)s/e/\(forecast.schoolId)"
+    text += L("\n👉 Ábrela en Cumbre:\n%@s/e/%@", base, forecast.schoolId)
     return text
 }
 

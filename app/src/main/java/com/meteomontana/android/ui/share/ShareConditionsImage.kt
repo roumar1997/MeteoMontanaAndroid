@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.share
 
+
+import com.meteomontana.android.util.CatalogLabels
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -12,6 +14,7 @@ import androidx.core.content.FileProvider
 import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.domain.model.School
 import java.io.File
+import com.meteomontana.android.R
 
 /**
  * Genera una card de condiciones estilo Cumbre (papel/tinta/terracota) como
@@ -19,7 +22,7 @@ import java.io.File
  * nombre, score grande, etiqueta, datos clave y heatmap de las próximas 16h.
  */
 fun shareSchoolAsImage(context: Context, school: School, forecast: Forecast?) {
-    val bmp = renderConditionsCard(school, forecast)
+    val bmp = renderConditionsCard(context, school, forecast)
     val dir = File(context.cacheDir, "share").apply { mkdirs() }
     // Nombre ÚNICO (WhatsApp cachea por URI; con nombre fijo repetía la 1ª imagen).
     dir.listFiles()?.filter { it.name.startsWith("condiciones") }?.forEach { it.delete() }
@@ -32,7 +35,7 @@ fun shareSchoolAsImage(context: Context, school: School, forecast: Forecast?) {
         putExtra(Intent.EXTRA_TEXT, "${school.name} — condiciones en Cumbre\n\nDescarga Cumbre:\nAndroid: https://play.google.com/store/apps/details?id=com.meteomontana.android\niOS: https://apps.apple.com/app/cumbre/id0000000000")
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(intent, "Compartir condiciones"))
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_utils_v3_compartir_condiciones)))
 }
 
 /* ── Paleta Cumbre (valores de Color.kt, en ARGB para Canvas) ──────────────── */
@@ -48,7 +51,7 @@ private fun scoreColor(score: Int): Int = when {
     else        -> 0xFFB94040.toInt()
 }
 
-private fun renderConditionsCard(school: School, forecast: Forecast?): Bitmap {
+private fun renderConditionsCard(context: Context, school: School, forecast: Forecast?): Bitmap {
     val w = 1080
     val h = 720
     val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
@@ -67,7 +70,7 @@ private fun renderConditionsCard(school: School, forecast: Forecast?): Bitmap {
         color = TERRA; textSize = 28f; typeface = Typeface.MONOSPACE
         letterSpacing = 0.18f; isFakeBoldText = true
     }
-    c.drawText("CONDICIONES DE ESCALADA", pad, pad + 28f, eyebrow)
+    c.drawText(context.getString(R.string.share_conditions_image_v2_condiciones_de_escalada), pad, pad + 28f, eyebrow)
 
     // Nombre de la escuela (serif grande)
     val title = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -78,7 +81,7 @@ private fun renderConditionsCard(school: School, forecast: Forecast?): Bitmap {
 
     // Subtítulo región · roca
     val sub = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK_SOFT; textSize = 32f }
-    val subText = listOfNotNull(school.region, school.rockType).joinToString(" · ")
+    val subText = listOfNotNull(school.region, school.rockType?.let { CatalogLabels.rock(it) }).joinToString(" · ")
     if (subText.isNotEmpty()) c.drawText(subText, pad, pad + 170f, sub)
 
     val cur = forecast?.current
@@ -102,19 +105,19 @@ private fun renderConditionsCard(school: School, forecast: Forecast?): Bitmap {
         val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = INK; textSize = 44f; isFakeBoldText = true
         }
-        c.drawText(cur.scoreLabel.uppercase(), dataX, 348f, label)
+        c.drawText(com.meteomontana.android.util.CatalogLabels.scoreLabel(cur.score).uppercase(), dataX, 348f, label)
         val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK_SOFT; textSize = 34f }
-        c.drawText("${cur.temperature.toInt()}°C · ${cur.humidity.toInt()}% hum · ${cur.windSpeed.toInt()} km/h", dataX, 404f, line)
+        c.drawText(context.getString(R.string.share_conditions_image_v2_1_s_c_2_s, cur.temperature.toInt(), cur.humidity.toInt(), cur.windSpeed.toInt()), dataX, 404f, line)
         val rockLine = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = if (cur.dryRock) 0xFF4A7C59.toInt() else 0xFFB94040.toInt()
             textSize = 34f; isFakeBoldText = true
         }
-        c.drawText(if (cur.dryRock) "● ROCA SECA" else "● ROCA MOJADA", dataX, 456f, rockLine)
+        c.drawText(if (cur.dryRock) context.getString(R.string.forecast_body_v3_roca_seca_dot) else context.getString(R.string.forecast_body_v3_roca_mojada_dot), dataX, 456f, rockLine)
 
         // Mejor ventana
         forecast.bestWindow?.let { wnd ->
             val wndPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 32f }
-            c.drawText("Mejor ventana: ${wnd.start}–${wnd.end} (${wnd.avgScore}/100)", pad, 552f, wndPaint)
+            c.drawText(context.getString(R.string.share_conditions_image_v2_mejor_ventana_1_s_2, wnd.start, wnd.end, wnd.avgScore), pad, 552f, wndPaint)
         }
 
         // Heatmap próximas 16h
@@ -129,7 +132,7 @@ private fun renderConditionsCard(school: School, forecast: Forecast?): Bitmap {
             val hint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = INK_SOFT; textSize = 24f; typeface = Typeface.MONOSPACE; letterSpacing = 0.12f
             }
-            c.drawText("PRÓXIMAS 16 HORAS", pad, top + 72f, hint)
+            c.drawText(context.getString(R.string.share_conditions_image_proximas_16_horas), pad, top + 72f, hint)
         }
     }
 
@@ -138,7 +141,7 @@ private fun renderConditionsCard(school: School, forecast: Forecast?): Bitmap {
         color = TERRA; textSize = 28f; typeface = Typeface.MONOSPACE
         letterSpacing = 0.18f; isFakeBoldText = true; textAlign = Paint.Align.RIGHT
     }
-    c.drawText("⛰ CUMBRE", w - pad, h - 48f, brand)
+    c.drawText(context.getString(R.string.share_conditions_image_v2_cumbre), w - pad, h - 48f, brand)
 
     return bmp
 }

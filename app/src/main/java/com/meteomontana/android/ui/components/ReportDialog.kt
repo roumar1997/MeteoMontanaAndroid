@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,6 +36,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Moderación desde la UI: denunciar contenido (con snapshot en el backend) y
@@ -114,10 +117,10 @@ fun ReportDialog(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.sm))
             listOf(
-                "SPAM" to "Spam o publicidad",
-                "OFFENSIVE" to "Ofensivo o acoso",
-                "FALSE_INFO" to "Información falsa o peligrosa",
-                "OTHER" to "Otro motivo"
+                "SPAM" to stringResource(R.string.report_dialog_v3_spam_o_publicidad),
+                "OFFENSIVE" to stringResource(R.string.report_dialog_v3_ofensivo_o_acoso),
+                "FALSE_INFO" to stringResource(R.string.report_dialog_v3_informacion_falsa_o_peligrosa),
+                "OTHER" to stringResource(R.string.report_dialog_v3_otro_motivo)
             ).forEach { (code, label) ->
                 Box(
                     modifier = Modifier.fillMaxWidth()
@@ -145,13 +148,13 @@ fun ReportDialog(
                 ) {
                     Text(if (alsoBlock) "☑" else "☐",
                         color = if (alsoBlock) Terra else MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("También bloquear a $authorLabel",
+                    Text(stringResource(R.string.report_dialog_also_block, authorLabel),
                         style = EyebrowTextStyle,
                         color = if (alsoBlock) Terra else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Spacer(Modifier.height(Spacing.sm))
-            Text("Un admin lo revisará. El contenido denunciado deja de mostrarse para ti al instante.",
+            Text(stringResource(R.string.report_dialog_un_admin_lo_revisara),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.sm))
@@ -162,7 +165,7 @@ fun ReportDialog(
                     .padding(vertical = Spacing.sm),
                 contentAlignment = Alignment.Center
             ) {
-                Text("CANCELAR", style = EyebrowTextStyle,
+                Text(stringResource(R.string.report_dialog_v2_cancelar), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

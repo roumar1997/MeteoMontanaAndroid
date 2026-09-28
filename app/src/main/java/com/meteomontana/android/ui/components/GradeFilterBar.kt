@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,6 +44,8 @@ import com.meteomontana.android.ui.theme.Rule
 import com.meteomontana.android.ui.theme.Terra
 import com.meteomontana.android.ui.theme.colorForGrade
 import com.meteomontana.android.ui.theme.gradeChipColor
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 // Filtro LOCAL por grado dentro de una escuela — ver BLOCK_SEARCH_DESIGN.md §7.
 // Espejo de GradeFilterBar.swift (iOS): chips multi-selección con la paleta
@@ -73,11 +76,11 @@ fun GradeFilterBar(
             Icon(Icons.Outlined.Tune, contentDescription = null,
                 tint = if (isActive) Terra else Ink3, modifier = Modifier.width(16.dp))
             Spacer(Modifier.width(6.dp))
-            Text("FILTRAR POR GRADO", style = EyebrowTextStyle.copy(fontSize = 10.sp),
+            Text(stringResource(R.string.grade_filter_bar_v2_filtrar_por_grado), style = EyebrowTextStyle.copy(fontSize = 10.sp),
                 color = if (isActive) Terra else Ink3)
             Spacer(Modifier.weight(1f))
             if (isActive) {
-                Text("QUITAR TODO", style = EyebrowTextStyle.copy(fontSize = 9.sp), color = Ink3,
+                Text(stringResource(R.string.grade_filter_bar_v2_quitar_todo), style = EyebrowTextStyle.copy(fontSize = 9.sp), color = Ink3,
                     modifier = Modifier.clickable { onSelectedGradesChange(emptySet()) })
                 Spacer(Modifier.width(10.dp))
             }
@@ -89,7 +92,7 @@ fun GradeFilterBar(
 
         if (expanded) {
             if (availableGrades.isEmpty()) {
-                Text("Esta escuela todavía no tiene vías con grado.",
+                Text(stringResource(R.string.grade_filter_bar_esta_escuela_todavia_no),
                     fontSize = 12.sp, color = Ink3,
                     modifier = Modifier.padding(horizontal = 16.dp))
             } else {
@@ -112,7 +115,7 @@ fun GradeFilterBar(
 
                 if (isActive) {
                     Text(
-                        "Mostrando ${result.matchingLines} vías de ${result.totalLines}",
+                        stringResource(R.string.grade_filter_bar_v2_mostrando_1_s_vias_de, result.matchingLines, result.totalLines),
                         fontSize = 12.sp, color = Ink2,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     )
@@ -176,7 +179,7 @@ private fun GradeGroup(
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, color = Color.White)
             }
             Spacer(Modifier.width(8.dp))
-            Text(if (matches.size == 1) "1 vía" else "${matches.size} vías", fontSize = 12.sp, color = Ink3)
+            Text(if (matches.size == 1) stringResource(R.string.grade_filter_bar_1_via) else stringResource(R.string.grade_filter_bar_v3_vias, matches.size), fontSize = 12.sp, color = Ink3)
             Spacer(Modifier.weight(1f))
             Icon(
                 if (open) Icons.Outlined.KeyboardArrowDown else Icons.Outlined.KeyboardArrowRight,

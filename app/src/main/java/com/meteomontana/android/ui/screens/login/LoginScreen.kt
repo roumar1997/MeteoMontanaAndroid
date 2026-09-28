@@ -63,7 +63,7 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
             ) {
                 Image(
                     painter = painterResource(R.drawable.logo_cumbre),
-                    contentDescription = "MeteoMontana",
+                    contentDescription = stringResource(R.string.login_screen_v2_meteomontana),
                     modifier = Modifier
                         .size(120.dp)
                         .clip(CircleShape)
@@ -126,7 +126,7 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 }
             }
             Text(
-                "Al continuar aceptas los términos y la política de privacidad.",
+                stringResource(R.string.login_screen_v2_al_continuar_aceptas_los_terminos),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

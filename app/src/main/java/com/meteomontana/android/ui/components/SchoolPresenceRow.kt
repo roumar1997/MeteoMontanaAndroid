@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -48,6 +49,8 @@ import com.meteomontana.android.ui.theme.Terra
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @HiltViewModel
 class SchoolPresenceViewModel @Inject constructor(
@@ -77,7 +80,7 @@ class SchoolPresenceViewModel @Inject constructor(
                 // dice nada al usuario — se registra para depurar y se
                 // muestra uno normal (Álvaro, 2026-09-04).
                 android.util.Log.w("SchoolPresence", "No se pudo cargar la presencia", e)
-                errorText = "No se pudo cargar quién hay aquí. Comprueba tu conexión."
+                errorText = AppText.get(R.string.school_presence_row_v4_no_se_pudo_cargar_quien)
             }
         }
     }
@@ -91,7 +94,7 @@ class SchoolPresenceViewModel @Inject constructor(
                 if (iAmHere) clearPresence.execute(schoolId) else markPresence.execute(schoolId)
             } catch (e: Exception) {
                 android.util.Log.w("SchoolPresence", "No se pudo marcar/quitar la presencia", e)
-                errorText = "${if (iAmHere) "No se pudo quitar" else "No se pudo marcar"} la presencia. Comprueba tu conexión."
+                errorText = AppText.get(if (iAmHere) R.string.presence_error_remove else R.string.presence_error_mark)
             }
             loading = false
             load(schoolId, myUid)
@@ -153,7 +156,7 @@ fun SchoolPresenceRow(
                     }
                     Spacer(Modifier.padding(start = (viewModel.people.take(4).size * 12 + 6).dp))
                     Text(
-                        "${viewModel.people.size} aquí ahora",
+                        stringResource(R.string.school_presence_row_v2_1_s_aqui_ahora_2, viewModel.people.size),
                         style = MaterialTheme.typography.labelMedium.copy(fontFamily = Serif, fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onBackground
                     )
@@ -232,7 +235,7 @@ private fun PresenceChatButton(onClick: () -> Unit) {
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Icon(Icons.Outlined.Chat, contentDescription = "Chat de la escuela",
+        Icon(Icons.Outlined.Chat, contentDescription = stringResource(R.string.school_presence_row_v2_chat_de_la_escuela),
             tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(13.dp))
     }
 }
@@ -251,7 +254,7 @@ private fun PresenceMarkButton(iAmHere: Boolean, loading: Boolean, onClick: () -
             tint = Color.White, modifier = Modifier.size(11.dp))
         Spacer(Modifier.padding(start = 4.dp))
         Text(
-            if (iAmHere) "Ya no estoy" else "Estoy aquí",
+            if (iAmHere) stringResource(R.string.school_presence_row_v3_ya_no_estoy) else stringResource(R.string.school_presence_row_v3_estoy_aqui),
             style = MaterialTheme.typography.labelSmall.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
             color = Color.White
         )
@@ -271,13 +274,13 @@ private fun PresencePrivacySheet(onConfirm: () -> Unit, onDismiss: () -> Unit) {
         ) {
             Column {
                 Text(
-                    "Al marcar \"Estoy aquí\"",
+                    stringResource(R.string.school_presence_row_v2_al_marcar_estoy_aqui),
                     style = MaterialTheme.typography.titleLarge.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(Modifier.padding(top = Spacing.sm))
                 Text(
-                    "Cualquiera que abra esta escuela verá que estás aquí y podrá escribirte por chat — aunque tu perfil sea privado. Nadie podrá ver tu perfil completo si no te sigue. Se desactiva sola pasadas 10 horas, o puedes quitarla tú antes.",
+                    stringResource(R.string.school_presence_row_v2_cualquiera_que_abra_esta_escuela),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -292,7 +295,7 @@ private fun PresencePrivacySheet(onConfirm: () -> Unit, onDismiss: () -> Unit) {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "Entendido, estoy aquí",
+                        stringResource(R.string.school_presence_row_v2_entendido_estoy_aqui),
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
                         color = Color.White
                     )
@@ -322,13 +325,13 @@ private fun PresenceAllSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "${people.size} aquí ahora",
+                        stringResource(R.string.school_presence_row_v2_1_s_aqui_ahora, people.size),
                         style = MaterialTheme.typography.titleMedium.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
-                        "Cerrar",
+                        stringResource(R.string.school_presence_row_v2_cerrar),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Terra,
                         modifier = Modifier.clickable(onClick = onDismiss)
@@ -342,7 +345,7 @@ private fun PresenceAllSheet(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable(enabled = !isMe) {
-                                    onOpenChat(person.uid, person.displayName ?: person.username ?: "Usuario")
+                                    onOpenChat(person.uid, person.displayName ?: person.username ?: AppText.get(R.string.w_user))
                                 }
                                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
                             verticalAlignment = Alignment.CenterVertically
@@ -350,7 +353,7 @@ private fun PresenceAllSheet(
                             PresenceAvatar(url = person.photoUrl, size = 36.dp)
                             Spacer(Modifier.padding(start = Spacing.sm))
                             Text(
-                                if (isMe) "Tú" else (person.displayName ?: person.username ?: "Usuario"),
+                                if (isMe) stringResource(R.string.school_presence_row_v3_tu) else (person.displayName ?: person.username ?: "Usuario"),
                                 style = MaterialTheme.typography.bodyLarge.copy(fontFamily = Serif),
                                 color = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.weight(1f)

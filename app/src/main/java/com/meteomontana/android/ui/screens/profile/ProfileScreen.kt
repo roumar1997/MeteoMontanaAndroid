@@ -1,6 +1,8 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.profile
 
+import androidx.compose.material.icons.outlined.Language
+import com.meteomontana.android.util.AppText
 import android.content.Context
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.CoroutineScope
@@ -182,7 +184,7 @@ fun ProfileScreen(
             )
             when (val s = state) {
                 ProfileUiState.Loading -> CenterBox { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
-                is ProfileUiState.Error -> CenterBox { Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error) }
+                is ProfileUiState.Error -> CenterBox { Text(stringResource(R.string.profile_screen_v2_error_1_s, s.message), color = MaterialTheme.colorScheme.error) }
                 is ProfileUiState.Success -> Content(
                     profile = s.profile,
                     stats = s.stats,
@@ -218,7 +220,7 @@ private fun shareProfile(ctx: Context, scope: CoroutineScope, p: PrivateProfile,
     scope.launch {
         com.meteomontana.android.ui.share.shareProfileAsImage(
             ctx, handle,
-            p.username?.let { "@$it" } ?: (p.displayName ?: "mi perfil"),
+            p.username?.let { "@$it" } ?: (p.displayName ?: AppText.get(R.string.profile_screen_v4_mi_perfil)),
             username = p.username, photoUrl = p.photoUrl,
             topGrade = stats.maxGrade, bio = p.bio,
             boulders = stats.boulderCount, routes = stats.routeCount, schools = stats.schoolCount
@@ -256,7 +258,7 @@ private fun ProfileTopBar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Icon(Icons.Outlined.AdminPanelSettings, contentDescription = "Panel de admin",
+                    Icon(Icons.Outlined.AdminPanelSettings, contentDescription = stringResource(R.string.profile_screen_v2_panel_de_admin),
                         tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
                     if (pendingReview > 0) {
                         Box(
@@ -280,12 +282,12 @@ private fun ProfileTopBar(
             if (onGear != null) IconButton(onClick = onGear) {
                 Icon(
                     Icons.Outlined.Backpack,
-                    contentDescription = "Mi material",
+                    contentDescription = stringResource(R.string.profile_screen_v2_mi_material),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
             if (onShare != null) IconButton(onClick = onShare) {
-                Icon(Icons.Outlined.Share, contentDescription = "Compartir perfil",
+                Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.profile_screen_v2_compartir_perfil),
                     tint = MaterialTheme.colorScheme.primary)
             }
             if (onSettings != null) IconButton(onClick = onSettings) {
@@ -395,7 +397,7 @@ private fun Header(
         Spacer(Modifier.height(12.dp))
         // Nombre grande serif.
         Text(
-            p.displayName ?: p.username ?: "Tú",
+            p.displayName ?: p.username ?: stringResource(R.string.school_presence_row_v3_tu),
             fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 28.sp,
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -466,6 +468,58 @@ private fun FollowCount(value: Long, label: String, onClick: () -> Unit) {
     }
 }
 
+/** Fila "Idioma" de Ajustes: abre un diálogo Automático / Español / English. */
+@Composable
+private fun LanguageRow() {
+    val ctx = LocalContext.current
+    var open by remember { mutableStateOf(false) }
+    val current = com.meteomontana.android.util.AppLanguage.get(ctx)
+    val options = listOf(
+        com.meteomontana.android.util.AppLanguage.SYSTEM to stringResource(R.string.language_system),
+        com.meteomontana.android.util.AppLanguage.ES to stringResource(R.string.language_es),
+        com.meteomontana.android.util.AppLanguage.EN to stringResource(R.string.language_en),
+    )
+    MenuRow(Icons.Outlined.Language, stringResource(R.string.settings_language)) { open = true }
+    if (open) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { open = false },
+            title = { Text(stringResource(R.string.language_dialog_title)) },
+            text = {
+                Column {
+                    options.forEach { (value, label) ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                open = false
+                                if (value != current) {
+                                    com.meteomontana.android.util.AppLanguage.set(ctx, value)
+                                    // OJO: ctx.applicationContext es el MISMO objeto desde que arrancó el
+                                    // proceso, con la configuración (idioma) que tenía entonces — reenvolverlo
+                                    // aquí es lo que de verdad hace que AppText/CatalogLabels lean el idioma
+                                    // nuevo sin esperar a que se mate y reabra la app (Álvaro, 2026-09-28:
+                                    // tras cambiar de idioma, "Granito" y "Malo" seguían en español).
+                                    com.meteomontana.android.util.AppText.init(
+                                        com.meteomontana.android.util.AppLanguage.wrap(ctx.applicationContext)
+                                    )
+                                    com.meteomontana.android.data.api.ApiLanguage.code = com.meteomontana.android.util.AppLanguage.effective(ctx)
+                                    (ctx as? android.app.Activity)?.recreate()
+                                }
+                            }.padding(vertical = 10.dp)
+                        ) {
+                            androidx.compose.material3.RadioButton(selected = value == current, onClick = null)
+                            Spacer(Modifier.padding(start = 12.dp))
+                            Text(label, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { open = false }) { Text(stringResource(R.string.w_close)) }
+            }
+        )
+    }
+}
+
 /**
  * Hoja de ajustes (⚙️): agrupa lo que antes ocupaba el perfil — cuenta, mi
  * actividad, preferencias y sesión. Bottom sheet (paridad iOS).
@@ -486,7 +540,7 @@ private fun ProfileSettingsScreen(
         // Cabecera: flecha atrás + "Ajustes".
         Box(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Atrás",
+                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.profile_screen_atras),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
             Text(stringResource(R.string.profile_settings),
@@ -511,10 +565,11 @@ private fun ProfileSettingsScreen(
             SettingsSectionLabel(stringResource(R.string.profile_section_prefs))
             MenuRow(Icons.Outlined.Notifications, stringResource(R.string.profile_weather_alert), onWeekendAlert)
             FeedPublishSettingRow()
+            LanguageRow()
             val ctx = LocalContext.current
             MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(R.string.profile_show_hints)) {
                 com.meteomontana.android.ui.components.resetAllHints(ctx)
-                android.widget.Toast.makeText(ctx, "Pistas reactivadas — entra en cada pantalla para verlas", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(ctx, ctx.getString(R.string.profile_screen_v3_pistas_reactivadas), android.widget.Toast.LENGTH_SHORT).show()
             }
 
 
@@ -550,7 +605,7 @@ private fun ProfileSettingsScreen(
             // Que version es esta. Sin esto, "no me ha llegado el arreglo" y
             // "no lo has arreglado" son indistinguibles.
             Text(
-                "Cumbre " + com.meteomontana.android.BuildConfig.VERSION_NAME +
+                stringResource(R.string.profile_screen_v2_cumbre) + com.meteomontana.android.BuildConfig.VERSION_NAME +
                     " (vc" + com.meteomontana.android.BuildConfig.VERSION_CODE + ") · " +
                     com.meteomontana.android.BuildConfig.BUILD_TIME +
                     if (com.meteomontana.android.BuildConfig.DEBUG) " · staging" else "",
@@ -562,11 +617,11 @@ private fun ProfileSettingsScreen(
             if (showDelete) {
                 AlertDialog(
                     onDismissRequest = { showDelete = false },
-                    title = { Text("¿Eliminar tu cuenta?") },
-                    text = { Text("Se borrarán tu perfil, diario, favoritas, seguimientos y propuestas de forma permanente. Esta acción no se puede deshacer.") },
+                    title = { Text(stringResource(R.string.profile_screen_eliminar_tu_cuenta)) },
+                    text = { Text(stringResource(R.string.profile_screen_se_borraran_tu_perfil)) },
                     confirmButton = {
                         TextButton(onClick = { showDelete = false; onDeleteAccount() }) {
-                            Text("ELIMINAR", color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(R.string.profile_screen_v2_eliminar), color = MaterialTheme.colorScheme.error)
                         }
                     },
                     dismissButton = {
@@ -724,7 +779,7 @@ private fun StatsRow(
             StatCell(stringResource(R.string.feed_my_posts_section).uppercase(), "›", Modifier.weight(1f).clickable(onClick = onMyPosts))
         }
         // Fila 4: ESTADÍSTICAS a todo el ancho, como en iOS.
-        StatCell("ESTADÍSTICAS", "▃▅▇", Modifier.fillMaxWidth().clickable(onClick = onOpenStats))
+        StatCell(stringResource(R.string.profile_screen_v3_estadisticas), "▃▅▇", Modifier.fillMaxWidth().clickable(onClick = onOpenStats))
     }
 }
 

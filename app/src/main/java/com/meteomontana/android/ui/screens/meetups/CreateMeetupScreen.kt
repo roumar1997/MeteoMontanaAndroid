@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.util.CalendarLabels
 import android.net.Uri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -146,7 +147,7 @@ fun CreateMeetupScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             // Foto del grupo
-            FieldLabel("FOTO DEL GRUPO (opcional)")
+            FieldLabel(stringResource(R.string.create_meetup_screen_v3_foto_del_grupo_opcional))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -160,7 +161,7 @@ fun CreateMeetupScreen(
                 if (photoUrl != null) {
                     AsyncImage(
                         model = photoUrl,
-                        contentDescription = "Foto de la quedada",
+                        contentDescription = stringResource(R.string.create_meetup_screen_v2_foto_de_la_quedada),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -169,7 +170,7 @@ fun CreateMeetupScreen(
                         Icon(Icons.Outlined.AddAPhoto, contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(32.dp))
                         Spacer(Modifier.height(4.dp))
-                        Text("AÑADIR FOTO", style = EyebrowTextStyle,
+                        Text(stringResource(R.string.create_meetup_screen_anadir_foto), style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -182,10 +183,10 @@ fun CreateMeetupScreen(
             }
 
             // Nombre
-            FieldLabel("NOMBRE")
+            FieldLabel(stringResource(R.string.w_name_caps))
             OutlinedTextField(
                 value = name, onValueChange = { name = it },
-                placeholder = { Text("Ej. Quedar en Pedriza") },
+                placeholder = { Text(stringResource(R.string.create_meetup_screen_v2_ej_quedar_en_pedriza)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(4.dp),
@@ -193,7 +194,7 @@ fun CreateMeetupScreen(
             )
 
             // Escuela — buscador
-            FieldLabel("ESCUELA")
+            FieldLabel(stringResource(R.string.w_school_caps))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -216,7 +217,7 @@ fun CreateMeetupScreen(
             }
 
             // Días (picker de próximos 14 días)
-            FieldLabel("DÍAS (elige uno o varios)")
+            FieldLabel(stringResource(R.string.create_meetup_screen_v3_dias_elige_uno_o_varios))
             DayPickerRow(
                 selected = selectedDays.value,
                 scores = dayScores,
@@ -227,24 +228,22 @@ fun CreateMeetupScreen(
             )
 
             // Privacidad
-            FieldLabel("PRIVACIDAD")
+            FieldLabel(stringResource(R.string.w_privacy_caps))
             PrivacySelector(selected = privacy, onSelected = { privacy = it })
             if (privacy == "WOMEN") {
                 Text(
-                    "Quedada No Mixto: solo pueden participar personas con género " +
-                    "Mujer en su perfil. Si no lo tienes configurado, ve a " +
-                    "Perfil → Editar perfil → Género.",
+                    stringResource(R.string.create_meetup_screen_v2_quedada_no_mixto_solo_pueden),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             // Disciplina
-            FieldLabel("DISCIPLINA (opcional)")
+            FieldLabel(stringResource(R.string.create_meetup_screen_v3_disciplina_opcional))
             DisciplineSelector(selected = discipline, onSelected = { discipline = it })
 
             // Límite
-            FieldLabel("LÍMITE DE PARTICIPANTES (opcional)")
+            FieldLabel(stringResource(R.string.create_meetup_screen_v3_limite_de_participantes_opcional))
             OutlinedTextField(
                 value = limitText, onValueChange = { limitText = it.filter { c -> c.isDigit() } },
                 placeholder = { Text(stringResource(R.string.create_meetup_no_limit)) },
@@ -378,7 +377,7 @@ private fun scoreColor(score: Int): androidx.compose.ui.graphics.Color = when {
 
 private fun nextNDays(n: Int): List<Pair<Pair<String, String>, String>> {
     val result = mutableListOf<Pair<Pair<String, String>, String>>()
-    val dayNames = listOf("DOM","LUN","MAR","MIÉ","JUE","VIE","SÁB")
+    val dayNames = CalendarLabels.daysShortSunFirst().map { it.uppercase() }
     // Simple: usamos System.currentTimeMillis para calcular los próximos n días
     val now = System.currentTimeMillis()
     val dayMs = 86_400_000L
@@ -416,10 +415,10 @@ private fun PrivacySelector(selected: String, onSelected: (String) -> Unit) {
 @Composable
 private fun DisciplineSelector(selected: String?, onSelected: (String?) -> Unit) {
     val options = listOf(
-        null to "Cualquiera",
-        "BOULDER" to "Bloque",
-        "ROUTE" to "Vía",
-        "BOTH" to "Ambas"
+        null to stringResource(R.string.w_any),
+        "BOULDER" to stringResource(R.string.w_boulder),
+        "ROUTE" to stringResource(R.string.school_map_v3_via),
+        "BOTH" to stringResource(R.string.w_both)
     )
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         options.forEach { (key, label) ->
@@ -466,13 +465,13 @@ private fun SchoolPickerDialog(
     var query by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Buscar escuela", style = MaterialTheme.typography.titleMedium) },
+        title = { Text(stringResource(R.string.create_meetup_screen_v2_buscar_escuela), style = MaterialTheme.typography.titleMedium) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it; onQueryChange(it) },
-                    placeholder = { Text("Ej. Zarzalejo, Pedriza…") },
+                    placeholder = { Text(stringResource(R.string.create_meetup_screen_v2_ej_zarzalejo_pedriza)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(4.dp),
@@ -497,7 +496,7 @@ private fun SchoolPickerDialog(
                         }
                     }
                 } else if (query.length >= 2) {
-                    Text("Sin resultados", style = MaterialTheme.typography.bodySmall,
+                    Text(stringResource(R.string.create_meetup_screen_v2_sin_resultados), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }

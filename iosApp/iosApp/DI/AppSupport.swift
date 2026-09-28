@@ -30,7 +30,7 @@ func attempt<T>(_ label: String = #function, _ op: () async throws -> T) async -
     do {
         return try await op()
     } catch {
-        AppLog.warn("\(label) falló: \(error.localizedDescription)")
+        AppLog.warn(L("%@ falló: %@", label, error.localizedDescription))
         return nil
     }
 }

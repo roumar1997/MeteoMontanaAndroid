@@ -98,8 +98,8 @@ struct EditProfileView: View {
             } else {
                 VStack(alignment: .leading, spacing: 16) {
                     avatarPicker
-                    field("NOMBRE", text: $vm.displayName, placeholder: "Tu nombre")
-                    field("USUARIO", text: $vm.username, placeholder: "usuario", lower: true)
+                    field(L("NOMBRE"), text: $vm.displayName, placeholder: L("Tu nombre"))
+                    field(L("USUARIO"), text: $vm.username, placeholder: "usuario", lower: true)
                     // El grado tope ya NO es manual: se calcula solo desde el diario
                     // (tope de bloque y de vía por separado). Sin campo editable.
                     VStack(alignment: .leading, spacing: 6) {
@@ -125,8 +125,8 @@ struct EditProfileView: View {
                         .padding(10).background(Cumbre.paper)
                         .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                         Text(vm.isPublic
-                             ? "Cualquiera puede ver tu perfil, diario y estadísticas."
-                             : "Tu perfil queda bloqueado; seguirte requiere aprobar una solicitud.")
+                             ? L("Cualquiera puede ver tu perfil, diario y estadísticas.")
+                             : L("Tu perfil queda bloqueado; seguirte requiere aprobar una solicitud."))
                             .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                     }
 
@@ -135,7 +135,7 @@ struct EditProfileView: View {
                         Text("GÉNERO (privado — solo para quedadas no mixtas)").eyebrow()
                         // Rejilla 2x2 (antes HStack de 3; con "Otro" ya no cabe en una fila
                         // sin recortarse en iPhones pequeños).
-                        let genderOptions = [("WOMAN", "Mujer"), ("MAN", "Hombre"), ("OTHER", "Otro"), ("", "No indicar")]
+                        let genderOptions = [("WOMAN", L("Mujer")), ("MAN", L("Hombre")), ("OTHER", L("Otro")), ("", L("No indicar"))]
                         VStack(spacing: 8) {
                             ForEach(0..<2, id: \.self) { row in
                                 HStack(spacing: 8) {
@@ -252,7 +252,7 @@ struct EditProfileView: View {
             .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
 
             PhotosPicker(selection: $pickerItem, matching: .images) {
-                Text(vm.uploading ? "Subiendo…" : "Cambiar foto")
+                Text(vm.uploading ? L("Subiendo…") : L("Cambiar foto"))
                     .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(Cumbre.terra)
                     .padding(.horizontal, 12).padding(.vertical, 8)
                     .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))

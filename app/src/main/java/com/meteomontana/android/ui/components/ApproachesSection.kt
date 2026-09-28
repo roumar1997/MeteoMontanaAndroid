@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import androidx.compose.foundation.background
@@ -25,7 +26,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.Approach
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Ok
@@ -55,7 +58,7 @@ fun ApproachesSection(
 
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.sm)) {
         Text(
-            "APROXIMACIONES",
+            stringResource(R.string.approaches_title),
             style = EyebrowTextStyle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = Spacing.md)
@@ -86,7 +89,7 @@ fun ApproachesSection(
                     .padding(vertical = Spacing.sm),
                 contentAlignment = Alignment.Center
             ) {
-                Text("+ GRABAR APROXIMACIÓN", style = EyebrowTextStyle, color = Terra)
+                Text(stringResource(R.string.approaches_record), style = EyebrowTextStyle, color = Terra)
             }
         }
     }
@@ -94,16 +97,16 @@ fun ApproachesSection(
     deleting?.let { a ->
         AlertDialog(
             onDismissRequest = { deleting = null },
-            title = { Text("¿Borrar «${a.name ?: "esta aproximación"}»?") },
-            text = { Text("Se borra el camino y todas sus chinchetas. No se puede deshacer.") },
+            title = { Text(stringResource(R.string.approaches_delete_confirm_title, a.name ?: stringResource(R.string.approaches_default_name))) },
+            text = { Text(stringResource(R.string.approaches_delete_confirm_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     onDelete(a)
                     deleting = null
-                }) { Text("BORRAR", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.common_delete_caps), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { deleting = null }) { Text("CANCELAR") }
+                TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.common_cancel_caps)) }
             }
         )
     }
@@ -127,7 +130,7 @@ private fun ApproachCard(
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth()) {
             Text(
-                approach.name ?: "Aproximación",
+                approach.name ?: stringResource(R.string.approaches_default_name),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
@@ -151,7 +154,7 @@ private fun ApproachCard(
         Spacer(Modifier.padding(top = Spacing.xs))
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text(
-                if (approach.isVerified) "✓ VERIFICADA" else "⚠ SIN VERIFICAR",
+                if (approach.isVerified) "✓ VERIFICADA" else stringResource(R.string.approaches_section_v3_sin_verificar),
                 style = EyebrowTextStyle,
                 color = if (approach.isVerified) Ok else Warn,
                 modifier = Modifier.weight(1f)
@@ -163,7 +166,7 @@ private fun ApproachCard(
                     .clickable(onClick = onFollow)
                     .padding(horizontal = Spacing.md, vertical = Spacing.xs)
             ) {
-                Text("SEGUIR", style = EyebrowTextStyle,
+                Text(stringResource(R.string.approaches_section_v2_seguir), style = EyebrowTextStyle,
                     color = androidx.compose.ui.graphics.Color.White)
             }
         }
@@ -176,8 +179,8 @@ private fun summaryLine(a: Approach): String {
         parts += if (d >= 1000) String.format(Locale.US, "%.1f km", d / 1000.0) else "$d m"
     }
     a.ascentM?.let { parts += "+$it m" }
-    a.durationMin?.let { parts += "~$it min" }
+    a.durationMin?.let { parts += AppText.get(R.string.approaches_section_v4_min, it) }
     val pinCount = a.pins.size
-    if (pinCount > 0) parts += if (pinCount == 1) "1 chincheta" else "$pinCount chinchetas"
+    if (pinCount > 0) parts += if (pinCount == 1) AppText.get(R.string.approaches_section_v4_1_chincheta) else "$pinCount chinchetas"
     return parts.joinToString(" · ")
 }

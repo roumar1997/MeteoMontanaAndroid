@@ -23,6 +23,8 @@ import com.meteomontana.android.domain.usecase.admin.RejectSubmissionUseCase
 import com.meteomontana.android.domain.usecase.admin.SendPushUseCase
 import com.meteomontana.android.domain.usecase.blocks.CreateBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
+import com.meteomontana.android.domain.usecase.blocks.ReorderBlocksUseCase
+import com.meteomontana.android.domain.usecase.blocks.AutoReorderBlocksUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
@@ -202,6 +204,13 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideDeleteBlockUseCase(repo: BlockRepository) = DeleteBlockUseCase(repo)
 
+    // Numerar piedras por sector + arreglar el orden a mano o por GPS (Álvaro, 2026-09-14).
+    @Provides @Singleton
+    fun provideReorderBlocksUseCase(repo: BlockRepository) = ReorderBlocksUseCase(repo)
+
+    @Provides @Singleton
+    fun provideAutoReorderBlocksUseCase(repo: BlockRepository) = AutoReorderBlocksUseCase(repo)
+
     @Provides @Singleton
     fun provideRateLineUseCase(repo: com.meteomontana.android.domain.repository.BlockRepository) =
         com.meteomontana.android.domain.usecase.blocks.RateLineUseCase(repo)
@@ -219,6 +228,17 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideDeleteLineCommentUseCase(repo: BlockRepository) =
         com.meteomontana.android.domain.usecase.blocks.DeleteLineCommentUseCase(repo)
+
+    // Enlaces de beta directos, varios por vía con categoría de altura (Álvaro, 2026-09-15).
+    @Provides @Singleton
+    fun provideGetBetaLinksUseCase(repo: BlockRepository) =
+        com.meteomontana.android.domain.usecase.blocks.GetBetaLinksUseCase(repo)
+    @Provides @Singleton
+    fun provideAddBetaLinkUseCase(repo: BlockRepository) =
+        com.meteomontana.android.domain.usecase.blocks.AddBetaLinkUseCase(repo)
+    @Provides @Singleton
+    fun provideDeleteBetaLinkUseCase(repo: BlockRepository) =
+        com.meteomontana.android.domain.usecase.blocks.DeleteBetaLinkUseCase(repo)
 
     // Alerta de tiempo — antes WeekendAlertViewModel usaba KtorProfileApi.
     @Provides @Singleton

@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -49,6 +50,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Comentarios de la comunidad (con votos ▲/▼) de una piedra o de una vía.
@@ -122,7 +125,7 @@ fun LineCommentsThread(
     blockId: String,
     lineId: String?,
     myUid: String?,
-    title: String = "COMENTARIOS",
+    title: String = stringResource(R.string.w_comments_caps),
     viewModel: LineCommentsViewModel = hiltViewModel()
 ) {
     androidx.compose.runtime.LaunchedEffect(blockId) { viewModel.load(blockId) }
@@ -167,7 +170,7 @@ fun LineCommentsThread(
 
         if (expanded) {
             if (mine.isEmpty()) {
-                Text("Sé el primero en comentar.",
+                Text(stringResource(R.string.line_comments_section_se_el_primero_en),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 6.dp))
@@ -186,7 +189,7 @@ fun LineCommentsThread(
                         if (myUid != null && myUid == c.uid) {
                             androidx.compose.material3.Icon(
                                 Icons.Outlined.DeleteOutline,
-                                contentDescription = "Borrar",
+                                contentDescription = stringResource(R.string.line_comments_section_v2_borrar),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(2.dp))
@@ -197,7 +200,7 @@ fun LineCommentsThread(
                             // Comentario ajeno → bandera de denuncia (discreta).
                             androidx.compose.material3.Icon(
                                 Icons.Outlined.Flag,
-                                contentDescription = "Denunciar",
+                                contentDescription = stringResource(R.string.line_comments_section_v2_denunciar),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(2.dp))
@@ -226,7 +229,7 @@ fun LineCommentsThread(
                     value = draft,
                     onValueChange = { draft = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Escribe un comentario…",
+                    placeholder = { Text(stringResource(R.string.line_comments_section_v2_escribe_un_comentario),
                         style = MaterialTheme.typography.bodySmall) },
                     maxLines = 3,
                     shape = MaterialTheme.shapes.small,
@@ -237,7 +240,7 @@ fun LineCommentsThread(
                 )
                 androidx.compose.material3.Icon(
                     Icons.AutoMirrored.Outlined.Send,
-                    contentDescription = "Enviar",
+                    contentDescription = stringResource(R.string.line_comments_section_v2_enviar),
                     tint = if (draft.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else Terra,
                     modifier = Modifier
                         .clip(androidx.compose.foundation.shape.CircleShape)
@@ -253,7 +256,7 @@ fun LineCommentsThread(
 
     reportTarget?.let { c ->
         ReportDialog(
-            title = "DENUNCIAR COMENTARIO",
+            title = stringResource(R.string.line_comments_section_v2_denunciar_comentario),
             authorLabel = c.author,
             onReport = { reason, alsoBlock ->
                 moderation.report("COMMENT", c.id, reason,

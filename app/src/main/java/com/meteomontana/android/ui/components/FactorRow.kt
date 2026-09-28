@@ -42,7 +42,7 @@ private fun FactorRow(factor: ScoreFactor) {
         // mínimo garantizado: con textos largos («ROCA · GRANITO» + su frase)
         // las dos mitades se rozaban (feedback de Rodrigo).
         Text(
-            factor.name,
+            com.meteomontana.android.util.ForecastText.factorName(factor.name),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -53,7 +53,7 @@ private fun FactorRow(factor: ScoreFactor) {
             horizontalArrangement = Arrangement.End
         ) {
             Text(
-                factor.display,
+                com.meteomontana.android.util.ForecastText.factorDisplay(factor.display),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = androidx.compose.ui.text.style.TextAlign.End

@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.approach
 
+
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import androidx.compose.foundation.background
@@ -58,6 +60,8 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import java.util.Locale
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * "GRABAR APROXIMACIÓN" — APPROACH_DESIGN.md §6.2/§6.4. SOLO ADMIN por ahora
@@ -130,24 +134,24 @@ fun ApproachRecordScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(if (savingStep) "Guardar camino" else "Grabar aproximación",
+                Text(if (savingStep) stringResource(R.string.approach_record_screen_guardar_camino) else stringResource(R.string.approach_record_screen_grabar_aproximacion),
                     style = MaterialTheme.typography.titleMedium)
-                Text("CERRAR", style = EyebrowTextStyle, color = Terra,
+                Text(stringResource(R.string.approach_record_screen_v2_cerrar), style = EyebrowTextStyle, color = Terra,
                     modifier = Modifier.clickable(onClick = onDismiss))
             }
 
             if (!savingStep) {
                 if (!recording) {
                     Column(Modifier.padding(horizontal = Spacing.md)) {
-                        Text("ORIGEN (parking)", style = EyebrowTextStyle,
+                        Text(stringResource(R.string.approach_record_screen_v2_origen_parking), style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(4.dp))
-                        BlockPicker(parkings, fromBlockId, "Elige un parking") { fromBlockId = it }
+                        BlockPicker(parkings, fromBlockId, stringResource(R.string.approach_record_screen_v3_elige_un_parking)) { fromBlockId = it }
                         Spacer(Modifier.height(Spacing.sm))
-                        Text("DESTINO (sector/piedra)", style = EyebrowTextStyle,
+                        Text(stringResource(R.string.approach_record_screen_v2_destino_sector_piedra), style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(4.dp))
-                        BlockPicker(sectors, toBlockId, "Elige un sector") { toBlockId = it }
+                        BlockPicker(sectors, toBlockId, stringResource(R.string.approach_record_screen_v3_elige_un_sector)) { toBlockId = it }
                         Spacer(Modifier.height(Spacing.sm))
                     }
                 }
@@ -170,7 +174,7 @@ fun ApproachRecordScreen(
                                 .clickable { addingPin = true }
                                 .padding(horizontal = Spacing.md, vertical = Spacing.sm)
                         ) {
-                            Text("+ CHINCHETA AQUÍ",
+                            Text(stringResource(R.string.approach_record_screen_chincheta_aqui),
                                 style = EyebrowTextStyle, color = Color.White)
                         }
                     }
@@ -183,7 +187,7 @@ fun ApproachRecordScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     if (pendingPins.value.isNotEmpty()) {
-                        Text("${pendingPins.value.size} chincheta${if (pendingPins.value.size == 1) "" else "s"} en este camino",
+                        Text(stringResource(R.string.approach_record_screen_v2_1_s_chincheta_2_s, pendingPins.value.size, if (pendingPins.value.size == 1) "" else "s"),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(4.dp))
@@ -200,7 +204,7 @@ fun ApproachRecordScreen(
                                     .clickable { paused = !paused }
                                     .padding(vertical = Spacing.md),
                                 contentAlignment = Alignment.Center
-                            ) { Text(if (paused) "REANUDAR" else "PAUSAR", style = EyebrowTextStyle) }
+                            ) { Text(if (paused) stringResource(R.string.w_resume_caps) else stringResource(R.string.w_pause_caps), style = EyebrowTextStyle) }
                             Box(
                                 modifier = Modifier.weight(1f)
                                     .background(terraFillColor(), RoundedCornerShape(2.dp))
@@ -211,7 +215,7 @@ fun ApproachRecordScreen(
                                     }
                                     .padding(vertical = Spacing.md),
                                 contentAlignment = Alignment.Center
-                            ) { Text("TERMINAR", style = EyebrowTextStyle, color = Color.White) }
+                            ) { Text(stringResource(R.string.approach_record_screen_v2_terminar), style = EyebrowTextStyle, color = Color.White) }
                         } else {
                             val canStart = fromBlockId != null && toBlockId != null
                             Box(
@@ -223,24 +227,24 @@ fun ApproachRecordScreen(
                                     }
                                     .padding(vertical = Spacing.lg),
                                 contentAlignment = Alignment.Center
-                            ) { Text("INICIAR", style = EyebrowTextStyle, color = Color.White) }
+                            ) { Text(stringResource(R.string.approach_record_screen_v2_iniciar), style = EyebrowTextStyle, color = Color.White) }
                         }
                     }
                 }
             } else {
                 Column(Modifier.weight(1f).fillMaxWidth().padding(Spacing.md)) {
-                    Text("Nombre del camino", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.approach_record_screen_v2_nombre_del_camino), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(4.dp))
                     OutlinedTextField(
                         value = name, onValueChange = { name = it },
-                        placeholder = { Text("p. ej. Parking alto → Sector Techos") },
+                        placeholder = { Text(stringResource(R.string.approach_record_screen_v2_p_ej_parking_alto_sector)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(Modifier.height(Spacing.sm))
                     Text(
-                        "${formatDistance(distanceM)} · ${formatElapsed(elapsedSeconds)} · ${points.size} puntos" +
-                            if (pendingPins.value.isEmpty()) "" else " · ${pendingPins.value.size} chinchetas",
+                        stringResource(R.string.approach_record_screen_v2_1_s_2_s_3, formatDistance(distanceM), formatElapsed(elapsedSeconds), points.size) +
+                            if (pendingPins.value.isEmpty()) "" else stringResource(R.string.approach_record_screen_v4_chinchetas, pendingPins.value.size),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -254,7 +258,7 @@ fun ApproachRecordScreen(
                             .background(terraFillColor(), RoundedCornerShape(2.dp))
                             .clickable(enabled = !saving) {
                                 if (points.size < 2) {
-                                    errorMsg = "El camino grabado es demasiado corto."
+                                    errorMsg = AppText.get(R.string.approach_record_screen_v3_el_camino_grabado_es_demasiado)
                                     return@clickable
                                 }
                                 scope.launch {
@@ -276,7 +280,7 @@ fun ApproachRecordScreen(
                                     val result = onSave(req, pinsReq)
                                     saving = false
                                     if (result.isSuccess) onDismiss()
-                                    else errorMsg = "No se pudo guardar. Inténtalo de nuevo."
+                                    else errorMsg = AppText.get(R.string.approach_record_screen_v3_no_se_pudo_guardar_intentalo)
                                 }
                             }
                             .padding(vertical = Spacing.lg),
@@ -284,7 +288,7 @@ fun ApproachRecordScreen(
                     ) {
                         if (saving) CircularProgressIndicator(
                             modifier = Modifier.height(20.dp), color = Color.White)
-                        else Text("GUARDAR", style = EyebrowTextStyle, color = Color.White)
+                        else Text(stringResource(R.string.approach_record_screen_v2_guardar), style = EyebrowTextStyle, color = Color.White)
                     }
                 }
             }

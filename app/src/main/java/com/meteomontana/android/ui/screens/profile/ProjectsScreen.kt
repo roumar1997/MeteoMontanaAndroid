@@ -93,7 +93,7 @@ fun ProjectsScreen(
                 Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
-            Text("Proyectos", style = MaterialTheme.typography.headlineMedium,
+            Text(stringResource(R.string.projects_screen_v2_proyectos), style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -112,10 +112,10 @@ fun ProjectsScreen(
                             Icon(Icons.Outlined.Flag, contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(40.dp))
-                            Text("Sin proyectos todavía",
+                            Text(stringResource(R.string.projects_screen_sin_proyectos_todavia),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onBackground)
-                            Text("Marca la P de una vía dentro de su piedra para probarla como proyecto.",
+                            Text(stringResource(R.string.projects_screen_marca_la_p_de),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp),
@@ -125,8 +125,8 @@ fun ProjectsScreen(
                 } else {
                     Row(modifier = Modifier.fillMaxWidth().padding(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        ProjectStatCell("BLOQUES", s.boulderCount, Modifier.weight(1f), onOpenBoulders)
-                        ProjectStatCell("VÍAS", s.routeCount, Modifier.weight(1f), onOpenRoutes)
+                        ProjectStatCell(stringResource(R.string.w_boulders_caps), s.boulderCount, Modifier.weight(1f), onOpenBoulders)
+                        ProjectStatCell(stringResource(R.string.w_routes_caps), s.routeCount, Modifier.weight(1f), onOpenRoutes)
                     }
                 }
             }

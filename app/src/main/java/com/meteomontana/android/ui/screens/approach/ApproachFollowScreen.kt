@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.approach
 
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -58,6 +59,8 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Pantalla "SEGUIR" de una aproximación a pantalla completa — Fase 1/2 de
@@ -217,7 +220,7 @@ fun ApproachFollowScreen(
                             .padding(horizontal = Spacing.md, vertical = Spacing.sm),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(if (placingPin) "TOCA EL MAPA" else "+ CHINCHETA",
+                        Text(if (placingPin) stringResource(R.string.approach_follow_screen_v3_toca_el_mapa) else stringResource(R.string.approach_follow_screen_v3_chincheta),
                             style = EyebrowTextStyle, color = Color.White)
                     }
                 }
@@ -232,11 +235,11 @@ fun ApproachFollowScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                Text(approach.name ?: "$schoolName: aproximación",
+                Text(approach.name ?: stringResource(R.string.approach_follow_screen_default_name, schoolName),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f))
-                Text(if (approach.isVerified) "✓ VERIFICADA" else "⚠ SIN VERIFICAR",
+                Text(if (approach.isVerified) stringResource(R.string.approach_follow_screen_verificada) else stringResource(R.string.approach_follow_screen_sin_verificar),
                     style = EyebrowTextStyle,
                     color = if (approach.isVerified) Ok else Warn)
             }
@@ -248,8 +251,8 @@ fun ApproachFollowScreen(
                     .padding(Spacing.md)
             ) {
                 Text(
-                    if (placingPin) "Toca el mapa donde quieras dejar la chincheta."
-                    else "Sigue la línea. Si te alejas del camino, comprueba las chinchetas.",
+                    if (placingPin) stringResource(R.string.approach_follow_screen_v3_toca_el_mapa_donde_quieras)
+                    else stringResource(R.string.approach_follow_screen_v3_sigue_la_linea_si_te),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -265,7 +268,7 @@ fun ApproachFollowScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Text(pin.kind, style = EyebrowTextStyle, color = Terra)
                     if (pin.status != "VERIFIED") {
-                        Text("SIN VERIFICAR", style = EyebrowTextStyle, color = Warn)
+                        Text(stringResource(R.string.approach_follow_screen_v2_sin_verificar), style = EyebrowTextStyle, color = Warn)
                     }
                 }
             },
@@ -286,7 +289,7 @@ fun ApproachFollowScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { selectedPin = null }) { Text("CERRAR") }
+                TextButton(onClick = { selectedPin = null }) { Text(stringResource(R.string.approach_follow_screen_v2_cerrar)) }
             }
         )
     }
@@ -310,16 +313,16 @@ fun ApproachFollowScreen(
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("¿Borrar «${approach.name ?: "esta aproximación"}»?") },
-            text = { Text("Se borra el camino y todas sus chinchetas. No se puede deshacer.") },
+            title = { Text(stringResource(R.string.approach_follow_screen_v2_borrar_1_s, approach.name ?: stringResource(R.string.approaches_default_name))) },
+            text = { Text(stringResource(R.string.approach_follow_screen_v2_se_borra_el_camino_y)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
                     onDeleteApproach(approach)
                     onDismiss()
-                }) { Text("BORRAR", color = MaterialTheme.colorScheme.error) }
+                }) { Text(stringResource(R.string.approach_follow_screen_v2_borrar), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("CANCELAR") } }
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.approach_follow_screen_v2_cancelar)) } }
         )
     }
 }

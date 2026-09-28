@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.share
 
+import com.meteomontana.android.util.AppText
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -24,6 +25,8 @@ import com.meteomontana.android.domain.util.gradeArgb
 import com.meteomontana.android.domain.util.renderTopo
 import com.meteomontana.android.ui.screens.topo.parseLineStroke
 import java.io.File
+import com.meteomontana.android.R
+import androidx.compose.ui.res.stringResource
 
 /* ── Paleta Cumbre (ARGB para Canvas, = ShareConditionsImage) ──────────────── */
 private const val PAPER = 0xFFFAF7F2.toInt()
@@ -82,7 +85,7 @@ suspend fun shareLineAsImage(
     val photoBmp = (result as? SuccessResult)?.drawable?.toBitmap() ?: return false
 
     // 3. Compón la imagen y compártela.
-    val bmp = renderLineCard(block, line, schoolName, linesToDraw, photoBmp, tickedIds, projectIds, orientationBadge, setterGradeRef)
+    val bmp = renderLineCard(context, block, line, schoolName, linesToDraw, photoBmp, tickedIds, projectIds, orientationBadge, setterGradeRef)
     val dir = File(context.cacheDir, "share").apply { mkdirs() }
     // Nombre ÚNICO (WhatsApp cachea por URI; con nombre fijo repetía la 1ª imagen).
     dir.listFiles()?.filter { it.name.startsWith("via") }?.forEach { it.delete() }
@@ -90,7 +93,8 @@ suspend fun shareLineAsImage(
     file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 
-    val kind = if (block.discipline.equals("ROUTE", ignoreCase = true)) "vía" else "bloque"
+    val kind = context.getString(
+        if (block.discipline.equals("ROUTE", ignoreCase = true)) R.string.kind_route else R.string.kind_boulder)
     // Enlace que ABRE la app directamente en esta piedra (landing /s/v/... con
     // Open Graph → "abrir en app" o descargar si no la tienen). Recupera el
     // deep-link que el compartir de texto ya tenía.
@@ -99,10 +103,10 @@ suspend fun shareLineAsImage(
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "image/png"
         putExtra(Intent.EXTRA_STREAM, uri)
-        putExtra(Intent.EXTRA_TEXT, shareText(block, line, schoolName, sectorName, link))
+        putExtra(Intent.EXTRA_TEXT, shareText(context, block, line, schoolName, sectorName, link))
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(intent, "Compartir $kind"))
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_utils_v3_compartir_1_s, kind)))
     return true
 }
 
@@ -111,6 +115,7 @@ suspend fun shareLineAsImage(
  * y debajo piedra · escuela · sector, más el enlace que abre la app en la piedra.
  */
 private fun shareText(
+    context: Context,
     block: Block,
     line: BlockLine,
     schoolName: String,
@@ -118,17 +123,15 @@ private fun shareText(
     link: String
 ): String {
     val isRoute = block.discipline.equals("ROUTE", ignoreCase = true)
-    val kind = if (isRoute) "vía" else "bloque"
-    val article = if (isRoute) "esta" else "este"
     val grade = line.grade?.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
     val place = buildString {
         append(block.name)
         if (schoolName.isNotBlank()) append(" · ").append(schoolName)
         if (!sectorName.isNullOrBlank()) append(" · ").append(sectorName)
     }
-    return "🧗 Mira $article $kind: «${line.name}»$grade\n" +
-        "📍 $place\n" +
-        "👉 Míralo en la app:\n$link"
+    return context.getString(
+        if (isRoute) R.string.share_line_image_route else R.string.share_line_image_boulder,
+        line.name, grade, place, link)
 }
 
 /** topoAspectRatio de TopoPhotoCanvas: recorta el ratio a un rango razonable. */
@@ -136,6 +139,7 @@ private fun topoAspectRatio(w: Int, h: Int): Float =
     if (w <= 0 || h <= 0) 4f / 3f else (w.toFloat() / h).coerceIn(0.55f, 2.2f)
 
 private fun renderLineCard(
+    context: Context,
     block: Block,
     line: BlockLine,
     schoolName: String,
@@ -162,9 +166,9 @@ private fun renderLineCard(
     )
 
     // ── Cabecera ───────────────────────────────────────────────────────────
-    val kind = if (block.discipline.equals("ROUTE", ignoreCase = true)) "VÍA" else "BLOQUE"
+    val kind = if (block.discipline.equals("ROUTE", ignoreCase = true)) "VÍA" else AppText.get(R.string.w_boulder_caps2)
     c.drawText(
-        "$kind EN CUMBRE", pad, pad + 40f,
+        context.getString(R.string.share_line_image_v2_1_s_en_cumbre, kind), pad, pad + 40f,
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = TERRA; textSize = 34f; typeface = Typeface.MONOSPACE
             letterSpacing = 0.18f; isFakeBoldText = true
@@ -219,8 +223,8 @@ private fun renderLineCard(
 
         // Estado a la derecha (se dibuja antes para reservar su ancho).
         val statusPair = when {
-            tickedIds.contains(bl.id) -> "HECHO" to GREEN
-            projectIds.contains(bl.id) -> "PROYECTO" to TERRA
+            tickedIds.contains(bl.id) -> AppText.get(R.string.w_done_caps) to GREEN
+            projectIds.contains(bl.id) -> AppText.get(R.string.w_project_caps) to TERRA
             else -> null
         }
         var rightLimit = w - pad
@@ -253,7 +257,7 @@ private fun renderLineCard(
     }
     if (lines.size > maxRows) {
         c.drawText(
-            "+${lines.size - maxRows} vías más", pad + 56f, y + 20f,
+            context.getString(R.string.share_line_image_v2_1_s_vias_mas, lines.size - maxRows), pad + 56f, y + 20f,
             Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK_SOFT; textSize = 34f }
         )
         y += rowH

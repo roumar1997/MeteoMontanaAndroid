@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.util.CalendarLabels
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -131,9 +132,9 @@ fun MeetupAlertScreen(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Activar alertas", style = MaterialTheme.typography.bodyLarge,
+                    Text(stringResource(R.string.meetup_alert_screen_v2_activar_alertas), style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium)
-                    Text("Recibe una notificación cuando se cree una quedada que te interese",
+                    Text(stringResource(R.string.meetup_alert_screen_recibe_una_notificacion_cuando),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -152,8 +153,8 @@ fun MeetupAlertScreen(
             HorizontalDivider()
 
             // Escuela concreta (opcional)
-            SectionLabel("ESCUELA")
-            Text("Avísame solo de una escuela en concreto, o de cualquiera",
+            SectionLabel(stringResource(R.string.w_school_caps))
+            Text(stringResource(R.string.meetup_alert_screen_avisame_solo_de_una),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(verticalAlignment = Alignment.CenterVertically,
@@ -166,11 +167,11 @@ fun MeetupAlertScreen(
                 ) {
                     Icon(Icons.Outlined.Search, null, Modifier.size(16.dp))
                     Spacer(Modifier.size(6.dp))
-                    Text(selectedSchoolName ?: "Cualquier escuela", maxLines = 1)
+                    Text(selectedSchoolName ?: stringResource(R.string.meetup_alert_screen_v3_cualquier_escuela), maxLines = 1)
                 }
                 if (selectedSchoolId != null) {
                     IconButton(onClick = { selectedSchoolId = null; selectedSchoolName = null }) {
-                        Icon(Icons.Outlined.Close, "Quitar filtro de escuela")
+                        Icon(Icons.Outlined.Close, stringResource(R.string.meetup_alert_screen_v3_quitar_filtro_de_escuela))
                     }
                 }
             }
@@ -178,42 +179,42 @@ fun MeetupAlertScreen(
             HorizontalDivider()
 
             // Disciplina
-            SectionLabel("MODALIDAD")
+            SectionLabel(stringResource(R.string.w_discipline_caps))
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                AlertChip("Ambas", discipline == null, enabled = enabled) { if (enabled) discipline = null }
-                AlertChip("Bloque", discipline == "BOULDER", enabled = enabled) { if (enabled) discipline = "BOULDER" }
-                AlertChip("Vía", discipline == "ROUTE", enabled = enabled) { if (enabled) discipline = "ROUTE" }
+                AlertChip(stringResource(R.string.w_both), discipline == null, enabled = enabled) { if (enabled) discipline = null }
+                AlertChip(stringResource(R.string.w_boulder), discipline == "BOULDER", enabled = enabled) { if (enabled) discipline = "BOULDER" }
+                AlertChip(stringResource(R.string.school_map_v3_via), discipline == "ROUTE", enabled = enabled) { if (enabled) discipline = "ROUTE" }
             }
 
             HorizontalDivider()
 
             // Privacidad
-            SectionLabel("TIPO DE QUEDADA")
+            SectionLabel(stringResource(R.string.meetup_alert_screen_v3_tipo_de_quedada))
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
-                AlertChip("Todas", privacy == null, enabled = enabled) { if (enabled) privacy = null }
-                AlertChip("Abiertas", privacy == "OPEN", enabled = enabled) { if (enabled) privacy = "OPEN" }
+                AlertChip(stringResource(R.string.w_all), privacy == null, enabled = enabled) { if (enabled) privacy = null }
+                AlertChip(stringResource(R.string.w_open_pl), privacy == "OPEN", enabled = enabled) { if (enabled) privacy = "OPEN" }
                 AlertChip("Seguidos/Seguidores", privacy == "FOLLOWERS", enabled = enabled) { if (enabled) privacy = "FOLLOWERS" }
-                AlertChip("No mixto", privacy == "WOMEN", enabled = enabled && isWoman) {
+                AlertChip(stringResource(R.string.meetup_alert_screen_v3_no_mixto), privacy == "WOMEN", enabled = enabled && isWoman) {
                     if (enabled && isWoman) privacy = "WOMEN"
                 }
             }
             if (privacy == "WOMEN" && !isWoman) {
-                Text("Necesitas indicar tu género como Mujer en tu perfil para usar este filtro.",
+                Text(stringResource(R.string.meetup_alert_screen_necesitas_indicar_tu_genero),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
 
             HorizontalDivider()
 
             // Distancia
-            SectionLabel("DISTANCIA")
-            Text("Avísame solo de quedadas a menos de X km de mi ubicación",
+            SectionLabel(stringResource(R.string.w_distance_caps))
+            Text(stringResource(R.string.meetup_alert_screen_avisame_solo_de_quedadas),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                AlertChip("Sin límite", maxDistanceKm == null, enabled = enabled) { if (enabled) maxDistanceKm = null }
+                AlertChip(stringResource(R.string.meetup_alert_screen_v3_sin_limite), maxDistanceKm == null, enabled = enabled) { if (enabled) maxDistanceKm = null }
                 AlertChip("50 km", maxDistanceKm == 50, enabled = enabled) { if (enabled) maxDistanceKm = 50 }
                 AlertChip("100 km", maxDistanceKm == 100, enabled = enabled) { if (enabled) maxDistanceKm = 100 }
                 AlertChip("200 km", maxDistanceKm == 200, enabled = enabled) { if (enabled) maxDistanceKm = 200 }
@@ -222,8 +223,8 @@ fun MeetupAlertScreen(
             HorizontalDivider()
 
             // Días concretos (próximos 14, mismo rango que crear)
-            SectionLabel("DÍAS")
-            Text("Avísame si la quedada incluye alguno de estos días (vacío = cualquier día)",
+            SectionLabel(stringResource(R.string.meetup_alert_screen_v3_dias))
+            Text(stringResource(R.string.meetup_alert_screen_avisame_si_la_quedada),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             val nextDays = remember { nextNDaysAlert(14) }
@@ -259,7 +260,7 @@ fun MeetupAlertScreen(
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text(if (enabled) "GUARDAR ALERTA" else "DESACTIVAR ALERTA")
+                Text(if (enabled) stringResource(R.string.meetup_alert_screen_v3_guardar_alerta) else stringResource(R.string.meetup_alert_screen_v3_desactivar_alerta))
             }
         }
     }
@@ -267,8 +268,8 @@ fun MeetupAlertScreen(
 }
 
 private fun nextNDaysAlert(n: Int): List<Pair<String, String>> {
-    val dayNames = listOf("dom","lun","mar","mié","jue","vie","sáb")
-    val monthNames = listOf("ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic")
+    val dayNames = CalendarLabels.daysShortSunFirst().map { it.lowercase() }
+    val monthNames = CalendarLabels.monthsShort().map { it.lowercase() }
     val result = mutableListOf<Pair<String, String>>()
     val now = System.currentTimeMillis()
     val dayMs = 86_400_000L
@@ -326,13 +327,13 @@ private fun AlertSchoolPickerDialog(
     var query by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Buscar escuela", style = MaterialTheme.typography.titleMedium) },
+        title = { Text(stringResource(R.string.meetup_alert_screen_v2_buscar_escuela), style = MaterialTheme.typography.titleMedium) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it; onQueryChange(it) },
-                    placeholder = { Text("Ej. Zarzalejo, Pedriza…") },
+                    placeholder = { Text(stringResource(R.string.meetup_alert_screen_v2_ej_zarzalejo_pedriza)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(4.dp)
@@ -356,7 +357,7 @@ private fun AlertSchoolPickerDialog(
                         }
                     }
                 } else if (query.length >= 2) {
-                    Text("Sin resultados", style = MaterialTheme.typography.bodySmall,
+                    Text(stringResource(R.string.meetup_alert_screen_v2_sin_resultados), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }

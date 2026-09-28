@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.util.AppText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.domain.util.Geo
@@ -33,6 +34,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 data class MeetupsUiState(
     val meetups: List<Meetup> = emptyList(),
@@ -191,9 +194,9 @@ class MeetupsViewModel @Inject constructor(
                 } else {
                     val msg = when {
                         e.message?.contains("FOLLOW_REQUIRED") == true ->
-                            "Solo puedes unirte si sigues al organizador o te sigue."
+                            AppText.get(R.string.meetups_view_model_v4_solo_puedes_unirte_si_sigues)
                         e.message?.contains("MEETUP_FULL") == true ->
-                            "La quedada está completa."
+                            AppText.get(R.string.meetups_view_model_v4_la_quedada_esta_completa)
                         else -> e.message
                     }
                     _detail.update { it.copy(joining = false, error = msg) }
@@ -278,7 +281,7 @@ class MeetupsViewModel @Inject constructor(
                 if (e.message?.contains("GENDER_REQUIRED") == true) {
                     _genderGate.value = true   // RC3: diálogo con CTA a Editar perfil
                 } else {
-                    _createError.value = e.message ?: "Error al crear la quedada"
+                    _createError.value = e.message ?: AppText.get(R.string.meetups_view_model_v4_error_al_crear_la_quedada)
                 }
                 onError()
             }
@@ -339,7 +342,7 @@ class MeetupsViewModel @Inject constructor(
                 )
             } catch (e: Exception) {
                 _alertError.value = if (e.message?.contains("GENDER_REQUIRED") == true)
-                    "Para filtrar por No Mixto necesitas indicar tu género como Mujer en tu perfil."
+                    AppText.get(R.string.meetups_view_model_v4_para_filtrar_por_no_mixto)
                 else e.message
             }
         }

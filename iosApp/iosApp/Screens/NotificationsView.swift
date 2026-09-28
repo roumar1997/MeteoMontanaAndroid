@@ -123,7 +123,7 @@ struct NotificationsView: View {
                     EmptyStateView(
                         icon: "bell",
                         title: NSLocalizedString("notifications_empty", comment: ""),
-                        message: "Aquí te avisaremos de nuevos seguidores, solicitudes, mensajes y novedades de tus propuestas."
+                        message: L("Aquí te avisaremos de nuevos seguidores, solicitudes, mensajes y novedades de tus propuestas.")
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {

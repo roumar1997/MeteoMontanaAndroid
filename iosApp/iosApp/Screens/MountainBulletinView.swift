@@ -38,7 +38,7 @@ struct MountainBulletinSection: View {
         guard let t = b.texts["tormentas"], !t.hasPrefix("No se esperan") else { return nil }
         var clean = t
         if clean.hasSuffix(".") { clean.removeLast() }
-        return "⚠ TORMENTAS: \(clean.lowercased())"
+        return L("⚠ TORMENTAS: %@", clean.lowercased())
     }
 
     private func card(_ b: MountainBulletinDto) -> some View {
@@ -80,15 +80,15 @@ struct MountainBulletinSection: View {
             if expanded {
                 Divider().background(Cumbre.rule)
                 VStack(alignment: .leading, spacing: 10) {
-                    row("CIELO", b.texts["nubosidad"])
-                    row("PRECIPITACIONES", b.texts["pcp"])
-                    row("TORMENTAS", b.texts["tormentas"], highlight: warn != nil)
-                    row("TEMPERATURAS", b.texts["temperatura"])
-                    row("VIENTO", b.texts["viento"])
+                    row(L("CIELO"), b.texts["nubosidad"])
+                    row(L("PRECIPITACIONES"), b.texts["pcp"])
+                    row(L("TORMENTAS"), b.texts["tormentas"], highlight: warn != nil)
+                    row(L("TEMPERATURAS"), b.texts["temperatura"])
+                    row(L("VIENTO"), b.texts["viento"])
 
                     // Atmósfera libre como chips mono.
                     let chips: [String] = [
-                        b.texts["isocero"].map { "ISO 0° · \($0)" },
+                        b.texts["isocero"].map { L("ISO 0° · %@", $0) },
                         b.texts["v1500"].map { "1.500 M · \($0)" },
                         b.texts["v3000"].map { "3.000 M · \($0)" }
                     ].compactMap { $0 }

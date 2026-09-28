@@ -202,17 +202,17 @@ enum MeetupSheet: Identifiable, Equatable {
 
 func privacyLabel(_ privacy: String) -> String {
     switch privacy {
-    case "FOLLOWERS": return "Seguidos"
-    case "WOMEN":     return "No mixto"
-    default:          return "Abierta"
+    case "FOLLOWERS": return L("Seguidos")
+    case "WOMEN":     return L("No mixto")
+    default:          return L("Abierta")
     }
 }
 
 func disciplineLabel(_ discipline: String) -> String {
     switch discipline {
-    case "BOULDER": return "Bloque"
-    case "ROUTE":   return "Via"
-    case "BOTH":    return "Bloque + Via"
+    case "BOULDER": return L("Bloque")
+    case "ROUTE":   return L("Via")
+    case "BOTH":    return L("Bloque + Via")
     default:        return discipline
     }
 }
@@ -240,7 +240,7 @@ struct MeetupDayInfo: Identifiable {
 func generateNextDays(_ count: Int) -> [MeetupDayInfo] {
     let cal = Calendar.current
     let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "es_ES")
+    formatter.locale = LanguageManager.shared.locale
     let isoFormatter = DateFormatter()
     isoFormatter.dateFormat = "yyyy-MM-dd"
     let weekdays = ["dom","lun","mar","mie","jue","vie","sab"]

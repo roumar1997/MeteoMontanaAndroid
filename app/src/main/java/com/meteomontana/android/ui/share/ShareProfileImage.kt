@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.share
 
+
+import com.meteomontana.android.util.AppText
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -17,6 +19,8 @@ import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import java.io.File
+import com.meteomontana.android.R
+import androidx.compose.ui.res.stringResource
 
 /* Paleta Cumbre (= ShareLineImage) */
 private const val PAPER = 0xFFFAF7F2.toInt()
@@ -54,7 +58,7 @@ suspend fun shareProfileAsImage(
         (result as? SuccessResult)?.drawable?.toBitmap()
     }
 
-    val bmp = renderProfileCard(displayLabel, username, avatar, topGrade, bio, boulders, routes, schools)
+    val bmp = renderProfileCard(context, displayLabel, username, avatar, topGrade, bio, boulders, routes, schools)
     val dir = File(context.cacheDir, "share").apply { mkdirs() }
     // Nombre ÚNICO (WhatsApp cachea por URI; con nombre fijo repetía la 1ª imagen).
     dir.listFiles()?.filter { it.name.startsWith("perfil") }?.forEach { it.delete() }
@@ -62,7 +66,7 @@ suspend fun shareProfileAsImage(
     file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 
-    val text = "Perfil de $displayLabel en Cumbre:\n" +
+    val text = context.getString(R.string.share_utils_v4_perfil_de_en_cumbre_n, displayLabel) +
         (com.meteomontana.android.ui.share.shareBaseUrl()) + "/s/u/$handle"
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "image/png"
@@ -70,10 +74,11 @@ suspend fun shareProfileAsImage(
         putExtra(Intent.EXTRA_TEXT, text)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    context.startActivity(Intent.createChooser(intent, "Compartir perfil"))
+    context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_utils_v3_compartir_perfil)))
 }
 
 private fun renderProfileCard(
+    context: Context,
     displayLabel: String,
     username: String?,
     avatar: Bitmap?,
@@ -94,7 +99,7 @@ private fun renderProfileCard(
     })
 
     // Eyebrow superior.
-    c.drawText("ESCALA CONMIGO EN CUMBRE", cx, 180f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    c.drawText(context.getString(R.string.share_profile_image_v2_escala_conmigo_en_cumbre), cx, 180f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = TERRA; textSize = 34f; typeface = Typeface.MONOSPACE
         letterSpacing = 0.18f; isFakeBoldText = true; textAlign = Paint.Align.CENTER
     })
@@ -153,7 +158,7 @@ private fun renderProfileCard(
     // Grado máximo en caja regla (si lo hay).
     if (!topGrade.isNullOrBlank()) {
         y += 30f
-        val label = "GRADO MÁXIMO"
+        val label = context.getString(R.string.share_profile_image_grado_maximo)
         val gradePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = INK; textSize = 84f; isFakeBoldText = true; textAlign = Paint.Align.CENTER
             typeface = Typeface.MONOSPACE
@@ -175,9 +180,9 @@ private fun renderProfileCard(
 
     // Fila de stats: BLOQUES · VÍAS · ESCUELAS (solo las que tengan dato > 0).
     val statCols = listOfNotNull(
-        boulders?.takeIf { it > 0 }?.let { "$it" to "BLOQUES" },
-        routes?.takeIf { it > 0 }?.let { "$it" to "VÍAS" },
-        schools?.takeIf { it > 0 }?.let { "$it" to "ESCUELAS" }
+        boulders?.takeIf { it > 0 }?.let { "$it" to AppText.get(R.string.w_boulders_caps) },
+        routes?.takeIf { it > 0 }?.let { "$it" to AppText.get(R.string.w_routes_caps) },
+        schools?.takeIf { it > 0 }?.let { "$it" to AppText.get(R.string.w_schools_caps) }
     )
     if (statCols.isNotEmpty()) {
         y += 20f
@@ -210,10 +215,10 @@ private fun renderProfileCard(
     }
 
     // Pie: CTA + marca.
-    c.drawText("Descarga Cumbre", cx, h - 200f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    c.drawText(context.getString(R.string.share_profile_image_v2_descarga_cumbre), cx, h - 200f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = INK; textSize = 44f; textAlign = Paint.Align.CENTER
     })
-    c.drawText("⛰ CUMBRE", cx, h - 110f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    c.drawText(context.getString(R.string.share_profile_image_v2_cumbre), cx, h - 110f, Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = TERRA; textSize = 40f; typeface = Typeface.MONOSPACE
         letterSpacing = 0.18f; isFakeBoldText = true; textAlign = Paint.Align.CENTER
     })

@@ -111,7 +111,7 @@ fun ChatScreen(
         .imePadding()
     ) {
         ChatSheetHeader(
-            name = state.otherProfile?.username ?: state.otherProfile?.displayName ?: "Usuario",
+            name = state.otherProfile?.username ?: state.otherProfile?.displayName ?: stringResource(R.string.w_user),
             avatarUrl = state.otherProfile?.photoUrl,
             onClose = onBack,
             onOpenProfile = { onOpenProfile(state.otherUid) }
@@ -133,7 +133,7 @@ fun ChatScreen(
                     msg = msg,
                     myUid = state.myUid ?: state.myProfile?.uid,
                     otherName = state.otherProfile?.username
-                        ?: state.otherProfile?.displayName ?: "Usuario",
+                        ?: state.otherProfile?.displayName ?: stringResource(R.string.w_user),
                     onReply = { viewModel.startReply(msg) }
                 )
             }
@@ -150,7 +150,7 @@ fun ChatScreen(
         if (!state.canWrite) {
             Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
                 Text(
-                    "No puedes escribir: este perfil es privado y no te sigue",
+                    stringResource(R.string.chat_screen_v2_no_puedes_escribir_este_perfil),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -158,7 +158,7 @@ fun ChatScreen(
         } else {
             // Cita del mensaje al que respondo (estilo WhatsApp).
             state.replyingTo?.let { reply ->
-                val who = if (reply.fromUid == (state.myUid ?: state.myProfile?.uid)) "Tú"
+                val who = if (reply.fromUid == (state.myUid ?: state.myProfile?.uid)) stringResource(R.string.school_presence_row_v3_tu)
                           else (state.otherProfile?.username ?: state.otherProfile?.displayName ?: "")
                 Row(
                     modifier = Modifier.fillMaxWidth()
@@ -172,7 +172,7 @@ fun ChatScreen(
                     )
                     Column(Modifier.weight(1f).padding(start = 8.dp)) {
                         Text(
-                            if (who.isNotBlank()) "Respondiendo a $who" else "Respondiendo",
+                            if (who.isNotBlank()) stringResource(R.string.chat_screen_v3_respondiendo_a, who) else stringResource(R.string.chat_screen_v3_respondiendo),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -184,7 +184,7 @@ fun ChatScreen(
                         )
                     }
                     IconButton(onClick = { viewModel.cancelReply() }) {
-                        Icon(Icons.Outlined.Close, contentDescription = "Cancelar respuesta",
+                        Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.chat_screen_v2_cancelar_respuesta),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -337,7 +337,7 @@ private fun MessageBubble(
                 // y Kotlin no permite smart-cast directo tras el null-check.
                 val replyText = msg.replyText
                 if (msg.replyToId != null && replyText != null) {
-                    val who = if (msg.replyFromUid == myUid) "Tú" else otherName
+                    val who = if (msg.replyFromUid == myUid) stringResource(R.string.school_presence_row_v3_tu) else otherName
                     Row(
                         modifier = Modifier.fillMaxWidth()
                             .clip(RoundedCornerShape(4.dp))

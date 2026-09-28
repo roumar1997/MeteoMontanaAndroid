@@ -214,8 +214,8 @@ func presentSystemPhotoPicker(context: String, onPick: @escaping (UIImage) -> Vo
 func showPhotoCaptureFailedAlert() {
     guard let top = topPresentedViewController() else { return }
     let alert = UIAlertController(
-        title: "La foto no se ha guardado",
-        message: "Inténtalo de nuevo o elígela de la galería.",
+        title: L("La foto no se ha guardado"),
+        message: L("Inténtalo de nuevo o elígela de la galería."),
         preferredStyle: .alert)
     alert.addAction(UIAlertAction(title: "OK", style: .default))
     top.present(alert, animated: true)
@@ -307,7 +307,7 @@ func showFeedPhotoUploadFailedAlert() {
     while let presented = top.presentedViewController { top = presented }
     let alert = UIAlertController(
         title: nil,
-        message: "No se pudo subir la foto; publicado sin ella",
+        message: L("No se pudo subir la foto; publicado sin ella"),
         preferredStyle: .alert)
     alert.addAction(UIAlertAction(title: "OK", style: .default))
     top.present(alert, animated: true)

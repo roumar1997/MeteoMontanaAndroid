@@ -16,6 +16,8 @@ import androidx.lifecycle.ViewModel
 import com.meteomontana.android.domain.port.NetworkMonitor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @HiltViewModel
 class NetworkBannerViewModel @Inject constructor(
@@ -38,7 +40,7 @@ fun NetworkBanner(viewModel: NetworkBannerViewModel = hiltViewModel()) {
             .padding(horizontal = 16.dp, vertical = 6.dp)
     ) {
         Text(
-            "● SIN CONEXIÓN — usando datos guardados",
+            stringResource(R.string.network_banner_v2_sin_conexion_usando_datos_guardados),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.error
         )

@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.CatalogLabels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,6 +26,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Filtro por ORIENTACIÓN de las piedras de una escuela (buscador del mapa):
@@ -89,12 +92,12 @@ internal fun OrientationFilterChips(
         modifier = Modifier.padding(vertical = 4.dp)
     ) {
         item {
-            OrientationChip("TODAS", selected == null, enabled = true) { onSelect(null) }
+            OrientationChip(stringResource(R.string.w_all_caps), selected == null, enabled = true) { onSelect(null) }
         }
         OrientationFilterViewModel.ASPECTS.forEach { aspect ->
             val n = counts[aspect] ?: 0
             if (n > 0) item {
-                OrientationChip("$aspect · $n", selected == aspect, enabled = true) {
+                OrientationChip("${CatalogLabels.aspect(aspect)} · $n", selected == aspect, enabled = true) {
                     onSelect(aspect)
                 }
             }

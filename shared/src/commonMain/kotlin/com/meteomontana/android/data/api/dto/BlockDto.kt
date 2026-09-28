@@ -98,6 +98,18 @@ data class CreateLineCommentRequest(
     val text: String
 )
 
+/** sectorBlockId null = piedras sin sector asignado. */
+@Serializable
+data class ReorderBlocksRequest(
+    val sectorBlockId: String? = null,
+    val orderedBlockIds: List<String>
+)
+
+@Serializable
+data class AutoReorderRequest(
+    val sectorBlockId: String? = null
+)
+
 @Serializable
 data class CreateBlockRequest(
     val type: String,
@@ -112,4 +124,28 @@ data class CreateBlockRequest(
     val geometry: String? = null,    // BLOCK: POINT / LINE (muro)
     val path: String? = null,        // BLOCK+LINE: polilínea JSON
     val direction: String? = null    // BLOCK+LINE: "LTR"/"RTL"
+)
+
+/** Enlace de la comunidad a un vídeo de beta (Instagram/YouTube) de una
+ *  piedra/muro (lineId=null) o de una vía concreta. Puede haber varios por
+ *  piedra/vía, cada uno con categoría de altura opcional. */
+@Serializable
+data class BetaLinkDto(
+    val id: String,
+    val blockId: String,
+    val lineId: String? = null,
+    val url: String,
+    // "TALL" (+1,70) / "SHORT" (-1,70) / null = sin especificar.
+    val heightCategory: String? = null,
+    val uid: String,
+    val createdAt: String? = null,
+    val authorName: String? = null
+)
+
+@Serializable
+data class CreateBetaLinkRequest(
+    val lineId: String? = null,
+    val url: String,
+    val heightCategory: String? = null,
+    val authorName: String? = null
 )

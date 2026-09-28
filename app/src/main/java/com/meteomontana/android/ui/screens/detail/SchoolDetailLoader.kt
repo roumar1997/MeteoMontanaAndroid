@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.data.saved.SavedSchoolRepository
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.usecase.approach.GetApproachesUseCase
@@ -15,6 +16,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 /**
  * Un reintento corto ante un fallo puntual de red (móvil cambiando de celda,
@@ -141,7 +144,7 @@ class SchoolDetailLoader @Inject constructor(
                         ),
                         forecast = snapshot.forecast,
                         forecastError = if (snapshot.forecast == null)
-                            "Sin conexión y sin snapshot — solo mapa offline" else null,
+                            AppText.get(R.string.school_detail_loader_v4_sin_conexion_y_sin_snapshot) else null,
                         notes = emptyList(),
                         isFavorite = false,
                         blocks = snapshot.blocks.map { savedSchoolRepo.toBlock(it, snapshot.lines) },

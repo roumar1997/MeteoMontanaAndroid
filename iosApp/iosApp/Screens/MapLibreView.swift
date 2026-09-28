@@ -16,7 +16,7 @@ enum MapStyleKind: String, CaseIterable {
     case topo
     case satellite
 
-    var label: String { self == .topo ? "Topográfico" : "Satélite" }
+    var label: String { self == .topo ? L("Topográfico") : L("Satélite") }
 
     /// JSON de estilo MapLibre v8 escrito a un fichero temporal (MLNMapView pide
     /// una URL). Espejo exacto de las fuentes que usa Android.

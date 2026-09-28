@@ -127,13 +127,13 @@ fun EditBlockDialog(
                 .verticalScroll(rememberScrollState())
                 .padding(Spacing.md)
         ) {
-            Text("Editar ${typeLabel(block.type)}",
+            Text(stringResource(R.string.edit_block_dialog_v2_editar_1_s, typeLabel(block.type)),
                 style = MaterialTheme.typography.headlineMedium.copy(fontFamily = Serif),
                 color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(Spacing.lg))
 
             // Nombre
-            Text("NOMBRE", style = EyebrowTextStyle,
+            Text(stringResource(R.string.edit_block_dialog_v2_nombre), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.xs))
             OutlinedTextField(
@@ -146,7 +146,7 @@ fun EditBlockDialog(
             Spacer(Modifier.height(Spacing.md))
 
             // Pegar coordenadas Google Maps
-            Text("PEGAR COORDENADAS (GOOGLE MAPS)", style = EyebrowTextStyle,
+            Text(stringResource(R.string.edit_block_dialog_v2_pegar_coordenadas_google_maps), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.xs))
             OutlinedTextField(
@@ -160,7 +160,7 @@ fun EditBlockDialog(
                         pasted = ""
                     }
                 },
-                placeholder = { Text("Pega aquí ej: 40.4168, -3.7038",
+                placeholder = { Text(stringResource(R.string.edit_block_dialog_pega_aqui_ej_40),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 singleLine = true,
@@ -175,7 +175,7 @@ fun EditBlockDialog(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Box(Modifier.weight(1f)) {
                     Column {
-                        Text("LATITUD", style = EyebrowTextStyle,
+                        Text(stringResource(R.string.edit_block_dialog_v2_latitud), style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(Spacing.xs))
                         OutlinedTextField(
@@ -188,7 +188,7 @@ fun EditBlockDialog(
                 }
                 Box(Modifier.weight(1f)) {
                     Column {
-                        Text("LONGITUD", style = EyebrowTextStyle,
+                        Text(stringResource(R.string.edit_block_dialog_v2_longitud), style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(Spacing.xs))
                         OutlinedTextField(
@@ -213,14 +213,14 @@ fun EditBlockDialog(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("📍 MOVER PULSANDO EN EL MAPA", style = EyebrowTextStyle, color = Terra)
+                    Text(stringResource(R.string.edit_block_dialog_mover_pulsando_en_el), style = EyebrowTextStyle, color = Terra)
                 }
             }
 
             Spacer(Modifier.height(Spacing.md))
 
             // Descripción
-            Text("DESCRIPCIÓN", style = EyebrowTextStyle,
+            Text(stringResource(R.string.edit_block_dialog_descripcion), style = EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(Spacing.xs))
             OutlinedTextField(
@@ -245,10 +245,10 @@ fun EditBlockDialog(
             // Para BLOCK: editor de líneas
             if (block.type == "BLOCK" && !block.photoPath.isNullOrBlank()) {
                 Spacer(Modifier.height(Spacing.md))
-                Text("VÍAS DIBUJADAS", style = EyebrowTextStyle,
+                Text(stringResource(R.string.edit_block_dialog_vias_dibujadas), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
-                Text("${bloques.count { it.linePath.isNotEmpty() || it.name.isNotBlank() }} vías",
+                Text(stringResource(R.string.edit_block_dialog_v2_1_s_vias, bloques.count { it.linePath.isNotEmpty() || it.name.isNotBlank() }),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(Spacing.xs))
@@ -261,7 +261,7 @@ fun EditBlockDialog(
                         .padding(vertical = Spacing.md),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("✎ EDITAR LÍNEAS Y VÍAS", style = EyebrowTextStyle, color = Color.White)
+                    Text(stringResource(R.string.edit_block_dialog_editar_lineas_y_vias), style = EyebrowTextStyle, color = Color.White)
                 }
             }
 
@@ -306,7 +306,7 @@ fun EditBlockDialog(
                     if (saving) CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
                         color = Color.White, strokeWidth = 2.dp
-                    ) else Text("GUARDAR CAMBIOS", style = EyebrowTextStyle, color = Color.White)
+                    ) else Text(stringResource(R.string.edit_block_dialog_v2_guardar_cambios), style = EyebrowTextStyle, color = Color.White)
                 }
             }
         }

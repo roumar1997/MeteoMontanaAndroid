@@ -21,7 +21,7 @@ struct DayDetailView: View {
                     Divider().overlay(Cumbre.rule)
                     conditionsTable
                     Divider().overlay(Cumbre.rule)
-                    SectionTitleDD("HORA A HORA")
+                    SectionTitleDD(L("HORA A HORA"))
                     if dayHours.isEmpty {
                         Text("Sin datos horarios para este día.")
                             .font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(16)
@@ -65,9 +65,9 @@ struct DayDetailView: View {
 
     private var conditionsTable: some View {
         let cells: [(String, String)] = [
-            ("MÁX", "\(Int(day.tempMax))°"),
-            ("MÍN", "\(Int(day.tempMin))°"),
-            ("LLUVIA", String(format: "%.1f mm", day.precipitationTotal)),
+            (L("MÁX"), "\(Int(day.tempMax))°"),
+            (L("MÍN"), "\(Int(day.tempMin))°"),
+            (L("LLUVIA"), String(format: "%.1f mm", day.precipitationTotal)),
         ]
         return HStack(spacing: 0) {
             ForEach(Array(cells.enumerated()), id: \.offset) { _, c in

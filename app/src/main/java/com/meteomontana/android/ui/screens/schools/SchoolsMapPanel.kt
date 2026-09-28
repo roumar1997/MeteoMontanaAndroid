@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.schools
 
+import com.meteomontana.android.util.CatalogLabels
 import com.meteomontana.android.data.map.MapStyles
 
 import android.content.Intent
@@ -430,7 +431,7 @@ private fun MapBody(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState())
                 ) {
-                    Text("DIST.", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.schools_map_panel_v2_dist), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     DISTANCE_OPTIONS.forEach { km ->
                         MapFilterPill(
                             label = km?.let { "${it.toInt()} km" } ?: stringResource(R.string.schools_filter_all),
@@ -443,10 +444,10 @@ private fun MapBody(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text("ESTILO", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.schools_map_panel_v2_estilo), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     StyleFilter.entries.forEach { s ->
                         MapFilterPill(
-                            label = s.label,
+                            label = stringResource(s.labelRes),
                             selected = s == style,
                             onClick = { onStyleChange(s) }
                         )
@@ -778,7 +779,7 @@ private fun MarkerPreviewCard(
             modifier = Modifier.padding(top = Spacing.xs),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
-            school.rockType?.let { Tag(it) }
+            school.rockType?.let { Tag(CatalogLabels.rock(it)) }
             school.style?.let    { Tag(it) }
             distKm?.let          { Tag("${it.toInt()} km") }
         }
@@ -801,7 +802,7 @@ private fun MarkerPreviewCard(
                 modifier = Modifier.weight(1f)
             )
             FilledAction(
-                text = "VER DETALLE ▸",
+                text = stringResource(R.string.schools_map_panel_v3_ver_detalle),
                 onClick = onSchoolDetail,
                 modifier = Modifier.weight(1f)
             )

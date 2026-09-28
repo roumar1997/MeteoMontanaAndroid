@@ -44,7 +44,7 @@ struct UsernameGateView: View {
             .background(Cumbre.paper)
             .overlay(RoundedRectangle(cornerRadius: 2)
                 .stroke(error == nil ? Cumbre.rule : .red, lineWidth: 1))
-            Text(error ?? "3-20 caracteres: minúsculas, números y _")
+            Text(error ?? L("3-20 caracteres: minúsculas, números y _"))
                 .font(Cumbre.mono(10))
                 .foregroundStyle(error == nil ? Cumbre.ink3 : .red)
                 .padding(.top, 6)
@@ -90,8 +90,8 @@ struct UsernameGateView: View {
                 // 409 = ya cogido; el resto, mensaje genérico.
                 let desc = String(describing: error)
                 self.error = desc.contains("409") || desc.lowercased().contains("conflict")
-                    ? "Ese nombre de usuario ya está cogido"
-                    : "No se pudo guardar. Inténtalo de nuevo."
+                    ? L("Ese nombre de usuario ya está cogido")
+                    : L("No se pudo guardar. Inténtalo de nuevo.")
             }
         }
     }

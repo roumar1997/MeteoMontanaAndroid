@@ -248,16 +248,16 @@ fun AddBlockSheet(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Añadir bloque", style = MaterialTheme.typography.headlineMedium,
+            Text(stringResource(R.string.add_block_sheet_anadir_bloque), style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
 
             // ─── ESCUELA con autocomplete ───
             val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
-            Label("ESCUELA")
+            Label(stringResource(R.string.w_school_caps))
             OutlinedTextField(
                 value = selectedSchool?.name ?: schoolQuery,
                 onValueChange = { schoolQuery = it; selectedSchool = null },
-                placeholder = { Text("Buscar escuela...") },
+                placeholder = { Text(stringResource(R.string.add_block_sheet_v2_buscar_escuela)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -265,7 +265,7 @@ fun AddBlockSheet(
                 SuggestionsBox {
                     results.take(5).forEach { sch ->
                         SuggestionRow(
-                            text = "${sch.name}${sch.region?.let { " · $it" } ?: ""}",
+                            text = "${sch.name}${sch.region?.let { " · " + com.meteomontana.android.util.CatalogLabels.region(it) } ?: ""}",
                             onClick = {
                                 closeKeyboard(); selectedSchool = sch; schoolQuery = sch.name
                             }
@@ -274,22 +274,22 @@ fun AddBlockSheet(
                 }
             }
 
-            Label("FECHA")
+            Label(stringResource(R.string.w_date_caps))
             Text(today, style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onBackground)
 
             // ─── SECTOR con autocomplete (sectores previos del usuario) ───
-            Label("SECTOR (opcional)")
+            Label(stringResource(R.string.add_block_sheet_v3_sector_opcional))
             OutlinedTextField(
                 value = sector,
                 onValueChange = { sector = it; selectedSectorBlockId = null },
-                placeholder = { Text("ej: Sector Bajo") },
+                placeholder = { Text(stringResource(R.string.add_block_sheet_v2_ej_sector_bajo)) },
                 singleLine = true, modifier = Modifier.fillMaxWidth()
             )
             if (sectorSuggestions.isNotEmpty()) {
                 SuggestionsBox {
                     sectorSuggestions.forEach { sug ->
-                        val label = if (sug.blockId != null) "${sug.name} · catalogado" else sug.name
+                        val label = if (sug.blockId != null) stringResource(R.string.add_block_sheet_v3_catalogado, sug.name) else sug.name
                         SuggestionRow(
                             text = label,
                             onClick = {
@@ -302,14 +302,14 @@ fun AddBlockSheet(
             }
 
             // ─── MODALIDAD: bloque o vía (decide en qué lista del diario cae) ───
-            Label("MODALIDAD")
+            Label(stringResource(R.string.w_discipline_caps))
             ModalityToggle(selected = discipline, onSelect = { discipline = it })
 
             // ─── NOMBRE con autocomplete (bloques/vías previos + de la escuela) ───
-            Label(if (discipline == "ROUTE") "VÍA" else "BLOQUE")
+            Label(if (discipline == "ROUTE") stringResource(R.string.add_block_sheet_v3_via) else "BLOQUE")
             OutlinedTextField(
                 value = blockName, onValueChange = { blockName = it },
-                placeholder = { Text("ej: El Pollito") },
+                placeholder = { Text(stringResource(R.string.add_block_sheet_v2_ej_el_pollito)) },
                 singleLine = true, modifier = Modifier.fillMaxWidth()
             )
             if (lineSuggestions.isNotEmpty()) {
@@ -334,7 +334,7 @@ fun AddBlockSheet(
                 }
             }
 
-            Label("GRADO")
+            Label(stringResource(R.string.w_grade_caps))
             ExposedDropdownMenuBox(
                 expanded = gradeMenuExpanded,
                 onExpandedChange = { gradeMenuExpanded = !gradeMenuExpanded }
@@ -357,10 +357,10 @@ fun AddBlockSheet(
                 }
             }
 
-            Label("NOTAS (opcional)")
+            Label(stringResource(R.string.add_block_sheet_v3_notas_opcional))
             OutlinedTextField(
                 value = notes, onValueChange = { notes = it },
-                placeholder = { Text("¿Qué tal fue?") },
+                placeholder = { Text(stringResource(R.string.add_block_sheet_que_tal_fue)) },
                 modifier = Modifier.fillMaxWidth().height(80.dp)
             )
 
@@ -385,7 +385,7 @@ fun AddBlockSheet(
                     containerColor = inkButtonColor(), contentColor = Color.White
                 ),
                 shape = MaterialTheme.shapes.small
-            ) { Text("GUARDAR") }
+            ) { Text(stringResource(R.string.add_block_sheet_v2_guardar)) }
             TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.common_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -406,8 +406,8 @@ private fun Label(text: String) {
 @Composable
 private fun ModalityToggle(selected: String, onSelect: (String) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ModalityOption("BLOQUE", selected == "BOULDER", Modifier.weight(1f)) { onSelect("BOULDER") }
-        ModalityOption("VÍA", selected == "ROUTE", Modifier.weight(1f)) { onSelect("ROUTE") }
+        ModalityOption(stringResource(R.string.w_boulder_caps2), selected == "BOULDER", Modifier.weight(1f)) { onSelect("BOULDER") }
+        ModalityOption(stringResource(R.string.add_block_sheet_v3_via), selected == "ROUTE", Modifier.weight(1f)) { onSelect("ROUTE") }
     }
 }
 

@@ -38,7 +38,7 @@ struct SearchUsersView: View {
                     Spacer()
                 } else if vm.results.isEmpty {
                     Spacer()
-                    Text(vm.query.count < 2 ? "Escribe al menos 2 letras" : "Sin resultados")
+                    Text(vm.query.count < 2 ? L("Escribe al menos 2 letras") : L("Sin resultados"))
                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
                     Spacer()
                 } else {
@@ -88,7 +88,7 @@ private struct UserRow: View {
         HStack(spacing: 12) {
             AvatarCircle(url: profile.photoUrl, size: 40)
             VStack(alignment: .leading, spacing: 2) {
-                Text(profile.displayName ?? profile.username ?? "Usuario")
+                Text(profile.displayName ?? profile.username ?? L("Usuario"))
                     .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
                 if let u = profile.username, !u.isEmpty {
                     Text("@\(u)").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
@@ -199,7 +199,7 @@ struct PublicProfileView: View {
                 // Avatar ampliable con zoom al tocarlo (si tiene foto).
                 AvatarCircle(url: vm.profile?.photoUrl, size: 88)
                     .onTapGesture { if vm.profile?.photoUrl != nil { zoomPhoto = true } }
-                Text(vm.profile?.displayName ?? vm.profile?.username ?? "Usuario")
+                Text(vm.profile?.displayName ?? vm.profile?.username ?? L("Usuario"))
                     .font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
                 if let u = vm.profile?.username, !u.isEmpty {
                     Text("@\(u)").font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink3)
@@ -226,17 +226,17 @@ struct PublicProfileView: View {
                     if let s = vm.status {
                         HStack(spacing: 24) {
                             NavigationLink(destination: FollowListView(uid: realUid, mode: .followers)) {
-                                stat("\(s.followers)", "SEGUIDORES")
+                                stat("\(s.followers)", L("SEGUIDORES"))
                             }.buttonStyle(.plain)
                             NavigationLink(destination: FollowListView(uid: realUid, mode: .following)) {
-                                stat("\(s.following)", "SIGUIENDO")
+                                stat("\(s.following)", L("SIGUIENDO"))
                             }.buttonStyle(.plain)
                         }
                         followButton(s)
                         // Chat 1-a-1 con este usuario (Firestore).
                         NavigationLink(destination: ChatView(
                             otherUid: realUid,
-                            otherName: vm.profile?.displayName ?? vm.profile?.username ?? "Usuario")) {
+                            otherName: vm.profile?.displayName ?? vm.profile?.username ?? L("Usuario"))) {
                             Text(NSLocalizedString("chat_message", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
                                 .frame(maxWidth: .infinity).padding(.vertical, 12)
                                 .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1))
@@ -273,7 +273,7 @@ struct PublicProfileView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 let handle = vm.profile?.username ?? uid
                 let label = vm.profile?.username.map { "@" + $0 }
-                    ?? vm.profile?.displayName ?? "este escalador"
+                    ?? vm.profile?.displayName ?? L("este escalador")
                 Button {
                     Task {
                         let st = vm.stats
@@ -311,7 +311,7 @@ struct PublicProfileView: View {
             }
         }
         .sheet(isPresented: $showReport) {
-            ReportSheet(title: "DENUNCIAR USUARIO",
+            ReportSheet(title: L("DENUNCIAR USUARIO"),
                         authorLabel: vm.profile?.username.map { "@" + $0 } ?? "usuario") { reason, alsoBlock in
                 moderation.report(targetType: "USER", targetId: realUid, reason: reason,
                                   alsoBlockUid: alsoBlock ? realUid : nil)
@@ -521,8 +521,8 @@ struct FollowListView: View {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if filtered.isEmpty {
                 Text(vm.items.isEmpty
-                     ? (mode == .followers ? "Sin seguidores" : "No sigue a nadie")
-                     : "Nadie coincide con la búsqueda")
+                     ? (mode == .followers ? L("Sin seguidores") : L("No sigue a nadie"))
+                     : L("Nadie coincide con la búsqueda"))
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -539,7 +539,7 @@ struct FollowListView: View {
                                     followButton(u.uid)
                                 }
                                 if canRemove {
-                                    rowButton("ELIMINAR", filled: false) { vm.remove(followerUid: u.uid) }
+                                    rowButton(L("ELIMINAR"), filled: false) { vm.remove(followerUid: u.uid) }
                                 }
                             }
                             .padding(.trailing, 12)

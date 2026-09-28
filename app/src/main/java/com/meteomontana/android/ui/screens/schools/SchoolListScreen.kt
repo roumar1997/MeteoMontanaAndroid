@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.schools
 
+import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import androidx.compose.foundation.background
@@ -229,7 +230,7 @@ fun SchoolListScreen(
                         value = filters.query,
                         onValueChange = viewModel::setQuery,
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Busca escuelas, vías y bloques…") },
+                        placeholder = { Text(stringResource(R.string.school_list_screen_busca_escuelas_vias_y)) },
                         // Lupa dentro del campo, como en iOS: sin ella el
                         // buscador parece una caja de texto cualquiera.
                         leadingIcon = {
@@ -283,12 +284,12 @@ fun SchoolListScreen(
                                 .border(1.dp, MaterialTheme.colorScheme.outline,
                                     MaterialTheme.shapes.small)
                         ) {
-                            Text("ESCUELAS",
+                            Text(stringResource(R.string.school_list_screen_v2_escuelas),
                                 style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                             if (schoolMatches.isEmpty()) {
-                                Text("Sin resultados",
+                                Text(stringResource(R.string.school_list_screen_v2_sin_resultados_2),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(horizontal = 12.dp)
@@ -318,12 +319,12 @@ fun SchoolListScreen(
                                 }
                             }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-                            Text("VÍAS Y BLOQUES",
+                            Text(stringResource(R.string.school_list_screen_vias_y_bloques),
                                 style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                             if (viaHits.isEmpty()) {
-                                Text("Sin resultados",
+                                Text(stringResource(R.string.school_list_screen_v2_sin_resultados),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(horizontal = 12.dp)
@@ -389,7 +390,7 @@ fun SchoolListScreen(
             item {
                 com.meteomontana.android.ui.components.FirstTimeHint(
                     hintKey = "schools_map",
-                    text = "Toca \"VER MAPA\" para ver todas las escuelas en el mapa, coloreadas por su índice del día."
+                    text = stringResource(R.string.school_list_screen_v3_toca_ver_mapa_para_ver)
                 )
             }
 
@@ -417,7 +418,7 @@ fun SchoolListScreen(
             item {
                 com.meteomontana.android.ui.components.FirstTimeHint(
                     hintKey = "schools_filters",
-                    text = "Usa los filtros de abajo para encontrar escuelas por distancia, tipo de roca o estilo (bloque/vía)."
+                    text = stringResource(R.string.school_list_screen_v3_usa_los_filtros_de_abajo)
                 )
             }
 
@@ -450,7 +451,7 @@ fun SchoolListScreen(
             item {
                 com.meteomontana.android.ui.components.FirstTimeHint(
                     hintKey = "schools_compare",
-                    text = "Mantén pulsada una escuela para compararla con otras (hasta 3). También puedes tocar los días de arriba para ver un tramo de varios días.",
+                    text = stringResource(R.string.school_list_screen_v3_manten_pulsada_una_escuela_para),
                     modifier = Modifier.padding(top = Spacing.sm)
                 )
             }
@@ -537,7 +538,7 @@ fun SchoolListScreen(
                     )
                 }
                 Text(
-                    "${compareSelection.size} seleccionada${if (compareSelection.size > 1) "s" else ""}",
+                    stringResource(R.string.school_list_screen_v2_1_s_seleccionada_2_s, compareSelection.size, if (compareSelection.size > 1) "s" else ""),
                     style = MaterialTheme.typography.bodyMedium,
                     color = androidx.compose.ui.graphics.Color.White,
                     modifier = Modifier.weight(1f)
@@ -560,7 +561,7 @@ fun SchoolListScreen(
                     }
                 } else {
                     Text(
-                        "Elige otra para comparar",
+                        stringResource(R.string.school_list_screen_v2_elige_otra_para_comparar),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.background.copy(alpha = 0.7f),
                         modifier = Modifier.padding(end = Spacing.sm)
@@ -585,12 +586,12 @@ private fun DaySelectorRow(
 ) {
     val today = remember { java.time.LocalDate.now() }
     val days = remember(today) { (0..6).map { today.plusDays(it.toLong()) } }
-    val dayLetters = arrayOf("LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM")  // ISO 1=lunes
+    val dayLetters = CalendarLabels.daysShortMonFirst().map { it.uppercase() }  // ISO 1=lunes
 
     Column(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
         Text(
-            text = if (selectedDays.isEmpty()) "DÍAS · elige hasta 5 para comparar el tramo"
-                   else "DÍAS · ${selectedDays.size} elegido${if (selectedDays.size > 1) "s" else ""}",
+            text = if (selectedDays.isEmpty()) stringResource(R.string.school_list_screen_v3_dias_elige_hasta_5_para)
+                   else stringResource(R.string.school_list_screen_v3_dias_elegido, selectedDays.size, if (selectedDays.size > 1) "s" else ""),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -857,17 +858,17 @@ private fun CoffeeBanner(onDonate: () -> Unit) {
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                "¿Te ayuda la app?",
+                stringResource(R.string.school_list_screen_v2_te_ayuda_la_app),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
             Text(
-                "Mantenida con amor por la comunidad escaladora",
+                stringResource(R.string.school_list_screen_v2_mantenida_con_amor_por_la),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
             )
         }
-        OutlinedCumbreButton(text = "Apóyanos", onClick = { showDialog = true; onDonate() })
+        OutlinedCumbreButton(text = stringResource(R.string.school_list_screen_apoyanos), onClick = { showDialog = true; onDonate() })
     }
     if (showDialog) DonateDialog(onDismiss = { showDialog = false })
 }
@@ -894,16 +895,14 @@ private fun DonateDialog(onDismiss: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.sm),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 style = MaterialTheme.typography.displayMedium)
-            Text("¿Te es útil la app?",
+            Text(stringResource(R.string.school_list_screen_te_es_util_la),
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(Spacing.md))
             Text(
-                "ClimbingTeams es una app gratuita hecha con amor para la " +
-                "comunidad escaladora. Si te ayuda a elegir el mejor día en la roca, " +
-                "considera invitarme a un café para seguir mejorándola.",
+                stringResource(R.string.school_list_screen_v2_climbingteams_es_una_app_gratuita),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -912,10 +911,10 @@ private fun DonateDialog(onDismiss: () -> Unit) {
                 .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
                 .padding(Spacing.md)) {
                 listOf(
-                    "Condiciones de escalada en tiempo real",
-                    "Escuelas cercanas con previsión",
-                    "Previsión de 7 días",
-                    "Mejor día y análisis de secado"
+                    stringResource(R.string.school_list_screen_v3_condiciones_de_escalada_en_tiempo),
+                    stringResource(R.string.school_list_screen_v3_escuelas_cercanas_con_prevision),
+                    stringResource(R.string.school_list_screen_v3_prevision_de_7_dias),
+                    stringResource(R.string.school_list_screen_v3_mejor_dia_y_analisis_de)
                 ).forEach {
                     Text(it, style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface)
@@ -934,12 +933,12 @@ private fun DonateDialog(onDismiss: () -> Unit) {
                 .padding(vertical = Spacing.md),
                 contentAlignment = Alignment.Center
             ) {
-                Text("☕ INVÍTAME A UN CAFÉ",
+                Text(stringResource(R.string.school_list_screen_invitame_a_un_cafe),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary)
             }
             Spacer(Modifier.height(Spacing.sm))
-            Text("Cada café nos acerca a nuevas funciones. ¡Gracias de corazón!",
+            Text(stringResource(R.string.school_list_screen_cada_cafe_nos_acerca),
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 style = MaterialTheme.typography.labelMedium,
@@ -1009,7 +1008,7 @@ private fun ErrorRow(message: String, onRetry: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            "Error: $message",
+            stringResource(R.string.school_list_screen_v2_error_1_s, message),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.error
         )

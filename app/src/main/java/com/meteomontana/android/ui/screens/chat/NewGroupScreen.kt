@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.chat
 
+
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -50,6 +51,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 
 @HiltViewModel
 class NewGroupViewModel @Inject constructor(
@@ -103,10 +106,10 @@ fun NewGroupScreen(
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "Volver",
+                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.new_group_screen_v2_volver),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
-            Text("Nuevo grupo", style = MaterialTheme.typography.headlineMedium,
+            Text(stringResource(R.string.new_group_screen_v2_nuevo_grupo), style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -114,11 +117,11 @@ fun NewGroupScreen(
         OutlinedTextField(
             value = name, onValueChange = { name = it },
             modifier = Modifier.fillMaxWidth().padding(16.dp),
-            placeholder = { Text("Nombre del grupo") },
+            placeholder = { Text(stringResource(R.string.new_group_screen_v2_nombre_del_grupo)) },
             singleLine = true
         )
 
-        Text("ELIGE MIEMBROS (${selected.size})",
+        Text(stringResource(R.string.new_group_screen_v2_elige_miembros_1_s, selected.size),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
@@ -128,7 +131,7 @@ fun NewGroupScreen(
             OutlinedTextField(
                 value = query, onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                placeholder = { Text("Buscar contacto") },
+                placeholder = { Text(stringResource(R.string.new_group_screen_v2_buscar_contacto)) },
                 leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                 singleLine = true
             )
@@ -146,13 +149,13 @@ fun NewGroupScreen(
 
         if (contacts.isEmpty()) {
             Box(Modifier.weight(1f).fillMaxWidth(), Alignment.Center) {
-                Text("Sigue a alguien (o que te sigan) para añadir miembros.",
+                Text(stringResource(R.string.new_group_screen_sigue_a_alguien_o),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(24.dp))
             }
         } else if (shown.isEmpty()) {
             Box(Modifier.weight(1f).fillMaxWidth(), Alignment.Center) {
-                Text("Ningún contacto coincide con «${query.trim()}».",
+                Text(stringResource(R.string.new_group_screen_v2_ningun_contacto_coincide_con_1, query.trim()),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(24.dp))
             }
@@ -185,7 +188,7 @@ fun NewGroupScreen(
                             Box(Modifier.size(24.dp).clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.primary),
                                 contentAlignment = Alignment.Center) {
-                                Icon(Icons.Outlined.Check, contentDescription = "Seleccionado",
+                                Icon(Icons.Outlined.Check, contentDescription = stringResource(R.string.new_group_screen_v2_seleccionado),
                                     tint = androidx.compose.ui.graphics.Color.White,
                                     modifier = Modifier.size(16.dp))
                             }
@@ -216,7 +219,7 @@ fun NewGroupScreen(
                     color = androidx.compose.ui.graphics.Color.White,
                     modifier = Modifier.size(20.dp))
             } else {
-                Text("CREAR GRUPO",
+                Text(stringResource(R.string.new_group_screen_v2_crear_grupo),
                     color = if (canCreate) androidx.compose.ui.graphics.Color.White
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelLarge)

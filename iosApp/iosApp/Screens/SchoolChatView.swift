@@ -145,7 +145,7 @@ struct SchoolChatView: View {
                 Button { showAllPresent = true } label: {
                     HStack(spacing: 6) {
                         Circle().fill(Cumbre.terraFill).frame(width: 7, height: 7)
-                        Text("\(vm.presentList.count) aquí ahora")
+                        Text(L("%@ aquí ahora", vm.presentList.count))
                             .font(.system(size: 11, weight: .bold, design: .monospaced))
                             .foregroundStyle(Cumbre.terra)
                         Text("· ver todos")
@@ -166,11 +166,11 @@ struct SchoolChatView: View {
                 Button {
                     guard person.uid != vm.me else { return }
                     showAllPresent = false
-                    openChatFor = SchoolChatTarget(uid: person.uid, name: person.displayName ?? person.username ?? "Usuario")
+                    openChatFor = SchoolChatTarget(uid: person.uid, name: person.displayName ?? person.username ?? L("Usuario"))
                 } label: {
                     HStack(spacing: 12) {
                         AvatarCircle(url: person.photoUrl, size: 36)
-                        Text(person.uid == vm.me ? "Tú" : (person.displayName ?? person.username ?? "Usuario"))
+                        Text(person.uid == vm.me ? "Tú" : (person.displayName ?? person.username ?? L("Usuario")))
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Cumbre.ink)
                         Spacer()
@@ -181,7 +181,7 @@ struct SchoolChatView: View {
                 }
                 .disabled(person.uid == vm.me)
             }
-            .navigationTitle("\(vm.presentList.count) aquí ahora")
+            .navigationTitle(L("%@ aquí ahora", vm.presentList.count))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

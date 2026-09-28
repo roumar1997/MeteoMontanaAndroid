@@ -166,8 +166,8 @@ private fun SubmissionRow(s: Submission) {
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (s.reviewReason != null) {
-                Text("Motivo: ${s.reviewReason}",
+            s.reviewReason?.let { reason ->
+                Text(stringResource(R.string.my_submissions_screen_v2_motivo_1_s_2, reason),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.error)
             }
@@ -181,12 +181,12 @@ private fun ContributionRow(c: Contribution) {
     val typeLabel = when (c.type) {
         "PARKING"              -> "Parking"
         "BOULDER"              -> when {
-            !c.targetLineId.isNullOrBlank() -> "Corregir vía"
-            !c.targetBlockId.isNullOrBlank() -> "Añadir vías"
-            else                             -> "Piedra nueva"
+            !c.targetLineId.isNullOrBlank() -> stringResource(R.string.my_submissions_screen_v3_corregir_via)
+            !c.targetBlockId.isNullOrBlank() -> stringResource(R.string.my_submissions_screen_v3_anadir_vias)
+            else                             -> stringResource(R.string.my_submissions_screen_v3_piedra_nueva)
         }
         "SECTOR"               -> "Sector"
-        "POSITION_CORRECTION"  -> "Mover ubicación"
+        "POSITION_CORRECTION"  -> stringResource(R.string.my_submissions_screen_v3_mover_ubicacion)
         else                   -> c.type
     }
     Row(
@@ -206,8 +206,8 @@ private fun ContributionRow(c: Contribution) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface)
             }
-            if (c.reviewReason != null) {
-                Text("Motivo: ${c.reviewReason}",
+            c.reviewReason?.let { reason ->
+                Text(stringResource(R.string.my_submissions_screen_v2_motivo_1_s, reason),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.error)
             }
@@ -219,9 +219,9 @@ private fun ContributionRow(c: Contribution) {
 @Composable
 private fun StatusChip(status: String) {
     val (label, bg, fg) = when (status) {
-        "APPROVED" -> Triple("Aprobada", MaterialTheme.colorScheme.secondary, androidx.compose.ui.graphics.Color.White)
-        "REJECTED" -> Triple("Rechazada", MaterialTheme.colorScheme.error, androidx.compose.ui.graphics.Color.White)
-        else       -> Triple("Pendiente", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+        "APPROVED" -> Triple(stringResource(R.string.w_approved), MaterialTheme.colorScheme.secondary, androidx.compose.ui.graphics.Color.White)
+        "REJECTED" -> Triple(stringResource(R.string.w_rejected), MaterialTheme.colorScheme.error, androidx.compose.ui.graphics.Color.White)
+        else       -> Triple(stringResource(R.string.w_pending), MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
     }
     val shape = RoundedCornerShape(2.dp)
     Box(

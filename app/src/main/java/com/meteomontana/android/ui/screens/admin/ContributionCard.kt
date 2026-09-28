@@ -2,6 +2,7 @@
             androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.admin
 
+import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import androidx.compose.foundation.background
@@ -148,7 +149,7 @@ internal fun ContributionCard(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f))
-            Text("ahora",
+            Text(stringResource(R.string.contribution_card_v2_ahora),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -195,7 +196,7 @@ internal fun ContributionCard(
         // Autor
         c.submittedByName?.let {
             Spacer(Modifier.height(Spacing.xs))
-            Text("por $it",
+            Text(stringResource(R.string.contribution_card_v2_por_1_s, it),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -220,18 +221,18 @@ internal fun ContributionCard(
             Column(modifier = Modifier.fillMaxWidth()
                 .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f))
                 .padding(Spacing.sm)) {
-                Text("ASIGNAR SECTOR A PIEDRA", style = EyebrowTextStyle,
+                Text(stringResource(R.string.contribution_card_v2_asignar_sector_a_piedra), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.secondary)
                 Spacer(Modifier.height(Spacing.xs))
-                Text("PIEDRA", style = EyebrowTextStyle,
+                Text(stringResource(R.string.contribution_card_v2_piedra), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(targetBlock?.name ?: "(no encontrada · ${c.targetBlockId})",
+                Text(targetBlock?.name ?: stringResource(R.string.contribution_card_v3_no_encontrada, c.targetBlockId ?: ""),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(Spacing.xs))
-                Text("→ SECTOR PROPUESTO", style = EyebrowTextStyle,
+                Text(stringResource(R.string.contribution_card_v2_sector_propuesto), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(targetSector?.name ?: "(no encontrado · ${c.sectorBlockId})",
+                Text(targetSector?.name ?: stringResource(R.string.contribution_card_v3_no_encontrado, c.sectorBlockId ?: ""),
                     style = MaterialTheme.typography.bodyLarge,
                     color = Terra)
             }
@@ -243,14 +244,14 @@ internal fun ContributionCard(
             Column(modifier = Modifier.fillMaxWidth()
                 .background(MaterialTheme.colorScheme.error.copy(alpha = 0.06f))
                 .padding(Spacing.sm)) {
-                Text("POSICIÓN ACTUAL", style = EyebrowTextStyle,
+                Text(stringResource(R.string.contribution_card_posicion_actual), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("%.5f, %.5f".format(java.util.Locale.US, c.lat, c.lon),
                     style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Mono),
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (c.proposedLat != null && c.proposedLon != null) {
                     Spacer(Modifier.height(Spacing.xs))
-                    Text("PROPONE MOVER A", style = EyebrowTextStyle,
+                    Text(stringResource(R.string.contribution_card_v2_propone_mover_a), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("%.5f, %.5f".format(java.util.Locale.US, c.proposedLat, c.proposedLon),
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = Mono),
@@ -264,7 +265,7 @@ internal fun ContributionCard(
         var mapStyle by remember { mutableStateOf("topo") }
         Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            listOf("topo" to "Topográfico", "sat" to "Satélite").forEach { (id, label) ->
+            listOf("topo" to stringResource(R.string.contribution_card_v3_topografico), "sat" to stringResource(R.string.full_screen_map_dialog_v3_satelite)).forEach { (id, label) ->
                 val selected = mapStyle == id
                 Box(modifier = Modifier
                     .clip(RoundedCornerShape(2.dp))
@@ -353,13 +354,13 @@ internal fun ContributionCard(
                                     map.addMarker(
                                         MarkerOptions()
                                             .position(LatLng(c.lat, c.lon))
-                                            .title("POSICIÓN ACTUAL")
+                                            .title(AppText.get(R.string.contribution_card_v3_posicion_actual))
                                             .icon(iconFactory.fromBitmap(oldIcon))
                                     )
                                     map.addMarker(
                                         MarkerOptions()
                                             .position(LatLng(pLat, pLon))
-                                            .title("PROPUESTA · ${c.name ?: "Nueva posición"}")
+                                            .title(AppText.get(R.string.full_screen_map_dialog_v4_propuesta, c.name ?: "Nueva posición"))
                                             .icon(iconFactory.fromBitmap(proposalIcon))
                                     )
                                     map.addPolyline(
@@ -382,7 +383,7 @@ internal fun ContributionCard(
                                     map.addMarker(
                                         MarkerOptions()
                                             .position(LatLng(c.lat, c.lon))
-                                            .title("PROPUESTA · ${c.name ?: c.type}")
+                                            .title(AppText.get(R.string.full_screen_map_dialog_v4_propuesta, c.name ?: c.type))
                                             .icon(iconFactory.fromBitmap(proposalIcon))
                                     )
                                 }
@@ -514,7 +515,7 @@ internal fun ContributionCard(
                     // simple "guardar líneas") — misma etiqueta que
                     // AdminEditApproveSheet.swift en iOS.
                     saveLabel = if (editableFaces.size > 1 && faceIdx < editableFaces.size - 1)
-                        "SIGUIENTE\nCARA" else "APROBAR CON\nMIS CAMBIOS"
+                        stringResource(R.string.contribution_card_v3_siguiente_cara) else stringResource(R.string.contribution_card_v3_aprobar_con_mis_cambios)
                 )
             }
         }

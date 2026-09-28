@@ -220,6 +220,15 @@ Reglas:
 
 ## Estado actual
 
+**⏳ PENDIENTE DE SUBIR (2026-09-28) — Android vc112 (6.2) / iOS build 233.**
+Repasada exhaustivamente la i18n ES/EN en las tres capas: Android, iOS y
+backend. AAB firmado en `Desktop\AABs Play\cumbre-6.2-vc112.aab` (convención
+nueva de carpeta, ver `LEEME.md` dentro); build 233 de iOS ya compilado por CI,
+pendiente de subir a TestFlight desde el `.ipa` de esa run. Contenido: fix del
+idioma que no se releía tras cambiarlo en marcha (`AppText`/`AppLanguage`),
+`scoreLabel` del servidor sin traducir, mensaje de secado de la roca ahora
+traducido (backend, YA en producción). Detalle en `HISTORIAL.md` 2026-09-28.
+
 **🚀 APP LANZADA AL PÚBLICO (2026-07-10)**: Cumbre **2.12 pública en Google
 Play (producción 100%) y en App Store (España/UE incluidas)**. Android + iOS
 a paridad completa. Backend Spring Boot en Railway

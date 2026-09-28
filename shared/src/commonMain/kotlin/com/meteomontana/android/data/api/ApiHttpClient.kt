@@ -126,6 +126,7 @@ private fun buildClient(
         defaultRequest {
             url(baseUrl)
             contentType(ContentType.Application.Json)
+            header("Accept-Language", ApiLanguage.code)
         }
     }
     return if (engine != null) HttpClient(engine, config) else HttpClient(config)

@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -80,7 +81,7 @@ fun HelpButton(topicKey: String, modifier: Modifier = Modifier) {
     IconButton(onClick = { open = true }, modifier = modifier) {
         Icon(
             Icons.AutoMirrored.Outlined.HelpOutline,
-            contentDescription = "Ayuda",
+            contentDescription = stringResource(R.string.help_sheet_v2_ayuda_2),
             tint = MaterialTheme.colorScheme.onBackground
         )
     }
@@ -112,7 +113,7 @@ private fun helpIcon(name: String): ImageVector = when (name) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HelpSheet(topicKey: String, onDismiss: () -> Unit) {
-    val topic: HelpTopic = HelpCatalog.byKey(topicKey) ?: return
+    val topic: HelpTopic = HelpCatalog.byKey(topicKey, androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language) ?: return
     // ARRASTRAR PARA CERRAR, solo desde arriba (mismo arreglo que
     // BlockDetailDialog.kt/AddLinesFlow.kt): hojas largas competían el gesto
     // de cierre con el scroll.
@@ -140,7 +141,7 @@ fun HelpSheet(topicKey: String, onDismiss: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("AYUDA", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary)
+                Text(stringResource(R.string.help_sheet_v2_ayuda), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary)
                 Text(
                     topic.title,
                     style = MaterialTheme.typography.headlineMedium,
@@ -187,7 +188,7 @@ fun HelpSheet(topicKey: String, onDismiss: () -> Unit) {
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
-                        "Sugerir algo / reportar un fallo",
+                        stringResource(R.string.help_sheet_v2_sugerir_algo_reportar_un_fallo),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -243,7 +244,7 @@ fun HelpSheet(topicKey: String, onDismiss: () -> Unit) {
                         resetAllHints(ctx)
                         android.widget.Toast.makeText(
                             ctx,
-                            "Pistas reactivadas — vuelve a cada pantalla para verlas",
+                            AppText.get(R.string.help_sheet_v3_pistas_reactivadas_vuelve_a_cada),
                             android.widget.Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -288,13 +289,13 @@ private fun SuggestionDialog(onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = { if (state != SuggestionSendState.SENDING) onDismiss() },
-        title = { Text("Sugerir algo o reportar un fallo") },
+        title = { Text(stringResource(R.string.help_sheet_v2_sugerir_algo_o_reportar_un)) },
         text = {
             when (state) {
-                SuggestionSendState.SENT -> Text("¡Gracias! Lo hemos recibido.")
+                SuggestionSendState.SENT -> Text(stringResource(R.string.help_sheet_gracias_lo_hemos_recibido))
                 else -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Text(
-                        "Cuéntanos qué te gustaría que hiciera la app o qué no funciona bien.",
+                        stringResource(R.string.help_sheet_v2_cuentanos_que_te_gustaria_que),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -302,12 +303,12 @@ private fun SuggestionDialog(onDismiss: () -> Unit) {
                         value = texto,
                         onValueChange = { texto = it },
                         modifier = Modifier.fillMaxWidth().height(120.dp),
-                        placeholder = { Text("Escribe aquí…") },
+                        placeholder = { Text(stringResource(R.string.help_sheet_escribe_aqui)) },
                         enabled = state != SuggestionSendState.SENDING
                     )
                     if (state == SuggestionSendState.ERROR) {
                         Text(
-                            "No se pudo enviar. Inténtalo otra vez.",
+                            stringResource(R.string.help_sheet_v2_no_se_pudo_enviar_intentalo),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -324,14 +325,14 @@ private fun SuggestionDialog(onDismiss: () -> Unit) {
                     if (state == SuggestionSendState.SENDING) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp))
                     } else {
-                        Text("ENVIAR")
+                        Text(stringResource(R.string.help_sheet_v2_enviar))
                     }
                 }
             }
         },
         dismissButton = {
             if (state != SuggestionSendState.SENDING && state != SuggestionSendState.SENT) {
-                TextButton(onClick = onDismiss) { Text("CANCELAR") }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.help_sheet_v2_cancelar)) }
             }
         }
     )
