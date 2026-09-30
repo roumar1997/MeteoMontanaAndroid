@@ -179,9 +179,10 @@ object RepositoryModule {
     @Provides @Singleton
     fun provideFeedRepository(
         api: com.meteomontana.android.data.api.KtorFeedApi,
-        db: com.meteomontana.db.MeteoMontanaDb
+        db: com.meteomontana.db.MeteoMontanaDb,
+        networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor
     ): com.meteomontana.android.domain.repository.FeedRepository =
-        com.meteomontana.android.data.repository.KtorFeedRepository(api, db)
+        com.meteomontana.android.data.repository.KtorFeedRepository(api, db, networkMonitor)
 
     @Provides @Singleton
     fun provideApproachRepository(

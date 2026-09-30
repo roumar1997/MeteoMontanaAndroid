@@ -3,6 +3,7 @@ package com.meteomontana.android.domain.usecase.social
 import com.meteomontana.android.domain.repository.ProfileCache
 import com.meteomontana.android.domain.model.FollowStatus
 import com.meteomontana.android.domain.model.PublicProfile
+import com.meteomontana.android.domain.port.NetworkMonitor
 import com.meteomontana.android.domain.repository.SocialRepository
 
 /**
@@ -13,10 +14,17 @@ import com.meteomontana.android.domain.repository.SocialRepository
  */
 class GetPublicProfileUseCase(
     private val repo: SocialRepository,
-    private val cache: ProfileCache? = null
+    private val cache: ProfileCache? = null,
+    /** null = se asume que puede haber red. Con red confirmada ausente, se
+     *  salta directo a caché sin esperar el timeout de Ktor (Álvaro,
+     *  2026-09-30, mismo fix que school detail). */
+    private val networkMonitor: NetworkMonitor? = null
 ) {
     @Throws(Exception::class)
     suspend operator fun invoke(uid: String): PublicProfile {
+        if (networkMonitor?.isOnlineNow() == false) {
+            return cache?.load(uid) ?: error("Sin conexión")
+        }
         return try {
             val fresh = repo.getUserProfile(uid)
             runCatching { cache?.save(fresh) }

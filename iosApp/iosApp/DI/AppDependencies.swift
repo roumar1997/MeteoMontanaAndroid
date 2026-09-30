@@ -79,7 +79,8 @@ final class AppDependencies {
             locationProvider: location,
             database: db,
             chatService: chat,
-            schoolChatService: schoolChat
+            schoolChatService: schoolChat,
+            networkMonitor: IosNetworkMonitor()
         )
     }
 }

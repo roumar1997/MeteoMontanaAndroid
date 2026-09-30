@@ -6,6 +6,7 @@ import com.meteomontana.android.data.api.dto.PublishFeedRequest
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.FeedComment
 import com.meteomontana.android.domain.model.FeedPost
+import com.meteomontana.android.domain.port.NetworkMonitor
 import com.meteomontana.android.domain.repository.FeedRepository
 import com.meteomontana.db.MeteoMontanaDb
 import kotlinx.datetime.Clock
@@ -22,7 +23,11 @@ import kotlinx.serialization.json.Json
 class KtorFeedRepository(
     private val api: KtorFeedApi,
     /** null = sin caché (tests o wiring antiguo); el fallback simplemente no actúa. */
-    private val db: MeteoMontanaDb? = null
+    private val db: MeteoMontanaDb? = null,
+    /** null = se asume que puede haber red (comportamiento de antes: siempre
+     *  se intenta). Con red confirmada ausente, se salta directo a caché sin
+     *  esperar el timeout de Ktor (Álvaro, 2026-09-30, mismo fix que school detail). */
+    private val networkMonitor: NetworkMonitor? = null
 ) : FeedRepository {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -35,8 +40,9 @@ class KtorFeedRepository(
         if (before != null || cache == null) {
             return api.getFeed(scope, before, limit, uid).map { it.toDomain() }
         }
+        val sinRedConocida = networkMonitor?.isOnlineNow() == false
         val page = try {
-            api.getFeed(scope, before, limit, uid)
+            if (sinRedConocida) error("Sin conexión") else api.getFeed(scope, before, limit, uid)
         } catch (t: Throwable) {
             // Sin red: última primera página buena de este scope, si existe.
             val cached = runCatching {

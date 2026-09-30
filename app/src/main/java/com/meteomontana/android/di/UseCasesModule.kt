@@ -471,10 +471,12 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideGetPublicProfileUseCase(
         repo: SocialRepository,
-        db: com.meteomontana.db.MeteoMontanaDb
+        db: com.meteomontana.db.MeteoMontanaDb,
+        networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor
     ) = GetPublicProfileUseCase(
         repo,
-        com.meteomontana.android.data.saved.ProfileCacheRepository(db)
+        com.meteomontana.android.data.saved.ProfileCacheRepository(db),
+        networkMonitor
     )
 
     @Provides @Singleton
@@ -565,9 +567,10 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideMeetupRepository(
         api: com.meteomontana.android.data.api.KtorMeetupApi,
-        cache: com.meteomontana.android.data.saved.MeetupCacheRepository
+        cache: com.meteomontana.android.data.saved.MeetupCacheRepository,
+        networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor
     ): com.meteomontana.android.domain.repository.MeetupRepository =
-        com.meteomontana.android.data.repository.KtorMeetupRepository(api, cache)
+        com.meteomontana.android.data.repository.KtorMeetupRepository(api, cache, networkMonitor)
 
     @Provides @Singleton
     fun provideGetMeetupsUseCase(
