@@ -434,7 +434,16 @@ struct MapToggleAndPanel: View {
             .buttonStyle(.plain)
             .padding(.horizontal, 16).padding(.vertical, 4)
 
-            if show {
+            // !fullscreenMap: si no, esta tarjeta se queda montada DETRÁS del
+            // fullScreenCover de abajo mientras dura pantalla completa — dos
+            // mapBox vivos a la vez, cada uno con su propio .sheet(item:
+            // $popup) colgando del MISMO estado. Al tocar un marcador en
+            // pantalla completa, los dos intentaban presentar el aviso a la
+            // vez y SwiftUI resolvía el conflicto cerrando el fullScreenCover
+            // para que el de detrás (el único no cubierto) pudiera mostrarlo
+            // (Álvaro, 2026-09-30). Mismo guardado que ya usa mapArea en
+            // SchoolMapSection.swift.
+            if show && !fullscreenMap {
                 mapBox(height: 300)
                 Divider().overlay(Cumbre.rule)
             }
