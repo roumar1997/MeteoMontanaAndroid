@@ -355,6 +355,21 @@ struct MapToggleAndPanel: View {
         .safeAreaInset(edge: .bottom) {
             if isFullscreen { fullscreenFilters }
         }
+        // Popup al tocar un marcador: nombre, score, tags, CÓMO LLEGAR + VER
+        // DETALLE (espejo de SchoolsMapPanel.kt). Colgado de ESTA vista (mapBox)
+        // y no del body de fuera: a pantalla completa el mapa vive dentro de un
+        // fullScreenCover, una presentación aparte — un .sheet colgado de la
+        // vista de DETRÁS del cover no puede aparecer mientras el cover está
+        // abierto (iOS lo deja pendiente y solo lo muestra al cerrar el cover,
+        // con el valor de `popup` que hubiera en ESE momento: por eso al pulsar
+        // una escuela en pantalla completa "no pasaba nada" y al salir aparecía
+        // otra). Mismo patrón que ya usa mapArea en SchoolMapSection.swift.
+        .sheet(item: $popup) { s in
+            SchoolMapPopup(school: s, score: vm.scores[s.id].map { Int($0.todayScore) }) {
+                popup = nil; onOpen(s)
+            }
+            .presentationDetents([.height(280)])
+        }
     }
 
     private var fullscreenFilters: some View {
@@ -430,14 +445,9 @@ struct MapToggleAndPanel: View {
                 mapBox(height: UIScreen.main.bounds.height, isFullscreen: true)
             }
         }
-        // Popup al tocar un marcador: nombre, score, tags, CÓMO LLEGAR + VER DETALLE
-        // (espejo de SchoolsMapPanel.kt).
-        .sheet(item: $popup) { s in
-            SchoolMapPopup(school: s, score: vm.scores[s.id].map { Int($0.todayScore) }) {
-                popup = nil; onOpen(s)
-            }
-            .presentationDetents([.height(280)])
-        }
+        // El popup de la escuela pulsada ahora cuelga de mapBox (ver ahí el
+        // porqué) — a pantalla completa mapBox vive dentro del fullScreenCover
+        // de arriba, así que su propio .sheet se presenta en ese contexto.
     }
 
     private var markers: [CumbreMarker] {

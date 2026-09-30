@@ -13,6 +13,15 @@ capturas concretas (decir explícitamente cuál hace falta y de qué pantalla)
 en vez de asumir cómo debe verse. El resto de la app sigue con paridad
 simultánea de siempre.
 
+**Excepción — REDISEÑO visual "que no se note que es de Claude" (2026-09-28):**
+mismo patrón que el panel de admin. Álvaro pidió romper con la paleta
+crema+terracota+serif (demasiado reconocible como hecha con IA) y elegir una
+dirección propia (topos de escalada, cartografía, cinta técnica...). Se
+implementa **primero en iOS**, Álvaro da el visto bueno con capturas
+concretas, y **solo después** se porta a Android. Mientras tanto la app
+sigue funcionando con el sistema Cumbre actual (papel/tinta/terracota) en
+ambas — no tocar tokens de Android hasta tener el OK sobre iOS.
+
 ## 📚 Documentos del repo
 
 Este fichero es **memoria de trabajo**: lo que hay que tener presente SIEMPRE.
