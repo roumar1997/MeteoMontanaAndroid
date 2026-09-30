@@ -151,7 +151,17 @@ class IosDependencyContainer(
      * del bridge Swift con FirebaseFirestore, colección `school_chats`).
      * Null → sin chat de escuela.
      */
-    val schoolChatService: com.meteomontana.android.domain.port.SchoolChatService? = null
+    val schoolChatService: com.meteomontana.android.domain.port.SchoolChatService? = null,
+    /**
+     * Estado de conexión en vivo. En iOS se pasa un [com.meteomontana.android.data.network.IosNetworkMonitor]
+     * (NWPathMonitor). Null → se asume "puede haber red" (comportamiento de
+     * antes: siempre se intenta la llamada de red).
+     * Álvaro, 2026-09-30: "cuando no tienes conexion, absolutamente nada,
+     * tarda en entrar en la escuela" — sin esto, SchoolDetailViewModel
+     * esperaba el timeout completo de Ktor aunque el sistema ya supiera que
+     * no hay red en absoluto.
+     */
+    val networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor? = null
 ) {
     private val httpClient = buildApiHttpClient(baseUrl) {
         authService?.currentIdToken(false)
@@ -191,7 +201,7 @@ class IosDependencyContainer(
     private val profileRepository = KtorProfileRepository(profileApi)
     private val notificationsRepository = KtorNotificationsRepository(notificationApi)
     private val socialRepository = KtorSocialRepository(socialApi)
-    private val feedRepository = com.meteomontana.android.data.repository.KtorFeedRepository(feedApi, database)
+    private val feedRepository = com.meteomontana.android.data.repository.KtorFeedRepository(feedApi, database, networkMonitor)
     private val submissionRepository = KtorSubmissionRepository(submissionApi)
     private val contributionRepository = KtorContributionRepository(contributionApi)
     private val suggestionRepository =
@@ -304,7 +314,7 @@ class IosDependencyContainer(
     val searchUsers = SearchUsersUseCase(socialRepository)
     val getTopContributors =
         com.meteomontana.android.domain.usecase.social.GetTopContributorsUseCase(socialRepository)
-    val getPublicProfile = GetPublicProfileUseCase(socialRepository, profileCache)
+    val getPublicProfile = GetPublicProfileUseCase(socialRepository, profileCache, networkMonitor)
     val getFollowStatus = GetFollowStatusUseCase(socialRepository)
     val followUser = FollowUserUseCase(socialRepository)
     val unfollowUser = UnfollowUserUseCase(socialRepository)
@@ -411,7 +421,7 @@ class IosDependencyContainer(
     // las puertas `meetupCache?.let` para no cambiar la nulabilidad que Swift ya
     // consume (los que necesitan caché siguen siendo opcionales).
     private val meetupRepo: com.meteomontana.android.domain.repository.MeetupRepository =
-        com.meteomontana.android.data.repository.KtorMeetupRepository(meetupApi, meetupCache)
+        com.meteomontana.android.data.repository.KtorMeetupRepository(meetupApi, meetupCache, networkMonitor)
     val getMeetups: GetMeetupsUseCase? = meetupCache?.let { GetMeetupsUseCase(meetupRepo) }
     val getMeetup: GetMeetupUseCase? = meetupCache?.let { GetMeetupUseCase(meetupRepo) }
     val createMeetup: CreateMeetupUseCase? = meetupCache?.let { CreateMeetupUseCase(meetupRepo) }

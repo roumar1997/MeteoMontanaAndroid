@@ -12,6 +12,10 @@ import FirebaseAuth
 
 /// Lo que se ofrece descargar para ver la escuela sin cobertura. Espejo de
 /// `OfertaFotosOffline` en Android.
+/// Salta el intento de red en `load()` cuando `NetworkMonitor` ya dice que no
+/// hay conexión en absoluto — cae directo al `catch` genérico (Álvaro, 2026-09-30).
+private struct KnownOfflineError: Error {}
+
 struct OfertaFotosOffline {
     let urls: [String]
     let bytes: Int64
@@ -61,6 +65,7 @@ final class SchoolDetailViewModel: ObservableObject {
     private let removeFavorite: RemoveFavoriteUseCase
     private let getNotes: GetNotesUseCase
     private let createNote: CreateNoteUseCase
+    private let networkMonitor = AppDependencies.shared.container.networkMonitor
 
     init(
         getForecast: GetForecastUseCase = AppDependencies.shared.container.getForecast,
@@ -84,7 +89,15 @@ final class SchoolDetailViewModel: ObservableObject {
         hasKnownProcessionary = school.hasKnownProcessionary
         processionaryAlertActive = school.processionaryAlertActive
         processionaryActiveNowSet = school.processionaryActiveNowSet
+        // Sin red EN ABSOLUTO (el sistema ya lo sabe): ni lo intentamos. Antes
+        // se esperaba el timeout completo de Ktor (hasta 30s) para acabar
+        // cayendo al mismo forecast cacheado de todas formas — Álvaro,
+        // 2026-09-30: "cuando no tienes conexion, absolutamente nada, tarda
+        // en entrar en la escuela". Espejo del fix en SchoolDetailLoader.kt
+        // (Android), que usa el margen de 8s solo cuando SÍ hay red pero va mal.
+        let sinRedConocida = networkMonitor.map { !$0.isOnlineNow() } ?? false
         do {
+            guard !sinRedConocida else { throw KnownOfflineError() }
             let f = try await getForecast.invoke(schoolId: schoolId)
             forecast = f
             // Cachea para verlo offline más tarde (stale-while-revalidate, como Android).

@@ -77,7 +77,8 @@ class SchoolDetailLoader @Inject constructor(
     private val getMountainBulletin: com.meteomontana.android.domain.usecase.weather.GetMountainBulletinUseCase,
     private val db: com.meteomontana.db.MeteoMontanaDb,
     private val blockRepo: com.meteomontana.android.domain.repository.BlockRepository,
-    private val getApproaches: GetApproachesUseCase
+    private val getApproaches: GetApproachesUseCase,
+    private val networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor
 ) {
 
     /**
@@ -121,9 +122,18 @@ class SchoolDetailLoader @Inject constructor(
         // 8s de margen es de sobra para una red que sí responde; sin copia no hay
         // a qué volver, así que ahí se deja el timeout normal — Álvaro, 2026-08-29
         // ("se queda cargando" con la escuela ya descargada y 3G débil).
+        //
+        // Si el propio SO ya dice que NO hay red EN ABSOLUTO (isOnline=false,
+        // Álvaro 2026-09-30: "cuando no tienes conexion, absolutamente nada,
+        // tarda en entrar"), ni lo intentamos: esos 8s no descubren nada que
+        // NetworkMonitor no supiera ya. Con red mala-pero-presente (isOnline=true
+        // aunque falle) seguimos esperando el margen de 8s, que es el caso real
+        // que arregló el timeout de arriba.
         val cachedSnapshot = runCatching { savedSchoolRepo.loadOffline(schoolId) }.getOrNull()
         val schoolFromNet = runCatching {
-            if (cachedSnapshot != null) {
+            if (cachedSnapshot != null && !networkMonitor.isOnline.value) {
+                error("Sin conexión")
+            } else if (cachedSnapshot != null) {
                 withTimeoutOrNull(8_000) { getSchoolById(schoolId) }
                     ?: error("Sin respuesta del servidor a tiempo")
             } else {
@@ -172,6 +182,16 @@ class SchoolDetailLoader @Inject constructor(
                 // (aunque sea viejo, es infinitamente mejor que una escuela en
                 // blanco) — Álvaro, 2026-08-24.
                 val blocksD = async {
+                    // Sin red en absoluto: ni lo intentamos, directos al snapshot
+                    // guardado — mismo criterio que la escuela arriba (Álvaro, 2026-09-30).
+                    if (!networkMonitor.isOnline.value) {
+                        val offline = runCatching {
+                            savedSchoolRepo.loadOffline(schoolId)?.let { s ->
+                                s.blocks.map { b -> savedSchoolRepo.toBlock(b, s.lines) }
+                            }
+                        }.getOrNull()
+                        if (offline != null) return@async offline
+                    }
                     val res = retryTwice { getBlocks(schoolId) }
                     res.onSuccess {
                         android.util.Log.i("Cumbre", "getBlocks($schoolId) OK: ${it.size} bloques")

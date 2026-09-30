@@ -12,4 +12,8 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface NetworkMonitor {
     val isOnline: StateFlow<Boolean>
+
+    /** Lectura puntual como `Boolean` plano — para Swift, donde `isOnline.value`
+     *  cruza como `KotlinBoolean` en vez de `Bool` (Álvaro, 2026-09-30). */
+    fun isOnlineNow(): Boolean = isOnline.value
 }

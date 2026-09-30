@@ -10,6 +10,7 @@ import com.meteomontana.android.data.saved.MeetupCacheRepository
 import com.meteomontana.android.domain.model.CreateMeetupRequest
 import com.meteomontana.android.domain.model.Meetup
 import com.meteomontana.android.domain.model.MeetupAlertState
+import com.meteomontana.android.domain.port.NetworkMonitor
 import com.meteomontana.android.domain.repository.MeetupRepository
 import kotlinx.datetime.Clock
 
@@ -27,6 +28,10 @@ import kotlinx.datetime.Clock
 class KtorMeetupRepository(
     private val api: KtorMeetupApi,
     private val cache: MeetupCacheRepository?,
+    /** null = se asume que puede haber red. Con red confirmada ausente, se
+     *  salta directo a caché sin esperar el timeout de Ktor (Álvaro,
+     *  2026-09-30, mismo fix que school detail). */
+    private val networkMonitor: NetworkMonitor? = null,
 ) : MeetupRepository {
 
     override suspend fun getMeetups(schoolId: String?, date: String?, relation: String?): List<Meetup> {
@@ -39,6 +44,9 @@ class KtorMeetupRepository(
             if (schoolId != null) result = result.filter { it.schoolId == schoolId }
             if (date != null) result = result.filter { it.days.contains(date) }
             return result
+        }
+        if (networkMonitor?.isOnlineNow() == false) {
+            return fromCache().ifEmpty { throw IllegalStateException("Sin conexión") }
         }
         return try {
             val dtos = api.getMeetups(schoolId, date, relation)
