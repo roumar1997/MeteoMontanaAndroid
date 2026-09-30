@@ -157,7 +157,7 @@ class SchoolDetailLoader @Inject constructor(
                             AppText.get(R.string.school_detail_loader_v4_sin_conexion_y_sin_snapshot) else null,
                         notes = emptyList(),
                         isFavorite = false,
-                        blocks = snapshot.blocks.map { savedSchoolRepo.toBlock(it, snapshot.lines) },
+                        blocks = snapshot.blocks.map { savedSchoolRepo.toBlock(it, snapshot.lines, snapshot.faces) },
                         isCurrentUserAdmin = false,
                         isSavedOffline = true,
                         monthlyLoading = false,
@@ -187,7 +187,7 @@ class SchoolDetailLoader @Inject constructor(
                     if (!networkMonitor.isOnline.value) {
                         val offline = runCatching {
                             savedSchoolRepo.loadOffline(schoolId)?.let { s ->
-                                s.blocks.map { b -> savedSchoolRepo.toBlock(b, s.lines) }
+                                s.blocks.map { b -> savedSchoolRepo.toBlock(b, s.lines, s.faces) }
                             }
                         }.getOrNull()
                         if (offline != null) return@async offline
@@ -208,7 +208,7 @@ class SchoolDetailLoader @Inject constructor(
                         )
                         runCatching {
                             savedSchoolRepo.loadOffline(schoolId)?.let { s ->
-                                s.blocks.map { b -> savedSchoolRepo.toBlock(b, s.lines) }
+                                s.blocks.map { b -> savedSchoolRepo.toBlock(b, s.lines, s.faces) }
                             }
                         }.getOrNull().orEmpty()
                     }

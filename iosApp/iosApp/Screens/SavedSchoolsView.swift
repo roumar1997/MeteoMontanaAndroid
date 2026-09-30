@@ -107,7 +107,7 @@ struct OfflineSchoolView: View {
         let snap = try? await repo.loadOffline(id: schoolId)
         snapshot = snap
         if let snap {
-            blocks = snap.blocks.map { repo.toBlock(entity: $0, lines: snap.lines) }
+            blocks = snap.blocks.map { repo.toBlock(entity: $0, lines: snap.lines, faces: snap.faces) }
         }
         loading = false
     }
