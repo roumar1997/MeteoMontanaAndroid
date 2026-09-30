@@ -545,6 +545,7 @@ struct AddBlockSheet: View {
             TextField("Buscar escuela…", text: $schoolQuery)
                 .font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                 .padding(10).background(Cumbre.paper).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                .dismissKeyboardOnSubmit()
                 .onChange(of: schoolQuery) { _, newVal in
                     if selectedSchool?.name != newVal {
                         selectedSchool = nil; vm.reset()

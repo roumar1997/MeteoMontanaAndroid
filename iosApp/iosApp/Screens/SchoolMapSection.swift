@@ -593,6 +593,7 @@ struct SchoolMapSection: View {
                 .padding(.horizontal, 12).padding(.vertical, 9)
                 .background(Cumbre.paper)
                 .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                .dismissKeyboardOnSubmit()
             orientationChips
             let q = vm.searchQuery.trimmingCharacters(in: .whitespaces)
             if q.count >= 2 {

@@ -368,6 +368,7 @@ struct AdminPushTab: View {
                         TextField("Buscar por @usuario o nombre…", text: $query)
                             .font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                             .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                            .dismissKeyboardOnSubmit()
                             .onChange(of: query) { _, q in
                                 searchTask?.cancel()
                                 let t = q.trimmingCharacters(in: .whitespaces)
