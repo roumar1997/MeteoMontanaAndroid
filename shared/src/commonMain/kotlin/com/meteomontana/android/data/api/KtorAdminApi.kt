@@ -6,6 +6,7 @@ import com.meteomontana.android.data.api.dto.AdminPushResponse
 import com.meteomontana.android.data.api.dto.AdminStatsDto
 import com.meteomontana.android.data.api.dto.ContributionDto
 import com.meteomontana.android.data.api.dto.RejectReason
+import com.meteomontana.android.data.api.dto.SchoolDto
 import com.meteomontana.android.data.api.dto.SubmissionDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -62,6 +63,11 @@ class KtorAdminApi(private val client: HttpClient) {
         }
     }
 
+    /** Nombre/ubicación/región/estilo/roca de una escuela ya creada — desde
+     *  el Historial de admin (Álvaro, 2026-09-30). Null en un campo = no tocarlo. */
+    suspend fun editSchool(schoolId: String, req: EditSchoolRequest): SchoolDto =
+        client.put("admin/schools/$schoolId") { setBody(req) }.body()
+
     suspend fun getPendingReports(): List<MeetupReportDto> =
         client.get("admin/reports").body()
 
@@ -74,6 +80,15 @@ class KtorAdminApi(private val client: HttpClient) {
 
 @Serializable
 data class MoveSchoolRequest(val lat: Double, val lon: Double)
+
+@Serializable
+data class EditSchoolRequest(
+    val name: String? = null,
+    val location: String? = null,
+    val region: String? = null,
+    val style: String? = null,
+    val rockType: String? = null
+)
 
 @Serializable
 data class MeetupReportDto(

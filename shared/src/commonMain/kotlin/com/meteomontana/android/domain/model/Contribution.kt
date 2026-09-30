@@ -32,5 +32,8 @@ data class Contribution(
     val submittedByUid: String? = null,
     val submittedByPhotoPath: String? = null,
     val reviewedByUid: String? = null,
-    val reviewedByName: String? = null
+    val reviewedByName: String? = null,
+    /** Bloque resultante si esta mejora CREÓ una piedra/sector/parking nuevo
+     *  (Álvaro, 2026-09-30: historial → "MODIFICAR"). */
+    val createdBlockId: String? = null
 )

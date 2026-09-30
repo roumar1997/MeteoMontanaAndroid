@@ -17,6 +17,11 @@ struct SubmissionsHistoryView: View {
     private let getSubs = AppDependencies.shared.container.getPendingSubmissions
     private let getContribs = AppDependencies.shared.container.getPendingContributions
 
+    /// "MODIFICAR": qué se está cargando/editando ahora mismo, si algo.
+    @State private var modifySchool: School?
+    @State private var modifyBlock: Block?
+    @State private var modifyError = false
+
     private var title: String { status == "APPROVED" ? "Aprobadas" : "Rechazadas" }
 
     /// Items mezclados y ordenados por fecha de revisión, más reciente primero.
@@ -41,7 +46,7 @@ struct SubmissionsHistoryView: View {
                     ScrollView {
                         LazyVStack(spacing: 0) {
                             ForEach(rows) { row in
-                                HistoryRowCard(row: row)
+                                HistoryRowCard(row: row) { target in Task { await openModify(target) } }
                                 Divider().overlay(Cumbre.rule)
                             }
                         }
@@ -60,7 +65,40 @@ struct SubmissionsHistoryView: View {
                 submissions = (try? await getSubs.invoke(status: status)) ?? []
                 contributions = (try? await getContribs.invoke(status: status)) ?? []
             }
+            .sheet(item: $modifySchool) { s in EditSchoolSheet(school: s) }
+            .sheet(item: $modifyBlock) { b in
+                BlockManageSheet(block: b, onMove: { _ in }, onDone: {}, showMoveOnMap: false)
+            }
+            .alert("No se pudo cargar para modificar.", isPresented: $modifyError) {
+                Button(NSLocalizedString("common_ok", comment: ""), role: .cancel) {}
+            }
         }
+    }
+
+    /// Resuelve el objetivo (escuela o bloque) y lo carga antes de abrir su
+    /// ficha de edición — el Historial solo tiene el id, no el objeto entero.
+    private func openModify(_ target: HistoryModifyTarget) async {
+        switch target {
+        case .school(let id):
+            if let s = try? await AppDependencies.shared.container.getSchoolById.invoke(id: id) {
+                modifySchool = s
+            } else { modifyError = true }
+        case .block(let id):
+            if let b = try? await AppDependencies.shared.container.getBlock.invoke(blockId: id) {
+                modifyBlock = b
+            } else { modifyError = true }
+        }
+    }
+}
+
+/// A qué hay que saltar al pulsar "MODIFICAR" en una fila del Historial
+/// (Álvaro, 2026-09-30: "por si modificarla despues... y si es un sector?
+/// tambien... y si es una escuela? tambien").
+enum HistoryModifyTarget: Identifiable {
+    case school(String)
+    case block(String)
+    var id: String {
+        switch self { case .school(let i): return "s_\(i)"; case .block(let i): return "b_\(i)" }
     }
 }
 
@@ -80,10 +118,29 @@ private enum HistoryRow: Identifiable {
         case .contribution(let c): return c.reviewedAt ?? c.createdAt ?? ""
         }
     }
+
+    /// A qué se puede saltar con "MODIFICAR" — nil si esta fila no dejó nada
+    /// que tocar (p.ej. una escuela o una piedra nueva que fue RECHAZADA, así
+    /// que nunca llegó a existir).
+    var modifyTarget: HistoryModifyTarget? {
+        switch self {
+        case .submission(let s):
+            guard let schoolId = s.createdSchoolId else { return nil }
+            return .school(schoolId)
+        case .contribution(let c):
+            if c.type == "SCHOOL_NAME_CORRECTION" || c.type == "SCHOOL_STYLE_CORRECTION" {
+                return .school(c.schoolId)
+            }
+            if let created = c.createdBlockId { return .block(created) }
+            if let target = c.targetBlockId { return .block(target) }
+            return nil
+        }
+    }
 }
 
 private struct HistoryRowCard: View {
     let row: HistoryRow
+    let onModify: (HistoryModifyTarget) -> Void
 
     var body: some View {
         switch row {
@@ -135,6 +192,12 @@ private struct HistoryRowCard: View {
                     .padding(8)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Cumbre.terraBg).overlay(Rectangle().stroke(Cumbre.terra.opacity(0.4), lineWidth: 1))
+            }
+
+            if let target = row.modifyTarget {
+                Button { onModify(target) } label: {
+                    Text("MODIFICAR ▸").font(Cumbre.mono(10, .bold)).tracking(0.6).foregroundStyle(Cumbre.terra)
+                }.buttonStyle(.plain).padding(.top, 2)
             }
         }
         .padding(12)
