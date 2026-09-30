@@ -189,7 +189,7 @@ func relativeLastSeen(_ iso: String?) -> String {
 
 /// El backend manda LocalDateTime sin zona ("2026-09-30T12:34:56"), en UTC
 /// (hora del servidor) — se interpreta como tal, igual que el resto de la app.
-private func parseIsoLocalDateTime(_ s: String) -> Date? {
+func parseIsoLocalDateTime(_ s: String) -> Date? {
     let f = ISO8601DateFormatter()
     f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
     if let d = f.date(from: s + "Z") { return d }
