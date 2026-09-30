@@ -22,11 +22,21 @@ object FotosDeEscuela {
      * Sin repetir importa de verdad: cuando una piedra tiene una sola cara, la
      * vía hereda la foto de la piedra, así que la misma URL sale por los dos
      * lados y se descargaría dos veces.
+     *
+     * Álvaro, 2026-09-30: "las imágenes salen en negro" en modo avión pese a
+     * haber aceptado la descarga — la pantalla pinta `bloque.facesOrDerived()`
+     * (que en el caso normal, online, es `bloque.faces` TAL CUAL, mandadas por
+     * el backend con su PROPIO `photoPath`), pero aquí solo se recogían
+     * `bloque.photoPath` + `lines.photoPath`: URLs distintas cuando el bloque
+     * trae caras reales. Se descargaba una foto que nadie iba a pedir en
+     * pantalla y no se descargaba la que sí.
      */
     fun urlsParaGuardar(blocks: List<Block>): List<String> =
         blocks
             .flatMap { bloque ->
-                listOf(bloque.photoPath) + bloque.lines.map { it.photoPath }
+                listOf(bloque.photoPath) +
+                    bloque.lines.map { it.photoPath } +
+                    bloque.facesOrDerived().map { it.photoPath }
             }
             .filterNotNull()
             .filter { it.isNotBlank() }

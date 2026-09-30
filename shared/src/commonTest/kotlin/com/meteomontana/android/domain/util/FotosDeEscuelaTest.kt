@@ -1,6 +1,7 @@
 package com.meteomontana.android.domain.util
 
 import com.meteomontana.android.domain.model.Block
+import com.meteomontana.android.domain.model.BlockFace
 import com.meteomontana.android.domain.model.BlockLine
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -20,10 +21,13 @@ class FotosDeEscuelaTest {
         linePath = null, sortOrder = 0, photoPath = foto, faceOrder = 0
     )
 
-    private fun piedra(id: String, portada: String?, vias: List<BlockLine> = emptyList()) = Block(
+    private fun piedra(
+        id: String, portada: String?, vias: List<BlockLine> = emptyList(),
+        faces: List<BlockFace> = emptyList()
+    ) = Block(
         id = id, schoolId = "e", type = "BLOCK", name = id, lat = 0.0, lon = 0.0,
         photoPath = portada, description = null, createdByUid = "u", createdAt = "",
-        lines = vias
+        lines = vias, faces = faces
     )
 
     @Test
@@ -36,6 +40,30 @@ class FotosDeEscuelaTest {
 
         assertTrue(urls.contains("cara-b.jpg"), "falta la cara B — el bug que se arregla")
         assertTrue(urls.contains("cara-a.jpg"))
+    }
+
+    @Test
+    fun `incluye las fotos de faces REALES mandadas por el backend, no solo las derivadas`() {
+        // Caso real online: el backend ya manda `faces` pobladas con su PROPIO
+        // photoPath (que la pantalla pinta vía facesOrDerived()) — distinto del
+        // photoPath/lines.photoPath de "portada" cuando eso pasa. Álvaro,
+        // 2026-09-30: "las imágenes salen en negro" en modo avión pese a haber
+        // aceptado la descarga — se guardaba la portada, que nadie pedía en
+        // pantalla, y no la cara real, que sí.
+        val bloques = listOf(
+            piedra(
+                "1", portada = "portada-que-nadie-pide.jpg",
+                faces = listOf(
+                    BlockFace(photoPath = "cara-real-1.jpg", sortOrder = 0, lines = emptyList()),
+                    BlockFace(photoPath = "cara-real-2.jpg", sortOrder = 1, lines = emptyList())
+                )
+            )
+        )
+
+        val urls = FotosDeEscuela.urlsParaGuardar(bloques)
+
+        assertTrue(urls.contains("cara-real-1.jpg"), "falta la cara real 1 — el bug que se arregla")
+        assertTrue(urls.contains("cara-real-2.jpg"), "falta la cara real 2 — el bug que se arregla")
     }
 
     @Test
