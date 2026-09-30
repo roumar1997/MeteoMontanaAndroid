@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -115,6 +116,14 @@ class KtorModerationApi(private val client: HttpClient) {
     suspend fun getAdminUsers(): List<AdminUserRowDto> =
         try { client.get("admin/users").body() } catch (_: Throwable) { emptyList() }
 
+    /** Quién entró un día concreto (Álvaro, 2026-09-30). [date] en ISO
+     *  (yyyy-MM-dd); null = hoy. */
+    @Throws(Exception::class)
+    suspend fun getDailyActivity(date: String? = null): com.meteomontana.android.data.api.dto.DailyActivityDto =
+        client.get("admin/activity/daily") {
+            if (date != null) parameter("date", date)
+        }.body()
+
     suspend fun getAdminNotes(): List<AdminNoteRowDto> =
         try { client.get("admin/notes").body() } catch (_: Throwable) { emptyList() }
 
@@ -181,7 +190,8 @@ data class AdminUserRowDto(
     val username: String? = null,
     val displayName: String? = null,
     val isAdmin: Boolean = false,
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    val lastSeen: String? = null
 )
 
 /** Fila de nota para el panel de admin. */

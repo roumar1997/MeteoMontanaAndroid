@@ -26,6 +26,9 @@ class KtorModerationRepository(private val api: KtorModerationApi) : ModerationR
 
     override suspend fun getAdminUsers(): List<AdminUserRow> = api.getAdminUsers().map { it.toDomain() }
 
+    override suspend fun getDailyActivity(date: String?): com.meteomontana.android.domain.model.DailyActivity =
+        api.getDailyActivity(date).toDomain()
+
     override suspend fun getAdminNotes(): List<AdminNoteRow> = api.getAdminNotes().map { it.toDomain() }
 
     override suspend fun getAdminSuggestions(): List<AdminSuggestionRow> =
@@ -57,8 +60,20 @@ private fun ContentReportDto.toDomain() = ContentReport(
 )
 
 private fun AdminUserRowDto.toDomain() = AdminUserRow(
-    uid = uid, username = username, displayName = displayName, isAdmin = isAdmin, createdAt = createdAt
+    uid = uid, username = username, displayName = displayName, isAdmin = isAdmin, createdAt = createdAt,
+    lastSeen = lastSeen
 )
+
+private fun com.meteomontana.android.data.api.dto.ActiveUserRowDto.toDomain() =
+    com.meteomontana.android.domain.model.ActiveUserRow(
+        uid = uid, username = username, displayName = displayName, photoPath = photoPath,
+        lastSeen = lastSeen, openCount = openCount
+    )
+
+private fun com.meteomontana.android.data.api.dto.DailyActivityDto.toDomain() =
+    com.meteomontana.android.domain.model.DailyActivity(
+        totalOpens = totalOpens, users = users.map { it.toDomain() }
+    )
 
 private fun AdminNoteRowDto.toDomain() = AdminNoteRow(
     id = id, schoolId = schoolId, author = author, uid = uid, text = text, createdAt = createdAt

@@ -146,7 +146,10 @@ fun NotificationDto.toDomain() = Notification(id, type, title, body, targetType,
 fun InboxDto.toDomain() = Inbox(unreadCount, items.map { it.toDomain() })
 
 // Admin
-fun AdminStatsDto.toDomain() = AdminStats(totalUsers, totalAdmins, totalSchools, totalNotes, submissionsPending, submissionsApproved, submissionsRejected)
+fun AdminStatsDto.toDomain() = AdminStats(
+    totalUsers, totalAdmins, totalSchools, totalNotes, submissionsPending, submissionsApproved, submissionsRejected,
+    dailyActiveUsers, weeklyActiveUsers, monthlyActiveUsers, dailyOpensTotal
+)
 fun AdminLogDto.toDomain() = AdminLog(id, actorUid, action, targetType, targetId, details, createdAt)
 fun AdminPushResponse.toDomain() = AdminPushResult(sent, recipients)
 fun SubmissionDto.toDomain() = Submission(id, proposedName, proposedRegion, proposedStyle, proposedRockType, proposedLat, proposedLon, proposedLocation, proposedSource, notes, status, submittedByUid, reviewedByUid, reviewReason, createdSchoolId, createdAt, reviewedAt)
