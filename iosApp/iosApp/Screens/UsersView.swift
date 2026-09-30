@@ -509,6 +509,7 @@ struct FollowListView: View {
                 TextField("Buscar en la lista…", text: $query)
                     .font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    .dismissKeyboardOnSubmit()
             }
             .padding(.horizontal, 12).padding(.vertical, 9)
             .background(Cumbre.paper)

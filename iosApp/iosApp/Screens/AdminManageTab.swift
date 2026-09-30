@@ -37,6 +37,7 @@ struct GestionarTab: View {
             TextField("Buscar escuela (nombre, lugar, región)…", text: $query)
                 .font(.system(size: 15)).padding(10)
                 .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1)).padding(16)
+                .dismissKeyboardOnSubmit()
             if vm.allSchools.isEmpty {
                 ProgressView().frame(maxWidth: .infinity).padding(.top, 30); Spacer()
             } else {
