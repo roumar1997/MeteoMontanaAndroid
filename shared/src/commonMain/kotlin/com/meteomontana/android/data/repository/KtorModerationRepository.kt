@@ -61,7 +61,7 @@ private fun ContentReportDto.toDomain() = ContentReport(
 
 private fun AdminUserRowDto.toDomain() = AdminUserRow(
     uid = uid, username = username, displayName = displayName, isAdmin = isAdmin, createdAt = createdAt,
-    lastSeen = lastSeen
+    lastSeen = lastSeen, photoPath = photoPath
 )
 
 private fun com.meteomontana.android.data.api.dto.ActiveUserRowDto.toDomain() =

@@ -22,7 +22,8 @@ data class AdminUserRow(
     val isAdmin: Boolean,
     val createdAt: String?,
     // null = nunca registrada (cuenta anterior a esta función). Álvaro, 2026-09-30.
-    val lastSeen: String? = null
+    val lastSeen: String? = null,
+    val photoPath: String? = null
 )
 
 /** Fila de nota para el panel de admin. */

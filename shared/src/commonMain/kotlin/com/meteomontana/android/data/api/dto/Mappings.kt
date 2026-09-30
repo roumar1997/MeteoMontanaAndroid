@@ -152,8 +152,20 @@ fun AdminStatsDto.toDomain() = AdminStats(
 )
 fun AdminLogDto.toDomain() = AdminLog(id, actorUid, action, targetType, targetId, details, createdAt)
 fun AdminPushResponse.toDomain() = AdminPushResult(sent, recipients)
-fun SubmissionDto.toDomain() = Submission(id, proposedName, proposedRegion, proposedStyle, proposedRockType, proposedLat, proposedLon, proposedLocation, proposedSource, notes, status, submittedByUid, reviewedByUid, reviewReason, createdSchoolId, createdAt, reviewedAt)
-fun ContributionDto.toDomain() = Contribution(id, type, status, schoolId, schoolName, name, lat, lon, notes, description, submittedByName, reviewReason, createdAt, reviewedAt, photoUrl, bloquesJson, topoLinesJson, targetBlockId, targetLineId, sectorBlockId, proposedLat, proposedLon, correctionReason, geometry, path, direction)
+fun SubmissionDto.toDomain() = Submission(
+    id, proposedName, proposedRegion, proposedStyle, proposedRockType, proposedLat, proposedLon,
+    proposedLocation, proposedSource, notes, status, submittedByUid,
+    submittedByName = submittedByName, submittedByPhotoPath = submittedByPhotoPath,
+    reviewedByUid = reviewedByUid, reviewedByName = reviewedByName,
+    reviewReason = reviewReason, createdSchoolId = createdSchoolId, createdAt = createdAt, reviewedAt = reviewedAt
+)
+fun ContributionDto.toDomain() = Contribution(
+    id, type, status, schoolId, schoolName, name, lat, lon, notes, description, submittedByName,
+    reviewReason, createdAt, reviewedAt, photoUrl, bloquesJson, topoLinesJson, targetBlockId, targetLineId,
+    sectorBlockId, proposedLat, proposedLon, correctionReason, geometry, path, direction,
+    submittedByUid = submittedByUid, submittedByPhotoPath = submittedByPhotoPath,
+    reviewedByUid = reviewedByUid, reviewedByName = reviewedByName
+)
 
 // Journal
 fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt, discipline, lineId, status, aVista, alFlash)

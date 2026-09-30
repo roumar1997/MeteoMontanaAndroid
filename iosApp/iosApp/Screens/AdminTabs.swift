@@ -14,6 +14,8 @@ struct AdminStatsTab: View {
     /// "Quién entró" — al pulsar cualquiera de las 3 tarjetas de actividad, o
     /// la franja de aperturas totales (Álvaro, 2026-09-30).
     @State private var showDailyActivity = false
+    /// "ver propuestas pasadas" — al pulsar APROBADAS/RECHAZADAS (Álvaro, 2026-09-30).
+    @State private var historyStatus: String? = nil
 
     var body: some View {
         ScrollView {
@@ -57,9 +59,11 @@ struct AdminStatsTab: View {
                     card("ADMINS", s.totalAdmins) { openList = "admins"; loadUsers() }
                     card("ESCUELAS", s.totalSchools) { onGoToTab(.gestionar) }
                     card("NOTAS", s.totalNotes) { openList = "notes"; loadNotes() }
-                    card("PENDIENTES", s.submissionsPending) { onGoToTab(.propuestas) }
-                    card("APROBADAS", s.submissionsApproved) { onGoToTab(.actividad) }
-                    card("RECHAZADAS", s.submissionsRejected) { onGoToTab(.actividad) }
+                    // Iluminada en terracota si hay pendientes — mismo criterio
+                    // que la cabecera de PROPUESTAS (Álvaro, 2026-09-30).
+                    card("PENDIENTES", s.submissionsPending, highlighted: s.submissionsPending > 0) { onGoToTab(.propuestas) }
+                    card("APROBADAS", s.submissionsApproved) { historyStatus = "APPROVED" }
+                    card("RECHAZADAS", s.submissionsRejected) { historyStatus = "REJECTED" }
                 }.padding(16)
             } else {
                 ProgressView().padding(.top, 40)
@@ -69,6 +73,9 @@ struct AdminStatsTab: View {
             listSheet
         }
         .sheet(isPresented: $showDailyActivity) { DailyActivityView() }
+        .sheet(isPresented: Binding(get: { historyStatus != nil }, set: { if !$0 { historyStatus = nil } })) {
+            if let status = historyStatus { SubmissionsHistoryView(status: status) }
+        }
     }
 
     private func activityCard(_ label: String, _ value: Int64) -> some View {
@@ -116,6 +123,7 @@ struct AdminStatsTab: View {
                                 // P6: la fila abre el PERFIL del usuario.
                                 NavigationLink(destination: PublicProfileView(uid: u.uid)) {
                                 HStack {
+                                    AvatarCircle(url: u.photoPath, size: 32)
                                     VStack(alignment: .leading, spacing: 1) {
                                         Text(u.username.map { "@" + $0 } ?? (u.displayName ?? String(u.uid.prefix(10))))
                                             .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
@@ -142,14 +150,15 @@ struct AdminStatsTab: View {
         }
     }
 
-    private func card(_ label: String, _ value: Int64, action: @escaping () -> Void = {}) -> some View {
+    private func card(_ label: String, _ value: Int64, highlighted: Bool = false, action: @escaping () -> Void = {}) -> some View {
         Button(action: action) {
             VStack(spacing: 4) {
-                Text("\(value)").font(Cumbre.serif(28, .bold)).foregroundStyle(Cumbre.ink)
-                Text(label).font(Cumbre.mono(10, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink3)
+                Text("\(value)").font(Cumbre.serif(28, .bold)).foregroundStyle(highlighted ? Cumbre.terra : Cumbre.ink)
+                Text(label).font(Cumbre.mono(10, .bold)).tracking(0.8).foregroundStyle(highlighted ? Cumbre.terra.opacity(0.85) : Cumbre.ink3)
             }
             .frame(maxWidth: .infinity).padding(.vertical, 16)
-            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            .background(highlighted ? Cumbre.terraBg : Color.clear)
+            .overlay(Rectangle().stroke(highlighted ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
