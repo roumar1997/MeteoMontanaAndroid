@@ -11,6 +11,8 @@ interface ModerationRepository {
     suspend fun getContentReports(): List<ContentReport>
     suspend fun resolveContentReport(id: String, action: String): ContentReport?
     suspend fun getAdminUsers(): List<AdminUserRow>
+    /** Quién entró un día concreto — [date] ISO (yyyy-MM-dd), null = hoy. */
+    suspend fun getDailyActivity(date: String? = null): com.meteomontana.android.domain.model.DailyActivity
     suspend fun getAdminNotes(): List<AdminNoteRow>
     suspend fun getAdminSuggestions(): List<AdminSuggestionRow>
     suspend fun respondToSuggestion(id: String, resolved: Boolean?, reply: String?): AdminSuggestionRow?

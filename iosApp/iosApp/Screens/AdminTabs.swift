@@ -11,6 +11,9 @@ struct AdminStatsTab: View {
     @State private var openList: String? = nil
     @State private var users: [AdminUserRow]? = nil
     @State private var notes: [AdminNoteRow]? = nil
+    /// "Quién entró" — al pulsar cualquiera de las 3 tarjetas de actividad, o
+    /// la franja de aperturas totales (Álvaro, 2026-09-30).
+    @State private var showDailyActivity = false
 
     var body: some View {
         ScrollView {
@@ -19,6 +22,36 @@ struct AdminStatsTab: View {
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 16).padding(.top, 10)
+
+                Text("ACTIVIDAD").font(Cumbre.mono(10, .bold)).tracking(0.8)
+                    .foregroundStyle(Cumbre.terra)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16).padding(.top, 12)
+                HStack(spacing: 8) {
+                    activityCard("USUARIOS HOY", s.dailyActiveUsers)
+                    activityCard("7 DÍAS", s.weeklyActiveUsers)
+                    activityCard("30 DÍAS", s.monthlyActiveUsers)
+                }
+                .padding(.horizontal, 16).padding(.top, 6)
+                .onTapGesture { showDailyActivity = true }
+
+                Button { showDailyActivity = true } label: {
+                    HStack(alignment: .lastTextBaseline, spacing: 6) {
+                        Text("\(s.dailyOpensTotal)").font(Cumbre.serif(16, .bold)).foregroundStyle(Cumbre.ink)
+                        Text("aperturas de la app HOY").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                        Spacer()
+                        Text("VER QUIÉN ▸").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                    }
+                    .padding(10)
+                    .background(Cumbre.paper).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 4)
+
+                Text("CATÁLOGO").font(Cumbre.mono(10, .bold)).tracking(0.8)
+                    .foregroundStyle(Cumbre.ink3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16).padding(.top, 12)
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     card("USUARIOS", s.totalUsers) { openList = "users"; loadUsers() }
                     card("ADMINS", s.totalAdmins) { openList = "admins"; loadUsers() }
@@ -35,6 +68,17 @@ struct AdminStatsTab: View {
         .sheet(isPresented: Binding(get: { openList != nil }, set: { if !$0 { openList = nil } })) {
             listSheet
         }
+        .sheet(isPresented: $showDailyActivity) { DailyActivityView() }
+    }
+
+    private func activityCard(_ label: String, _ value: Int64) -> some View {
+        VStack(spacing: 4) {
+            Text("\(value)").font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.terra)
+            Text(label).font(Cumbre.mono(8.5, .bold)).tracking(0.4).foregroundStyle(Cumbre.terra.opacity(0.85))
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 12)
+        .background(Cumbre.terraBg).overlay(Rectangle().stroke(Cumbre.terra, lineWidth: 1))
     }
 
     private func loadUsers() {
@@ -80,7 +124,7 @@ struct AdminStatsTab: View {
                                         }
                                     }
                                     Spacer()
-                                    Text(String((u.createdAt ?? "").prefix(10)))
+                                    Text(relativeLastSeen(u.lastSeen))
                                         .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                                 }
                                 }.buttonStyle(.plain)
@@ -109,6 +153,152 @@ struct AdminStatsTab: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// "hace 12 min" / "ayer, 21:04" / "hace 6 días" / "sin registrar" — última
+/// conexión de un usuario en el panel de admin (Álvaro, 2026-09-30).
+func relativeLastSeen(_ iso: String?) -> String {
+    guard let iso, let date = parseIsoLocalDateTime(iso) else { return "sin registrar" }
+    let seconds = Date().timeIntervalSince(date)
+    if seconds < 60 { return "ahora mismo" }
+    if seconds < 3600 { return "hace \(Int(seconds / 60)) min" }
+    if Calendar.current.isDateInToday(date) {
+        let f = DateFormatter(); f.dateFormat = "HH:mm"
+        return "hoy, \(f.string(from: date))"
+    }
+    if Calendar.current.isDateInYesterday(date) {
+        let f = DateFormatter(); f.dateFormat = "HH:mm"
+        return "ayer, \(f.string(from: date))"
+    }
+    let days = Int(seconds / 86400)
+    if days < 30 { return "hace \(days) día\(days == 1 ? "" : "s")" }
+    let months = days / 30
+    if months < 12 { return "hace \(months) mes\(months == 1 ? "" : "es")" }
+    return "hace más de un año"
+}
+
+/// El backend manda LocalDateTime sin zona ("2026-09-30T12:34:56"), en UTC
+/// (hora del servidor) — se interpreta como tal, igual que el resto de la app.
+private func parseIsoLocalDateTime(_ s: String) -> Date? {
+    let f = ISO8601DateFormatter()
+    f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    if let d = f.date(from: s + "Z") { return d }
+    f.formatOptions = [.withInternetDateTime]
+    if let d = f.date(from: s + "Z") { return d }
+    let df = DateFormatter()
+    df.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+    df.timeZone = TimeZone(identifier: "UTC")
+    return df.date(from: s)
+}
+
+/// "Quién entró" un día concreto — usuarios + cuántas veces cada uno, y el
+/// total de aperturas de ese día (Álvaro, 2026-09-30).
+struct DailyActivityView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var day = Date()
+    @State private var activity: DailyActivity?
+    @State private var loading = false
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                HStack {
+                    Button { changeDay(by: -1) } label: {
+                        Image(systemName: "chevron.left").foregroundStyle(Cumbre.ink3)
+                    }
+                    Spacer()
+                    Text(dayLabel).font(Cumbre.serif(16, .bold)).foregroundStyle(Cumbre.ink)
+                    Spacer()
+                    Button { changeDay(by: 1) } label: {
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(isToday ? Cumbre.ink3.opacity(0.3) : Cumbre.ink3)
+                    }.disabled(isToday)
+                }
+                .padding(.horizontal, 16).padding(.vertical, 12)
+                Divider().overlay(Cumbre.rule)
+
+                if let a = activity {
+                    HStack(alignment: .lastTextBaseline, spacing: 14) {
+                        HStack(alignment: .lastTextBaseline, spacing: 4) {
+                            Text("\(a.users.count)").font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.terra)
+                            Text("usuarios").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                        }
+                        HStack(alignment: .lastTextBaseline, spacing: 4) {
+                            Text("\(a.totalOpens)").font(Cumbre.serif(18, .bold)).foregroundStyle(Cumbre.ink)
+                            Text("aperturas totales").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    Divider().overlay(Cumbre.rule)
+
+                    if a.users.isEmpty {
+                        Text("Nadie abrió la app ese día.")
+                            .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                            .padding(.top, 30)
+                        Spacer()
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: 0) {
+                                ForEach(a.users, id: \.uid) { u in
+                                    NavigationLink(destination: PublicProfileView(uid: u.uid)) {
+                                        HStack(spacing: 10) {
+                                            Text(u.username.map { "@" + $0 } ?? (u.displayName ?? String(u.uid.prefix(10))))
+                                                .font(.system(size: 13)).foregroundStyle(Cumbre.ink)
+                                            if u.openCount > 1 {
+                                                Text("×\(u.openCount)")
+                                                    .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.terra)
+                                                    .padding(.horizontal, 7).padding(.vertical, 2)
+                                                    .background(Cumbre.terraBg)
+                                                    .clipShape(Capsule())
+                                            }
+                                            Spacer()
+                                            Text(relativeLastSeen(u.lastSeen))
+                                                .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                                        }
+                                        .padding(.horizontal, 16).padding(.vertical, 9)
+                                    }
+                                    .buttonStyle(.plain)
+                                    Divider().overlay(Cumbre.rule)
+                                }
+                            }
+                        }
+                    }
+                } else if loading {
+                    ProgressView().padding(.top, 40)
+                    Spacer()
+                }
+            }
+            .background(Cumbre.bg.ignoresSafeArea())
+            .navigationTitle("Quién entró")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundColor(Cumbre.terra)
+                }
+            }
+            .task(id: day) { await load() }
+        }
+    }
+
+    private var isToday: Bool { Calendar.current.isDateInToday(day) }
+    private var dayLabel: String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "es_ES")
+        f.dateFormat = isToday ? "'Hoy'" : "EEEE, d MMM"
+        return f.string(from: day).capitalized
+    }
+    private func changeDay(by deltaDays: Int) {
+        guard let newDay = Calendar.current.date(byAdding: .day, value: deltaDays, to: day) else { return }
+        day = min(newDay, Date())
+    }
+    private func load() async {
+        loading = true
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
+        let iso = f.string(from: day)
+        activity = try? await AppDependencies.shared.container.getDailyActivity.invoke(date: iso)
+        loading = false
     }
 }
 

@@ -23,6 +23,14 @@ class GetAdminUsersUseCase(private val repo: ModerationRepository) {
     suspend operator fun invoke(): List<AdminUserRow> = repo.getAdminUsers()
 }
 
+/** Quién entró un día concreto (Álvaro, 2026-09-30). [date] ISO
+ *  (yyyy-MM-dd), null = hoy. */
+class GetDailyActivityUseCase(private val repo: ModerationRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(date: String? = null): com.meteomontana.android.domain.model.DailyActivity =
+        repo.getDailyActivity(date)
+}
+
 class GetAdminNotesUseCase(private val repo: ModerationRepository) {
     @Throws(Exception::class)
     suspend operator fun invoke(): List<AdminNoteRow> = repo.getAdminNotes()

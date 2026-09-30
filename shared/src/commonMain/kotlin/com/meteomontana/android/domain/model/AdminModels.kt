@@ -7,7 +7,32 @@ data class AdminStats(
     val totalNotes: Long,
     val submissionsPending: Long,
     val submissionsApproved: Long,
-    val submissionsRejected: Long
+    val submissionsRejected: Long,
+    // Usuarios DISTINTOS que abrieron la app hoy / últimos 7 días / últimos
+    // 30 días (Álvaro, 2026-09-30) — no aperturas totales, eso es dailyOpensTotal.
+    val dailyActiveUsers: Long = 0,
+    val weeklyActiveUsers: Long = 0,
+    val monthlyActiveUsers: Long = 0,
+    // Aperturas TOTALES de hoy (cuenta repetidas: quien entra 5 veces suma 5).
+    val dailyOpensTotal: Long = 0
+)
+
+/** Un usuario que abrió la app un día concreto, y cuántas veces ese día
+ *  (Álvaro, 2026-09-30). */
+data class ActiveUserRow(
+    val uid: String,
+    val username: String?,
+    val displayName: String?,
+    val photoPath: String?,
+    val lastSeen: String?,
+    val openCount: Int
+)
+
+/** Respuesta de "quién entró tal día": la lista + el total de aperturas de
+ *  ESE día (no usuarios distintos). */
+data class DailyActivity(
+    val totalOpens: Long,
+    val users: List<ActiveUserRow>
 )
 
 data class AdminLog(

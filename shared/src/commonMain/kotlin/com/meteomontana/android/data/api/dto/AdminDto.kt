@@ -10,7 +10,28 @@ data class AdminStatsDto(
     val totalNotes: Long,
     val submissionsPending: Long,
     val submissionsApproved: Long,
-    val submissionsRejected: Long
+    val submissionsRejected: Long,
+    val dailyActiveUsers: Long = 0,
+    val weeklyActiveUsers: Long = 0,
+    val monthlyActiveUsers: Long = 0,
+    val dailyOpensTotal: Long = 0
+)
+
+/** Un usuario que abrió la app un día concreto (Álvaro, 2026-09-30). */
+@Serializable
+data class ActiveUserRowDto(
+    val uid: String,
+    val username: String? = null,
+    val displayName: String? = null,
+    val photoPath: String? = null,
+    val lastSeen: String? = null,
+    val openCount: Int = 1
+)
+
+@Serializable
+data class DailyActivityDto(
+    val totalOpens: Long,
+    val users: List<ActiveUserRowDto>
 )
 
 @Serializable
