@@ -64,6 +64,13 @@ class SavedSchoolRepository(
                 photoPath = l.photoPath, faceOrder = l.faceOrder.toLong()
             )
         }
+        // Caras REALES tal y como las manda el backend, con su PROPIO photoPath
+        // — NO se derivan (eso lo hace facesOrDerived() como fallback cuando
+        // esto viene vacío, que era justo el bug: offline no había nada real
+        // que guardar, así que siempre caía al fallback derivado).
+        b.faces.forEach { f ->
+            q.insertFace(blockId = b.id, sortOrder = f.sortOrder.toLong(), photoPath = f.photoPath)
+        }
     }
 
     /** ids de las escuelas guardadas offline. */
@@ -142,31 +149,51 @@ class SavedSchoolRepository(
         val blocks = q.blocksOfSchool(id).executeAsList()
         val lines = if (blocks.isEmpty()) emptyList()
                     else q.linesOfBlocks(blocks.map { it.id }).executeAsList()
+        val faces = if (blocks.isEmpty()) emptyList()
+                    else q.facesOfBlocks(blocks.map { it.id }).executeAsList()
         val fc = q.findForecast(id).executeAsOneOrNull()
         val forecast = fc?.forecastJson?.takeIf { it.isNotBlank() }
             ?.let { runCatching { ForecastJson.decode(it) }.getOrNull() }
-        return OfflineSnapshot(s, blocks, lines, forecast, fc?.fetchedAt)
+        return OfflineSnapshot(s, blocks, lines, faces, forecast, fc?.fetchedAt)
     }
 
-    fun toBlock(entity: SavedBlock, lines: List<SavedBlockLine>): Block =
-        Block(
+    fun toBlock(
+        entity: SavedBlock,
+        lines: List<SavedBlockLine>,
+        faces: List<com.meteomontana.db.SavedBlockFace> = emptyList()
+    ): Block {
+        val blockLines = lines.filter { it.blockId == entity.id }
+            .sortedBy { it.sortOrder }
+            .map { line ->
+                BlockLine(
+                    id = line.id, name = line.name ?: "",
+                    grade = line.grade, startType = line.startType,
+                    linePath = line.linePath, sortOrder = line.sortOrder.toInt(),
+                    photoPath = line.photoPath ?: entity.photoPath,
+                    faceOrder = line.faceOrder.toInt()
+                )
+            }
+        return Block(
             id = entity.id, schoolId = entity.schoolId, type = entity.type,
             name = entity.name, lat = entity.lat, lon = entity.lon,
             photoPath = entity.photoPath, description = entity.description,
             sectorBlockId = entity.sectorBlockId,
             createdByUid = "", createdAt = "",
-            lines = lines.filter { it.blockId == entity.id }
+            lines = blockLines,
+            // Caras REALES guardadas (con su propio photoPath, y sus vías por
+            // faceOrder). Vacío = piedras guardadas ANTES de este fix, que
+            // siguen cayendo al fallback derivado de facesOrDerived() hasta
+            // que se vuelvan a guardar.
+            faces = faces.filter { it.blockId == entity.id }
                 .sortedBy { it.sortOrder }
-                .map { line ->
-                    BlockLine(
-                        id = line.id, name = line.name ?: "",
-                        grade = line.grade, startType = line.startType,
-                        linePath = line.linePath, sortOrder = line.sortOrder.toInt(),
-                        photoPath = line.photoPath ?: entity.photoPath,
-                        faceOrder = line.faceOrder.toInt()
+                .map { f ->
+                    com.meteomontana.android.domain.model.BlockFace(
+                        photoPath = f.photoPath, sortOrder = f.sortOrder.toInt(),
+                        lines = blockLines.filter { it.faceOrder == f.sortOrder.toInt() }
                     )
                 }
         )
+    }
 }
 
 /** Forecast cacheado + epoch ms de la última descarga (para "actualizado hace X"). */
@@ -179,6 +206,7 @@ data class OfflineSnapshot(
     val school: SavedSchool,
     val blocks: List<SavedBlock>,
     val lines: List<SavedBlockLine>,
+    val faces: List<com.meteomontana.db.SavedBlockFace>,
     val forecast: Forecast?,
     val forecastFetchedAt: Long?
 )

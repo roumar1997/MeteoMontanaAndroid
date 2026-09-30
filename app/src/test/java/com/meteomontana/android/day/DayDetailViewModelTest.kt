@@ -93,7 +93,7 @@ class DayDetailViewModelTest {
         coEvery { savedRepo.loadOffline("esc") } returns
             com.meteomontana.android.data.saved.OfflineSnapshot(
                 school = mockk(relaxed = true), blocks = emptyList(), lines = emptyList(),
-                forecast = forecast(), forecastFetchedAt = 0L)
+                faces = emptyList(), forecast = forecast(), forecastFetchedAt = 0L)
         val vm = vm(0); advanceUntilIdle()
         assertTrue(vm.state.value is DayDetailUiState.Loaded)  // no Error: usó el snapshot
     }

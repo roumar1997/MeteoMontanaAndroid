@@ -91,7 +91,7 @@ final class SchoolMapViewModel: ObservableObject {
         // Sin red (o sin bloques en la respuesta): tira del snapshot offline.
         if let repo = container.savedSchools,
            let snap = try? await repo.loadOffline(id: school.id) {
-            return snap.blocks.map { repo.toBlock(entity: $0, lines: snap.lines) }
+            return snap.blocks.map { repo.toBlock(entity: $0, lines: snap.lines, faces: snap.faces) }
         }
         return []
     }

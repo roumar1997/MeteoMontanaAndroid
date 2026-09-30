@@ -49,6 +49,19 @@ CREATE TABLE SavedBlockLine (
 );
 CREATE INDEX SavedBlockLine_blockId ON SavedBlockLine(blockId);
 
+-- Caras REALES de la piedra tal y como las manda el backend (Block.faces),
+-- con su PROPIO photoPath — antes no se guardaban y offline se derivaban
+-- agrupando por line.photoPath/block.photoPath, que no siempre coincide con
+-- la URL real de la cara → foto en negro (Álvaro, 2026-09-30, escuela
+-- Albarracín: piedras con estructura de caras no trivial fallaban).
+CREATE TABLE SavedBlockFace (
+    blockId   TEXT NOT NULL,
+    sortOrder INTEGER NOT NULL,
+    photoPath TEXT,
+    FOREIGN KEY (blockId) REFERENCES SavedBlock(id) ON DELETE CASCADE
+);
+CREATE INDEX SavedBlockFace_blockId ON SavedBlockFace(blockId);
+
 CREATE TABLE SavedForecast (
     schoolId     TEXT NOT NULL PRIMARY KEY,
     forecastJson TEXT NOT NULL,
@@ -101,6 +114,14 @@ SELECT * FROM SavedBlockLine WHERE blockId IN ?;
 insertLine:
 INSERT OR REPLACE INTO SavedBlockLine(id, blockId, number, grade, startType, name, linePath, sortOrder, photoPath, faceOrder)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- ─── SavedBlockFace queries ───────────────────────────────────────────────────
+facesOfBlocks:
+SELECT * FROM SavedBlockFace WHERE blockId IN ?;
+
+insertFace:
+INSERT INTO SavedBlockFace(blockId, sortOrder, photoPath)
+VALUES (?, ?, ?);
 
 -- ─── SavedForecast queries ───────────────────────────────────────────────────
 findForecast:
