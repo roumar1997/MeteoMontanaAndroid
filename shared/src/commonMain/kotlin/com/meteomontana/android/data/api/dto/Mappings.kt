@@ -164,7 +164,8 @@ fun ContributionDto.toDomain() = Contribution(
     reviewReason, createdAt, reviewedAt, photoUrl, bloquesJson, topoLinesJson, targetBlockId, targetLineId,
     sectorBlockId, proposedLat, proposedLon, correctionReason, geometry, path, direction,
     submittedByUid = submittedByUid, submittedByPhotoPath = submittedByPhotoPath,
-    reviewedByUid = reviewedByUid, reviewedByName = reviewedByName
+    reviewedByUid = reviewedByUid, reviewedByName = reviewedByName,
+    createdBlockId = createdBlockId
 )
 
 // Journal

@@ -18,6 +18,9 @@ struct GestionarTab: View {
     /// (Álvaro, 2026-09-14). Mismo patrón que GESTIONAR BLOQUES: botón junto
     /// al de siempre, sin tocar el flujo normal.
     @State private var reorderSchool: School?
+    /// "EDITAR DATOS": nombre/ubicación/región/estilo/roca de la escuela
+    /// (Álvaro, 2026-09-30) — antes solo se podía mover el pin.
+    @State private var editSchool: School?
 
     private var filtered: [School] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
@@ -78,6 +81,12 @@ struct GestionarTab: View {
                                     .font(Cumbre.mono(11, .bold))
                             }
                         }
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button { editSchool = s } label: {
+                                Label("EDITAR DATOS", systemImage: "pencil")
+                                    .font(Cumbre.mono(11, .bold))
+                            }
+                        }
                     }
             }
         }
@@ -86,6 +95,9 @@ struct GestionarTab: View {
         }
         .fullScreenCover(item: $reorderSchool) { s in
             SchoolSectorReorderSheet(school: s)
+        }
+        .sheet(item: $editSchool) { s in
+            EditSchoolSheet(school: s) { Task { await vm.loadSchools() } }
         }
     }
 }
@@ -194,6 +206,10 @@ struct BlockManageSheet: View {
     let block: Block
     let onMove: (Block) -> Void
     let onDone: () -> Void
+    /// false cuando se abre sin el mapa alrededor (p.ej. desde el Historial de
+    /// admin): "mover pulsando en el mapa" no tiene dónde pulsar ahí
+    /// (Álvaro, 2026-09-30).
+    var showMoveOnMap: Bool = true
     @Environment(\.dismiss) private var dismiss
     @State private var name: String
     @State private var desc: String
@@ -202,9 +218,13 @@ struct BlockManageSheet: View {
     @State private var discipline: String
     @State private var busy = false
     @State private var confirmDelete = false
+    /// "EDITAR VÍAS": nombre/grado/foto de las vías de esta piedra (Álvaro,
+    /// 2026-09-30). Va por el mismo circuito de propuesta+aprobación de
+    /// siempre — como admin la apruebas tú mismo, así que es casi instantáneo.
+    @State private var editingLines = false
 
-    init(block: Block, onMove: @escaping (Block) -> Void, onDone: @escaping () -> Void) {
-        self.block = block; self.onMove = onMove; self.onDone = onDone
+    init(block: Block, onMove: @escaping (Block) -> Void, onDone: @escaping () -> Void, showMoveOnMap: Bool = true) {
+        self.block = block; self.onMove = onMove; self.onDone = onDone; self.showMoveOnMap = showMoveOnMap
         _name = State(initialValue: block.name)
         // `descriptionText` (alias Kotlin) evita el choque con NSObject.description.
         _desc = State(initialValue: block.descriptionText ?? "")
@@ -238,12 +258,22 @@ struct BlockManageSheet: View {
                             Text("GUARDAR CAMBIOS").font(Cumbre.mono(12, .bold)).tracking(0.8) }
                         .foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 13).background(Cumbre.terraFill)
                     }.buttonStyle(.plain).disabled(busy)
-                    Button { onMove(block) } label: {
-                        Text("📍 MOVER PULSANDO EN EL MAPA").font(Cumbre.mono(12, .bold)).tracking(0.8)
-                            .foregroundStyle(Cumbre.ink)
-                            .frame(maxWidth: .infinity).padding(.vertical, 13)
-                            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                    }.buttonStyle(.plain).disabled(busy)
+                    if showMoveOnMap {
+                        Button { onMove(block) } label: {
+                            Text("📍 MOVER PULSANDO EN EL MAPA").font(Cumbre.mono(12, .bold)).tracking(0.8)
+                                .foregroundStyle(Cumbre.ink)
+                                .frame(maxWidth: .infinity).padding(.vertical, 13)
+                                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                        }.buttonStyle(.plain).disabled(busy)
+                    }
+                    if block.type == "BLOCK" {
+                        Button { editingLines = true } label: {
+                            Text("EDITAR VÍAS (NOMBRE / GRADO / FOTO)").font(Cumbre.mono(12, .bold)).tracking(0.8)
+                                .foregroundStyle(Cumbre.ink)
+                                .frame(maxWidth: .infinity).padding(.vertical, 13)
+                                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                        }.buttonStyle(.plain).disabled(busy)
+                    }
                     Button { confirmDelete = true } label: {
                         Text("BORRAR BLOQUE").font(Cumbre.mono(12, .bold)).tracking(0.8).foregroundStyle(Cumbre.bad)
                             .frame(maxWidth: .infinity).padding(.vertical, 13)
@@ -260,6 +290,11 @@ struct BlockManageSheet: View {
                 Button(NSLocalizedString("common_cancel", comment: ""), role: .cancel) {}
                 Button(NSLocalizedString("common_delete", comment: ""), role: .destructive) { Task { await remove() } }
             } message: { Text("Se borrará «\(block.name)» y sus vías. No se puede deshacer.") }
+            .sheet(isPresented: $editingLines) {
+                EditLinesSheet(block: block, schoolId: block.schoolId) { _ in
+                    editingLines = false; onDone()
+                }
+            }
         }
     }
 

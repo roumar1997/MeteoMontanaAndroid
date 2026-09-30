@@ -359,6 +359,10 @@ class IosDependencyContainer(
     val resolveReport = ResolveReportUseCase(adminRepository)
     val updateBlock = UpdateBlockUseCase(blockRepository)
     val deleteBlock = DeleteBlockUseCase(blockRepository)
+    // Un bloque suelto por id, para saltar directo desde el Historial de admin
+    // a "MODIFICAR" (Álvaro, 2026-09-30).
+    val getBlock = com.meteomontana.android.domain.usecase.blocks.GetBlockUseCase(blockRepository)
+    val editSchool = com.meteomontana.android.domain.usecase.admin.EditSchoolUseCase(adminRepository)
     // Numerar piedras por sector + arreglar el orden a mano o por GPS (Álvaro, 2026-09-14).
     val reorderBlocks = ReorderBlocksUseCase(blockRepository)
     val autoReorderBlocks = AutoReorderBlocksUseCase(blockRepository)
