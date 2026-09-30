@@ -72,7 +72,12 @@ data class Submission(
     val notes: String?,
     val status: String,
     val submittedByUid: String,
+    // Resueltos al leer, no persistidos (Álvaro, 2026-09-30: "saber quién la
+    // hizo, quién la aprobó").
+    val submittedByName: String? = null,
+    val submittedByPhotoPath: String? = null,
     val reviewedByUid: String?,
+    val reviewedByName: String? = null,
     val reviewReason: String?,
     val createdSchoolId: String?,
     val createdAt: String,

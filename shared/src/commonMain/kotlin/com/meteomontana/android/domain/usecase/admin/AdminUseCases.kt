@@ -14,8 +14,10 @@ class GetAdminStatsUseCase(private val repository: AdminRepository) {
 }
 
 class GetPendingSubmissionsUseCase(private val repository: AdminRepository) {
+    /** status null = PENDING (cola de siempre); APPROVED/REJECTED = historial
+     *  (Álvaro, 2026-09-30). Mismo patrón que GetPendingContributionsUseCase. */
     @Throws(Exception::class)
-    suspend operator fun invoke(): List<Submission> = repository.getPendingSubmissions()
+    suspend operator fun invoke(status: String? = null): List<Submission> = repository.getPendingSubmissions(status)
 }
 
 class GetPendingContributionsUseCase(private val repository: AdminRepository) {

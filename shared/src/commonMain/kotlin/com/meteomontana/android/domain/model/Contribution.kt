@@ -27,5 +27,10 @@ data class Contribution(
     // Muro: geometría POINT/LINE, polilínea JSON, sentido de numeración LTR/RTL.
     val geometry: String? = null,
     val path: String? = null,
-    val direction: String? = null
+    val direction: String? = null,
+    // Álvaro, 2026-09-30: "saber quién la hizo, quién la aprobó" — historial.
+    val submittedByUid: String? = null,
+    val submittedByPhotoPath: String? = null,
+    val reviewedByUid: String? = null,
+    val reviewedByName: String? = null
 )

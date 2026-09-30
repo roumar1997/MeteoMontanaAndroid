@@ -165,7 +165,15 @@ struct AdminView: View {
         .onAppear { if openDenuncias { tab = .denuncias } }
         .navigationTitle("Admin")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await vm.load() }
+        .task {
+            await vm.load()
+            // Álvaro, 2026-09-30: "si no hay propuestas, que se abra siempre
+            // lo de admin en stats" — Propuestas vacía no aporta nada al
+            // entrar; Stats sí. openDenuncias manda si venía del push.
+            if !openDenuncias, vm.submissions.isEmpty, vm.contributions.isEmpty {
+                tab = .stats
+            }
+        }
         .task(id: tab) {
             if tab == .stats, vm.stats == nil { await vm.loadStats() }
             if tab == .actividad, vm.logs.isEmpty { await vm.loadLogs() }

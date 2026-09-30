@@ -9,7 +9,8 @@ import com.meteomontana.android.domain.model.Submission
 
 interface AdminRepository {
     suspend fun getStats(): AdminStats
-    suspend fun getPendingSubmissions(): List<Submission>
+    /** status null = PENDING; APPROVED/REJECTED = historial (Álvaro, 2026-09-30). */
+    suspend fun getPendingSubmissions(status: String? = null): List<Submission>
     suspend fun getPendingContributions(status: String? = null): List<Contribution>
     suspend fun getLogs(limit: Int = 100): List<AdminLog>
     suspend fun approveSubmission(id: String): Submission

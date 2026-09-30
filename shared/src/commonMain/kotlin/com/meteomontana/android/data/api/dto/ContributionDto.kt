@@ -56,5 +56,9 @@ data class ContributionDto(
     val discipline: String? = null,  // BOULDER (bloque) / ROUTE (vía) si la propuesta es de piedra
     val geometry: String? = null,    // POINT / LINE (muro)
     val path: String? = null,        // polilínea JSON si LINE
-    val direction: String? = null    // "LTR"/"RTL"
+    val direction: String? = null,   // "LTR"/"RTL"
+    val submittedByUid: String? = null,
+    val submittedByPhotoPath: String? = null,
+    val reviewedByUid: String? = null,
+    val reviewedByName: String? = null
 )

@@ -22,7 +22,12 @@ class KtorAdminApi(private val client: HttpClient) {
 
     suspend fun stats(): AdminStatsDto = client.get("admin/stats").body()
 
-    suspend fun pendingSubmissions(): List<SubmissionDto> = client.get("admin/submissions").body()
+    /** status null = PENDING (cola de siempre); APPROVED/REJECTED = historial
+     *  (Álvaro, 2026-09-30). */
+    suspend fun pendingSubmissions(status: String? = null): List<SubmissionDto> =
+        client.get("admin/submissions") {
+            if (status != null) parameter("status", status)
+        }.body()
 
     suspend fun approve(id: String): SubmissionDto =
         client.post("admin/submissions/$id/approve").body()
