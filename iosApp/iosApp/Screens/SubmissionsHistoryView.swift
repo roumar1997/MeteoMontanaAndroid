@@ -138,6 +138,26 @@ private enum HistoryRow: Identifiable {
     }
 }
 
+/// "BOULDER" es el tipo interno de la contribución, pero cubre tanto una
+/// PIEDRA/MURO nuevos como añadir o corregir VÍAS sobre una piedra ya
+/// existente — mostrar el tipo en crudo confundía ("por qué pone Boulder si
+/// es una vía", Álvaro, 2026-09-30). Mismo criterio que contributionSummary
+/// en AdminContributionCards.swift, sin necesitar la lista de bloques.
+private func historyKindLabel(_ c: Contribution) -> String {
+    guard c.type.uppercased() == "BOULDER" else { return adminTypeLabel(c.type) }
+    let esMuro = (c.geometry ?? "").uppercased() == "LINE"
+    if c.targetBlockId == nil {
+        return esMuro ? "MURO NUEVO" : "PIEDRA NUEVA"
+    }
+    let vias = TopoParse.proposedVias(c.bloquesJson)
+    let corrige = vias.filter { $0.targetLineId != nil }.count
+    let nuevas = max(vias.count - corrige, 0)
+    if nuevas > 0 && corrige > 0 { return "AÑADE Y CORRIGE VÍAS" }
+    if corrige > 0 { return "CORRIGE VÍA" + (corrige == 1 ? "" : "S") }
+    if nuevas > 0 { return "AÑADE VÍA" + (nuevas == 1 ? "" : "S") }
+    return "CAMBIOS EN LA PIEDRA"
+}
+
 private struct HistoryRowCard: View {
     let row: HistoryRow
     let onModify: (HistoryModifyTarget) -> Void
@@ -154,7 +174,7 @@ private struct HistoryRowCard: View {
             rejectReason: s.status == "REJECTED" ? s.reviewReason : nil
         )
         case .contribution(let c): body(
-            kind: c.type,
+            kind: historyKindLabel(c),
             title: c.name ?? c.schoolName,
             photoUrl: c.submittedByPhotoPath,
             submittedByName: c.submittedByName,
