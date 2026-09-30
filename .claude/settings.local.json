@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(\"C:\\Program Files\\PostgreSQL\\16\\bin\\psql.exe\"*)",
-      "PowerShell(*psql.exe*)"
-    ]
-  }
-}
