@@ -102,7 +102,9 @@ en el caso de uso de materialización, no en cada lectura.
 | `discipline` | `BOULDER` \| `ROUTE` | ya existe en `school_blocks` |
 | `rockTypes` | lista | filtra por `school.rockType` |
 | `lat`, `lon`, `maxDistanceKm` | double | filtra y ordena por cercanía a la piedra |
-| `sort` | `DISTANCE` \| `GRADE_ASC` \| `GRADE_DESC` | por defecto: distancia si hay `lat/lon`, si no, por grado |
+| `schoolIds` | lista (§8.2b) | restringe a escuelas concretas elegidas dentro del radio — aditivo sobre `maxDistanceKm`, no lo sustituye |
+| `orientations` | lista (§8.1) | aspecto votado del bloque (`N`/`NE`/.../`NO`); sin voto = sale igual |
+| `sort` | `DISTANCE` \| `GRADE_ASC` \| `GRADE_DESC` \| `SCHOOL_SCORE` (§8.5) | por defecto: distancia si hay `lat/lon`, si no, por grado |
 
 **Sin `q` y con al menos un filtro** → modo "explorar" (antes solo existía el
 modo "buscar por texto"). Límite de página **30**, con `offset` para "cargar
@@ -116,11 +118,34 @@ cliente pueda mostrar/ordenar sin una segunda llamada).
 
 ## 4. Interfaz
 
-### 4.1 La pestaña
+### 4.1 Sin pestaña — modo implícito (decisión final, Álvaro 2026-10-01)
 
-`SchoolListScreen` gana un **selector Escuelas ⇄ Bloques** arriba, estilo
-segmented control Cumbre (dos chips grandes, uno activo). Cambia solo la
-lista de abajo; la cabecera (buscador, botones) se queda.
+Se probaron 3 mockups (pestañas grandes tipo segmented control; icono nuevo
+que abre una pantalla aparte "Buscar por grado"; y este). Las dos primeras
+exigían ponerle un NOMBRE fijo a la sección — "Bloques" no describe bien el
+resultado (cada fila es una VÍA, con su piedra y escuela debajo, no una
+piedra suelta), y ninguna palabra corta cubre bien "piedras tipo Bloque Y
+piedras tipo Vía a la vez" (eso ya lo resuelve el filtro ESTILO de §4.2,
+no hace falta que el nombre de una pestaña lo intente resolver también).
+
+**La solución es no bautizar nada.** `SchoolListScreen` sigue siendo
+"Escuelas" siempre, con su cabecera de siempre (título, "+ Aportar",
+buscador, "VER MAPA") sin tocar. Se entra al modo vías tocando el rango de
+GRADO dentro de FILTROS (§4.2) — en cuanto hay un `gradeMin`/`gradeMax`
+puesto, la MISMA lista pasa a mostrar vías en vez de escuelas, con un aviso
+quitable justo encima (reemplaza la fila de chips DISTANCIA/ESTILO/etc.,
+no se apila con ella):
+
+```
+┌──────────────────────────────────────────┐
+│ ▤  Viendo VÍAS · grado 7A—7B · 50 km   ✕ │
+└──────────────────────────────────────────┘
+```
+
+Tocar la ✕ quita el filtro de grado y vuelve a Escuelas al instante — sin
+navegación, sin pantalla que cerrar. El aviso describe LO QUE HAY, nunca una
+categoría fija, así que nunca queda desactualizado si mañana se añade un
+filtro nuevo (orientación, escuelas elegidas…) — se añade a la misma frase.
 
 ### 4.2 Filtros — se reutiliza `SchoolFiltersBar`, con una sección nueva
 
@@ -151,13 +176,15 @@ vías para rellenar `grade_score` + ampliar `LineSearchController`/
 `SearchLinesService`/`JpaLineSearchRepositoryAdapter` con los filtros +
 backfill de vías existentes.
 
-**Fase 2 — Android**: pestaña Escuelas/Bloques en `SchoolListScreen` +
-`BlockSearchViewModel` (nuevo, reutiliza `SchoolFiltersBar` con la sección de
-grado añadida) + lista de resultados reutilizando el estilo de
-`SchoolListItem`.
+**Fase 2 — Android**: SIN pestaña nueva (§4.1) — `SchoolListViewModel` gana
+el estado del modo vías (activo cuando `gradeMin`/`gradeMax` != null) +
+`BlockSearchViewModel` o equivalente para pedir/paginar los resultados +
+el aviso quitable + lista de resultados reutilizando el estilo de
+`SchoolListItem`, todo dentro de `SchoolListScreen` ya existente.
 
-**Fase 3 — iOS**: espejo exacto de la Fase 2, mismo nombre de componentes en
-Swift, paridad de tabs y filtros.
+**Fase 3 — iOS**: espejo exacto de la Fase 2 en `SchoolListView.swift`/
+`SchoolListHeader.swift`, mismo nombre de componentes en Swift, paridad del
+aviso y los filtros.
 
 **Fase 4 — Pulido**: "cargar más" (paginación por `offset`), persistir el
 último filtro usado (como ya se hace con `SchoolFilters`).
@@ -229,3 +256,109 @@ Una sola fase, sin backend:
   ya son públicos y ya se muestran.
 - Regla de siempre: nada de medidas fijas, todo adaptable
   (`feedback_responsive_always`). Paridad exacta Android/iOS.
+
+---
+
+## 8. Ampliación 2026-10-01 (Álvaro) — orientación, score, agrupado, reactivo
+
+Decisiones nuevas sobre el filtro GLOBAL (§1-5), antes de implementar nada de
+este documento. Arquitectura: sigue el mismo reparto hexagonal de siempre —
+nada de esto crea una capa nueva, son campos/filtros que viajan por las
+mismas piezas ya descritas (DTO → dominio → repositorio → use case → VM).
+
+### 8.1 Filtro por ORIENTACIÓN (cara norte/sur/etc.) — para esquivar o buscar sol
+
+Ya existe el dato: `GetSchoolOrientationsUseCase.invoke(schoolId): Map<String,
+String>` (blockId → aspecto votado por la comunidad, `N`/`NE`/`E`/`SE`/`S`/
+`SO`/`O`/`NO`). El filtro GLOBAL añade `orientations: List<String>?` como
+parámetro opcional más (mismo patrón que `rockTypes`), comparando contra el
+aspecto YA AGREGADO del bloque (no hace falta tocar la tabla de votos).
+
+**Las piedras sin orientación votada SIEMPRE aparecen**, pase lo que pase el
+filtro — no se ocultan por no tener dato. En su lugar, la fila de esa vía
+lleva una línea aparte: `SIN ORIENTACIÓN ASIGNADA` (mono, gris, mismo tono que
+`forecastCachedAt`/avisos de antigüedad) en vez del chip de cara normal. Así
+quien busca "caras norte para el verano" ve también lo que nadie ha votado
+todavía, en vez de que desaparezca sin explicación.
+
+### 8.2 Resultado en vivo, sin botón "ver N vías"
+
+Sin "VER 38 VÍAS": la lista se actualiza sola en cuanto cambia cualquier
+filtro (igual que ya hace `SchoolFiltersBar` con las escuelas — no es un
+patrón nuevo, es quitar el único sitio donde sí se había puesto un botón).
+El contador ("38 vías encontradas") pasa de botón a texto pasivo encima de la
+lista, que se actualiza con el resto. **Debounce de red** necesario: el campo
+de grado/orientación no dispara una petición por cada toque, sino ~300ms
+después del último cambio (mismo patrón que ya usa el buscador de texto in-app
+en otros sitios) — detalle de implementación, no de interfaz.
+
+### 8.2b Filtro por ESCUELAS concretas (elegir 1, 2, 3... dentro del radio)
+
+Nuevo filtro multi-selección: dentro del radio elegido (los `maxDistanceKm`
+de §1.4/§3), se listan las escuelas que caen en él **con su índice de
+escalabilidad de hoy** — mismo cuadro de score que ya se usa en la lista de
+Escuelas, mismo dato. El usuario marca 1, 2, 3 o las que quiera; sin ninguna
+marcada = comportamiento de siempre (todas las del radio).
+
+Resuelve justo lo que pide Álvaro: "estoy a 50 km, quiero ver con qué
+escuelas se cumple lo que busco sin tener que entrar en cada una" — con el
+filtro de escuelas + grado + orientación puestos a la vez, cada escuela
+marcada muestra solo sus vías que cumplen, agrupadas (§8.3), sin tener que
+abrir la ficha.
+
+**De dónde sale el dato**: es el mismo `GetSchoolsUseCase(lat, lon, radioKm)`
+que ya alimenta la lista de Escuelas — no hace falta ninguna llamada nueva,
+la pestaña Bloques ya necesita conocer qué escuelas hay en el radio para
+agrupar (§8.3), así que esta lista de selección es ese mismo resultado
+convertido en chips, no un segundo fetch.
+
+**Interfaz**: sección nueva en el panel de filtros, justo debajo de
+DISTANCIA (es su refinamiento natural, no algo aparte): lista vertical
+compacta (no chips en fila, para que quepan nombre + score + km sin cortarse),
+cada fila con casilla de selección, nombre, score coloreado y distancia.
+Scroll propio si el radio trae muchas escuelas.
+
+**Aviso de ROCA MOJADA en la propia fila**: si esa escuela tiene el aviso
+activo (mismo dato que la "●  MOJADA" de la lista de Escuelas y de §8.5), se
+ve en la fila de selección — un punto + texto en terracota debajo del nombre,
+igual que ya se pinta en todos los demás sitios. Así se decide si marcarla
+ANTES de seleccionarla, no después de ver que sus vías no sirven de nada hoy.
+
+### 8.3 Agrupar por escuela (con opción de desactivar)
+
+Por defecto, los resultados se agrupan por escuela: cabecera por grupo con el
+**nombre de la escuela + su índice de escalabilidad de HOY** (mismo cuadro de
+score que ya se usa en la lista de Escuelas — color por tramo, "MUY BUENO"/
+"BUENO"/etc.) y el aviso de ROCA HÚMEDA si aplica, **una sola vez por grupo**
+en vez de repetirlo en cada vía. Las vías de esa escuela van debajo, sin
+repetir escuela/score en cada fila.
+
+Icono de "agrupar/desagrupar" en la cabecera de resultados (al lado del
+contador): desactivado, la lista vuelve a ser plana por vía (como estaba en
+§4.3), ordenada por el criterio que haya elegido el usuario (cercanía/grado).
+Se recuerda la preferencia (agrupado o no) igual que ya se recuerdan los
+filtros (§5 fase 4).
+
+**Importante**: el score mostrado es el de la ESCUELA (el índice de
+escalabilidad ya existente, meteorológico), no de la piedra — no existe un
+score por piedra individual. Agrupar por escuela es precisamente lo que evita
+tener que repetirlo vía a vía, que es el mismo problema que resuelve ya la
+ficha de una escuela abierta.
+
+### 8.4 Miniatura de foto — confirmado
+
+Cada fila de vía lleva la miniatura de la foto de la piedra (la de su cara
+real, `facesOrDerived()` — mismo criterio que el resto de la app). Ya estaba
+contemplado de facto por "ver todas las imágenes" en la petición original;
+queda aquí explícito.
+
+### 8.5 Otras dos cosas que conviene añadir (propuesta, a validar)
+
+- **Aviso de ROCA HÚMEDA por grupo**: si la escuela de ese grupo tiene el
+  aviso activo (ya existe, es el mismo dato que pinta "ROCA HÚMEDA" en la
+  ficha y en la lista de Escuelas), se repite en la cabecera del grupo — con
+  el filtro de grado puesto, es fácil acabar centrado solo en el grado y
+  olvidar que esa escuela concreta no es escalable hoy.
+- **Ordenar por "mejor score"** como tercera opción en ORDENAR POR (además de
+  cercanía y grado) — tiene más sentido todavía con el agrupado activado: ver
+  primero las escuelas donde SÍ se puede escalar hoy con el grado que buscas.
