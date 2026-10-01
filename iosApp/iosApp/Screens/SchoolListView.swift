@@ -102,7 +102,9 @@ final class SchoolListViewModel: ObservableObject {
             let criteria = LineExploreCriteria(
                 gradeMin: self.gradeMin, gradeMax: self.gradeMax,
                 discipline: nil, rockTypes: nil, schoolIds: nil, orientations: nil,
-                lat: self.userLat, lon: self.userLon, maxDistanceKm: self.maxDistanceKm,
+                lat: self.userLat.map { KotlinDouble(double: $0) },
+                lon: self.userLon.map { KotlinDouble(double: $0) },
+                maxDistanceKm: self.maxDistanceKm.map { KotlinDouble(double: $0) },
                 sort: self.exploreSort == .distance ? "DISTANCE" : "GRADE_ASC", offset: 0)
             let hits = (try? await AppDependencies.shared.container.exploreLines.invoke(criteria: criteria)) ?? []
             guard !Task.isCancelled else { return }
