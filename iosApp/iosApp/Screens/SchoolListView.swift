@@ -1,6 +1,7 @@
 import SwiftUI
 import Shared
 import CoreLocation
+import UIKit
 
 // Lista de escuelas — réplica fiel de SchoolListScreen.kt de Android:
 // fila de iconos, header "Escuelas" + count + "+ Enviar escuela", banner ☕,
@@ -29,14 +30,14 @@ final class SchoolListViewModel: ObservableObject {
     @Published var query = ""
     @Published var style: String?
     @Published var rock: String?
-    @Published var maxDistanceKm: Double? = 50   // 50 km por defecto (como Android/PWA)
+    @Published var maxDistanceKm: Double? = 50 { didSet { dispatchExplore() } }   // 50 km por defecto (como Android/PWA)
     @Published var showMode: ShowMode = .all
     @Published var savedIds: Set<String> = []    // escuelas guardadas offline (observeSaved)
     @Published var savedSchoolsList: [SavedSchool] = []  // datos de las guardadas (para verlas sin red)
     @Published var sortBy: SortMode = .score
     @Published var favoriteIds: Set<String> = []
-    @Published var userLat: Double?
-    @Published var userLon: Double?
+    @Published var userLat: Double? { didSet { dispatchExplore() } }
+    @Published var userLon: Double? { didSet { dispatchExplore() } }
     @Published var compareSelection: Set<String> = []  // long-press para comparar (máx 3)
     @Published var unreadNotifications: Int = 0
     @Published var unreadChats: Int = 0          // badge en el icono de mensajes
@@ -66,6 +67,61 @@ final class SchoolListViewModel: ObservableObject {
     @Published var selectedDates: Set<String> = []
     @Published var rangeScores: [String: RangeScore] = [:]
     var rangeMode: Bool { !selectedDates.isEmpty }
+
+    // ── Modo "explorar por grado" — sin pestaña, modo implícito
+    // (BLOCK_SEARCH_DESIGN.md §4.1/§8): en cuanto hay gradeMin/gradeMax la
+    // MISMA lista pasa a mostrar vías en vez de escuelas. Fase 3 (espejo de
+    // Android, pendiente). Se valida primero en iOS vía TestFlight antes de
+    // portar (Álvaro, 2026-10-01).
+    enum ExploreSort: String, CaseIterable {
+        case distance = "Cercanía", grade = "Grado"
+        var label: String { L(rawValue) }
+    }
+    @Published var gradeMin: String? { didSet { dispatchExplore() } }
+    @Published var gradeMax: String? { didSet { dispatchExplore() } }
+    @Published var exploreSort: ExploreSort = .distance { didSet { dispatchExplore() } }
+    @Published var exploreGrouped = true
+    @Published var exploreHits: [LineSearchHit] = []
+    @Published var exploreLoading = false
+    private var exploreTask: Task<Void, Never>?
+    var exploreActive: Bool { gradeMin != nil || gradeMax != nil }
+
+    func clearExplore() { gradeMin = nil; gradeMax = nil }
+
+    /// §8.2: resultado en vivo, sin botón "ver N vías" — debounce de ~300ms
+    /// tras el último cambio (grado, radio o ubicación), mismo patrón que
+    /// dispatchViaSearch.
+    func dispatchExplore() {
+        exploreTask?.cancel()
+        guard exploreActive else { exploreHits = []; exploreLoading = false; return }
+        exploreLoading = true
+        exploreTask = Task { [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            let criteria = LineExploreCriteria(
+                gradeMin: self.gradeMin, gradeMax: self.gradeMax,
+                discipline: nil, rockTypes: nil, schoolIds: nil, orientations: nil,
+                lat: self.userLat, lon: self.userLon, maxDistanceKm: self.maxDistanceKm,
+                sort: self.exploreSort == .distance ? "DISTANCE" : "GRADE_ASC", offset: 0)
+            let hits = (try? await AppDependencies.shared.container.exploreLines.invoke(criteria: criteria)) ?? []
+            guard !Task.isCancelled else { return }
+            self.exploreHits = hits
+            self.exploreLoading = false
+        }
+    }
+
+    /// Agrupados por escuela, respetando el orden que ya trae el backend
+    /// (cercanía o grado) — §8.3.
+    var exploreGroups: [(schoolId: String, schoolName: String, hits: [LineSearchHit])] {
+        var order: [String] = []
+        var byId: [String: [LineSearchHit]] = [:]
+        for h in exploreHits {
+            if byId[h.schoolId] == nil { byId[h.schoolId] = []; order.append(h.schoolId) }
+            byId[h.schoolId]!.append(h)
+        }
+        return order.map { id in (id, byId[id]?.first?.schoolName ?? "", byId[id] ?? []) }
+    }
 
     private let getSchools: GetSchoolsUseCase
     private let getTodayScores: GetTodayScoresUseCase
@@ -341,6 +397,21 @@ final class SchoolListViewModel: ObservableObject {
         }
     }
 
+    /// "Activar ubicación" del aviso en DISTANCIA (Álvaro, 2026-10-01): a
+    /// diferencia de Tiempo, este mapa no ofrecía ninguna forma de arreglarlo
+    /// si el permiso quedó denegado — solo mostraba el punto azul en silencio
+    /// si ya estaba concedido, sin más. Denegado → Ajustes (reabrir el diálogo
+    /// del sistema no hace nada ahí); sin decidir todavía → pide permiso.
+    func requestLocation() {
+        if locationBridge.isDeniedOrRestricted() {
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+        } else {
+            locationBridge.requestPermission()
+        }
+    }
+
     /// Distancia en km del usuario a la escuela (Haversine compartido). nil si
     /// no hay ubicación.
     func distanceKm(_ school: School) -> Int? {
@@ -468,6 +539,8 @@ struct SchoolListView: View {
                         ForEach(0..<6, id: \.self) { _ in SkeletonRow(); Divider().overlay(Cumbre.rule) }
                     } else if let err = vm.errorText {
                         ErrorRow(message: err) { Task { await vm.refresh() } }
+                    } else if vm.exploreActive {
+                        exploreResultsSection
                     } else {
                         let items = vm.filtered
                         if items.isEmpty {
@@ -674,6 +747,123 @@ struct SchoolListView: View {
             .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
         }
         .padding(.horizontal, 16).padding(.vertical, 4)
+    }
+
+    // MARK: - Modo "explorar por grado" (§4.1/§8) — resultados
+
+    private var exploreResultsSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text(vm.exploreLoading ? L("Buscando…") : L("%@ vías encontradas", vm.exploreHits.count))
+                    .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                Spacer()
+                Button { vm.exploreGrouped.toggle() } label: {
+                    Image(systemName: vm.exploreGrouped ? "rectangle.grid.1x2" : "square.grid.2x2")
+                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 8)
+
+            if vm.exploreLoading && vm.exploreHits.isEmpty {
+                ForEach(0..<4, id: \.self) { _ in SkeletonRow(); Divider().overlay(Cumbre.rule) }
+            } else if vm.exploreHits.isEmpty {
+                EmptyRow(canClear: true) { vm.clearExplore() }
+            } else if vm.exploreGrouped {
+                ForEach(vm.exploreGroups, id: \.schoolId) { group in
+                    exploreGroupHeader(group)
+                    ForEach(group.hits, id: \.stableId) { h in
+                        exploreLineRow(h)
+                        Divider().overlay(Cumbre.rule)
+                    }
+                }
+            } else {
+                ForEach(vm.exploreHits, id: \.stableId) { h in
+                    exploreLineRow(h, showSchool: true)
+                    Divider().overlay(Cumbre.rule)
+                }
+            }
+        }
+    }
+
+    /// Cabecera de grupo: nombre de la escuela + su índice de escalabilidad de
+    /// HOY (el mismo score que en la lista de Escuelas) + aviso MOJADA — una
+    /// sola vez por grupo en vez de repetirlo vía a vía (§8.3).
+    private func exploreGroupHeader(_ g: (schoolId: String, schoolName: String, hits: [LineSearchHit])) -> some View {
+        let score = vm.scores[g.schoolId]
+        let scoreInt = score.map { Int($0.todayScore) }
+        let color = scoreInt.map { Cumbre.score($0) } ?? Cumbre.ink3
+        return HStack(spacing: 10) {
+            Text(scoreInt.map(String.init) ?? "—")
+                .font(Cumbre.serif(17, .bold))
+                .foregroundStyle(color)
+                .frame(width: 34, height: 30)
+                .background(color.opacity(0.12))
+                .overlay(Rectangle().stroke(color, lineWidth: 1))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(g.schoolName).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                if score?.dryRock == false {
+                    Text(L("● MOJADA")).font(.system(size: 10, weight: .semibold)).tracking(0.6)
+                        .foregroundStyle(Cumbre.bad)
+                }
+            }
+            Spacer()
+            Text(g.hits.count == 1 ? L("1 vía") : L("%@ vías", g.hits.count))
+                .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 8)
+        .background(Cumbre.paper)
+    }
+
+    /// Fila de vía: miniatura (§8.4), nombre + grado coloreado, piedra/escuela,
+    /// orientación votada o "SIN ORIENTACIÓN ASIGNADA" (§8.1), distancia.
+    private func exploreLineRow(_ h: LineSearchHit, showSchool: Bool = false) -> some View {
+        Button {
+            if let school = vm.schools.first(where: { $0.id == h.schoolId }) {
+                navTarget = SchoolNavTarget(school: school, via: h.lineId ?? h.lineName ?? h.blockName)
+            }
+        } label: {
+            HStack(spacing: 10) {
+                if let photo = h.photoPath, !photo.isEmpty, let url = URL(string: photo) {
+                    AsyncImage(url: url) { phase in
+                        if let img = phase.image { img.resizable().scaledToFill() }
+                        else { Cumbre.rule.opacity(0.15) }
+                    }
+                    .frame(width: 44, height: 44)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.rule, lineWidth: 1))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(h.lineName ?? h.blockName).font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Cumbre.ink).lineLimit(1)
+                        if let g = h.grade {
+                            Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(GradeColor.color(g))
+                        }
+                    }
+                    let subtitle = [h.lineName != nil ? h.blockName : nil, showSchool ? h.schoolName : nil]
+                        .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
+                    if !subtitle.isEmpty {
+                        Text(subtitle).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                    }
+                    if let o = h.orientation, !o.isEmpty {
+                        Text(o).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
+                    } else {
+                        Text(L("SIN ORIENTACIÓN ASIGNADA"))
+                            .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3.opacity(0.7))
+                    }
+                }
+                Spacer()
+                if let la = vm.userLat, let lo = vm.userLon,
+                   let hlat = h.lat?.doubleValue, let hlon = h.lon?.doubleValue {
+                    let km = Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: hlat, lon2: hlon)
+                    Text("\(Int(km.rounded())) km").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                }
+            }
+            .padding(.horizontal, 16).padding(.vertical, 9)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 

@@ -29,6 +29,19 @@ final class LocationBridge: NSObject, IosLocationBridge, CLLocationManagerDelega
         }
     }
 
+    /// true si el usuario ya dijo que NO (o un perfil se lo bloqueó): volver a
+    /// llamar `requestWhenInUseAuthorization()` aquí NO hace nada — iOS solo
+    /// muestra el diálogo del sistema la PRIMERA vez (`.notDetermined`). Solo
+    /// queda mandarle a Ajustes. Álvaro, 2026-10-01: "un usuario de iOS me
+    /// dice que no le sale su ubicación" — el mapa de Escuelas no ofrecía
+    /// ninguna forma de arreglarlo si quedó denegado desde el principio.
+    func isDeniedOrRestricted() -> Bool {
+        switch manager.authorizationStatus {
+        case .denied, .restricted: return true
+        default: return false
+        }
+    }
+
     func current(callback: @escaping (UserLocation?) -> Void) {
         guard hasPermission() else { callback(nil); return }
         // Última ubicación cacheada, solo si es reciente y precisa (si no,
