@@ -778,7 +778,7 @@ struct SchoolListView: View {
     private var exploreResultsSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text(vm.exploreLoading ? L("Buscando…") : L("%@ vías encontradas", vm.exploreHits.count))
+                Text(vm.exploreLoading ? L("Buscando…") : L("%@ vías/bloques encontrados", vm.exploreHits.count))
                     .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
                 Spacer()
                 Button { vm.exploreGrouped.toggle() } label: {
@@ -818,8 +818,14 @@ struct SchoolListView: View {
     /// minimiza para poder ver el resto de escuelas sin tanto scroll (Álvaro,
     /// 2026-10-01: "que se minimice y pueda ver el resto").
     private func exploreGroupHeader(_ g: (schoolId: String, schoolName: String, hits: [LineSearchHit])) -> some View {
+        // Si hay un tramo de días elegido (DaySelectorRow), mostrar el score
+        // COMBINADO del tramo, igual que ya hace la lista de Escuelas — si no,
+        // el índice se quedaba siempre fijo en el de HOY aunque el usuario
+        // marcara varios días (Álvaro, 2026-10-01).
         let score = vm.scores[g.schoolId]
-        let scoreInt = score.map { Int($0.todayScore) }
+        let scoreInt = vm.rangeMode
+            ? vm.rangeScores[g.schoolId].map { Int($0.combinedScore) }
+            : score.map { Int($0.todayScore) }
         let color = scoreInt.map { Cumbre.score($0) } ?? Cumbre.ink3
         let collapsed = collapsedGroups.contains(g.schoolId)
         return Button {
@@ -840,7 +846,7 @@ struct SchoolListView: View {
                     }
                 }
                 Spacer()
-                Text(g.hits.count == 1 ? L("1 vía") : L("%@ vías", g.hits.count))
+                Text(g.hits.count == 1 ? L("1 vía/bloque") : L("%@ vías/bloques", g.hits.count))
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                 Image(systemName: collapsed ? "chevron.down" : "chevron.up")
                     .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
