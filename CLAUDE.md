@@ -229,6 +229,26 @@ Reglas:
 
 ## Estado actual
 
+**🔎 BUSCADOR POR GRADO — iOS validado en TestFlight (build 252), Android
+pendiente (2026-10-01).** `BLOCK_SEARCH_DESIGN.md` Fase 1 (backend) y Fase 3
+(iOS) completas: pestaña "Escuelas"/"Vías/Bloques" en `SchoolListView.swift`/
+`SchoolListHeader.swift` — **el modo implícito sin pestaña del §4.1 se probó
+primero y se descartó** tras feedback real de Álvaro ("no funciona bien"); si
+se retoma esta función, usar SIEMPRE el patrón de pestaña, no el implícito.
+Decisiones cerradas tras iterar varios builds: grado por DESPLEGABLE (Menu),
+no slider ni chips, con el último min/max recordado en `UserDefaults`; SIN
+selector manual de escuelas en el radio (se probó y se quitó, lista
+ingobernable — DISTANCIA ya filtra sola); grupos de resultados por escuela
+empiezan PLEGADOS; "ORDENAR POR" es Cercanía/**Mejores condiciones** (nunca
+"Grado" — el score es del cliente, se reordena localmente, el backend
+siempre recibe `sort=DISTANCE`); miniatura de vía con trazo fino sin badge
+(`MiniTopoThumbnail`, no `TopoPhotoView` — ese badge es para el visor
+grande). Bug de backend cazado: `PAGE_SIZE` de 30→300 en
+`SearchLinesService.java` (una escuela cercana con muchas vías llenaba toda
+la página). **Pendiente**: Álvaro pasará capturas del iOS final para
+replicar EXACTO en Android (Fase 2) — no empezar Android sin esas capturas.
+Detalle completo en `HISTORIAL.md` 2026-10-01.
+
 **⏳ PENDIENTE DE SUBIR (2026-09-28) — Android vc112 (6.2) / iOS build 233.**
 Repasada exhaustivamente la i18n ES/EN en las tres capas: Android, iOS y
 backend. AAB firmado en `Desktop\AABs Play\cumbre-6.2-vc112.aab` (convención
