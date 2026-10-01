@@ -75,7 +75,7 @@ final class SchoolListViewModel: ObservableObject {
     // tocar "Bloques"; Fase 2 (Android) pendiente de portar tras validar aquí.
     enum ExploreTab: String { case schools, blocks }
     enum ExploreSort: String, CaseIterable {
-        case distance = "Cercanía", grade = "Grado"
+        case distance = "Cercanía", bestConditions = "Mejores condiciones"
         var label: String { L(rawValue) }
     }
     @Published var exploreTab: ExploreTab = .schools
@@ -118,7 +118,10 @@ final class SchoolListViewModel: ObservableObject {
                 lat: self.userLat.map { KotlinDouble(double: $0) },
                 lon: self.userLon.map { KotlinDouble(double: $0) },
                 maxDistanceKm: self.maxDistanceKm.map { KotlinDouble(double: $0) },
-                sort: self.exploreSort == .distance ? "DISTANCE" : "GRADE_ASC", offset: 0)
+                // "Mejores condiciones" no es un orden que sepa el backend (el
+                // score es del tiempo, vive solo en el cliente) — se pide
+                // siempre por distancia y se reordena aquí (ver exploreGroups).
+                sort: "DISTANCE", offset: 0)
             let hits = (try? await AppDependencies.shared.container.exploreLines.invoke(criteria: criteria)) ?? []
             guard !Task.isCancelled else { return }
             self.exploreHits = hits
@@ -135,7 +138,26 @@ final class SchoolListViewModel: ObservableObject {
             if byId[h.schoolId] == nil { byId[h.schoolId] = []; order.append(h.schoolId) }
             byId[h.schoolId]!.append(h)
         }
-        return order.map { id in (id, byId[id]?.first?.schoolName ?? "", byId[id] ?? []) }
+        var groups = order.map { id in (schoolId: id, schoolName: byId[id]?.first?.schoolName ?? "", hits: byId[id] ?? []) }
+        if exploreSort == .bestConditions {
+            // El backend no sabe de condiciones meteorológicas (vive en el
+            // cliente) — se pide siempre por distancia y aquí se reordenan
+            // los GRUPOS (no las vías sueltas) por el índice de HOY/tramo.
+            groups.sort { exploreGroupScore($0.schoolId) > exploreGroupScore($1.schoolId) }
+        }
+        return groups
+    }
+
+    private func exploreGroupScore(_ schoolId: String) -> Int {
+        if rangeMode { return rangeScores[schoolId].map { Int($0.combinedScore) } ?? -1 }
+        return scores[schoolId].map { Int($0.todayScore) } ?? -1
+    }
+
+    /// Lista plana (modo desagrupado) con el mismo criterio de orden que
+    /// `exploreGroups` cuando es "Mejores condiciones".
+    var exploreHitsSorted: [LineSearchHit] {
+        guard exploreSort == .bestConditions else { return exploreHits }
+        return exploreHits.sorted { exploreGroupScore($0.schoolId) > exploreGroupScore($1.schoolId) }
     }
 
     private let getSchools: GetSchoolsUseCase
@@ -802,7 +824,7 @@ struct SchoolListView: View {
                     }
                 }
             } else {
-                ForEach(vm.exploreHits, id: \.stableId) { h in
+                ForEach(vm.exploreHitsSorted, id: \.stableId) { h in
                     exploreLineRow(h, showSchool: true)
                     Divider().overlay(Cumbre.rule)
                 }
@@ -874,11 +896,15 @@ struct SchoolListView: View {
             }
         } label: {
             HStack(spacing: 10) {
-                if let photo = h.photoPath, !photo.isEmpty, let url = URL(string: photo) {
-                    AsyncImage(url: url) { phase in
-                        if let img = phase.image { img.resizable().scaledToFill() }
-                        else { Cumbre.rule.opacity(0.15) }
-                    }
+                if let photo = h.photoPath, !photo.isEmpty {
+                    // Mismo mini-topo (foto + trazo dibujado) que ya usa el
+                    // desplegable del buscador de texto — Álvaro, 2026-10-01:
+                    // "que se vean las líneas dibujadas aunque sean chiquititas".
+                    let pts = dedupPoints(TopoParse.points(h.linePath))
+                    TopoPhotoView(photoUrl: photo, lines: pts.count >= 2 ? [
+                        TopoLineVM(id: h.lineId ?? "hit", name: h.lineName,
+                                   grade: h.grade, startType: h.startType, points: pts)
+                    ] : [])
                     .frame(width: 44, height: 44)
                     .clipShape(RoundedRectangle(cornerRadius: 4))
                     .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.rule, lineWidth: 1))
