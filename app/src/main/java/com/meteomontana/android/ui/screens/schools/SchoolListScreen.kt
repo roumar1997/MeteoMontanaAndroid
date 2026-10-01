@@ -6,6 +6,7 @@ import com.meteomontana.android.ui.theme.terraFillColor
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -20,14 +21,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.HorizontalDivider
@@ -37,6 +44,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.text.font.FontWeight
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -110,6 +119,21 @@ fun SchoolListScreen(
     val chatUnread by viewModel.chatUnread.collectAsStateWithLifecycle()
     val viaHits by viewModel.viaHits.collectAsStateWithLifecycle()
     var mapExpanded by remember { mutableStateOf(false) }
+
+    // ── Pestaña "Vías/Bloques" (BLOCK_SEARCH_DESIGN.md §4.1b) ──
+    val exploreTab by viewModel.exploreTab.collectAsStateWithLifecycle()
+    val gradeMin by viewModel.gradeMin.collectAsStateWithLifecycle()
+    val gradeMax by viewModel.gradeMax.collectAsStateWithLifecycle()
+    val exploreOrientations by viewModel.orientations.collectAsStateWithLifecycle()
+    val exploreSortBy by viewModel.exploreSortBy.collectAsStateWithLifecycle()
+    val exploreGrouped by viewModel.exploreGrouped.collectAsStateWithLifecycle()
+    val exploreHits by viewModel.exploreHits.collectAsStateWithLifecycle()
+    val exploreHitsSorted by viewModel.exploreHitsSorted.collectAsStateWithLifecycle()
+    val exploreGroups by viewModel.exploreGroups.collectAsStateWithLifecycle()
+    val exploreLoading by viewModel.exploreLoading.collectAsStateWithLifecycle()
+    // Grupos de escuela DESPLEGADOS — empiezan todos plegados (Álvaro,
+    // 2026-10-01: "que puedas verlos todos rápido"). No persiste.
+    var expandedGroups by remember { mutableStateOf(setOf<String>()) }
 
     // Refresca el contador de no leídas al VOLVER a esta pantalla (p.ej. tras
     // ver y salir de la bandeja de notificaciones) → el badge se actualiza.
@@ -432,7 +456,17 @@ fun SchoolListScreen(
                     onOnlyFavorites = viewModel::setOnlyFavorites,
                     onOnlySavedOffline = viewModel::setOnlySavedOffline,
                     onSort          = viewModel::setSort,
-                    onClearRocks    = viewModel::clearRocks
+                    onClearRocks    = viewModel::clearRocks,
+                    exploreTab = exploreTab,
+                    onExploreTab = viewModel::setExploreTab,
+                    gradeMin = gradeMin,
+                    gradeMax = gradeMax,
+                    onGradeMin = viewModel::setGradeMin,
+                    onGradeMax = viewModel::setGradeMax,
+                    orientations = exploreOrientations,
+                    onToggleOrientation = viewModel::toggleOrientation,
+                    exploreSortBy = exploreSortBy,
+                    onExploreSort = viewModel::setExploreSortBy
                 )
             }
 
@@ -456,6 +490,80 @@ fun SchoolListScreen(
                 )
             }
 
+            if (exploreTab == ExploreTab.Blocks) {
+                item {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            if (exploreLoading) stringResource(R.string.explore_searching)
+                            else stringResource(R.string.explore_results_found, exploreHits.size),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = viewModel::toggleExploreGrouped) {
+                            Icon(
+                                if (exploreGrouped) Icons.Outlined.ViewAgenda
+                                else Icons.Outlined.GridView,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                if (exploreLoading && exploreHits.isEmpty()) {
+                    items(4) { SkeletonRow() }
+                } else if (exploreHits.isEmpty()) {
+                    item {
+                        Column(
+                            Modifier.fillMaxWidth().padding(Spacing.xl),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                stringResource(R.string.schools_empty),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(Spacing.md))
+                            OutlinedCumbreButton(text = stringResource(R.string.schools_clear_filters), onClick = viewModel::clearExplore)
+                        }
+                    }
+                } else if (exploreGrouped) {
+                    exploreGroups.forEach { group ->
+                        item(key = "group-${group.schoolId}") {
+                            ExploreGroupHeader(
+                                group = group,
+                                score = if (selectedDays.isNotEmpty()) rangeScores[group.schoolId]?.combinedScore
+                                        else scores[group.schoolId]?.todayScore,
+                                dry = scores[group.schoolId]?.dryRock,
+                                range = if (selectedDays.isNotEmpty()) rangeScores[group.schoolId] else null,
+                                expanded = group.schoolId in expandedGroups,
+                                onToggle = {
+                                    expandedGroups = if (group.schoolId in expandedGroups)
+                                        expandedGroups - group.schoolId else expandedGroups + group.schoolId
+                                }
+                            )
+                        }
+                        if (group.schoolId in expandedGroups) {
+                            items(group.hits, key = { "line-${it.lineId}-${it.blockId}" }) { h ->
+                                Column {
+                                    ExploreLineRow(h, showSchool = false, distanceKm = h.lat?.let { la -> h.lon?.let { lo -> viewModel.distanceTo(la, lo).toInt() } }, onClick = { openVia(h.schoolId, h.lineId, h.lineName ?: h.blockName) })
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    items(exploreHitsSorted, key = { "flat-${it.lineId}-${it.blockId}" }) { h ->
+                        Column {
+                            ExploreLineRow(h, showSchool = true, distanceKm = h.lat?.let { la -> h.lon?.let { lo -> viewModel.distanceTo(la, lo).toInt() } }, onClick = { openVia(h.schoolId, h.lineId, h.lineName ?: h.blockName) })
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+                        }
+                    }
+                }
+            } else
             when (val s = state) {
                 is SchoolListUiState.Loading -> items(6) { SkeletonRow() }
                 is SchoolListUiState.Error   -> item { ErrorRow(s.message, onRetry = viewModel::refresh) }
@@ -972,6 +1080,165 @@ private fun OutlinedCumbreButton(
             style = MaterialTheme.typography.labelLarge,
             color = textColor ?: MaterialTheme.colorScheme.onBackground
         )
+    }
+}
+
+/**
+ * Cabecera de grupo del modo "Vías/Bloques": nombre de escuela + score (de
+ * HOY o combinado del tramo) + aviso MOJADA + contador — una sola vez por
+ * grupo (BLOCK_SEARCH_DESIGN.md §8.3). Pulsable: pliega/despliega sus vías,
+ * EMPIEZAN PLEGADOS para poder verlas todas de un vistazo.
+ */
+@Composable
+private fun ExploreGroupHeader(
+    group: ExploreGroup,
+    score: Int?,
+    dry: Boolean?,
+    range: com.meteomontana.android.domain.model.RangeScore?,
+    expanded: Boolean,
+    onToggle: () -> Unit
+) {
+    val color = score?.let { com.meteomontana.android.ui.theme.scoreColor(it) } ?: MaterialTheme.colorScheme.outline
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onToggle)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(width = 34.dp, height = 30.dp)
+                    .background(color.copy(alpha = 0.12f))
+                    .border(1.dp, color),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(score?.toString() ?: "—", style = MaterialTheme.typography.titleMedium.copy(fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold), color = color)
+            }
+            Spacer(Modifier.size(Spacing.sm))
+            Column(Modifier.weight(1f)) {
+                Text(group.schoolName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
+                if (dry == false) {
+                    Text("● " + stringResource(R.string.schools_rock_wet),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.error)
+                }
+            }
+            val count = group.hits.size
+            Text(
+                if (count == 1) stringResource(R.string.explore_group_count_one)
+                else stringResource(R.string.explore_group_count_other, count),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Icon(
+                if (expanded) Icons.Outlined.KeyboardArrowUp
+                else Icons.Outlined.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        // Tramo de días: una puntuación por día, no solo la combinada —
+        // mismo componente que ya usa la lista de Escuelas.
+        if (range != null) {
+            Spacer(Modifier.height(Spacing.xs))
+            com.meteomontana.android.ui.components.DayRangeRow(range = range)
+        }
+    }
+}
+
+/** Fila de vía/bloque: mini-topo (foto + trazo, sin badge), nombre + grado
+ *  coloreado, piedra/escuela, orientación o "SIN ORIENTACIÓN ASIGNADA",
+ *  distancia. */
+@Composable
+private fun ExploreLineRow(
+    h: com.meteomontana.android.domain.model.LineSearchHit,
+    showSchool: Boolean,
+    distanceKm: Int?,
+    onClick: () -> Unit
+) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        h.photoPath?.takeIf { it.isNotBlank() }?.let { photo ->
+            MiniTopoThumbnail(photoUrl = photo, linePath = h.linePath, grade = h.grade,
+                modifier = Modifier.size(44.dp).padding(end = Spacing.sm))
+        }
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text((h.lineName ?: h.blockName), style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground, maxLines = 1)
+                h.grade?.takeIf { it.isNotBlank() }?.let {
+                    Spacer(Modifier.size(6.dp))
+                    val argb = com.meteomontana.android.domain.util.gradeArgb(it).first
+                    Text(it, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = androidx.compose.ui.graphics.Color(argb.toInt()))
+                }
+            }
+            val subtitle = listOfNotNull(
+                h.blockName.takeIf { h.lineName != null },
+                h.sectorName,
+                if (showSchool) h.schoolName else null
+            ).filter { it.isNotBlank() }.joinToString(" · ")
+            if (subtitle.isNotBlank()) {
+                Text(subtitle, style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            }
+            if (!h.orientation.isNullOrBlank()) {
+                Text(h.orientation!!, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                Text(stringResource(R.string.explore_no_orientation),
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+            }
+        }
+        distanceKm?.let {
+            Text("$it km", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** Miniatura de resultado: foto + trazo fino SIN badge de número/tipo de
+ *  inicio (ese badge de TopoPhotoCanvas está pensado para el visor grande;
+ *  a 44dp tapaba la foto entera — Álvaro, 2026-10-01: "se ve fatal"). Solo
+ *  se intuye la línea. */
+@Composable
+private fun MiniTopoThumbnail(photoUrl: String, linePath: String?, grade: String?, modifier: Modifier = Modifier) {
+    val points = remember(linePath) {
+        val raw = com.meteomontana.android.ui.screens.topo.parseLineStroke(linePath).points
+        val out = mutableListOf<androidx.compose.ui.geometry.Offset>()
+        raw.forEach { pt ->
+            val last = out.lastOrNull()
+            if (last == null || kotlin.math.abs(pt.x - last.x) + kotlin.math.abs(pt.y - last.y) > 0.004f) out.add(pt)
+        }
+        out
+    }
+    val argb = com.meteomontana.android.domain.util.gradeArgb(grade).first
+    Box(
+        modifier
+            .clip(RoundedCornerShape(4.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+    ) {
+        coil.compose.AsyncImage(
+            model = photoUrl, contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+        )
+        if (points.size >= 2) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val path = Path()
+                val pts = points.map { androidx.compose.ui.geometry.Offset(it.x * size.width, it.y * size.height) }
+                path.moveTo(pts[0].x, pts[0].y)
+                pts.drop(1).forEach { path.lineTo(it.x, it.y) }
+                drawPath(path, color = androidx.compose.ui.graphics.Color(argb.toInt()),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx(),
+                        cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+            }
+        }
     }
 }
 
