@@ -86,7 +86,6 @@ final class SchoolListViewModel: ObservableObject {
     private static let gradeMinKey = "explore_grade_min"
     private static let gradeMaxKey = "explore_grade_max"
     @Published var orientations: Set<String> = [] { didSet { dispatchExplore() } }
-    @Published var selectedSchoolIds: Set<String> = [] { didSet { dispatchExplore() } }
     @Published var exploreSort: ExploreSort = .distance { didSet { dispatchExplore() } }
     @Published var exploreGrouped = true
     @Published var exploreHits: [LineSearchHit] = []
@@ -94,20 +93,11 @@ final class SchoolListViewModel: ObservableObject {
     private var exploreTask: Task<Void, Never>?
     var exploreActive: Bool { exploreTab == .blocks }
 
-    /// Escuelas dentro del radio elegido, ordenadas por cercanía — mismo dato
-    /// que ya alimenta la lista de Escuelas, reutilizado para el selector de
-    /// escuelas del modo Bloques (§8.2b), sin ninguna llamada nueva.
-    var schoolsInRadius: [School] {
-        guard let max = maxDistanceKm, let la = userLat, let lo = userLon else { return schools }
-        return schools
-            .filter { Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $0.lat, lon2: $0.lon) <= max }
-            .sorted { Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $0.lat, lon2: $0.lon)
-                    < Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $1.lat, lon2: $1.lon) }
-    }
-
-    /// Quita grado/orientación/escuelas elegidas (sin salir de la pestaña
-    /// Bloques) — lo usa el "sin resultados" para empezar de cero.
-    func clearExplore() { gradeMin = nil; gradeMax = nil; orientations = []; selectedSchoolIds = [] }
+    /// Quita grado/orientación elegidos (sin salir de la pestaña Bloques) —
+    /// lo usa el "sin resultados" para empezar de cero. El selector manual de
+    /// escuelas (§8.2b) se quitó (Álvaro, 2026-10-01: "lista interminable,
+    /// imposible de gestionar") — DISTANCIA ya filtra sola.
+    func clearExplore() { gradeMin = nil; gradeMax = nil; orientations = [] }
 
     /// §8.2: resultado en vivo, sin botón "ver N vías" — debounce de ~300ms
     /// tras el último cambio (grado, orientación, escuelas, radio, ubicación).
@@ -123,7 +113,7 @@ final class SchoolListViewModel: ObservableObject {
                 gradeMin: self.gradeMin, gradeMax: self.gradeMax,
                 discipline: self.style.map { $0 == "Bloque" ? "BOULDER" : "ROUTE" },
                 rockTypes: self.rock.map { [$0] },
-                schoolIds: self.selectedSchoolIds.isEmpty ? nil : Array(self.selectedSchoolIds),
+                schoolIds: nil,
                 orientations: self.orientations.isEmpty ? nil : Array(self.orientations),
                 lat: self.userLat.map { KotlinDouble(double: $0) },
                 lon: self.userLon.map { KotlinDouble(double: $0) },
@@ -660,9 +650,11 @@ struct SchoolListView: View {
     @State private var navTarget: SchoolNavTarget?
     /// "Enviar piedra": el selector de fotos está abierto.
     @State private var eligiendoFoto = false
-    /// Grupos de escuela plegados en el modo "explorar" (§8.3) — no persiste,
-    /// se resetea al salir de la pantalla.
-    @State private var collapsedGroups: Set<String> = []
+    /// Grupos de escuela DESPLEGADOS en el modo "explorar" (§8.3) — empiezan
+    /// todos plegados (Álvaro, 2026-10-01: "que directamente salga Zarzalejo
+    /// con la puntuación y el número... pero que puedas verlos todos rápido");
+    /// no persiste, se resetea al salir de la pantalla.
+    @State private var expandedGroups: Set<String> = []
     // Buscador global de vías/bloques: vía a abrir al navegar + resultados.
     @State private var viaHits: [LineSearchHit] = []   // modelo de DOMINIO (via use case)
     @State private var viaSearchTask: Task<Void, Never>?
@@ -802,7 +794,7 @@ struct SchoolListView: View {
             } else if vm.exploreGrouped {
                 ForEach(vm.exploreGroups, id: \.schoolId) { group in
                     exploreGroupHeader(group)
-                    if !collapsedGroups.contains(group.schoolId) {
+                    if expandedGroups.contains(group.schoolId) {
                         ForEach(group.hits, id: \.stableId) { h in
                             exploreLineRow(h)
                             Divider().overlay(Cumbre.rule)
@@ -833,10 +825,10 @@ struct SchoolListView: View {
             ? vm.rangeScores[g.schoolId].map { Int($0.combinedScore) }
             : score.map { Int($0.todayScore) }
         let color = scoreInt.map { Cumbre.score($0) } ?? Cumbre.ink3
-        let collapsed = collapsedGroups.contains(g.schoolId)
+        let collapsed = !expandedGroups.contains(g.schoolId)
         return VStack(alignment: .leading, spacing: 0) {
             Button {
-                if collapsed { collapsedGroups.remove(g.schoolId) } else { collapsedGroups.insert(g.schoolId) }
+                if collapsed { expandedGroups.insert(g.schoolId) } else { expandedGroups.remove(g.schoolId) }
             } label: {
                 HStack(spacing: 10) {
                     Text(scoreInt.map(String.init) ?? "—")
