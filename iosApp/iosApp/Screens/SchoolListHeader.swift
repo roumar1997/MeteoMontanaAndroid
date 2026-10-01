@@ -582,7 +582,6 @@ struct FilterChips: View {
                 }.buttonStyle(.plain)
             }
             if vm.exploreTab == .blocks {
-                section(L("ESCUELAS EN ESTE RADIO · ELIGE 1 O VARIAS")) { schoolPicker }
                 section(L("GRADO")) { gradeRangeSection }
                 section(L("ORIENTACIÓN")) { orientationChips }
             }
@@ -639,41 +638,6 @@ struct FilterChips: View {
                 .background(active ? Cumbre.terra : Color.clear, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius - 2))
         }
         .buttonStyle(.plain)
-    }
-
-    /// §8.2b: escuelas dentro del radio elegido. Rejilla compacta (varias por
-    /// fila, sin el score del tiempo) — Álvaro, 2026-10-01: "que sea mucho más
-    /// resumido... que no se note tanto que se puede hacer scroll". Al fluir
-    /// con la página (sin su propio ScrollView) no hay altura que recortar.
-    private var schoolPicker: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 6)], spacing: 6) {
-            ForEach(vm.schoolsInRadius, id: \.id) { s in
-                let checked = vm.selectedSchoolIds.contains(s.id)
-                let wet = vm.scores[s.id]?.dryRock == false
-                Button {
-                    if checked { vm.selectedSchoolIds.remove(s.id) } else { vm.selectedSchoolIds.insert(s.id) }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: checked ? "checkmark.square.fill" : "square")
-                            .font(.system(size: 12))
-                            .foregroundStyle(checked ? .white : Cumbre.ink3)
-                        Text(s.name).font(.system(size: 12, weight: .medium)).lineLimit(1)
-                            .foregroundStyle(checked ? .white : Cumbre.ink)
-                        if wet {
-                            Circle().fill(checked ? .white : Cumbre.bad).frame(width: 5, height: 5)
-                        }
-                    }
-                    .padding(.horizontal, 8).padding(.vertical, 7)
-                    .frame(maxWidth: .infinity)
-                    .background(checked ? Cumbre.terra : Cumbre.paper,
-                                in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
-                    .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
-                        .stroke(checked ? Color.clear : Cumbre.rule, lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 12)
     }
 
     /// Dos campos MÍN/MÁX, cada uno con su desplegable de grados — Álvaro,
