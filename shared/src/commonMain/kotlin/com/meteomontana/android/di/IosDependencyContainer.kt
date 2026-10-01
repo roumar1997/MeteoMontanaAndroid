@@ -374,6 +374,7 @@ class IosDependencyContainer(
     // a "MODIFICAR" (Álvaro, 2026-09-30).
     val getBlock = com.meteomontana.android.domain.usecase.blocks.GetBlockUseCase(blockRepository)
     val editSchool = com.meteomontana.android.domain.usecase.admin.EditSchoolUseCase(adminRepository)
+    val backfillGradeScore = com.meteomontana.android.domain.usecase.admin.BackfillGradeScoreUseCase(adminRepository)
     // Numerar piedras por sector + arreglar el orden a mano o por GPS (Álvaro, 2026-09-14).
     val reorderBlocks = ReorderBlocksUseCase(blockRepository)
     val autoReorderBlocks = AutoReorderBlocksUseCase(blockRepository)

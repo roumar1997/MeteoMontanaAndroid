@@ -10,6 +10,7 @@ import com.meteomontana.android.domain.model.AdminLog
 import com.meteomontana.android.domain.model.AdminPushResult
 import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.model.Contribution
+import com.meteomontana.android.domain.model.GradeScoreBackfillResult
 import com.meteomontana.android.domain.model.MeetupReport
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.model.Submission
@@ -54,6 +55,9 @@ class KtorAdminRepository(private val api: KtorAdminApi) : AdminRepository {
     override suspend fun editSchool(
         schoolId: String, name: String?, location: String?, region: String?, style: String?, rockType: String?
     ): School = api.editSchool(schoolId, EditSchoolRequest(name, location, region, style, rockType)).toDomain()
+
+    override suspend fun backfillGradeScore(): GradeScoreBackfillResult =
+        api.backfillGradeScore().let { GradeScoreBackfillResult(it.total, it.updated, it.unrecognized) }
 }
 
 private fun MeetupReportDto.toDomain() = MeetupReport(

@@ -4,6 +4,7 @@ import com.meteomontana.android.domain.model.AdminLog
 import com.meteomontana.android.domain.model.AdminPushResult
 import com.meteomontana.android.domain.model.AdminStats
 import com.meteomontana.android.domain.model.Contribution
+import com.meteomontana.android.domain.model.GradeScoreBackfillResult
 import com.meteomontana.android.domain.model.MeetupReport
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.model.Submission
@@ -28,4 +29,7 @@ interface AdminRepository {
         schoolId: String, name: String? = null, location: String? = null,
         region: String? = null, style: String? = null, rockType: String? = null
     ): School
+    /** Rellena grade_score de las vías ya existentes (una sola vez, idempotente)
+     *  — BLOCK_SEARCH_DESIGN.md §2/§8. */
+    suspend fun backfillGradeScore(): GradeScoreBackfillResult
 }

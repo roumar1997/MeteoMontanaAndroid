@@ -546,50 +546,6 @@ struct SchoolMapPopup: View {
     }
 }
 
-/// Slider de rango con dos tiradores, sobre una escalera DISCRETA de grados
-/// (no un rango continuo) — arrastrar cada tirador salta al grado más
-/// cercano. `nil` en el binding significa "extremo de la escalera" (sin
-/// filtrar por ese lado).
-struct GradeRangeSlider: View {
-    let grades: [String]
-    @Binding var minGrade: String?
-    @Binding var maxGrade: String?
-
-    private var minIndex: Int { minGrade.flatMap { grades.firstIndex(of: $0) } ?? 0 }
-    private var maxIndex: Int { maxGrade.flatMap { grades.firstIndex(of: $0) } ?? grades.count - 1 }
-
-    var body: some View {
-        GeometryReader { geo in
-            let w = geo.size.width
-            let count = max(1, grades.count - 1)
-            let minX = w * CGFloat(minIndex) / CGFloat(count)
-            let maxX = w * CGFloat(maxIndex) / CGFloat(count)
-            ZStack(alignment: .leading) {
-                Capsule().fill(Cumbre.rule.opacity(0.4)).frame(height: 4)
-                Capsule().fill(Cumbre.terra).frame(width: max(0, maxX - minX), height: 4).offset(x: minX)
-                handle(x: minX, w: w, count: count) { idx in
-                    minGrade = grades[min(idx, maxIndex)]
-                }
-                handle(x: maxX, w: w, count: count) { idx in
-                    maxGrade = grades[max(idx, minIndex)]
-                }
-            }
-            .frame(height: 24, alignment: .center)
-        }
-    }
-
-    private func handle(x: CGFloat, w: CGFloat, count: Int, onMove: @escaping (Int) -> Void) -> some View {
-        Circle().fill(Cumbre.terra).frame(width: 18, height: 18)
-            .overlay(Circle().stroke(.white, lineWidth: 2))
-            .shadow(color: .black.opacity(0.2), radius: 2)
-            .offset(x: x - 9)
-            .gesture(DragGesture().onChanged { v in
-                let ratio = min(max(0, v.location.x / w), 1)
-                onMove(Int((ratio * CGFloat(count)).rounded()))
-            })
-    }
-}
-
 /// Escalera REAL de grados — la MISMA lista que usa el editor de vías
 /// (`BOULDER_GRADES` en ProposeFlow.swift), sin inventar nada. "PROY" (proyecto,
 /// sin grado) no es un punto de la escalera, así que se excluye del rango.
@@ -667,7 +623,7 @@ struct FilterChips: View {
     private var tabSwitcher: some View {
         HStack(spacing: 2) {
             tabButton(L("Escuelas"), active: vm.exploreTab == .schools) { vm.exploreTab = .schools }
-            tabButton(L("Bloques"), active: vm.exploreTab == .blocks) { vm.exploreTab = .blocks; vm.dispatchExplore() }
+            tabButton(L("Vías/Bloques"), active: vm.exploreTab == .blocks) { vm.exploreTab = .blocks; vm.dispatchExplore() }
         }
         .padding(3)
         .background(Cumbre.rule.opacity(0.18), in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
@@ -680,7 +636,7 @@ struct FilterChips: View {
                 .foregroundStyle(active ? .white : Cumbre.ink2)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 9)
-                .background(active ? Cumbre.ink : Color.clear, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius - 2))
+                .background(active ? Cumbre.terra : Color.clear, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius - 2))
         }
         .buttonStyle(.plain)
     }
@@ -689,54 +645,67 @@ struct FilterChips: View {
     /// MOJADA — mismo dato que ya trae `getSchools(lat,lon,radioKm)`, sin
     /// llamada nueva. Marcar 1+ restringe los resultados a esas escuelas.
     private var schoolPicker: some View {
-        VStack(spacing: 0) {
-            ForEach(vm.schoolsInRadius, id: \.id) { s in
-                let checked = vm.selectedSchoolIds.contains(s.id)
-                let score = vm.scores[s.id]
-                Button {
-                    if checked { vm.selectedSchoolIds.remove(s.id) } else { vm.selectedSchoolIds.insert(s.id) }
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: checked ? "checkmark.square.fill" : "square")
-                            .foregroundStyle(checked ? Cumbre.terra : Cumbre.ink3)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(s.name).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
-                            if score?.dryRock == false {
-                                Text(L("● MOJADA")).font(.system(size: 10, weight: .semibold)).foregroundStyle(Cumbre.bad)
+        // ScrollView + altura FIJA (no maxHeight): con solo un `frame(maxHeight:)`
+        // sobre un VStack sin scroll, SwiftUI no recorta el contenido que se
+        // pasa de esa altura — sigue pintándose a su tamaño natural y acaba
+        // solapando las secciones de abajo (DISTANCIA/GRADO). Con ScrollView sí
+        // se recorta de verdad (Álvaro, 2026-10-01: "se ve extraño").
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(vm.schoolsInRadius, id: \.id) { s in
+                    let checked = vm.selectedSchoolIds.contains(s.id)
+                    let score = vm.scores[s.id]
+                    Button {
+                        if checked { vm.selectedSchoolIds.remove(s.id) } else { vm.selectedSchoolIds.insert(s.id) }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: checked ? "checkmark.square.fill" : "square")
+                                .foregroundStyle(checked ? Cumbre.terra : Cumbre.ink3)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(s.name).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                                if score?.dryRock == false {
+                                    Text(L("● MOJADA")).font(.system(size: 10, weight: .semibold)).foregroundStyle(Cumbre.bad)
+                                }
                             }
+                            Spacer()
+                            if let sc = score { Text("\(Int(sc.todayScore))").font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.score(Int(sc.todayScore))) }
+                            if let km = vm.distanceKm(s) { Text("\(km) km").font(.system(size: 11)).foregroundStyle(Cumbre.ink3) }
                         }
-                        Spacer()
-                        if let sc = score { Text("\(Int(sc.todayScore))").font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.score(Int(sc.todayScore))) }
-                        if let km = vm.distanceKm(s) { Text("\(km) km").font(.system(size: 11)).foregroundStyle(Cumbre.ink3) }
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(checked ? Cumbre.terra.opacity(0.08) : Color.clear)
                     }
-                    .padding(.horizontal, 12).padding(.vertical, 8)
-                    .background(checked ? Cumbre.terra.opacity(0.08) : Color.clear)
+                    .buttonStyle(.plain)
+                    Divider().overlay(Cumbre.rule)
                 }
-                .buttonStyle(.plain)
-                Divider().overlay(Cumbre.rule)
             }
         }
-        .frame(maxHeight: 220)
+        .frame(height: min(CGFloat(vm.schoolsInRadius.count) * 44 + 1, 220))
     }
 
+    /// Dos filas de chips MÍN/MÁX con la escalera REAL de grados — Álvaro,
+    /// 2026-10-01: "preferiría pulsar y poner un filtro... lo de la barra
+    /// que se desliza queda raro" (vuelta de slider a chips discretos).
     private var gradeRangeSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(vm.gradeMin ?? EXPLORE_GRADE_LADDER.first!)
-                    .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
-                Spacer()
-                Text(vm.gradeMax ?? EXPLORE_GRADE_LADDER.last!)
-                    .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
-            }
-            GradeRangeSlider(grades: EXPLORE_GRADE_LADDER, minGrade: $vm.gradeMin, maxGrade: $vm.gradeMax)
-                .frame(height: 24)
-            HStack {
-                Text(EXPLORE_GRADE_LADDER.first!).font(.system(size: 10)).foregroundStyle(Cumbre.ink3)
-                Spacer()
-                Text(EXPLORE_GRADE_LADDER.last!).font(.system(size: 10)).foregroundStyle(Cumbre.ink3)
-            }
+        VStack(alignment: .leading, spacing: 6) {
+            Text(L("MÍN")).font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
+            gradeChipRow(selected: vm.gradeMin) { vm.gradeMin = $0 }
+            Text(L("MÁX")).font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
+            gradeChipRow(selected: vm.gradeMax) { vm.gradeMax = $0 }
         }
         .padding(.horizontal, 12)
+    }
+
+    private func gradeChipRow(selected: String?, onPick: @escaping (String?) -> Void) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                Button { onPick(nil) } label: { chip("—", active: selected == nil) }
+                    .buttonStyle(.plain)
+                ForEach(EXPLORE_GRADE_LADDER, id: \.self) { g in
+                    Button { onPick(g) } label: { chip(g, active: g == selected) }
+                        .buttonStyle(.plain)
+                }
+            }
+        }
     }
 
     private var orientationChips: some View {
