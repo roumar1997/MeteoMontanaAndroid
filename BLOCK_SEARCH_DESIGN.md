@@ -118,7 +118,14 @@ cliente pueda mostrar/ordenar sin una segunda llamada).
 
 ## 4. Interfaz
 
-### 4.1 Sin pestaña — modo implícito (decisión final, Álvaro 2026-10-01)
+### 4.1 Sin pestaña — modo implícito (DESCARTADO tras probarlo en iOS, ver 4.1b)
+
+> **Álvaro, 2026-10-01 (tras TestFlight): "no me convence lo de escuelas y
+> bloques de esa manera... no funciona bien".** Este enfoque se implementó y
+> se probó de verdad en un build real — y no funcionó en uso. Se sustituyó
+> por una pestaña explícita "Escuelas"/"Vías/Bloques" (§4.1b). Se deja esta
+> sección como registro de qué se intentó y por qué no sirvió, no como guía
+> a seguir — si se retoca esta función, partir de §4.1b.
 
 Se probaron 3 mockups (pestañas grandes tipo segmented control; icono nuevo
 que abre una pantalla aparte "Buscar por grado"; y este). Las dos primeras
@@ -147,6 +154,62 @@ navegación, sin pantalla que cerrar. El aviso describe LO QUE HAY, nunca una
 categoría fija, así que nunca queda desactualizado si mañana se añade un
 filtro nuevo (orientación, escuelas elegidas…) — se añade a la misma frase.
 
+### 4.1b Pestaña "Escuelas"/"Vías/Bloques" — DISEÑO FINAL, validado en iOS TestFlight (Álvaro, 2026-10-01)
+
+Tras descartar el modo implícito (§4.1), la cabecera de `SchoolListScreen`
+gana un segmented control ("Escuelas" / "Vías/Bloques" — **no "Bloques" a
+secas**, el resultado mezcla vías y bloques) justo debajo de "VER MAPA", en
+**terracota** cuando está activo (no negro — es el color de acento de toda
+la app). Tocar "Vías/Bloques" cambia la MISMA lista de abajo a resultados de
+vías, sin pantalla nueva.
+
+**Filtros en modo Vías/Bloques** (de arriba a abajo, dentro de la misma
+`SchoolFiltersBar`):
+- DISTANCIA — igual que siempre.
+- **GRADO**: dos campos "MÍN"/"MÁX" lado a lado, cada uno un `Menu`
+  desplegable con la escalera REAL de grados (`BOULDER_GRADES` en
+  `ProposeFlow.swift` — nunca una escalera inventada). Se probaron y
+  descartaron: un slider de dos tiradores ("queda raro", difícil de precisar
+  con el dedo) y chips en fila horizontal (ocupaba demasiado, "preferiría
+  pulsar y elegir"). El último grado usado se recuerda entre sesiones
+  (`UserDefaults`).
+- ORIENTACIÓN — chips N/NE/E/SE/S/SO/O/NO, sin cambios de §8.1.
+- ESTILO / TIPO DE ROCA — los mismos de siempre, alimentan también el
+  filtro de vías (discipline/rockType) cuando la pestaña es Vías/Bloques.
+- **ORDENAR POR: "Cercanía" / "Mejores condiciones"** (NUNCA "Grado" — se
+  probó y no aportaba nada útil). "Mejores condiciones" NO es un sort que
+  sepa el backend: el índice de escalabilidad es meteorológico y vive solo
+  en el cliente. Se pide SIEMPRE `sort=DISTANCE` al backend y se reordenan
+  los GRUPOS (o la lista plana) en el cliente por el score de HOY (o el
+  combinado del tramo si hay días elegidos).
+
+**Selector manual de escuelas en el radio (§8.2b): IMPLEMENTADO Y QUITADO.**
+Se probó (checkboxes, luego rejilla compacta) y con "Todas" de distancia
+(208 escuelas) era una lista ingobernable — "imposible de gestionar, tienes
+que hacer un montón de scroll". Decisión final: no existe selector manual,
+DISTANCIA es el único filtro de "qué escuelas entran". No reintroducirlo sin
+que Álvaro lo pida explícitamente.
+
+**Resultados — agrupados por escuela, EMPIEZAN PLEGADOS.** Cabecera de grupo
+= score del día (o score combinado del tramo si hay días elegidos, con fila
+`DayRangeRow` de un score por día debajo) + aviso MOJADA + contador "N
+vías/bloques" (nunca "N vías" a secas — una escuela puede ser solo de
+bloques). Tocar la cabecera expande/colapsa ese grupo; todos arrancan
+colapsados para poder ver de un vistazo todas las escuelas del radio sin
+scroll interminable.
+
+**Miniatura de cada vía/bloque**: foto + trazo de la línea dibujado encima,
+pero **SIN el badge de número/tipo de inicio** que pinta `TopoPhotoView`
+normalmente — ese badge está pensado para el visor grande y a 44pt tapaba
+la foto entera ("se ve fatal"). Componente propio `MiniTopoThumbnail`: solo
+la foto + un trazo de 2pt del color del grado, sin número ni "PIE"/"SIT".
+
+**Backend — `PAGE_SIZE` subido de 30 a 300** (`SearchLinesService.java`):
+con 30, una escuela cercana con muchas vías llenaba la página entera y
+tapaba al resto de escuelas del radio. Esto NO cuesta más al servidor — el
+límite real de cómputo es `MAX_CANDIDATES` (1000, sin tocar); `PAGE_SIZE`
+solo recorta cuánto de ese resultado ya calculado se devuelve.
+
 ### 4.2 Filtros — se reutiliza `SchoolFiltersBar`, con una sección nueva
 
 Mismo componente, mismas secciones DISTANCIA / ESTILO (→ discipline) / TIPO
@@ -159,12 +222,18 @@ GRADO
 └──────┴──────┘      mismos chips de grado que ya se usan en el editor
 ```
 
+**Superado por §4.1b**: en vez de chips de rango, son dos campos con `Menu`
+desplegable — ver ahí el diseño final validado.
+
 ### 4.3 Resultado
 
 Reutiliza `SchoolListItem`-style pero por vía: nombre de la vía, grado (con
 su color de `gradeArgb`, coherente con el resto de la app), nombre de la
 piedra y escuela, distancia si hay ubicación. Tocar → mismo `onViaHit` que ya
 navega a la escuela y abre esa vía. **Cero pantalla nueva de detalle.**
+
+**Superado por §4.1b**: agrupado por escuela (plegado por defecto), miniatura
+sin badge, "vías/bloques" no "vías". Ver ahí el diseño final validado.
 
 ---
 
@@ -176,15 +245,19 @@ vías para rellenar `grade_score` + ampliar `LineSearchController`/
 `SearchLinesService`/`JpaLineSearchRepositoryAdapter` con los filtros +
 backfill de vías existentes.
 
-**Fase 2 — Android**: SIN pestaña nueva (§4.1) — `SchoolListViewModel` gana
-el estado del modo vías (activo cuando `gradeMin`/`gradeMax` != null) +
-`BlockSearchViewModel` o equivalente para pedir/paginar los resultados +
-el aviso quitable + lista de resultados reutilizando el estilo de
-`SchoolListItem`, todo dentro de `SchoolListScreen` ya existente.
+**Fase 2 — Android (PENDIENTE, 2026-10-01)**: réplica EXACTA de la Fase 3 de
+iOS (§4.1b), no del diseño original de esta sección — pestaña "Escuelas"/
+"Vías/Bloques" en terracota, no modo implícito. `SchoolListViewModel` gana el
+estado de pestaña + grado/orientación (con persistencia del último grado) +
+lista de resultados agrupada por escuela (plegada por defecto) con
+`MiniTopoThumbnail` sin badge, todo dentro de `SchoolListScreen` ya
+existente. Esperar a que Álvaro pase capturas del iOS final antes de
+construir — no asumir el diseño, pedir la captura concreta que falte.
 
-**Fase 3 — iOS**: espejo exacto de la Fase 2 en `SchoolListView.swift`/
-`SchoolListHeader.swift`, mismo nombre de componentes en Swift, paridad del
-aviso y los filtros.
+**Fase 3 — iOS (COMPLETA y validada en TestFlight, builds 243→252,
+2026-10-01)**: implementada en `SchoolListView.swift`/`SchoolListHeader.swift`
+— ver §4.1b para el diseño final exacto (muy distinto del planteado
+originalmente en esta sección, iterado varias veces contra feedback real).
 
 **Fase 4 — Pulido**: "cargar más" (paginación por `offset`), persistir el
 último filtro usado (como ya se hace con `SchoolFilters`).
