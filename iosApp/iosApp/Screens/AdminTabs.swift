@@ -16,9 +16,48 @@ struct AdminStatsTab: View {
     @State private var showDailyActivity = false
     /// "ver propuestas pasadas" — al pulsar APROBADAS/RECHAZADAS (Álvaro, 2026-09-30).
     @State private var historyStatus: String? = nil
+    /// Rellena grade_score de las vías ya existentes — una sola vez, se puede
+    /// repetir sin romper nada (BLOCK_SEARCH_DESIGN.md §2/§8). El buscador por
+    /// grado no devolvía resultados porque las vías antiguas tenían ese campo
+    /// vacío; las nuevas ya se rellenan solas al guardarse.
+    @State private var backfillRunning = false
+    @State private var backfillResult: String?
+
+    private func runBackfillGradeScore() {
+        backfillRunning = true
+        Task {
+            let r = try? await AppDependencies.shared.container.backfillGradeScore.invoke()
+            backfillRunning = false
+            if let r {
+                backfillResult = "Pendientes: \(r.total) · actualizadas: \(r.updated) · sin grado reconocible: \(r.unrecognized)"
+            } else {
+                backfillResult = "Fallo al rellenar grade_score (revisa conexión)."
+            }
+        }
+    }
 
     var body: some View {
         ScrollView {
+            Text("MANTENIMIENTO").font(Cumbre.mono(10, .bold)).tracking(0.8)
+                .foregroundStyle(Cumbre.terra)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16).padding(.top, 10)
+            Button { runBackfillGradeScore() } label: {
+                HStack {
+                    if backfillRunning { ProgressView().tint(.white) }
+                    Text(backfillRunning ? "RELLENANDO…" : "RELLENAR GRADO DE VÍAS ANTIGUAS")
+                        .font(Cumbre.mono(11, .bold))
+                }
+                .foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 11)
+                .background(Cumbre.terra)
+            }
+            .buttonStyle(.plain)
+            .disabled(backfillRunning)
+            .padding(.horizontal, 16).padding(.top, 6)
+            if let r = backfillResult {
+                Text(r).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
+                    .padding(.horizontal, 16).padding(.top, 4)
+            }
             if let s = stats {
                 Text("Toca una tarjeta para ver su lista")
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)

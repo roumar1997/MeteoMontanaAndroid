@@ -42,6 +42,12 @@ class KtorAdminApi(private val client: HttpClient) {
     suspend fun sendPush(req: AdminPushRequest): AdminPushResponse =
         client.post("admin/push") { setBody(req) }.body()
 
+    /** Rellena grade_score de las vías ya existentes (una sola vez; es
+     *  idempotente, se puede repetir sin romper nada) — BLOCK_SEARCH_DESIGN.md
+     *  §2/§8. Disparado a mano desde el panel de admin de iOS. */
+    suspend fun backfillGradeScore(): GradeScoreBackfillResultDto =
+        client.post("admin/search/backfill-grade-score").body()
+
     suspend fun pendingContributions(status: String? = null): List<ContributionDto> =
         client.get("admin/contributions") {
             if (status != null) url.parameters.append("status", status)
@@ -105,3 +111,6 @@ data class MeetupReportDto(
 
 @Serializable
 data class ResolveReportRequest(val action: String)  // "resolve" | "dismiss"
+
+@Serializable
+data class GradeScoreBackfillResultDto(val total: Int, val updated: Int, val unrecognized: Int)
