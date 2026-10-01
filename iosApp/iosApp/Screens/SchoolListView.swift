@@ -654,6 +654,9 @@ struct SchoolListView: View {
     @State private var navTarget: SchoolNavTarget?
     /// "Enviar piedra": el selector de fotos está abierto.
     @State private var eligiendoFoto = false
+    /// Grupos de escuela plegados en el modo "explorar" (§8.3) — no persiste,
+    /// se resetea al salir de la pantalla.
+    @State private var collapsedGroups: Set<String> = []
     // Buscador global de vías/bloques: vía a abrir al navegar + resultados.
     @State private var viaHits: [LineSearchHit] = []   // modelo de DOMINIO (via use case)
     @State private var viaSearchTask: Task<Void, Never>?
@@ -793,9 +796,11 @@ struct SchoolListView: View {
             } else if vm.exploreGrouped {
                 ForEach(vm.exploreGroups, id: \.schoolId) { group in
                     exploreGroupHeader(group)
-                    ForEach(group.hits, id: \.stableId) { h in
-                        exploreLineRow(h)
-                        Divider().overlay(Cumbre.rule)
+                    if !collapsedGroups.contains(group.schoolId) {
+                        ForEach(group.hits, id: \.stableId) { h in
+                            exploreLineRow(h)
+                            Divider().overlay(Cumbre.rule)
+                        }
                     }
                 }
             } else {
@@ -809,31 +814,42 @@ struct SchoolListView: View {
 
     /// Cabecera de grupo: nombre de la escuela + su índice de escalabilidad de
     /// HOY (el mismo score que en la lista de Escuelas) + aviso MOJADA — una
-    /// sola vez por grupo en vez de repetirlo vía a vía (§8.3).
+    /// sola vez por grupo en vez de repetirlo vía a vía (§8.3). Pulsable: se
+    /// minimiza para poder ver el resto de escuelas sin tanto scroll (Álvaro,
+    /// 2026-10-01: "que se minimice y pueda ver el resto").
     private func exploreGroupHeader(_ g: (schoolId: String, schoolName: String, hits: [LineSearchHit])) -> some View {
         let score = vm.scores[g.schoolId]
         let scoreInt = score.map { Int($0.todayScore) }
         let color = scoreInt.map { Cumbre.score($0) } ?? Cumbre.ink3
-        return HStack(spacing: 10) {
-            Text(scoreInt.map(String.init) ?? "—")
-                .font(Cumbre.serif(17, .bold))
-                .foregroundStyle(color)
-                .frame(width: 34, height: 30)
-                .background(color.opacity(0.12))
-                .overlay(Rectangle().stroke(color, lineWidth: 1))
-            VStack(alignment: .leading, spacing: 1) {
-                Text(g.schoolName).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
-                if score?.dryRock == false {
-                    Text(L("● MOJADA")).font(.system(size: 10, weight: .semibold)).tracking(0.6)
-                        .foregroundStyle(Cumbre.bad)
+        let collapsed = collapsedGroups.contains(g.schoolId)
+        return Button {
+            if collapsed { collapsedGroups.remove(g.schoolId) } else { collapsedGroups.insert(g.schoolId) }
+        } label: {
+            HStack(spacing: 10) {
+                Text(scoreInt.map(String.init) ?? "—")
+                    .font(Cumbre.serif(17, .bold))
+                    .foregroundStyle(color)
+                    .frame(width: 34, height: 30)
+                    .background(color.opacity(0.12))
+                    .overlay(Rectangle().stroke(color, lineWidth: 1))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(g.schoolName).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                    if score?.dryRock == false {
+                        Text(L("● MOJADA")).font(.system(size: 10, weight: .semibold)).tracking(0.6)
+                            .foregroundStyle(Cumbre.bad)
+                    }
                 }
+                Spacer()
+                Text(g.hits.count == 1 ? L("1 vía") : L("%@ vías", g.hits.count))
+                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                Image(systemName: collapsed ? "chevron.down" : "chevron.up")
+                    .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
             }
-            Spacer()
-            Text(g.hits.count == 1 ? L("1 vía") : L("%@ vías", g.hits.count))
-                .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+            .padding(.horizontal, 16).padding(.vertical, 8)
+            .background(Cumbre.paper)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 16).padding(.vertical, 8)
-        .background(Cumbre.paper)
+        .buttonStyle(.plain)
     }
 
     /// Fila de vía: miniatura (§8.4), nombre + grado coloreado, piedra/escuela,
