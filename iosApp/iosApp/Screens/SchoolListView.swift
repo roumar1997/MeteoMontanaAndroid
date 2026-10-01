@@ -897,17 +897,14 @@ struct SchoolListView: View {
         } label: {
             HStack(spacing: 10) {
                 if let photo = h.photoPath, !photo.isEmpty {
-                    // Mismo mini-topo (foto + trazo dibujado) que ya usa el
-                    // desplegable del buscador de texto — Álvaro, 2026-10-01:
-                    // "que se vean las líneas dibujadas aunque sean chiquititas".
-                    let pts = dedupPoints(TopoParse.points(h.linePath))
-                    TopoPhotoView(photoUrl: photo, lines: pts.count >= 2 ? [
-                        TopoLineVM(id: h.lineId ?? "hit", name: h.lineName,
-                                   grade: h.grade, startType: h.startType, points: pts)
-                    ] : [])
-                    .frame(width: 44, height: 44)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.rule, lineWidth: 1))
+                    // Trazo fino SIN badge de número/tipo de inicio — el badge
+                    // de TopoPhotoView está pensado para el visor grande; a 44pt
+                    // tapaba la foto entera (Álvaro, 2026-10-01: "se ve fatal").
+                    MiniTopoThumbnail(photoUrl: photo, points: dedupPoints(TopoParse.points(h.linePath)),
+                                      grade: h.grade)
+                        .frame(width: 44, height: 44)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.rule, lineWidth: 1))
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
@@ -962,4 +959,32 @@ fileprivate func dedupPoints(_ raw: [CGPoint]) -> [CGPoint] {
         pts.append(pt)
     }
     return pts
+}
+
+/// Miniatura de resultado: foto + trazo fino, SIN el badge de número/tipo de
+/// inicio que usa TopoPhotoView (pensado para el visor grande) — a 44pt ese
+/// badge tapaba la foto entera. Solo "se intuye" el trazo, como pidió Álvaro.
+fileprivate struct MiniTopoThumbnail: View {
+    let photoUrl: String
+    let points: [CGPoint]
+    let grade: String?
+    @State private var image: UIImage?
+
+    var body: some View {
+        ZStack {
+            Cumbre.rule.opacity(0.15)
+            if let image { Image(uiImage: image).resizable().scaledToFill() }
+            if points.count >= 2 {
+                GeometryReader { geo in
+                    Path { path in
+                        let pts = points.map { CGPoint(x: $0.x * geo.size.width, y: $0.y * geo.size.height) }
+                        path.move(to: pts[0])
+                        for p in pts.dropFirst() { path.addLine(to: p) }
+                    }
+                    .stroke(GradeColor.color(grade), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                }
+            }
+        }
+        .task(id: photoUrl) { image = await ImageCache.image(photoUrl) }
+    }
 }
