@@ -102,11 +102,12 @@ class SchoolListViewModelTest {
     private val getPublicProfile: com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase = mockk(relaxed = true)
     private val appContext: android.content.Context = mockk(relaxed = true)
     private val searchLines: com.meteomontana.android.domain.usecase.schools.SearchLinesUseCase = mockk(relaxed = true)
+    private val exploreLines: com.meteomontana.android.domain.usecase.schools.ExploreLinesUseCase = mockk(relaxed = true)
 
     private fun newVm() = SchoolListViewModel(
         getSchoolCatalog, getTodayScores, getRangeScores, getMyFavorites, addFavorite, removeFavorite,
         getMyNotifications, location, savedRepo, cachedRepo, etagStore, chatService, outbox, getPublicProfile,
-        searchLines, appContext, com.meteomontana.android.ui.screens.schools.PhotoProposalSeed()
+        searchLines, exploreLines, appContext, com.meteomontana.android.ui.screens.schools.PhotoProposalSeed()
     )
 
     @Test fun `init baja el catalogo completo sin filtros y filtra en local`() = runTest {

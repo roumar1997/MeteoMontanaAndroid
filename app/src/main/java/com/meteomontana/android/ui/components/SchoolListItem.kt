@@ -260,8 +260,10 @@ private fun DryWetTag(dry: Boolean?, rainProb: Int?, rainMm: Double?) {
  * Fila por día del tramo elegido: una celda por día con su score (color) y la
  * inicial del día debajo. Los días con lluvia llevan la inicial en rojo.
  */
+/** Fila de puntuaciones por día del tramo — reutilizada también por el modo
+ *  "Vías/Bloques" del buscador por grado (BLOCK_SEARCH_DESIGN.md §4.1b). */
 @Composable
-private fun DayRangeRow(
+fun DayRangeRow(
     range: com.meteomontana.android.domain.model.RangeScore,
     modifier: Modifier = Modifier
 ) {

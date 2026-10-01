@@ -98,6 +98,10 @@ object UseCasesModule {
         com.meteomontana.android.domain.usecase.schools.SearchLinesUseCase(repo)
 
     @Provides @Singleton
+    fun provideExploreLinesUseCase(repo: SchoolRepository) =
+        com.meteomontana.android.domain.usecase.schools.ExploreLinesUseCase(repo)
+
+    @Provides @Singleton
     fun provideConfirmProcessionaryUseCase(repo: SchoolRepository) =
         com.meteomontana.android.domain.usecase.schools.ConfirmProcessionaryUseCase(repo)
 
