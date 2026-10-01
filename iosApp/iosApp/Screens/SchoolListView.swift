@@ -79,8 +79,12 @@ final class SchoolListViewModel: ObservableObject {
         var label: String { L(rawValue) }
     }
     @Published var exploreTab: ExploreTab = .schools
-    @Published var gradeMin: String? { didSet { dispatchExplore() } }
-    @Published var gradeMax: String? { didSet { dispatchExplore() } }
+    /// Se recuerda el último grado usado entre sesiones (Álvaro, 2026-10-01:
+    /// "que se te queden guardados los últimos que has utilizado").
+    @Published var gradeMin: String? { didSet { UserDefaults.standard.set(gradeMin, forKey: Self.gradeMinKey); dispatchExplore() } }
+    @Published var gradeMax: String? { didSet { UserDefaults.standard.set(gradeMax, forKey: Self.gradeMaxKey); dispatchExplore() } }
+    private static let gradeMinKey = "explore_grade_min"
+    private static let gradeMaxKey = "explore_grade_max"
     @Published var orientations: Set<String> = [] { didSet { dispatchExplore() } }
     @Published var selectedSchoolIds: Set<String> = [] { didSet { dispatchExplore() } }
     @Published var exploreSort: ExploreSort = .distance { didSet { dispatchExplore() } }
@@ -170,6 +174,8 @@ final class SchoolListViewModel: ObservableObject {
         self.getMyFavorites = getMyFavorites
         self.addFavorite = addFavorite
         self.removeFavorite = removeFavorite
+        self.gradeMin = UserDefaults.standard.string(forKey: Self.gradeMinKey)
+        self.gradeMax = UserDefaults.standard.string(forKey: Self.gradeMaxKey)
     }
 
     /// Marca/desmarca una fecha (ISO yyyy-MM-dd), máximo 5. Recalcula el tramo.

@@ -676,29 +676,37 @@ struct FilterChips: View {
         .padding(.horizontal, 12)
     }
 
-    /// Dos filas de chips MÍN/MÁX con la escalera REAL de grados — Álvaro,
-    /// 2026-10-01: "preferiría pulsar y poner un filtro... lo de la barra
-    /// que se desliza queda raro" (vuelta de slider a chips discretos).
+    /// Dos campos MÍN/MÁX, cada uno con su desplegable de grados — Álvaro,
+    /// 2026-10-01 (2ª vuelta): en vez de dos filas de chips, "uno mínimo...
+    /// abres y se te abre un desplegable... y al lado máximo". El último
+    /// grado usado se recuerda entre sesiones (UserDefaults, vía el VM).
     private var gradeRangeSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(L("MÍN")).font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
-            gradeChipRow(selected: vm.gradeMin) { vm.gradeMin = $0 }
-            Text(L("MÁX")).font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
-            gradeChipRow(selected: vm.gradeMax) { vm.gradeMax = $0 }
+        HStack(spacing: 10) {
+            gradeDropdown(L("MÍN"), selected: vm.gradeMin) { vm.gradeMin = $0 }
+            gradeDropdown(L("MÁX"), selected: vm.gradeMax) { vm.gradeMax = $0 }
         }
         .padding(.horizontal, 12)
     }
 
-    private func gradeChipRow(selected: String?, onPick: @escaping (String?) -> Void) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                Button { onPick(nil) } label: { chip("—", active: selected == nil) }
-                    .buttonStyle(.plain)
-                ForEach(EXPLORE_GRADE_LADDER, id: \.self) { g in
-                    Button { onPick(g) } label: { chip(g, active: g == selected) }
-                        .buttonStyle(.plain)
+    private func gradeDropdown(_ label: String, selected: String?, onPick: @escaping (String?) -> Void) -> some View {
+        Menu {
+            Button(L("Sin filtro")) { onPick(nil) }
+            ForEach(EXPLORE_GRADE_LADDER, id: \.self) { g in
+                Button(g) { onPick(g) }
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label).font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
+                HStack {
+                    Text(selected ?? L("—")).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
                 }
             }
+            .padding(.horizontal, 10).padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
+            .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+            .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(Cumbre.rule, lineWidth: 1))
         }
     }
 
