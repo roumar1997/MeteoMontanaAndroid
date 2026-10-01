@@ -1,6 +1,7 @@
 package com.meteomontana.android.data.api
 
 import com.meteomontana.android.data.api.dto.SchoolDto
+import com.meteomontana.android.domain.model.LineExploreCriteria
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ResponseException
@@ -68,6 +69,25 @@ class KtorSchoolApi(private val client: HttpClient) {
     suspend fun searchLines(query: String): List<LineSearchHitDto> =
         client.get("search/lines") { parameter("q", query) }.body()
 
+    /** Modo "explorar" del mismo endpoint (BLOCK_SEARCH_DESIGN.md §3/§8): sin
+     *  texto libre, con filtros de grado/disciplina/roca/escuelas/orientación
+     *  /distancia. Mismo `search/lines`, parámetros nuevos y aditivos. */
+    @Throws(Exception::class)
+    suspend fun exploreLines(criteria: LineExploreCriteria): List<LineSearchHitDto> =
+        client.get("search/lines") {
+            criteria.gradeMin?.let { parameter("gradeMin", it) }
+            criteria.gradeMax?.let { parameter("gradeMax", it) }
+            criteria.discipline?.let { parameter("discipline", it) }
+            criteria.rockTypes?.forEach { parameter("rockTypes", it) }
+            criteria.schoolIds?.forEach { parameter("schoolIds", it) }
+            criteria.orientations?.forEach { parameter("orientations", it) }
+            criteria.lat?.let { parameter("lat", it) }
+            criteria.lon?.let { parameter("lon", it) }
+            criteria.maxDistanceKm?.let { parameter("maxDistanceKm", it) }
+            criteria.sort?.let { parameter("sort", it) }
+            parameter("offset", criteria.offset)
+        }.body()
+
     @Throws(Exception::class)
     suspend fun getSchoolById(id: String): SchoolDto = client.get("schools/$id").body()
 
@@ -121,5 +141,8 @@ data class LineSearchHitDto(
     // cara de la vía (o portada de la piedra), trazo normalizado y tipo de inicio.
     val photoPath: String? = null,
     val linePath: String? = null,
-    val startType: String? = null
+    val startType: String? = null,
+    val lat: Double? = null,
+    val lon: Double? = null,
+    val orientation: String? = null
 )

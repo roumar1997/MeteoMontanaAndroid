@@ -14,5 +14,13 @@ data class LineSearchHit(
     val photoPath: String?,
     /** Trazo normalizado de la vía (null en piedras o backends viejos). */
     val linePath: String?,
-    val startType: String?
+    val startType: String?,
+    /** Coordenadas de la PIEDRA (no de la escuela) — BLOCK_SEARCH_DESIGN.md
+     *  §1.4. Solo el modo "explorar" las rellena; null en la búsqueda de texto
+     *  de siempre. */
+    val lat: Double? = null,
+    val lon: Double? = null,
+    /** Aspecto votado por la comunidad (N/NE/.../NO), o null si nadie lo ha
+     *  votado todavía — BLOCK_SEARCH_DESIGN.md §8.1. Solo modo "explorar". */
+    val orientation: String? = null
 )

@@ -3,6 +3,7 @@ package com.meteomontana.android.data.repository
 import com.meteomontana.android.data.api.KtorSchoolApi
 import com.meteomontana.android.data.api.LineSearchHitDto
 import com.meteomontana.android.data.api.dto.toDomain
+import com.meteomontana.android.domain.model.LineExploreCriteria
 import com.meteomontana.android.domain.model.LineSearchHit
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.model.SchoolCatalog
@@ -31,6 +32,9 @@ class KtorSchoolRepository(private val api: KtorSchoolApi) : SchoolRepository {
     override suspend fun searchLines(query: String): List<LineSearchHit> =
         api.searchLines(query).map { it.toDomain() }
 
+    override suspend fun exploreLines(criteria: LineExploreCriteria): List<LineSearchHit> =
+        api.exploreLines(criteria).map { it.toDomain() }
+
     override suspend fun confirmProcessionary(schoolId: String) = api.confirmProcessionary(schoolId)
 
     override suspend fun retractProcessionary(schoolId: String) = api.retractProcessionary(schoolId)
@@ -43,5 +47,6 @@ class KtorSchoolRepository(private val api: KtorSchoolApi) : SchoolRepository {
 private fun LineSearchHitDto.toDomain() = LineSearchHit(
     schoolId = schoolId, schoolName = schoolName, blockId = blockId, blockName = blockName,
     lineId = lineId, lineName = lineName, grade = grade, sectorName = sectorName,
-    photoPath = photoPath, linePath = linePath, startType = startType
+    photoPath = photoPath, linePath = linePath, startType = startType,
+    lat = lat, lon = lon, orientation = orientation
 )

@@ -1,5 +1,6 @@
 package com.meteomontana.android.domain.repository
 
+import com.meteomontana.android.domain.model.LineExploreCriteria
 import com.meteomontana.android.domain.model.LineSearchHit
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.model.SchoolCatalog
@@ -27,6 +28,10 @@ interface SchoolRepository {
 
     /** Buscador GLOBAL de vías/bloques (autocompletado "vía/bloque"). */
     suspend fun searchLines(query: String): List<LineSearchHit>
+
+    /** Modo "explorar" del mismo buscador — filtros sin texto libre
+     *  (BLOCK_SEARCH_DESIGN.md §3/§8). */
+    suspend fun exploreLines(criteria: LineExploreCriteria): List<LineSearchHit>
 
     /** "Las he visto": marca la escuela como zona conocida de procesionaria. */
     suspend fun confirmProcessionary(schoolId: String)

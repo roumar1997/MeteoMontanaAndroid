@@ -549,37 +549,124 @@ struct SchoolMapPopup: View {
 /// Barra de filtros — réplica de SchoolFiltersBar.kt: secciones apiladas
 /// (DISTANCIA, ESTILO, TIPO DE ROCA, FAVORITOS, ORDENAR POR), cada una con su
 /// eyebrow y una fila horizontal de chips seleccionables.
+/// Escalera de grados reconocibles por la fórmula de score (BLOCK_SEARCH_DESIGN.md
+/// §1.3) — misma gama 3A..9D+ que acepta GradeScore.java en el backend. Para
+/// los selectores de rango MÍN/MÁX del modo "explorar" (§4.2).
+let EXPLORE_GRADE_LADDER: [String] = {
+    var out: [String] = []
+    for num in 3...9 {
+        for letter in ["A", "B", "C", "D"] {
+            out.append("\(num)\(letter)")
+            out.append("\(num)\(letter)+")
+        }
+    }
+    return out
+}()
+
 struct FilterChips: View {
     @ObservedObject var vm: SchoolListViewModel
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            section(L("DISTANCIA")) {
-                chipRow(SchoolListViewModel.distanceOptions, id: { $0.map { String(Int($0)) } ?? "all" },
-                        isSel: { $0 == vm.maxDistanceKm },
-                        label: { $0 == nil ? NSLocalizedString("schools_filter_all", comment: "") : "\(Int($0!)) km" }) { vm.maxDistanceKm = $0 }
+            section(L("GRADO")) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L("MÍN")).font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3).padding(.horizontal, 12)
+                    gradeChipRow(selected: vm.gradeMin) { vm.gradeMin = $0 }
+                    Text(L("MÁX")).font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3).padding(.horizontal, 12)
+                    gradeChipRow(selected: vm.gradeMax) { vm.gradeMax = $0 }
+                }
             }
-            section(L("ESTILO")) {
-                chipRow([String?.none] + vm.styles.map { Optional($0) }, id: { $0 ?? "all" },
-                        isSel: { $0 == vm.style },
-                        label: { $0.map(styleLabel) ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.style = $0 }
-            }
-            section(L("TIPO DE ROCA")) {
-                chipRow([String?.none] + vm.rocks.map { Optional($0) }, id: { $0 ?? "all" },
-                        isSel: { $0 == vm.rock },
-                        label: { $0.map(rockLabel) ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.rock = $0 }
-            }
-            section(L("MOSTRAR")) {
-                chipRow(SchoolListViewModel.ShowMode.allCases, id: { $0.rawValue },
-                        isSel: { $0 == vm.showMode },
-                        label: { $0.label }) { vm.showMode = $0 }
-            }
-            section(L("ORDENAR POR")) {
-                chipRow(SchoolListViewModel.SortMode.allCases, id: { $0.rawValue },
-                        isSel: { $0 == vm.sortBy },
-                        label: { $0.label }) { vm.sortBy = $0 }
+            if vm.exploreActive {
+                // §4.1: en modo vías, este único aviso quitable reemplaza toda
+                // la fila de chips de abajo (DISTANCIA/ESTILO/etc.) en vez de
+                // apilarse con ella.
+                exploreBanner
+            } else {
+                section(L("DISTANCIA")) {
+                    chipRow(SchoolListViewModel.distanceOptions, id: { $0.map { String(Int($0)) } ?? "all" },
+                            isSel: { $0 == vm.maxDistanceKm },
+                            label: { $0 == nil ? NSLocalizedString("schools_filter_all", comment: "") : "\(Int($0!)) km" }) { vm.maxDistanceKm = $0 }
+                }
+                // Sin esto, un permiso denegado se quedaba sin forma de arreglarse
+                // desde aquí — el mapa de Escuelas no pintaba el punto azul ni
+                // aplicaba "cercanía" en silencio, para siempre (Álvaro, 2026-10-01).
+                if vm.userLat == nil {
+                    Button { vm.requestLocation() } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "location.slash").foregroundStyle(Cumbre.terra)
+                            Text(L("Sin ubicación — toca para activarla"))
+                                .font(.system(size: 12.5)).foregroundStyle(Cumbre.ink2)
+                            Spacer()
+                            Text(L("ACTIVAR")).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                        }
+                        .padding(10)
+                        .background(Cumbre.terraBg).overlay(Rectangle().stroke(Cumbre.terra.opacity(0.4), lineWidth: 1))
+                    }.buttonStyle(.plain)
+                }
+                section(L("ESTILO")) {
+                    chipRow([String?.none] + vm.styles.map { Optional($0) }, id: { $0 ?? "all" },
+                            isSel: { $0 == vm.style },
+                            label: { $0.map(styleLabel) ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.style = $0 }
+                }
+                section(L("TIPO DE ROCA")) {
+                    chipRow([String?.none] + vm.rocks.map { Optional($0) }, id: { $0 ?? "all" },
+                            isSel: { $0 == vm.rock },
+                            label: { $0.map(rockLabel) ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.rock = $0 }
+                }
+                section(L("MOSTRAR")) {
+                    chipRow(SchoolListViewModel.ShowMode.allCases, id: { $0.rawValue },
+                            isSel: { $0 == vm.showMode },
+                            label: { $0.label }) { vm.showMode = $0 }
+                }
+                section(L("ORDENAR POR")) {
+                    chipRow(SchoolListViewModel.SortMode.allCases, id: { $0.rawValue },
+                            isSel: { $0 == vm.sortBy },
+                            label: { $0.label }) { vm.sortBy = $0 }
+                }
             }
         }
         .padding(.vertical, 8)
+    }
+
+    /// Aviso quitable: "▤ Viendo VÍAS · grado 7A—7B · 50 km   ✕" — describe
+    /// LO QUE HAY, nunca una categoría fija (§4.1). Tocarlo quita el grado y
+    /// vuelve a Escuelas al instante.
+    private var exploreBanner: some View {
+        Button { vm.clearExplore() } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "square.grid.2x2").font(.system(size: 13)).foregroundStyle(.white)
+                Text(exploreBannerText).font(Cumbre.mono(11, .bold)).tracking(0.4)
+                    .foregroundStyle(.white).lineLimit(1)
+                Spacer()
+                Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 11)
+            .background(Cumbre.terra)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 12)
+    }
+
+    private var exploreBannerText: String {
+        var parts = [L("Viendo VÍAS")]
+        if vm.gradeMin != nil || vm.gradeMax != nil {
+            parts.append("grado " + (vm.gradeMin ?? "…") + "—" + (vm.gradeMax ?? "…"))
+        }
+        if let km = vm.maxDistanceKm { parts.append("\(Int(km)) km") }
+        return parts.joined(separator: " · ")
+    }
+
+    private func gradeChipRow(selected: String?, onPick: @escaping (String?) -> Void) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                Button { onPick(nil) } label: { chip("—", active: selected == nil) }
+                    .buttonStyle(.plain)
+                ForEach(EXPLORE_GRADE_LADDER, id: \.self) { g in
+                    Button { onPick(g) } label: { chip(g, active: g == selected) }
+                        .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 12)
+        }
     }
 
     private func section<C: View>(_ title: String, @ViewBuilder _ content: () -> C) -> some View {
