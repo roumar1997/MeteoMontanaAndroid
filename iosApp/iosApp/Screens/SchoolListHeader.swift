@@ -546,78 +546,113 @@ struct SchoolMapPopup: View {
     }
 }
 
-/// Barra de filtros — réplica de SchoolFiltersBar.kt: secciones apiladas
-/// (DISTANCIA, ESTILO, TIPO DE ROCA, FAVORITOS, ORDENAR POR), cada una con su
-/// eyebrow y una fila horizontal de chips seleccionables.
-/// Escalera de grados reconocibles por la fórmula de score (BLOCK_SEARCH_DESIGN.md
-/// §1.3) — misma gama 3A..9D+ que acepta GradeScore.java en el backend. Para
-/// los selectores de rango MÍN/MÁX del modo "explorar" (§4.2).
-let EXPLORE_GRADE_LADDER: [String] = {
-    var out: [String] = []
-    for num in 3...9 {
-        for letter in ["A", "B", "C", "D"] {
-            out.append("\(num)\(letter)")
-            out.append("\(num)\(letter)+")
+/// Slider de rango con dos tiradores, sobre una escalera DISCRETA de grados
+/// (no un rango continuo) — arrastrar cada tirador salta al grado más
+/// cercano. `nil` en el binding significa "extremo de la escalera" (sin
+/// filtrar por ese lado).
+struct GradeRangeSlider: View {
+    let grades: [String]
+    @Binding var minGrade: String?
+    @Binding var maxGrade: String?
+
+    private var minIndex: Int { minGrade.flatMap { grades.firstIndex(of: $0) } ?? 0 }
+    private var maxIndex: Int { maxGrade.flatMap { grades.firstIndex(of: $0) } ?? grades.count - 1 }
+
+    var body: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            let count = max(1, grades.count - 1)
+            let minX = w * CGFloat(minIndex) / CGFloat(count)
+            let maxX = w * CGFloat(maxIndex) / CGFloat(count)
+            ZStack(alignment: .leading) {
+                Capsule().fill(Cumbre.rule.opacity(0.4)).frame(height: 4)
+                Capsule().fill(Cumbre.terra).frame(width: max(0, maxX - minX), height: 4).offset(x: minX)
+                handle(x: minX, w: w, count: count) { idx in
+                    minGrade = grades[min(idx, maxIndex)]
+                }
+                handle(x: maxX, w: w, count: count) { idx in
+                    maxGrade = grades[max(idx, minIndex)]
+                }
+            }
+            .frame(height: 24, alignment: .center)
         }
     }
-    return out
-}()
 
+    private func handle(x: CGFloat, w: CGFloat, count: Int, onMove: @escaping (Int) -> Void) -> some View {
+        Circle().fill(Cumbre.terra).frame(width: 18, height: 18)
+            .overlay(Circle().stroke(.white, lineWidth: 2))
+            .shadow(color: .black.opacity(0.2), radius: 2)
+            .offset(x: x - 9)
+            .gesture(DragGesture().onChanged { v in
+                let ratio = min(max(0, v.location.x / w), 1)
+                onMove(Int((ratio * CGFloat(count)).rounded()))
+            })
+    }
+}
+
+/// Escalera REAL de grados — la MISMA lista que usa el editor de vías
+/// (`BOULDER_GRADES` en ProposeFlow.swift), sin inventar nada. "PROY" (proyecto,
+/// sin grado) no es un punto de la escalera, así que se excluye del rango.
+let EXPLORE_GRADE_LADDER: [String] = BOULDER_GRADES.filter { $0 != "PROY" }
+
+/// Barra de filtros — réplica de SchoolFiltersBar.kt, con el selector
+/// Escuelas/Bloques arriba (Álvaro, 2026-10-01: la versión sin pestaña no
+/// convencía en uso real — vuelta al mockup con pestaña + selector de
+/// escuelas + slider de grado + orientación, BLOCK_SEARCH_DESIGN.md §4/§8).
 struct FilterChips: View {
     @ObservedObject var vm: SchoolListViewModel
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            section(L("GRADO")) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(L("MÍN")).font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3).padding(.horizontal, 12)
-                    gradeChipRow(selected: vm.gradeMin) { vm.gradeMin = $0 }
-                    Text(L("MÁX")).font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3).padding(.horizontal, 12)
-                    gradeChipRow(selected: vm.gradeMax) { vm.gradeMax = $0 }
-                }
+            tabSwitcher
+            section(L("DISTANCIA")) {
+                chipRow(SchoolListViewModel.distanceOptions, id: { $0.map { String(Int($0)) } ?? "all" },
+                        isSel: { $0 == vm.maxDistanceKm },
+                        label: { $0 == nil ? NSLocalizedString("schools_filter_all", comment: "") : "\(Int($0!)) km" }) { vm.maxDistanceKm = $0 }
             }
-            if vm.exploreActive {
-                // §4.1: en modo vías, este único aviso quitable reemplaza toda
-                // la fila de chips de abajo (DISTANCIA/ESTILO/etc.) en vez de
-                // apilarse con ella.
-                exploreBanner
-            } else {
-                section(L("DISTANCIA")) {
-                    chipRow(SchoolListViewModel.distanceOptions, id: { $0.map { String(Int($0)) } ?? "all" },
-                            isSel: { $0 == vm.maxDistanceKm },
-                            label: { $0 == nil ? NSLocalizedString("schools_filter_all", comment: "") : "\(Int($0!)) km" }) { vm.maxDistanceKm = $0 }
-                }
-                // Sin esto, un permiso denegado se quedaba sin forma de arreglarse
-                // desde aquí — el mapa de Escuelas no pintaba el punto azul ni
-                // aplicaba "cercanía" en silencio, para siempre (Álvaro, 2026-10-01).
-                if vm.userLat == nil {
-                    Button { vm.requestLocation() } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "location.slash").foregroundStyle(Cumbre.terra)
-                            Text(L("Sin ubicación — toca para activarla"))
-                                .font(.system(size: 12.5)).foregroundStyle(Cumbre.ink2)
-                            Spacer()
-                            Text(L("ACTIVAR")).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
-                        }
-                        .padding(10)
-                        .background(Cumbre.terraBg).overlay(Rectangle().stroke(Cumbre.terra.opacity(0.4), lineWidth: 1))
-                    }.buttonStyle(.plain)
-                }
-                section(L("ESTILO")) {
-                    chipRow([String?.none] + vm.styles.map { Optional($0) }, id: { $0 ?? "all" },
-                            isSel: { $0 == vm.style },
-                            label: { $0.map(styleLabel) ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.style = $0 }
-                }
-                section(L("TIPO DE ROCA")) {
-                    chipRow([String?.none] + vm.rocks.map { Optional($0) }, id: { $0 ?? "all" },
-                            isSel: { $0 == vm.rock },
-                            label: { $0.map(rockLabel) ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.rock = $0 }
-                }
+            // Sin esto, un permiso denegado se quedaba sin forma de arreglarse
+            // desde aquí — el mapa de Escuelas no pintaba el punto azul ni
+            // aplicaba "cercanía" en silencio, para siempre (Álvaro, 2026-10-01).
+            if vm.userLat == nil {
+                Button { vm.requestLocation() } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "location.slash").foregroundStyle(Cumbre.terra)
+                        Text(L("Sin ubicación — toca para activarla"))
+                            .font(.system(size: 12.5)).foregroundStyle(Cumbre.ink2)
+                        Spacer()
+                        Text(L("ACTIVAR")).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                    }
+                    .padding(10)
+                    .background(Cumbre.terraBg).overlay(Rectangle().stroke(Cumbre.terra.opacity(0.4), lineWidth: 1))
+                }.buttonStyle(.plain)
+            }
+            if vm.exploreTab == .blocks {
+                section(L("ESCUELAS EN ESTE RADIO · ELIGE 1 O VARIAS")) { schoolPicker }
+                section(L("GRADO")) { gradeRangeSection }
+                section(L("ORIENTACIÓN")) { orientationChips }
+            }
+            section(L("ESTILO")) {
+                chipRow([String?.none] + vm.styles.map { Optional($0) }, id: { $0 ?? "all" },
+                        isSel: { $0 == vm.style },
+                        label: { $0.map(styleLabel) ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.style = $0 }
+            }
+            section(L("TIPO DE ROCA")) {
+                chipRow([String?.none] + vm.rocks.map { Optional($0) }, id: { $0 ?? "all" },
+                        isSel: { $0 == vm.rock },
+                        label: { $0.map(rockLabel) ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.rock = $0 }
+            }
+            if vm.exploreTab == .schools {
                 section(L("MOSTRAR")) {
                     chipRow(SchoolListViewModel.ShowMode.allCases, id: { $0.rawValue },
                             isSel: { $0 == vm.showMode },
                             label: { $0.label }) { vm.showMode = $0 }
                 }
-                section(L("ORDENAR POR")) {
+            }
+            section(L("ORDENAR POR")) {
+                if vm.exploreTab == .blocks {
+                    chipRow(SchoolListViewModel.ExploreSort.allCases, id: { $0.rawValue },
+                            isSel: { $0 == vm.exploreSort },
+                            label: { $0.label }) { vm.exploreSort = $0 }
+                } else {
                     chipRow(SchoolListViewModel.SortMode.allCases, id: { $0.rawValue },
                             isSel: { $0 == vm.sortBy },
                             label: { $0.label }) { vm.sortBy = $0 }
@@ -627,45 +662,88 @@ struct FilterChips: View {
         .padding(.vertical, 8)
     }
 
-    /// Aviso quitable: "▤ Viendo VÍAS · grado 7A—7B · 50 km   ✕" — describe
-    /// LO QUE HAY, nunca una categoría fija (§4.1). Tocarlo quita el grado y
-    /// vuelve a Escuelas al instante.
-    private var exploreBanner: some View {
-        Button { vm.clearExplore() } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "square.grid.2x2").font(.system(size: 13)).foregroundStyle(.white)
-                Text(exploreBannerText).font(Cumbre.mono(11, .bold)).tracking(0.4)
-                    .foregroundStyle(.white).lineLimit(1)
-                Spacer()
-                Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
-            }
-            .padding(.horizontal, 14).padding(.vertical, 11)
-            .background(Cumbre.terra)
+    /// Segmented control Escuelas / Bloques — cambia la MISMA lista de abajo
+    /// entre escuelas y vías, sin pantalla nueva.
+    private var tabSwitcher: some View {
+        HStack(spacing: 2) {
+            tabButton(L("Escuelas"), active: vm.exploreTab == .schools) { vm.exploreTab = .schools }
+            tabButton(L("Bloques"), active: vm.exploreTab == .blocks) { vm.exploreTab = .blocks; vm.dispatchExplore() }
         }
-        .buttonStyle(.plain)
+        .padding(3)
+        .background(Cumbre.rule.opacity(0.18), in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
         .padding(.horizontal, 12)
     }
 
-    private var exploreBannerText: String {
-        var parts = [L("Viendo VÍAS")]
-        if vm.gradeMin != nil || vm.gradeMax != nil {
-            parts.append("grado " + (vm.gradeMin ?? "…") + "—" + (vm.gradeMax ?? "…"))
+    private func tabButton(_ t: String, active: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(t).font(Cumbre.mono(12, .bold))
+                .foregroundStyle(active ? .white : Cumbre.ink2)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 9)
+                .background(active ? Cumbre.ink : Color.clear, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius - 2))
         }
-        if let km = vm.maxDistanceKm { parts.append("\(Int(km)) km") }
-        return parts.joined(separator: " · ")
+        .buttonStyle(.plain)
     }
 
-    private func gradeChipRow(selected: String?, onPick: @escaping (String?) -> Void) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                Button { onPick(nil) } label: { chip("—", active: selected == nil) }
-                    .buttonStyle(.plain)
-                ForEach(EXPLORE_GRADE_LADDER, id: \.self) { g in
-                    Button { onPick(g) } label: { chip(g, active: g == selected) }
-                        .buttonStyle(.plain)
+    /// §8.2b: escuelas dentro del radio elegido, con su score de HOY y aviso
+    /// MOJADA — mismo dato que ya trae `getSchools(lat,lon,radioKm)`, sin
+    /// llamada nueva. Marcar 1+ restringe los resultados a esas escuelas.
+    private var schoolPicker: some View {
+        VStack(spacing: 0) {
+            ForEach(vm.schoolsInRadius, id: \.id) { s in
+                let checked = vm.selectedSchoolIds.contains(s.id)
+                let score = vm.scores[s.id]
+                Button {
+                    if checked { vm.selectedSchoolIds.remove(s.id) } else { vm.selectedSchoolIds.insert(s.id) }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: checked ? "checkmark.square.fill" : "square")
+                            .foregroundStyle(checked ? Cumbre.terra : Cumbre.ink3)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(s.name).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                            if score?.dryRock == false {
+                                Text(L("● MOJADA")).font(.system(size: 10, weight: .semibold)).foregroundStyle(Cumbre.bad)
+                            }
+                        }
+                        Spacer()
+                        if let sc = score { Text("\(Int(sc.todayScore))").font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.score(Int(sc.todayScore))) }
+                        if let km = vm.distanceKm(s) { Text("\(km) km").font(.system(size: 11)).foregroundStyle(Cumbre.ink3) }
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(checked ? Cumbre.terra.opacity(0.08) : Color.clear)
                 }
+                .buttonStyle(.plain)
+                Divider().overlay(Cumbre.rule)
             }
-            .padding(.horizontal, 12)
+        }
+        .frame(maxHeight: 220)
+    }
+
+    private var gradeRangeSection: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(vm.gradeMin ?? EXPLORE_GRADE_LADDER.first!)
+                    .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
+                Spacer()
+                Text(vm.gradeMax ?? EXPLORE_GRADE_LADDER.last!)
+                    .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
+            }
+            GradeRangeSlider(grades: EXPLORE_GRADE_LADDER, minGrade: $vm.gradeMin, maxGrade: $vm.gradeMax)
+                .frame(height: 24)
+            HStack {
+                Text(EXPLORE_GRADE_LADDER.first!).font(.system(size: 10)).foregroundStyle(Cumbre.ink3)
+                Spacer()
+                Text(EXPLORE_GRADE_LADDER.last!).font(.system(size: 10)).foregroundStyle(Cumbre.ink3)
+            }
+        }
+        .padding(.horizontal, 12)
+    }
+
+    private var orientationChips: some View {
+        chipRow(["N", "NE", "E", "SE", "S", "SO", "O", "NO"], id: { $0 },
+                isSel: { vm.orientations.contains($0) },
+                label: { $0 }) { o in
+            if vm.orientations.contains(o) { vm.orientations.remove(o) } else { vm.orientations.insert(o) }
         }
     }
 
