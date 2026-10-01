@@ -28,8 +28,8 @@ final class SchoolListViewModel: ObservableObject {
     static let distanceOptions: [Double?] = [nil, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]
 
     @Published var query = ""
-    @Published var style: String?
-    @Published var rock: String?
+    @Published var style: String? { didSet { dispatchExplore() } }
+    @Published var rock: String? { didSet { dispatchExplore() } }
     @Published var maxDistanceKm: Double? = 50 { didSet { dispatchExplore() } }   // 50 km por defecto (como Android/PWA)
     @Published var showMode: ShowMode = .all
     @Published var savedIds: Set<String> = []    // escuelas guardadas offline (observeSaved)
@@ -68,29 +68,45 @@ final class SchoolListViewModel: ObservableObject {
     @Published var rangeScores: [String: RangeScore] = [:]
     var rangeMode: Bool { !selectedDates.isEmpty }
 
-    // ── Modo "explorar por grado" — sin pestaña, modo implícito
-    // (BLOCK_SEARCH_DESIGN.md §4.1/§8): en cuanto hay gradeMin/gradeMax la
-    // MISMA lista pasa a mostrar vías en vez de escuelas. Fase 3 (espejo de
-    // Android, pendiente). Se valida primero en iOS vía TestFlight antes de
-    // portar (Álvaro, 2026-10-01).
+    // ── Modo "explorar por grado" — pestaña Escuelas/Bloques
+    // (BLOCK_SEARCH_DESIGN.md §4/§8, vuelta al mockup con pestaña tras probar
+    // la versión sin pestaña en TestFlight — Álvaro, 2026-10-01: "no me
+    // gusta cómo funciona"). La MISMA lista de Escuelas cambia a vías al
+    // tocar "Bloques"; Fase 2 (Android) pendiente de portar tras validar aquí.
+    enum ExploreTab: String { case schools, blocks }
     enum ExploreSort: String, CaseIterable {
         case distance = "Cercanía", grade = "Grado"
         var label: String { L(rawValue) }
     }
+    @Published var exploreTab: ExploreTab = .schools
     @Published var gradeMin: String? { didSet { dispatchExplore() } }
     @Published var gradeMax: String? { didSet { dispatchExplore() } }
+    @Published var orientations: Set<String> = [] { didSet { dispatchExplore() } }
+    @Published var selectedSchoolIds: Set<String> = [] { didSet { dispatchExplore() } }
     @Published var exploreSort: ExploreSort = .distance { didSet { dispatchExplore() } }
     @Published var exploreGrouped = true
     @Published var exploreHits: [LineSearchHit] = []
     @Published var exploreLoading = false
     private var exploreTask: Task<Void, Never>?
-    var exploreActive: Bool { gradeMin != nil || gradeMax != nil }
+    var exploreActive: Bool { exploreTab == .blocks }
 
-    func clearExplore() { gradeMin = nil; gradeMax = nil }
+    /// Escuelas dentro del radio elegido, ordenadas por cercanía — mismo dato
+    /// que ya alimenta la lista de Escuelas, reutilizado para el selector de
+    /// escuelas del modo Bloques (§8.2b), sin ninguna llamada nueva.
+    var schoolsInRadius: [School] {
+        guard let max = maxDistanceKm, let la = userLat, let lo = userLon else { return schools }
+        return schools
+            .filter { Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $0.lat, lon2: $0.lon) <= max }
+            .sorted { Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $0.lat, lon2: $0.lon)
+                    < Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $1.lat, lon2: $1.lon) }
+    }
+
+    /// Quita grado/orientación/escuelas elegidas (sin salir de la pestaña
+    /// Bloques) — lo usa el "sin resultados" para empezar de cero.
+    func clearExplore() { gradeMin = nil; gradeMax = nil; orientations = []; selectedSchoolIds = [] }
 
     /// §8.2: resultado en vivo, sin botón "ver N vías" — debounce de ~300ms
-    /// tras el último cambio (grado, radio o ubicación), mismo patrón que
-    /// dispatchViaSearch.
+    /// tras el último cambio (grado, orientación, escuelas, radio, ubicación).
     func dispatchExplore() {
         exploreTask?.cancel()
         guard exploreActive else { exploreHits = []; exploreLoading = false; return }
@@ -101,7 +117,10 @@ final class SchoolListViewModel: ObservableObject {
             guard !Task.isCancelled else { return }
             let criteria = LineExploreCriteria(
                 gradeMin: self.gradeMin, gradeMax: self.gradeMax,
-                discipline: nil, rockTypes: nil, schoolIds: nil, orientations: nil,
+                discipline: self.style.map { $0 == "Bloque" ? "BOULDER" : "ROUTE" },
+                rockTypes: self.rock.map { [$0] },
+                schoolIds: self.selectedSchoolIds.isEmpty ? nil : Array(self.selectedSchoolIds),
+                orientations: self.orientations.isEmpty ? nil : Array(self.orientations),
                 lat: self.userLat.map { KotlinDouble(double: $0) },
                 lon: self.userLon.map { KotlinDouble(double: $0) },
                 maxDistanceKm: self.maxDistanceKm.map { KotlinDouble(double: $0) },
