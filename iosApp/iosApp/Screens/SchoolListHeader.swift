@@ -331,6 +331,19 @@ struct MapToggleAndPanel: View {
                             .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
                     }
                     .buttonStyle(.plain)
+                    // Botón de ubicación EN EL MAPA (Álvaro, 2026-10-01: "aún
+                    // no he encontrado el botón") — el aviso de Filtros sigue
+                    // existiendo, pero aquí es donde de verdad se espera un
+                    // botón de "localízame" en cualquier mapa.
+                    Button { vm.requestLocation() } label: {
+                        Image(systemName: vm.userLat != nil ? "location.fill" : "location.slash")
+                            .font(.system(size: 15)).foregroundStyle(vm.userLat != nil ? Cumbre.terra : Cumbre.ink)
+                            .frame(width: 34, height: 34)
+                            .background(Cumbre.bg)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.top, isFullscreen ? 50 : 0)
                 Spacer()
