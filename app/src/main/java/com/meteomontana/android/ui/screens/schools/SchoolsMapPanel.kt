@@ -25,6 +25,8 @@ import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.CloseFullscreen
 import androidx.compose.material.icons.outlined.OpenInFull
+import androidx.compose.material.icons.outlined.MyLocation
+import androidx.compose.material.icons.outlined.LocationDisabled
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.Box
@@ -151,7 +153,8 @@ fun SchoolsMapPanel(
     distanceKm: Double?,
     onDistanceChange: (Double?) -> Unit,
     style: StyleFilter,
-    onStyleChange: (StyleFilter) -> Unit
+    onStyleChange: (StyleFilter) -> Unit,
+    onRequestLocation: () -> Unit = {}
 ) {
     Column(modifier = Modifier
         .fillMaxWidth()
@@ -204,7 +207,8 @@ fun SchoolsMapPanel(
                 distanceKm = distanceKm,
                 onDistanceChange = onDistanceChange,
                 style = style,
-                onStyleChange = onStyleChange
+                onStyleChange = onStyleChange,
+                onRequestLocation = onRequestLocation
             )
         }
     }
@@ -223,7 +227,8 @@ private fun MapBody(
     distanceKm: Double?,
     onDistanceChange: (Double?) -> Unit,
     style: StyleFilter,
-    onStyleChange: (StyleFilter) -> Unit
+    onStyleChange: (StyleFilter) -> Unit,
+    onRequestLocation: () -> Unit
 ) {
     val savedCamera = mapState.savedCamera
     val lastFittedIds = mapState.fittedIds
@@ -399,16 +404,33 @@ private fun MapBody(
                 .let { if (fullscreenMap) it.statusBarsPadding() else it }
                 .padding(Spacing.sm)
         ) {
-            com.meteomontana.android.ui.components.SideMapButton(
-                active = true,
-                onClick = { isSatellite = !isSatellite }
-            ) {
-                Icon(
-                    Icons.Outlined.Layers,
-                    contentDescription = stringResource(R.string.map_topo) + "/" + stringResource(R.string.map_satellite),
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(20.dp)
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                com.meteomontana.android.ui.components.SideMapButton(
+                    active = true,
+                    onClick = { isSatellite = !isSatellite }
+                ) {
+                    Icon(
+                        Icons.Outlined.Layers,
+                        contentDescription = stringResource(R.string.map_topo) + "/" + stringResource(R.string.map_satellite),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                // Botón de ubicación EN EL MAPA, igual que en iOS (Álvaro,
+                // 2026-10-01): con ubicación → icono relleno terracota; sin
+                // ella → pide el permiso o lleva a Ajustes si está denegado.
+                com.meteomontana.android.ui.components.SideMapButton(
+                    active = true,
+                    onClick = onRequestLocation
+                ) {
+                    Icon(
+                        if (userLat != null) Icons.Outlined.MyLocation else Icons.Outlined.LocationDisabled,
+                        contentDescription = stringResource(R.string.explore_location_button),
+                        tint = if (userLat != null) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
 

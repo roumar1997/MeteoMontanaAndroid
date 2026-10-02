@@ -1724,6 +1724,9 @@
     <string name="sort_nearest">Más cercanos</string>
     <string name="sort_nearest_explore">Cercanía</string>
     <string name="sort_best_conditions">Mejores condiciones</string>
+    <string name="explore_location_button">Mi ubicación</string>
+    <string name="explore_no_location">Sin ubicación — toca para activarla</string>
+    <string name="explore_activate">ACTIVAR</string>
     <string name="explore_tab_schools">Escuelas</string>
     <string name="explore_tab_blocks">Vías/Bloques</string>
     <string name="explore_grado">GRADO</string>
