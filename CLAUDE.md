@@ -229,11 +229,13 @@ Reglas:
 
 ## Estado actual
 
-**🔎 BUSCADOR POR GRADO — Android e iOS implementados, PENDIENTE DE
-INSTALAR Y PROBAR en dispositivo Android (2026-10-01).** `BLOCK_SEARCH_DESIGN.md`
-completo: Fase 1 (backend, en producción), Fase 3 (iOS, validada en TestFlight
-build 252) y Fase 2 (Android, mergeada a `main` en commit `0ccbb08a`, compila +
-pasa tests, **sin instalar/probar en el móvil todavía**). Pestaña "Escuelas"/
+**🔎 BUSCADOR POR GRADO — COMPLETO y VALIDADO en Android e iOS (2026-10-02).**
+Android 6.3 (vc114): AAB firmado en `Desktop\AABs Play\cumbre-6.3-vc114.aab`,
+Álvaro lo estaba subiendo a Play el 2026-10-02 (confirmar que quedó
+publicado); iOS build 252 en TestFlight. `BLOCK_SEARCH_DESIGN.md` completo:
+Fase 1 (backend, en producción), Fase 3 (iOS) y Fase 2 (Android, en `main`,
+**probada en el móvil con el build release firmado: "todo funciona
+perfecto"**). Pestaña "Escuelas"/
 "Vías/Bloques" en terracota — **el modo implícito sin pestaña del §4.1 se
 probó primero en iOS y se descartó** tras feedback real de Álvaro ("no
 funciona bien"); si se retoma esta función, usar SIEMPRE el patrón de
@@ -249,10 +251,10 @@ de vía con trazo fino sin badge (`MiniTopoThumbnail` en ambas plataformas,
 nunca `TopoPhotoView`/`TopoPhotoCanvas` — ese badge es para el visor
 grande). Bug de backend cazado: `PAGE_SIZE` de 30→300 en
 `SearchLinesService.java` (una escuela cercana con muchas vías llenaba toda
-la página), ya en producción. **Pendiente real**: instalar el APK en un
-Android y comparar visualmente contra las capturas de iOS que mandó Álvaro
-— compilar no es lo mismo que validar en pantalla. Detalle completo en
-`HISTORIAL.md` 2026-10-01.
+la página), ya en producción. Android lleva también el botón de ubicación en
+el mapa de Escuelas y el aviso "Sin ubicación — toca para activarla" bajo
+DISTANCIA (paridad con iOS; si el permiso está denegado del todo abre
+Ajustes). Detalle completo en `HISTORIAL.md` 2026-10-01/02.
 
 **⏳ PENDIENTE DE SUBIR (2026-09-28) — Android vc112 (6.2) / iOS build 233.**
 Repasada exhaustivamente la i18n ES/EN en las tres capas: Android, iOS y
