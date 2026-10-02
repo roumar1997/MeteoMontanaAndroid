@@ -230,9 +230,16 @@ Reglas:
 ## Estado actual
 
 **🔎 BUSCADOR POR GRADO — COMPLETO y VALIDADO en Android e iOS (2026-10-02).**
-Android 6.3 (vc114): AAB firmado en `Desktop\AABs Play\cumbre-6.3-vc114.aab`,
-Álvaro lo estaba subiendo a Play el 2026-10-02 (confirmar que quedó
-publicado); iOS build 252 en TestFlight. `BLOCK_SEARCH_DESIGN.md` completo:
+**Último estado de subida (2026-10-02):** Android **6.3.2 (vc116)**, AAB firmado
+en `Desktop\AABs Play\cumbre-6.3.2-vc116.aab` (los vc114/vc115 de esa carpeta
+son anteriores; Álvaro subía uno a Play ese día — confirmar cuál quedó
+publicado); iOS **2.25.2 build 254** en TestFlight, y en App Store Connect
+la versión **6.7** debe llevar la compilación **254** (no la 253). Capturas
+de la ficha (iPhone 6,5") en `Desktop\capturas-appstore\`. **Trampa de
+versiones iOS**: en App Store Connect las versiones públicas son 6.x pero el
+build lleva `CFBundleShortVersionString` 2.x en `project.yml`; cuando una 2.x
+se PUBLICA su tren se cierra y hay que subir a la siguiente (2.25.1 → 2.25.2).
+`BLOCK_SEARCH_DESIGN.md` completo:
 Fase 1 (backend, en producción), Fase 3 (iOS) y Fase 2 (Android, en `main`,
 **probada en el móvil con el build release firmado: "todo funciona
 perfecto"**). Pestaña "Escuelas"/
