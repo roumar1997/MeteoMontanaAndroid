@@ -36,6 +36,10 @@ final class SchoolListViewModel: ObservableObject {
     @Published var savedSchoolsList: [SavedSchool] = []  // datos de las guardadas (para verlas sin red)
     @Published var sortBy: SortMode = .score
     @Published var favoriteIds: Set<String> = []
+    /// Falta el PERMISO de ubicación (se sabe al instante, sin esperar al GPS).
+    /// El aviso de Filtros y el botón del mapa usan esto y no `userLat == nil`,
+    /// que durante unos instantes tras abrir la app es nil aunque haya permiso.
+    @Published var needsLocationPermission: Bool = !AppDependencies.shared.locationBridge.hasPermission()
     @Published var userLat: Double? { didSet { dispatchExplore() } }
     @Published var userLon: Double? { didSet { dispatchExplore() } }
     @Published var compareSelection: Set<String> = []  // long-press para comparar (máx 3)
@@ -426,10 +430,12 @@ final class SchoolListViewModel: ObservableObject {
     /// esto salían todas las escuelas ignorando el filtro de 50 km hasta
     /// reabrir la app; espeja el onLocationGranted() de Android).
     func refreshLocationIfNeeded() async {
+        needsLocationPermission = !locationBridge.hasPermission()
         if userLat == nil { await loadLocation() }
     }
 
     private func loadLocation() async {
+        needsLocationPermission = !locationBridge.hasPermission()
         guard locationBridge.hasPermission() else { return }
         if let loc = try? await locationProvider?.current() {
             userLat = loc.lat; userLon = loc.lon

@@ -154,7 +154,8 @@ fun SchoolsMapPanel(
     onDistanceChange: (Double?) -> Unit,
     style: StyleFilter,
     onStyleChange: (StyleFilter) -> Unit,
-    onRequestLocation: () -> Unit = {}
+    onRequestLocation: () -> Unit = {},
+    locationPermission: Boolean = true
 ) {
     Column(modifier = Modifier
         .fillMaxWidth()
@@ -208,7 +209,8 @@ fun SchoolsMapPanel(
                 onDistanceChange = onDistanceChange,
                 style = style,
                 onStyleChange = onStyleChange,
-                onRequestLocation = onRequestLocation
+                onRequestLocation = onRequestLocation,
+                locationPermission = locationPermission
             )
         }
     }
@@ -228,7 +230,8 @@ private fun MapBody(
     onDistanceChange: (Double?) -> Unit,
     style: StyleFilter,
     onStyleChange: (StyleFilter) -> Unit,
-    onRequestLocation: () -> Unit
+    onRequestLocation: () -> Unit,
+    locationPermission: Boolean
 ) {
     val savedCamera = mapState.savedCamera
     val lastFittedIds = mapState.fittedIds
@@ -424,9 +427,9 @@ private fun MapBody(
                     onClick = onRequestLocation
                 ) {
                     Icon(
-                        if (userLat != null) Icons.Outlined.MyLocation else Icons.Outlined.LocationDisabled,
+                        if (locationPermission) Icons.Outlined.MyLocation else Icons.Outlined.LocationDisabled,
                         contentDescription = stringResource(R.string.explore_location_button),
-                        tint = if (userLat != null) MaterialTheme.colorScheme.primary
+                        tint = if (locationPermission) MaterialTheme.colorScheme.primary
                                else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(20.dp)
                     )

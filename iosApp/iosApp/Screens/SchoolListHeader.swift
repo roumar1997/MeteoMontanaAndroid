@@ -336,8 +336,8 @@ struct MapToggleAndPanel: View {
                     // existiendo, pero aquí es donde de verdad se espera un
                     // botón de "localízame" en cualquier mapa.
                     Button { vm.requestLocation() } label: {
-                        Image(systemName: vm.userLat != nil ? "location.fill" : "location.slash")
-                            .font(.system(size: 15)).foregroundStyle(vm.userLat != nil ? Cumbre.terra : Cumbre.ink)
+                        Image(systemName: vm.needsLocationPermission ? "location.slash" : "location.fill")
+                            .font(.system(size: 15)).foregroundStyle(vm.needsLocationPermission ? Cumbre.ink : Cumbre.terra)
                             .frame(width: 34, height: 34)
                             .background(Cumbre.bg)
                             .clipShape(Circle())
@@ -581,7 +581,10 @@ struct FilterChips: View {
             // Sin esto, un permiso denegado se quedaba sin forma de arreglarse
             // desde aquí — el mapa de Escuelas no pintaba el punto azul ni
             // aplicaba "cercanía" en silencio, para siempre (Álvaro, 2026-10-01).
-            if vm.userLat == nil {
+            // Por PERMISO, no por "aún sin coordenadas": al abrir la app la
+            // ubicación tarda un momento y el aviso salía y desaparecía en cada
+            // arranque (Álvaro, 2026-10-02).
+            if vm.needsLocationPermission {
                 Button { vm.requestLocation() } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "location.slash").foregroundStyle(Cumbre.terra)

@@ -135,12 +135,28 @@ fun SchoolListScreen(
     // 2026-10-01: "que puedas verlos todos rápido"). No persiste.
     var expandedGroups by remember { mutableStateOf(setOf<String>()) }
 
+    // ¿Hay PERMISO de ubicación? Se sabe al instante. El aviso "Sin ubicación"
+    // y el icono del mapa dependen de esto, no de `userLocation == null`: al
+    // abrir la app la posición tarda un momento y el aviso salía y desaparecía
+    // en cada arranque (Álvaro, 2026-10-02).
+    val ctxPermiso = androidx.compose.ui.platform.LocalContext.current
+    fun tienePermisoUbicacion() = listOf(
+        Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION
+    ).any {
+        androidx.core.content.ContextCompat.checkSelfPermission(ctxPermiso, it) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
+    var permisoUbicacion by remember { mutableStateOf(tienePermisoUbicacion()) }
+
     // Refresca el contador de no leídas al VOLVER a esta pantalla (p.ej. tras
     // ver y salir de la bandeja de notificaciones) → el badge se actualiza.
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
         val obs = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) viewModel.refreshUnread()
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshUnread()
+                permisoUbicacion = tienePermisoUbicacion()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(obs)
         onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
@@ -177,6 +193,7 @@ fun SchoolListScreen(
     val permLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { grants ->
+        permisoUbicacion = tienePermisoUbicacion()
         if (grants.values.any { it }) viewModel.onLocationGranted()
         else if (pidiendoUbicacionManual) {
             val activity = context as? android.app.Activity
@@ -460,7 +477,8 @@ fun SchoolListScreen(
                     onDistanceChange = viewModel::setDistance,
                     style = filters.style,
                     onStyleChange = viewModel::setStyle,
-                    onRequestLocation = onRequestLocation
+                    onRequestLocation = onRequestLocation,
+                    locationPermission = permisoUbicacion
                 )
             }
 
@@ -493,7 +511,7 @@ fun SchoolListScreen(
                     onToggleOrientation = viewModel::toggleOrientation,
                     exploreSortBy = exploreSortBy,
                     onExploreSort = viewModel::setExploreSortBy,
-                    hasLocation = userLocation != null,
+                    hasLocation = permisoUbicacion,
                     onRequestLocation = onRequestLocation
                 )
             }
