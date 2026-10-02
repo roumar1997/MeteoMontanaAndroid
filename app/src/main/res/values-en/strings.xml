@@ -1665,6 +1665,9 @@
     <string name="sort_nearest">Nearest</string>
     <string name="sort_nearest_explore">Nearest</string>
     <string name="sort_best_conditions">Best conditions</string>
+    <string name="explore_location_button">My location</string>
+    <string name="explore_no_location">No location — tap to turn it on</string>
+    <string name="explore_activate">TURN ON</string>
     <string name="explore_tab_schools">Schools</string>
     <string name="explore_tab_blocks">Routes/Boulders</string>
     <string name="explore_grado">GRADE</string>

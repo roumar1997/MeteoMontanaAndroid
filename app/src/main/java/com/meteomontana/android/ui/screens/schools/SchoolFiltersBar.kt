@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.LocationDisabled
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -66,7 +67,9 @@ fun SchoolFiltersBar(
     orientations: Set<String>,
     onToggleOrientation: (String) -> Unit,
     exploreSortBy: ExploreSortBy,
-    onExploreSort: (ExploreSortBy) -> Unit
+    onExploreSort: (ExploreSortBy) -> Unit,
+    hasLocation: Boolean = true,
+    onRequestLocation: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -80,6 +83,29 @@ fun SchoolFiltersBar(
                 label = { if (it == null) AppText.get(R.string.w_all) else "${it.toInt()} km" },
                 onClick = onDistance
             )
+        }
+        // Sin esto un permiso denegado no tenía arreglo desde aquí: la distancia
+        // se ignoraba en silencio para siempre. Igual que en iOS.
+        if (!hasLocation) {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 12.dp)
+                    .fillMaxWidth()
+                    .background(Terra.copy(alpha = 0.08f))
+                    .border(1.dp, Terra.copy(alpha = 0.4f))
+                    .clickable(onClick = onRequestLocation)
+                    .padding(10.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.Outlined.LocationDisabled, contentDescription = null, tint = Terra,
+                    modifier = Modifier.size(18.dp))
+                Text(stringResource(R.string.explore_no_location),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.explore_activate), style = EyebrowTextStyle, color = Terra)
+            }
         }
         if (exploreTab == ExploreTab.Blocks) {
             Section(stringResource(R.string.explore_grado)) {

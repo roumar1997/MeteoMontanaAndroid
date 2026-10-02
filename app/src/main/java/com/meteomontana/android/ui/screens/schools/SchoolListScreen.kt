@@ -170,9 +170,34 @@ fun SchoolListScreen(
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION
     )
+    // Tras el diálogo: concedido → recarga con la posición; denegado y SIN
+    // opción de volver a preguntar (denegado del todo) → Ajustes, que es el
+    // único sitio donde se arregla. Es lo que hace iOS (Álvaro, 2026-10-01).
+    var pidiendoUbicacionManual by remember { mutableStateOf(false) }
     val permLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { grants -> if (grants.values.any { it }) viewModel.onLocationGranted() }
+    ) { grants ->
+        if (grants.values.any { it }) viewModel.onLocationGranted()
+        else if (pidiendoUbicacionManual) {
+            val activity = context as? android.app.Activity
+            val puedePreguntar = activity != null && locationPerms.any {
+                androidx.core.app.ActivityCompat.shouldShowRequestPermissionRationale(activity, it)
+            }
+            if (!puedePreguntar) {
+                context.startActivity(
+                    android.content.Intent(
+                        android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        android.net.Uri.fromParts("package", context.packageName, null)
+                    )
+                )
+            }
+        }
+        pidiendoUbicacionManual = false
+    }
+    val onRequestLocation: () -> Unit = {
+        pidiendoUbicacionManual = true
+        permLauncher.launch(locationPerms)
+    }
     LaunchedEffect(Unit) {
         if (showOnboarding) return@LaunchedEffect
         // Espera a que el diálogo de notificaciones esté respondido (Android
@@ -434,7 +459,8 @@ fun SchoolListScreen(
                     distanceKm = filters.maxDistanceKm,
                     onDistanceChange = viewModel::setDistance,
                     style = filters.style,
-                    onStyleChange = viewModel::setStyle
+                    onStyleChange = viewModel::setStyle,
+                    onRequestLocation = onRequestLocation
                 )
             }
 
@@ -466,7 +492,9 @@ fun SchoolListScreen(
                     orientations = exploreOrientations,
                     onToggleOrientation = viewModel::toggleOrientation,
                     exploreSortBy = exploreSortBy,
-                    onExploreSort = viewModel::setExploreSortBy
+                    onExploreSort = viewModel::setExploreSortBy,
+                    hasLocation = userLocation != null,
+                    onRequestLocation = onRequestLocation
                 )
             }
 
