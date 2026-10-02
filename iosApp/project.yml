@@ -102,9 +102,12 @@ targets:
         #     Pre-Release Train... must contain a higher version than that of
         #     the previously approved version [2.24.5]") → 2.24.6 (ordenar
         #     piedras por sector)
+        #   - 2.25.1 se cerró al PUBLICARSE (confirmado 2026-10-02, build 253:
+        #     "Invalid Pre-Release Train... closed for new build submissions")
+        #     → 2.25.2 (buscador por grado + fix Descargar fotos offline)
         # Es decir: para subir a TestFlight algo posterior a una versión ya
         # publicada, hay que subir la VERSIÓN, no basta con el número de build.
-        CFBundleShortVersionString: "2.25.1"
+        CFBundleShortVersionString: "2.25.2"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
         # ÚNICO y mayor que el anterior.
         CFBundleVersion: "253"
