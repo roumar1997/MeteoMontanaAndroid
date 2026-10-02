@@ -257,6 +257,13 @@ class SchoolDetailViewModel @Inject constructor(
                     runCatching {
                         savedSchoolRepo.saveOffline(success.school, success.blocks, success.forecast)
                     }
+                    // Fotos nuevas en SILENCIO, igual que iOS (`refreshOffline`):
+                    // `descargar` salta las que ya están, así que solo baja lo
+                    // que alguien añadió desde la última vez (Álvaro,
+                    // 2026-10-02: "me gusta la descarga silenciosa").
+                    runCatching {
+                        cacheFotos.descargar(FotosDeEscuela.urlsParaGuardar(success.blocks))
+                    }
                 }
             }
         }
