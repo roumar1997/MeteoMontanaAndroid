@@ -171,8 +171,11 @@ final class SchoolDetailViewModel: ObservableObject {
     }
 
     /// El usuario aceptó bajarse las fotos.
-    func descargarFotosOffline() async {
-        guard let oferta = ofertaFotos else { return }
+    /// La oferta llega POR PARÁMETRO, no se lee de `ofertaFotos`: al pulsar el
+    /// botón del aviso SwiftUI cierra el alert y su Binding pone `ofertaFotos`
+    /// a nil antes de que arranque esta tarea — con el guard de antes salía
+    /// sin descargar nada ni enseñar la ruedecita (Álvaro, 2026-10-02).
+    func descargarFotosOffline(_ oferta: OfertaFotosOffline) async {
         ofertaFotos = nil
         descargandoFotos = true
         await ImageCache.prefetch(oferta.urls)
@@ -331,7 +334,12 @@ struct SchoolDetailView: View {
         .alert("¿Guardar también las fotos?",
                isPresented: Binding(get: { vm.ofertaFotos != nil },
                                     set: { if !$0 { vm.ofertaFotos = nil } })) {
-            Button("Descargar") { Task { await vm.descargarFotosOffline() } }
+            Button("Descargar") {
+                // Se captura AQUÍ, antes de que el Binding del alert la borre.
+                if let oferta = vm.ofertaFotos {
+                    Task { await vm.descargarFotosOffline(oferta) }
+                }
+            }
             Button("Ahora no", role: .cancel) { vm.ofertaFotos = nil }
         } message: {
             if let o = vm.ofertaFotos {
