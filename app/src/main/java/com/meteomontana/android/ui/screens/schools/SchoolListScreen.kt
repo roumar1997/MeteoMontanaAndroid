@@ -130,6 +130,10 @@ fun SchoolListScreen(
     val exploreHits by viewModel.exploreHits.collectAsStateWithLifecycle()
     val exploreHitsSorted by viewModel.exploreHitsSorted.collectAsStateWithLifecycle()
     val exploreGroups by viewModel.exploreGroups.collectAsStateWithLifecycle()
+    // Estilo del catálogo por escuela: para el icono vía/bloque de cabeceras y filas.
+    val schoolStyleById = remember(exploreHits) {
+        viewModel.catalogoCompleto().associate { it.id to it.style }
+    }
     val exploreLoading by viewModel.exploreLoading.collectAsStateWithLifecycle()
     // Grupos de escuela DESPLEGADOS — empiezan todos plegados (Álvaro,
     // 2026-10-01: "que puedas verlos todos rápido"). No persiste.
@@ -581,6 +585,7 @@ fun SchoolListScreen(
                         item(key = "group-${group.schoolId}") {
                             ExploreGroupHeader(
                                 group = group,
+                                kind = com.meteomontana.android.domain.util.SchoolKind.from(schoolStyleById[group.schoolId]),
                                 score = if (selectedDays.isNotEmpty()) rangeScores[group.schoolId]?.combinedScore
                                         else scores[group.schoolId]?.todayScore,
                                 dry = scores[group.schoolId]?.dryRock,
@@ -595,7 +600,7 @@ fun SchoolListScreen(
                         if (group.schoolId in expandedGroups) {
                             items(group.hits, key = { "line-${it.lineId}-${it.blockId}" }) { h ->
                                 Column {
-                                    ExploreLineRow(h, showSchool = false, distanceKm = h.lat?.let { la -> h.lon?.let { lo -> viewModel.distanceTo(la, lo).toInt() } }, onClick = { openVia(h.schoolId, h.lineId, h.lineName ?: h.blockName) })
+                                    ExploreLineRow(h, kind = exploreRowKind(filters.style.apiValue, schoolStyleById[h.schoolId]), showSchool = false, distanceKm = h.lat?.let { la -> h.lon?.let { lo -> viewModel.distanceTo(la, lo).toInt() } }, onClick = { openVia(h.schoolId, h.lineId, h.lineName ?: h.blockName) })
                                     HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
                                 }
                             }
@@ -604,7 +609,7 @@ fun SchoolListScreen(
                 } else {
                     items(exploreHitsSorted, key = { "flat-${it.lineId}-${it.blockId}" }) { h ->
                         Column {
-                            ExploreLineRow(h, showSchool = true, distanceKm = h.lat?.let { la -> h.lon?.let { lo -> viewModel.distanceTo(la, lo).toInt() } }, onClick = { openVia(h.schoolId, h.lineId, h.lineName ?: h.blockName) })
+                            ExploreLineRow(h, kind = exploreRowKind(filters.style.apiValue, schoolStyleById[h.schoolId]), showSchool = true, distanceKm = h.lat?.let { la -> h.lon?.let { lo -> viewModel.distanceTo(la, lo).toInt() } }, onClick = { openVia(h.schoolId, h.lineId, h.lineName ?: h.blockName) })
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
                         }
                     }
@@ -1138,6 +1143,7 @@ private fun OutlinedCumbreButton(
 @Composable
 private fun ExploreGroupHeader(
     group: ExploreGroup,
+    kind: com.meteomontana.android.domain.util.SchoolKind,
     score: Int?,
     dry: Boolean?,
     range: com.meteomontana.android.domain.model.RangeScore?,
@@ -1163,7 +1169,13 @@ private fun ExploreGroupHeader(
             }
             Spacer(Modifier.size(Spacing.sm))
             Column(Modifier.weight(1f)) {
-                Text(group.schoolName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(group.schoolName, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground)
+                    if (!kind.isEmpty) {
+                        Spacer(Modifier.size(7.dp))
+                        com.meteomontana.android.ui.components.SchoolKindIcons(kind, height = 15.dp)
+                    }
+                }
                 if (dry == false) {
                     Text("● " + stringResource(R.string.schools_rock_wet),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
@@ -1193,12 +1205,21 @@ private fun ExploreGroupHeader(
     }
 }
 
+/**
+ * Tipo de un resultado del buscador: el filtro activo manda ("Bloque"/"Vía");
+ * si no, el estilo de su escuela — y como en una escuela mixta no se sabe cuál
+ * es cada resultado, `ExploreLineRow` solo pinta icono si es de un único tipo.
+ */
+private fun exploreRowKind(activeStyle: String?, schoolStyle: String?) =
+    com.meteomontana.android.domain.util.SchoolKind.from(activeStyle ?: schoolStyle)
+
 /** Fila de vía/bloque: mini-topo (foto + trazo, sin badge), nombre + grado
  *  coloreado, piedra/escuela, orientación o "SIN ORIENTACIÓN ASIGNADA",
  *  distancia. */
 @Composable
 private fun ExploreLineRow(
     h: com.meteomontana.android.domain.model.LineSearchHit,
+    kind: com.meteomontana.android.domain.util.SchoolKind,
     showSchool: Boolean,
     distanceKm: Int?,
     onClick: () -> Unit
@@ -1221,6 +1242,11 @@ private fun ExploreLineRow(
                     val argb = com.meteomontana.android.domain.util.gradeArgb(it).first
                     Text(it, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = androidx.compose.ui.graphics.Color(argb.toInt()))
+                }
+                // Vía o bloque: solo cuando se sabe cuál es (ver exploreRowKind).
+                if (kind.isSingle) {
+                    Spacer(Modifier.size(6.dp))
+                    com.meteomontana.android.ui.components.SchoolKindIcons(kind, height = 13.dp)
                 }
             }
             val subtitle = listOfNotNull(

@@ -113,17 +113,30 @@ fun SchoolListItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.width(24.dp)
                 )
-                Text(
-                    text = school.name,
-                    style = TextStyle(
-                        fontFamily = Serif,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 19.sp,
-                        letterSpacing = (-0.3).sp,
-                    ),
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.weight(1f)
-                )
+                // Nombre + iconos de qué se escala (mosquetón = vías, crashpad =
+                // bloques, los dos = ambos), pegados al nombre — espejo de iOS.
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = school.name,
+                        style = TextStyle(
+                            fontFamily = Serif,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 19.sp,
+                            letterSpacing = (-0.3).sp,
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    val kind = com.meteomontana.android.domain.util.SchoolKind.from(school.style)
+                    if (!kind.isEmpty) {
+                        Spacer(Modifier.width(8.dp))
+                        com.meteomontana.android.ui.components.SchoolKindIcons(kind)
+                    }
+                    Spacer(Modifier.weight(0.0001f))
+                }
                 // Procesionaria: solo se marca si YA se sabe (alguien la confirmó
                 // alguna vez aquí) Y estamos en su temporada (dic-may) — no hay
                 // forma fiable de saber dónde hay pinos, así que solo avisa lo

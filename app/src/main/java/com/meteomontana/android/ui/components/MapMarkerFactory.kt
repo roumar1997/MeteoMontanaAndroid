@@ -171,6 +171,69 @@ internal fun blockBitmap(label: String): Bitmap = pinBitmapBoulder(
     sizeDp = 22   // ↓ Más pequeñas: en zonas con muchas piedras juntas, no se solapan tanto.
 )
 
+/**
+ * Pin de piedra con el ICONO de su modalidad: crashpad (BOULDER) o mosquetón
+ * (ROUTE), con contorno blanco y el nombre corto en una chapa en la esquina.
+ * Espejo de `MarkerRenderer.block` (iOS): lienzo de 64x58 "dp" a 3 px/dp como
+ * el resto de pines. Devuelve null si la modalidad no es conocida (el llamador
+ * cae al polígono de roca de siempre).
+ */
+internal fun blockKindBitmap(ctx: android.content.Context, label: String, discipline: String): Bitmap? {
+    val route = discipline.equals("ROUTE", ignoreCase = true)
+    if (!route && !discipline.equals("BOULDER", ignoreCase = true)) return null
+    val opts = android.graphics.BitmapFactory.Options().apply { inScaled = false }
+    val src = android.graphics.BitmapFactory.decodeResource(
+        ctx.resources,
+        if (route) com.meteomontana.android.R.drawable.kind_route else com.meteomontana.android.R.drawable.kind_boulder,
+        opts
+    ) ?: return null
+
+    val k = 3f
+    val canvasW = (64 * k).toInt()
+    val canvasH = (58 * k).toInt()
+    val iconH = (if (route) 46f else 36f) * k
+    val iconW = iconH * src.width / src.height
+    val left = (canvasW - iconW) / 2f - 3 * k
+    val top = canvasH - iconH - 3 * k
+    val dst = RectF(left, top, left + iconW, top + iconH)
+    val terra = android.graphics.Color.parseColor(PIEDRA_COLOR)
+
+    val bmp = Bitmap.createBitmap(canvasW, canvasH, Bitmap.Config.ARGB_8888)
+    val c = Canvas(bmp)
+
+    // Contorno blanco: el icono en blanco desplazado en 8 direcciones.
+    val white = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+        colorFilter = android.graphics.PorterDuffColorFilter(android.graphics.Color.WHITE, android.graphics.PorterDuff.Mode.SRC_IN)
+    }
+    for (i in 0 until 8) {
+        val a = i / 8f * (Math.PI * 2).toFloat()
+        val off = RectF(dst).apply { offset(cos(a) * 2 * k, sin(a) * 2 * k) }
+        c.drawBitmap(src, null, off, white)
+    }
+    val tinted = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+        colorFilter = android.graphics.PorterDuffColorFilter(terra, android.graphics.PorterDuff.Mode.SRC_IN)
+    }
+    c.drawBitmap(src, null, dst, tinted)
+
+    // Chapa con el nombre corto, dentro del lienzo.
+    val short = label.trim().let { if (it.isEmpty()) "B" else it.take(2).uppercase() }
+    val r = (if (short.length > 1) 11f else 10f) * k
+    val cx = minOf(dst.right, canvasW - r - k)
+    val cy = maxOf(dst.top + 2 * k, r + k)
+    c.drawCircle(cx, cy, r, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.WHITE })
+    c.drawCircle(cx, cy, r - k, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = terra; style = Paint.Style.STROKE; strokeWidth = 2 * k
+    })
+    val txt = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.parseColor("#7A2412")
+        textAlign = Paint.Align.CENTER
+        textSize = (if (short.length > 1) 10f else 12f) * k
+        typeface = Typeface.DEFAULT_BOLD
+    }
+    c.drawText(short, cx, cy - (txt.ascent() + txt.descent()) / 2f, txt)
+    return bmp
+}
+
 /** Pin verde para zonas (tipo ZONE). */
 internal fun zoneBitmap(): Bitmap {
     val size = 68

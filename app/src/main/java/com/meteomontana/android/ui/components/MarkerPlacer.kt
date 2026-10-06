@@ -153,8 +153,8 @@ internal class MarkerPlacer {
                 val midMarker = map.addMarker(
                     MarkerOptions()
                         .position(mid)
-                        .icon(cachedIcon(iconFactory, "block:${b.name}:$faded") {
-                            blockBitmap(b.name).fadedIf(faded)
+                        .icon(cachedIcon(iconFactory, "block:${b.name}:${b.discipline}:$faded") {
+                            (blockKindBitmap(ctx, b.name, b.discipline) ?: blockBitmap(b.name)).fadedIf(faded)
                         })
                         .title(b.name)
                 )
@@ -169,8 +169,8 @@ internal class MarkerPlacer {
                     zoneBitmap().fadedIf(isOriginalBeingMoved) }
                 "SCHOOL"  -> cachedIcon(iconFactory, "school:${b.name}:$isOriginalBeingMoved") {
                     schoolBitmap(b.name).fadedIf(isOriginalBeingMoved) }
-                else      -> cachedIcon(iconFactory, "block:${b.name}:$faded") {
-                    blockBitmap(b.name).fadedIf(faded) }
+                else      -> cachedIcon(iconFactory, "block:${b.name}:${b.discipline}:$faded") {
+                    (blockKindBitmap(ctx, b.name, b.discipline) ?: blockBitmap(b.name)).fadedIf(faded) }
             }
             val marker = map.addMarker(
                 MarkerOptions()
