@@ -105,12 +105,14 @@ targets:
         #   - 2.25.1 se cerró al PUBLICARSE (confirmado 2026-10-02, build 253:
         #     "Invalid Pre-Release Train... closed for new build submissions")
         #     → 2.25.2 (buscador por grado + fix Descargar fotos offline)
+        #   - 2.25.2/254 se cerró al enviarse a revisión como 6.7 (2026-10-06) → 2.25.3
+        #     (iconos mosquetón/crashpad en la lista de escuelas y en las piedras del mapa)
         # Es decir: para subir a TestFlight algo posterior a una versión ya
         # publicada, hay que subir la VERSIÓN, no basta con el número de build.
-        CFBundleShortVersionString: "2.25.2"
+        CFBundleShortVersionString: "2.25.3"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
         # ÚNICO y mayor que el anterior.
-        CFBundleVersion: "254"
+        CFBundleVersion: "255"
         UILaunchScreen: {}
         # App Store exige declarar orientaciones (device family incluye iPad "1,2").
         # iPhone: solo vertical. iPad: las 4 (requisito de multitarea de Apple).
