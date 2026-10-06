@@ -15,6 +15,10 @@ struct SchoolKind: Equatable {
     }
 
     var isEmpty: Bool { !hasRoutes && !hasBoulders }
+
+    /// Solo una de las dos (útil donde se muestra UN resultado: una vía o un
+    /// bloque; en escuelas mixtas no se sabe cuál es y no se pinta nada).
+    var isSingle: Bool { hasRoutes != hasBoulders }
 }
 
 /// Iconos de vía/bloque junto al nombre de la escuela. Imágenes en plantilla

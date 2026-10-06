@@ -866,7 +866,11 @@ struct SchoolListView: View {
                         .background(color.opacity(0.12))
                         .overlay(Rectangle().stroke(color, lineWidth: 1))
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(g.schoolName).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                        HStack(spacing: 7) {
+                            Text(g.schoolName).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                            let kind = SchoolKind(style: vm.schools.first(where: { $0.id == g.schoolId })?.style)
+                            if !kind.isEmpty { SchoolKindIcons(kind: kind, height: 15) }
+                        }
                         if score?.dryRock == false {
                             Text(L("● MOJADA")).font(.system(size: 10, weight: .semibold)).tracking(0.6)
                                 .foregroundStyle(Cumbre.bad)
@@ -919,6 +923,11 @@ struct SchoolListView: View {
                         if let g = h.grade {
                             Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(GradeColor.color(g))
                         }
+                        // Vía o bloque: el filtro activo manda; si no, el estilo de la
+                        // escuela, solo cuando es de un único tipo (en mixtas no se sabe).
+                        let rowKind = SchoolKind(style: vm.style
+                            ?? vm.schools.first(where: { $0.id == h.schoolId })?.style)
+                        if rowKind.isSingle { SchoolKindIcons(kind: rowKind, height: 13) }
                     }
                     let subtitle = [h.lineName != nil ? h.blockName : nil, showSchool ? h.schoolName : nil]
                         .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")

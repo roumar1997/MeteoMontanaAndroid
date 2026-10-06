@@ -28,6 +28,13 @@ final class SchoolKindTests: XCTestCase {
         XCTAssertTrue(SchoolKind(style: "bloque").hasBoulders)
     }
 
+    func testIsSingleSoloSiEsUnaDeLasDos() {
+        XCTAssertTrue(SchoolKind(style: "Vía").isSingle)
+        XCTAssertTrue(SchoolKind(style: "Bloque").isSingle)
+        XCTAssertFalse(SchoolKind(style: "Bloque,Vía").isSingle)
+        XCTAssertFalse(SchoolKind(style: nil).isSingle)
+    }
+
     func testSinEstiloNoMuestraNada() {
         XCTAssertTrue(SchoolKind(style: nil).isEmpty)
         XCTAssertTrue(SchoolKind(style: "").isEmpty)
