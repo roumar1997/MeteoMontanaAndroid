@@ -600,7 +600,7 @@ fun SchoolListScreen(
                         if (group.schoolId in expandedGroups) {
                             items(group.hits, key = { "line-${it.lineId}-${it.blockId}" }) { h ->
                                 Column {
-                                    ExploreLineRow(h, kind = exploreRowKind(filters.style.apiValue, schoolStyleById[h.schoolId]), showSchool = false, distanceKm = h.lat?.let { la -> h.lon?.let { lo -> viewModel.distanceTo(la, lo).toInt() } }, onClick = { openVia(h.schoolId, h.lineId, h.lineName ?: h.blockName) })
+                                    ExploreLineRow(h, kind = exploreRowKind(h.discipline, filters.style.apiValue, schoolStyleById[h.schoolId]), showSchool = false, distanceKm = h.lat?.let { la -> h.lon?.let { lo -> viewModel.distanceTo(la, lo).toInt() } }, onClick = { openVia(h.schoolId, h.lineId, h.lineName ?: h.blockName) })
                                     HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
                                 }
                             }
@@ -609,7 +609,7 @@ fun SchoolListScreen(
                 } else {
                     items(exploreHitsSorted, key = { "flat-${it.lineId}-${it.blockId}" }) { h ->
                         Column {
-                            ExploreLineRow(h, kind = exploreRowKind(filters.style.apiValue, schoolStyleById[h.schoolId]), showSchool = true, distanceKm = h.lat?.let { la -> h.lon?.let { lo -> viewModel.distanceTo(la, lo).toInt() } }, onClick = { openVia(h.schoolId, h.lineId, h.lineName ?: h.blockName) })
+                            ExploreLineRow(h, kind = exploreRowKind(h.discipline, filters.style.apiValue, schoolStyleById[h.schoolId]), showSchool = true, distanceKm = h.lat?.let { la -> h.lon?.let { lo -> viewModel.distanceTo(la, lo).toInt() } }, onClick = { openVia(h.schoolId, h.lineId, h.lineName ?: h.blockName) })
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
                         }
                     }
@@ -1206,12 +1206,13 @@ private fun ExploreGroupHeader(
 }
 
 /**
- * Tipo de un resultado del buscador: el filtro activo manda ("Bloque"/"Vía");
- * si no, el estilo de su escuela — y como en una escuela mixta no se sabe cuál
- * es cada resultado, `ExploreLineRow` solo pinta icono si es de un único tipo.
+ * Tipo de un resultado del buscador: manda la modalidad del propio resultado
+ * (la trae el backend); si no llega (servidor viejo), el filtro activo
+ * ("Bloque"/"Vía") y, por último, el estilo de su escuela — que solo sirve si es
+ * de un único tipo: `ExploreLineRow` solo pinta icono si `isSingle`.
  */
-private fun exploreRowKind(activeStyle: String?, schoolStyle: String?) =
-    com.meteomontana.android.domain.util.SchoolKind.from(activeStyle ?: schoolStyle)
+private fun exploreRowKind(discipline: String?, activeStyle: String?, schoolStyle: String?) =
+    com.meteomontana.android.domain.util.SchoolKind.from(discipline ?: activeStyle ?: schoolStyle)
 
 /** Fila de vía/bloque: mini-topo (foto + trazo, sin badge), nombre + grado
  *  coloreado, piedra/escuela, orientación o "SIN ORIENTACIÓN ASIGNADA",
