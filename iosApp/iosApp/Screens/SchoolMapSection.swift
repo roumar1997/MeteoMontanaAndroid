@@ -1066,7 +1066,8 @@ struct SchoolMapSection: View {
                 id: b.id, coordinate: blockMarkerCoord(b),
                 title: b.name.isEmpty ? b.type : b.name,
                 subtitle: typeLabel(b.type),
-                kind: markerKind(for: b.type), color: color(for: b.type), name: b.name))
+                kind: markerKind(for: b.type), color: color(for: b.type), name: b.name,
+                discipline: b.type.uppercased() == "BLOCK" ? b.discipline : nil))
         }
         if let u = userCoord {
             ms.append(CumbreMarker(id: "__USER__", coordinate: u, title: "", kind: .user,
