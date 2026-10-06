@@ -229,6 +229,19 @@ Reglas:
 
 ## Estado actual
 
+**🧗 ICONOS VÍA/BLOQUE — HECHO y VALIDADO en iOS y Android (2026-10-06).**
+Mosquetón = vías, crashpad = bloques, los dos si es mixta: lista de Escuelas,
+pestaña Vías/Bloques y piedras del mapa (icono + chapa con el nombre corto).
+Backend: `/api/search/lines` devuelve `discipline` por resultado (en PRODUCCIÓN).
+Mismo día, también en PRODUCCIÓN (solo backend): roca seca/mojada ahora cuenta la
+lluvia que YA cayó (`past_days=3` + `RockWetness`), no la prevista.
+**Subida**: iOS **2.25.3 build 256** en TestFlight (probado); Android **6.4 vc117**,
+AAB firmado en `Desktop\AABs Play\cumbre-6.4-vc117.aab` (instalado y probado en el
+móvil; **pendiente que Álvaro lo suba a Play** y crear la versión en App Store
+Connect con el build 256). Pendiente menor: vectorizar los dos iconos (hoy son PNG)
+y mover `SchoolKind` de Swift a shared si se quiere un solo origen. Detalle en
+`HISTORIAL.md` 2026-10-06.
+
 **🔎 BUSCADOR POR GRADO — COMPLETO y VALIDADO en Android e iOS (2026-10-02).**
 **Último estado de subida (2026-10-02):** Android **6.3.2 (vc116)**, AAB firmado
 en `Desktop\AABs Play\cumbre-6.3.2-vc116.aab` (los vc114/vc115 de esa carpeta
