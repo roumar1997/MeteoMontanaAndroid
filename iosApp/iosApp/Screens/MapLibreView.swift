@@ -76,10 +76,12 @@ struct CumbreMarker: Identifiable {
     var name: String? = nil
     /// Si se pinta el nombre debajo (depende del zoom en la lista).
     var showName: Bool = false
+    /// Solo .block: "BOULDER" (crashpad) o "ROUTE" (mosquetón). nil = polígono de roca clásico.
+    var discipline: String? = nil
 
     /// Firma estable para cachear/diff (incluye todo lo que afecta al dibujo).
     var drawSignature: String {
-        "\(id)|\(kindKey)|\(color.hexKey)|\(score ?? -1)|\(showName ? (name ?? "") : "")"
+        "\(id)|\(kindKey)|\(color.hexKey)|\(score ?? -1)|\(showName ? (name ?? "") : "")|\(discipline ?? "")"
     }
     private var kindKey: String {
         switch kind {

@@ -13,7 +13,7 @@ enum MarkerRenderer {
         switch m.kind {
         case .parking: return parking()
         case .zone:    return zone(name: m.showName ? (m.name ?? m.title) : nil)
-        case .block:   return block(name: m.name ?? m.title, color: m.color)
+        case .block:   return block(name: m.name ?? m.title, color: m.color, discipline: m.discipline)
         case .school:  return school()
         case .user:    return userDot(bearing: m.score)
         case .score:   return scoreDiamond(score: m.score, color: m.color,
@@ -109,9 +109,46 @@ enum MarkerRenderer {
         }
     }
 
-    // MARK: - Piedra (polígono de roca terra con nombre corto)
+    // MARK: - Piedra: crashpad (bloque) / mosquetón (vía) con el número en una chapa
 
-    private static func block(name: String, color: UIColor) -> UIImage {
+    /// Con discipline conocida pinta el icono de su modalidad (el mismo que en la
+    /// lista de escuelas) y el nombre corto en una chapa blanca en la esquina; sin
+    /// ella (marcadores especiales del admin: ✕ ★) mantiene el polígono de roca.
+    private static func block(name: String, color: UIColor, discipline: String?) -> UIImage {
+        guard let d = discipline?.uppercased(), d == "ROUTE" || d == "BOULDER",
+              let icon = UIImage(named: d == "ROUTE" ? "kind_route" : "kind_boulder"),
+              icon.size.height > 0 else {
+            return rockPolygon(name: name, color: color)
+        }
+        let canvas = CGSize(width: 64, height: 58)
+        let iconH: CGFloat = d == "ROUTE" ? 46 : 36
+        let iconW = iconH * icon.size.width / icon.size.height
+        let iconRect = CGRect(x: (canvas.width - iconW) / 2 - 3, y: canvas.height - iconH - 3,
+                              width: iconW, height: iconH)
+        let label = shortLabel(name)
+        return UIGraphicsImageRenderer(size: canvas).image { ctx in
+            // Contorno blanco: el icono en blanco desplazado en 8 direcciones.
+            let white = icon.withTintColor(.white, renderingMode: .alwaysOriginal)
+            for k in 0..<8 {
+                let a = CGFloat(k) / 8 * .pi * 2
+                white.draw(in: iconRect.offsetBy(dx: cos(a) * 2, dy: sin(a) * 2))
+            }
+            icon.withTintColor(color, renderingMode: .alwaysOriginal).draw(in: iconRect)
+            // Chapa con el número, dentro del lienzo.
+            let r: CGFloat = label.count > 1 ? 11 : 10
+            let c = CGPoint(x: min(iconRect.maxX, canvas.width - r - 1), y: max(iconRect.minY + 2, r + 1))
+            fillCircle(ctx, c, r, .white)
+            color.setStroke()
+            let ring = UIBezierPath(arcCenter: c, radius: r - 1, startAngle: 0, endAngle: .pi * 2, clockwise: true)
+            ring.lineWidth = 2; ring.stroke()
+            draw(text: label, in: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2),
+                 size: label.count > 1 ? 10 : 12, color: UIColor(hex: 0x7A2412))
+        }
+    }
+
+    // MARK: - Piedra clásica (polígono de roca terra con nombre corto)
+
+    private static func rockPolygon(name: String, color: UIColor) -> UIImage {
         let size: CGFloat = 52
         let label = shortLabel(name)
         return render(size) { ctx in

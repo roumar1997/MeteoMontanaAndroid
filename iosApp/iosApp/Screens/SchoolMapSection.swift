@@ -1011,7 +1011,9 @@ struct SchoolMapSection: View {
                 color: blockColorFiltered(b),
                 name: collapsed && hidden > 0 ? "\(b.name) (+\(hidden))" : b.name,
                 // Nombre del sector visible al acercar (sin tener que pulsarlo).
-                showName: b.type.uppercased() == "ZONE" && !b.name.isEmpty && mapZoom >= 13.5))
+                showName: b.type.uppercased() == "ZONE" && !b.name.isEmpty && mapZoom >= 13.5,
+                // Piedra: crashpad (bloque) o mosquetón (vía) según su modalidad.
+                discipline: b.type.uppercased() == "BLOCK" ? b.discipline : nil))
         }
         // Orden de pintado: piedras primero → sectores/parkings/escuela ENCIMA
         // (no quedan tapados por los pines de piedra).
