@@ -144,5 +144,7 @@ data class LineSearchHitDto(
     val startType: String? = null,
     val lat: Double? = null,
     val lon: Double? = null,
-    val orientation: String? = null
+    val orientation: String? = null,
+    // "BOULDER" / "ROUTE" de la piedra (aditivo; null con backends viejos).
+    val discipline: String? = null
 )

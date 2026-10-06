@@ -23,6 +23,12 @@ final class SchoolKindTests: XCTestCase {
         XCTAssertTrue(k.hasRoutes)
     }
 
+    func testModalidadDelBackend() {
+        XCTAssertTrue(SchoolKind(style: "ROUTE").hasRoutes)
+        XCTAssertTrue(SchoolKind(style: "BOULDER").hasBoulders)
+        XCTAssertTrue(SchoolKind(style: "ROUTE").isSingle)
+    }
+
     func testSinTildeNiMayusculas() {
         XCTAssertTrue(SchoolKind(style: "VIA").hasRoutes)
         XCTAssertTrue(SchoolKind(style: "bloque").hasBoulders)

@@ -923,9 +923,11 @@ struct SchoolListView: View {
                         if let g = h.grade {
                             Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(GradeColor.color(g))
                         }
-                        // Vía o bloque: el filtro activo manda; si no, el estilo de la
-                        // escuela, solo cuando es de un único tipo (en mixtas no se sabe).
-                        let rowKind = SchoolKind(style: vm.style
+                        // Vía o bloque: la modalidad del propio resultado manda (la
+                        // trae el backend); si no llega (servidor viejo), el filtro
+                        // activo y, por último, el estilo de la escuela — que solo vale
+                        // si es de un único tipo (en mixtas no se sabe).
+                        let rowKind = SchoolKind(style: h.discipline ?? vm.style
                             ?? vm.schools.first(where: { $0.id == h.schoolId })?.style)
                         if rowKind.isSingle { SchoolKindIcons(kind: rowKind, height: 13) }
                     }

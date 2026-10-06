@@ -23,6 +23,11 @@ class SchoolKindTest {
         assertTrue(k.hasBoulders); assertTrue(k.hasRoutes)
     }
 
+    @Test fun modalidadDelBackend() {
+        assertTrue(SchoolKind.from("ROUTE").isSingle && SchoolKind.from("ROUTE").hasRoutes)
+        assertTrue(SchoolKind.from("BOULDER").isSingle && SchoolKind.from("BOULDER").hasBoulders)
+    }
+
     @Test fun sinTildeNiMayusculas() {
         assertTrue(SchoolKind.from("VIA").hasRoutes)
         assertTrue(SchoolKind.from("bloque").hasBoulders)

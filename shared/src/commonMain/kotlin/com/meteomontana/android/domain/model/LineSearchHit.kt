@@ -22,5 +22,8 @@ data class LineSearchHit(
     val lon: Double? = null,
     /** Aspecto votado por la comunidad (N/NE/.../NO), o null si nadie lo ha
      *  votado todavía — BLOCK_SEARCH_DESIGN.md §8.1. Solo modo "explorar". */
-    val orientation: String? = null
+    val orientation: String? = null,
+    /** Modalidad de la piedra: "BOULDER" (bloque) o "ROUTE" (vía). null con
+     *  backends viejos → los iconos caen al estilo de la escuela. */
+    val discipline: String? = null
 )
