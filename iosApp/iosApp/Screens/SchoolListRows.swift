@@ -152,10 +152,18 @@ struct SchoolListItemView: View {
                         .tracking(1.4)
                         .foregroundStyle(Cumbre.ink3)
                         .frame(width: 24, alignment: .leading)
-                    Text(school.name)
-                        .font(Cumbre.serif(19, .bold))
-                        .foregroundStyle(Cumbre.ink)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    // Nombre + iconos de qué se escala (mosquetón = vías, crashpad =
+                    // bloques, los dos = ambos), pegados al nombre.
+                    HStack(spacing: 8) {
+                        Text(school.name)
+                            .font(Cumbre.serif(19, .bold))
+                            .foregroundStyle(Cumbre.ink)
+                            .layoutPriority(1)
+                        let kind = SchoolKind(style: school.style)
+                        if !kind.isEmpty { SchoolKindIcons(kind: kind) }
+                        Spacer(minLength: 0)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     // Procesionaria: solo si ya se sabe (alguien la confirmó) Y
                     // estamos en su temporada — sin datos fiables de dónde hay
                     // pinos, solo avisa lo que de verdad se sabe (espejo de
