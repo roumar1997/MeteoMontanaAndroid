@@ -43,6 +43,14 @@ struct StoredAssistantConversation: Codable, Equatable {
         var hoursAhead: Int?
         var weatherTopic: String?
         var useMyLocation: Bool?
+        var beta: String?
+        var startType: String?
+        var withTopo: Bool?
+        var noRain: Bool?
+        var mineTopic: String?
+        var year: Int?
+        var notDone: Bool?
+        var action: String?
     }
 
     var uid: String
@@ -61,7 +69,10 @@ extension StoredAssistantConversation.Understood {
                   sun: u.sun, dayPart: u.dayPart,
                   schoolMentions: u.schoolMentions, topRated: u.topRated,
                   minStars: u.minStars.map { Int($0.intValue) }, hoursAhead: u.hoursAhead.map { Int($0.intValue) },
-                  weatherTopic: u.weatherTopic, useMyLocation: u.useMyLocation)
+                  weatherTopic: u.weatherTopic, useMyLocation: u.useMyLocation, beta: u.beta,
+                  startType: u.startType, withTopo: u.withTopo, noRain: u.noRain,
+                  mineTopic: u.mineTopic, year: u.year.map { Int($0.intValue) }, notDone: u.notDone,
+                  action: u.action)
     }
 
     func toKotlin() -> AssistantUnderstood {
@@ -75,7 +86,10 @@ extension StoredAssistantConversation.Understood {
             schoolMentions: schoolMentions ?? [], topRated: topRated ?? false,
             minStars: minStars.map { KotlinInt(int: Int32($0)) },
             hoursAhead: hoursAhead.map { KotlinInt(int: Int32($0)) },
-            weatherTopic: weatherTopic, useMyLocation: useMyLocation ?? false)
+            weatherTopic: weatherTopic, useMyLocation: useMyLocation ?? false, beta: beta,
+            startType: startType, withTopo: withTopo ?? false, noRain: noRain ?? false,
+            mineTopic: mineTopic, year: year.map { KotlinInt(int: Int32($0)) }, notDone: notDone ?? false,
+            action: action)
     }
 }
 

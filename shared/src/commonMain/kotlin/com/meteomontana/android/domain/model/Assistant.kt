@@ -54,7 +54,23 @@ data class AssistantUnderstood(
     /** RAIN | WIND | HUMIDITY | TEMPERATURE | GENERAL (solo en preguntas del tiempo). */
     val weatherTopic: String? = null,
     /** Habló de DONDE ESTÁ: se usó su ubicación. */
-    val useMyLocation: Boolean = false
+    val useMyLocation: Boolean = false,
+    /** Solo con vídeo de beta: "ANY" | "TALL" (+1,70 m) | "SHORT" (-1,70 m) | null = no lo pidió. */
+    val beta: String? = null,
+    /** Salida de la vía: "SIT" | "SEMI" | "STAND" | "JUMP" | "TRAV" | null. */
+    val startType: String? = null,
+    /** Solo vías con el trazo dibujado. */
+    val withTopo: Boolean = false,
+    /** Pidió un sitio donde NO llueva. */
+    val noRain: Boolean = false,
+    /** Solo en MINE (lo suyo): STATS | FAVORITES | LAST_VISIT | MEETUPS. */
+    val mineTopic: String? = null,
+    /** Año por el que pregunta de su diario ("este año"), o null. */
+    val year: Int? = null,
+    /** Pidió vías o bloques que NO haya hecho: se cruza en el móvil con su diario. */
+    val notDone: Boolean = false,
+    /** Solo en ACTION: ADD_FAVORITE | REMOVE_FAVORITE | OPEN_SCHOOL. La app siempre pide confirmación. */
+    val action: String? = null
 )
 
 /** El tiempo de ahora en un sitio. */
@@ -187,7 +203,28 @@ data class AssistantAnswer(
     val recommendation: AssistantRecommendation?,
     val breakdown: AssistantBreakdown?,
     val clarification: AssistantClarification?,
-    val weather: AssistantWeather?
+    val weather: AssistantWeather?,
+    val summary: AssistantSummary? = null
+)
+
+/** Cuántas líneas hay de un grupo de grado ("≤5", "6", "7", "8+"). */
+data class AssistantGradeBand(val band: String, val count: Int)
+
+/** La ficha de una escuela en cifras ("cuéntame Albarracín"). El texto lo escribe cada app. */
+data class AssistantSummary(
+    val school: AssistantOption,
+    val rockType: String?,
+    val region: String?,
+    val stones: Int,
+    val sectors: Int,
+    val lines: Int,
+    val boulderLines: Int,
+    val routeLines: Int,
+    /** Grado de la línea más dura, o null si ninguna tiene grado. */
+    val hardest: String?,
+    val grades: List<AssistantGradeBand>,
+    /** Meses (1-12) en los que mejor se escala, de enero a diciembre; vacío si no hay histórico. */
+    val bestMonths: List<Int>
 )
 
 /**

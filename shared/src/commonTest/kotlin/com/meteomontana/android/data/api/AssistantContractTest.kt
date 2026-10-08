@@ -47,7 +47,7 @@ class AssistantContractTest {
 
     private val tiempo = """
         {"status":"OK","understood":{"intent":"WEATHER","rockTypes":[],"orientations":[],"schoolMentions":[],
-           "topRated":false,"hoursAhead":3,"weatherTopic":"RAIN","useMyLocation":true},
+           "topRated":false,"hoursAhead":3,"weatherTopic":"RAIN","useMyLocation":true,"beta":"TALL","startType":"SIT","withTopo":true,"noRain":true,"mineTopic":"STATS","year":2026,"notDone":true,"action":"ADD_FAVORITE"},
          "resolved":{"school":null,"sector":null},"recommendation":null,"breakdown":null,"clarification":null,
          "weather":{"placeName":null,"myLocation":true,"topic":"RAIN",
            "now":{"temperature":14.2,"humidity":71.0,"windKmh":18.5,"precipitationMm":0.0,"rainProbability":20,"cloudCover":60,"dewPoint":null},
@@ -107,6 +107,14 @@ class AssistantContractTest {
         assertEquals(62, w.climbing.score)
         assertEquals(3, a.understood!!.hoursAhead)
         assertTrue(a.understood!!.useMyLocation)
+        assertEquals("TALL", a.understood!!.beta)
+        assertEquals("SIT", a.understood!!.startType)
+        assertTrue(a.understood!!.withTopo)
+        assertTrue(a.understood!!.noRain)
+        assertEquals("STATS", a.understood!!.mineTopic)
+        assertEquals(2026, a.understood!!.year)
+        assertTrue(a.understood!!.notDone)
+        assertEquals("ADD_FAVORITE", a.understood!!.action)
     }
 
     @Test fun unaRespuestaAntiguaSinTiempoSigueLeyendose() {

@@ -20,7 +20,13 @@ data class LineExploreCriteria(
     val sort: String? = null,             // DISTANCE | GRADE_ASC | GRADE_DESC
     val offset: Int = 0,
     /** Pide la media de estrellas y el nº de votos de cada vía (una consulta más en el servidor). */
-    val withRatings: Boolean = false
+    val withRatings: Boolean = false,
+    /** Solo con vídeo de beta: ANY | TALL (+1,70 m) | SHORT (-1,70 m); null = sin filtrar. */
+    val beta: String? = null,
+    /** Tipo de salida: SIT | SEMI | STAND | JUMP | TRAV; null = cualquiera. */
+    val startType: String? = null,
+    /** Solo vías con el trazo dibujado. */
+    val withTopo: Boolean = false
 ) {
     /** §8.1: la pantalla entra en modo vías en cuanto hay grado puesto — es la
      *  única condición que importa para el modo implícito (§4.1); el resto de

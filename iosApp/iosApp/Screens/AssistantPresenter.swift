@@ -73,7 +73,107 @@ enum AssistantPresenter {
         if let stars = u.minStars { out.append("★ ≥ \(stars.intValue)") }
         if let hours = u.hoursAhead { out.append("\(hours.intValue) h") }
         if u.useMyLocation { out.append(L("Mi ubicación")) }
+        if u.beta == "ANY" { out.append(L("Con beta")) }
+        if u.beta == "TALL" { out.append(L("Beta +1,70")) }
+        if u.beta == "SHORT" { out.append(L("Beta -1,70")) }
+        if let start = u.startType { out.append(startLabel(start)) }
+        if u.withTopo { out.append(L("Con topo")) }
+        if u.noRain { out.append(L("Sin lluvia")) }
+        if u.notDone { out.append(L("Sin hacer")) }
+        if let y = u.year { out.append("\(y.intValue)") }
         return out
+    }
+
+    /// Lo que se le pregunta al usuario antes de hacer algo por él.
+    static func actionPrompt(kind: String, school: String) -> String {
+        switch kind {
+        case "ADD_FAVORITE": return L("¿Añado %@ a tus favoritas?", school)
+        case "REMOVE_FAVORITE": return L("¿Quito %@ de tus favoritas?", school)
+        case "ENABLE_WEEKEND_ALERT": return L("¿Activo el aviso de fin de semana para %@?", school)
+        default: return L("¿Abro %@?", school)
+        }
+    }
+
+    /// La pregunta de confirmación al apuntar UNA vía en el diario.
+    static func logPrompt(kind: String, hit: LineSearchHit, date: String) -> String {
+        let name = hit.lineName ?? hit.blockName
+        let grade = hit.grade.map { " (\($0))" } ?? ""
+        let place = "\(name)\(grade) · \(hit.schoolName)"
+        let day = dateRange(date, nil)
+        return kind == "LOG_PROJECT"
+            ? L("¿Apunto «%@» como proyecto el %@?", place, day)
+            : L("¿Apunto «%@» como hecha el %@?", place, day)
+    }
+
+    /// Lo que se le dice al usuario cuando la acción ya está hecha.
+    static func actionDone(kind: String, school: String) -> String {
+        switch kind {
+        case "ADD_FAVORITE": return L("Hecho: %@ está ahora en tus favoritas.", school)
+        case "REMOVE_FAVORITE": return L("Hecho: %@ ya no está en tus favoritas.", school)
+        default: return L("Abriendo %@.", school)
+        }
+    }
+
+    /// La ficha de una escuela en cifras ("cuéntame Albarracín"): varias líneas cortas.
+    static func summaryText(_ s: AssistantSummary) -> String {
+        var lines: [String] = []
+        var head = s.school.name
+        if let region = s.region, !region.isEmpty { head += " · \(regionLabel(region))" }
+        if let rock = s.rockType, !rock.isEmpty { head += " · \(rockLabel(rock))" }
+        lines.append(head)
+        if s.lines == 0 {
+            lines.append(L("Todavía no tiene vías ni bloques en Cumbre."))
+        } else {
+            lines.append(L("%@ piedras en %@ sectores, %@ líneas (%@ bloques, %@ vías).",
+                           Int(s.stones), Int(s.sectors), Int(s.lines), Int(s.boulderLines), Int(s.routeLines)))
+            if !s.grades.isEmpty {
+                let bands = s.grades.map { "\($0.band): \($0.count)" }.joined(separator: " · ")
+                lines.append(L("Grados: %@.", bands))
+            }
+            if let hardest = s.hardest { lines.append(L("La más dura: %@.", hardest)) }
+        }
+        if !s.bestMonths.isEmpty {
+            let names = CalendarLabels.monthsLong()
+            let months = s.bestMonths.compactMap { names.indices.contains(Int($0) - 1) ? names[Int($0) - 1] : nil }
+            if !months.isEmpty { lines.append(L("Mejores meses: %@.", months.joined(separator: ", "))) }
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    /// La respuesta a una pregunta sobre lo suyo (diario, favoritas, quedadas), ya calculada en el móvil.
+    static func mineText(_ r: MineAnswerer.MineAnswer) -> String {
+        let count = Int(r.count)
+        switch r.topic {
+        case "FAVORITES":
+            if count == 0 { return L("Aún no tienes escuelas favoritas.") }
+            return L("Tus favoritas (%@): %@.", count, r.items.joined(separator: ", "))
+        case "LAST_VISIT":
+            guard let date = r.lastDate else {
+                if let place = r.place { return L("No tienes ninguna sesión apuntada en %@.", place) }
+                return L("Aún no has apuntado ninguna sesión en tu diario.")
+            }
+            if let place = r.place { return L("Tu última vez en %@ fue el %@.", place, dateRange(date, nil)) }
+            return L("Tu última sesión fue el %@.", dateRange(date, nil))
+        case "MEETUPS":
+            if count == 0 { return L("No hay quedadas próximas.") }
+            return L("Quedadas próximas (%@): %@.", count, r.items.joined(separator: " · "))
+        default:
+            if count == 0 { return L("No tienes ninguna encadenada con esos filtros en tu diario.") }
+            if let max = r.maxGrade { return L("Llevas %@ encadenadas con esos filtros. La más dura: %@.", count, max) }
+            return L("Llevas %@ encadenadas con esos filtros.", count)
+        }
+    }
+
+    /// Etiqueta de la salida de una vía.
+    static func startLabel(_ start: String) -> String {
+        switch start {
+        case "SIT": return L("Salida sentado")
+        case "STAND": return L("Salida de pie")
+        case "SEMI": return L("Semisentado")
+        case "JUMP": return L("Con lance")
+        case "TRAV": return L("Travesía")
+        default: return start
+        }
     }
 
     // MARK: Fechas
@@ -301,6 +401,12 @@ enum AssistantPresenter {
             if let dew = n.dewPoint?.doubleValue { text += " " + L("Punto de rocío: %@ °C.", Int(dew.rounded())) }
             text += " " + (w.climbing.rockWet ? L("La roca está húmeda.") : L("La roca está seca."))
             return text
+        case "ROCK":
+            if w.climbing.rockWet {
+                let drying = w.climbing.dryingMessage ?? ""
+                return L("%@: la roca está húmeda.", place) + (drying.isEmpty ? "" : " " + drying)
+            }
+            return L("%@: la roca está seca, se puede escalar.", place)
         case "TEMPERATURE":
             let temps = w.hours.map { $0.temperature }
             let low = Int((temps.min() ?? n.temperature).rounded()), high = Int((temps.max() ?? n.temperature).rounded())
@@ -332,6 +438,13 @@ enum AssistantPresenter {
         }
         if !r.forecastAvailable {
             return L("Aún no hay previsión para esas fechas. Te ordeno las escuelas por número de vías de ese grado.")
+        }
+        // Una sola escuela y varios días ("¿qué día voy a Albarracín?"): se dice cuál es el mejor.
+        if r.schools.count == 1, r.dates.count >= 2, let only = r.schools.first {
+            let dry = only.days.filter { !$0.rainy }
+            if let best = (dry.isEmpty ? only.days : dry).max(by: { $0.score < $1.score }) {
+                return L("En %@ el mejor día es %@ (%@/100).", only.name, dayLabel(best.date), Int(best.score))
+            }
         }
         guard let first = r.dates.first else { return L("Esta es la mejor opción:") }
         return L("Para %@, esta es la mejor opción:", dateRange(first, r.dates.last))

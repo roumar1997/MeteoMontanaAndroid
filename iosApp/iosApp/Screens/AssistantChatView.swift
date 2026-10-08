@@ -225,6 +225,7 @@ struct AssistantChatView: View {
                 if let b = m.breakdown { AssistantBreakdownView(breakdown: b) }
                 if let w = m.weather { AssistantWeatherCard(weather: w) }
                 if let retry = m.retryText { retryButton(retry) }
+                if m.pendingActions.contains(where: { $0.state == .waiting }) { confirmButtons(m) }
                 if !m.hits.isEmpty { AssistantHitsView(hits: m.hits, total: m.hitsTotal) }
                 if m.restored, m.recommendation != nil || m.breakdown != nil || m.weather != nil || !m.hits.isEmpty,
                    let note = AssistantPresenter.savedNote(createdAt: m.createdAt) {
@@ -234,6 +235,38 @@ struct AssistantChatView: View {
                 if !m.options.isEmpty { optionsRow(m.options) }
             }
         }
+    }
+
+    /// CONFIRMAR / CANCELAR para una acción propuesta: la app nunca hace nada por su cuenta.
+    private func confirmButtons(_ m: AssistantMessage) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(m.pendingActions.filter { $0.state == .waiting }) { action in
+                Button { Task { await vm.confirm(m.id, action.id) } } label: {
+                    Text(confirmTitle(action, several: m.pendingActions.count > 1))
+                        .font(Cumbre.mono(11, .bold)).tracking(1.4)
+                        .multilineTextAlignment(.leading)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14).padding(.vertical, 9)
+                        .background(Cumbre.terra, in: RoundedRectangle(cornerRadius: 2))
+                }
+            }
+            Button { vm.cancel(m.id) } label: {
+                Text(L("CANCELAR")).font(Cumbre.mono(11, .bold)).tracking(1.4)
+                    .foregroundStyle(Cumbre.ink)
+                    .padding(.horizontal, 14).padding(.vertical, 9)
+                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(vm.isLoading)
+    }
+
+    /// "CONFIRMAR", o con varias candidatas el nombre de cada una para poder elegir.
+    private func confirmTitle(_ action: PendingAction, several: Bool) -> String {
+        guard several, let hit = action.hit else { return L("CONFIRMAR") }
+        let name = hit.lineName ?? hit.blockName
+        let grade = hit.grade.map { " · \($0)" } ?? ""
+        return "\(name)\(grade) · \(hit.schoolName)"
     }
 
     /// Tras un fallo pasajero, repetir la misma pregunta con un toque (sin escribirla de nuevo).

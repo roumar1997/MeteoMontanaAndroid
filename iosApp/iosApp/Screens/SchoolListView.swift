@@ -125,7 +125,7 @@ final class SchoolListViewModel: ObservableObject {
                 // "Mejores condiciones" no es un orden que sepa el backend (el
                 // score es del tiempo, vive solo en el cliente) — se pide
                 // siempre por distancia y se reordena aquí (ver exploreGroups).
-                sort: "DISTANCE", offset: 0, withRatings: false)
+                sort: "DISTANCE", offset: 0, withRatings: false, beta: nil, startType: nil, withTopo: false)
             let hits = (try? await AppDependencies.shared.container.exploreLines.invoke(criteria: criteria)) ?? []
             guard !Task.isCancelled else { return }
             self.exploreHits = hits

@@ -22,6 +22,23 @@ struct AssistantMessage: Identifiable {
     var restored = false
     /// Opciones tocables de "¿a cuál te refieres?".
     var options: [AssistantOption] = []
+    /// Lo que la app hará por el usuario SOLO si lo confirma (favoritas, abrir una escuela, apuntar en el
+    /// diario, aviso de fin de semana). Varias cuando el nombre de una vía es ambiguo: elige una.
+    var pendingActions: [PendingAction] = []
+}
+
+/// Una acción propuesta en el chat. Nunca se ejecuta sin que el usuario la confirme con un toque.
+struct PendingAction: Identifiable, Equatable {
+    enum State { case waiting, done, cancelled }
+    let id = UUID()
+    /// ADD_FAVORITE | REMOVE_FAVORITE | OPEN_SCHOOL | ENABLE_WEEKEND_ALERT | LOG_DONE | LOG_PROJECT
+    let kind: String
+    let schoolId: String
+    let schoolName: String
+    /// Para apuntar en el diario: la vía encontrada y el día ("yyyy-MM-dd").
+    var hit: LineSearchHit? = nil
+    var date: String? = nil
+    var state: State = .waiting
 }
 
 /// ViewModel del asistente (burbuja flotante + chat). Recibe sus dependencias
@@ -223,6 +240,15 @@ final class AssistantViewModel: ObservableObject {
                     isUser: false,
                     text: compare ? AssistantPresenter.compareIntro(rec) : AssistantPresenter.recommendationIntro(rec),
                     chips: chips, recommendation: rec))
+            } else if answer.understood?.intent == "ACTION", let kind = answer.understood?.action {
+                try await proposeAction(kind, answer, chips: chips)
+            } else if let summary = answer.summary {
+                messages.append(AssistantMessage(
+                    isUser: false, text: AssistantPresenter.summaryText(summary), chips: chips))
+            } else if answer.understood?.intent == "MINE" {
+                // Lo suyo se contesta AQUÍ, con lo que la app ya tiene: el diario nunca sale del móvil.
+                messages.append(AssistantMessage(
+                    isUser: false, text: AssistantPresenter.mineText(try await mineAnswer(answer)), chips: chips))
             } else if let b = answer.breakdown {
                 messages.append(AssistantMessage(
                     isUser: false, text: AssistantPresenter.breakdownIntro(b),
@@ -256,6 +282,138 @@ final class AssistantViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Acciones confirmadas
+
+    /// Prepara la tarjeta de confirmación de una acción. NO hace nada todavía: solo propone.
+    private func proposeAction(_ kind: String, _ answer: AssistantAnswer, chips: [String]) async throws {
+        let u = answer.understood
+        guard kind == "LOG_DONE" || kind == "LOG_PROJECT" else {
+            guard let school = answer.resolvedSchool else { return }
+            messages.append(AssistantMessage(
+                isUser: false, text: AssistantPresenter.actionPrompt(kind: kind, school: school.name), chips: chips,
+                pendingActions: [PendingAction(kind: kind, schoolId: school.id, schoolName: school.name)]))
+            return
+        }
+        // Apuntar en el diario: se busca la vía por su nombre y se pide confirmar CUÁL.
+        guard let name = u?.q, !name.isEmpty else {
+            messages.append(AssistantMessage(isUser: false, text: L("¿Qué vía quieres apuntar? Dime su nombre."), chips: chips))
+            return
+        }
+        let status = kind == "LOG_PROJECT" ? "PROJECT" : "DONE"
+        let found = try await container.searchLines.invoke(query: name)
+        let matches = AssistantActions.shared.matchLines(hits: found, name: name, schoolId: answer.resolvedSchool?.id)
+        guard !matches.isEmpty else {
+            messages.append(AssistantMessage(isUser: false, text: L("No encuentro ninguna vía llamada «%@».", name), chips: chips))
+            return
+        }
+        let journal = (try? await container.getMyJournal.invoke()) ?? []
+        let date = u?.dateFrom ?? Self.todayISO()
+        let fresh = matches.filter { !AssistantActions.shared.isLogged(journal: journal, hit: $0, status: status) }
+        guard !fresh.isEmpty else {
+            messages.append(AssistantMessage(isUser: false, text: L("Ya tienes «%@» apuntada.", name), chips: chips))
+            return
+        }
+        let actions = fresh.map {
+            PendingAction(kind: kind, schoolId: $0.schoolId, schoolName: $0.schoolName, hit: $0, date: date)
+        }
+        let text = fresh.count == 1
+            ? AssistantPresenter.logPrompt(kind: kind, hit: fresh[0], date: date)
+            : L("¿Cuál de estas quieres apuntar?")
+        messages.append(AssistantMessage(isUser: false, text: text, chips: chips, pendingActions: actions))
+    }
+
+    /// El usuario tocó CONFIRMAR en una de las acciones: se hace y se avisa. Si falla, se dice y el botón
+    /// sigue ahí para reintentar. Al hacer una, las demás candidatas del mismo mensaje se descartan.
+    func confirm(_ messageId: UUID, _ actionId: UUID) async {
+        guard let mi = messages.firstIndex(where: { $0.id == messageId }),
+              let ai = messages[mi].pendingActions.firstIndex(where: { $0.id == actionId }),
+              messages[mi].pendingActions[ai].state == .waiting else { return }
+        let action = messages[mi].pendingActions[ai]
+        do {
+            let text = try await perform(action)
+            for i in messages[mi].pendingActions.indices {
+                messages[mi].pendingActions[i].state = i == ai ? .done : .cancelled
+            }
+            messages.append(AssistantMessage(isUser: false, text: text))
+        } catch {
+            messages.append(AssistantMessage(isUser: false, text: L("No se pudo hacer. Inténtalo otra vez.")))
+        }
+        persist()
+    }
+
+    /// Hace la acción y devuelve lo que se le dice al usuario.
+    private func perform(_ action: PendingAction) async throws -> String {
+        switch action.kind {
+        case "ADD_FAVORITE":
+            try await container.addFavorite.invoke(schoolId: action.schoolId)
+        case "REMOVE_FAVORITE":
+            try await container.removeFavorite.invoke(schoolId: action.schoolId)
+        case "ENABLE_WEEKEND_ALERT":
+            let current = try await container.getWeekendAlert.invoke()
+            let change = AssistantActions.shared.withSchoolAlert(current: current, schoolId: action.schoolId)
+            if change.already { return L("%@ ya estaba en tu aviso de fin de semana.", action.schoolName) }
+            guard let alert = change.alert else {
+                return L("Ya tienes 3 escuelas en tu aviso de fin de semana. Quita una en los ajustes de la alerta de tiempo.")
+            }
+            _ = try await container.updateWeekendAlert.invoke(alert: alert)
+            return L("Hecho: te avisaré del fin de semana en %@.", action.schoolName)
+        case "LOG_DONE", "LOG_PROJECT":
+            guard let hit = action.hit, let date = action.date else { throw CancellationError() }
+            let status = action.kind == "LOG_PROJECT" ? "PROJECT" : "DONE"
+            let req = AssistantActions.shared.journalRequest(hit: hit, status: status, date: date)
+            let ok = (try? await container.createJournalEntry.invoke(req: req)) != nil
+            if !ok { try? await container.enqueueJournal(req: req) }      // sin red → cola, como en la ficha
+            if status == "DONE" { JournalDoneStore.shared.add(AssistantActions.shared.doneKey(hit: hit)) }
+            let line = hit.lineName ?? hit.blockName
+            if !ok { return L("Sin conexión: apuntaré «%@» cuando vuelvas a tener red.", line) }
+            return status == "DONE"
+                ? L("Hecho: «%@» apuntada como hecha.", line)
+                : L("Hecho: «%@» apuntada como proyecto.", line)
+        default:
+            requestOpen(schoolId: action.schoolId)
+        }
+        return AssistantPresenter.actionDone(kind: action.kind, school: action.schoolName)
+    }
+
+    func cancel(_ messageId: UUID) {
+        guard let mi = messages.firstIndex(where: { $0.id == messageId }) else { return }
+        for i in messages[mi].pendingActions.indices where messages[mi].pendingActions[i].state == .waiting {
+            messages[mi].pendingActions[i].state = .cancelled
+        }
+    }
+
+    // MARK: - Lo suyo (diario, favoritas, quedadas)
+
+    private func mineAnswer(_ answer: AssistantAnswer) async throws -> MineAnswerer.MineAnswer {
+        let u = answer.understood
+        let schoolId = answer.resolvedSchool?.id
+        let schoolName = answer.resolvedSchool?.name
+        switch u?.mineTopic ?? "STATS" {
+        case "FAVORITES":
+            return MineAnswerer.shared.favorites(favs: try await container.getMyFavorites.invoke())
+        case "LAST_VISIT":
+            return MineAnswerer.shared.lastVisit(
+                journal: try await container.getMyJournal.invoke(), schoolId: schoolId, schoolName: schoolName)
+        case "MEETUPS":
+            let all = try await container.getMeetups?.execute(schoolId: schoolId, date: nil, relation: nil) ?? []
+            return MineAnswerer.shared.meetups(all: all, today: Self.todayISO(), schoolId: schoolId, joinedOnly: false)
+        default:
+            return MineAnswerer.shared.stats(
+                journal: try await container.getMyJournal.invoke(),
+                discipline: u?.discipline, gradeMin: u?.gradeMin, gradeMax: u?.gradeMax, year: u?.year,
+                schoolId: schoolId, schoolName: schoolName)
+        }
+    }
+
+    /// "yyyy-MM-dd" de hoy en Madrid (las quedadas se guardan con sus días en ese formato).
+    private static func todayISO() -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone(identifier: "Europe/Madrid") ?? .current
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: Date())
+    }
+
     // MARK: - Resultados de una búsqueda simple
 
     /// Pide al buscador de la app lo que entendió el asistente: con filtros (grado, modalidad,
@@ -269,7 +427,8 @@ final class AssistantViewModel: ObservableObject {
         let rated = u.topRated || minStars != nil
         let hasFilter = u.gradeMin != nil || u.gradeMax != nil || u.discipline != nil
             || !u.rockTypes.isEmpty || !u.orientations.isEmpty || u.maxDistanceKm != nil
-            || schoolId != nil || rated || (u.useMyLocation && location != nil)
+            || schoolId != nil || rated || (u.useMyLocation && location != nil) || u.beta != nil
+            || u.startType != nil || u.withTopo || u.notDone
 
         var hits: [LineSearchHit] = []
         if hasFilter {
@@ -282,10 +441,14 @@ final class AssistantViewModel: ObservableObject {
                 lon: location.map { KotlinDouble(double: $0.lon) },
                 // "cerca de mí" sin cifra = 50 km, como en el servidor.
                 maxDistanceKm: u.maxDistanceKm ?? (u.useMyLocation && location != nil ? KotlinDouble(double: 50) : nil),
-                sort: "DISTANCE", offset: 0, withRatings: rated)
+                sort: "DISTANCE", offset: 0, withRatings: rated, beta: u.beta,
+                startType: u.startType, withTopo: u.withTopo)
             hits = try await container.exploreLines.invoke(criteria: criteria)
         } else if let q = u.q, !q.isEmpty {
             hits = try await container.searchLines.invoke(query: q)
+        }
+        if u.notDone, let journal = try? await container.getMyJournal.invoke() {
+            hits = MineAnswerer.shared.excludeDone(hits: hits, journal: journal)
         }
         if let sector = answer.resolvedSector?.name {
             hits = hits.filter { ($0.sectorName ?? "").caseInsensitiveCompare(sector) == .orderedSame }

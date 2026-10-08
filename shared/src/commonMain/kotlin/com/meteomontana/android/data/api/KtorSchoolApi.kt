@@ -87,6 +87,9 @@ class KtorSchoolApi(private val client: HttpClient) {
             criteria.sort?.let { parameter("sort", it) }
             parameter("offset", criteria.offset)
             if (criteria.withRatings) parameter("withRatings", true)
+            criteria.beta?.let { parameter("beta", it) }
+            criteria.startType?.let { parameter("startType", it) }
+            if (criteria.withTopo) parameter("withTopo", true)
         }.body()
 
     @Throws(Exception::class)

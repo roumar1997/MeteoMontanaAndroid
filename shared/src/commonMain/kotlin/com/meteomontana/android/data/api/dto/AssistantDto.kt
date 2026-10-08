@@ -15,6 +15,8 @@ import com.meteomontana.android.domain.model.AssistantHourPoint
 import com.meteomontana.android.domain.model.AssistantNow
 import com.meteomontana.android.domain.model.AssistantRain
 import com.meteomontana.android.domain.model.AssistantUnderstood
+import com.meteomontana.android.domain.model.AssistantGradeBand
+import com.meteomontana.android.domain.model.AssistantSummary
 import com.meteomontana.android.domain.model.AssistantWeather
 import kotlinx.serialization.Serializable
 
@@ -55,7 +57,15 @@ data class AssistantUnderstoodDto(
     val minStars: Int? = null,
     val hoursAhead: Int? = null,
     val weatherTopic: String? = null,
-    val useMyLocation: Boolean = false
+    val useMyLocation: Boolean = false,
+    val beta: String? = null,
+    val startType: String? = null,
+    val withTopo: Boolean = false,
+    val noRain: Boolean = false,
+    val mineTopic: String? = null,
+    val year: Int? = null,
+    val notDone: Boolean = false,
+    val action: String? = null
 )
 
 @Serializable
@@ -195,7 +205,26 @@ data class AssistantAnswerDto(
     val recommendation: AssistantRecommendationDto? = null,
     val breakdown: AssistantBreakdownDto? = null,
     val clarification: AssistantClarificationDto? = null,
-    val weather: AssistantWeatherDto? = null
+    val weather: AssistantWeatherDto? = null,
+    val summary: AssistantSummaryDto? = null
+)
+
+@Serializable
+data class AssistantGradeBandDto(val band: String, val count: Int = 0)
+
+@Serializable
+data class AssistantSummaryDto(
+    val school: AssistantOptionDto,
+    val rockType: String? = null,
+    val region: String? = null,
+    val stones: Int = 0,
+    val sectors: Int = 0,
+    val lines: Int = 0,
+    val boulderLines: Int = 0,
+    val routeLines: Int = 0,
+    val hardest: String? = null,
+    val grades: List<AssistantGradeBandDto> = emptyList(),
+    val bestMonths: List<Int> = emptyList()
 )
 
 // ── DTO → dominio ──────────────────────────────────────────────────────────
@@ -203,13 +232,13 @@ data class AssistantAnswerDto(
 fun AssistantUnderstood.toDto() = AssistantUnderstoodDto(
     intent, dateFrom, dateTo, gradeMin, gradeMax, discipline, rockTypes, orientations,
     maxDistanceKm, q, schoolMention, sectorMention, sun, dayPart,
-    schoolMentions, topRated, minStars, hoursAhead, weatherTopic, useMyLocation
+    schoolMentions, topRated, minStars, hoursAhead, weatherTopic, useMyLocation, beta, startType, withTopo, noRain, mineTopic, year, notDone, action
 )
 
 private fun AssistantUnderstoodDto.toDomain() = AssistantUnderstood(
     intent, dateFrom, dateTo, gradeMin, gradeMax, discipline, rockTypes, orientations,
     maxDistanceKm, q, schoolMention, sectorMention, sun, dayPart,
-    schoolMentions, topRated, minStars, hoursAhead, weatherTopic, useMyLocation
+    schoolMentions, topRated, minStars, hoursAhead, weatherTopic, useMyLocation, beta, startType, withTopo, noRain, mineTopic, year, notDone, action
 )
 
 internal fun AssistantWeatherDto.toDomain() = AssistantWeather(
@@ -281,5 +310,12 @@ fun AssistantAnswerDto.toDomain() = AssistantAnswer(
     clarification = clarification?.let { c ->
         AssistantClarification(c.kind, c.options.map { it.toDomain() })
     },
-    weather = weather?.toDomain()
+    weather = weather?.toDomain(),
+    summary = summary?.let { s ->
+        AssistantSummary(
+            AssistantOption(s.school.id, s.school.name), s.rockType, s.region, s.stones, s.sectors, s.lines,
+            s.boulderLines, s.routeLines, s.hardest,
+            s.grades.map { AssistantGradeBand(it.band, it.count) }, s.bestMonths
+        )
+    }
 )

@@ -9,7 +9,9 @@ final class AssistantPresenterTests: XCTestCase {
 
     private func understood(
         gradeMin: String? = nil, gradeMax: String? = nil, discipline: String? = nil,
-        km: Double? = nil, dateFrom: String? = nil, dateTo: String? = nil
+        km: Double? = nil, dateFrom: String? = nil, dateTo: String? = nil,
+        beta: String? = nil, startType: String? = nil, withTopo: Bool = false, noRain: Bool = false,
+        notDone: Bool = false
     ) -> AssistantUnderstood {
         AssistantUnderstood(
             intent: "SEARCH", dateFrom: dateFrom, dateTo: dateTo,
@@ -18,7 +20,55 @@ final class AssistantPresenterTests: XCTestCase {
             maxDistanceKm: km.map { KotlinDouble(double: $0) },
             q: nil, schoolMention: nil, sectorMention: nil, sun: nil, dayPart: nil,
             schoolMentions: [], topRated: false, minStars: nil, hoursAhead: nil,
-            weatherTopic: nil, useMyLocation: false)
+            weatherTopic: nil, useMyLocation: false, beta: beta,
+            startType: startType, withTopo: withTopo, noRain: noRain,
+            mineTopic: nil, year: nil, notDone: notDone, action: nil)
+    }
+
+    func testSalidaTopoYSinLluviaSalenComoChips() {
+        let chips = AssistantPresenter.chips(understood(startType: "SIT", withTopo: true, noRain: true),
+                                             school: nil, sector: nil)
+        XCTAssertTrue(chips.contains("Salida sentado"))
+        XCTAssertTrue(chips.contains("Con topo"))
+        XCTAssertTrue(chips.contains("Sin lluvia"))
+    }
+
+    func testUnaSolaEscuelaConVariosDiasDiceCualEsElMejor() {
+        func day(_ d: String, _ score: Int32, rainy: Bool = false) -> AssistantDay {
+            AssistantDay(date: d, score: score, rainMm: 0, rainProb: 0, rainy: rainy)
+        }
+        let card = AssistantSchoolCard(
+            schoolId: "s", name: "Pedriza", rockType: nil, distanceKm: nil, lineCount: 10, combinedScore: KotlinInt(int: 70),
+            days: [day("2026-10-09", 60), day("2026-10-10", 95, rainy: true), day("2026-10-11", 80)], rainDays: 1)
+        let r = AssistantRecommendation(forecastAvailable: true,
+                                        dates: ["2026-10-09", "2026-10-10", "2026-10-11"], schools: [card])
+        let text = AssistantPresenter.recommendationIntro(r)
+        XCTAssertTrue(text.contains("Pedriza"))
+        XCTAssertTrue(text.contains("80"))          // se salta el día de más nota porque llueve
+        XCTAssertFalse(text.contains("95"))
+    }
+
+    func testLoQueNoHeHechoSaleComoChip() {
+        XCTAssertTrue(AssistantPresenter.chips(understood(notDone: true), school: nil, sector: nil).contains("Sin hacer"))
+    }
+
+    func testLasRespuestasSobreLoSuyoLlevanLasCifras() {
+        let stats = MineAnswerer.MineAnswer(topic: "STATS", count: 12, maxGrade: "7A", lastDate: nil, place: nil, items: [])
+        let text = AssistantPresenter.mineText(stats)
+        XCTAssertTrue(text.contains("12"))
+        XCTAssertTrue(text.contains("7A"))
+        let none = MineAnswerer.MineAnswer(topic: "LAST_VISIT", count: 0, maxGrade: nil, lastDate: nil, place: "Zarzalejo", items: [])
+        XCTAssertTrue(AssistantPresenter.mineText(none).contains("Zarzalejo"))
+        let favs = MineAnswerer.MineAnswer(topic: "FAVORITES", count: 2, maxGrade: nil, lastDate: nil, place: nil,
+                                           items: ["Albarracín", "La Pedriza"])
+        XCTAssertTrue(AssistantPresenter.mineText(favs).contains("Albarracín, La Pedriza"))
+    }
+
+    func testLaBetaSaleComoChipSegunLaAltura() {
+        XCTAssertTrue(AssistantPresenter.chips(understood(beta: "ANY"), school: nil, sector: nil).contains("Con beta"))
+        XCTAssertTrue(AssistantPresenter.chips(understood(beta: "TALL"), school: nil, sector: nil).contains("Beta +1,70"))
+        XCTAssertTrue(AssistantPresenter.chips(understood(beta: "SHORT"), school: nil, sector: nil).contains("Beta -1,70"))
+        XCTAssertFalse(AssistantPresenter.chips(understood(), school: nil, sector: nil).contains("Con beta"))
     }
 
     func testRangoDeGradosYDistanciaSalenComoChips() {
