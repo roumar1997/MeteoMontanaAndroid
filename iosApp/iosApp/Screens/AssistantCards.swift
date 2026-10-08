@@ -13,7 +13,8 @@ struct AssistantRecommendationView: View {
         VStack(spacing: 8) {
             ForEach(Array(recommendation.schools.enumerated()), id: \.element.schoolId) { index, card in
                 AssistantSchoolCardView(rank: index + 1, card: card,
-                                        showForecast: recommendation.forecastAvailable)
+                                        showForecast: recommendation.forecastAvailable,
+                                        filtered: recommendation.filtered)
             }
         }
     }
@@ -24,6 +25,8 @@ struct AssistantSchoolCardView: View {
     let rank: Int
     let card: AssistantSchoolCard
     let showForecast: Bool
+    /// Si el recuento lleva grado/modalidad/roca pedidos; si no, es el total de la escuela y no "de ese grado".
+    let filtered: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -53,7 +56,8 @@ struct AssistantSchoolCardView: View {
                 }
             }
 
-            Text(L("%@ vías o bloques de ese grado", Int(card.lineCount)))
+            Text(filtered ? L("%@ vías o bloques de ese grado", Int(card.lineCount))
+                          : L("%@ vías y bloques en total", Int(card.lineCount)))
                 .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink)
         }
         .padding(12)

@@ -1369,6 +1369,11 @@
 "Semisentado" = "Semi-sit start";
 "Con lance" = "With a jump";
 "Con topo" = "With topo";
+"%@ vías y bloques en total" = "%@ routes and boulders in total";
+"No he encontrado escuelas en la zona." = "I couldn't find any schools in the area.";
+"Aún no hay previsión para esas fechas. Te ordeno las escuelas por número de vías." = "There's no forecast for those dates yet. I'm ranking the schools by number of routes.";
+"Ordenadas por el tiempo de esos días." = "Ranked by the weather on those days.";
+"Ordenadas por el tiempo de esos días y el nº de vías de ese grado." = "Ranked by the weather on those days and the number of routes of that grade.";
 "Plegar" = "Collapse";
 "Desplegar" = "Expand";
 "Abrir escuela" = "Open school";

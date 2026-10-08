@@ -52,6 +52,8 @@ private fun AssistantOption.toDto() = AssistantOptionDto(id, name)
 
 private fun AssistantRecommendation.toDto() = AssistantRecommendationDto(
     forecastAvailable = forecastAvailable,
+    byCount = byCount,
+    filtered = filtered,
     dates = dates,
     schools = schools.map { s ->
         AssistantSchoolCardDto(

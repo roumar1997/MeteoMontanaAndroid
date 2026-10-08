@@ -155,7 +155,9 @@ data class AssistantRecommendation(
     val dates: List<String>,
     val schools: List<AssistantSchoolCard>,
     /** true si se ordenó por número de vías ("las escuelas con más 7a"), sin mirar el tiempo. */
-    val byCount: Boolean = false
+    val byCount: Boolean = false,
+    /** true si el recuento de vías de cada escuela lleva grado, modalidad o roca pedidos ("de ese grado"). */
+    val filtered: Boolean = false
 )
 
 data class AssistantStone(

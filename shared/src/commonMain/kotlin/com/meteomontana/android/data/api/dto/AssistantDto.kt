@@ -105,7 +105,8 @@ data class AssistantRecommendationDto(
     val forecastAvailable: Boolean = true,
     val dates: List<String> = emptyList(),
     val schools: List<AssistantSchoolCardDto> = emptyList(),
-    val byCount: Boolean = false
+    val byCount: Boolean = false,
+    val filtered: Boolean = false
 )
 
 @Serializable
@@ -285,6 +286,7 @@ fun AssistantAnswerDto.toDomain() = AssistantAnswer(
             forecastAvailable = r.forecastAvailable,
             dates = r.dates,
             byCount = r.byCount,
+            filtered = r.filtered,
             schools = r.schools.map { s ->
                 AssistantSchoolCard(
                     s.schoolId, s.name, s.rockType, s.distanceKm, s.lineCount, s.combinedScore,

@@ -49,12 +49,24 @@ final class AssistantPresenterTests: XCTestCase {
         XCTAssertFalse(text.contains("95"))
     }
 
+    func testCompararSinGradoNoHablaDeEseGrado() {
+        let card = AssistantSchoolCard(
+            schoolId: "s", name: "Albarracín", rockType: nil, distanceKm: nil, lineCount: 61, combinedScore: KotlinInt(int: 26),
+            days: [], rainDays: 0)
+        let sinGrado = AssistantRecommendation(forecastAvailable: true, dates: ["2026-10-08"], schools: [card],
+                                               byCount: false, filtered: false)
+        let conGrado = AssistantRecommendation(forecastAvailable: true, dates: ["2026-10-08"], schools: [card],
+                                               byCount: false, filtered: true)
+        XCTAssertFalse(AssistantPresenter.compareIntro(sinGrado).contains("grado"))
+        XCTAssertTrue(AssistantPresenter.compareIntro(conGrado).contains("grado"))
+    }
+
     func testMasViasSaleComoChipYLaIntroDiceQueEsPorCantidad() {
         XCTAssertTrue(AssistantPresenter.chips(understood(mostLines: true), school: nil, sector: nil).contains("Con más vías"))
         let card = AssistantSchoolCard(
             schoolId: "s", name: "Albarracín", rockType: nil, distanceKm: nil, lineCount: 40, combinedScore: nil,
             days: [], rainDays: 0)
-        let r = AssistantRecommendation(forecastAvailable: false, dates: [], schools: [card], byCount: true)
+        let r = AssistantRecommendation(forecastAvailable: false, dates: [], schools: [card], byCount: true, filtered: true)
         let text = AssistantPresenter.recommendationIntro(r)
         XCTAssertFalse(text.contains("previsión"))      // no es "sin previsión": se pidió por cantidad
     }

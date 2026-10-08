@@ -347,7 +347,11 @@ enum AssistantPresenter {
         if r.schools.isEmpty { return L("No he podido comparar esas escuelas.") }
         let names = r.schools.map { $0.name }.joined(separator: ", ")
         var text = L("Comparación de %@:", names)
-        if r.forecastAvailable { text += " " + L("Ordenadas por el tiempo de esos días y el nº de vías.") }
+        if r.forecastAvailable {
+            // Sin grado pedido ("compárame el tiempo en…") el nº de vías no es "de un grado": no se menciona.
+            text += " " + (r.filtered ? L("Ordenadas por el tiempo de esos días y el nº de vías de ese grado.")
+                                      : L("Ordenadas por el tiempo de esos días."))
+        }
         return text
     }
 
@@ -457,12 +461,15 @@ enum AssistantPresenter {
 
     static func recommendationIntro(_ r: AssistantRecommendation) -> String {
         if r.schools.isEmpty {
-            return L("No he encontrado escuelas con vías de ese grado en la zona.")
+            return r.filtered ? L("No he encontrado escuelas con vías de ese grado en la zona.")
+                              : L("No he encontrado escuelas en la zona.")
         }
         // Pedido por cantidad ("las escuelas con más 7a"): no es una falta de previsión.
         if r.byCount { return L("Las escuelas con más vías o bloques de ese grado:") }
         if !r.forecastAvailable {
-            return L("Aún no hay previsión para esas fechas. Te ordeno las escuelas por número de vías de ese grado.")
+            return r.filtered
+                ? L("Aún no hay previsión para esas fechas. Te ordeno las escuelas por número de vías de ese grado.")
+                : L("Aún no hay previsión para esas fechas. Te ordeno las escuelas por número de vías.")
         }
         // Una sola escuela y varios días ("¿qué día voy a Albarracín?"): se dice cuál es el mejor.
         if r.schools.count == 1, r.dates.count >= 2, let only = r.schools.first {
