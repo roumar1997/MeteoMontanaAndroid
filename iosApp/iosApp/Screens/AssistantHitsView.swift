@@ -1,22 +1,47 @@
 import SwiftUI
 import Shared
 
-/// Resultados de una búsqueda simple en el chat: las vías o bloques que
-/// encontró el buscador, agrupados por escuela. Cada fila se puede tocar y abre
-/// esa vía en su piedra (igual que desde la pestaña Escuelas → Vías/Bloques).
+/// Resultados de una búsqueda simple en el chat: TODAS las vías o bloques que encontró el buscador,
+/// agrupados por escuela y, dentro, por sector. Escuelas y sectores se pliegan y se despliegan con un toque
+/// en su cabecera; cada fila abre esa vía en su piedra (igual que desde Escuelas → Vías/Bloques).
 struct AssistantHitsView: View {
     let hits: [LineSearchHit]
     let total: Int
+    /// Escuelas desplegadas y sectores plegados ("schoolId|sector"). Con muchos resultados solo empieza
+    /// desplegada la primera escuela: no se pinta (ni se cargan las miniaturas de) lo que no se ve.
+    @State private var expanded: Set<String>
+    @State private var collapsedSectors: Set<String> = []
+
+    init(hits: [LineSearchHit], total: Int) {
+        self.hits = hits
+        self.total = total
+        _expanded = State(initialValue: AssistantPresenter.initiallyExpanded(AssistantPresenter.groupAllHits(hits)))
+    }
 
     var body: some View {
-        let groups = AssistantPresenter.groupHits(hits)
-        let shown = groups.reduce(0) { $0 + $1.shown.count }
+        let groups = AssistantPresenter.groupAllHits(hits)
         VStack(alignment: .leading, spacing: 8) {
-            ForEach(groups) { AssistantHitGroupView(group: $0) }
-            if let note = AssistantPresenter.moreNote(total: total, shown: shown) {
-                Text(note)
-                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
+            ForEach(groups) { group in
+                AssistantHitGroupView(
+                    group: group,
+                    isExpanded: expanded.contains(group.id),
+                    collapsedSectors: collapsedSectors,
+                    onToggle: { toggle(group.id) },
+                    onToggleSector: { toggleSector(group.id, $0) })
             }
+        }
+    }
+
+    private func toggle(_ id: String) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            if expanded.contains(id) { expanded.remove(id) } else { expanded.insert(id) }
+        }
+    }
+
+    private func toggleSector(_ schoolId: String, _ sector: String) {
+        let key = AssistantPresenter.sectorKey(schoolId, sector)
+        withAnimation(.easeInOut(duration: 0.2)) {
+            if collapsedSectors.contains(key) { collapsedSectors.remove(key) } else { collapsedSectors.insert(key) }
         }
     }
 }
@@ -24,43 +49,82 @@ struct AssistantHitsView: View {
 struct AssistantHitGroupView: View {
     @EnvironmentObject private var assistant: AssistantViewModel
     let group: AssistantPresenter.HitGroup
+    let isExpanded: Bool
+    let collapsedSectors: Set<String>
+    let onToggle: () -> Void
+    let onToggleSector: (String) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Button { assistant.requestOpen(schoolId: group.id) } label: {
-                HStack {
-                    Text(group.schoolName)
-                        .font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
-                    Spacer()
-                    Text("\(group.total)")
-                        .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink2)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .semibold)).foregroundStyle(Cumbre.ink3)
-                }
-                .padding(.horizontal, 12).padding(.vertical, 10)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            ForEach(group.sectors) { sector in
-                // Cabecera de sector: solo si hay más de uno o tiene nombre (un único "sin sector" no la necesita).
-                if group.sectors.count > 1 || sector.name != nil {
-                    HStack {
-                        Text((sector.name ?? L("Sin sector")).uppercased())
-                            .font(Cumbre.mono(10, .bold)).tracking(1.4).foregroundStyle(Cumbre.ink2)
-                        Spacer()
-                        Text("\(sector.hits.count)")
-                            .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
+            header
+            if isExpanded {
+                ForEach(group.sectors) { sector in
+                    // Cabecera de sector: solo si hay más de uno o tiene nombre (un único "sin sector" no la necesita).
+                    let showsHeader = group.sectors.count > 1 || sector.name != nil
+                    let sectorKey = AssistantPresenter.sectorKey(group.id, sector.id)
+                    let sectorOpen = !showsHeader || !collapsedSectors.contains(sectorKey)
+                    if showsHeader { sectorHeader(sector, open: sectorOpen) }
+                    if sectorOpen {
+                        ForEach(sector.hits, id: \.stableId) { AssistantHitRow(hit: $0) }
                     }
-                    .padding(.horizontal, 12).padding(.vertical, 5)
-                    .background(Cumbre.bg.opacity(0.6))
                 }
-                ForEach(sector.hits, id: \.stableId) { AssistantHitRow(hit: $0) }
             }
         }
         .background(Cumbre.paper)
         .clipShape(RoundedRectangle(cornerRadius: 2))
         .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+    }
+
+    /// Escuela: tocar la cabecera pliega o despliega; el botón de la derecha abre la escuela.
+    private var header: some View {
+        HStack(spacing: 0) {
+            Button(action: onToggle) {
+                HStack(spacing: 8) {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 11, weight: .bold)).foregroundStyle(Cumbre.ink3)
+                        .frame(width: 14)
+                    Text(group.schoolName)
+                        .font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                        .multilineTextAlignment(.leading)
+                    Spacer(minLength: 6)
+                    Text("\(group.total)")
+                        .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink2)
+                }
+                .padding(.leading, 12).padding(.vertical, 10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(group.schoolName), \(group.total)")
+            .accessibilityHint(isExpanded ? L("Plegar") : L("Desplegar"))
+
+            Button { assistant.requestOpen(schoolId: group.id) } label: {
+                Image(systemName: "arrow.up.right.square")
+                    .font(.system(size: 15)).foregroundStyle(Cumbre.terra)
+                    .padding(.horizontal, 12).padding(.vertical, 10)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L("Abrir escuela"))
+        }
+    }
+
+    private func sectorHeader(_ sector: AssistantPresenter.HitSector, open: Bool) -> some View {
+        Button { onToggleSector(sector.id) } label: {
+            HStack(spacing: 6) {
+                Image(systemName: open ? "chevron.down" : "chevron.right")
+                    .font(.system(size: 9, weight: .bold)).foregroundStyle(Cumbre.ink3)
+                    .frame(width: 12)
+                Text((sector.name ?? L("Sin sector")).uppercased())
+                    .font(Cumbre.mono(10, .bold)).tracking(1.4).foregroundStyle(Cumbre.ink2)
+                Spacer()
+                Text("\(sector.hits.count)")
+                    .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 6)
+            .background(Cumbre.bg.opacity(0.6))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 

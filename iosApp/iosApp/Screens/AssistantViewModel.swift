@@ -97,11 +97,11 @@ final class AssistantViewModel: ObservableObject {
         previous = saved.previous?.toKotlin()
     }
 
-    /// Tarjetas del mensaje como texto (vacío si no tiene). De las vías se guardan solo las que
-    /// se enseñan (como mucho 5 escuelas x 4 filas), más el total, para no guardar cientos.
+    /// Tarjetas del mensaje como texto (vacío si no tiene). De las vías se guardan TODAS las que se enseñan
+    /// (el listado completo, hasta lo que devuelve el servidor: 300), para recuperarlo igual al reabrir.
     private func payload(for m: AssistantMessage) -> String? {
         guard m.recommendation != nil || m.breakdown != nil || m.weather != nil || !m.hits.isEmpty else { return nil }
-        let shown = AssistantPresenter.groupHits(m.hits).flatMap { $0.shown }
+        let shown = Array(m.hits.prefix(300))
         let p = AssistantMessagePayload(
             recommendation: m.recommendation, breakdown: m.breakdown,
             hits: shown, hitsTotal: Int32(m.hitsTotal), weather: m.weather)

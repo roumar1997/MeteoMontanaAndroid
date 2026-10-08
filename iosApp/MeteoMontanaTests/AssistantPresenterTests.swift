@@ -195,6 +195,26 @@ final class AssistantPresenterTests: XCTestCase {
         XCTAssertEqual(g.map { $0.total }, [9, 9])
     }
 
+    func testGroupAllHitsNoRecortaNiEscuelasNiFilas() {
+        var hits: [LineSearchHit] = []
+        for s in 0..<8 { for i in 0..<9 { hits.append(hit("s\(s)", "v\(s)-\(i)", sector: "X")) } }
+        let g = AssistantPresenter.groupAllHits(hits)
+        XCTAssertEqual(g.count, 8)                                   // ninguna escuela se pierde
+        XCTAssertEqual(g.map { $0.shown.count }, Array(repeating: 9, count: 8))   // ninguna fila se pierde
+    }
+
+    func testConMuchosResultadosSoloLaPrimeraEscuelaEmpiezaDesplegada() {
+        var hits: [LineSearchHit] = []
+        for s in ["a", "b", "c"] { for i in 0..<10 { hits.append(hit(s, "\(s)\(i)", sector: "X")) } }
+        let g = AssistantPresenter.groupAllHits(hits)
+        XCTAssertEqual(AssistantPresenter.initiallyExpanded(g), ["a"])
+        XCTAssertEqual(AssistantPresenter.initiallyExpanded(g, limit: 40), ["a", "b", "c"])   // pocos: todas abiertas
+    }
+
+    func testLaClaveDeSectorDistingueEscuelas() {
+        XCTAssertNotEqual(AssistantPresenter.sectorKey("a", "Techos"), AssistantPresenter.sectorKey("b", "Techos"))
+    }
+
     func testAvisoDeMasResultadosSoloSiFaltan() {
         XCTAssertNil(AssistantPresenter.moreNote(total: 8, shown: 8))
         XCTAssertNotNil(AssistantPresenter.moreNote(total: 30, shown: 20))

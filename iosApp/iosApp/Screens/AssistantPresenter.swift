@@ -241,6 +241,23 @@ enum AssistantPresenter {
         var shown: [LineSearchHit] { sectors.flatMap { $0.hits } }
     }
 
+    /// TODOS los resultados, agrupados por escuela y sector, sin recortar nada: lo que no cabe en pantalla se
+    /// resuelve plegando y desplegando, no escondiendo filas (Álvaro, 2026-10-08: "me tiene que salir la lista de todas").
+    static func groupAllHits(_ hits: [LineSearchHit]) -> [HitGroup] {
+        groupHits(hits, maxSchools: Int.max, perSchool: Int.max, perSchoolWhenAlone: Int.max)
+    }
+
+    /// Qué escuelas empiezan desplegadas: con pocos resultados todas; con muchos solo la primera, para que el
+    /// chat no se haga eterno ni se carguen cientos de miniaturas que nadie está viendo.
+    static func initiallyExpanded(_ groups: [HitGroup], limit: Int = 20) -> Set<String> {
+        let total = groups.reduce(0) { $0 + $1.total }
+        if total <= limit { return Set(groups.map { $0.id }) }
+        return Set(groups.prefix(1).map { $0.id })
+    }
+
+    /// Clave estable de un sector dentro de una escuela (para saber si está plegado).
+    static func sectorKey(_ schoolId: String, _ sectorId: String) -> String { "\(schoolId)|\(sectorId)" }
+
     /// Agrupa los resultados por escuela conservando el orden en que llegan (el servidor los manda
     /// por cercanía) y, dentro de cada escuela, por sector. Como mucho maxSchools escuelas; con
     /// varias se enseñan perSchool filas de cada una, y si solo hay UNA (p. ej. "los 6 de
