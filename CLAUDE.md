@@ -229,6 +229,36 @@ Reglas:
 
 ## Estado actual
 
+**🤖 ASISTENTE DE IA (burbuja + chat) — iOS en TestFlight (2.25.4 build 263), backend en
+PRODUCCIÓN, Android SIN PORTAR (2026-10-08).** Burbuja flotante → chat (escribir o dictar) que
+entiende frases naturales y contesta con DATOS REALES (tarjetas tocables, nunca texto inventado).
+Hace: buscar vías/bloques (grado, escuela/s, sector, "cerca de mí", estrellas, beta +1,70/-1,70,
+salida, con topo, "que no haya hecho"), comparar escuelas, recomendar dónde ir (sin lluvia, por
+cantidad de vías), tiempo (lluvia/viento/humedad/temperatura/¿roca seca?), mejor día, ficha de
+escuela, SU diario/favoritas/quedadas (se calcula EN EL MÓVIL: `MineAnswerer`, el diario no sale
+del teléfono) y ACCIONES con CONFIRMAR (favoritas, abrir escuela, aviso de fin de semana, apuntar
+en el diario hecha/proyecto). Cola de preguntas (máx. 5), REINTENTAR, listado completo y plegable.
+**Arquitectura**: la IA (Gemini, detrás del puerto `AssistantQueryInterpreter`) SOLO entiende la
+frase → `AssistantQuery`; todo lo demás es código con datos reales; el servidor devuelve estado +
+datos y las apps escriben el texto ES/EN. Cupo: 15 preguntas/día/usuario (admin sin tope), 800/día
+global, 10/min. Env en Railway: `GEMINI_API_KEY`, `GEMINI_MODEL` (opcional, admite varios por coma).
+**TRAMPAS APRENDIDAS (leer antes de tocar la IA):**
+- **Google va A RACHAS**: el mismo modelo tardó 1,3 s y a la hora 23 s; otro pasó de 503 a 1,6 s.
+  NO elegir "el modelo bueno": `HedgedModelRace` lanza el siguiente a la vez si el primero tarda
+  (2 s, 1 s en frío) y `ModelHealth` empieza por el más rápido ahora. Caché de 10 min de frases.
+- Los modelos se equivocan con el CALENDARIO ("semana pasada" = "hace dos semanas"): las fechas las
+  da el servidor (`calendarHints`). Y con el DICTADO: "7a" llega como "siete a" → `SpokenGrade`
+  fija el grado exacto con "solo/únicamente". Un seguimiento NO hereda escuela + "cerca de mí" a la vez.
+- `AssistantQuery` crece con cada función: constructores secundarios mantienen los tests; el
+  contrato con las apps es ADITIVO (apps viejas ignoran campos nuevos).
+- Staging: filtrar por GRADO devuelve [] (sin `grade_score`); usar discipline/startType para probar.
+**Banco de frases**: `GeminiPhraseSuite` (101 casos, `GEMINI_LIVE=1 ./mvnw test -Dtest=GeminiPhraseSuite`,
+gasta cupo): 101/101. Cuando Álvaro diga una frase que falla, AÑADIRLA ahí antes de arreglar.
+**NO adjuntar el build a ninguna versión de la tienda hasta que Álvaro valide el asistente.**
+**Pendiente (a su orden)**: aviso DIARIO de tiempo por la mañana (antes, comprobar que los push de iOS
+llegan con la app cerrada — APNs, ver abajo); guardar "mi casa" para "donde vivo"; respuestas por
+voz; portar a Android tras validar iOS. Detalle y causas en `HISTORIAL.md` 2026-10-08.
+
 **🧗 ICONOS VÍA/BLOQUE — HECHO y VALIDADO en iOS y Android (2026-10-06).**
 Mosquetón = vías, crashpad = bloques, los dos si es mixta: lista de Escuelas,
 pestaña Vías/Bloques y piedras del mapa (icono + chapa con el nombre corto).
