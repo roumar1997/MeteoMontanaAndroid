@@ -51,6 +51,9 @@ struct MeteoMontanaApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @StateObject private var session = SessionStore()
     @StateObject private var shareRouter = ShareLinkRouter.shared
+    /// Conversación del asistente: vive aquí para sobrevivir a cerrar el chat y a abrir
+    /// una escuela o piedra desde él.
+    @StateObject private var assistant = AssistantViewModel()
     /// Idioma elegido en la app: al cambiarlo se reconstruye el árbol de vistas.
     @StateObject private var language = LanguageManager.shared
     @Environment(\.scenePhase) private var scenePhase
@@ -66,6 +69,9 @@ struct MeteoMontanaApp: App {
             // MainTabView (igual que AppRoot.kt en Android).
             RootView()
                 .environmentObject(session)
+                .environmentObject(assistant)
+                // La conversación del asistente es de una cuenta: se recupera al entrar y se borra al salir.
+                .onChange(of: session.user?.uid, initial: true) { _, uid in assistant.attachSession(uid: uid) }
                 .environment(\.locale, language.locale)
                 .id(language.choice)
                 // Enlaces compartidos (Universal Links /s/...) o, si no es
@@ -105,11 +111,25 @@ struct MeteoMontanaApp: App {
                         }
                         .toolbar {
                             ToolbarItem(placement: .topBarLeading) {
-                                Button("Cerrar") { ShareLinkRouter.shared.target = nil }
+                                Button("Cerrar") {
+                                    assistant.contextSchoolId = nil
+                                    ShareLinkRouter.shared.target = nil
+                                }
                                     .foregroundStyle(Cumbre.terra)
                             }
                         }
                     }
+                    // El círculo del asistente también sale sobre la escuela o piedra abierta: se
+                    // puede volver a abrir y seguir preguntando sin perder la conversación. Estando
+                    // dentro de una escuela, "¿qué sector tiene más sombra?" ya sabe de cuál hablas.
+                    .overlay(alignment: .bottomTrailing) {
+                        if t.school != nil {
+                            AssistantBubble()
+                                .padding(.trailing, 14)
+                                .padding(.bottom, 20)
+                        }
+                    }
+                    .onAppear { assistant.contextSchoolId = t.school?.id }
                 }
                 // Al arrancar, sube las vías marcadas sin red que quedaron en cola.
                 .task {

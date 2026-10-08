@@ -141,6 +141,14 @@ targets:
           mostrar tu posición en el mapa.
         # La app sube fotos (notas, topos de vías, foto de perfil): sin estas
         # cadenas iOS lanza una excepción al pedir acceso a cámara/galería.
+        # Asistente de búsqueda: botón de micrófono del chat. Se reconoce la voz en
+        # el propio móvil si es posible; si no, iOS puede usar los servidores de Apple.
+        NSMicrophoneUsageDescription: >-
+          Para dictar tus preguntas al asistente en lugar de escribirlas.
+        NSSpeechRecognitionUsageDescription: >-
+          Para convertir tu voz en texto al dictar una pregunta al asistente. Si
+          tu móvil no lo admite en local, iOS puede procesarla en los servidores
+          de Apple. Cumbre solo recibe el texto, nunca el audio.
         NSCameraUsageDescription: >-
           Para hacer fotos de las vías, escuelas o tu perfil.
         # Menciona la UBICACIÓN a propósito: desde 2.22.0 la app lee dónde se

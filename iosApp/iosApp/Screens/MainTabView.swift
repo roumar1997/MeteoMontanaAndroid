@@ -52,6 +52,12 @@ struct MainTabView: View {
                 .tag(4)
         }
         .tint(Cumbre.terra)
+        // Burbuja del asistente: siempre visible, encima de la barra de pestañas.
+        .overlay(alignment: .bottomTrailing) {
+            AssistantBubble()
+                .padding(.trailing, 14)
+                .padding(.bottom, 62)
+        }
     }
 }
 

@@ -39,6 +39,14 @@ final class ShareLinkRouter: ObservableObject {
 
     @Published var target: Target? = nil
 
+    /// Abre una escuela (y, si se indica, la piedra de esa vía) desde cualquier
+    /// parte de la app, por el mismo camino que los enlaces compartidos.
+    func openSchool(id: String, viaId: String? = nil) async {
+        if let school = try? await AppDependencies.shared.container.getSchoolById.invoke(id: id) {
+            target = Target(school: school, viaId: viaId)
+        }
+    }
+
     /// True si la URL era nuestra (consumida); false → que la maneje otro.
     func handle(_ url: URL) -> Bool {
         let seg = url.pathComponents.filter { $0 != "/" }

@@ -969,7 +969,7 @@ extension School: Identifiable {}
 
 /// P8: quita puntos consecutivos casi identicos (trazos antiguos fusionaban
 /// los guiones y la linea salia continua en el buscador).
-fileprivate func dedupPoints(_ raw: [CGPoint]) -> [CGPoint] {
+func dedupPoints(_ raw: [CGPoint]) -> [CGPoint] {
     var pts: [CGPoint] = []
     for pt in raw {
         if let last = pts.last, abs(pt.x - last.x) + abs(pt.y - last.y) < 0.004 { continue }
@@ -981,7 +981,7 @@ fileprivate func dedupPoints(_ raw: [CGPoint]) -> [CGPoint] {
 /// Miniatura de resultado: foto + trazo fino, SIN el badge de número/tipo de
 /// inicio que usa TopoPhotoView (pensado para el visor grande) — a 44pt ese
 /// badge tapaba la foto entera. Solo "se intuye" el trazo, como pidió Álvaro.
-fileprivate struct MiniTopoThumbnail: View {
+struct MiniTopoThumbnail: View {
     let photoUrl: String
     let points: [CGPoint]
     let grade: String?

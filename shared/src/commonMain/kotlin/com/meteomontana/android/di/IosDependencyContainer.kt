@@ -206,6 +206,9 @@ class IosDependencyContainer(
     private val contributionRepository = KtorContributionRepository(contributionApi)
     private val suggestionRepository =
         com.meteomontana.android.data.repository.KtorSuggestionRepository(suggestionApi)
+    // Asistente de búsqueda con IA (burbuja flotante + chat).
+    private val assistantRepository = com.meteomontana.android.data.repository.KtorAssistantRepository(
+        com.meteomontana.android.data.api.KtorAssistantApi(httpClient))
     private val journalRepository = KtorJournalRepository(KtorJournalApi(httpClient))
     // Público: iOS lo usa directo para los comentarios de piedras/vías.
     val blockApi = KtorBlockApi(httpClient)
@@ -284,6 +287,10 @@ class IosDependencyContainer(
     // Botón "?" de ayuda → "Sugerir algo / reportar un fallo".
     val submitSuggestion =
         com.meteomontana.android.domain.usecase.suggestion.SubmitSuggestionUseCase(suggestionRepository)
+
+    // Asistente de búsqueda con IA: una pregunta → qué entendió + resultados reales.
+    val askAssistant =
+        com.meteomontana.android.domain.usecase.assistant.AskAssistantUseCase(assistantRepository)
 
     // Perfil privado (JIT provisioning en el primer getMyProfile).
     val getMyProfile = GetMyProfileUseCase(profileRepository)
