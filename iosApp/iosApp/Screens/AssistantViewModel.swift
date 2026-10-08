@@ -106,6 +106,8 @@ final class AssistantViewModel: ObservableObject {
         let viaId: String?
     }
     @Published var openRequest: OpenRequest?
+    /// La burbuja se mantuvo pulsada: el chat, al abrirse, empieza a escuchar directamente.
+    @Published var listenOnOpen = false
 
     func requestOpen(schoolId: String, viaId: String? = nil) {
         openRequest = OpenRequest(schoolId: schoolId, viaId: viaId)

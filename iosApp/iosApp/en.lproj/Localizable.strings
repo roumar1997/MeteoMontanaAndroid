@@ -1322,3 +1322,7 @@
 "Para filtrar por distancia activa tu ubicación." = "Turn on your location to filter by distance.";
 "Y %@ más. Mira todos en Escuelas → Vías/Bloques." = "And %@ more. See them all in Crags → Routes/Boulders.";
 "Guardado hace %@ h. El tiempo puede haber cambiado." = "Saved %@ h ago. The weather may have changed.";
+"Mantén pulsado el círculo para hablar directamente." = "Press and hold the circle to talk directly.";
+"Escuchando… se envía solo al callar. Toca el micrófono para parar y editar." = "Listening… it sends itself when you stop talking. Tap the mic to stop and edit.";
+"No te he oído. Toca el micrófono e inténtalo otra vez." = "I didn't hear you. Tap the mic and try again.";
+"Hablar" = "Talk";

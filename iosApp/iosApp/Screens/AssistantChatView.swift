@@ -10,16 +10,25 @@ struct AssistantBubble: View {
     @State private var open = false
 
     var body: some View {
-        Button { open = true } label: {
-            // Cabra montés sobre las montañas con la insignia "IA" (opción C de la maqueta). El PNG ya
-            // trae el recorte circular y la insignia, que sobresale: por eso no se recorta aquí.
-            Image("assistant_bubble")
-                .resizable().scaledToFit()
-                .frame(width: 58, height: 58)
-                .shadow(color: .black.opacity(0.28), radius: 3, x: 0, y: 2)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(L("Asistente de Cumbre"))
+        Image("assistant_bubble")
+            .resizable().scaledToFit()
+            .frame(width: 58, height: 58)
+            .shadow(color: .black.opacity(0.28), radius: 3, x: 0, y: 2)
+            .contentShape(Circle())
+            // Toque = abrir el chat. Mantener pulsado = abrirlo YA escuchando: hablas y miras lo que te ofrece.
+            .onTapGesture { open = true }
+            .onLongPressGesture(minimumDuration: 0.45) {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                assistant.listenOnOpen = true
+                open = true
+            }
+            .accessibilityElement()
+            .accessibilityLabel(L("Asistente de Cumbre"))
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction(named: Text(L("Hablar"))) {
+                assistant.listenOnOpen = true
+                open = true
+            }
         // Al tocar un resultado el chat se cierra y, cuando ya se ha cerrado del todo, se abre
         // el destino (una hoja no puede presentarse mientras otra se está retirando).
         .onChange(of: assistant.openRequest) { _, request in
@@ -53,6 +62,7 @@ struct AssistantChatView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 messagesList
+                voiceHint
                 inputBar
             }
             .background(Cumbre.bg.ignoresSafeArea())
@@ -71,7 +81,15 @@ struct AssistantChatView: View {
                 }
             }
         }
-        .onAppear { voice.onText = { vm.input = String($0.prefix(AssistantViewModel.maxText)) } }
+        .onAppear {
+            voice.onText = { vm.input = String($0.prefix(AssistantViewModel.maxText)) }
+            // Al callar, la pregunta se envía sola.
+            voice.onFinished = { spoken in Task { await vm.send(spoken) } }
+            if vm.listenOnOpen {
+                vm.listenOnOpen = false
+                voice.start()
+            }
+        }
         .onDisappear { voice.stop() }
         .onChange(of: voice.permissionDenied) { _, denied in showVoiceDenied = denied }
         .alert(L("Micrófono"), isPresented: $showVoiceDenied) {
@@ -114,12 +132,34 @@ struct AssistantChatView: View {
         }
     }
 
+    /// Estado del micrófono, justo encima de la caja: qué está pasando y cómo pararlo.
+    @ViewBuilder
+    private var voiceHint: some View {
+        if voice.isListening {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small).tint(Cumbre.terra)
+                Text(L("Escuchando… se envía solo al callar. Toca el micrófono para parar y editar."))
+                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 8)
+            .background(Cumbre.terraBg)
+        } else if voice.heardNothing {
+            Text(L("No te he oído. Toca el micrófono e inténtalo otra vez."))
+                .font(.system(size: 12)).foregroundStyle(Cumbre.bad)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16).padding(.vertical, 8)
+        }
+    }
+
     private var welcome: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(L("¿Qué buscas hoy?"))
                 .font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
             Text(L("Pregúntame por escuelas, bloques, vías, el tiempo o la sombra de un sector. También puedes dictarlo."))
                 .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+            Text(L("Mantén pulsado el círculo para hablar directamente."))
+                .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink3)
             ForEach(vm.suggestions, id: \.self) { s in
                 Button { Task { await vm.send(s) } } label: {
                     Text(s)
