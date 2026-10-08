@@ -94,6 +94,10 @@ struct AssistantHitRow: View {
                         Text(hit.blockName)
                             .font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(1)
                     }
+                    if let avg = hit.rating?.doubleValue, let votes = hit.ratingCount?.intValue, votes > 0 {
+                        Text(AssistantPresenter.starsLabel(rating: avg, count: Int(votes)))
+                            .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.warn)
+                    }
                     if let o = hit.orientation, !o.isEmpty {
                         Text(aspectLabel(o)).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
                     } else {

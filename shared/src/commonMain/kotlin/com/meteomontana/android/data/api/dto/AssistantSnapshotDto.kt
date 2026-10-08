@@ -22,7 +22,8 @@ data class AssistantMessagePayloadDto(
     val recommendation: AssistantRecommendationDto? = null,
     val breakdown: AssistantBreakdownDto? = null,
     val hits: List<LineSearchHitDto> = emptyList(),
-    val hitsTotal: Int = 0
+    val hitsTotal: Int = 0,
+    val weather: AssistantWeatherDto? = null
 )
 
 object AssistantSnapshotCodec {
@@ -43,7 +44,8 @@ private fun AssistantMessagePayload.toDto() = AssistantMessagePayloadDto(
     recommendation = recommendation?.toDto(),
     breakdown = breakdown?.toDto(),
     hits = hits.map { it.toDto() },
-    hitsTotal = hitsTotal
+    hitsTotal = hitsTotal,
+    weather = weather?.toDto()
 )
 
 private fun AssistantOption.toDto() = AssistantOptionDto(id, name)
@@ -80,7 +82,7 @@ private fun AssistantBreakdown.toDto() = AssistantBreakdownDto(
 
 private fun LineSearchHit.toDto() = LineSearchHitDto(
     schoolId, schoolName, blockId, blockName, lineId, lineName, grade, sectorName,
-    photoPath, linePath, startType, lat, lon, orientation, discipline
+    photoPath, linePath, startType, lat, lon, orientation, discipline, rating, ratingCount
 )
 
 // ── DTO → dominio ───────────────────────────────────────────────────────────
@@ -96,8 +98,10 @@ private fun AssistantMessagePayloadDto.toDomain() = AssistantMessagePayload(
     hits = hits.map { h ->
         LineSearchHit(
             h.schoolId, h.schoolName, h.blockId, h.blockName, h.lineId, h.lineName, h.grade,
-            h.sectorName, h.photoPath, h.linePath, h.startType, h.lat, h.lon, h.orientation, h.discipline
+            h.sectorName, h.photoPath, h.linePath, h.startType, h.lat, h.lon, h.orientation, h.discipline,
+            h.rating, h.ratingCount
         )
     },
-    hitsTotal = hitsTotal
+    hitsTotal = hitsTotal,
+    weather = weather?.toDomain()
 )

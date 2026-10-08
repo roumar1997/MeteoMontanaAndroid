@@ -3,7 +3,12 @@ package com.meteomontana.android.data.api
 import com.meteomontana.android.data.api.dto.AssistantAnswerDto
 import com.meteomontana.android.data.api.dto.AssistantSnapshotCodec
 import com.meteomontana.android.data.api.dto.toDomain
+import com.meteomontana.android.domain.model.AssistantClimbing
+import com.meteomontana.android.domain.model.AssistantHourPoint
 import com.meteomontana.android.domain.model.AssistantMessagePayload
+import com.meteomontana.android.domain.model.AssistantNow
+import com.meteomontana.android.domain.model.AssistantRain
+import com.meteomontana.android.domain.model.AssistantWeather
 import com.meteomontana.android.domain.model.LineSearchHit
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -38,7 +43,8 @@ class AssistantSnapshotCodecTest {
         schoolId = "albarracin", schoolName = "Albarracín", blockId = "b1", blockName = "Piedra 1",
         lineId = "l1", lineName = "La lágrima", grade = "6C", sectorName = "Techos",
         photoPath = "fotos/b1.jpg", linePath = "[{\"x\":0.1,\"y\":0.2}]", startType = "SIT",
-        lat = 40.38, lon = -1.4, orientation = "N", discipline = "BOULDER"
+        lat = 40.38, lon = -1.4, orientation = "N", discipline = "BOULDER",
+        rating = 4.5, ratingCount = 8
     )
 
     @Test fun laRecomendacionVuelveIgual() {
@@ -63,6 +69,22 @@ class AssistantSnapshotCodecTest {
         val vuelta = AssistantSnapshotCodec.decode(AssistantSnapshotCodec.encode(payload))
         assertEquals(listOf(hit), vuelta.hits)
         assertEquals(42, vuelta.hitsTotal)
+        assertEquals(4.5, vuelta.hits.single().rating)        // las estrellas también se guardan
+        assertEquals(8, vuelta.hits.single().ratingCount)
+    }
+
+    @Test fun elTiempoVuelveIgual() {
+        val tiempo = AssistantWeather(
+            placeName = null, myLocation = true, topic = "RAIN",
+            now = AssistantNow(14.2, 71.0, 18.5, 0.0, 20, 60, 8.1),
+            hours = listOf(AssistantHourPoint("2026-10-08T15:00", 14.0, 0.0, 10, 16.0),
+                AssistantHourPoint("2026-10-08T16:00", 13.0, 1.2, 80, 22.0)),
+            rain = AssistantRain(true, 1, 1.2, 80, 6),
+            climbing = AssistantClimbing(62, "Aceptable", true, "Seca en ~12 h", "2026-10-09T10:00", "2026-10-09T13:00")
+        )
+        val vuelta = AssistantSnapshotCodec.decode(
+            AssistantSnapshotCodec.encode(AssistantMessagePayload(null, null, emptyList(), 0, tiempo)))
+        assertEquals(tiempo, vuelta.weather)
     }
 
     @Test fun unTextoRotoLanzaEnVezDeInventar() {

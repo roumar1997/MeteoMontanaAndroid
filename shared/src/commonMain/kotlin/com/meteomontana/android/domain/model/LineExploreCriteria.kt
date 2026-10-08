@@ -18,7 +18,9 @@ data class LineExploreCriteria(
     val lon: Double? = null,
     val maxDistanceKm: Double? = null,
     val sort: String? = null,             // DISTANCE | GRADE_ASC | GRADE_DESC
-    val offset: Int = 0
+    val offset: Int = 0,
+    /** Pide la media de estrellas y el nº de votos de cada vía (una consulta más en el servidor). */
+    val withRatings: Boolean = false
 ) {
     /** §8.1: la pantalla entra en modo vías en cuanto hay grado puesto — es la
      *  única condición que importa para el modo implícito (§4.1); el resto de

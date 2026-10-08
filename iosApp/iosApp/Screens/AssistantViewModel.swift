@@ -9,6 +9,8 @@ struct AssistantMessage: Identifiable {
     var chips: [String] = []
     var recommendation: AssistantRecommendation? = nil
     var breakdown: AssistantBreakdown? = nil
+    /// El tiempo de un sitio (pregunta de lluvia, viento, humedad…).
+    var weather: AssistantWeather? = nil
     /// Vías o bloques encontrados por una búsqueda simple, y cuántos hubo en total.
     var hits: [LineSearchHit] = []
     var hitsTotal = 0
@@ -61,6 +63,7 @@ final class AssistantViewModel: ObservableObject {
             if let json = $0.payload, let p = try? AssistantSnapshotCodec.shared.decode(text: json) {
                 m.recommendation = p.recommendation
                 m.breakdown = p.breakdown
+                m.weather = p.weather
                 m.hits = p.hits
                 m.hitsTotal = Int(p.hitsTotal)
             }
@@ -74,11 +77,11 @@ final class AssistantViewModel: ObservableObject {
     /// Tarjetas del mensaje como texto (vacío si no tiene). De las vías se guardan solo las que
     /// se enseñan (como mucho 5 escuelas x 4 filas), más el total, para no guardar cientos.
     private func payload(for m: AssistantMessage) -> String? {
-        guard m.recommendation != nil || m.breakdown != nil || !m.hits.isEmpty else { return nil }
+        guard m.recommendation != nil || m.breakdown != nil || m.weather != nil || !m.hits.isEmpty else { return nil }
         let shown = AssistantPresenter.groupHits(m.hits).flatMap { $0.shown }
         let p = AssistantMessagePayload(
             recommendation: m.recommendation, breakdown: m.breakdown,
-            hits: shown, hitsTotal: Int32(m.hitsTotal))
+            hits: shown, hitsTotal: Int32(m.hitsTotal), weather: m.weather)
         return try? AssistantSnapshotCodec.shared.encode(payload: p)
     }
 
@@ -171,9 +174,15 @@ final class AssistantViewModel: ObservableObject {
         switch answer.status {
         case .ok:
             previous = answer.understood ?? previous
-            if let rec = answer.recommendation {
+            if let w = answer.weather {
                 messages.append(AssistantMessage(
-                    isUser: false, text: AssistantPresenter.recommendationIntro(rec),
+                    isUser: false, text: AssistantPresenter.weatherHeadline(w),
+                    chips: chips, weather: w))
+            } else if let rec = answer.recommendation {
+                let compare = answer.understood?.intent == "COMPARE"
+                messages.append(AssistantMessage(
+                    isUser: false,
+                    text: compare ? AssistantPresenter.compareIntro(rec) : AssistantPresenter.recommendationIntro(rec),
                     chips: chips, recommendation: rec))
             } else if let b = answer.breakdown {
                 messages.append(AssistantMessage(
@@ -184,9 +193,10 @@ final class AssistantViewModel: ObservableObject {
                 // una se puede tocar para abrirla.
                 let hits = try await loadHits(answer, location: location)
                 let needsLocation = answer.understood?.maxDistanceKm != nil && location == nil
+                let rated = answer.understood?.topRated == true || answer.understood?.minStars != nil
                 messages.append(AssistantMessage(
                     isUser: false,
-                    text: AssistantPresenter.hitsIntro(total: hits.count, needsLocationForDistance: needsLocation),
+                    text: AssistantPresenter.hitsIntro(total: hits.count, needsLocationForDistance: needsLocation, rated: rated),
                     chips: chips, hits: hits, hitsTotal: hits.count))
             }
         case .needsInput:
@@ -206,15 +216,18 @@ final class AssistantViewModel: ObservableObject {
 
     // MARK: - Resultados de una búsqueda simple
 
-    /// Pide al buscador de la app lo que entendió el asistente: con filtros (grado,
-    /// modalidad, roca, orientación, escuela, distancia) usa el modo "explorar"; con
-    /// solo un nombre, la búsqueda de siempre por nombre. Si la frase nombró un sector,
-    /// se quedan los de ese sector.
+    /// Pide al buscador de la app lo que entendió el asistente: con filtros (grado, modalidad,
+    /// roca, orientación, escuela, distancia, estrellas) usa el modo "explorar"; con solo un nombre,
+    /// la búsqueda de siempre por nombre. Si la frase nombró un sector, se quedan los de ese sector.
+    /// Si pidió lo mejor valorado, se piden también las estrellas y se ordena por ellas.
     private func loadHits(_ answer: AssistantAnswer, location: UserLocation?) async throws -> [LineSearchHit] {
         guard let u = answer.understood else { return [] }
         let schoolId = answer.resolvedSchool?.id
+        let minStars = u.minStars.map { Int($0.intValue) }
+        let rated = u.topRated || minStars != nil
         let hasFilter = u.gradeMin != nil || u.gradeMax != nil || u.discipline != nil
-            || !u.rockTypes.isEmpty || !u.orientations.isEmpty || u.maxDistanceKm != nil || schoolId != nil
+            || !u.rockTypes.isEmpty || !u.orientations.isEmpty || u.maxDistanceKm != nil
+            || schoolId != nil || rated
 
         var hits: [LineSearchHit] = []
         if hasFilter {
@@ -226,7 +239,7 @@ final class AssistantViewModel: ObservableObject {
                 lat: location.map { KotlinDouble(double: $0.lat) },
                 lon: location.map { KotlinDouble(double: $0.lon) },
                 maxDistanceKm: u.maxDistanceKm,
-                sort: "DISTANCE", offset: 0)
+                sort: "DISTANCE", offset: 0, withRatings: rated)
             hits = try await container.exploreLines.invoke(criteria: criteria)
         } else if let q = u.q, !q.isEmpty {
             hits = try await container.searchLines.invoke(query: q)
@@ -234,6 +247,7 @@ final class AssistantViewModel: ObservableObject {
         if let sector = answer.resolvedSector?.name {
             hits = hits.filter { ($0.sectorName ?? "").caseInsensitiveCompare(sector) == .orderedSame }
         }
+        if rated { hits = AssistantPresenter.rankByRating(hits, minStars: minStars) }
         return hits
     }
 

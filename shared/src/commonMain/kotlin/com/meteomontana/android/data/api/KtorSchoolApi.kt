@@ -86,6 +86,7 @@ class KtorSchoolApi(private val client: HttpClient) {
             criteria.maxDistanceKm?.let { parameter("maxDistanceKm", it) }
             criteria.sort?.let { parameter("sort", it) }
             parameter("offset", criteria.offset)
+            if (criteria.withRatings) parameter("withRatings", true)
         }.body()
 
     @Throws(Exception::class)
@@ -146,5 +147,8 @@ data class LineSearchHitDto(
     val lon: Double? = null,
     val orientation: String? = null,
     // "BOULDER" / "ROUTE" de la piedra (aditivo; null con backends viejos).
-    val discipline: String? = null
+    val discipline: String? = null,
+    // Estrellas (aditivo; solo vienen si se pidió withRatings=true).
+    val rating: Double? = null,
+    val ratingCount: Int? = null
 )

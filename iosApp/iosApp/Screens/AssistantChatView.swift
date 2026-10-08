@@ -209,8 +209,9 @@ struct AssistantChatView: View {
                 if !m.chips.isEmpty { chipsRow(m.chips) }
                 if let r = m.recommendation { AssistantRecommendationView(recommendation: r) }
                 if let b = m.breakdown { AssistantBreakdownView(breakdown: b) }
+                if let w = m.weather { AssistantWeatherCard(weather: w) }
                 if !m.hits.isEmpty { AssistantHitsView(hits: m.hits, total: m.hitsTotal) }
-                if m.restored, m.recommendation != nil || m.breakdown != nil || !m.hits.isEmpty,
+                if m.restored, m.recommendation != nil || m.breakdown != nil || m.weather != nil || !m.hits.isEmpty,
                    let note = AssistantPresenter.savedNote(createdAt: m.createdAt) {
                     Text(note)
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)

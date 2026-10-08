@@ -36,6 +36,13 @@ struct StoredAssistantConversation: Codable, Equatable {
         var sectorMention: String?
         var sun: String?
         var dayPart: String?
+        // Campos nuevos como opcionales: una conversación guardada con la versión anterior sigue leyéndose.
+        var schoolMentions: [String]?
+        var topRated: Bool?
+        var minStars: Int?
+        var hoursAhead: Int?
+        var weatherTopic: String?
+        var useMyLocation: Bool?
     }
 
     var uid: String
@@ -51,7 +58,10 @@ extension StoredAssistantConversation.Understood {
                   rockTypes: u.rockTypes, orientations: u.orientations,
                   maxDistanceKm: u.maxDistanceKm?.doubleValue, q: u.q,
                   schoolMention: u.schoolMention, sectorMention: u.sectorMention,
-                  sun: u.sun, dayPart: u.dayPart)
+                  sun: u.sun, dayPart: u.dayPart,
+                  schoolMentions: u.schoolMentions, topRated: u.topRated,
+                  minStars: u.minStars.map { Int($0.intValue) }, hoursAhead: u.hoursAhead.map { Int($0.intValue) },
+                  weatherTopic: u.weatherTopic, useMyLocation: u.useMyLocation)
     }
 
     func toKotlin() -> AssistantUnderstood {
@@ -61,7 +71,11 @@ extension StoredAssistantConversation.Understood {
             rockTypes: rockTypes, orientations: orientations,
             maxDistanceKm: maxDistanceKm.map { KotlinDouble(double: $0) },
             q: q, schoolMention: schoolMention, sectorMention: sectorMention,
-            sun: sun, dayPart: dayPart)
+            sun: sun, dayPart: dayPart,
+            schoolMentions: schoolMentions ?? [], topRated: topRated ?? false,
+            minStars: minStars.map { KotlinInt(int: Int32($0)) },
+            hoursAhead: hoursAhead.map { KotlinInt(int: Int32($0)) },
+            weatherTopic: weatherTopic, useMyLocation: useMyLocation ?? false)
     }
 }
 

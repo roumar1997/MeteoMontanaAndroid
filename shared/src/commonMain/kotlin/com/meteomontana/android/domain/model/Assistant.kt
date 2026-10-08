@@ -42,7 +42,68 @@ data class AssistantUnderstood(
     /** "SHADE" | "SUN" | null. */
     val sun: String? = null,
     /** "MORNING" | "AFTERNOON" | "ALL_DAY" | null. */
-    val dayPart: String? = null
+    val dayPart: String? = null,
+    /** Escuelas que se comparan (intención COMPARE). */
+    val schoolMentions: List<String> = emptyList(),
+    /** Pidió lo mejor valorado ("los mejores", "recomendados", "con estrellas"...). */
+    val topRated: Boolean = false,
+    /** Mínimo de estrellas (1 a 5) si dijo cuántas. */
+    val minStars: Int? = null,
+    /** Horas que mira hacia delante una pregunta del tiempo. */
+    val hoursAhead: Int? = null,
+    /** RAIN | WIND | HUMIDITY | TEMPERATURE | GENERAL (solo en preguntas del tiempo). */
+    val weatherTopic: String? = null,
+    /** Habló de DONDE ESTÁ: se usó su ubicación. */
+    val useMyLocation: Boolean = false
+)
+
+/** El tiempo de ahora en un sitio. */
+data class AssistantNow(
+    val temperature: Double,
+    val humidity: Double,
+    val windKmh: Double,
+    val precipitationMm: Double,
+    val rainProbability: Int,
+    val cloudCover: Int,
+    val dewPoint: Double?
+)
+
+data class AssistantHourPoint(
+    val time: String,
+    val temperature: Double,
+    val precipitationMm: Double,
+    val rainProbability: Int,
+    val windKmh: Double
+)
+
+/** ¿Va a llover en las horas que preguntó? startsInHours: 0 = ahora mismo; null = no se espera. */
+data class AssistantRain(
+    val expected: Boolean,
+    val startsInHours: Int?,
+    val totalMm: Double,
+    val maxProbability: Int,
+    val hoursChecked: Int
+)
+
+/** Cómo está para escalar (mismo índice que la pantalla del tiempo). */
+data class AssistantClimbing(
+    val score: Int,
+    val label: String,
+    val rockWet: Boolean,
+    val dryingMessage: String?,
+    val bestWindowStart: String?,
+    val bestWindowEnd: String?
+)
+
+data class AssistantWeather(
+    /** null = la ubicación del usuario. */
+    val placeName: String?,
+    val myLocation: Boolean,
+    val topic: String,
+    val now: AssistantNow,
+    val hours: List<AssistantHourPoint>,
+    val rain: AssistantRain,
+    val climbing: AssistantClimbing
 )
 
 data class AssistantDay(
@@ -121,7 +182,8 @@ data class AssistantAnswer(
     val resolvedSector: AssistantOption?,
     val recommendation: AssistantRecommendation?,
     val breakdown: AssistantBreakdown?,
-    val clarification: AssistantClarification?
+    val clarification: AssistantClarification?,
+    val weather: AssistantWeather?
 )
 
 /**
@@ -134,5 +196,6 @@ data class AssistantMessagePayload(
     val breakdown: AssistantBreakdown?,
     val hits: List<LineSearchHit>,
     /** Cuántos resultados hubo en total (en `hits` solo vienen los que se muestran). */
-    val hitsTotal: Int
+    val hitsTotal: Int,
+    val weather: AssistantWeather? = null
 )

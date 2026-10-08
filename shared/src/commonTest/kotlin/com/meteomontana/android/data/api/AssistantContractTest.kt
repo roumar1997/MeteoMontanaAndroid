@@ -45,6 +45,17 @@ class AssistantContractTest {
            "totalMatching":2,"totalStones":5,"stonesWithOrientation":4},"clarification":null}
     """.trimIndent()
 
+    private val tiempo = """
+        {"status":"OK","understood":{"intent":"WEATHER","rockTypes":[],"orientations":[],"schoolMentions":[],
+           "topRated":false,"hoursAhead":3,"weatherTopic":"RAIN","useMyLocation":true},
+         "resolved":{"school":null,"sector":null},"recommendation":null,"breakdown":null,"clarification":null,
+         "weather":{"placeName":null,"myLocation":true,"topic":"RAIN",
+           "now":{"temperature":14.2,"humidity":71.0,"windKmh":18.5,"precipitationMm":0.0,"rainProbability":20,"cloudCover":60,"dewPoint":null},
+           "hours":[{"time":"2026-10-08T15:00","temperature":14.0,"precipitationMm":0.0,"rainProbability":10,"windKmh":16.0}],
+           "rain":{"expected":true,"startsInHours":2,"totalMm":1.4,"maxProbability":85,"hoursChecked":3},
+           "climbing":{"score":62,"label":"Aceptable","rockWet":false,"dryingMessage":null,"bestWindowStart":null,"bestWindowEnd":null}}}
+    """.trimIndent()
+
     private val pideEscuela = """
         {"status":"NEEDS_INPUT","understood":{"intent":"BREAKDOWN","rockTypes":[],"orientations":[]},"resolved":null,"recommendation":null,"breakdown":null,
          "clarification":{"kind":"SCHOOL_AMBIGUOUS","options":[{"id":"a","name":"Torrelodones"},{"id":"b","name":"Torrelaguna"}]}}
@@ -80,6 +91,27 @@ class AssistantContractTest {
         assertEquals(AssistantStatus.NEEDS_INPUT, a.status)
         assertEquals("SCHOOL_AMBIGUOUS", a.clarification!!.kind)
         assertEquals(listOf("Torrelodones", "Torrelaguna"), a.clarification!!.options.map { it.name })
+    }
+
+    @Test fun elTiempoSeLeeConLaLluviaYLaUbicacion() {
+        val a = json.decodeFromString<AssistantAnswerDto>(tiempo).toDomain()
+        val w = a.weather!!
+        assertTrue(w.myLocation)
+        assertNull(w.placeName)                              // null = "tu ubicación"
+        assertEquals("RAIN", w.topic)
+        assertEquals(2, w.rain.startsInHours)
+        assertEquals(85, w.rain.maxProbability)
+        assertEquals(18.5, w.now.windKmh)
+        assertEquals(62, w.climbing.score)
+        assertEquals(3, a.understood!!.hoursAhead)
+        assertTrue(a.understood!!.useMyLocation)
+    }
+
+    @Test fun unaRespuestaAntiguaSinTiempoSigueLeyendose() {
+        val a = json.decodeFromString<AssistantAnswerDto>(recomendacion).toDomain()
+        assertNull(a.weather)
+        assertTrue(a.understood!!.schoolMentions.isEmpty())  // campos nuevos ausentes → valores por defecto
+        assertEquals(false, a.understood!!.topRated)
     }
 
     @Test fun unEstadoDesconocidoSeTrataComoNoDisponible() {

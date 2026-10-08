@@ -16,7 +16,9 @@ final class AssistantPresenterTests: XCTestCase {
             gradeMin: gradeMin, gradeMax: gradeMax, discipline: discipline,
             rockTypes: [], orientations: [],
             maxDistanceKm: km.map { KotlinDouble(double: $0) },
-            q: nil, schoolMention: nil, sectorMention: nil, sun: nil, dayPart: nil)
+            q: nil, schoolMention: nil, sectorMention: nil, sun: nil, dayPart: nil,
+            schoolMentions: [], topRated: false, minStars: nil, hoursAhead: nil,
+            weatherTopic: nil, useMyLocation: false)
     }
 
     func testRangoDeGradosYDistanciaSalenComoChips() {
@@ -75,7 +77,8 @@ final class AssistantPresenterTests: XCTestCase {
         LineSearchHit(
             schoolId: school, schoolName: "Escuela \(school)", blockId: "b-\(name)", blockName: "Piedra",
             lineId: "l-\(name)", lineName: name, grade: "6A", sectorName: nil, photoPath: nil, linePath: nil,
-            startType: nil, lat: nil, lon: nil, orientation: nil, discipline: "BOULDER")
+            startType: nil, lat: nil, lon: nil, orientation: nil, discipline: "BOULDER",
+            rating: nil, ratingCount: nil)
     }
 
     func testAgrupaPorEscuelaConservandoElOrden() {
@@ -99,7 +102,8 @@ final class AssistantPresenterTests: XCTestCase {
         LineSearchHit(
             schoolId: school, schoolName: "Escuela \(school)", blockId: "b-\(name)", blockName: "Piedra",
             lineId: "l-\(name)", lineName: name, grade: "6A", sectorName: sector, photoPath: nil, linePath: nil,
-            startType: nil, lat: nil, lon: nil, orientation: nil, discipline: "BOULDER")
+            startType: nil, lat: nil, lon: nil, orientation: nil, discipline: "BOULDER",
+            rating: nil, ratingCount: nil)
     }
 
     func testUnaSolaEscuelaSeReparteEnSectoresYEnseñaMas() {
@@ -141,6 +145,95 @@ final class AssistantPresenterTests: XCTestCase {
         XCTAssertTrue(tres!.contains("3"), tres!)
         // Entre media hora y una hora se dice "1 h", nunca "0 h".
         XCTAssertTrue(AssistantPresenter.savedNote(createdAt: ahora.addingTimeInterval(-2400), now: ahora)!.contains("1"))
+    }
+
+    // ── Estrellas ──
+
+    private func rated(_ name: String, _ avg: Double?, _ votes: Int32?) -> LineSearchHit {
+        LineSearchHit(
+            schoolId: "s", schoolName: "Escuela", blockId: "b-\(name)", blockName: "Piedra",
+            lineId: "l-\(name)", lineName: name, grade: "6A", sectorName: nil, photoPath: nil, linePath: nil,
+            startType: nil, lat: nil, lon: nil, orientation: nil, discipline: "BOULDER",
+            rating: avg.map { KotlinDouble(double: $0) }, ratingCount: votes.map { KotlinInt(int: $0) })
+    }
+
+    func testLasMejorValoradasVanPrimeroYLasSinVotosSeQuedanFuera() {
+        let hits = [rated("a", 3.0, 5), rated("b", 4.8, 2), rated("sin", nil, nil), rated("c", 4.8, 9), rated("cero", 5.0, 0)]
+        let out = AssistantPresenter.rankByRating(hits, minStars: nil).map { $0.lineName }
+        XCTAssertEqual(out, ["c", "b", "a"])        // 4,8 con más votos antes que 4,8 con menos; sin votos fuera
+    }
+
+    func testElMinimoDeEstrellasFiltraPorLaMedia() {
+        let hits = [rated("a", 3.0, 5), rated("b", 4.0, 2), rated("c", 4.5, 9)]
+        XCTAssertEqual(AssistantPresenter.rankByRating(hits, minStars: 4).map { $0.lineName }, ["c", "b"])
+        XCTAssertTrue(AssistantPresenter.rankByRating(hits, minStars: 5).isEmpty)
+    }
+
+    func testEmpatadasConservanElOrdenDeLlegada() {
+        let hits = [rated("x", 4.0, 3), rated("y", 4.0, 3), rated("z", 4.0, 3)]
+        XCTAssertEqual(AssistantPresenter.rankByRating(hits, minStars: nil).map { $0.lineName }, ["x", "y", "z"])
+    }
+
+    func testLasEstrellasLlevanMediaYVotos() {
+        let s = AssistantPresenter.starsLabel(rating: 4.5, count: 8)
+        XCTAssertTrue(s.contains("4") && s.contains("5") && s.contains("(8)"), s)
+    }
+
+    func testIntroDeMejorValoradasSinResultados() {
+        XCTAssertFalse(AssistantPresenter.hitsIntro(total: 0, needsLocationForDistance: false, rated: true).isEmpty)
+        XCTAssertTrue(AssistantPresenter.hitsIntro(total: 7, needsLocationForDistance: false, rated: true).contains("7"))
+    }
+
+    // ── El tiempo ──
+
+    private func weather(topic: String = "GENERAL", expected: Bool = false, start: Int32? = nil,
+                         mm: Double = 0, prob: Int32 = 10, wet: Bool = false) -> AssistantWeather {
+        AssistantWeather(
+            placeName: nil, myLocation: true, topic: topic,
+            now: AssistantNow(temperature: 14.4, humidity: 71, windKmh: 18.6, precipitationMm: 0,
+                              rainProbability: 20, cloudCover: 60, dewPoint: KotlinDouble(double: 8.2)),
+            hours: [AssistantHourPoint(time: "2026-10-08T15:00", temperature: 14, precipitationMm: 0,
+                                       rainProbability: 10, windKmh: 16),
+                    AssistantHourPoint(time: "2026-10-08T16:00", temperature: 12, precipitationMm: 1.2,
+                                       rainProbability: 80, windKmh: 31)],
+            rain: AssistantRain(expected: expected, startsInHours: start.map { KotlinInt(int: $0) },
+                                totalMm: mm, maxProbability: prob, hoursChecked: 3),
+            climbing: AssistantClimbing(score: 62, label: "Aceptable", rockWet: wet, dryingMessage: nil,
+                                        bestWindowStart: nil, bestWindowEnd: nil))
+    }
+
+    func testSinLluviaDiceLasHorasQueMiro() {
+        let t = AssistantPresenter.rainHeadline(weather(prob: 25))
+        XCTAssertTrue(t.contains("3") && t.contains("25"), t)
+    }
+
+    func testConLluviaDiceEnCuantasHoras() {
+        let t = AssistantPresenter.rainHeadline(weather(expected: true, start: 2, mm: 1.4, prob: 85))
+        XCTAssertTrue(t.contains("2") && t.contains("85"), t)
+        XCTAssertTrue(t.contains("1,4") || t.contains("1.4"), t)
+    }
+
+    func testElVientoDestacaElMaximoDeLasProximasHoras() {
+        let t = AssistantPresenter.weatherHeadline(weather(topic: "WIND"))
+        XCTAssertTrue(t.contains("19") && t.contains("31"), t)      // ahora 18,6 → 19; máximo 31
+    }
+
+    func testLaHumedadDiceSiLaRocaEstaHumeda() {
+        let seca = AssistantPresenter.weatherHeadline(weather(topic: "HUMIDITY", wet: false))
+        let mojada = AssistantPresenter.weatherHeadline(weather(topic: "HUMIDITY", wet: true))
+        XCTAssertTrue(seca.contains("71"), seca)
+        XCTAssertNotEqual(seca, mojada)
+    }
+
+    func testElTituloSinSitioEsLaUbicacionDelUsuario() {
+        XCTAssertFalse(AssistantPresenter.weatherTitle(weather()).isEmpty)
+    }
+
+    func testEtiquetaDeHoraYBarraDeLluvia() {
+        XCTAssertEqual(AssistantPresenter.hourLabel("2026-10-08T15:00"), "15h")
+        XCTAssertEqual(AssistantPresenter.rainBarHeight(mm: 0, full: 34), 0)
+        XCTAssertEqual(AssistantPresenter.rainBarHeight(mm: 9, full: 34), 34)       // tope
+        XCTAssertGreaterThanOrEqual(AssistantPresenter.rainBarHeight(mm: 0.1, full: 34), 3)   // un poco siempre se ve
     }
 
     func testSoloLosEstadosSinDatosTienenMensaje() {

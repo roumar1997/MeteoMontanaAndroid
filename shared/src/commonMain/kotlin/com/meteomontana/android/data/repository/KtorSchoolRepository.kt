@@ -48,5 +48,6 @@ private fun LineSearchHitDto.toDomain() = LineSearchHit(
     schoolId = schoolId, schoolName = schoolName, blockId = blockId, blockName = blockName,
     lineId = lineId, lineName = lineName, grade = grade, sectorName = sectorName,
     photoPath = photoPath, linePath = linePath, startType = startType,
-    lat = lat, lon = lon, orientation = orientation, discipline = discipline
+    lat = lat, lon = lon, orientation = orientation, discipline = discipline,
+    rating = rating, ratingCount = ratingCount
 )
