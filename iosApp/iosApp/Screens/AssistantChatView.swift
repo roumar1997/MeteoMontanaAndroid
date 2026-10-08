@@ -11,12 +11,12 @@ struct AssistantBubble: View {
 
     var body: some View {
         Button { open = true } label: {
-            Image("logo_cumbre")
-                .resizable().scaledToFill()
-                .frame(width: 54, height: 54)
-                .clipShape(Circle())
-                .background(Circle().fill(Cumbre.paper))
-                .overlay(Circle().stroke(Cumbre.terra, lineWidth: 2))
+            // Cabra montés sobre las montañas con la insignia "IA" (opción C de la maqueta). El PNG ya
+            // trae el recorte circular y la insignia, que sobresale: por eso no se recorta aquí.
+            Image("assistant_bubble")
+                .resizable().scaledToFit()
+                .frame(width: 58, height: 58)
+                .shadow(color: .black.opacity(0.28), radius: 3, x: 0, y: 2)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(L("Asistente de Cumbre"))
