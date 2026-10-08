@@ -17,23 +17,29 @@ final class AssistantSpeechPolicyTests: XCTestCase {
         XCTAssertEqual(decide(3.0, ultimoTexto: 2.5, hayTexto: true), .keepListening)
     }
 
-    func testTrasUnSilencioSeEnvia() {
-        XCTAssertEqual(decide(5.0, ultimoTexto: 3.0, hayTexto: true), .send)
+    func testUnaPausaParaPensarNoCorta() {
+        // Con la pausa de antes (1,5 s) cortaba a media frase. Ahora una pausa de 2 s sigue escuchando.
+        XCTAssertEqual(decide(5.0, ultimoTexto: 3.0, hayTexto: true), .keepListening)
+    }
+
+    func testTrasUnSilencioLargoSeEnvia() {
+        XCTAssertEqual(decide(6.0, ultimoTexto: 3.0, hayTexto: true), .send)
     }
 
     func testJustoAntesDelSilencioNoSeEnvia() {
-        XCTAssertEqual(decide(4.4, ultimoTexto: 3.0, hayTexto: true), .keepListening)   // 1,4 s < 1,5 s
-        XCTAssertEqual(decide(4.5, ultimoTexto: 3.0, hayTexto: true), .send)            // 1,5 s
+        let limite = policy.silenceAfterText
+        XCTAssertEqual(decide(3.0 + limite - 0.1, ultimoTexto: 3.0, hayTexto: true), .keepListening)
+        XCTAssertEqual(decide(3.0 + limite, ultimoTexto: 3.0, hayTexto: true), .send)
     }
 
     func testSinOirNadaEsperaUnRatoYSeAbandona() {
         XCTAssertEqual(decide(3.0, ultimoTexto: nil, hayTexto: false), .keepListening)
-        XCTAssertEqual(decide(7.0, ultimoTexto: nil, hayTexto: false), .giveUp)
+        XCTAssertEqual(decide(policy.noSpeechTimeout, ultimoTexto: nil, hayTexto: false), .giveUp)
     }
 
     func testElSilencioInicialNoEnviaNada() {
         // Callado desde el principio: nunca debe "enviar" una pregunta vacía.
-        for t in stride(from: 0.0, through: 6.9, by: 0.5) {
+        for t in stride(from: 0.0, through: policy.noSpeechTimeout - 0.1, by: 0.5) {
             XCTAssertNotEqual(decide(t, ultimoTexto: nil, hayTexto: false), .send)
         }
     }

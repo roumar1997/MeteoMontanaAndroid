@@ -75,7 +75,7 @@ final class AssistantViewModel: ObservableObject {
     /// se enseñan (como mucho 5 escuelas x 4 filas), más el total, para no guardar cientos.
     private func payload(for m: AssistantMessage) -> String? {
         guard m.recommendation != nil || m.breakdown != nil || !m.hits.isEmpty else { return nil }
-        let shown = AssistantPresenter.groupHits(m.hits).flatMap { $0.hits }
+        let shown = AssistantPresenter.groupHits(m.hits).flatMap { $0.shown }
         let p = AssistantMessagePayload(
             recommendation: m.recommendation, breakdown: m.breakdown,
             hits: shown, hitsTotal: Int32(m.hitsTotal))

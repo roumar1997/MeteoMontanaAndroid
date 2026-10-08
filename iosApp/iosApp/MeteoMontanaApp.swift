@@ -124,7 +124,11 @@ struct MeteoMontanaApp: App {
                     // dentro de una escuela, "¿qué sector tiene más sombra?" ya sabe de cuál hablas.
                     .overlay(alignment: .bottomTrailing) {
                         if t.school != nil {
+                            // OJO: se inyecta aquí a mano. El cover no hereda el objeto de la raíz y,
+                            // sin él, SwiftUI aborta la app al pintar la burbuja (crash 2026-10-08,
+                            // "EnvironmentObject.error()" al pulsar ABRIR en el chat).
                             AssistantBubble()
+                                .environmentObject(assistant)
                                 .padding(.trailing, 14)
                                 .padding(.bottom, 20)
                         }

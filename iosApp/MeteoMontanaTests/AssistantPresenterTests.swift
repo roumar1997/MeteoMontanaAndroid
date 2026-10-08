@@ -82,7 +82,7 @@ final class AssistantPresenterTests: XCTestCase {
         let hits = [hit("b", "1"), hit("a", "2"), hit("b", "3"), hit("a", "4")]
         let groups = AssistantPresenter.groupHits(hits)
         XCTAssertEqual(groups.map { $0.id }, ["b", "a"])          // el primero en llegar va primero
-        XCTAssertEqual(groups[0].hits.count, 2)
+        XCTAssertEqual(groups[0].shown.count, 2)
         XCTAssertEqual(groups[0].total, 2)
     }
 
@@ -91,8 +91,35 @@ final class AssistantPresenterTests: XCTestCase {
         for s in 0..<8 { for i in 0..<6 { hits.append(hit("s\(s)", "v\(s)-\(i)")) } }
         let groups = AssistantPresenter.groupHits(hits, maxSchools: 5, perSchool: 4)
         XCTAssertEqual(groups.count, 5)
-        XCTAssertEqual(groups[0].hits.count, 4)
+        XCTAssertEqual(groups[0].shown.count, 4)
         XCTAssertEqual(groups[0].total, 6)                         // el total real, no el recortado
+    }
+
+    private func hit(_ school: String, _ name: String, sector: String?) -> LineSearchHit {
+        LineSearchHit(
+            schoolId: school, schoolName: "Escuela \(school)", blockId: "b-\(name)", blockName: "Piedra",
+            lineId: "l-\(name)", lineName: name, grade: "6A", sectorName: sector, photoPath: nil, linePath: nil,
+            startType: nil, lat: nil, lon: nil, orientation: nil, discipline: "BOULDER")
+    }
+
+    func testUnaSolaEscuelaSeReparteEnSectoresYEnseñaMas() {
+        var hits: [LineSearchHit] = []
+        for i in 0..<10 { hits.append(hit("alb", "t\(i)", sector: "Techos")) }
+        for i in 0..<5 { hits.append(hit("alb", "m\(i)", sector: "Mezquita")) }
+        for i in 0..<2 { hits.append(hit("alb", "s\(i)", sector: nil)) }
+        let g = AssistantPresenter.groupHits(hits)
+        XCTAssertEqual(g.count, 1)
+        XCTAssertEqual(g[0].shown.count, 17)                               // sola: no se recorta a 4
+        XCTAssertEqual(g[0].sectors.map { $0.name }, ["Techos", "Mezquita", nil])   // más resultados primero, sin sector al final
+        XCTAssertEqual(g[0].sectors[0].hits.count, 10)
+    }
+
+    func testConVariasEscuelasSeSiguenRecortandoPorEscuela() {
+        var hits: [LineSearchHit] = []
+        for s in ["a", "b"] { for i in 0..<9 { hits.append(hit(s, "\(s)\(i)", sector: "X")) } }
+        let g = AssistantPresenter.groupHits(hits)
+        XCTAssertEqual(g.map { $0.shown.count }, [4, 4])
+        XCTAssertEqual(g.map { $0.total }, [9, 9])
     }
 
     func testAvisoDeMasResultadosSoloSiFaltan() {

@@ -111,29 +111,58 @@ enum AssistantPresenter {
 
     // MARK: Resultados de una búsqueda
 
-    /// Resultados de una escuela, recortados para que el chat no se haga eterno.
+    /// Resultados de un sector dentro de una escuela (name == nil: piedras sin sector asignado).
+    struct HitSector: Identifiable {
+        let name: String?
+        let hits: [LineSearchHit]
+        var id: String { name ?? "" }
+    }
+
+    /// Resultados de una escuela, repartidos por sectores y recortados para que el chat no se haga eterno.
     struct HitGroup: Identifiable {
         let id: String            // schoolId
         let schoolName: String
-        let hits: [LineSearchHit]
+        let sectors: [HitSector]
+        /// Todos los de esa escuela, también los que no se enseñan.
         let total: Int
+        var shown: [LineSearchHit] { sectors.flatMap { $0.hits } }
     }
 
-    /// Agrupa los resultados por escuela conservando el orden en que llegan
-    /// (el servidor los manda por cercanía). Como mucho maxSchools escuelas y
-    /// perSchool filas por escuela.
-    static func groupHits(_ hits: [LineSearchHit], maxSchools: Int = 5, perSchool: Int = 4) -> [HitGroup] {
+    /// Agrupa los resultados por escuela conservando el orden en que llegan (el servidor los manda
+    /// por cercanía) y, dentro de cada escuela, por sector. Como mucho maxSchools escuelas; con
+    /// varias se enseñan perSchool filas de cada una, y si solo hay UNA (p. ej. "los 6 de
+    /// Albarracín") se enseñan hasta perSchoolWhenAlone para que se vea el reparto por sectores.
+    static func groupHits(_ hits: [LineSearchHit], maxSchools: Int = 5, perSchool: Int = 4,
+                          perSchoolWhenAlone: Int = 60) -> [HitGroup] {
         var order: [String] = []
         var bySchool: [String: [LineSearchHit]] = [:]
         for h in hits {
             if bySchool[h.schoolId] == nil { order.append(h.schoolId) }
             bySchool[h.schoolId, default: []].append(h)
         }
-        return order.prefix(maxSchools).map { id in
+        let chosen = Array(order.prefix(maxSchools))
+        let limit = chosen.count == 1 ? perSchoolWhenAlone : perSchool
+        return chosen.map { id in
             let all = bySchool[id] ?? []
             return HitGroup(id: id, schoolName: all.first?.schoolName ?? "",
-                            hits: Array(all.prefix(perSchool)), total: all.count)
+                            sectors: bySector(Array(all.prefix(limit))), total: all.count)
         }
+    }
+
+    /// Reparte por sector: primero los que más resultados tienen; "sin sector" siempre al final.
+    static func bySector(_ hits: [LineSearchHit]) -> [HitSector] {
+        var bySector: [String: [LineSearchHit]] = [:]
+        for h in hits {
+            let key = (h.sectorName ?? "").trimmingCharacters(in: .whitespaces)
+            bySector[key, default: []].append(h)
+        }
+        return bySector
+            .map { HitSector(name: $0.key.isEmpty ? nil : $0.key, hits: $0.value) }
+            .sorted { a, b in
+                if (a.name == nil) != (b.name == nil) { return b.name == nil }
+                if a.hits.count != b.hits.count { return a.hits.count > b.hits.count }
+                return (a.name ?? "") < (b.name ?? "")
+            }
     }
 
     static func hitsIntro(total: Int, needsLocationForDistance: Bool) -> String {

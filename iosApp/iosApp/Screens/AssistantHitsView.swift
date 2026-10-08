@@ -10,7 +10,7 @@ struct AssistantHitsView: View {
 
     var body: some View {
         let groups = AssistantPresenter.groupHits(hits)
-        let shown = groups.reduce(0) { $0 + $1.hits.count }
+        let shown = groups.reduce(0) { $0 + $1.shown.count }
         VStack(alignment: .leading, spacing: 8) {
             ForEach(groups) { AssistantHitGroupView(group: $0) }
             if let note = AssistantPresenter.moreNote(total: total, shown: shown) {
@@ -42,7 +42,21 @@ struct AssistantHitGroupView: View {
             }
             .buttonStyle(.plain)
 
-            ForEach(group.hits, id: \.stableId) { AssistantHitRow(hit: $0) }
+            ForEach(group.sectors) { sector in
+                // Cabecera de sector: solo si hay más de uno o tiene nombre (un único "sin sector" no la necesita).
+                if group.sectors.count > 1 || sector.name != nil {
+                    HStack {
+                        Text((sector.name ?? L("Sin sector")).uppercased())
+                            .font(Cumbre.mono(10, .bold)).tracking(1.4).foregroundStyle(Cumbre.ink2)
+                        Spacer()
+                        Text("\(sector.hits.count)")
+                            .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 5)
+                    .background(Cumbre.bg.opacity(0.6))
+                }
+                ForEach(sector.hits, id: \.stableId) { AssistantHitRow(hit: $0) }
+            }
         }
         .background(Cumbre.paper)
         .clipShape(RoundedRectangle(cornerRadius: 2))

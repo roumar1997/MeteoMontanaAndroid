@@ -123,6 +123,12 @@ struct AssistantChatView: View {
                 .padding(16)
             }
             .scrollDismissesKeyboard(.interactively)
+            // Al abrir el chat, directamente en lo último que se habló (no arriba del todo).
+            // Dos intentos: el primero ya, el segundo cuando la lista perezosa ha medido las filas.
+            .onAppear {
+                scrollToLast(proxy)
+                scrollToLast(proxy, after: 0.3)
+            }
             .onChange(of: vm.messages.count) { _, _ in
                 if let last = vm.messages.last { withAnimation { proxy.scrollTo(last.id, anchor: .top) } }
             }
@@ -149,6 +155,13 @@ struct AssistantChatView: View {
                 .font(.system(size: 12)).foregroundStyle(Cumbre.bad)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16).padding(.vertical, 8)
+        }
+    }
+
+    private func scrollToLast(_ proxy: ScrollViewProxy, after delay: Double = 0) {
+        guard let last = vm.messages.last else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            proxy.scrollTo(last.id, anchor: .bottom)
         }
     }
 

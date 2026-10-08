@@ -3,12 +3,13 @@ import Foundation
 /// Cuándo el modo "hablar" decide que has terminado y manda la pregunta solo.
 /// Es lógica de tiempos pura (sin micrófono) para poder probarla sin dispositivo.
 ///
-/// - Después de oír algo, ~1,5 s de silencio = has acabado → se envía.
+/// - Después de oír algo, ~2,5 s de silencio = has acabado → se envía. (Con 1,5 s cortaba al
+///   pensar a mitad de frase: Álvaro, 2026-10-08, "para de escuchar antes de tiempo".)
 /// - Si no se oye nada en unos segundos → se abandona sin enviar (no se gasta cupo).
 /// - Tope de duración, por si hay ruido de fondo que mantiene vivo el reconocimiento.
 struct AssistantSpeechPolicy {
-    var silenceAfterText: TimeInterval = 1.5
-    var noSpeechTimeout: TimeInterval = 7
+    var silenceAfterText: TimeInterval = 2.5
+    var noSpeechTimeout: TimeInterval = 8
     var maxDuration: TimeInterval = 25
 
     enum Decision: Equatable {
