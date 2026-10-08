@@ -109,7 +109,9 @@ targets:
         #     (iconos mosquetón/crashpad en la lista de escuelas y en las piedras del mapa)
         # Es decir: para subir a TestFlight algo posterior a una versión ya
         # publicada, hay que subir la VERSIÓN, no basta con el número de build.
-        CFBundleShortVersionString: "2.25.3"
+        #   - 2.25.3/256 también quedó cerrada (6.8 enviada, 2026-10-08) → 2.25.4
+        #     (asistente de IA: burbuja, chat y modo hablar)
+        CFBundleShortVersionString: "2.25.4"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
         # ÚNICO y mayor que el anterior.
         CFBundleVersion: "257"
