@@ -70,7 +70,9 @@ data class AssistantUnderstood(
     /** Pidió vías o bloques que NO haya hecho: se cruza en el móvil con su diario. */
     val notDone: Boolean = false,
     /** Solo en ACTION: ADD_FAVORITE | REMOVE_FAVORITE | OPEN_SCHOOL. La app siempre pide confirmación. */
-    val action: String? = null
+    val action: String? = null,
+    /** Pidió las escuelas con MÁS vías/bloques de un grado: se ordenan por cantidad, no por el tiempo. */
+    val mostLines: Boolean = false
 )
 
 /** El tiempo de ahora en un sitio. */
@@ -151,7 +153,9 @@ data class AssistantRecommendation(
     /** false si las fechas pedidas caen fuera del pronóstico (7 días). */
     val forecastAvailable: Boolean,
     val dates: List<String>,
-    val schools: List<AssistantSchoolCard>
+    val schools: List<AssistantSchoolCard>,
+    /** true si se ordenó por número de vías ("las escuelas con más 7a"), sin mirar el tiempo. */
+    val byCount: Boolean = false
 )
 
 data class AssistantStone(
@@ -204,7 +208,9 @@ data class AssistantAnswer(
     val breakdown: AssistantBreakdown?,
     val clarification: AssistantClarification?,
     val weather: AssistantWeather?,
-    val summary: AssistantSummary? = null
+    val summary: AssistantSummary? = null,
+    /** Las escuelas de una búsqueda en VARIAS ("los 7a de Albarracín y Zarzalejo"); vacío si fue una sola. */
+    val resolvedSchools: List<AssistantOption> = emptyList()
 )
 
 /** Cuántas líneas hay de un grupo de grado ("≤5", "6", "7", "8+"). */

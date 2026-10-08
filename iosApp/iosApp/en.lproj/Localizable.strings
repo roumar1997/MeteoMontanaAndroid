@@ -1369,6 +1369,11 @@
 "Semisentado" = "Semi-sit start";
 "Con lance" = "With a jump";
 "Con topo" = "With topo";
+"Con más vías" = "Most routes";
+"Las escuelas con más vías o bloques de ese grado:" = "The schools with the most routes or boulders of that grade:";
+"%@: no tienes ninguna encadenada en tu diario." = "%@: you have no sends in your diary.";
+"%@: llevas %@ encadenadas. La más dura: %@." = "%@: you have %@ sends. Hardest: %@.";
+"%@: llevas %@ encadenadas." = "%@: you have %@ sends.";
 "¿Añado %@ a tus favoritas?" = "Add %@ to your favourites?";
 "¿Quito %@ de tus favoritas?" = "Remove %@ from your favourites?";
 "¿Abro %@?" = "Open %@?";

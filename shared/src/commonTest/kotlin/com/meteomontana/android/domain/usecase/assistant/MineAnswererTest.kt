@@ -7,6 +7,7 @@ import com.meteomontana.android.domain.model.Meetup
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class MineAnswererTest {
 
@@ -29,8 +30,8 @@ class MineAnswererTest {
 
     private fun stats(
         discipline: String? = null, min: String? = null, max: String? = null, year: Int? = null,
-        schoolId: String? = null, schoolName: String? = null
-    ) = MineAnswerer.stats(journal, discipline, min, max, year, schoolId, schoolName)
+        schoolId: String? = null, schoolName: String? = null, from: String? = null, to: String? = null
+    ) = MineAnswerer.stats(journal, discipline, min, max, year, from, to, schoolId, schoolName)
 
     @Test fun losProyectosNoCuentanComoHechos() {
         val r = stats()
@@ -47,6 +48,27 @@ class MineAnswererTest {
     @Test fun elRangoDeGradoYLaModalidadFiltran() {
         assertEquals(3, stats(min = "6C", max = "6C+").count)           // A, C y E
         assertEquals(1, stats(discipline = "ROUTE", min = "6C", max = "6C").count)
+    }
+
+    @Test fun elPeriodoFiltraPorFechasYDevuelveLasEntradasMasRecientesPrimero() {
+        // A 2026-03-01, B 2026-05-10, C 2025-11-02, E 2026-06-20 (D es proyecto)
+        val r = stats(from = "2026-05-01", to = "2026-06-30")
+
+        assertEquals(2, r.count)
+        assertEquals(listOf("E", "B"), r.entries.map { it.blockName })       // la más reciente primero
+    }
+
+    @Test fun sinNadaEnElPeriodoNoHayEntradas() {
+        val r = stats(from = "2026-07-01", to = "2026-07-31")
+        assertEquals(0, r.count)
+        assertTrue(r.entries.isEmpty())
+    }
+
+    @Test fun laListaSeLimitaPeroElTotalNo() {
+        val muchas = (1..40).map { entry("V" + it, "6A", "2026-02-" + (it % 28 + 1).toString().padStart(2, '0')) }
+        val r = MineAnswerer.stats(muchas, null, null, null, null, null, null, null, null)
+        assertEquals(40, r.count)
+        assertEquals(MineAnswerer.MAX_ENTRIES, r.entries.size)
     }
 
     @Test fun laUltimaVisitaEsLaFechaMasReciente() {

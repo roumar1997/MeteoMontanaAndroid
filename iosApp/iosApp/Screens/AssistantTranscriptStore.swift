@@ -51,6 +51,7 @@ struct StoredAssistantConversation: Codable, Equatable {
         var year: Int?
         var notDone: Bool?
         var action: String?
+        var mostLines: Bool?
     }
 
     var uid: String
@@ -72,7 +73,7 @@ extension StoredAssistantConversation.Understood {
                   weatherTopic: u.weatherTopic, useMyLocation: u.useMyLocation, beta: u.beta,
                   startType: u.startType, withTopo: u.withTopo, noRain: u.noRain,
                   mineTopic: u.mineTopic, year: u.year.map { Int($0.intValue) }, notDone: u.notDone,
-                  action: u.action)
+                  action: u.action, mostLines: u.mostLines)
     }
 
     func toKotlin() -> AssistantUnderstood {
@@ -89,7 +90,7 @@ extension StoredAssistantConversation.Understood {
             weatherTopic: weatherTopic, useMyLocation: useMyLocation ?? false, beta: beta,
             startType: startType, withTopo: withTopo ?? false, noRain: noRain ?? false,
             mineTopic: mineTopic, year: year.map { KotlinInt(int: Int32($0)) }, notDone: notDone ?? false,
-            action: action)
+            action: action, mostLines: mostLines ?? false)
     }
 }
 

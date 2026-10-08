@@ -11,7 +11,7 @@ final class AssistantPresenterTests: XCTestCase {
         gradeMin: String? = nil, gradeMax: String? = nil, discipline: String? = nil,
         km: Double? = nil, dateFrom: String? = nil, dateTo: String? = nil,
         beta: String? = nil, startType: String? = nil, withTopo: Bool = false, noRain: Bool = false,
-        notDone: Bool = false
+        notDone: Bool = false, mostLines: Bool = false
     ) -> AssistantUnderstood {
         AssistantUnderstood(
             intent: "SEARCH", dateFrom: dateFrom, dateTo: dateTo,
@@ -22,7 +22,8 @@ final class AssistantPresenterTests: XCTestCase {
             schoolMentions: [], topRated: false, minStars: nil, hoursAhead: nil,
             weatherTopic: nil, useMyLocation: false, beta: beta,
             startType: startType, withTopo: withTopo, noRain: noRain,
-            mineTopic: nil, year: nil, notDone: notDone, action: nil)
+            mineTopic: nil, year: nil, notDone: notDone, action: nil,
+            mostLines: mostLines)
     }
 
     func testSalidaTopoYSinLluviaSalenComoChips() {
@@ -48,19 +49,37 @@ final class AssistantPresenterTests: XCTestCase {
         XCTAssertFalse(text.contains("95"))
     }
 
+    func testMasViasSaleComoChipYLaIntroDiceQueEsPorCantidad() {
+        XCTAssertTrue(AssistantPresenter.chips(understood(mostLines: true), school: nil, sector: nil).contains("Con más vías"))
+        let card = AssistantSchoolCard(
+            schoolId: "s", name: "Albarracín", rockType: nil, distanceKm: nil, lineCount: 40, combinedScore: nil,
+            days: [], rainDays: 0)
+        let r = AssistantRecommendation(forecastAvailable: false, dates: [], schools: [card], byCount: true)
+        let text = AssistantPresenter.recommendationIntro(r)
+        XCTAssertFalse(text.contains("previsión"))      // no es "sin previsión": se pidió por cantidad
+    }
+
+    func testElPeriodoSaleEnLaRespuestaDeSuDiario() {
+        let stats = MineAnswerer.MineAnswer(topic: "STATS", count: 5, maxGrade: "6C", lastDate: nil, place: nil,
+                                            items: [], entries: [])
+        let text = AssistantPresenter.mineText(stats, period: "17 sep – 8 oct")
+        XCTAssertTrue(text.contains("17 sep – 8 oct"))
+        XCTAssertTrue(text.contains("5"))
+    }
+
     func testLoQueNoHeHechoSaleComoChip() {
         XCTAssertTrue(AssistantPresenter.chips(understood(notDone: true), school: nil, sector: nil).contains("Sin hacer"))
     }
 
     func testLasRespuestasSobreLoSuyoLlevanLasCifras() {
-        let stats = MineAnswerer.MineAnswer(topic: "STATS", count: 12, maxGrade: "7A", lastDate: nil, place: nil, items: [])
+        let stats = MineAnswerer.MineAnswer(topic: "STATS", count: 12, maxGrade: "7A", lastDate: nil, place: nil, items: [], entries: [])
         let text = AssistantPresenter.mineText(stats)
         XCTAssertTrue(text.contains("12"))
         XCTAssertTrue(text.contains("7A"))
-        let none = MineAnswerer.MineAnswer(topic: "LAST_VISIT", count: 0, maxGrade: nil, lastDate: nil, place: "Zarzalejo", items: [])
+        let none = MineAnswerer.MineAnswer(topic: "LAST_VISIT", count: 0, maxGrade: nil, lastDate: nil, place: "Zarzalejo", items: [], entries: [])
         XCTAssertTrue(AssistantPresenter.mineText(none).contains("Zarzalejo"))
         let favs = MineAnswerer.MineAnswer(topic: "FAVORITES", count: 2, maxGrade: nil, lastDate: nil, place: nil,
-                                           items: ["Albarracín", "La Pedriza"])
+                                           items: ["Albarracín", "La Pedriza"], entries: [])
         XCTAssertTrue(AssistantPresenter.mineText(favs).contains("Albarracín, La Pedriza"))
     }
 

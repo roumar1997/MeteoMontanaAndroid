@@ -224,6 +224,7 @@ struct AssistantChatView: View {
                 if let r = m.recommendation { AssistantRecommendationView(recommendation: r) }
                 if let b = m.breakdown { AssistantBreakdownView(breakdown: b) }
                 if let w = m.weather { AssistantWeatherCard(weather: w) }
+                if !m.journalEntries.isEmpty { AssistantJournalListView(entries: m.journalEntries, total: m.journalTotal) }
                 if let retry = m.retryText { retryButton(retry) }
                 if m.pendingActions.contains(where: { $0.state == .waiting }) { confirmButtons(m) }
                 if !m.hits.isEmpty { AssistantHitsView(hits: m.hits, total: m.hitsTotal) }

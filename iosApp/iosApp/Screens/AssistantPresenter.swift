@@ -80,6 +80,7 @@ enum AssistantPresenter {
         if u.withTopo { out.append(L("Con topo")) }
         if u.noRain { out.append(L("Sin lluvia")) }
         if u.notDone { out.append(L("Sin hacer")) }
+        if u.mostLines { out.append(L("Con más vías")) }
         if let y = u.year { out.append("\(y.intValue)") }
         return out
     }
@@ -141,7 +142,7 @@ enum AssistantPresenter {
     }
 
     /// La respuesta a una pregunta sobre lo suyo (diario, favoritas, quedadas), ya calculada en el móvil.
-    static func mineText(_ r: MineAnswerer.MineAnswer) -> String {
+    static func mineText(_ r: MineAnswerer.MineAnswer, period: String? = nil) -> String {
         let count = Int(r.count)
         switch r.topic {
         case "FAVORITES":
@@ -158,6 +159,11 @@ enum AssistantPresenter {
             if count == 0 { return L("No hay quedadas próximas.") }
             return L("Quedadas próximas (%@): %@.", count, r.items.joined(separator: " · "))
         default:
+            if let period {
+                if count == 0 { return L("%@: no tienes ninguna encadenada en tu diario.", period) }
+                if let max = r.maxGrade { return L("%@: llevas %@ encadenadas. La más dura: %@.", period, count, max) }
+                return L("%@: llevas %@ encadenadas.", period, count)
+            }
             if count == 0 { return L("No tienes ninguna encadenada con esos filtros en tu diario.") }
             if let max = r.maxGrade { return L("Llevas %@ encadenadas con esos filtros. La más dura: %@.", count, max) }
             return L("Llevas %@ encadenadas con esos filtros.", count)
@@ -436,6 +442,8 @@ enum AssistantPresenter {
         if r.schools.isEmpty {
             return L("No he encontrado escuelas con vías de ese grado en la zona.")
         }
+        // Pedido por cantidad ("las escuelas con más 7a"): no es una falta de previsión.
+        if r.byCount { return L("Las escuelas con más vías o bloques de ese grado:") }
         if !r.forecastAvailable {
             return L("Aún no hay previsión para esas fechas. Te ordeno las escuelas por número de vías de ese grado.")
         }

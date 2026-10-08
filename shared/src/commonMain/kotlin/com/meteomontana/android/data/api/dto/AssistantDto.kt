@@ -65,7 +65,8 @@ data class AssistantUnderstoodDto(
     val mineTopic: String? = null,
     val year: Int? = null,
     val notDone: Boolean = false,
-    val action: String? = null
+    val action: String? = null,
+    val mostLines: Boolean = false
 )
 
 @Serializable
@@ -74,7 +75,8 @@ data class AssistantOptionDto(val id: String, val name: String)
 @Serializable
 data class AssistantResolvedDto(
     val school: AssistantOptionDto? = null,
-    val sector: AssistantOptionDto? = null
+    val sector: AssistantOptionDto? = null,
+    val schools: List<AssistantOptionDto> = emptyList()
 )
 
 @Serializable
@@ -102,7 +104,8 @@ data class AssistantSchoolCardDto(
 data class AssistantRecommendationDto(
     val forecastAvailable: Boolean = true,
     val dates: List<String> = emptyList(),
-    val schools: List<AssistantSchoolCardDto> = emptyList()
+    val schools: List<AssistantSchoolCardDto> = emptyList(),
+    val byCount: Boolean = false
 )
 
 @Serializable
@@ -232,13 +235,13 @@ data class AssistantSummaryDto(
 fun AssistantUnderstood.toDto() = AssistantUnderstoodDto(
     intent, dateFrom, dateTo, gradeMin, gradeMax, discipline, rockTypes, orientations,
     maxDistanceKm, q, schoolMention, sectorMention, sun, dayPart,
-    schoolMentions, topRated, minStars, hoursAhead, weatherTopic, useMyLocation, beta, startType, withTopo, noRain, mineTopic, year, notDone, action
+    schoolMentions, topRated, minStars, hoursAhead, weatherTopic, useMyLocation, beta, startType, withTopo, noRain, mineTopic, year, notDone, action, mostLines
 )
 
 private fun AssistantUnderstoodDto.toDomain() = AssistantUnderstood(
     intent, dateFrom, dateTo, gradeMin, gradeMax, discipline, rockTypes, orientations,
     maxDistanceKm, q, schoolMention, sectorMention, sun, dayPart,
-    schoolMentions, topRated, minStars, hoursAhead, weatherTopic, useMyLocation, beta, startType, withTopo, noRain, mineTopic, year, notDone, action
+    schoolMentions, topRated, minStars, hoursAhead, weatherTopic, useMyLocation, beta, startType, withTopo, noRain, mineTopic, year, notDone, action, mostLines
 )
 
 internal fun AssistantWeatherDto.toDomain() = AssistantWeather(
@@ -276,10 +279,12 @@ fun AssistantAnswerDto.toDomain() = AssistantAnswer(
     understood = understood?.toDomain(),
     resolvedSchool = resolved?.school?.toDomain(),
     resolvedSector = resolved?.sector?.toDomain(),
+    resolvedSchools = resolved?.schools.orEmpty().map { it.toDomain() },
     recommendation = recommendation?.let { r ->
         AssistantRecommendation(
             forecastAvailable = r.forecastAvailable,
             dates = r.dates,
+            byCount = r.byCount,
             schools = r.schools.map { s ->
                 AssistantSchoolCard(
                     s.schoolId, s.name, s.rockType, s.distanceKm, s.lineCount, s.combinedScore,

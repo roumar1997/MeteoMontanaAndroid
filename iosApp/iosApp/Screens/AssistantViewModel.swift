@@ -22,6 +22,10 @@ struct AssistantMessage: Identifiable {
     var restored = false
     /// Opciones tocables de "¿a cuál te refieres?".
     var options: [AssistantOption] = []
+    /// Entradas de su diario que se enseñan como lista tocable ("lo que hice la última semana"), y cuántas
+    /// cumplen en total (la lista enseña solo las más recientes).
+    var journalEntries: [JournalSession] = []
+    var journalTotal = 0
     /// Lo que la app hará por el usuario SOLO si lo confirma (favoritas, abrir una escuela, apuntar en el
     /// diario, aviso de fin de semana). Varias cuando el nombre de una vía es ambiguo: elige una.
     var pendingActions: [PendingAction] = []
@@ -247,8 +251,13 @@ final class AssistantViewModel: ObservableObject {
                     isUser: false, text: AssistantPresenter.summaryText(summary), chips: chips))
             } else if answer.understood?.intent == "MINE" {
                 // Lo suyo se contesta AQUÍ, con lo que la app ya tiene: el diario nunca sale del móvil.
+                let mine = try await mineAnswer(answer)
+                let period = answer.understood?.dateFrom.map {
+                    AssistantPresenter.dateRange($0, answer.understood?.dateTo)
+                }
                 messages.append(AssistantMessage(
-                    isUser: false, text: AssistantPresenter.mineText(try await mineAnswer(answer)), chips: chips))
+                    isUser: false, text: AssistantPresenter.mineText(mine, period: period), chips: chips,
+                    journalEntries: mine.entries, journalTotal: Int(mine.count)))
             } else if let b = answer.breakdown {
                 messages.append(AssistantMessage(
                     isUser: false, text: AssistantPresenter.breakdownIntro(b),
@@ -401,7 +410,7 @@ final class AssistantViewModel: ObservableObject {
             return MineAnswerer.shared.stats(
                 journal: try await container.getMyJournal.invoke(),
                 discipline: u?.discipline, gradeMin: u?.gradeMin, gradeMax: u?.gradeMax, year: u?.year,
-                schoolId: schoolId, schoolName: schoolName)
+                from: u?.dateFrom, to: u?.dateTo, schoolId: schoolId, schoolName: schoolName)
         }
     }
 
@@ -422,7 +431,11 @@ final class AssistantViewModel: ObservableObject {
     /// Si pidió lo mejor valorado, se piden también las estrellas y se ordena por ellas.
     private func loadHits(_ answer: AssistantAnswer, location: UserLocation?) async throws -> [LineSearchHit] {
         guard let u = answer.understood else { return [] }
-        let schoolId = answer.resolvedSchool?.id
+        // Una escuela, o varias ("los 7a de Albarracín y Zarzalejo"). Con escuela dicha, ella manda: no se
+        // filtra por distancia ni se mandan las coordenadas (las piedras sin coordenadas desaparecerían).
+        let schoolIds: [String]? = !answer.resolvedSchools.isEmpty
+            ? answer.resolvedSchools.map { $0.id } : answer.resolvedSchool.map { [$0.id] }
+        let schoolId = schoolIds?.first
         let minStars = u.minStars.map { Int($0.intValue) }
         let rated = u.topRated || minStars != nil
         let hasFilter = u.gradeMin != nil || u.gradeMax != nil || u.discipline != nil
@@ -435,12 +448,13 @@ final class AssistantViewModel: ObservableObject {
             let criteria = LineExploreCriteria(
                 gradeMin: u.gradeMin, gradeMax: u.gradeMax, discipline: u.discipline,
                 rockTypes: u.rockTypes.isEmpty ? nil : u.rockTypes,
-                schoolIds: schoolId.map { [$0] },
+                schoolIds: schoolIds,
                 orientations: u.orientations.isEmpty ? nil : u.orientations,
-                lat: location.map { KotlinDouble(double: $0.lat) },
-                lon: location.map { KotlinDouble(double: $0.lon) },
+                lat: schoolIds == nil ? location.map { KotlinDouble(double: $0.lat) } : nil,
+                lon: schoolIds == nil ? location.map { KotlinDouble(double: $0.lon) } : nil,
                 // "cerca de mí" sin cifra = 50 km, como en el servidor.
-                maxDistanceKm: u.maxDistanceKm ?? (u.useMyLocation && location != nil ? KotlinDouble(double: 50) : nil),
+                maxDistanceKm: schoolIds != nil ? nil
+                    : (u.maxDistanceKm ?? (u.useMyLocation && location != nil ? KotlinDouble(double: 50) : nil)),
                 sort: "DISTANCE", offset: 0, withRatings: rated, beta: u.beta,
                 startType: u.startType, withTopo: u.withTopo)
             hits = try await container.exploreLines.invoke(criteria: criteria)

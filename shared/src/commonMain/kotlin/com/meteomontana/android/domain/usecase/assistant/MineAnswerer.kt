@@ -24,6 +24,7 @@ object MineAnswerer {
      * @param lastDate última fecha ("yyyy-MM-dd") (solo LAST_VISIT)
      * @param place nombre de la escuela por la que se filtró, si la hubo
      * @param items nombres para listar (favoritas o quedadas)
+     * @param entries las entradas del diario más recientes que cumplen lo pedido (solo STATS), para listarlas
      */
     data class MineAnswer(
         val topic: String,
@@ -31,16 +32,21 @@ object MineAnswerer {
         val maxGrade: String? = null,
         val lastDate: String? = null,
         val place: String? = null,
-        val items: List<String> = emptyList()
+        val items: List<String> = emptyList(),
+        val entries: List<JournalSession> = emptyList()
     )
 
     /** Máximo de nombres que se listan en una respuesta. */
     const val MAX_ITEMS = 8
 
+    /** Máximo de entradas del diario que se enseñan (las más recientes); el resto solo cuenta. */
+    const val MAX_ENTRIES = 15
+
     /** Cuántas encadenadas (hechas, no proyectos) cumplen los filtros, y el grado más duro entre ellas. */
     fun stats(
         journal: List<JournalSession>,
         discipline: String?, gradeMin: String?, gradeMax: String?, year: Int?,
+        from: String?, to: String?,
         schoolId: String?, schoolName: String?
     ): MineAnswer {
         val minScore = gradeScore(gradeMin)
@@ -49,6 +55,8 @@ object MineAnswerer {
             .filter { it.status != "PROJECT" }
             .filter { discipline == null || it.discipline == discipline }
             .filter { year == null || it.date.startsWith(year.toString()) }
+            .filter { from == null || it.date >= from }      // "yyyy-MM-dd" ordena igual que las fechas
+            .filter { to == null || it.date <= to }
             .filter { schoolId == null && schoolName == null || fromSchool(it, schoolId, schoolName) }
             .filter { e ->
                 if (minScore == null && maxScore == null) return@filter true
@@ -58,7 +66,10 @@ object MineAnswerer {
             .toList()
         val hardest = done.mapNotNull { e -> gradeScore(GradeRange.base(e.grade))?.let { it to e.grade } }
             .maxByOrNull { it.first }?.second
-        return MineAnswer("STATS", count = done.size, maxGrade = GradeRange.base(hardest), place = schoolName)
+        return MineAnswer(
+            "STATS", count = done.size, maxGrade = GradeRange.base(hardest), place = schoolName,
+            entries = done.sortedByDescending { it.date }.take(MAX_ENTRIES)
+        )
     }
 
     /** Última vez que escaló en una escuela (o en cualquiera si no se dice cuál). */
