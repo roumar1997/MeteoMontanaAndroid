@@ -119,6 +119,20 @@ struct AssistantChatView: View {
                         }
                         .id("loading")
                     }
+                    // Preguntas que esperan su turno (se contestan por orden).
+                    ForEach(Array(vm.queued.enumerated()), id: \.offset) { _, pending in
+                        HStack {
+                            Spacer(minLength: 44)
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text(pending)
+                                    .font(.system(size: 14)).foregroundStyle(.white.opacity(0.85))
+                                    .padding(.horizontal, 13).padding(.vertical, 10)
+                                    .background(Cumbre.inkButton.opacity(0.55), in: RoundedRectangle(cornerRadius: 12))
+                                Text(L("en cola"))
+                                    .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
+                            }
+                        }
+                    }
                 }
                 .padding(16)
             }
@@ -210,6 +224,7 @@ struct AssistantChatView: View {
                 if let r = m.recommendation { AssistantRecommendationView(recommendation: r) }
                 if let b = m.breakdown { AssistantBreakdownView(breakdown: b) }
                 if let w = m.weather { AssistantWeatherCard(weather: w) }
+                if let retry = m.retryText { retryButton(retry) }
                 if !m.hits.isEmpty { AssistantHitsView(hits: m.hits, total: m.hitsTotal) }
                 if m.restored, m.recommendation != nil || m.breakdown != nil || m.weather != nil || !m.hits.isEmpty,
                    let note = AssistantPresenter.savedNote(createdAt: m.createdAt) {
@@ -219,6 +234,21 @@ struct AssistantChatView: View {
                 if !m.options.isEmpty { optionsRow(m.options) }
             }
         }
+    }
+
+    /// Tras un fallo pasajero, repetir la misma pregunta con un toque (sin escribirla de nuevo).
+    private func retryButton(_ text: String) -> some View {
+        Button { Task { await vm.retry(text) } } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.clockwise").font(.system(size: 12, weight: .bold))
+                Text(L("REINTENTAR")).font(Cumbre.mono(11, .bold)).tracking(1.4)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14).padding(.vertical, 9)
+            .background(Cumbre.terra, in: RoundedRectangle(cornerRadius: 2))
+        }
+        .buttonStyle(.plain)
+        .disabled(vm.isLoading)
     }
 
     private func chipsRow(_ chips: [String]) -> some View {

@@ -197,20 +197,28 @@ final class AssistantPresenterTests: XCTestCase {
                     AssistantHourPoint(time: "2026-10-08T16:00", temperature: 12, precipitationMm: 1.2,
                                        rainProbability: 80, windKmh: 31)],
             rain: AssistantRain(expected: expected, startsInHours: start.map { KotlinInt(int: $0) },
-                                totalMm: mm, maxProbability: prob, hoursChecked: 3),
+                                totalMm: mm, maxProbability: prob, hoursChecked: 3,
+                                startsAt: expected ? "2026-10-08T17:00" : nil, until: "2026-10-08T23:00"),
             climbing: AssistantClimbing(score: 62, label: "Aceptable", rockWet: wet, dryingMessage: nil,
                                         bestWindowStart: nil, bestWindowEnd: nil))
     }
 
-    func testSinLluviaDiceLasHorasQueMiro() {
+    func testSinLluviaDiceNoYHastaQueHoraSeHaMirado() {
         let t = AssistantPresenter.rainHeadline(weather(prob: 25))
-        XCTAssertTrue(t.contains("3") && t.contains("25"), t)
+        XCTAssertTrue(t.contains("23h") && t.contains("25"), t)          // "No… hasta las 23h… 25 %"
+        XCTAssertTrue(t.hasPrefix("No"), t)                              // la respuesta empieza por SÍ o NO
     }
 
-    func testConLluviaDiceEnCuantasHoras() {
+    func testConLluviaDiceSiLaHoraDeInicioYLaProbabilidad() {
         let t = AssistantPresenter.rainHeadline(weather(expected: true, start: 2, mm: 1.4, prob: 85))
-        XCTAssertTrue(t.contains("2") && t.contains("85"), t)
+        XCTAssertTrue(t.hasPrefix("Sí") || t.hasPrefix("Yes"), t)
+        XCTAssertTrue(t.contains("17h") && t.contains("23h") && t.contains("85"), t)
         XCTAssertTrue(t.contains("1,4") || t.contains("1.4"), t)
+    }
+
+    func testLloviendoYaLoDiceAsi() {
+        let t = AssistantPresenter.rainHeadline(weather(expected: true, start: 0, mm: 0.8, prob: 90))
+        XCTAssertTrue(t.contains("23h"), t)
     }
 
     func testElVientoDestacaElMaximoDeLasProximasHoras() {

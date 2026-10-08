@@ -11,6 +11,8 @@ struct AssistantMessage: Identifiable {
     var breakdown: AssistantBreakdown? = nil
     /// El tiempo de un sitio (pregunta de lluvia, viento, humedad…).
     var weather: AssistantWeather? = nil
+    /// Si la respuesta fue un fallo pasajero (ocupado, sin conexión…): la pregunta, para ofrecer "REINTENTAR".
+    var retryText: String? = nil
     /// Vías o bloques encontrados por una búsqueda simple, y cuántos hubo en total.
     var hits: [LineSearchHit] = []
     var hitsTotal = 0
@@ -116,6 +118,9 @@ final class AssistantViewModel: ObservableObject {
         openRequest = OpenRequest(schoolId: schoolId, viaId: viaId)
     }
 
+    /// La última pregunta enviada (para "REINTENTAR" si falla por algo pasajero).
+    private var lastQuestion = ""
+
     /// Lo último que entendió el servidor; se devuelve en el mensaje siguiente.
     private var previous: AssistantUnderstood?
 
@@ -129,14 +134,36 @@ final class AssistantViewModel: ObservableObject {
          L("Sector con más piedras a la sombra en Albarracín")]
     }
 
+    /// Preguntas escritas o dictadas mientras aún se contestaba otra: esperan su turno y se contestan POR
+    /// ORDEN. Antes se perdían sin avisar (el botón se quedaba desactivado y el texto dictado se descartaba).
+    @Published private(set) var queued: [String] = []
+    /// Máximo de preguntas esperando: protege el cupo diario y el límite por minuto del servidor.
+    static let maxQueued = 5
+
     var canSend: Bool {
-        !isLoading && !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && queued.count < Self.maxQueued
     }
 
     func send(_ text: String? = nil) async {
         let raw = (text ?? input).trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !raw.isEmpty, !isLoading else { return }
+        guard !raw.isEmpty else { return }
         input = ""
+        if isLoading {
+            // Ya se está contestando otra: esta se ve en el chat como "en cola" y espera su turno.
+            if queued.count < Self.maxQueued { queued.append(raw) }
+            return
+        }
+        await respond(raw)
+        // Sin ningún punto de espera entre una respuesta y la siguiente: isLoading no llega a quedar en
+        // false entre medias, así que una pregunta nueva no puede colarse en paralelo.
+        while !queued.isEmpty {
+            await respond(queued.removeFirst())
+        }
+    }
+
+    /// Contesta UNA pregunta (la envía al servidor y pinta la respuesta).
+    private func respond(_ raw: String) async {
+        lastQuestion = raw
         messages.append(AssistantMessage(isUser: true, text: raw))
         isLoading = true
         defer { isLoading = false; persist() }
@@ -153,11 +180,23 @@ final class AssistantViewModel: ObservableObject {
         } catch {
             messages.append(AssistantMessage(
                 isUser: false,
-                text: L("No se pudo conectar. Inténtalo otra vez.")))
+                text: L("No se pudo conectar. Inténtalo otra vez."),
+                retryText: raw))
         }
     }
 
+    /// Repite una pregunta que falló por algo pasajero: quita el intento fallido (su pregunta y su error)
+    /// para no dejar el chat lleno de duplicados, y la vuelve a enviar.
+    func retry(_ text: String) async {
+        if messages.count >= 2, !messages[messages.count - 1].isUser, messages[messages.count - 2].isUser,
+           messages[messages.count - 2].text == text {
+            messages.removeLast(2)
+        }
+        await send(text)
+    }
+
     func reset() {
+        queued = []
         messages = []
         previous = nil
         input = ""
@@ -208,9 +247,12 @@ final class AssistantViewModel: ObservableObject {
                     chips: chips, options: c.options))
             }
         default:
+            // Ocupado o no disponible son fallos PASAJEROS: se ofrece reintentar con la misma pregunta.
+            let transient = answer.status == .busy || answer.status == .unavailable
             messages.append(AssistantMessage(
                 isUser: false,
-                text: AssistantPresenter.message(for: answer.status) ?? L("Ahora mismo no puedo responder.")))
+                text: AssistantPresenter.message(for: answer.status) ?? L("Ahora mismo no puedo responder."),
+                retryText: transient ? lastQuestion : nil))
         }
     }
 
@@ -227,7 +269,7 @@ final class AssistantViewModel: ObservableObject {
         let rated = u.topRated || minStars != nil
         let hasFilter = u.gradeMin != nil || u.gradeMax != nil || u.discipline != nil
             || !u.rockTypes.isEmpty || !u.orientations.isEmpty || u.maxDistanceKm != nil
-            || schoolId != nil || rated
+            || schoolId != nil || rated || (u.useMyLocation && location != nil)
 
         var hits: [LineSearchHit] = []
         if hasFilter {
@@ -238,7 +280,8 @@ final class AssistantViewModel: ObservableObject {
                 orientations: u.orientations.isEmpty ? nil : u.orientations,
                 lat: location.map { KotlinDouble(double: $0.lat) },
                 lon: location.map { KotlinDouble(double: $0.lon) },
-                maxDistanceKm: u.maxDistanceKm,
+                // "cerca de mí" sin cifra = 50 km, como en el servidor.
+                maxDistanceKm: u.maxDistanceKm ?? (u.useMyLocation && location != nil ? KotlinDouble(double: 50) : nil),
                 sort: "DISTANCE", offset: 0, withRatings: rated)
             hits = try await container.exploreLines.invoke(criteria: criteria)
         } else if let q = u.q, !q.isEmpty {

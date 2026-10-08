@@ -39,13 +39,13 @@ struct AssistantWeatherCard: View {
                         .font(Cumbre.mono(9, .bold)).tracking(1.6).foregroundStyle(Cumbre.ink3)
                 }
                 Spacer(minLength: 8)
-                Text("(Int(weather.now.temperature.rounded()))°")
+                Text("\(Int(weather.now.temperature.rounded()))°")
                     .font(Cumbre.serif(34, .bold)).foregroundStyle(Cumbre.ink)
             }
             HStack(spacing: 8) {
-                metric("wind", "(Int(weather.now.windKmh.rounded())) km/h", highlight: weather.topic == "WIND")
-                metric("humidity", "(Int(weather.now.humidity.rounded())) %", highlight: weather.topic == "HUMIDITY")
-                metric("cloud", "(Int(weather.now.cloudCover)) %", highlight: false)
+                metric("wind", "\(Int(weather.now.windKmh.rounded())) km/h", highlight: weather.topic == "WIND")
+                metric("humidity", "\(Int(weather.now.humidity.rounded())) %", highlight: weather.topic == "HUMIDITY")
+                metric("cloud", "\(Int(weather.now.cloudCover)) %", highlight: false)
             }
         }
     }

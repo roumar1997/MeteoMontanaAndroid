@@ -1354,3 +1354,10 @@
 "La roca está húmeda." = "The rock is damp.";
 "La roca está seca." = "The rock is dry.";
 "Mejor ventana: %@–%@" = "Best window: %@–%@";
+"No, no se espera lluvia hasta las %@. La probabilidad máxima es del %@ %." = "No, no rain expected until %@. The maximum chance is %@ %.";
+"No, no se espera lluvia en las próximas %@ h. La probabilidad máxima es del %@ %." = "No, no rain expected in the next %@ h. The maximum chance is %@ %.";
+"Sí, está lloviendo ahora o va a empezar ya (≈%@ mm hasta las %@)." = "Yes, it's raining now or about to (≈%@ mm until %@).";
+"Sí, está lloviendo ahora o va a empezar ya (≈%@ mm en las próximas %@ h)." = "Yes, it's raining now or about to (≈%@ mm in the next %@ h).";
+"Sí, va a llover: empezará sobre las %@ (en ~%@ h). Caerán ≈%@ mm hasta las %@, con hasta un %@ % de probabilidad." = "Yes, it will rain: starting around %@ (in ~%@ h). About %@ mm until %@, with up to %@ % chance.";
+"Sí, va a llover: empezará en ~%@ h (≈%@ mm en las próximas %@ h, hasta un %@ % de probabilidad)." = "Yes, it will rain: starting in ~%@ h (≈%@ mm in the next %@ h, up to %@ % chance).";
+"en cola" = "queued";

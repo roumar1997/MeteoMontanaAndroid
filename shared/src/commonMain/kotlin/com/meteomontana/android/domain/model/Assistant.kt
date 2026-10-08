@@ -82,7 +82,11 @@ data class AssistantRain(
     val startsInHours: Int?,
     val totalMm: Double,
     val maxProbability: Int,
-    val hoursChecked: Int
+    val hoursChecked: Int,
+    /** Hora (ISO, "2026-10-08T17:00") en que empieza la primera lluvia; null si no se espera. */
+    val startsAt: String? = null,
+    /** Última hora (ISO) que se ha mirado: "no llueve HASTA las 23h". */
+    val until: String? = null
 )
 
 /** Cómo está para escalar (mismo índice que la pantalla del tiempo). */

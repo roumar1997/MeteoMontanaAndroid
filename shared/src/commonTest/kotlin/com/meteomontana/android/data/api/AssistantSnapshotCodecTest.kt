@@ -79,12 +79,13 @@ class AssistantSnapshotCodecTest {
             now = AssistantNow(14.2, 71.0, 18.5, 0.0, 20, 60, 8.1),
             hours = listOf(AssistantHourPoint("2026-10-08T15:00", 14.0, 0.0, 10, 16.0),
                 AssistantHourPoint("2026-10-08T16:00", 13.0, 1.2, 80, 22.0)),
-            rain = AssistantRain(true, 1, 1.2, 80, 6),
+            rain = AssistantRain(true, 1, 1.2, 80, 6, "2026-10-08T16:00", "2026-10-08T21:00"),
             climbing = AssistantClimbing(62, "Aceptable", true, "Seca en ~12 h", "2026-10-09T10:00", "2026-10-09T13:00")
         )
         val vuelta = AssistantSnapshotCodec.decode(
             AssistantSnapshotCodec.encode(AssistantMessagePayload(null, null, emptyList(), 0, tiempo)))
         assertEquals(tiempo, vuelta.weather)
+        assertEquals("2026-10-08T16:00", vuelta.weather!!.rain.startsAt)      // la hora de inicio de la lluvia se guarda
     }
 
     @Test fun unTextoRotoLanzaEnVezDeInventar() {

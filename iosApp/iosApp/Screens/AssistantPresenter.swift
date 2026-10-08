@@ -259,18 +259,30 @@ enum AssistantPresenter {
         return L("muy fuerte")
     }
 
-    /// Responde a "¿va a llover?" con las horas que preguntó y el reparto real del pronóstico.
+    /// Responde a "¿va a llover?" con un SÍ o un NO claro, la hora y la probabilidad: "No, no se espera
+    /// lluvia hasta las 23h (probabilidad máxima 0 %)." / "Sí, va a llover: empezará sobre las 17h…".
     static func rainHeadline(_ w: AssistantWeather) -> String {
         let r = w.rain
         let hours = Int(r.hoursChecked)
+        let prob = Int(r.maxProbability)
+        let until = r.until.map { hourLabel($0) }
         guard r.expected, let start = r.startsInHours?.intValue else {
-            return L("No se espera lluvia en las próximas %@ h (probabilidad máxima %@ %).", hours, Int(r.maxProbability))
+            if let until {
+                return L("No, no se espera lluvia hasta las %@. La probabilidad máxima es del %@ %.", until, prob)
+            }
+            return L("No, no se espera lluvia en las próximas %@ h. La probabilidad máxima es del %@ %.", hours, prob)
         }
+        let mm = oneDecimal(r.totalMm)
         if start == 0 {
-            return L("Está lloviendo ahora o va a empezar ya (≈%@ mm en las próximas %@ h).", oneDecimal(r.totalMm), hours)
+            if let until { return L("Sí, está lloviendo ahora o va a empezar ya (≈%@ mm hasta las %@).", mm, until) }
+            return L("Sí, está lloviendo ahora o va a empezar ya (≈%@ mm en las próximas %@ h).", mm, hours)
         }
-        return L("Sí: empezará a llover en ~%@ h (≈%@ mm en las próximas %@ h, hasta un %@ % de probabilidad).",
-                 Int(start), oneDecimal(r.totalMm), hours, Int(r.maxProbability))
+        if let at = r.startsAt.map({ hourLabel($0) }), let until {
+            return L("Sí, va a llover: empezará sobre las %@ (en ~%@ h). Caerán ≈%@ mm hasta las %@, con hasta un %@ % de probabilidad.",
+                     at, Int(start), mm, until, prob)
+        }
+        return L("Sí, va a llover: empezará en ~%@ h (≈%@ mm en las próximas %@ h, hasta un %@ % de probabilidad).",
+                 Int(start), mm, hours, prob)
     }
 
     /// La frase del asistente sobre el tiempo, según lo que se preguntó.

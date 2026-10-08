@@ -52,7 +52,7 @@ class AssistantContractTest {
          "weather":{"placeName":null,"myLocation":true,"topic":"RAIN",
            "now":{"temperature":14.2,"humidity":71.0,"windKmh":18.5,"precipitationMm":0.0,"rainProbability":20,"cloudCover":60,"dewPoint":null},
            "hours":[{"time":"2026-10-08T15:00","temperature":14.0,"precipitationMm":0.0,"rainProbability":10,"windKmh":16.0}],
-           "rain":{"expected":true,"startsInHours":2,"totalMm":1.4,"maxProbability":85,"hoursChecked":3},
+           "rain":{"expected":true,"startsInHours":2,"totalMm":1.4,"maxProbability":85,"hoursChecked":3,"startsAt":"2026-10-08T17:00","until":"2026-10-08T19:00"},
            "climbing":{"score":62,"label":"Aceptable","rockWet":false,"dryingMessage":null,"bestWindowStart":null,"bestWindowEnd":null}}}
     """.trimIndent()
 
@@ -101,6 +101,8 @@ class AssistantContractTest {
         assertEquals("RAIN", w.topic)
         assertEquals(2, w.rain.startsInHours)
         assertEquals(85, w.rain.maxProbability)
+        assertEquals("2026-10-08T17:00", w.rain.startsAt)
+        assertEquals("2026-10-08T19:00", w.rain.until)
         assertEquals(18.5, w.now.windKmh)
         assertEquals(62, w.climbing.score)
         assertEquals(3, a.understood!!.hoursAhead)

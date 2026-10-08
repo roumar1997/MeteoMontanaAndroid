@@ -161,7 +161,9 @@ data class AssistantRainDto(
     val startsInHours: Int? = null,
     val totalMm: Double = 0.0,
     val maxProbability: Int = 0,
-    val hoursChecked: Int = 0
+    val hoursChecked: Int = 0,
+    val startsAt: String? = null,
+    val until: String? = null
 )
 
 @Serializable
@@ -215,7 +217,8 @@ internal fun AssistantWeatherDto.toDomain() = AssistantWeather(
     now = AssistantNow(now.temperature, now.humidity, now.windKmh, now.precipitationMm,
         now.rainProbability, now.cloudCover, now.dewPoint),
     hours = hours.map { AssistantHourPoint(it.time, it.temperature, it.precipitationMm, it.rainProbability, it.windKmh) },
-    rain = AssistantRain(rain.expected, rain.startsInHours, rain.totalMm, rain.maxProbability, rain.hoursChecked),
+    rain = AssistantRain(rain.expected, rain.startsInHours, rain.totalMm, rain.maxProbability, rain.hoursChecked,
+        rain.startsAt, rain.until),
     climbing = AssistantClimbing(climbing.score, climbing.label, climbing.rockWet, climbing.dryingMessage,
         climbing.bestWindowStart, climbing.bestWindowEnd)
 )
@@ -225,7 +228,8 @@ internal fun AssistantWeather.toDto() = AssistantWeatherDto(
     now = AssistantNowDto(now.temperature, now.humidity, now.windKmh, now.precipitationMm,
         now.rainProbability, now.cloudCover, now.dewPoint),
     hours = hours.map { AssistantHourPointDto(it.time, it.temperature, it.precipitationMm, it.rainProbability, it.windKmh) },
-    rain = AssistantRainDto(rain.expected, rain.startsInHours, rain.totalMm, rain.maxProbability, rain.hoursChecked),
+    rain = AssistantRainDto(rain.expected, rain.startsInHours, rain.totalMm, rain.maxProbability, rain.hoursChecked,
+        rain.startsAt, rain.until),
     climbing = AssistantClimbingDto(climbing.score, climbing.label, climbing.rockWet, climbing.dryingMessage,
         climbing.bestWindowStart, climbing.bestWindowEnd)
 )
