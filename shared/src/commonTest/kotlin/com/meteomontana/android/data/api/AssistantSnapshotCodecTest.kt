@@ -4,6 +4,7 @@ import com.meteomontana.android.data.api.dto.AssistantAnswerDto
 import com.meteomontana.android.data.api.dto.AssistantSnapshotCodec
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.domain.model.AssistantClimbing
+import com.meteomontana.android.domain.model.AssistantDayWeather
 import com.meteomontana.android.domain.model.AssistantHourPoint
 import com.meteomontana.android.domain.model.AssistantMessagePayload
 import com.meteomontana.android.domain.model.AssistantNow
@@ -80,12 +81,18 @@ class AssistantSnapshotCodecTest {
             hours = listOf(AssistantHourPoint("2026-10-08T15:00", 14.0, 0.0, 10, 16.0),
                 AssistantHourPoint("2026-10-08T16:00", 13.0, 1.2, 80, 22.0)),
             rain = AssistantRain(true, 1, 1.2, 80, 6, "2026-10-08T16:00", "2026-10-08T21:00"),
-            climbing = AssistantClimbing(62, "Aceptable", true, "Seca en ~12 h", "2026-10-09T10:00", "2026-10-09T13:00")
+            climbing = AssistantClimbing(62, "Aceptable", true, "Seca en ~12 h", "2026-10-09T10:00", "2026-10-09T13:00"),
+            days = listOf(
+                AssistantDayWeather("2026-10-09", 5.0, 14.0, 0.0, 60, "Bueno"),
+                AssistantDayWeather("2026-10-10", 6.5, 15.0, 1.2, 48, null)
+            )
         )
         val vuelta = AssistantSnapshotCodec.decode(
             AssistantSnapshotCodec.encode(AssistantMessagePayload(null, null, emptyList(), 0, tiempo)))
         assertEquals(tiempo, vuelta.weather)
         assertEquals("2026-10-08T16:00", vuelta.weather!!.rain.startsAt)      // la hora de inicio de la lluvia se guarda
+        assertEquals(2, vuelta.weather!!.days.size)                           // y la mínima/máxima de cada día pedido
+        assertEquals(6.5, vuelta.weather!!.days[1].tempMin)
     }
 
     @Test fun unTextoRotoLanzaEnVezDeInventar() {

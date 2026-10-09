@@ -412,8 +412,18 @@ enum AssistantPresenter {
                  Int(start), mm, hours, prob)
     }
 
+    /// Mínima y máxima de cada día pedido, una línea por día: "VIE 9: 5 – 14 °C".
+    static func temperatureByDay(_ w: AssistantWeather) -> String {
+        let lines = w.days.map { d in
+            L("%@: %@ – %@ °C", dayLabel(d.date), Int(d.tempMin.rounded()), Int(d.tempMax.rounded()))
+        }
+        return ([weatherTitle(w) + ":"] + lines).joined(separator: "\n")
+    }
+
     /// La frase del asistente sobre el tiempo, según lo que se preguntó.
     static func weatherHeadline(_ w: AssistantWeather) -> String {
+        // "Temperaturas mínimas y máximas hoy, mañana y pasado": una línea por día, no el "ahora" ni las horas de hoy.
+        if w.topic == "TEMPERATURE", !w.days.isEmpty { return temperatureByDay(w) }
         let place = weatherTitle(w)
         let n = w.now
         switch w.topic {

@@ -247,16 +247,18 @@ global, 10/min. Env en Railway: `GEMINI_API_KEY`, `GEMINI_MODEL` (opcional, admi
   NO elegir "el modelo bueno": `HedgedModelRace` lanza el siguiente a la vez si el primero tarda
   (2 s, 1 s en frío) y `ModelHealth` empieza por el más rápido ahora. Caché de 10 min de frases.
 - Los modelos se equivocan con el CALENDARIO ("semana pasada" = "hace dos semanas"): las fechas las
-  da el servidor (`calendarHints`). Y con el DICTADO: "7a" llega como "siete a" → `SpokenGrade`
-  fija el grado exacto con "solo/únicamente". Un seguimiento NO hereda escuela + "cerca de mí" a la vez.
+  da el servidor (`calendarHints`, pasado para su diario y futuro para el tiempo). Y con el DICTADO:
+  "7a" llega como "siete a" → `SpokenGrade` lee los grados DEL TEXTO (un grado con letra = exacto, "más/
+  plus/+" pegado a la letra es el signo +, rangos, bandas "los sietes") y corrige a la IA; `SpokenDates`
+  hace lo mismo con "hoy, mañana y pasado". Un seguimiento NO hereda escuela + "cerca de mí" a la vez.
 - `AssistantQuery` crece con cada función: constructores secundarios mantienen los tests; el
   contrato con las apps es ADITIVO (apps viejas ignoran campos nuevos).
 - Staging: filtrar por GRADO devuelve [] (sin `grade_score`); usar discipline/startType para probar.
-**Banco de frases**: `GeminiPhraseSuite` (101 casos, `GEMINI_LIVE=1 ./mvnw test -Dtest=GeminiPhraseSuite`,
-gasta cupo): 101/101. Cuando Álvaro diga una frase que falla, AÑADIRLA ahí antes de arreglar.
+**Banco de frases**: `GeminiPhraseSuite` (123 casos, `GEMINI_LIVE=1 ./mvnw test -Dtest=GeminiPhraseSuite`,
+gasta cupo): 123/123. Cuando Álvaro diga una frase que falla, AÑADIRLA ahí antes de arreglar.
 **NO adjuntar el build a ninguna versión de la tienda hasta que Álvaro valide el asistente.**
 **Pendiente (a su orden)**: aviso DIARIO de tiempo por la mañana (antes, comprobar que los push de iOS
-llegan con la app cerrada — APNs, ver abajo); guardar "mi casa" para "donde vivo"; respuestas por
+llegan con la app cerrada — YA verificado en el build 34, 2026-07-03; no se ha repetido desde); guardar "mi casa" para "donde vivo"; respuestas por
 voz; portar a Android tras validar iOS. Detalle y causas en `HISTORIAL.md` 2026-10-08.
 
 **🧗 ICONOS VÍA/BLOQUE — HECHO y VALIDADO en iOS y Android (2026-10-06).**
@@ -397,7 +399,8 @@ C. Montar automatización (ver memoria `project_n8n_instagram.md`): (8) diseñar
   no requiere release en tiendas); (2) DSA a "comerciante" en App Store
   Connect (verificación ~días, datos públicos en la ficha UE); (3) firmar
   el Acuerdo para apps de pago (Apple) / cuenta de comercio (Play).
-- APNs (push iOS con app cerrada) — capability lista, falta activarla.
+- APNs (push iOS con app cerrada): **ACTIVADO y verificado** el 2026-07-03 (build 34; ver HISTORIAL.md 2026-07-03).
+  Esta línea decía "falta activarla" y estaba desfasada.
 - **Próxima release de iOS**: `PrivacyInfo.xcprivacy` declara ubicación
   APROXIMADA y la app envía coordenadas PRECISAS. Aplazado a conciencia el
   2026-08-09 (el build 119 ya estaba subido). Detalle en `MejorasFuturas.md`

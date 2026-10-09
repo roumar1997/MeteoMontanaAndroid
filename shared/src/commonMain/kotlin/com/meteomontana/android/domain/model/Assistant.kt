@@ -125,7 +125,19 @@ data class AssistantWeather(
     val now: AssistantNow,
     val hours: List<AssistantHourPoint>,
     val rain: AssistantRain,
-    val climbing: AssistantClimbing
+    val climbing: AssistantClimbing,
+    /** Los días PEDIDOS en la frase ("hoy, mañana y pasado"), de más cerca a más lejos; vacío si no dijo fechas. */
+    val days: List<AssistantDayWeather> = emptyList()
+)
+
+/** Un día del pronóstico: mínima y máxima, lluvia acumulada y nota para escalar. */
+data class AssistantDayWeather(
+    val date: String,
+    val tempMin: Double,
+    val tempMax: Double,
+    val precipitationMm: Double,
+    val score: Int,
+    val scoreLabel: String?
 )
 
 data class AssistantDay(

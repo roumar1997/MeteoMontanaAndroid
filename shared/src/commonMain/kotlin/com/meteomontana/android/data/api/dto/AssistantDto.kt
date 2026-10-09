@@ -15,6 +15,7 @@ import com.meteomontana.android.domain.model.AssistantHourPoint
 import com.meteomontana.android.domain.model.AssistantNow
 import com.meteomontana.android.domain.model.AssistantRain
 import com.meteomontana.android.domain.model.AssistantUnderstood
+import com.meteomontana.android.domain.model.AssistantDayWeather
 import com.meteomontana.android.domain.model.AssistantGradeBand
 import com.meteomontana.android.domain.model.AssistantSummary
 import com.meteomontana.android.domain.model.AssistantWeather
@@ -198,7 +199,18 @@ data class AssistantWeatherDto(
     val now: AssistantNowDto = AssistantNowDto(),
     val hours: List<AssistantHourPointDto> = emptyList(),
     val rain: AssistantRainDto = AssistantRainDto(),
-    val climbing: AssistantClimbingDto = AssistantClimbingDto()
+    val climbing: AssistantClimbingDto = AssistantClimbingDto(),
+    val days: List<AssistantDayWeatherDto> = emptyList()
+)
+
+@Serializable
+data class AssistantDayWeatherDto(
+    val date: String,
+    val tempMin: Double = 0.0,
+    val tempMax: Double = 0.0,
+    val precipitationMm: Double = 0.0,
+    val score: Int = 0,
+    val scoreLabel: String? = null
 )
 
 @Serializable
@@ -253,7 +265,8 @@ internal fun AssistantWeatherDto.toDomain() = AssistantWeather(
     rain = AssistantRain(rain.expected, rain.startsInHours, rain.totalMm, rain.maxProbability, rain.hoursChecked,
         rain.startsAt, rain.until),
     climbing = AssistantClimbing(climbing.score, climbing.label, climbing.rockWet, climbing.dryingMessage,
-        climbing.bestWindowStart, climbing.bestWindowEnd)
+        climbing.bestWindowStart, climbing.bestWindowEnd),
+    days = days.map { AssistantDayWeather(it.date, it.tempMin, it.tempMax, it.precipitationMm, it.score, it.scoreLabel) }
 )
 
 internal fun AssistantWeather.toDto() = AssistantWeatherDto(
@@ -264,7 +277,8 @@ internal fun AssistantWeather.toDto() = AssistantWeatherDto(
     rain = AssistantRainDto(rain.expected, rain.startsInHours, rain.totalMm, rain.maxProbability, rain.hoursChecked,
         rain.startsAt, rain.until),
     climbing = AssistantClimbingDto(climbing.score, climbing.label, climbing.rockWet, climbing.dryingMessage,
-        climbing.bestWindowStart, climbing.bestWindowEnd)
+        climbing.bestWindowStart, climbing.bestWindowEnd),
+    days = days.map { AssistantDayWeatherDto(it.date, it.tempMin, it.tempMax, it.precipitationMm, it.score, it.scoreLabel) }
 )
 
 private fun AssistantOptionDto.toDomain() = AssistantOption(id, name)

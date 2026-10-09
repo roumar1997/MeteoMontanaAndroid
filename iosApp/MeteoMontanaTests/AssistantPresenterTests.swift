@@ -288,7 +288,8 @@ final class AssistantPresenterTests: XCTestCase {
     // ── El tiempo ──
 
     private func weather(topic: String = "GENERAL", expected: Bool = false, start: Int32? = nil,
-                         mm: Double = 0, prob: Int32 = 10, wet: Bool = false) -> AssistantWeather {
+                         mm: Double = 0, prob: Int32 = 10, wet: Bool = false,
+                         days: [AssistantDayWeather] = []) -> AssistantWeather {
         AssistantWeather(
             placeName: nil, myLocation: true, topic: topic,
             now: AssistantNow(temperature: 14.4, humidity: 71, windKmh: 18.6, precipitationMm: 0,
@@ -301,7 +302,27 @@ final class AssistantPresenterTests: XCTestCase {
                                 totalMm: mm, maxProbability: prob, hoursChecked: 3,
                                 startsAt: expected ? "2026-10-08T17:00" : nil, until: "2026-10-08T23:00"),
             climbing: AssistantClimbing(score: 62, label: "Aceptable", rockWet: wet, dryingMessage: nil,
-                                        bestWindowStart: nil, bestWindowEnd: nil))
+                                        bestWindowStart: nil, bestWindowEnd: nil),
+            days: days)
+    }
+
+    func testTemperaturaDeVariosDiasDaUnaLineaPorDiaConMinimaYMaxima() {
+        let days = [
+            AssistantDayWeather(date: "2026-10-09", tempMin: 5.2, tempMax: 14.4, precipitationMm: 0, score: 60, scoreLabel: "Bueno"),
+            AssistantDayWeather(date: "2026-10-10", tempMin: 6.0, tempMax: 15.5, precipitationMm: 1.2, score: 48, scoreLabel: nil),
+            AssistantDayWeather(date: "2026-10-11", tempMin: 7.0, tempMax: 16.0, precipitationMm: 0, score: 70, scoreLabel: "Bueno")
+        ]
+        let text = AssistantPresenter.weatherHeadline(weather(topic: "TEMPERATURE", days: days))
+        let lines = text.components(separatedBy: "\n")
+        XCTAssertEqual(lines.count, 4)                                   // título + un renglón por día
+        XCTAssertTrue(lines[1].contains("5") && lines[1].contains("14"), text)
+        XCTAssertTrue(lines[2].contains("6") && lines[2].contains("16"), text)   // 15,5 redondea a 16
+        XCTAssertFalse(text.contains("ahora"), text)                    // no el "ahora" ni las horas de hoy
+    }
+
+    func testSinDiasLaTemperaturaSigueDiciendoAhoraYElRango() {
+        let text = AssistantPresenter.weatherHeadline(weather(topic: "TEMPERATURE"))
+        XCTAssertTrue(text.contains("12") && text.contains("14"), text)
     }
 
     func testSinLluviaDiceNoYHastaQueHoraSeHaMirado() {

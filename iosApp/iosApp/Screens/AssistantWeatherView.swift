@@ -12,7 +12,9 @@ struct AssistantWeatherCard: View {
         VStack(alignment: .leading, spacing: 12) {
             header
             rainBanner
-            if !weather.hours.isEmpty { hourStrip }
+            if !weather.days.isEmpty { dayRows }
+            // Con varios días pedidos, las horas de hoy no son lo que se preguntó: se dejan para una sola fecha.
+            if !weather.hours.isEmpty && weather.days.count <= 1 { hourStrip }
             climbingRow
         }
         .padding(12)
@@ -85,6 +87,41 @@ struct AssistantWeatherCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background((wet ? Cumbre.rain : Cumbre.ok).opacity(0.10))
         .overlay(RoundedRectangle(cornerRadius: 2).stroke((wet ? Cumbre.rain : Cumbre.ok).opacity(0.35), lineWidth: 1))
+    }
+
+    // MARK: Por días (mínima y máxima de cada día pedido)
+
+    private var dayRows: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(L("POR DÍAS"))
+                .font(Cumbre.mono(9, .bold)).tracking(1.4).foregroundStyle(Cumbre.ink3)
+            VStack(spacing: 0) {
+                ForEach(Array(weather.days.enumerated()), id: \.offset) { index, day in
+                    HStack(spacing: 10) {
+                        Text(AssistantPresenter.dayLabel(day.date))
+                            .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink2)
+                            .frame(width: 64, alignment: .leading)
+                        Text("\(Int(day.tempMin.rounded()))° – \(Int(day.tempMax.rounded()))°")
+                            .font(.system(size: 14, weight: weather.topic == "TEMPERATURE" ? .semibold : .regular))
+                            .foregroundStyle(Cumbre.ink)
+                        Spacer(minLength: 6)
+                        if day.precipitationMm >= 0.2 {
+                            HStack(spacing: 3) {
+                                Image(systemName: "drop.fill").font(.system(size: 9))
+                                Text("\(AssistantPresenter.oneDecimal(day.precipitationMm)) mm")
+                                    .font(Cumbre.mono(11, .bold))
+                            }
+                            .foregroundStyle(Cumbre.ink2)
+                        }
+                        Text("\(Int(day.score))")
+                            .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink3)
+                            .frame(width: 28, alignment: .trailing)
+                    }
+                    .padding(.vertical, 6)
+                    if index < weather.days.count - 1 { Divider() }
+                }
+            }
+        }
     }
 
     // MARK: Tira de horas (barras = lluvia prevista)
