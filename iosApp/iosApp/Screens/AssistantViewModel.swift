@@ -240,10 +240,16 @@ final class AssistantViewModel: ObservableObject {
                     chips: chips, weather: w))
             } else if let rec = answer.recommendation {
                 let compare = answer.understood?.intent == "COMPARE"
+                // "Compárame los bloques de 7a de X y de Y": además de la tarjeta de cada escuela (tiempo y cuántos hay),
+                // se ENSEÑAN los bloques, que es lo que se quería comparar. Sin grado/modalidad/roca no hay nada que listar.
+                var hits: [LineSearchHit] = []
+                if compare, rec.filtered, !rec.schools.isEmpty {
+                    hits = (try? await loadHits(answer, location: location, schoolIds: rec.schools.map { $0.schoolId })) ?? []
+                }
                 messages.append(AssistantMessage(
                     isUser: false,
                     text: compare ? AssistantPresenter.compareIntro(rec) : AssistantPresenter.recommendationIntro(rec),
-                    chips: chips, recommendation: rec))
+                    chips: chips, recommendation: rec, hits: hits, hitsTotal: hits.count))
             } else if answer.understood?.intent == "ACTION", let kind = answer.understood?.action {
                 try await proposeAction(kind, answer, chips: chips)
             } else if let summary = answer.summary {
@@ -429,12 +435,13 @@ final class AssistantViewModel: ObservableObject {
     /// roca, orientación, escuela, distancia, estrellas) usa el modo "explorar"; con solo un nombre,
     /// la búsqueda de siempre por nombre. Si la frase nombró un sector, se quedan los de ese sector.
     /// Si pidió lo mejor valorado, se piden también las estrellas y se ordena por ellas.
-    private func loadHits(_ answer: AssistantAnswer, location: UserLocation?) async throws -> [LineSearchHit] {
+    private func loadHits(_ answer: AssistantAnswer, location: UserLocation?,
+                          schoolIds explicit: [String]? = nil) async throws -> [LineSearchHit] {
         guard let u = answer.understood else { return [] }
         // Una escuela, o varias ("los 7a de Albarracín y Zarzalejo"). Con escuela dicha, ella manda: no se
         // filtra por distancia ni se mandan las coordenadas (las piedras sin coordenadas desaparecerían).
-        let schoolIds: [String]? = !answer.resolvedSchools.isEmpty
-            ? answer.resolvedSchools.map { $0.id } : answer.resolvedSchool.map { [$0.id] }
+        let schoolIds: [String]? = explicit ?? (!answer.resolvedSchools.isEmpty
+            ? answer.resolvedSchools.map { $0.id } : answer.resolvedSchool.map { [$0.id] })
         let schoolId = schoolIds?.first
         let minStars = u.minStars.map { Int($0.intValue) }
         let rated = u.topRated || minStars != nil
