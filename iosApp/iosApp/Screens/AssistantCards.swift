@@ -187,9 +187,27 @@ struct AssistantStoneRow: View {
     }
 
     private func content(showsChevron: Bool) -> some View {
-        HStack(spacing: 8) {
-            Text(stone.name)
-                .font(.system(size: 13)).foregroundStyle(Cumbre.ink)
+        HStack(spacing: 10) {
+            // La misma miniatura con el trazo de la vía que en los resultados de búsqueda.
+            if let photo = stone.photoPath, !photo.isEmpty {
+                MiniTopoThumbnail(photoUrl: photo, points: dedupPoints(TopoParse.points(stone.linePath)),
+                                  grade: stone.grade)
+                    .frame(width: 44, height: 44)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.rule, lineWidth: 1))
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(stone.name)
+                        .font(.system(size: 13, weight: .medium)).foregroundStyle(Cumbre.ink).lineLimit(1)
+                    if let grade = stone.grade, !grade.isEmpty {
+                        Text(grade).font(Cumbre.mono(11, .bold)).foregroundStyle(GradeColor.color(grade))
+                    }
+                }
+                if let line = stone.lineName, !line.isEmpty, line != stone.name {
+                    Text(line).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                }
+            }
             Spacer(minLength: 8)
             Text(AssistantPresenter.stoneLabel(stone))
                 .font(Cumbre.mono(10, .bold))
@@ -199,7 +217,7 @@ struct AssistantStoneRow: View {
                     .font(.system(size: 10, weight: .semibold)).foregroundStyle(Cumbre.ink3)
             }
         }
-        .padding(.horizontal, 12).padding(.vertical, 7)
+        .padding(.horizontal, 12).padding(.vertical, stone.photoPath == nil ? 7 : 6)
         .contentShape(Rectangle())
     }
 }

@@ -148,8 +148,10 @@ final class AssistantPresenterTests: XCTestCase {
     }
 
     func testPiedraSinOrientacionNoMuestraUnRumbo() {
-        let sin = AssistantStone(blockId: "b", name: "P", aspect: nil, sun: nil, lineCount: 1, firstLineId: nil)
-        let con = AssistantStone(blockId: "b", name: "P", aspect: "N", sun: "SHADE", lineCount: 1, firstLineId: "l1")
+        let sin = AssistantStone(blockId: "b", name: "P", aspect: nil, sun: nil, lineCount: 1, firstLineId: nil,
+                                 photoPath: nil, linePath: nil, grade: nil, lineName: nil)
+        let con = AssistantStone(blockId: "b", name: "P", aspect: "N", sun: "SHADE", lineCount: 1, firstLineId: "l1",
+                                 photoPath: "f.jpg", linePath: "[{}]", grade: "7A", lineName: "La lágrima")
         XCTAssertFalse(AssistantPresenter.stoneLabel(sin).contains("N"), "sin dato no debe inventar un rumbo")
         XCTAssertTrue(AssistantPresenter.stoneLabel(con).hasPrefix("N"))
     }

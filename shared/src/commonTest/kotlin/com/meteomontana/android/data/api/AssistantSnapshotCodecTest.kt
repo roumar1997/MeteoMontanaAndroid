@@ -35,7 +35,8 @@ class AssistantSnapshotCodecTest {
         {"status":"OK","breakdown":{"school":{"id":"albarracin","name":"Albarracín"},"sectorFilter":"Techos","sun":"SHADE",
           "dayPart":"AFTERNOON","day":"2026-10-08",
           "sectors":[{"sectorId":"z1","name":"Techos","total":5,"matching":2,"unknownOrientation":1,
-            "stones":[{"blockId":"s1","name":"Piedra 1","aspect":"N","sun":"SHADE","lineCount":3,"firstLineId":"s1-l0"}],
+            "stones":[{"blockId":"s1","name":"Piedra 1","aspect":"N","sun":"SHADE","lineCount":3,"firstLineId":"s1-l0",
+              "photoPath":"fotos/s1.jpg","linePath":"[{\"x\":0.3,\"y\":0.4}]","grade":"7A","lineName":"La lágrima"}],
             "unknownStones":[{"blockId":"s9","name":"Piedra 9","lineCount":1}]}],
           "totalMatching":2,"totalStones":5,"stonesWithOrientation":4}}
     """.trimIndent()
@@ -54,6 +55,19 @@ class AssistantSnapshotCodecTest {
         val vuelta = AssistantSnapshotCodec.decode(AssistantSnapshotCodec.encode(payload))
         assertEquals(original, vuelta.recommendation)
         assertNull(vuelta.breakdown)
+    }
+
+    @Test fun laPiedraConservaLaFotoElTrazoYElGradoDeSuPrimeraVia() {
+        val original = json.decodeFromString<AssistantAnswerDto>(desglose).toDomain().breakdown!!
+        val vuelta = AssistantSnapshotCodec.decode(
+            AssistantSnapshotCodec.encode(AssistantMessagePayload(null, original, emptyList(), 0))).breakdown!!
+
+        val piedra = vuelta.sectors[0].stones[0]
+        assertEquals("fotos/s1.jpg", piedra.photoPath)
+        assertEquals("7A", piedra.grade)
+        assertEquals("La lágrima", piedra.lineName)
+        assertEquals("[{\"x\":0.3,\"y\":0.4}]", piedra.linePath)
+        assertNull(vuelta.sectors[0].unknownStones[0].photoPath)      // sin foto en el JSON: no se inventa
     }
 
     @Test fun elDesgloseConserva_lasPiedrasSinOrientacionYLasVias() {

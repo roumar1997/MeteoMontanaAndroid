@@ -5,6 +5,7 @@ import com.meteomontana.android.domain.model.AssistantBreakdown
 import com.meteomontana.android.domain.model.AssistantMessagePayload
 import com.meteomontana.android.domain.model.AssistantOption
 import com.meteomontana.android.domain.model.AssistantRecommendation
+import com.meteomontana.android.domain.model.AssistantStone
 import com.meteomontana.android.domain.model.LineSearchHit
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -50,6 +51,10 @@ private fun AssistantMessagePayload.toDto() = AssistantMessagePayloadDto(
 
 private fun AssistantOption.toDto() = AssistantOptionDto(id, name)
 
+private fun stoneDto(s: AssistantStone): AssistantStoneDto = AssistantStoneDto(
+    s.blockId, s.name, s.aspect, s.sun, s.lineCount, s.firstLineId, s.photoPath, s.linePath, s.grade, s.lineName
+)
+
 private fun AssistantRecommendation.toDto() = AssistantRecommendationDto(
     forecastAvailable = forecastAvailable,
     byCount = byCount,
@@ -73,8 +78,8 @@ private fun AssistantBreakdown.toDto() = AssistantBreakdownDto(
     sectors = sectors.map { s ->
         AssistantSectorDto(
             s.sectorId, s.name, s.total, s.matching, s.unknownOrientation,
-            s.stones.map { AssistantStoneDto(it.blockId, it.name, it.aspect, it.sun, it.lineCount, it.firstLineId) },
-            s.unknownStones.map { AssistantStoneDto(it.blockId, it.name, it.aspect, it.sun, it.lineCount, it.firstLineId) }
+            s.stones.map { stoneDto(it) },
+            s.unknownStones.map { stoneDto(it) }
         )
     },
     totalMatching = totalMatching,

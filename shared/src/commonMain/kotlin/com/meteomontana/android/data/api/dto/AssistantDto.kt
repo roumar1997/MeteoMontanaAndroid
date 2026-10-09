@@ -117,7 +117,11 @@ data class AssistantStoneDto(
     val aspect: String? = null,
     val sun: String? = null,
     val lineCount: Int = 0,
-    val firstLineId: String? = null
+    val firstLineId: String? = null,
+    val photoPath: String? = null,
+    val linePath: String? = null,
+    val grade: String? = null,
+    val lineName: String? = null
 )
 
 @Serializable
@@ -283,7 +287,8 @@ internal fun AssistantWeather.toDto() = AssistantWeatherDto(
 
 private fun AssistantOptionDto.toDomain() = AssistantOption(id, name)
 
-private fun AssistantStoneDto.toDomain() = AssistantStone(blockId, name, aspect, sun, lineCount, firstLineId)
+private fun AssistantStoneDto.toDomain() =
+    AssistantStone(blockId, name, aspect, sun, lineCount, firstLineId, photoPath, linePath, grade, lineName)
 
 /** Un estado desconocido (servidor más nuevo que la app) se trata como "no disponible". */
 private fun String.toAssistantStatus(): AssistantStatus =

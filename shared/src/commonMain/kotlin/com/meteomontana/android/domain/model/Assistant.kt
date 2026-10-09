@@ -181,7 +181,13 @@ data class AssistantStone(
     val sun: String?,
     val lineCount: Int,
     /** Una vía de la piedra: las apps abren la piedra a través de ella. null si no tiene vías. */
-    val firstLineId: String? = null
+    val firstLineId: String? = null,
+    /** Foto de la cara donde está dibujada su primera vía (o la portada) y el trazo de esa vía, con su grado y
+     *  nombre: para enseñar la miniatura con la línea, como en los resultados de búsqueda. */
+    val photoPath: String? = null,
+    val linePath: String? = null,
+    val grade: String? = null,
+    val lineName: String? = null
 )
 
 data class AssistantSector(
