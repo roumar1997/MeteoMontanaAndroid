@@ -79,7 +79,7 @@ final class SchoolListViewModel: ObservableObject {
     // tocar "Bloques"; Fase 2 (Android) pendiente de portar tras validar aquí.
     enum ExploreTab: String { case schools, blocks }
     enum ExploreSort: String, CaseIterable {
-        case distance = "Cercanía", bestConditions = "Mejores condiciones"
+        case distance = "Cercanía", bestConditions = "Mejores condiciones", mostRepeated = "Más repetidos"
         var label: String { L(rawValue) }
     }
     @Published var exploreTab: ExploreTab = .schools
@@ -124,8 +124,11 @@ final class SchoolListViewModel: ObservableObject {
                 maxDistanceKm: self.maxDistanceKm.map { KotlinDouble(double: $0) },
                 // "Mejores condiciones" no es un orden que sepa el backend (el
                 // score es del tiempo, vive solo en el cliente) — se pide
-                // siempre por distancia y se reordena aquí (ver exploreGroups).
-                sort: "DISTANCE", offset: 0, withRatings: false, beta: nil, startType: nil, withTopo: false, withRepetitions: false)
+                // por distancia y se reordena aquí (ver exploreGroups). "Más
+                // repetidos" SÍ lo ordena el servidor (cuenta los diarios).
+                sort: self.exploreSort == .mostRepeated ? "MOST_REPEATED" : "DISTANCE",
+                offset: 0, withRatings: false, beta: nil, startType: nil, withTopo: false,
+                withRepetitions: self.exploreSort == .mostRepeated)
             let hits = (try? await AppDependencies.shared.container.exploreLines.invoke(criteria: criteria)) ?? []
             guard !Task.isCancelled else { return }
             self.exploreHits = hits
@@ -922,6 +925,9 @@ struct SchoolListView: View {
                             .foregroundStyle(Cumbre.ink).lineLimit(1)
                         if let g = h.grade {
                             Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(GradeColor.color(g))
+                        }
+                        if let r = h.repetitions?.intValue, r > 0 {
+                            Text("✓ \(r)").font(Cumbre.mono(10.5, .bold)).foregroundStyle(Cumbre.ok)
                         }
                         // Vía o bloque: la modalidad del propio resultado manda (la
                         // trae el backend); si no llega (servidor viejo), el filtro

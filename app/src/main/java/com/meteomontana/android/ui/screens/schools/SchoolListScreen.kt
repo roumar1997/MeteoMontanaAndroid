@@ -1244,6 +1244,12 @@ private fun ExploreLineRow(
                     Text(it, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = androidx.compose.ui.graphics.Color(argb.toInt()))
                 }
+                // Cuántas personas la han hecho (solo con el orden "Más repetidos").
+                h.repetitions?.takeIf { it > 0 }?.let {
+                    Spacer(Modifier.size(6.dp))
+                    Text("✓ $it", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = com.meteomontana.android.ui.theme.Ok)
+                }
                 // Vía o bloque: solo cuando se sabe cuál es (ver exploreRowKind).
                 if (kind.isSingle) {
                     Spacer(Modifier.size(6.dp))

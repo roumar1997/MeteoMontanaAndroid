@@ -63,7 +63,9 @@ enum class ExploreTab { Schools, Blocks }
  *  es meteorológico y el backend no lo conoce. */
 enum class ExploreSortBy(@androidx.annotation.StringRes val labelRes: Int) {
     Distance(R.string.sort_nearest_explore),
-    BestConditions(R.string.sort_best_conditions)
+    BestConditions(R.string.sort_best_conditions),
+    /** Lo ordena el SERVIDOR: cuenta las personas que tienen cada vía hecha en su diario. */
+    MostRepeated(R.string.sort_most_repeated)
 }
 
 /** Escalera REAL de grados (la misma que usa el editor de vías,
@@ -245,7 +247,11 @@ class SchoolListViewModel @Inject constructor(
         _orientations.update { if (o in it) it - o else it + o }
         dispatchExplore()
     }
-    fun setExploreSortBy(s: ExploreSortBy) { _exploreSortBy.value = s }
+    fun setExploreSortBy(s: ExploreSortBy) {
+        _exploreSortBy.value = s
+        // "Más repetidos" cambia lo que se pide al servidor; los otros dos órdenes se resuelven en local.
+        dispatchExplore()
+    }
     fun toggleExploreGrouped() { _exploreGrouped.value = !_exploreGrouped.value }
 
     /** Quita grado/orientación (sin salir de la pestaña Vías/Bloques) — lo usa
@@ -281,8 +287,10 @@ class SchoolListViewModel @Inject constructor(
                 maxDistanceKm = f.maxDistanceKm,
                 // "Mejores condiciones" no lo sabe el backend (score del
                 // tiempo, vive en el cliente) — se pide siempre por
-                // distancia y se reordena en exploreGroups/exploreHitsSorted.
-                sort = "DISTANCE"
+                // distancia y se reordena en exploreGroups/exploreHitsSorted. "Más repetidos"
+                // SÍ lo ordena el servidor.
+                sort = if (_exploreSortBy.value == ExploreSortBy.MostRepeated) "MOST_REPEATED" else "DISTANCE",
+                withRepetitions = _exploreSortBy.value == ExploreSortBy.MostRepeated
             )
             _exploreHits.value = runCatching { exploreLines(criteria) }.getOrDefault(emptyList())
             _exploreLoading.value = false
