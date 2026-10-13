@@ -14,6 +14,9 @@ import FirebaseAuth
 struct SchoolMapSection: View {
     let school: School
     var openVia: String? = nil
+    /// El buscador de vías/bloques por nombre. La ficha de escuela con pestañas lo quita del mapa (vive en BLOQUES/VÍAS);
+    /// los chips de orientación se quedan.
+    var showsSearch: Bool = true
     /// Sube al deslizar hacia abajo en la ficha (pull-to-refresh) para volver
     /// a pedir las piedras — normalmente solo se cargan una vez al abrir el
     /// mapa (Álvaro, 2026-09-04: piedras/usuarios nuevos no aparecían sin
@@ -587,16 +590,18 @@ struct SchoolMapSection: View {
     @ViewBuilder
     private var searchBar: some View {
         VStack(alignment: .leading, spacing: 4) {
-            TextField("Buscar vías/bloques…", text: $vm.searchQuery)
-                .textFieldStyle(.plain)
-                .font(.system(size: 14))
-                .padding(.horizontal, 12).padding(.vertical, 9)
-                .background(Cumbre.paper)
-                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                .dismissKeyboardOnSubmit()
+            if showsSearch {
+                TextField("Buscar vías/bloques…", text: $vm.searchQuery)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 14))
+                    .padding(.horizontal, 12).padding(.vertical, 9)
+                    .background(Cumbre.paper)
+                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                    .dismissKeyboardOnSubmit()
+            }
             orientationChips
             let q = vm.searchQuery.trimmingCharacters(in: .whitespaces)
-            if q.count >= 2 {
+            if showsSearch && q.count >= 2 {
                 let hits = vm.searchHits(q)
                 if hits.isEmpty {
                     Text("Sin resultados en esta escuela")

@@ -29,6 +29,8 @@ final class SchoolBlocksExplorerModel: ObservableObject {
     @Published var loading = true
     @Published var failed = false
     @Published var grades: Set<String> = []
+    /// Texto del buscador por nombre (vía, bloque o sector).
+    @Published var query = ""
     /// Alturas de beta marcadas. Vacío = sin filtrar; las dos = cualquier vía con beta (solo hay estas dos alturas).
     @Published var betas: Set<Beta> = []
     @Published var betaLines: [Beta: Set<String>] = [:]
@@ -135,6 +137,11 @@ struct SchoolBlocksExplorerView: View {
         return present.sorted { (gradeScore($0) ?? Int.max, $0) < (gradeScore($1) ?? Int.max, $1) }
     }
 
+    /// Sin mayúsculas ni tildes: "fuente" encuentra "La Fuente".
+    private func fold(_ s: String) -> String {
+        s.trimmingCharacters(in: .whitespaces).folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+    }
+
     private func repetitions(_ h: LineSearchHit) -> Int { h.repetitions?.intValue ?? 0 }
 
     private func stars(_ h: LineSearchHit) -> Double {
@@ -145,6 +152,10 @@ struct SchoolBlocksExplorerView: View {
     /// nil = todavía bajando los enlaces de beta de ese modo.
     private var visible: [LineSearchHit]? {
         var h = lines
+        let q = fold(model.query)
+        if !q.isEmpty {
+            h = h.filter { fold(($0.lineName ?? "") + " " + $0.blockName + " " + ($0.sectorName ?? "")).contains(q) }
+        }
         if !model.grades.isEmpty { h = h.filter { model.grades.contains(($0.grade ?? "").uppercased()) } }
         if !model.betas.isEmpty {
             // Unión: con +1,70 y −1,70 a la vez se ven las vías que tienen cualquiera de las dos.
@@ -174,6 +185,13 @@ struct SchoolBlocksExplorerView: View {
 
     private var filters: some View {
         VStack(alignment: .leading, spacing: 10) {
+            TextField(L("Buscar por nombre…"), text: $model.query)
+                .textFieldStyle(.plain)
+                .font(.system(size: 14))
+                .padding(.horizontal, 12).padding(.vertical, 9)
+                .background(Cumbre.paper)
+                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                .dismissKeyboardOnSubmit()
             label(L("GRADO (UNO O VARIOS)"))
             wrapChips {
                 chip(L("TODOS"), on: model.grades.isEmpty) { model.grades = [] }

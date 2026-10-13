@@ -450,13 +450,24 @@ struct SchoolDetailView: View {
 
     private enum SchoolTab: CaseIterable {
         case map, blocks, weather, notes
-        var label: String {
-            switch self {
-            case .map: return L("MAPA")
-            case .blocks: return L("BLOQUES")
-            case .weather: return L("TIEMPO")
-            case .notes: return L("NOTAS")
-            }
+    }
+
+    /// "BLOQUES" si solo hay bloques, "VÍAS" si solo hay vías y "BLOQUES/VÍAS" si hay de las dos (school.style = "Vía,Bloque").
+    private var blocksLabel: String {
+        let styles = Set(school.style?.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces).uppercased() } ?? [])
+        let hasRoutes = styles.contains("VÍA") || styles.contains("VIA")
+        let hasBoulders = styles.contains("BLOQUE")
+        if hasRoutes && hasBoulders { return L("BLOQUES/VÍAS") }
+        if hasRoutes { return L("VÍAS") }
+        return L("BLOQUES")
+    }
+
+    private func label(_ t: SchoolTab) -> String {
+        switch t {
+        case .map: return L("MAPA")
+        case .blocks: return blocksLabel
+        case .weather: return L("TIEMPO")
+        case .notes: return L("NOTAS")
         }
     }
 
@@ -468,7 +479,7 @@ struct SchoolDetailView: View {
                     // El mapa se recrea al volver: sin esto reabriría otra vez la piedra del deep-link o de BLOQUES.
                     if t != .map { mapOpenVia = nil }
                 } label: {
-                    Text(t.label).font(Cumbre.mono(10.5, .bold)).tracking(0.6)
+                    Text(label(t)).font(Cumbre.mono(10.5, .bold)).tracking(0.6)
                         .lineLimit(1).minimumScaleFactor(0.8)
                         .foregroundStyle(tab == t ? Color.white : Cumbre.ink2)
                         .frame(maxWidth: .infinity).padding(.vertical, 9)
@@ -487,7 +498,7 @@ struct SchoolDetailView: View {
             case .map:
                 // Boletín de montaña ENCIMA del mapa (paridad con Android).
                 MountainBulletinSection(lat: school.lat, lon: school.lon, country: school.country)
-                SchoolMapSection(school: school, openVia: mapOpenVia, refreshTrigger: presenceRefreshTrigger)
+                SchoolMapSection(school: school, openVia: mapOpenVia, showsSearch: false, refreshTrigger: presenceRefreshTrigger)
                     .id(mapOpenVia ?? "")
             case .blocks:
                 SchoolBlocksExplorerView(school: school, model: blocksModel) { lineId in
@@ -496,7 +507,7 @@ struct SchoolDetailView: View {
                 }
             case .weather:
                 if let f {
-                    ForecastBodyView.weatherTab(f, factorsExpanded: $factorsExpanded, onSelectDay: { selectedDay = $0 })
+                    ForecastBodyView.weatherTab(f, onSelectDay: { selectedDay = $0 })
                 }
                 // Mejores meses del año (stats mensuales del backend, cacheadas).
                 if !vm.monthlyScores.isEmpty {

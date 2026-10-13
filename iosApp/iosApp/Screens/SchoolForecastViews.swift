@@ -30,6 +30,7 @@ struct ForecastBodyView: View {
                 // La tira de colores y el "¿por qué este índice?" viven ahora en la pestaña TIEMPO.
                 CompactHero(forecast: f)
                 CompactRockLine(current: f.current)
+                FactorsAccordion(current: f.current, expanded: $factorsExpanded, compact: true)
                 HoursGrid(hours: upcomingHours(f.hours, 16), compact: true).padding(.top, 2).padding(.bottom, 8)
                 rule
                 tabsSlot
@@ -41,10 +42,9 @@ struct ForecastBodyView: View {
     }
 
     /// El "TIEMPO" de siempre (ahora una pestaña): condiciones de ahora y los próximos 7 días.
-    static func weatherTab(_ f: Forecast, factorsExpanded: Binding<Bool>, onSelectDay: ((DayForecast) -> Void)?) -> some View {
+    static func weatherTab(_ f: Forecast, onSelectDay: ((DayForecast) -> Void)?) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HeatmapStrip(hours: upcomingHours(f.hours, 24)).padding(16)
-            FactorsAccordion(current: f.current, expanded: factorsExpanded)
             Divider().overlay(Cumbre.rule)
             CurrentWeather(current: f.current)
             Divider().overlay(Cumbre.rule)
@@ -215,15 +215,17 @@ private struct HeatmapStrip: View {
 private struct FactorsAccordion: View {
     let current: Current
     @Binding var expanded: Bool
+    /// Ficha de escuela: la misma cabecera pero más baja y con letra más pequeña.
+    var compact = false
     var body: some View {
         VStack(spacing: 0) {
             Button { withAnimation { expanded.toggle() } } label: {
                 HStack {
-                    Text("¿POR QUÉ ESTE ÍNDICE?").font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.ink2)
+                    Text("¿POR QUÉ ESTE ÍNDICE?").font(Cumbre.mono(compact ? 10 : 12, .bold)).foregroundStyle(Cumbre.ink2)
                     Spacer()
                     Image(systemName: expanded ? "chevron.up" : "chevron.down").foregroundStyle(Cumbre.ink3)
                 }
-                .padding(.horizontal, 16).padding(.vertical, 12)
+                .padding(.horizontal, 16).padding(.vertical, compact ? 6 : 12)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
