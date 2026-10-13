@@ -134,7 +134,7 @@ struct SchoolMapSection: View {
                     mapArea(height: 280)
                 }
                 // Grabar/chincheta SOLO ADMIN por ahora (APPROACH_DESIGN.md §2.6/§10).
-                ApproachesSection(loader: approachesLoader, school: school, blocks: vm.blocks,
+                ApproachesSection(loader: approachesLoader, school: school,
                                    isAdmin: vm.isAdmin, following: $followingApproach)
                 // "CÓMO LLEGAR" de la escuela quitado: las indicaciones salen al
                 // tocar cada parking/piedra en el mapa (BlockInfoSheet).

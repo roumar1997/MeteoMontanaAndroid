@@ -42,17 +42,15 @@ final class ApproachesLoader: ObservableObject {
 struct ApproachesSection: View {
     @ObservedObject var loader: ApproachesLoader
     let school: School
-    let blocks: [Block]
     let isAdmin: Bool
     @Binding var following: Approach?
-    @State private var recording = false
     @State private var deleting: Approach?
 
     private var schoolName: String { school.name }
 
     var body: some View {
         Group {
-            if !loader.approaches.isEmpty || isAdmin {
+            if !loader.approaches.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("APROXIMACIONES")
                         .font(Cumbre.mono(10, .bold)).tracking(1.8)
@@ -63,31 +61,10 @@ struct ApproachesSection: View {
                         approachCard(a)
                             .padding(.horizontal, 16)
                     }
-
-                    // Visible SOLO para admin por ahora — la pantalla que abre
-                    // es la definitiva, la que verá cualquier usuario cuando
-                    // se active para todos (ver APPROACH_DESIGN.md §2.6/§10).
-                    if isAdmin {
-                        Button {
-                            recording = true
-                        } label: {
-                            Text("+ GRABAR APROXIMACIÓN")
-                                .font(Cumbre.mono(11, .bold)).tracking(1.4)
-                                .foregroundStyle(Cumbre.terra)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .overlay(RoundedRectangle(cornerRadius: 2)
-                                    .strokeBorder(Cumbre.terra, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
-                        }
-                        .padding(.horizontal, 16)
-                    }
+                    // El botón "+ GRABAR APROXIMACIÓN" (solo admin) se quitó el 2026-10-14 a petición de Álvaro.
+                    // ApproachRecordView sigue en el repo por si se retoma (APPROACH_DESIGN.md).
                 }
                 .padding(.vertical, 8)
-            }
-        }
-        .fullScreenCover(isPresented: $recording) {
-            ApproachRecordView(school: school, blocks: blocks) {
-                loader.reload(schoolId: school.id)
             }
         }
         .alert(L("¿Borrar «%@»?", deleting?.name ?? L("esta aproximación")), isPresented: Binding(
