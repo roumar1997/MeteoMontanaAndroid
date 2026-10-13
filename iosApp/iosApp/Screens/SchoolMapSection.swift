@@ -223,9 +223,6 @@ struct SchoolMapSection: View {
         }
     }
 
-    /// Mapa con todos sus overlays. Compartido entre el modo tarjeta (280 pt)
-    /// y pantalla completa (estilo Radar).
-    @ViewBuilder
     /// Altura del mapa en la ficha: ocupa lo que sobra bajo cabecera, pestañas y filtros (antes eran 280 fijos y
     /// quedaba medio móvil vacío debajo). Limitada para que ni se quede diminuto ni se coma la pantalla entera.
     private var mapHeight: CGFloat {
@@ -233,6 +230,9 @@ struct SchoolMapSection: View {
         return min(max(free, 300), 560)
     }
 
+    /// Mapa con todos sus overlays. Compartido entre el modo tarjeta (altura variable)
+    /// y pantalla completa (estilo Radar).
+    @ViewBuilder
     private func mapArea(height: CGFloat) -> some View {
         ZStack(alignment: .bottomTrailing) {
                     MapLibreView(
