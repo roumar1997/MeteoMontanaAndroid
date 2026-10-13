@@ -37,6 +37,8 @@ final class SchoolBlocksExplorerModel: ObservableObject {
     @Published var order: Order = .repeated
     /// Sectores DESPLEGADOS (empiezan todos plegados, como los grupos de la búsqueda de Escuelas).
     @Published var openSectors: Set<String> = []
+    /// Panel de filtros (grado, beta, orden): plegado por defecto para que se vea antes la lista.
+    @Published var filtersOpen = false
 
     private var loadedSchool: String?
 
@@ -210,6 +212,51 @@ struct SchoolBlocksExplorerView: View {
                 .background(Cumbre.paper)
                 .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                 .dismissKeyboardOnSubmit()
+            filterToggle
+            if model.filtersOpen { filterPanel }
+        }
+        .padding(.horizontal, 16).padding(.vertical, 12)
+    }
+
+    /// Cuántos filtros se han tocado (grado, beta, orden distinto del de siempre).
+    private var activeCount: Int {
+        (model.grades.isEmpty ? 0 : 1) + (model.betas.isEmpty ? 0 : 1) + (model.order == .repeated ? 0 : 1)
+    }
+
+    private var summary: String {
+        var parts: [String] = []
+        if !model.grades.isEmpty {
+            parts.append(model.grades.sorted { (gradeScore($0) ?? Int.max, $0) < (gradeScore($1) ?? Int.max, $1) }.joined(separator: " "))
+        }
+        if !model.betas.isEmpty {
+            parts.append(SchoolBlocksExplorerModel.Beta.allCases.filter { model.betas.contains($0) }.map(\.label).joined(separator: " "))
+        }
+        parts.append(model.order.label.capitalized)
+        return parts.joined(separator: " · ")
+    }
+
+    private var filterToggle: some View {
+        Button { withAnimation(.easeInOut(duration: 0.2)) { model.filtersOpen.toggle() } } label: {
+            HStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "slider.horizontal.3").font(.system(size: 12, weight: .semibold))
+                    Text(activeCount > 0 ? L("FILTROS (%@)", activeCount) : L("FILTROS")).font(Cumbre.mono(11, .bold)).tracking(1)
+                }
+                .foregroundStyle(activeCount > 0 ? Color.white : Cumbre.ink2)
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .background(activeCount > 0 ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
+                .overlay(Capsule().stroke(activeCount > 0 ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
+                Text(summary).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                Spacer(minLength: 0)
+                Image(systemName: model.filtersOpen ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink3)
+            }
+            .contentShape(Rectangle())
+        }.buttonStyle(.plain)
+    }
+
+    private var filterPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
             label(L("GRADO (UNO O VARIOS)"))
             wrapChips {
                 chip(L("TODOS"), on: model.grades.isEmpty) { model.grades = [] }
@@ -239,7 +286,6 @@ struct SchoolBlocksExplorerView: View {
                 }
             }
         }
-        .padding(.horizontal, 16).padding(.vertical, 12)
     }
 
     private func label(_ t: String) -> some View {

@@ -1446,3 +1446,8 @@
 "MÁS VOTADAS" = "MOST VOTED";
 "MENOS VOTADAS" = "LEAST VOTED";
 "Más repetidos" = "Most repeated";
+"FILTROS" = "FILTERS";
+"FILTROS (%@)" = "FILTERS (%@)";
+"Hasta %@ km" = "Up to %@ km";
+"Cualquier distancia" = "Any distance";
+"Toca FILTROS (abajo) para afinar por distancia, tipo de roca o estilo (bloque/vía)." = "Tap FILTERS (below) to narrow by distance, rock type or style (boulder/route).";

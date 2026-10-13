@@ -570,33 +570,110 @@ let EXPLORE_GRADE_LADDER: [String] = BOULDER_GRADES.filter { $0 != "PROY" }
 /// escuelas + slider de grado + orientación, BLOCK_SEARCH_DESIGN.md §4/§8).
 struct FilterChips: View {
     @ObservedObject var vm: SchoolListViewModel
+    /// Plegados por defecto (2026-10-14: "demasiadas cosas" a la vista). Lo activo se resume en una línea.
+    @State private var open = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             tabSwitcher
+            filterToggleRow
+            locationWarning
+            if open { filterSections }
+        }
+        .padding(.vertical, 8)
+    }
+
+    /// Cuántos filtros se han movido respecto a lo de siempre (50 km, todo, todo).
+    private var activeCount: Int {
+        var n = 0
+        if vm.maxDistanceKm != 50 { n += 1 }
+        if vm.style != nil { n += 1 }
+        if vm.rock != nil { n += 1 }
+        if vm.exploreTab == .schools {
+            if vm.showMode != .all { n += 1 }
+        } else {
+            if vm.gradeMin != nil || vm.gradeMax != nil { n += 1 }
+            if !vm.orientations.isEmpty { n += 1 }
+            if vm.exploreSort != .distance { n += 1 }
+        }
+        return n
+    }
+
+    /// "Hasta 50 km · Bloque · 6A–7A": lo aplicado, sin tener que abrir el panel.
+    private var summary: String {
+        var parts: [String] = []
+        parts.append(vm.maxDistanceKm.map { L("Hasta %@ km", Int($0)) } ?? L("Cualquier distancia"))
+        if let s = vm.style { parts.append(styleLabel(s)) }
+        if let r = vm.rock { parts.append(rockLabel(r)) }
+        if vm.exploreTab == .schools {
+            if vm.showMode != .all { parts.append(vm.showMode.label) }
+        } else {
+            if vm.gradeMin != nil || vm.gradeMax != nil {
+                parts.append("\(vm.gradeMin ?? "…")–\(vm.gradeMax ?? "…")")
+            }
+            if !vm.orientations.isEmpty { parts.append(vm.orientations.sorted().joined(separator: "/")) }
+            if vm.exploreSort != .distance { parts.append(vm.exploreSort.label) }
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private var filterToggleRow: some View {
+        Button { withAnimation(.easeInOut(duration: 0.2)) { open.toggle() } } label: {
+            HStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "slider.horizontal.3").font(.system(size: 12, weight: .semibold))
+                    Text(activeCount > 0 ? L("FILTROS (%@)", activeCount) : L("FILTROS")).font(Cumbre.mono(11, .bold)).tracking(1)
+                }
+                .foregroundStyle(activeCount > 0 ? Color.white : Cumbre.ink2)
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .background(activeCount > 0 ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
+                .overlay(Capsule().stroke(activeCount > 0 ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
+                Text(summary).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                Spacer(minLength: 0)
+                Image(systemName: open ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink3)
+            }
+            .padding(.horizontal, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    // Sin esto, un permiso denegado se quedaba sin forma de arreglarse
+    // desde aquí — el mapa de Escuelas no pintaba el punto azul ni
+    // aplicaba "cercanía" en silencio, para siempre (Álvaro, 2026-10-01).
+    // Por PERMISO, no por "aún sin coordenadas": al abrir la app la
+    // ubicación tarda un momento y el aviso salía y desaparecía en cada
+    // arranque (Álvaro, 2026-10-02). Siempre a la vista, aunque los filtros estén plegados.
+    @ViewBuilder private var locationWarning: some View {
+        if vm.needsLocationPermission {
+            Button { vm.requestLocation() } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "location.slash").foregroundStyle(Cumbre.terra)
+                    Text(L("Sin ubicación — toca para activarla"))
+                        .font(.system(size: 12.5)).foregroundStyle(Cumbre.ink2)
+                    Spacer()
+                    Text(L("ACTIVAR")).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                }
+                .padding(10)
+                .background(Cumbre.terraBg).overlay(Rectangle().stroke(Cumbre.terra.opacity(0.4), lineWidth: 1))
+            }.buttonStyle(.plain)
+        }
+    }
+
+    private var filterSections: some View {
+        VStack(alignment: .leading, spacing: 12) {
             section(L("DISTANCIA")) {
                 chipRow(SchoolListViewModel.distanceOptions, id: { $0.map { String(Int($0)) } ?? "all" },
                         isSel: { $0 == vm.maxDistanceKm },
                         label: { $0 == nil ? NSLocalizedString("schools_filter_all", comment: "") : "\(Int($0!)) km" }) { vm.maxDistanceKm = $0 }
             }
-            // Sin esto, un permiso denegado se quedaba sin forma de arreglarse
+            // (el aviso de ubicación vive en locationWarning, siempre visible)
             // desde aquí — el mapa de Escuelas no pintaba el punto azul ni
             // aplicaba "cercanía" en silencio, para siempre (Álvaro, 2026-10-01).
             // Por PERMISO, no por "aún sin coordenadas": al abrir la app la
             // ubicación tarda un momento y el aviso salía y desaparecía en cada
             // arranque (Álvaro, 2026-10-02).
-            if vm.needsLocationPermission {
-                Button { vm.requestLocation() } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "location.slash").foregroundStyle(Cumbre.terra)
-                        Text(L("Sin ubicación — toca para activarla"))
-                            .font(.system(size: 12.5)).foregroundStyle(Cumbre.ink2)
-                        Spacer()
-                        Text(L("ACTIVAR")).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
-                    }
-                    .padding(10)
-                    .background(Cumbre.terraBg).overlay(Rectangle().stroke(Cumbre.terra.opacity(0.4), lineWidth: 1))
-                }.buttonStyle(.plain)
-            }
             if vm.exploreTab == .blocks {
                 section(L("GRADO")) { gradeRangeSection }
                 section(L("ORIENTACIÓN")) { orientationChips }
@@ -630,7 +707,6 @@ struct FilterChips: View {
                 }
             }
         }
-        .padding(.vertical, 8)
     }
 
     /// Segmented control Escuelas / Bloques — cambia la MISMA lista de abajo

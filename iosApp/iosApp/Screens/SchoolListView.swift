@@ -571,7 +571,7 @@ struct SchoolListView: View {
                     // Hint de filtros — justo antes de la barra de filtros
                     FirstTimeHint(
                         hintKey: "schools_filters",
-                        text: L("Usa los filtros de abajo para encontrar escuelas por distancia, tipo de roca o estilo (bloque/vía).")
+                        text: L("Toca FILTROS (abajo) para afinar por distancia, tipo de roca o estilo (bloque/vía).")
                     )
                     FilterChips(vm: vm)
                     DaySelectorRow(vm: vm)

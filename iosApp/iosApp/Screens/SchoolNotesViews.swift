@@ -49,14 +49,21 @@ struct NotesSectionView: View {
         }
     }
 
-    private func orderChip(_ text: String, _ o: NoteOrder) -> some View {
-        Button { order = o } label: {
-            Text(text).font(Cumbre.mono(10.5, .bold))
-                .padding(.horizontal, 10).padding(.vertical, 6)
-                .foregroundStyle(order == o ? Color.white : Cumbre.ink2)
-                .background(order == o ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
-                .overlay(Capsule().stroke(order == o ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
-        }.buttonStyle(.plain)
+    /// Un único menú pequeño en vez de dos botones siempre a la vista.
+    private var orderMenu: some View {
+        Menu {
+            Button(L("MÁS VOTADAS")) { order = .most }
+            Button(L("MENOS VOTADAS")) { order = .least }
+        } label: {
+            HStack(spacing: 4) {
+                Text(order == .most ? L("MÁS VOTADAS") : L("MENOS VOTADAS")).font(Cumbre.mono(10.5, .bold))
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 9))
+            }
+            .foregroundStyle(Cumbre.ink2)
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .background(Cumbre.paper, in: Capsule())
+            .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
+        }
     }
 
     var body: some View {
@@ -86,10 +93,7 @@ struct NotesSectionView: View {
 
             if expanded || alwaysOpen {
             if notes.count > 1 {
-                HStack(spacing: 6) {
-                    orderChip(L("MÁS VOTADAS"), .most)
-                    orderChip(L("MENOS VOTADAS"), .least)
-                }
+                orderMenu
             }
             if notes.isEmpty {
                 Text("Sin notas aún. ¡Sé el primero!")
