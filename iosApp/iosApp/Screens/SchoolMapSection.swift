@@ -17,6 +17,9 @@ struct SchoolMapSection: View {
     /// El buscador de vías/bloques por nombre. La ficha de escuela con pestañas lo quita del mapa (vive en BLOQUES/VÍAS);
     /// los chips de orientación se quedan.
     var showsSearch: Bool = true
+    /// Se avisa cuando la ficha de una piedra se CIERRA del todo (no cuando solo se recarga). La ficha de escuela
+    /// lo usa para devolverte a la lista de BLOQUES si venías de ella.
+    var onBlockSheetClosed: (() -> Void)? = nil
     /// Sube al deslizar hacia abajo en la ficha (pull-to-refresh) para volver
     /// a pedir las piedras — normalmente solo se cargan una vez al abrir el
     /// mapa (Álvaro, 2026-09-04: piedras/usuarios nuevos no aparecían sin
@@ -548,6 +551,10 @@ struct SchoolMapSection: View {
                 }
                 // Ficha de piedra y sus acciones — también ancladas al mapa para
                 // que se presenten sobre la pantalla completa sin tener que salir.
+                .onChange(of: selectedBlock?.id) { newId in
+                    // Solo la TRANSICIÓN a "ninguna piedra abierta": recargar la misma piedra no cambia su id.
+                    if newId == nil { onBlockSheetClosed?() }
+                }
                 .sheet(item: $selectedBlock) { b in
                     BlockInfoSheet(
                         block: b,

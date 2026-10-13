@@ -309,6 +309,8 @@ struct SchoolDetailView: View {
     @State private var tab: SchoolTab = .map
     /// Vía que debe abrir el mapa al mostrarse: la del deep-link, o la que se toca en la pestaña BLOQUES.
     @State private var mapOpenVia: String?
+    /// Se abrió una vía DESDE la lista de BLOQUES: al cerrar su ficha se vuelve a la lista, no se queda en el mapa.
+    @State private var returnToBlocks = false
     /// Estado de la pestaña BLOQUES: aquí para que sobreviva al cambiar de pestaña.
     @StateObject private var blocksModel = SchoolBlocksExplorerModel()
     /// Tarjeta HOY abierta a mano. En la pestaña TIEMPO se muestra abierta sola (es justo el tiempo).
@@ -347,7 +349,11 @@ struct SchoolDetailView: View {
         }
         .sheet(isPresented: $showHelp) { HelpSheet(topicKey: "detail") }
         // El mapa se recrea al volver a él: sin esto reabriría otra vez la piedra del deep-link o de BLOQUES.
-        .onChange(of: tab) { newTab in if newTab != .map { mapOpenVia = nil } }
+        .onChange(of: tab) { newTab in
+            if newTab != .map { mapOpenVia = nil }
+            // Si el usuario cambia de pestaña a mano, ya no hay "vuelta a la lista" pendiente.
+            if newTab != .map { returnToBlocks = false }
+        }
         .sheet(isPresented: $showProcessionary) {
             ProcessionaryInfoSheet(
                 vm: vm,
@@ -391,11 +397,19 @@ struct SchoolDetailView: View {
             case .map:
                 // Boletín de montaña ENCIMA del mapa (paridad con Android).
                 MountainBulletinSection(lat: school.lat, lon: school.lon, country: school.country)
-                SchoolMapSection(school: school, openVia: mapOpenVia, showsSearch: false, refreshTrigger: presenceRefreshTrigger)
+                SchoolMapSection(school: school, openVia: mapOpenVia, showsSearch: false,
+                                 onBlockSheetClosed: {
+                                     // Una sola vuelta: la lista conserva sus filtros (viven en blocksModel).
+                                     guard returnToBlocks else { return }
+                                     returnToBlocks = false
+                                     tab = .blocks
+                                 },
+                                 refreshTrigger: presenceRefreshTrigger)
                     .id(mapOpenVia ?? "")
             case .blocks:
                 SchoolBlocksExplorerView(school: school, model: blocksModel) { lineId in
                     mapOpenVia = lineId
+                    returnToBlocks = true
                     tab = .map
                 }
             case .weather:
