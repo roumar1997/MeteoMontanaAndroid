@@ -120,6 +120,7 @@ struct SchoolMapSection: View {
             // deep-link. Arranca en true y ya no la cambia ningun boton.
             Group {
                 searchBar
+                placesRow
                 GradeFilterBar(
                     selectedGrades: $selectedGrades,
                     availableGrades: availableGrades(vm.blocks),
@@ -138,8 +139,6 @@ struct SchoolMapSection: View {
                                    isAdmin: vm.isAdmin, following: $followingApproach)
                 // "CÓMO LLEGAR" de la escuela quitado: las indicaciones salen al
                 // tocar cada parking/piedra en el mapa (BlockInfoSheet).
-                parkingsList
-                sectoresList
             }
         }
         .task(id: expanded) {
@@ -599,7 +598,6 @@ struct SchoolMapSection: View {
                     .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                     .dismissKeyboardOnSubmit()
             }
-            orientationChips
             let q = vm.searchQuery.trimmingCharacters(in: .whitespaces)
             if showsSearch && q.count >= 2 {
                 let hits = vm.searchHits(q)
@@ -646,41 +644,36 @@ struct SchoolMapSection: View {
 
     /// Chips TODAS / N / NE… con el nº de piedras de cada consenso.
     @ViewBuilder
-    private var orientationChips: some View {
+    /// Filtro de orientación en UN botón con brújula (antes, una fila de chips "N · 4", "NE · 5"…). Muestra la elegida.
+    @ViewBuilder private var orientationMenu: some View {
         if !blockOrientations.isEmpty {
-            let counts = Dictionary(grouping: blockOrientations.values, by: { $0 })
-                .mapValues { $0.count }
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    orientationChip(L("TODAS"), active: orientationFilter == nil) {
-                        orientationFilter = nil
-                    }
-                    ForEach(Self.aspectOrder, id: \.self) { aspect in
-                        if let n = counts[aspect], n > 0 {
-                            orientationChip("\(aspectLabel(aspect)) · \(n)", active: orientationFilter == aspect) {
-                                orientationFilter = orientationFilter == aspect ? nil : aspect
+            let counts = Dictionary(grouping: blockOrientations.values, by: { $0 }).mapValues { $0.count }
+            Menu {
+                Button { orientationFilter = nil } label: {
+                    if orientationFilter == nil { Label(L("TODAS"), systemImage: "checkmark") } else { Text(L("TODAS")) }
+                }
+                ForEach(Self.aspectOrder, id: \.self) { aspect in
+                    if let n = counts[aspect], n > 0 {
+                        Button { orientationFilter = (orientationFilter == aspect ? nil : aspect) } label: {
+                            if orientationFilter == aspect {
+                                Label("\(aspectLabel(aspect)) · \(n)", systemImage: "checkmark")
+                            } else {
+                                Text("\(aspectLabel(aspect)) · \(n)")
                             }
                         }
                     }
                 }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "safari").font(.system(size: 13))
+                    if let sel = orientationFilter { Text(aspectLabel(sel)).font(Cumbre.mono(10, .bold)) }
+                }
+                .foregroundStyle(orientationFilter == nil ? Cumbre.ink2 : Color.white)
+                .padding(.horizontal, 10).padding(.vertical, 7)
+                .background(orientationFilter == nil ? Cumbre.paper : Cumbre.terraFill, in: Capsule())
+                .overlay(Capsule().stroke(orientationFilter == nil ? Cumbre.rule : Cumbre.terraFill, lineWidth: 1))
             }
-            .padding(.vertical, 2)
         }
-    }
-
-    private func orientationChip(_ label: String, active: Bool,
-                                 action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(label).font(Cumbre.mono(10, .bold))
-                .foregroundStyle(active ? .white : Cumbre.terra)
-                .padding(.horizontal, 10).padding(.vertical, 6)
-                .background(RoundedRectangle(cornerRadius: 6)
-                    .fill(active ? Cumbre.terra : Cumbre.paper))
-                .overlay(RoundedRectangle(cornerRadius: 6)
-                    .stroke(Cumbre.terra.opacity(active ? 1 : 0.55),
-                            style: StrokeStyle(lineWidth: 1, dash: active ? [] : [4, 3])))
-        }
-        .buttonStyle(.plain)
     }
 
     /// Vuelve al encuadre inicial de la escuela (todos los marcadores).
@@ -725,7 +718,7 @@ struct SchoolMapSection: View {
 
     /// Círculo verde con Z — la forma real del marcador de zona.
     private var zoneShape: some View {
-        Text("Z").font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
+        Text("S").font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
             .frame(width: 22, height: 22)
             .background(Color(zoneColor))
             .clipShape(Circle())
@@ -1135,7 +1128,7 @@ struct SchoolMapSection: View {
         }
         return VStack(spacing: 6) {
             HStack(spacing: 8) {
-                Text(isParking ? "P" : "Z")
+                Text(isParking ? "P" : "S")
                     .font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
                     .frame(width: 24, height: 24)
                     .background(isParking ? Color(parkingColor) : Color(zoneColor))
@@ -1198,49 +1191,51 @@ struct SchoolMapSection: View {
         .padding(.horizontal, 8).padding(.bottom, 8)
     }
 
-    /// Fila de SECTORES, igual que la de parkings pero llevando a la zona con
-    /// zoom suficiente para distinguir sus piedras. Petición de Rodrigo
-    /// (2026-08-16): "igual que aparecen los parkings abajo, otra fila con los
-    /// sectores, y que hiciera zoom al pulsarlo". Antes había que buscarlos a
-    /// ojo en el mapa y ampliar a mano.
-    private var sectoresList: some View {
+    /// Sectores y parkings en UNA sola fila, arriba y SIN rótulos: el símbolo ya lo dice (S = sector, P = parking).
+    /// Sectores primero. Tocar uno lleva el mapa allí. A la derecha, fijo, el filtro de orientación.
+    @ViewBuilder private var placesRow: some View {
         let sectores = ordenadosPorCercania(vm.blocks.filter { $0.type.uppercased() == "ZONE" })
-        return Group {
-            if !sectores.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("SECTORES").eyebrow()
-                        .padding(.horizontal, 16).padding(.top, 10)
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 6) {
-                            ForEach(sectores, id: \.id) { s in
-                                Button {
-                                    miniBlock = s
-                                    irAlSector(s)
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        Text("Z")
-                                            .font(.system(size: 10, weight: .bold))
-                                            .foregroundStyle(.white)
-                                            .frame(width: 20, height: 20)
-                                            .background(Color(zoneColor))
-                                            .clipShape(Circle())
-                                        Text(etiquetaSector(s))
-                                            .font(.system(size: 13, weight: .medium))
-                                            .foregroundStyle(Cumbre.ink).lineLimit(1)
-                                    }
-                                    .padding(.horizontal, 10).padding(.vertical, 7)
-                                    .background(Cumbre.paper)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.rule, lineWidth: 1))
-                                }
-                                .buttonStyle(.plain)
+        let parkings = ordenadosPorCercania(vm.blocks.filter { $0.type.uppercased() == "PARKING" })
+        if !(sectores.isEmpty && parkings.isEmpty && blockOrientations.isEmpty) {
+            HStack(spacing: 6) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(sectores, id: \.id) { s in
+                            placeChip(symbol: "S", color: zoneColor, corner: 10, label: etiquetaSector(s)) {
+                                miniBlock = s
+                                irAlSector(s)
                             }
                         }
-                        .padding(.horizontal, 16).padding(.vertical, 6)
+                        ForEach(parkings, id: \.id) { p in
+                            placeChip(symbol: "P", color: parkingColor, corner: 5, label: chipLabel(p)) {
+                                miniBlock = p
+                                flyToParkingZone(p)
+                            }
+                        }
                     }
+                    .padding(.vertical, 2)
                 }
+                orientationMenu
             }
+            .padding(.horizontal, 12).padding(.vertical, 6)
         }
+    }
+
+    private func placeChip(symbol: String, color: UIColor, corner: CGFloat, label: String,
+                           action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Text(symbol).font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
+                    .frame(width: 20, height: 20)
+                    .background(Color(color))
+                    .clipShape(RoundedRectangle(cornerRadius: corner))
+                Text(label).font(.system(size: 13, weight: .medium)).foregroundStyle(Cumbre.ink).lineLimit(1)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .background(Cumbre.paper, in: Capsule())
+            .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 
     /// Ordena parkings/sectores por CERCANÍA a tu ubicación — pero solo si de
@@ -1310,48 +1305,6 @@ struct SchoolMapSection: View {
             focusZoom = 17.0
         }
         focusToken += 1
-    }
-
-    private var parkingsList: some View {
-        let parkings = ordenadosPorCercania(vm.blocks.filter { $0.type.uppercased() == "PARKING" })
-        return Group {
-            if !parkings.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("PARKINGS").eyebrow()
-                        .padding(.horizontal, 16).padding(.top, 10)
-                    // Chips horizontales (una línea): cada uno lleva el mapa a SU
-                    // zona (mini-ficha + encuadre parking + cercanos).
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 6) {
-                            ForEach(parkings, id: \.id) { p in
-                                Button {
-                                    miniBlock = p
-                                    flyToParkingZone(p)
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        Text("P")
-                                            .font(.system(size: 10, weight: .bold))
-                                            .foregroundStyle(.white)
-                                            .frame(width: 20, height: 20)
-                                            .background(Color(parkingColor))
-                                            .clipShape(RoundedRectangle(cornerRadius: 5))
-                                        Text(chipLabel(p))
-                                            .font(.system(size: 13, weight: .medium))
-                                            .foregroundStyle(Cumbre.ink).lineLimit(1)
-                                    }
-                                    .padding(.horizontal, 10).padding(.vertical, 7)
-                                    .background(Cumbre.paper)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.rule, lineWidth: 1))
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.horizontal, 16).padding(.vertical, 6)
-                    }
-                }
-            }
-        }
     }
 
     /// Etiqueta del chip de parking: nombre + distancia si hay ubicación.

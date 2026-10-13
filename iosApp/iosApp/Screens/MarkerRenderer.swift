@@ -98,7 +98,7 @@ enum MarkerRenderer {
             UIColor(hex: 0x3F6B4A).setFill()
             tri.fill(); circle.fill()
             UIColor.white.setStroke(); circle.lineWidth = 2; circle.stroke()
-            draw(text: "Z", in: CGRect(x: cx - r, y: cy - r, width: r * 2, height: r * 2),
+            draw(text: "S", in: CGRect(x: cx - r, y: cy - r, width: r * 2, height: r * 2),
                  size: 17, color: .white)
             // Nombre del sector debajo (con halo blanco), visible al hacer zoom.
             if let label {

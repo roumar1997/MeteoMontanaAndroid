@@ -1451,3 +1451,4 @@
 "Hasta %@ km" = "Up to %@ km";
 "Cualquier distancia" = "Any distance";
 "Toca FILTROS (abajo) para afinar por distancia, tipo de roca o estilo (bloque/vía)." = "Tap FILTERS (below) to narrow by distance, rock type or style (boulder/route).";
+"Óptimo %@–%@" = "Best %@–%@";

@@ -21,18 +21,16 @@ struct ForecastBodyView: View {
     /// Ficha de escuela (2026-10-13): tras la puntuación y las próximas 16 horas van PESTAÑAS (mapa, bloques,
     /// tiempo, notas) en vez de una columna larga. Si se pasa, sustituye al mapa suelto y al resto del cuerpo.
     var tabsSlot: AnyView? = nil
+    /// Tarjeta HOY plegable de la ficha con pestañas (nil = la ficha de siempre). La ficha la abre sola en TIEMPO.
+    var hoyOpen: Binding<Bool>? = nil
 
     var body: some View {
         let f = forecast
         VStack(alignment: .leading, spacing: 0) {
             if let tabsSlot {
-                // Ficha de escuela: lo justo arriba para que las pestañas (mapa, bloques…) queden a la vista.
-                // La tira de colores y el "¿por qué este índice?" viven ahora en la pestaña TIEMPO.
-                CompactHero(forecast: f)
-                CompactRockLine(current: f.current)
-                FactorsAccordion(current: f.current, expanded: $factorsExpanded, compact: true)
-                HoursGrid(hours: upcomingHours(f.hours, 16), compact: true).padding(.top, 2).padding(.bottom, 8)
-                rule
+                // Ficha de escuela: UNA tarjeta HOY (SÍ/NO, índice, roca, óptimo) que se despliega con las 16 horas
+                // y el "por qué"; así las pestañas y el mapa empiezan mucho más arriba.
+                HoyCard(forecast: f, open: hoyOpen ?? .constant(false), factorsExpanded: $factorsExpanded)
                 tabsSlot
             } else {
                 HeroSection(forecast: f)
@@ -123,52 +121,56 @@ private struct HeroSection: View {
     }
 }
 
-// MARK: - Cabecera compacta (ficha de escuela con pestañas)
+// MARK: - Tarjeta HOY (ficha de escuela con pestañas)
 
-private struct CompactHero: View {
+/// Plegada: SÍ/NO + índice + estado de la roca + ventana óptima en UNA fila. Desplegada: además el motivo de
+/// la roca, el "¿por qué este índice?" y las próximas 16 horas.
+private struct HoyCard: View {
     let forecast: Forecast
+    @Binding var open: Bool
+    @Binding var factorsExpanded: Bool
+
     var body: some View {
         let c = forecast.current
         let score = Int(c.score)
         let yes = score >= 55
-        HStack(alignment: .center, spacing: 10) {
-            Text(yes ? "SÍ" : "NO")
-                .font(Cumbre.serif(36, .bold))
-                .foregroundStyle(yes ? Cumbre.ok : Cumbre.bad)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("¿PUEDO ESCALAR HOY?").eyebrow()
-                if let w = forecast.bestWindow {
-                    Text(L("Óptimo entre %@–%@", short(w.start), short(w.end)))
-                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink).lineLimit(1).minimumScaleFactor(0.8)
-                }
-            }
-            Spacer(minLength: 4)
-            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text("\(score)").font(Cumbre.serif(32, .bold)).foregroundStyle(Cumbre.score(score))
-                Text("/100").font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
-            }
-        }
-        .padding(.horizontal, 16).padding(.vertical, 8)
-    }
-}
-
-/// Estado de la roca en UNA línea (la banda grande sigue en el resto de pantallas).
-private struct CompactRockLine: View {
-    let current: Current
-    var body: some View {
-        let dry = current.dryRock
+        let dry = c.dryRock
         let accent = dry ? Cumbre.ok : Cumbre.bad
-        let subtitle = current.drying?.message ?? (dry ? L("Lista para escalar") : L("Mejor esperar a que seque"))
-        HStack(spacing: 8) {
-            Text(dry ? L("● ROCA SECA") : L("● ROCA HÚMEDA")).font(Cumbre.mono(11, .bold)).foregroundStyle(accent)
-            Text(subtitle).font(.system(size: 12)).foregroundStyle(Cumbre.ink2).lineLimit(1)
-            Spacer(minLength: 0)
+        let subtitle = c.drying?.message ?? (dry ? L("Lista para escalar") : L("Mejor esperar a que seque"))
+        VStack(alignment: .leading, spacing: 0) {
+            Button { withAnimation(.easeInOut(duration: 0.2)) { open.toggle() } } label: {
+                HStack(spacing: 10) {
+                    Text(yes ? "SÍ" : "NO").font(Cumbre.serif(26, .bold)).foregroundStyle(yes ? Cumbre.ok : Cumbre.bad)
+                    HStack(alignment: .lastTextBaseline, spacing: 1) {
+                        Text("\(score)").font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.score(score))
+                        Text("/100").font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
+                    }
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(dry ? L("● ROCA SECA") : L("● ROCA HÚMEDA")).font(Cumbre.mono(10.5, .bold)).foregroundStyle(accent)
+                        if let w = forecast.bestWindow {
+                            Text(L("Óptimo %@–%@", short(w.start), short(w.end)))
+                                .font(.system(size: 11.5)).foregroundStyle(Cumbre.ink2).lineLimit(1).minimumScaleFactor(0.8)
+                        }
+                    }
+                    Spacer(minLength: 4)
+                    Image(systemName: open ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink3)
+                }
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            if open {
+                Divider().overlay(Cumbre.rule)
+                Text(subtitle).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
+                    .padding(.horizontal, 12).padding(.top, 8)
+                FactorsAccordion(current: c, expanded: $factorsExpanded, compact: true)
+                HoursGrid(hours: upcomingHours(forecast.hours, 16), compact: true).padding(.top, 2).padding(.bottom, 10)
+            }
         }
+        .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.rule, lineWidth: 1))
         .padding(.horizontal, 12).padding(.vertical, 6)
-        .background(accent.opacity(0.12))
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(accent.opacity(0.45), lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .padding(.horizontal, 16).padding(.bottom, 4)
     }
 }
 

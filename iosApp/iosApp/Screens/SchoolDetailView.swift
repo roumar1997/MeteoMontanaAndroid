@@ -310,6 +310,11 @@ struct SchoolDetailView: View {
     @State private var mapOpenVia: String?
     /// Estado de la pestaña BLOQUES: aquí para que sobreviva al cambiar de pestaña.
     @StateObject private var blocksModel = SchoolBlocksExplorerModel()
+    /// Tarjeta HOY abierta a mano. En la pestaña TIEMPO se muestra abierta sola (es justo el tiempo).
+    @State private var hoyManual = false
+    private var hoyOpen: Binding<Bool> {
+        Binding(get: { hoyManual || tab == .weather }, set: { hoyManual = $0 })
+    }
 
     init(school: School, openVia: String? = nil) {
         self.school = school
@@ -562,7 +567,8 @@ struct SchoolDetailView: View {
                     directions: (lat: school.lat, lon: school.lon, label: school.name),
                     factorsExpanded: $factorsExpanded,
                     onSelectDay: { selectedDay = $0 },
-                    tabsSlot: AnyView(tabbedContent(f))
+                    tabsSlot: AnyView(tabbedContent(f)),
+                    hoyOpen: hoyOpen
                 )
             } else {
                 // Sin previsión: las pestañas van igualmente (el tiempo no tiene nada que enseñar).
