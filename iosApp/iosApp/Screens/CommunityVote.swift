@@ -35,6 +35,8 @@ final class CommunityVoteStore: ObservableObject {
     @Published var orientation: [OrientationSummary] = []
     @Published var sunByPhoto: [Int: SunHours] = [:]   // -1 = bloque entero
     @Published var grade: GradeSummary? = nil
+    /// Votos de grado por vía (lineId → total), para enseñar "N votos" junto al grado sin abrir la hoja.
+    @Published var gradeCounts: [String: Int] = [:]
 
     private var container: IosDependencyContainer { AppDependencies.shared.container }
 
@@ -75,12 +77,34 @@ final class CommunityVoteStore: ObservableObject {
         grade = nil
         if let g = try? await container.getGradeVotes.invoke(lineId: lineId) {
             grade = g
+            gradeCounts[lineId] = total(g)
         }
+    }
+
+    private func total(_ g: GradeSummary) -> Int { g.votes.values.reduce(0) { $0 + $1.intValue } }
+
+    /// Votos de grado de todas las vías de una piedra, a la vez (una consulta por vía; una piedra tiene pocas).
+    func loadGradeCounts(lineIds: [String]) async {
+        let container = self.container
+        var found: [String: Int] = [:]
+        await withTaskGroup(of: (String, Int)?.self) { group in
+            for id in lineIds {
+                group.addTask {
+                    guard let g = try? await container.getGradeVotes.invoke(lineId: id) else { return nil }
+                    return (id, g.votes.values.reduce(0) { $0 + $1.intValue })
+                }
+            }
+            for await r in group { if let r { found[r.0] = r.1 } }
+        }
+        // Se vuelca FUERA del grupo: así la propiedad (del actor principal) se toca desde el actor principal.
+        gradeCounts.merge(found) { _, new in new }
     }
 
     func voteGrade(lineId: String, grade newGrade: String) async {
         do {
-            grade = try await container.voteGrade.invoke(lineId: lineId, grade: newGrade)
+            let g = try await container.voteGrade.invoke(lineId: lineId, grade: newGrade)
+            grade = g
+            gradeCounts[lineId] = total(g)
         } catch {
             let text = String(describing: error)
             ErrorPresenter.shared.show(
@@ -96,11 +120,22 @@ struct VoteBars: View {
     let votes: [String: Int]
     let highlight: String?
     let myVote: String?
+    /// En los votos de GRADO: cada barra lleva el color de su grado.
+    var gradeColored = false
+
+    /// Más votado primero; en empate, por grado (o por nombre) — antes los empates bailaban entre aperturas.
+    private var ordered: [(key: String, value: Int)] {
+        votes.sorted { a, b in
+            if a.value != b.value { return a.value > b.value }
+            return (gradeScore(a.key) ?? Int.max, a.key) < (gradeScore(b.key) ?? Int.max, b.key)
+        }
+    }
 
     var body: some View {
         let maxCount = max(votes.values.max() ?? 1, 1)
         VStack(spacing: 6) {
-            ForEach(votes.sorted { $0.value > $1.value }, id: \.key) { option, count in
+            ForEach(ordered, id: \.key) { option, count in
+                let barColor = gradeColored ? GradeColor.chip(option) : Cumbre.terra
                 HStack(spacing: 8) {
                     Text(option).font(Cumbre.mono(12, .bold))
                         .foregroundStyle(option == highlight ? Cumbre.terra : Cumbre.ink)
@@ -109,13 +144,14 @@ struct VoteBars: View {
                         ZStack(alignment: .leading) {
                             Capsule().fill(Cumbre.paper2)
                             Capsule()
-                                .fill(option == highlight ? Cumbre.terra : Cumbre.terra.opacity(0.45))
-                                .frame(width: geo.size.width * CGFloat(count) / CGFloat(maxCount))
+                                .fill(option == highlight ? barColor : barColor.opacity(0.55))
+                                .overlay(Capsule().stroke(gradeColored ? Cumbre.rule : Color.clear, lineWidth: 1))
+                                .frame(width: max(geo.size.width * CGFloat(count) / CGFloat(maxCount), 14))
                         }
                     }
                     .frame(height: 14)
                     Text("\(count)" + (option == myVote ? L(" · tú ✓") : ""))
-                        .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(Cumbre.ink2)
                 }
             }
         }
@@ -212,7 +248,7 @@ struct GradeVoteSheet: View {
             if let s = store.grade {
                 if !s.votes.isEmpty {
                     VoteBars(votes: s.votes.mapValues { $0.intValue },
-                             highlight: s.displayedGrade, myVote: s.myVote)
+                             highlight: s.displayedGrade, myVote: s.myVote, gradeColored: true)
                 }
                 HStack {
                     Text("Mostrado").font(.system(size: 12)).foregroundStyle(Cumbre.ink)

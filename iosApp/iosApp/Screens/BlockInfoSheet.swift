@@ -254,6 +254,10 @@ struct BlockInfoSheet: View {
                                                 gradeTarget = GradeVoteTarget(lineId: l.id, canVote: canVote)
                                                 Task { await community.loadGrade(lineId: l.id) }
                                             }
+                                            // Cuántos han votado el grado: visible sin abrir la hoja (como la orientación).
+                                            if let n = community.gradeCounts[l.id], n > 0 {
+                                                Text(L("%@ votos", n)).font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                                            }
                                         }
                                         Text(l.name.isEmpty ? L("Vía %@", idx + 1) : l.displayName)
                                             .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
@@ -395,6 +399,7 @@ struct BlockInfoSheet: View {
             .task(id: block.id) {
                 await community.loadOrientation(blockId: block.id)
                 await community.loadSun(blockId: block.id, photoIndex: nil)
+                await community.loadGradeCounts(lineIds: block.lines.map { $0.id })
             }
             .sheet(item: $orientationTarget) { target in
                 OrientationVoteSheet(store: community, blockId: block.id,
