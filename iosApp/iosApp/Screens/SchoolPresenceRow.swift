@@ -79,7 +79,7 @@ private struct ChatTarget: Identifiable, Hashable {
     var id: String { uid }
 }
 
-struct SchoolPresenceRow: View {
+struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
     let schoolId: String
     let schoolName: String
     let myUid: String?
@@ -89,8 +89,8 @@ struct SchoolPresenceRow: View {
     var refreshTrigger: Int = 0
     /// La cabecera de la ficha (volver + nombre | iconos) se pinta AQUÍ, en la misma fila que el chat de la escuela
     /// y el botón "Aquí": así no hace falta una fila fija extra (2026-10-14, para ganar altura).
-    let leading: AnyView
-    let trailing: AnyView
+    let leading: Leading
+    let trailing: Trailing
     @StateObject private var vm: SchoolPresenceViewModel
     @State private var showPrivacyNote = false
     @State private var openChatFor: ChatTarget?
@@ -98,13 +98,13 @@ struct SchoolPresenceRow: View {
     @State private var showAllPresent = false
 
     init(schoolId: String, schoolName: String, myUid: String?, refreshTrigger: Int = 0,
-         leading: AnyView, trailing: AnyView) {
+         @ViewBuilder leading: () -> Leading, @ViewBuilder trailing: () -> Trailing) {
         self.schoolId = schoolId
         self.schoolName = schoolName
         self.myUid = myUid
         self.refreshTrigger = refreshTrigger
-        self.leading = leading
-        self.trailing = trailing
+        self.leading = leading()
+        self.trailing = trailing()
         _vm = StateObject(wrappedValue: SchoolPresenceViewModel(schoolId: schoolId, myUid: myUid))
     }
 

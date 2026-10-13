@@ -81,6 +81,23 @@ Patrones que este refactor fija como CASA:
   con reglas de negocio (claves del diario, decisiones de publicación), se
   extrae a función pura con test (`matchedLineIds`).
 
+### 3.b Ficha de escuela con pestañas y lista de vías (2026-10-14)
+
+Segundo ejemplo de cómo organizar una feature, esta vez con la lógica en `shared` para que iOS y Android no la
+escriban dos veces:
+
+| Pieza | Responsabilidad única | Dónde |
+|---|---|---|
+| `SchoolLinesExplorer` | PURA: filtrar (texto, grados, beta), ordenar, podio y agrupar por sector | `shared/domain/usecase/schools` (+ test) |
+| `LoadSchoolLinesUseCase` / `LoadBetaLineIdsUseCase` | descargar todas las páginas (sin conocer el tamaño de página del servidor) | idem |
+| `NoteOrdering` · `VoteOrdering` | orden de notas y de barras de votos (estable, sin depender del orden de inserción) | `shared/domain/usecase/notes` y `community` |
+| `SchoolBlocksExplorerModel` | SOLO estado de pantalla + llamar a los use cases (iOS) | `SchoolBlocksExplorerModel.swift` |
+| `SchoolBlocksExplorerView` | SOLO pintar | `SchoolBlocksExplorerView.swift` |
+| `SchoolDetailHeader` · `SchoolDetailTabs` · `GradePill` | cabecera, pestañas y píldora de grado | ficheros propios |
+
+Regla que sale de aquí: **si una vista de iOS ordena, filtra o agrupa con reglas de negocio, eso va a shared con test**
+(y Android lo reutiliza). Un `SchoolDetailView` por encima de 600 líneas se parte, como se hizo aquí (660 → ~550).
+
 ## 4. Paridad Android ↔ iOS
 
 - iOS replica Android **verbatim** (pantallas, textos, orden, colores).

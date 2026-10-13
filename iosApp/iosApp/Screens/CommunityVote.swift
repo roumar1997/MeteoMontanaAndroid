@@ -123,18 +123,16 @@ struct VoteBars: View {
     /// En los votos de GRADO: cada barra lleva el color de su grado.
     var gradeColored = false
 
-    /// Más votado primero; en empate, por grado (o por nombre) — antes los empates bailaban entre aperturas.
-    private var ordered: [(key: String, value: Int)] {
-        votes.sorted { a, b in
-            if a.value != b.value { return a.value > b.value }
-            return (gradeScore(a.key) ?? Int.max, a.key) < (gradeScore(b.key) ?? Int.max, b.key)
-        }
+    /// Más votado primero; en empate, por grado o por nombre: lo decide shared (mismo orden en Android).
+    private var ordered: [(option: String, count: Int)] {
+        VoteOrdering.shared.ordered(votes: votes.mapValues { KotlinInt(int: Int32($0)) })
+            .map { (option: $0.option, count: Int($0.count)) }
     }
 
     var body: some View {
         let maxCount = max(votes.values.max() ?? 1, 1)
         VStack(spacing: 6) {
-            ForEach(ordered, id: \.key) { option, count in
+            ForEach(ordered, id: \.option) { option, count in
                 let barColor = gradeColored ? GradeColor.chip(option) : Cumbre.terra
                 HStack(spacing: 8) {
                     Text(option).font(Cumbre.mono(12, .bold))

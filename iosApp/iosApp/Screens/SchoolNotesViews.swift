@@ -40,13 +40,7 @@ struct NotesSectionView: View {
 
     private var orderedNotes: [Note] {
         let visible = notes.filter { !moderation.hiddenIds.contains("NOTE:\($0.id)") }
-        func score(_ n: Note) -> Int { Int(n.upvotesCount) - Int(n.downvotesCount) }
-        // Desempate por fecha (más reciente primero) para que el orden no baile entre recargas.
-        return visible.sorted { a, b in
-            let (sa, sb) = (score(a), score(b))
-            if sa != sb { return order == .most ? sa > sb : sa < sb }
-            return a.createdAt > b.createdAt
-        }
+        return NoteOrdering.shared.byVotes(notes: visible, mostVotedFirst: order == .most)
     }
 
     /// Un único menú pequeño en vez de dos botones siempre a la vista.

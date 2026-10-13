@@ -305,7 +305,7 @@ struct SchoolDetailView: View {
     @State private var presenceRefreshTrigger = 0
     @State private var showProcessionary = false
     @State private var showHelp = false
-    /// Pestañas bajo la puntuación y las 16 horas (opción B del rediseño, 2026-10-13). El mapa va por defecto.
+    /// Pestaña activa (opción B del rediseño, 2026-10-13). El mapa va por defecto.
     @State private var tab: SchoolTab = .map
     /// Vía que debe abrir el mapa al mostrarse: la del deep-link, o la que se toca en la pestaña BLOQUES.
     @State private var mapOpenVia: String?
@@ -330,7 +330,14 @@ struct SchoolDetailView: View {
             SchoolPresenceRow(schoolId: school.id, schoolName: school.name,
                               myUid: AppDependencies.shared.authBridge.currentUid(),
                               refreshTrigger: presenceRefreshTrigger,
-                              leading: AnyView(headerLeading), trailing: AnyView(headerTrailing))
+                              leading: {
+                                  SchoolDetailHeaderTitle(name: school.name) { dismiss() }
+                              },
+                              trailing: {
+                                  SchoolDetailHeaderActions(vm: vm, school: school,
+                                                            onHelp: { showHelp = true },
+                                                            onProcessionary: { showProcessionary = true })
+                              })
             scrollContent
         }
         .background(Cumbre.bg.ignoresSafeArea())
@@ -339,6 +346,8 @@ struct SchoolDetailView: View {
             DayDetailView(day: d, allHours: vm.forecast?.hours ?? [])
         }
         .sheet(isPresented: $showHelp) { HelpSheet(topicKey: "detail") }
+        // El mapa se recrea al volver a él: sin esto reabriría otra vez la piedra del deep-link o de BLOQUES.
+        .onChange(of: tab) { newTab in if newTab != .map { mapOpenVia = nil } }
         .sheet(isPresented: $showProcessionary) {
             ProcessionaryInfoSheet(
                 vm: vm,
@@ -375,131 +384,9 @@ struct SchoolDetailView: View {
         }
     }
 
-    /// Cabecera propia (no la barra nativa de iOS): con 5 acciones a la
-    /// derecha, la barra nativa podía comprimir el título hasta hacerlo
-    /// desaparecer del todo en nombres cortos como "Proaza" o "Cabo Negro"
-    /// (Rodrigo, con capturas, 2026-08-21). Android ya resolvía esto con una
-    /// fila propia donde el título se queda con el hueco sobrante
-    /// (`weight(1f)` + ellipsis) — mismo patrón aquí, dos píldoras como en
-    /// el resto de cabeceras de esta sesión.
-    /// Volver + nombre. El nombre puede ocupar dos líneas o encogerse un poco antes de recortarse.
-    private var headerLeading: some View {
-        HStack(spacing: 8) {
-            Button { dismiss() } label: {
-                Image(systemName: "chevron.left").font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Cumbre.ink)
-                    .frame(width: 36, height: 36)
-            }
-            .background(Cumbre.paper, in: Circle())
-            .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
-
-            Text(school.name)
-                .font(.system(size: 19, weight: .semibold))
-                .lineLimit(2)
-                .minimumScaleFactor(0.75)
-                .foregroundStyle(Cumbre.ink)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    /// Acciones de la escuela: lo que más se usa a la vista (favorita, offline) y el resto en "⋯".
-    /// La procesionaria sale fuera del menú SOLO cuando hay alerta activa (no debe esconderse).
-    private var headerTrailing: some View {
-        HStack(spacing: 0) {
-            if vm.processionaryAlertActive {
-                Button { showProcessionary = true } label: {
-                    ProcessionaryIcon(tint: .white)
-                        .frame(width: 15, height: 15)
-                        .frame(width: 26, height: 26)
-                        .background(Cumbre.bad, in: Circle())
-                }
-            }
-            Button { vm.toggleFavorite(schoolId: school.id) } label: {
-                Image(systemName: vm.isFavorite ? "star.fill" : "star")
-                    .foregroundStyle(vm.isFavorite ? Cumbre.terra : Cumbre.ink3)
-                    .frame(width: 34, height: 34)
-            }
-            if vm.savingOffline {
-                ProgressView().frame(width: 34, height: 34)
-            } else {
-                Button {
-                    Task {
-                        if vm.isSaved { await vm.removeOffline(schoolId: school.id) }
-                        else { await vm.saveOffline(school: school) }
-                    }
-                } label: {
-                    Image(systemName: vm.isSaved ? "arrow.down.circle.fill" : "arrow.down.circle")
-                        .foregroundStyle(vm.isSaved ? Cumbre.terra : Cumbre.ink3)
-                        .frame(width: 34, height: 34)
-                }
-            }
-            Menu {
-                Button { showHelp = true } label: { Label(L("Ayuda"), systemImage: "questionmark.circle") }
-                Button { showProcessionary = true } label: { Label(L("Procesionaria"), systemImage: "exclamationmark.triangle") }
-                Button {
-                    let g = URL(string: "comgooglemaps://?daddr=\(school.lat),\(school.lon)&directionsmode=driving")!
-                    let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(school.lat),\(school.lon)")!
-                    UIApplication.shared.open(UIApplication.shared.canOpenURL(g) ? g : web)
-                } label: { Label(L("Cómo llegar"), systemImage: "arrow.triangle.turn.up.right.diamond") }
-                if let f = vm.forecast {
-                    ShareLink(item: conditionsShareSummary(f)) { Label(L("Compartir"), systemImage: "square.and.arrow.up") }
-                }
-            } label: {
-                Image(systemName: "ellipsis").foregroundStyle(Cumbre.ink3)
-                    .frame(width: 34, height: 34)
-            }
-        }
-        .padding(.horizontal, 2)
-        .background(Cumbre.paper, in: Capsule())
-        .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
-    }
-
-    private enum SchoolTab: CaseIterable {
-        case map, blocks, weather, notes
-    }
-
-    /// "BLOQUES" si solo hay bloques, "VÍAS" si solo hay vías y "BLOQUES/VÍAS" si hay de las dos (school.style = "Vía,Bloque").
-    private var blocksLabel: String {
-        let styles = Set(school.style?.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces).uppercased() } ?? [])
-        let hasRoutes = styles.contains("VÍA") || styles.contains("VIA")
-        let hasBoulders = styles.contains("BLOQUE")
-        if hasRoutes && hasBoulders { return L("BLOQUES/VÍAS") }
-        if hasRoutes { return L("VÍAS") }
-        return L("BLOQUES")
-    }
-
-    private func label(_ t: SchoolTab) -> String {
-        switch t {
-        case .map: return L("MAPA")
-        case .blocks: return blocksLabel
-        case .weather: return L("TIEMPO")
-        case .notes: return L("NOTAS")
-        }
-    }
-
-    private var tabBar: some View {
-        HStack(spacing: 6) {
-            ForEach(SchoolTab.allCases, id: \.self) { t in
-                Button {
-                    tab = t
-                    // El mapa se recrea al volver: sin esto reabriría otra vez la piedra del deep-link o de BLOQUES.
-                    if t != .map { mapOpenVia = nil }
-                } label: {
-                    Text(label(t)).font(Cumbre.mono(10.5, .bold)).tracking(0.6)
-                        .lineLimit(1).minimumScaleFactor(0.8)
-                        .foregroundStyle(tab == t ? Color.white : Cumbre.ink2)
-                        .frame(maxWidth: .infinity).padding(.vertical, 9)
-                        .background(tab == t ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
-                        .overlay(Capsule().stroke(tab == t ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
-                }.buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, 16).padding(.vertical, 10)
-    }
-
     @ViewBuilder private func tabbedContent(_ f: Forecast?) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            tabBar
+            SchoolTabBar(selection: $tab, schoolStyle: school.style)
             switch tab {
             case .map:
                 // Boletín de montaña ENCIMA del mapa (paridad con Android).
