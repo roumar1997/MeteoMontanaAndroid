@@ -192,18 +192,11 @@ struct SchoolBlocksExplorerView: View {
                 }
             }
             label(L("ORDENAR"))
-            HStack(spacing: 0) {
+            wrapChips {
                 ForEach(SchoolBlocksExplorerModel.Order.allCases, id: \.self) { o in
-                    Button { model.order = o } label: {
-                        Text(o.label).font(Cumbre.mono(10, .bold)).tracking(0.8)
-                            .frame(maxWidth: .infinity).padding(.vertical, 9)
-                            .foregroundStyle(model.order == o ? Color.white : Cumbre.ink2)
-                            // inkButton, no ink: `ink` es de TEXTO y en oscuro se vuelve casi blanco bajo el blanco.
-                            .background(model.order == o ? Cumbre.inkButton : Cumbre.paper)
-                    }.buttonStyle(.plain)
+                    chip(o.label, on: model.order == o) { model.order = o }
                 }
             }
-            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
     }
@@ -225,9 +218,8 @@ struct SchoolBlocksExplorerView: View {
                 .padding(.horizontal, 10).padding(.vertical, 6)
                 .foregroundStyle(on ? Color.white : Cumbre.ink2)
                 // terraFill, no terra: con texto blanco encima `terra` se queda corto de contraste en oscuro.
-                .background(on ? Cumbre.terraFill : Cumbre.paper)
-                .overlay(RoundedRectangle(cornerRadius: 2).stroke(on ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
-                .clipShape(RoundedRectangle(cornerRadius: 2))
+                .background(on ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
+                .overlay(Capsule().stroke(on ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
         }.buttonStyle(.plain)
     }
 
@@ -330,6 +322,9 @@ struct SchoolBlocksExplorerView: View {
                     .clipped().clipShape(RoundedRectangle(cornerRadius: 3))
                 Text(h.lineName ?? h.blockName).font(.system(size: 12.5, weight: .semibold))
                     .foregroundStyle(Cumbre.ink).lineLimit(2).multilineTextAlignment(.leading)
+                if let s = h.sectorName, !s.isEmpty {
+                    Text(s).font(.system(size: 11)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                }
                 HStack(spacing: 4) {
                     Text("✓ \(repetitions(h))").foregroundStyle(Cumbre.ok)
                     // chip, no color: `color` es el de SOBRE FOTO (blanco en grados bajos) y aquí el fondo es papel.

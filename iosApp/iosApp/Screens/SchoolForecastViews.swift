@@ -30,7 +30,7 @@ struct ForecastBodyView: View {
                 // La tira de colores y el "¿por qué este índice?" viven ahora en la pestaña TIEMPO.
                 CompactHero(forecast: f)
                 CompactRockLine(current: f.current)
-                HoursGrid(hours: upcomingHours(f.hours, 16), compact: true).padding(.vertical, 6)
+                HoursGrid(hours: upcomingHours(f.hours, 16), compact: true).padding(.top, 2).padding(.bottom, 8)
                 rule
                 tabsSlot
             } else {
@@ -270,31 +270,29 @@ private struct CurrentWeather: View {
 
 private struct HoursGrid: View {
     let hours: [HourForecast]
-    /// Ficha de escuela: sin la fila de viento (sigue en TIEMPO) para ganar altura.
+    /// Ficha de escuela: misma información (con el viento) pero más apretada para ganar altura.
     var compact = false
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(Array(hours.enumerated()), id: \.offset) { _, h in
-                    VStack(spacing: 6) {
+                    VStack(spacing: compact ? 3 : 6) {
                         Text(short(h.time)).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-                        WmoIcon(code: Int(h.weatherCode), size: 22, tint: Cumbre.ink2)
+                        WmoIcon(code: Int(h.weatherCode), size: compact ? 18 : 22, tint: Cumbre.ink2)
                         RoundedRectangle(cornerRadius: 2).fill(Cumbre.score(Int(h.score)))
-                            .frame(width: 30, height: 30)
+                            .frame(width: 30, height: compact ? 24 : 30)
                             .overlay(Text("\(Int(h.score))").font(Cumbre.mono(11, .bold)).foregroundStyle(.white))
                         Text("\(Int(h.temperature))°").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink2)
                         // Lluvia en mm (solo si la hay) — paridad con ForecastBody.
                         if h.precipitation > 0 {
                             Text("\(String(format: "%.1f", h.precipitation)) mm")
                                 .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.rain)
-                        } else {
+                        } else if !compact {
                             Text(" ").font(Cumbre.mono(9))
                         }
                         // Viento km/h (siempre) — debajo de la lluvia, como Android.
-                        if !compact {
-                            Text("\(Int(h.windSpeed)) km/h")
-                                .font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
-                        }
+                        Text("\(Int(h.windSpeed)) km/h")
+                            .font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
                     }
                 }
             }

@@ -461,23 +461,23 @@ struct SchoolDetailView: View {
     }
 
     private var tabBar: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 6) {
             ForEach(SchoolTab.allCases, id: \.self) { t in
                 Button {
                     tab = t
                     // El mapa se recrea al volver: sin esto reabriría otra vez la piedra del deep-link o de BLOQUES.
                     if t != .map { mapOpenVia = nil }
                 } label: {
-                    Text(t.label).font(Cumbre.mono(11, .bold)).tracking(1.2)
-                        .foregroundStyle(tab == t ? Cumbre.terra : Cumbre.ink2)
-                        .frame(maxWidth: .infinity).padding(.vertical, 12)
-                        .overlay(alignment: .bottom) {
-                            Rectangle().fill(tab == t ? Cumbre.terra : Color.clear).frame(height: 2)
-                        }
+                    Text(t.label).font(Cumbre.mono(10.5, .bold)).tracking(0.6)
+                        .lineLimit(1).minimumScaleFactor(0.8)
+                        .foregroundStyle(tab == t ? Color.white : Cumbre.ink2)
+                        .frame(maxWidth: .infinity).padding(.vertical, 9)
+                        .background(tab == t ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
+                        .overlay(Capsule().stroke(tab == t ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
                 }.buttonStyle(.plain)
             }
         }
-        .overlay(alignment: .bottom) { Divider().overlay(Cumbre.rule) }
+        .padding(.horizontal, 16).padding(.vertical, 10)
     }
 
     @ViewBuilder private func tabbedContent(_ f: Forecast?) -> some View {
