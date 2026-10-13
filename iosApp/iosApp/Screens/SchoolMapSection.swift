@@ -642,8 +642,6 @@ struct SchoolMapSection: View {
 
     private static let aspectOrder = Aspect.shared.ALL
 
-    /// Chips TODAS / N / NE… con el nº de piedras de cada consenso.
-    @ViewBuilder
     /// Filtro de orientación en UN botón con brújula (antes, una fila de chips "N · 4", "NE · 5"…). Muestra la elegida.
     @ViewBuilder private var orientationMenu: some View {
         if !blockOrientations.isEmpty {
