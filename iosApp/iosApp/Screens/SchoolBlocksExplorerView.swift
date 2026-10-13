@@ -6,10 +6,9 @@ import Shared
 @MainActor
 final class SchoolBlocksExplorerModel: ObservableObject {
     enum Beta: String, CaseIterable {
-        case any = "ANY", tall = "TALL", short = "SHORT"
+        case tall = "TALL", short = "SHORT"
         var label: String {
             switch self {
-            case .any: return L("CON BETA")
             case .tall: return "▶ +1,70"
             case .short: return "▶ −1,70"
             }
@@ -30,10 +29,12 @@ final class SchoolBlocksExplorerModel: ObservableObject {
     @Published var loading = true
     @Published var failed = false
     @Published var grades: Set<String> = []
-    @Published var beta: Beta?
+    /// Alturas de beta marcadas. Vacío = sin filtrar; las dos = cualquier vía con beta (solo hay estas dos alturas).
+    @Published var betas: Set<Beta> = []
     @Published var betaLines: [Beta: Set<String>] = [:]
     @Published var order: Order = .repeated
-    @Published var showAll = false
+    /// Sectores DESPLEGADOS (empiezan todos plegados, como los grupos de la búsqueda de Escuelas).
+    @Published var openSectors: Set<String> = []
 
     private var loadedSchool: String?
 
@@ -65,7 +66,12 @@ final class SchoolBlocksExplorerModel: ObservableObject {
 
     /// Los enlaces de beta viven en el servidor: se piden por modo (ANY/TALL/SHORT) y se guardan.
     func loadBetaIfNeeded(schoolId: String) async {
-        guard let b = beta, betaLines[b] == nil else { return }
+        for b in betas.sorted(by: { $0.rawValue < $1.rawValue }) where betaLines[b] == nil {
+            await fetchBeta(b, schoolId: schoolId)
+        }
+    }
+
+    private func fetchBeta(_ b: Beta, schoolId: String) async {
         do {
             let criteria = LineExploreCriteria(
                 gradeMin: nil, gradeMax: nil, discipline: nil, rockTypes: nil,
@@ -78,7 +84,7 @@ final class SchoolBlocksExplorerModel: ObservableObject {
             // Cambió de chip mientras bajaba: la tarea nueva se encarga; NO se toca su selección.
         } catch {
             // Sin conexión a medias: se quita el filtro en vez de dejar la lista vacía sin explicación.
-            if beta == b { beta = nil }
+            betas.remove(b)
         }
     }
 }
@@ -93,9 +99,6 @@ struct SchoolBlocksExplorerView: View {
     @ObservedObject var model: SchoolBlocksExplorerModel
     /// Toca una vía: la ficha pasa al mapa y abre su piedra.
     let onOpen: (String) -> Void
-
-    /// Cuántas filas se ven antes de pedir "VER TODAS".
-    private let pageSize = 20
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -119,7 +122,7 @@ struct SchoolBlocksExplorerView: View {
             }
         }
         .task { await model.loadIfNeeded(schoolId: school.id) }
-        .task(id: model.beta) { await model.loadBetaIfNeeded(schoolId: school.id) }
+        .task(id: model.betas) { await model.loadBetaIfNeeded(schoolId: school.id) }
     }
 
     // MARK: - Datos
@@ -143,8 +146,13 @@ struct SchoolBlocksExplorerView: View {
     private var visible: [LineSearchHit]? {
         var h = lines
         if !model.grades.isEmpty { h = h.filter { model.grades.contains(($0.grade ?? "").uppercased()) } }
-        if let b = model.beta {
-            guard let ids = model.betaLines[b] else { return nil }
+        if !model.betas.isEmpty {
+            // Unión: con +1,70 y −1,70 a la vez se ven las vías que tienen cualquiera de las dos.
+            var ids = Set<String>()
+            for b in model.betas {
+                guard let s = model.betaLines[b] else { return nil }
+                ids.formUnion(s)
+            }
             h = h.filter { ids.contains($0.lineId ?? "") }
         }
         return h.sorted { a, b in
@@ -168,19 +176,19 @@ struct SchoolBlocksExplorerView: View {
         VStack(alignment: .leading, spacing: 10) {
             label(L("GRADO (UNO O VARIOS)"))
             wrapChips {
-                chip(L("TODOS"), on: model.grades.isEmpty) { model.grades = []; model.showAll = false }
+                chip(L("TODOS"), on: model.grades.isEmpty) { model.grades = [] }
                 ForEach(gradeOptions, id: \.self) { g in
                     chip(g, on: model.grades.contains(g)) {
                         if model.grades.contains(g) { model.grades.remove(g) } else { model.grades.insert(g) }
-                        model.showAll = false
                     }
                 }
             }
-            label(L("BETA EN VÍDEO"))
+            label(L("BETA EN VÍDEO (SIN MARCAR = TODAS)"))
             wrapChips {
-                chip(L("TODAS"), on: model.beta == nil) { model.beta = nil; model.showAll = false }
                 ForEach(SchoolBlocksExplorerModel.Beta.allCases, id: \.self) { b in
-                    chip(b.label, on: model.beta == b) { model.beta = (model.beta == b ? nil : b); model.showAll = false }
+                    chip(b.label, on: model.betas.contains(b)) {
+                        if model.betas.contains(b) { model.betas.remove(b) } else { model.betas.insert(b) }
+                    }
                 }
             }
             label(L("ORDENAR"))
@@ -229,7 +237,7 @@ struct SchoolBlocksExplorerView: View {
         if let hits = visible {
             let podium = model.order == .repeated ? Array(hits.prefix(3).filter { repetitions($0) > 0 }) : []
             let rest = Array(hits.dropFirst(podium.count))
-            let shown = model.showAll ? rest : Array(rest.prefix(pageSize))
+            let groups = sectorGroups(rest)
 
             Divider().overlay(Cumbre.rule)
             HStack {
@@ -252,19 +260,53 @@ struct SchoolBlocksExplorerView: View {
                 }
                 .padding(.horizontal, 16).padding(.bottom, 8)
             }
-            // Perezoso: "VER LAS N" en una escuela grande no debe montar cientos de miniaturas de golpe.
+            // Por sectores, plegables. Perezoso: un sector abierto con muchas vías no monta todas las miniaturas de golpe.
             LazyVStack(spacing: 0) {
-                ForEach(shown, id: \.lineId) { row($0) }
-            }
-            if !model.showAll && rest.count > pageSize {
-                Button { model.showAll = true } label: {
-                    Text(L("VER LAS %@ →", rest.count)).font(Cumbre.mono(11, .bold)).tracking(1)
-                        .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 12)
-                }.buttonStyle(.plain)
+                ForEach(groups, id: \.name) { g in
+                    sectorHeader(g)
+                    if model.openSectors.contains(g.name) {
+                        ForEach(g.hits, id: \.lineId) { row($0) }
+                    }
+                }
             }
         } else {
             ProgressView().frame(maxWidth: .infinity, minHeight: 100)
         }
+    }
+
+    private struct SectorGroup { let name: String; let hits: [LineSearchHit] }
+
+    /// Agrupa por sector conservando el orden elegido DENTRO de cada grupo; los grupos van por su mejor vía.
+    private func sectorGroups(_ hits: [LineSearchHit]) -> [SectorGroup] {
+        let none = L("Sin sector")
+        var order: [String] = []
+        var map: [String: [LineSearchHit]] = [:]
+        for h in hits {
+            let s = (h.sectorName?.isEmpty == false) ? h.sectorName! : none
+            if map[s] == nil { order.append(s) }
+            map[s, default: []].append(h)
+        }
+        // "hits" ya viene ordenado: el primer grupo en aparecer es el de la mejor vía.
+        return order.map { SectorGroup(name: $0, hits: map[$0] ?? []) }
+    }
+
+    private func sectorHeader(_ g: SectorGroup) -> some View {
+        let open = model.openSectors.contains(g.name)
+        return Button {
+            if open { model.openSectors.remove(g.name) } else { model.openSectors.insert(g.name) }
+        } label: {
+            HStack {
+                Text(g.name).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                Spacer()
+                Text("\(g.hits.count)").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink2)
+                Image(systemName: open ? "chevron.up" : "chevron.down").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 11)
+            .background(Cumbre.paper)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .overlay(alignment: .top) { Divider().overlay(Cumbre.rule) }
     }
 
     private func thumbnail(_ h: LineSearchHit) -> some View {
@@ -319,9 +361,6 @@ struct SchoolBlocksExplorerView: View {
                         }
                         if stars(h) > 0 {
                             Text("★ \(String(format: "%.1f", stars(h)))").font(.system(size: 11.5)).foregroundStyle(Cumbre.ink2)
-                        }
-                        if let s = h.sectorName, !s.isEmpty {
-                            Text(s).font(.system(size: 11.5)).foregroundStyle(Cumbre.ink3).lineLimit(1)
                         }
                     }
                 }

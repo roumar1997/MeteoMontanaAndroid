@@ -25,25 +25,27 @@ struct ForecastBodyView: View {
     var body: some View {
         let f = forecast
         VStack(alignment: .leading, spacing: 0) {
-            HeroSection(forecast: f)
             if let tabsSlot {
-                RockStatusBand(current: f.current).padding(.horizontal, 16).padding(.bottom, 8)
-                HeatmapStrip(hours: upcomingHours(f.hours, 24)).padding(16)
-                FactorsAccordion(current: f.current, expanded: $factorsExpanded)
-                rule
-                SectionTitle(L("PRÓXIMAS 16 HORAS"))
-                HoursGrid(hours: upcomingHours(f.hours, 16)).padding(.vertical, 8)
+                // Ficha de escuela: lo justo arriba para que las pestañas (mapa, bloques…) queden a la vista.
+                // La tira de colores y el "¿por qué este índice?" viven ahora en la pestaña TIEMPO.
+                CompactHero(forecast: f)
+                CompactRockLine(current: f.current)
+                HoursGrid(hours: upcomingHours(f.hours, 16), compact: true).padding(.vertical, 6)
                 rule
                 tabsSlot
             } else {
+                HeroSection(forecast: f)
                 classicBody(f)
             }
         }
     }
 
     /// El "TIEMPO" de siempre (ahora una pestaña): condiciones de ahora y los próximos 7 días.
-    static func weatherTab(_ f: Forecast, onSelectDay: ((DayForecast) -> Void)?) -> some View {
+    static func weatherTab(_ f: Forecast, factorsExpanded: Binding<Bool>, onSelectDay: ((DayForecast) -> Void)?) -> some View {
         VStack(alignment: .leading, spacing: 0) {
+            HeatmapStrip(hours: upcomingHours(f.hours, 24)).padding(16)
+            FactorsAccordion(current: f.current, expanded: factorsExpanded)
+            Divider().overlay(Cumbre.rule)
             CurrentWeather(current: f.current)
             Divider().overlay(Cumbre.rule)
             ConditionsGrid(current: f.current)
@@ -118,6 +120,55 @@ private struct HeroSection: View {
             }
         }
         .padding(16)
+    }
+}
+
+// MARK: - Cabecera compacta (ficha de escuela con pestañas)
+
+private struct CompactHero: View {
+    let forecast: Forecast
+    var body: some View {
+        let c = forecast.current
+        let score = Int(c.score)
+        let yes = score >= 55
+        HStack(alignment: .center, spacing: 10) {
+            Text(yes ? "SÍ" : "NO")
+                .font(Cumbre.serif(36, .bold))
+                .foregroundStyle(yes ? Cumbre.ok : Cumbre.bad)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("¿PUEDO ESCALAR HOY?").eyebrow()
+                if let w = forecast.bestWindow {
+                    Text(L("Óptimo entre %@–%@", short(w.start), short(w.end)))
+                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink).lineLimit(1).minimumScaleFactor(0.8)
+                }
+            }
+            Spacer(minLength: 4)
+            HStack(alignment: .lastTextBaseline, spacing: 2) {
+                Text("\(score)").font(Cumbre.serif(32, .bold)).foregroundStyle(Cumbre.score(score))
+                Text("/100").font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+            }
+        }
+        .padding(.horizontal, 16).padding(.vertical, 8)
+    }
+}
+
+/// Estado de la roca en UNA línea (la banda grande sigue en el resto de pantallas).
+private struct CompactRockLine: View {
+    let current: Current
+    var body: some View {
+        let dry = current.dryRock
+        let accent = dry ? Cumbre.ok : Cumbre.bad
+        let subtitle = current.drying?.message ?? (dry ? L("Lista para escalar") : L("Mejor esperar a que seque"))
+        HStack(spacing: 8) {
+            Text(dry ? L("● ROCA SECA") : L("● ROCA HÚMEDA")).font(Cumbre.mono(11, .bold)).foregroundStyle(accent)
+            Text(subtitle).font(.system(size: 12)).foregroundStyle(Cumbre.ink2).lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12).padding(.vertical, 6)
+        .background(accent.opacity(0.12))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(accent.opacity(0.45), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .padding(.horizontal, 16).padding(.bottom, 4)
     }
 }
 
@@ -219,6 +270,8 @@ private struct CurrentWeather: View {
 
 private struct HoursGrid: View {
     let hours: [HourForecast]
+    /// Ficha de escuela: sin la fila de viento (sigue en TIEMPO) para ganar altura.
+    var compact = false
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
@@ -238,8 +291,10 @@ private struct HoursGrid: View {
                             Text(" ").font(Cumbre.mono(9))
                         }
                         // Viento km/h (siempre) — debajo de la lluvia, como Android.
-                        Text("\(Int(h.windSpeed)) km/h")
-                            .font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
+                        if !compact {
+                            Text("\(Int(h.windSpeed)) km/h")
+                                .font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
+                        }
                     }
                 }
             }

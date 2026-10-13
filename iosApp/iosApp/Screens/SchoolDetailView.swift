@@ -496,7 +496,7 @@ struct SchoolDetailView: View {
                 }
             case .weather:
                 if let f {
-                    ForecastBodyView.weatherTab(f, onSelectDay: { selectedDay = $0 })
+                    ForecastBodyView.weatherTab(f, factorsExpanded: $factorsExpanded, onSelectDay: { selectedDay = $0 })
                 }
                 // Mejores meses del año (stats mensuales del backend, cacheadas).
                 if !vm.monthlyScores.isEmpty {
