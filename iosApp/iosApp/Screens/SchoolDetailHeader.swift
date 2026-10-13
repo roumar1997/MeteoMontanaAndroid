@@ -27,20 +27,26 @@ struct SchoolDetailHeaderTitle: View {
             Text(name)
                 .font(.system(size: 19, weight: .semibold))
                 .lineLimit(2)
-                .minimumScaleFactor(0.75)
+                .minimumScaleFactor(0.7)
                 .foregroundStyle(Cumbre.ink)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
 
-/// Acciones de la escuela: lo que más se usa a la vista (favorita, offline) y el resto en "⋯".
+/// Acciones de la escuela: cómo llegar, compartir, favorita y offline a la vista; ayuda y procesionaria en "⋯".
 /// La procesionaria sale fuera del menú SOLO cuando hay alerta activa (no debe esconderse).
 struct SchoolDetailHeaderActions: View {
     @ObservedObject var vm: SchoolDetailViewModel
     let school: School
     let onHelp: () -> Void
     let onProcessionary: () -> Void
+
+    private func openDirections() {
+        let g = URL(string: "comgooglemaps://?daddr=\(school.lat),\(school.lon)&directionsmode=driving")!
+        let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(school.lat),\(school.lon)")!
+        UIApplication.shared.open(UIApplication.shared.canOpenURL(g) ? g : web)
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -52,13 +58,23 @@ struct SchoolDetailHeaderActions: View {
                         .background(Cumbre.bad, in: Circle())
                 }
             }
+            Button { openDirections() } label: {
+                Image(systemName: "arrow.triangle.turn.up.right.diamond").foregroundStyle(Cumbre.ink3)
+                    .frame(width: 29, height: 32)
+            }
+            if let f = vm.forecast {
+                ShareLink(item: conditionsShareSummary(f)) {
+                    Image(systemName: "square.and.arrow.up").foregroundStyle(Cumbre.ink3)
+                        .frame(width: 29, height: 32)
+                }
+            }
             Button { vm.toggleFavorite(schoolId: school.id) } label: {
                 Image(systemName: vm.isFavorite ? "star.fill" : "star")
                     .foregroundStyle(vm.isFavorite ? Cumbre.terra : Cumbre.ink3)
-                    .frame(width: 34, height: 34)
+                    .frame(width: 29, height: 32)
             }
             if vm.savingOffline {
-                ProgressView().frame(width: 34, height: 34)
+                ProgressView().frame(width: 29, height: 32)
             } else {
                 Button {
                     Task {
@@ -68,23 +84,16 @@ struct SchoolDetailHeaderActions: View {
                 } label: {
                     Image(systemName: vm.isSaved ? "arrow.down.circle.fill" : "arrow.down.circle")
                         .foregroundStyle(vm.isSaved ? Cumbre.terra : Cumbre.ink3)
-                        .frame(width: 34, height: 34)
+                        .frame(width: 29, height: 32)
                 }
             }
+            // En "⋯" solo lo que se usa poco: ayuda y procesionaria.
             Menu {
                 Button(action: onHelp) { Label(L("Ayuda"), systemImage: "questionmark.circle") }
                 Button(action: onProcessionary) { Label(L("Procesionaria"), systemImage: "exclamationmark.triangle") }
-                Button {
-                    let g = URL(string: "comgooglemaps://?daddr=\(school.lat),\(school.lon)&directionsmode=driving")!
-                    let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(school.lat),\(school.lon)")!
-                    UIApplication.shared.open(UIApplication.shared.canOpenURL(g) ? g : web)
-                } label: { Label(L("Cómo llegar"), systemImage: "arrow.triangle.turn.up.right.diamond") }
-                if let f = vm.forecast {
-                    ShareLink(item: conditionsShareSummary(f)) { Label(L("Compartir"), systemImage: "square.and.arrow.up") }
-                }
             } label: {
                 Image(systemName: "ellipsis").foregroundStyle(Cumbre.ink3)
-                    .frame(width: 34, height: 34)
+                    .frame(width: 29, height: 32)
             }
         }
         .padding(.horizontal, 2)

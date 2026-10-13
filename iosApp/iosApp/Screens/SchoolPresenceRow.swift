@@ -111,10 +111,9 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
     var body: some View {
         VStack(spacing: 0) {
             // Fila de cabecera: el nombre se queda con el hueco sobrante y puede encogerse.
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 leading.frame(maxWidth: .infinity, alignment: .leading)
-                chatButton
-                markButton
+                presenceControls
                 trailing
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
@@ -207,15 +206,20 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
         .presentationDetents([.medium, .large])
     }
 
-    private var chatButton: some View {
-        Button { showSchoolChat = true } label: {
-            Image(systemName: "bubble.left.and.bubble.right")
-                .font(.system(size: 13))
-                .foregroundStyle(Cumbre.ink2)
-                .frame(width: 32, height: 32)
-                .background(Cumbre.paper, in: Circle())
-                .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+    /// Chat de la escuela + "Aquí" juntos, en una sola cápsula pequeña: dejan sitio a "Cómo llegar" y "Compartir".
+    private var presenceControls: some View {
+        HStack(spacing: 2) {
+            Button { showSchoolChat = true } label: {
+                Image(systemName: "bubble.left.and.bubble.right")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Cumbre.ink2)
+                    .frame(width: 28, height: 28)
+            }
+            markButton
         }
+        .padding(2)
+        .background(Cumbre.paper, in: Capsule())
+        .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
     }
 
     private var peopleLabel: String {
@@ -231,12 +235,12 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
             }
         } label: {
             HStack(spacing: 4) {
-                Image(systemName: "mappin.circle.fill").font(.system(size: 12))
+                Image(systemName: "mappin.circle.fill").font(.system(size: 11))
                 Text(vm.iAmHere ? L("Ya no") : L("Aquí"))
-                    .font(.system(size: 12, weight: .bold, design: .serif))
+                    .font(.system(size: 11.5, weight: .bold, design: .serif))
             }
             .foregroundStyle(.white)
-            .padding(.horizontal, 10).padding(.vertical, 7)
+            .padding(.horizontal, 8).padding(.vertical, 6)
             .background(vm.iAmHere ? Cumbre.ink3 : Cumbre.terraFill, in: Capsule())
         }
         .disabled(vm.loading)

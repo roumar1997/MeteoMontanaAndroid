@@ -132,7 +132,7 @@ struct SchoolMapSection: View {
                     })
                 if schoolHasBothStyles { styleFilterRow }
                 if !fullscreenMap {
-                    mapArea(height: 280)
+                    mapArea(height: mapHeight)
                 }
                 // Grabar/chincheta SOLO ADMIN por ahora (APPROACH_DESIGN.md §2.6/§10).
                 ApproachesSection(loader: approachesLoader, school: school,
@@ -226,6 +226,12 @@ struct SchoolMapSection: View {
     /// Mapa con todos sus overlays. Compartido entre el modo tarjeta (280 pt)
     /// y pantalla completa (estilo Radar).
     @ViewBuilder
+    /// Altura del mapa en la ficha: ocupa lo que sobra bajo cabecera, pestañas y filtros (antes eran 280 fijos y
+    /// quedaba medio móvil vacío debajo). Limitada para que ni se quede diminuto ni se coma la pantalla entera.
+    private var mapHeight: CGFloat {
+        min(max(UIScreen.main.bounds.height - 400, 300), 560)
+    }
+
     private func mapArea(height: CGFloat) -> some View {
         ZStack(alignment: .bottomTrailing) {
                     MapLibreView(
@@ -1201,27 +1207,38 @@ struct SchoolMapSection: View {
         let sectores = ordenadosPorCercania(vm.blocks.filter { $0.type.uppercased() == "ZONE" })
         let parkings = ordenadosPorCercania(vm.blocks.filter { $0.type.uppercased() == "PARKING" })
         if !(sectores.isEmpty && parkings.isEmpty && blockOrientations.isEmpty) {
-            HStack(spacing: 6) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        ForEach(sectores, id: \.id) { s in
-                            placeChip(symbol: "S", color: zoneColor, corner: 10, label: etiquetaSector(s)) {
-                                miniBlock = s
-                                irAlSector(s)
+            VStack(alignment: .leading, spacing: 2) {
+                // Línea 1: sectores (S) + filtro de orientación fijo a la derecha.
+                HStack(spacing: 6) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(sectores, id: \.id) { s in
+                                placeChip(symbol: "S", color: zoneColor, corner: 10, label: etiquetaSector(s)) {
+                                    miniBlock = s
+                                    irAlSector(s)
+                                }
                             }
                         }
-                        ForEach(parkings, id: \.id) { p in
-                            placeChip(symbol: "P", color: parkingColor, corner: 5, label: chipLabel(p)) {
-                                miniBlock = p
-                                flyToParkingZone(p)
-                            }
-                        }
+                        .padding(.vertical, 2)
                     }
-                    .padding(.vertical, 2)
+                    orientationMenu
                 }
-                orientationMenu
+                // Línea 2: parkings (P), aparte para no mezclarlos con los sectores.
+                if !parkings.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(parkings, id: \.id) { p in
+                                placeChip(symbol: "P", color: parkingColor, corner: 5, label: chipLabel(p)) {
+                                    miniBlock = p
+                                    flyToParkingZone(p)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
             }
-            .padding(.horizontal, 12).padding(.vertical, 6)
+            .padding(.horizontal, 12).padding(.vertical, 4)
         }
     }
 
