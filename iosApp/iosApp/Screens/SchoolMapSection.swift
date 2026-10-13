@@ -344,8 +344,11 @@ struct SchoolMapSection: View {
                         // abajo lo tapaba la mini-ficha de parking/sector.
                         VStack {
                             if fullscreenMap { Spacer().frame(height: 54) }
-                            HStack {
+                            HStack(spacing: 8) {
                                 Spacer()
+                                // Filtro de orientación: sobre el mapa, a la izquierda de PROPONER (así la fila de
+                                // sectores de arriba tiene todo el ancho para ella).
+                                orientationMenu
                                 Button {
                                     // Ya no salimos de pantalla completa: el selector
                                     // se presenta desde mapArea (dentro del cover).
@@ -1202,15 +1205,15 @@ struct SchoolMapSection: View {
         .padding(.horizontal, 8).padding(.bottom, 8)
     }
 
-    /// Sectores y parkings en UNA sola fila, arriba y SIN rótulos: el símbolo ya lo dice (S = sector, P = parking).
-    /// Sectores primero. Tocar uno lleva el mapa allí. A la derecha, fijo, el filtro de orientación.
+    /// Sectores y parkings arriba, cada uno en SU fila y SIN rótulos: el símbolo ya lo dice (S = sector, P = parking).
+    /// Tocar uno lleva el mapa allí. El filtro de orientación va sobre el mapa, junto a PROPONER.
     @ViewBuilder private var placesRow: some View {
         let sectores = ordenadosPorCercania(vm.blocks.filter { $0.type.uppercased() == "ZONE" })
         let parkings = ordenadosPorCercania(vm.blocks.filter { $0.type.uppercased() == "PARKING" })
-        if !(sectores.isEmpty && parkings.isEmpty && blockOrientations.isEmpty) {
+        if !(sectores.isEmpty && parkings.isEmpty) {
             VStack(alignment: .leading, spacing: 2) {
-                // Línea 1: sectores (S) + filtro de orientación fijo a la derecha.
-                HStack(spacing: 6) {
+                // Línea 1: sectores (S), con todo el ancho.
+                if !sectores.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
                             ForEach(sectores, id: \.id) { s in
@@ -1222,7 +1225,6 @@ struct SchoolMapSection: View {
                         }
                         .padding(.vertical, 2)
                     }
-                    orientationMenu
                 }
                 // Línea 2: parkings (P), aparte para no mezclarlos con los sectores.
                 if !parkings.isEmpty {

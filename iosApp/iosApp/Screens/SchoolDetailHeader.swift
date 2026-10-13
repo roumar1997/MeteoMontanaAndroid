@@ -9,7 +9,8 @@ import Shared
 // capturas, 2026-08-21). Android ya resolvía esto con una fila propia donde el título se queda con el hueco
 // sobrante (`weight(1f)` + ellipsis) — mismo patrón aquí.
 
-/// Volver + nombre. El nombre puede ocupar dos líneas o encogerse un poco antes de recortarse.
+/// Volver + nombre. El nombre se ENCOGE hasta caber (una sola línea: con dos, una palabra larga se partía por
+/// letras, "Albarrací/n").
 struct SchoolDetailHeaderTitle: View {
     let name: String
     let onBack: () -> Void
@@ -26,8 +27,8 @@ struct SchoolDetailHeaderTitle: View {
 
             Text(name)
                 .font(.system(size: 19, weight: .semibold))
-                .lineLimit(2)
-                .minimumScaleFactor(0.7)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
                 .foregroundStyle(Cumbre.ink)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
