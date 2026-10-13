@@ -87,38 +87,40 @@ struct SchoolPresenceRow: View {
     /// otra vez quién hay — sin caché, es información en vivo (Álvaro,
     /// 2026-09-04: mejor a demanda que sondear sola cada X segundos).
     var refreshTrigger: Int = 0
+    /// La cabecera de la ficha (volver + nombre | iconos) se pinta AQUÍ, en la misma fila que el chat de la escuela
+    /// y el botón "Aquí": así no hace falta una fila fija extra (2026-10-14, para ganar altura).
+    let leading: AnyView
+    let trailing: AnyView
     @StateObject private var vm: SchoolPresenceViewModel
     @State private var showPrivacyNote = false
     @State private var openChatFor: ChatTarget?
     @State private var showSchoolChat = false
     @State private var showAllPresent = false
 
-    init(schoolId: String, schoolName: String, myUid: String?, refreshTrigger: Int = 0) {
+    init(schoolId: String, schoolName: String, myUid: String?, refreshTrigger: Int = 0,
+         leading: AnyView, trailing: AnyView) {
         self.schoolId = schoolId
         self.schoolName = schoolName
         self.myUid = myUid
         self.refreshTrigger = refreshTrigger
+        self.leading = leading
+        self.trailing = trailing
         _vm = StateObject(wrappedValue: SchoolPresenceViewModel(schoolId: schoolId, myUid: myUid))
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            Group {
-                if !vm.people.isEmpty || vm.iAmHere {
-                    content
-                } else {
-                    // Nadie presente: la misma barra fina, con chat + botón a la derecha.
-                    HStack {
-                        Spacer()
-                        chatButton
-                        markButton
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 5)
-                    .frame(height: 34)
-                    .background(Cumbre.bg)
-                    .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .bottom)
-                }
+            // Fila de cabecera: el nombre se queda con el hueco sobrante y puede encogerse.
+            HStack(spacing: 8) {
+                leading.frame(maxWidth: .infinity, alignment: .leading)
+                chatButton
+                markButton
+                trailing
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            // Quién hay ahora mismo: solo ocupa una fila cuando de verdad hay gente.
+            if !vm.people.isEmpty || vm.iAmHere {
+                peopleBar
             }
             if let err = vm.errorText {
                 Text(err)
@@ -145,7 +147,7 @@ struct SchoolPresenceRow: View {
         }
     }
 
-    private var content: some View {
+    private var peopleBar: some View {
         HStack(spacing: 6) {
             // Un toque en cualquier parte del grupo de avatares abre la lista
             // completa — con más de 4 presentes, tocar un avatar concreto en
@@ -165,12 +167,10 @@ struct SchoolPresenceRow: View {
                     .foregroundStyle(Cumbre.ink)
             }
             Spacer()
-            chatButton
-            markButton
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 5)
-        .frame(height: 34)
+        .frame(height: 30)
         .background(Cumbre.bg)
         .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .bottom)
     }
@@ -212,7 +212,7 @@ struct SchoolPresenceRow: View {
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 13))
                 .foregroundStyle(Cumbre.ink2)
-                .frame(width: 26, height: 26)
+                .frame(width: 32, height: 32)
                 .background(Cumbre.paper, in: Circle())
                 .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
         }
@@ -231,14 +231,13 @@ struct SchoolPresenceRow: View {
             }
         } label: {
             HStack(spacing: 4) {
-                Image(systemName: "mappin.circle.fill").font(.system(size: 11))
-                Text(vm.iAmHere ? L("Ya no estoy") : L("Estoy aquí"))
-                    .font(.system(size: 11, weight: .bold, design: .serif))
+                Image(systemName: "mappin.circle.fill").font(.system(size: 12))
+                Text(vm.iAmHere ? L("Ya no") : L("Aquí"))
+                    .font(.system(size: 12, weight: .bold, design: .serif))
             }
             .foregroundStyle(.white)
-            .padding(.horizontal, 10).padding(.vertical, 5)
-            .background(vm.iAmHere ? Cumbre.ink3 : Cumbre.terraFill)
-            .clipShape(RoundedRectangle(cornerRadius: 7))
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .background(vm.iAmHere ? Cumbre.ink3 : Cumbre.terraFill, in: Capsule())
         }
         .disabled(vm.loading)
     }

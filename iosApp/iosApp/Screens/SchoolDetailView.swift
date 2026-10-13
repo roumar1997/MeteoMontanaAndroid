@@ -304,6 +304,7 @@ struct SchoolDetailView: View {
     // sola cada X segundos (Álvaro, 2026-09-04).
     @State private var presenceRefreshTrigger = 0
     @State private var showProcessionary = false
+    @State private var showHelp = false
     /// Pestañas bajo la puntuación y las 16 horas (opción B del rediseño, 2026-10-13). El mapa va por defecto.
     @State private var tab: SchoolTab = .map
     /// Vía que debe abrir el mapa al mostrarse: la del deep-link, o la que se toca en la pestaña BLOQUES.
@@ -324,13 +325,12 @@ struct SchoolDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            headerRow
-            // Fijo, fuera del scroll: si no se ve nada más que el título hasta
-            // que bajas, nadie sabe que hay alguien ahí (Álvaro, 2026-09-03,
-            // tras verlo enterrado bajo el pronóstico en la primera prueba).
+            // Fijo, fuera del scroll (Álvaro, 2026-09-03: si no, nadie sabe que hay alguien ahí). Desde 2026-10-14 la
+            // misma fila lleva la cabecera (nombre + iconos), el chat de la escuela y el botón "Aquí".
             SchoolPresenceRow(schoolId: school.id, schoolName: school.name,
                               myUid: AppDependencies.shared.authBridge.currentUid(),
-                              refreshTrigger: presenceRefreshTrigger)
+                              refreshTrigger: presenceRefreshTrigger,
+                              leading: AnyView(headerLeading), trailing: AnyView(headerTrailing))
             scrollContent
         }
         .background(Cumbre.bg.ignoresSafeArea())
@@ -338,6 +338,7 @@ struct SchoolDetailView: View {
         .sheet(item: $selectedDay) { d in
             DayDetailView(day: d, allHours: vm.forecast?.hours ?? [])
         }
+        .sheet(isPresented: $showHelp) { HelpSheet(topicKey: "detail") }
         .sheet(isPresented: $showProcessionary) {
             ProcessionaryInfoSheet(
                 vm: vm,
@@ -381,7 +382,8 @@ struct SchoolDetailView: View {
     /// fila propia donde el título se queda con el hueco sobrante
     /// (`weight(1f)` + ellipsis) — mismo patrón aquí, dos píldoras como en
     /// el resto de cabeceras de esta sesión.
-    private var headerRow: some View {
+    /// Volver + nombre. El nombre puede ocupar dos líneas o encogerse un poco antes de recortarse.
+    private var headerLeading: some View {
         HStack(spacing: 8) {
             Button { dismiss() } label: {
                 Image(systemName: "chevron.left").font(.system(size: 16, weight: .semibold))
@@ -393,64 +395,63 @@ struct SchoolDetailView: View {
 
             Text(school.name)
                 .font(.system(size: 19, weight: .semibold))
-                .lineLimit(1)
-                .truncationMode(.tail)
+                .lineLimit(2)
+                .minimumScaleFactor(0.75)
                 .foregroundStyle(Cumbre.ink)
                 .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
 
-            HStack(spacing: 0) {
-                HelpButton(topicKey: "detail")
+    /// Acciones de la escuela: lo que más se usa a la vista (favorita, offline) y el resto en "⋯".
+    /// La procesionaria sale fuera del menú SOLO cuando hay alerta activa (no debe esconderse).
+    private var headerTrailing: some View {
+        HStack(spacing: 0) {
+            if vm.processionaryAlertActive {
                 Button { showProcessionary = true } label: {
-                    if vm.processionaryAlertActive {
-                        ProcessionaryIcon(tint: .white)
-                            .frame(width: 15, height: 15)
-                            .frame(width: 26, height: 26)
-                            .background(Cumbre.bad, in: Circle())
-                    } else {
-                        ProcessionaryIcon(tint: Cumbre.ink3)
-                            .frame(width: 20, height: 20)
-                            .frame(width: 34, height: 34)
-                    }
+                    ProcessionaryIcon(tint: .white)
+                        .frame(width: 15, height: 15)
+                        .frame(width: 26, height: 26)
+                        .background(Cumbre.bad, in: Circle())
                 }
+            }
+            Button { vm.toggleFavorite(schoolId: school.id) } label: {
+                Image(systemName: vm.isFavorite ? "star.fill" : "star")
+                    .foregroundStyle(vm.isFavorite ? Cumbre.terra : Cumbre.ink3)
+                    .frame(width: 34, height: 34)
+            }
+            if vm.savingOffline {
+                ProgressView().frame(width: 34, height: 34)
+            } else {
+                Button {
+                    Task {
+                        if vm.isSaved { await vm.removeOffline(schoolId: school.id) }
+                        else { await vm.saveOffline(school: school) }
+                    }
+                } label: {
+                    Image(systemName: vm.isSaved ? "arrow.down.circle.fill" : "arrow.down.circle")
+                        .foregroundStyle(vm.isSaved ? Cumbre.terra : Cumbre.ink3)
+                        .frame(width: 34, height: 34)
+                }
+            }
+            Menu {
+                Button { showHelp = true } label: { Label(L("Ayuda"), systemImage: "questionmark.circle") }
+                Button { showProcessionary = true } label: { Label(L("Procesionaria"), systemImage: "exclamationmark.triangle") }
                 Button {
                     let g = URL(string: "comgooglemaps://?daddr=\(school.lat),\(school.lon)&directionsmode=driving")!
                     let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(school.lat),\(school.lon)")!
                     UIApplication.shared.open(UIApplication.shared.canOpenURL(g) ? g : web)
-                } label: {
-                    Image(systemName: "arrow.triangle.turn.up.right.diamond").foregroundStyle(Cumbre.ink3)
-                        .frame(width: 34, height: 34)
-                }
+                } label: { Label(L("Cómo llegar"), systemImage: "arrow.triangle.turn.up.right.diamond") }
                 if let f = vm.forecast {
-                    ShareLink(item: conditionsShareSummary(f)) {
-                        Image(systemName: "square.and.arrow.up").foregroundStyle(Cumbre.ink3)
-                            .frame(width: 34, height: 34)
-                    }
+                    ShareLink(item: conditionsShareSummary(f)) { Label(L("Compartir"), systemImage: "square.and.arrow.up") }
                 }
-                Button { vm.toggleFavorite(schoolId: school.id) } label: {
-                    Image(systemName: vm.isFavorite ? "star.fill" : "star")
-                        .foregroundStyle(vm.isFavorite ? Cumbre.terra : Cumbre.ink3)
-                        .frame(width: 34, height: 34)
-                }
-                if vm.savingOffline {
-                    ProgressView().frame(width: 34, height: 34)
-                } else {
-                    Button {
-                        Task {
-                            if vm.isSaved { await vm.removeOffline(schoolId: school.id) }
-                            else { await vm.saveOffline(school: school) }
-                        }
-                    } label: {
-                        Image(systemName: vm.isSaved ? "arrow.down.circle.fill" : "arrow.down.circle")
-                            .foregroundStyle(vm.isSaved ? Cumbre.terra : Cumbre.ink3)
-                            .frame(width: 34, height: 34)
-                    }
-                }
+            } label: {
+                Image(systemName: "ellipsis").foregroundStyle(Cumbre.ink3)
+                    .frame(width: 34, height: 34)
             }
-            .padding(.horizontal, 2)
-            .background(Cumbre.paper, in: Capsule())
-            .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
         }
-        .padding(.horizontal, 12).padding(.vertical, 8)
+        .padding(.horizontal, 2)
+        .background(Cumbre.paper, in: Capsule())
+        .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
     }
 
     private enum SchoolTab: CaseIterable {

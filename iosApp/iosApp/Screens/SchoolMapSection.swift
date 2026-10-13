@@ -664,14 +664,20 @@ struct SchoolMapSection: View {
                     }
                 }
             } label: {
+                // Terracota y con flecha: se lee como un botón (la brújula sola parecía un adorno).
                 HStack(spacing: 4) {
-                    Image(systemName: "safari").font(.system(size: 13))
-                    if let sel = orientationFilter { Text(aspectLabel(sel)).font(Cumbre.mono(10, .bold)) }
+                    Image(systemName: "safari").font(.system(size: 14, weight: .semibold))
+                    if let sel = orientationFilter {
+                        Text(aspectLabel(sel)).font(Cumbre.mono(10.5, .bold))
+                    } else {
+                        Text(L("ORIENT.")).font(Cumbre.mono(10, .bold)).tracking(0.6)
+                    }
+                    Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold))
                 }
-                .foregroundStyle(orientationFilter == nil ? Cumbre.ink2 : Color.white)
+                .foregroundStyle(orientationFilter == nil ? Cumbre.terra : Color.white)
                 .padding(.horizontal, 10).padding(.vertical, 7)
-                .background(orientationFilter == nil ? Cumbre.paper : Cumbre.terraFill, in: Capsule())
-                .overlay(Capsule().stroke(orientationFilter == nil ? Cumbre.rule : Cumbre.terraFill, lineWidth: 1))
+                .background(orientationFilter == nil ? Cumbre.terraBg : Cumbre.terraFill, in: Capsule())
+                .overlay(Capsule().stroke(Cumbre.terra, lineWidth: orientationFilter == nil ? 1.5 : 1))
             }
         }
     }
