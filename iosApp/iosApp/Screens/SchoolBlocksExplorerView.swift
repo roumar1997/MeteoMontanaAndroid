@@ -91,6 +91,24 @@ final class SchoolBlocksExplorerModel: ObservableObject {
     }
 }
 
+/// Grado en píldora rellena con SU color (el mismo de la app: verde, azul, morado, rojo…). Fuera de una foto el
+/// color se adapta al tema, y los grados ≤5c+ (blancos) llevan texto oscuro y borde para no perderse.
+private struct GradePill: View {
+    let grade: String?
+    var small = false
+    var large = false
+
+    var body: some View {
+        let s = GradeColor.style(grade)
+        Text(grade ?? "")
+            .font(Cumbre.mono(large ? 12 : (small ? 10 : 11), .bold))
+            .foregroundStyle(s.dark ? Color.black.opacity(0.75) : Color.white)
+            .padding(.horizontal, large ? 11 : 8).padding(.vertical, large ? 6 : 3)
+            .background(GradeColor.chip(grade), in: Capsule())
+            .overlay(Capsule().stroke(s.dark ? Cumbre.rule : Color.clear, lineWidth: 1))
+    }
+}
+
 /// Pestaña BLOQUES de la ficha de una escuela (opción B del rediseño, 2026-10-13): las vías más repetidas de la
 /// escuela, filtrables por uno o varios grados y por "tiene beta" (todas, +1,70 o −1,70).
 ///
@@ -196,9 +214,14 @@ struct SchoolBlocksExplorerView: View {
             wrapChips {
                 chip(L("TODOS"), on: model.grades.isEmpty) { model.grades = [] }
                 ForEach(gradeOptions, id: \.self) { g in
-                    chip(g, on: model.grades.contains(g)) {
-                        if model.grades.contains(g) { model.grades.remove(g) } else { model.grades.insert(g) }
-                    }
+                    let on = model.grades.contains(g)
+                    Button {
+                        if on { model.grades.remove(g) } else { model.grades.insert(g) }
+                    } label: {
+                        GradePill(grade: g, large: true)
+                            .opacity(on ? 1 : 0.5)
+                            .overlay(Capsule().stroke(Cumbre.ink, lineWidth: on ? 2 : 0))
+                    }.buttonStyle(.plain)
                 }
             }
             label(L("BETA EN VÍDEO (SIN MARCAR = TODAS)"))
@@ -345,8 +368,7 @@ struct SchoolBlocksExplorerView: View {
                 }
                 HStack(spacing: 4) {
                     Text("✓ \(repetitions(h))").foregroundStyle(Cumbre.ok)
-                    // chip, no color: `color` es el de SOBRE FOTO (blanco en grados bajos) y aquí el fondo es papel.
-                    Text(h.grade ?? "").foregroundStyle(GradeColor.chip(h.grade))
+                    GradePill(grade: h.grade, small: true)
                 }.font(Cumbre.mono(10, .bold))
             }
             .padding(8).frame(maxWidth: .infinity, alignment: .topLeading)
@@ -366,7 +388,7 @@ struct SchoolBlocksExplorerView: View {
                     HStack(spacing: 6) {
                         Text(h.lineName ?? h.blockName).font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(Cumbre.ink).lineLimit(1)
-                        Text(h.grade ?? "").font(Cumbre.mono(11, .bold)).foregroundStyle(GradeColor.chip(h.grade))
+                        GradePill(grade: h.grade)
                     }
                     HStack(spacing: 8) {
                         if repetitions(h) > 0 {

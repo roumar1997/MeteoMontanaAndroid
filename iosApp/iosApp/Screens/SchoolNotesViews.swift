@@ -22,6 +22,8 @@ struct NotesSectionView: View {
     let publishing: Bool
     let onPublish: (String, UIImage?) -> Void
     var onVote: (Note, Int) -> Void = { _, _ in }
+    /// Ficha de escuela con pestañas: las notas SIEMPRE abiertas (la pestaña ya es el desplegable).
+    var alwaysOpen = false
 
     @State private var draft = ""
     @State private var photoNote: Note?
@@ -29,9 +31,33 @@ struct NotesSectionView: View {
     @State private var pickedImage: UIImage?
     // Plegada por defecto: con muchas notas la pantalla se hacía eterna.
     @State private var expanded = false
+    /// Orden de la lista: por utilidad (▲ − ▼), de más a menos votada o al revés.
+    private enum NoteOrder { case most, least }
+    @State private var order: NoteOrder = .most
     // Moderación: denunciar notas ajenas + ocultar al instante.
     @ObservedObject private var moderation = ModerationStore.shared
     @State private var reportNote: Note? = nil
+
+    private var orderedNotes: [Note] {
+        let visible = notes.filter { !moderation.hiddenIds.contains("NOTE:\($0.id)") }
+        func score(_ n: Note) -> Int { Int(n.upvotesCount) - Int(n.downvotesCount) }
+        // Desempate por fecha (más reciente primero) para que el orden no baile entre recargas.
+        return visible.sorted { a, b in
+            let (sa, sb) = (score(a), score(b))
+            if sa != sb { return order == .most ? sa > sb : sa < sb }
+            return a.createdAt > b.createdAt
+        }
+    }
+
+    private func orderChip(_ text: String, _ o: NoteOrder) -> some View {
+        Button { order = o } label: {
+            Text(text).font(Cumbre.mono(10.5, .bold))
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .foregroundStyle(order == o ? Color.white : Cumbre.ink2)
+                .background(order == o ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
+                .overlay(Capsule().stroke(order == o ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
+        }.buttonStyle(.plain)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -47,23 +73,32 @@ struct NotesSectionView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                     Spacer()
-                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Cumbre.ink2)
+                    if !alwaysOpen {
+                        Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Cumbre.ink2)
+                    }
                 }
             }
             .buttonStyle(.plain)
+            .disabled(alwaysOpen)
             .padding(.top, 8)
 
-            if expanded {
+            if expanded || alwaysOpen {
+            if notes.count > 1 {
+                HStack(spacing: 6) {
+                    orderChip(L("MÁS VOTADAS"), .most)
+                    orderChip(L("MENOS VOTADAS"), .least)
+                }
+            }
             if notes.isEmpty {
                 Text("Sin notas aún. ¡Sé el primero!")
                     .font(.system(size: 14))
                     .foregroundStyle(Cumbre.ink2)
                     .padding(.vertical, 4)
             } else {
-                // Llegan del backend ordenadas por utilidad (▲ − ▼).
-                ForEach(notes.filter { !moderation.hiddenIds.contains("NOTE:\($0.id)") }, id: \.id) { n in
+                // Llegan del backend ordenadas por utilidad (▲ − ▼); aquí se puede dar la vuelta.
+                ForEach(orderedNotes, id: \.id) { n in
                     NoteRowView(note: n, onPhotoTap: { photoNote = n },
                                 onVote: { v in onVote(n, v) },
                                 canReport: Auth.auth().currentUser?.uid != n.uid,
