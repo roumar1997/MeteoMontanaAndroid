@@ -229,7 +229,8 @@ struct SchoolMapSection: View {
     /// Altura del mapa en la ficha: ocupa lo que sobra bajo cabecera, pestañas y filtros (antes eran 280 fijos y
     /// quedaba medio móvil vacío debajo). Limitada para que ni se quede diminuto ni se coma la pantalla entera.
     private var mapHeight: CGFloat {
-        min(max(UIScreen.main.bounds.height - 400, 300), 560)
+        let free: CGFloat = UIScreen.main.bounds.height - 400
+        return min(max(free, 300), 560)
     }
 
     private func mapArea(height: CGFloat) -> some View {
