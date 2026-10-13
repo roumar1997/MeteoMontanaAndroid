@@ -229,6 +229,8 @@ Reglas:
 
 ## Estado actual
 
+**🧗 FICHA DE ESCUELA CON PESTAÑAS + "MÁS REPETIDOS" — iOS en TestFlight (2.25.4 build 270), backend en PRODUCCIÓN, Android SIN PORTAR (2026-10-13).** Ficha: puntuación compacta → 16 h → pestañas MAPA (por defecto) / BLOQUES(-VÍAS) / TIEMPO / NOTAS. BLOQUES: podio de los 3 más repetidos, chips de grado (varios) con su color, beta +1,70/−1,70 combinables, buscador por nombre, resto agrupado por SECTOR (plegable). Repeticiones = personas distintas con la vía HECHA en su diario (solo el total). Pendiente: portar TODO esto (y el asistente) a Android pidiendo a Álvaro capturas concretas de iOS; luego restringir el asistente a admin SOLO cuando él lo pida. Detalle y trampas en `HISTORIAL.md` 2026-10-13.
+
 **🤖 ASISTENTE DE IA (burbuja + chat) — iOS en TestFlight (2.25.4 build 263), backend en
 PRODUCCIÓN, Android SIN PORTAR (2026-10-08).** Burbuja flotante → chat (escribir o dictar) que
 entiende frases naturales y contesta con DATOS REALES (tarjetas tocables, nunca texto inventado).
