@@ -18,11 +18,46 @@ struct ForecastBodyView: View {
     /// Mapa de la escuela, insertado entre el tiempo actual y "Próximas 16 h"
     /// (el tab Tiempo no lo pasa). AnyView para no acoplar el tipo.
     var mapSlot: AnyView? = nil
+    /// Ficha de escuela (2026-10-13): tras la puntuación y las próximas 16 horas van PESTAÑAS (mapa, bloques,
+    /// tiempo, notas) en vez de una columna larga. Si se pasa, sustituye al mapa suelto y al resto del cuerpo.
+    var tabsSlot: AnyView? = nil
 
     var body: some View {
         let f = forecast
         VStack(alignment: .leading, spacing: 0) {
             HeroSection(forecast: f)
+            if let tabsSlot {
+                RockStatusBand(current: f.current).padding(.horizontal, 16).padding(.bottom, 8)
+                HeatmapStrip(hours: upcomingHours(f.hours, 24)).padding(16)
+                FactorsAccordion(current: f.current, expanded: $factorsExpanded)
+                rule
+                SectionTitle(L("PRÓXIMAS 16 HORAS"))
+                HoursGrid(hours: upcomingHours(f.hours, 16)).padding(.vertical, 8)
+                rule
+                tabsSlot
+            } else {
+                classicBody(f)
+            }
+        }
+    }
+
+    /// El "TIEMPO" de siempre (ahora una pestaña): condiciones de ahora y los próximos 7 días.
+    static func weatherTab(_ f: Forecast, onSelectDay: ((DayForecast) -> Void)?) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            CurrentWeather(current: f.current)
+            Divider().overlay(Cumbre.rule)
+            ConditionsGrid(current: f.current)
+            Divider().overlay(Cumbre.rule)
+            SectionTitle(L("PRÓXIMOS 7 DÍAS"))
+            ForEach(Array(f.days.prefix(7).enumerated()), id: \.offset) { _, d in
+                Button { onSelectDay?(d) } label: { DayRow(day: d) }.buttonStyle(.plain)
+                Divider().overlay(Cumbre.rule)
+            }
+        }
+    }
+
+    @ViewBuilder private func classicBody(_ f: Forecast) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
             // El compartir vive ahora como icono junto a la estrella del toolbar
             // (el detalle ya tiene muchos datos). "CÓMO LLEGAR" volverá con mapas.
             RockStatusBand(current: f.current).padding(.horizontal, 16).padding(.bottom, 8)

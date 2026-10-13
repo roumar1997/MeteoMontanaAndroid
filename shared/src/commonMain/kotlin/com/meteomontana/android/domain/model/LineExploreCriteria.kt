@@ -17,7 +17,7 @@ data class LineExploreCriteria(
     val lat: Double? = null,
     val lon: Double? = null,
     val maxDistanceKm: Double? = null,
-    val sort: String? = null,             // DISTANCE | GRADE_ASC | GRADE_DESC
+    val sort: String? = null,             // DISTANCE | GRADE_ASC | GRADE_DESC | MOST_REPEATED
     val offset: Int = 0,
     /** Pide la media de estrellas y el nº de votos de cada vía (una consulta más en el servidor). */
     val withRatings: Boolean = false,
@@ -26,7 +26,9 @@ data class LineExploreCriteria(
     /** Tipo de salida: SIT | SEMI | STAND | JUMP | TRAV; null = cualquiera. */
     val startType: String? = null,
     /** Solo vías con el trazo dibujado. */
-    val withTopo: Boolean = false
+    val withTopo: Boolean = false,
+    /** Pide cuántas personas han hecho cada vía. `sort = "MOST_REPEATED"` ordena por eso (y lo pide solo). */
+    val withRepetitions: Boolean = false
 ) {
     /** §8.1: la pantalla entra en modo vías en cuanto hay grado puesto — es la
      *  única condición que importa para el modo implícito (§4.1); el resto de

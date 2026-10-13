@@ -463,7 +463,7 @@ final class AssistantViewModel: ObservableObject {
                 maxDistanceKm: schoolIds != nil ? nil
                     : (u.maxDistanceKm ?? (u.useMyLocation && location != nil ? KotlinDouble(double: 50) : nil)),
                 sort: "DISTANCE", offset: 0, withRatings: rated, beta: u.beta,
-                startType: u.startType, withTopo: u.withTopo)
+                startType: u.startType, withTopo: u.withTopo, withRepetitions: false)
             hits = try await container.exploreLines.invoke(criteria: criteria)
         } else if let q = u.q, !q.isEmpty {
             hits = try await container.searchLines.invoke(query: q)

@@ -1425,3 +1425,17 @@
 "%@: la roca está húmeda." = "%@: the rock is damp.";
 "%@: la roca está seca, se puede escalar." = "%@: the rock is dry, you can climb.";
 "Sin lluvia" = "No rain";
+"TODOS" = "ALL";
+"CON BETA" = "WITH BETA";
+"MÁS REPETIDOS" = "MOST REPEATED";
+"MEJOR VALORADOS" = "BEST RATED";
+"GRADO (UNO O VARIOS)" = "GRADE (ONE OR MORE)";
+"BETA EN VÍDEO" = "VIDEO BETA";
+"ORDENAR" = "SORT";
+"1 VÍA" = "1 ROUTE";
+"%@ VÍAS" = "%@ ROUTES";
+"VER LAS %@ →" = "SEE ALL %@ →";
+"✓ = personas que la han hecho" = "✓ = people who have sent it";
+"Ninguna vía cumple esos filtros." = "No route matches those filters.";
+"Esta escuela aún no tiene vías dibujadas." = "This crag has no drawn routes yet.";
+"No se han podido cargar los bloques" = "Couldn't load the boulders";

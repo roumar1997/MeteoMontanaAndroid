@@ -29,5 +29,7 @@ data class LineSearchHit(
     /** Media de estrellas (1-5), o null si nadie la ha valorado o no se pidieron. */
     val rating: Double? = null,
     /** Cuántas personas la han valorado (null si no se pidieron). */
-    val ratingCount: Int? = null
+    val ratingCount: Int? = null,
+    /** Personas distintas que la tienen hecha en su diario (solo el total); null si no se pidió o es una piedra. */
+    val repetitions: Int? = null
 )

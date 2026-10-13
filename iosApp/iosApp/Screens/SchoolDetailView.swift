@@ -304,6 +304,18 @@ struct SchoolDetailView: View {
     // sola cada X segundos (Álvaro, 2026-09-04).
     @State private var presenceRefreshTrigger = 0
     @State private var showProcessionary = false
+    /// Pestañas bajo la puntuación y las 16 horas (opción B del rediseño, 2026-10-13). El mapa va por defecto.
+    @State private var tab: SchoolTab = .map
+    /// Vía que debe abrir el mapa al mostrarse: la del deep-link, o la que se toca en la pestaña BLOQUES.
+    @State private var mapOpenVia: String?
+    /// Estado de la pestaña BLOQUES: aquí para que sobreviva al cambiar de pestaña.
+    @StateObject private var blocksModel = SchoolBlocksExplorerModel()
+
+    init(school: School, openVia: String? = nil) {
+        self.school = school
+        self.openVia = openVia
+        _mapOpenVia = State(initialValue: openVia)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -436,6 +448,71 @@ struct SchoolDetailView: View {
         .padding(.horizontal, 12).padding(.vertical, 8)
     }
 
+    private enum SchoolTab: CaseIterable {
+        case map, blocks, weather, notes
+        var label: String {
+            switch self {
+            case .map: return L("MAPA")
+            case .blocks: return L("BLOQUES")
+            case .weather: return L("TIEMPO")
+            case .notes: return L("NOTAS")
+            }
+        }
+    }
+
+    private var tabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(SchoolTab.allCases, id: \.self) { t in
+                Button {
+                    tab = t
+                    // El mapa se recrea al volver: sin esto reabriría otra vez la piedra del deep-link o de BLOQUES.
+                    if t != .map { mapOpenVia = nil }
+                } label: {
+                    Text(t.label).font(Cumbre.mono(11, .bold)).tracking(1.2)
+                        .foregroundStyle(tab == t ? Cumbre.terra : Cumbre.ink2)
+                        .frame(maxWidth: .infinity).padding(.vertical, 12)
+                        .overlay(alignment: .bottom) {
+                            Rectangle().fill(tab == t ? Cumbre.terra : Color.clear).frame(height: 2)
+                        }
+                }.buttonStyle(.plain)
+            }
+        }
+        .overlay(alignment: .bottom) { Divider().overlay(Cumbre.rule) }
+    }
+
+    @ViewBuilder private func tabbedContent(_ f: Forecast?) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            tabBar
+            switch tab {
+            case .map:
+                // Boletín de montaña ENCIMA del mapa (paridad con Android).
+                MountainBulletinSection(lat: school.lat, lon: school.lon, country: school.country)
+                SchoolMapSection(school: school, openVia: mapOpenVia, refreshTrigger: presenceRefreshTrigger)
+                    .id(mapOpenVia ?? "")
+            case .blocks:
+                SchoolBlocksExplorerView(school: school, model: blocksModel) { lineId in
+                    mapOpenVia = lineId
+                    tab = .map
+                }
+            case .weather:
+                if let f {
+                    ForecastBodyView.weatherTab(f, onSelectDay: { selectedDay = $0 })
+                }
+                // Mejores meses del año (stats mensuales del backend, cacheadas).
+                if !vm.monthlyScores.isEmpty {
+                    MonthlyStatsSection(scores: vm.monthlyScores, bestRange: vm.monthlyBestRange)
+                }
+            case .notes:
+                NotesSectionView(
+                    notes: vm.notes,
+                    publishing: vm.publishing,
+                    onPublish: { text, image in Task { await vm.publishNote(schoolId: school.id, text: text, image: image) } },
+                    onVote: { note, v in Task { await vm.voteNote(note, value: v) } }
+                )
+            }
+        }
+    }
+
     private var scrollContent: some View {
         ScrollView {
             if vm.loading {
@@ -473,27 +550,11 @@ struct SchoolDetailView: View {
                     directions: (lat: school.lat, lon: school.lon, label: school.name),
                     factorsExpanded: $factorsExpanded,
                     onSelectDay: { selectedDay = $0 },
-                    // Boletín de montaña ENCIMA del mapa (paridad con Android).
-                    mapSlot: AnyView(VStack(spacing: 0) {
-                        MountainBulletinSection(lat: school.lat, lon: school.lon, country: school.country)
-                        SchoolMapSection(school: school, openVia: openVia, refreshTrigger: presenceRefreshTrigger)
-                    })
+                    tabsSlot: AnyView(tabbedContent(f))
                 )
             } else {
-                // Sin previsión: el mapa (y el boletín) van igualmente.
-                MountainBulletinSection(lat: school.lat, lon: school.lon, country: school.country)
-                SchoolMapSection(school: school, openVia: openVia, refreshTrigger: presenceRefreshTrigger)
-            }
-            // Notas comunitarias — ahora ENCIMA de "mejores meses".
-            NotesSectionView(
-                notes: vm.notes,
-                publishing: vm.publishing,
-                onPublish: { text, image in Task { await vm.publishNote(schoolId: school.id, text: text, image: image) } },
-                onVote: { note, v in Task { await vm.voteNote(note, value: v) } }
-            )
-            // Mejores meses del año (stats mensuales del backend, cacheadas).
-            if !vm.monthlyScores.isEmpty {
-                MonthlyStatsSection(scores: vm.monthlyScores, bestRange: vm.monthlyBestRange)
+                // Sin previsión: las pestañas van igualmente (el tiempo no tiene nada que enseñar).
+                tabbedContent(nil)
             }
         }
         // Deslizar hacia abajo recarga el tiempo Y pide otra vez quién hay en

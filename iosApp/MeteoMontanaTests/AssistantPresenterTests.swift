@@ -161,7 +161,7 @@ final class AssistantPresenterTests: XCTestCase {
             schoolId: school, schoolName: "Escuela \(school)", blockId: "b-\(name)", blockName: "Piedra",
             lineId: "l-\(name)", lineName: name, grade: "6A", sectorName: nil, photoPath: nil, linePath: nil,
             startType: nil, lat: nil, lon: nil, orientation: nil, discipline: "BOULDER",
-            rating: nil, ratingCount: nil)
+            rating: nil, ratingCount: nil, repetitions: nil)
     }
 
     func testAgrupaPorEscuelaConservandoElOrden() {
@@ -186,7 +186,7 @@ final class AssistantPresenterTests: XCTestCase {
             schoolId: school, schoolName: "Escuela \(school)", blockId: "b-\(name)", blockName: "Piedra",
             lineId: "l-\(name)", lineName: name, grade: "6A", sectorName: sector, photoPath: nil, linePath: nil,
             startType: nil, lat: nil, lon: nil, orientation: nil, discipline: "BOULDER",
-            rating: nil, ratingCount: nil)
+            rating: nil, ratingCount: nil, repetitions: nil)
     }
 
     func testUnaSolaEscuelaSeReparteEnSectoresYEnseñaMas() {
@@ -257,7 +257,7 @@ final class AssistantPresenterTests: XCTestCase {
             schoolId: "s", schoolName: "Escuela", blockId: "b-\(name)", blockName: "Piedra",
             lineId: "l-\(name)", lineName: name, grade: "6A", sectorName: nil, photoPath: nil, linePath: nil,
             startType: nil, lat: nil, lon: nil, orientation: nil, discipline: "BOULDER",
-            rating: avg.map { KotlinDouble(double: $0) }, ratingCount: votes.map { KotlinInt(int: $0) })
+            rating: avg.map { KotlinDouble(double: $0) }, ratingCount: votes.map { KotlinInt(int: $0) }, repetitions: nil)
     }
 
     func testLasMejorValoradasVanPrimeroYLasSinVotosSeQuedanFuera() {

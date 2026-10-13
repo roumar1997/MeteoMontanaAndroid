@@ -90,6 +90,7 @@ class KtorSchoolApi(private val client: HttpClient) {
             criteria.beta?.let { parameter("beta", it) }
             criteria.startType?.let { parameter("startType", it) }
             if (criteria.withTopo) parameter("withTopo", true)
+            if (criteria.withRepetitions) parameter("withRepetitions", true)
         }.body()
 
     @Throws(Exception::class)
@@ -153,5 +154,7 @@ data class LineSearchHitDto(
     val discipline: String? = null,
     // Estrellas (aditivo; solo vienen si se pidió withRatings=true).
     val rating: Double? = null,
-    val ratingCount: Int? = null
+    val ratingCount: Int? = null,
+    // Cuántas personas la han hecho (aditivo; solo con withRepetitions=true o sort=MOST_REPEATED).
+    val repetitions: Int? = null
 )
