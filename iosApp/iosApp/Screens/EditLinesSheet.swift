@@ -103,6 +103,13 @@ struct EditLinesSheet: View {
         let pos = preceding + idx
         return direction == "LTR" ? pos + 1 : total - pos
     }
+    /// ¿Hay una vía ABIERTA en la foto que se está viendo? Antes el botón "+ NUEVA VÍA" dependía solo de que no hubiera NINGUNA
+    /// abierta en ninguna foto: con una vía abierta en la foto 1, al añadir la foto 4 (vacía) el botón desaparecía y no se
+    /// podía crear su primera vía (Álvaro, 2026-10-13).
+    private var expandedHere: Bool {
+        faceBlocks.indices.contains(faceIdx) && faceBlocks[faceIdx].contains { $0.id == expandedVia }
+    }
+
     private var currentPhoto: String? { facePhotos.indices.contains(faceIdx) ? facePhotos[faceIdx] : nil }
     private var hasPhoto: Bool { !(currentPhoto ?? "").isEmpty }
 
@@ -222,6 +229,7 @@ struct EditLinesSheet: View {
                             }
                             Button {
                                 facePhotos.append(nil); faceBlocks.append([]); selectedFace = facePhotos.count - 1
+                                expandedVia = nil          // la foto nueva empieza sin ninguna vía abierta
                             } label: {
                                 VStack(spacing: 4) {
                                     Image(systemName: "plus").font(.system(size: 18)).foregroundStyle(Cumbre.terra)
@@ -358,7 +366,7 @@ struct EditLinesSheet: View {
                         }
                     }
 
-                    if expandedVia == nil {
+                    if !expandedHere {
                         Button { nuevaVia() } label: {
                             Text("+ NUEVA VÍA EN ESTA FOTO").font(Cumbre.mono(12, .bold)).tracking(0.6)
                                 .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 10)

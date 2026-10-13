@@ -76,6 +76,10 @@ struct BetaLinksThreadView: View {
     @ObservedObject var store: BetaLinksStore
     let blockId: String
     let lineId: String?
+    /// La sección de la PIEDRA entera (lineId nil) solo se enseña si no tiene enlaces cuando la piedra ya tiene vías:
+    /// cada vía lleva su propia beta, y con una sola vía salía "BETA" dos veces seguidas (Álvaro, 2026-10-13).
+    /// Si la piedra YA tiene enlaces propios sí se enseña, para poder verlos y borrarlos.
+    var hideWhenEmpty = false
     @State private var expanded = false
     @State private var viewFilter: HeightFilter = .any
     @State private var choosingCategory = false
@@ -100,6 +104,14 @@ struct BetaLinksThreadView: View {
     }
 
     var body: some View {
+        if hideWhenEmpty && all.isEmpty {
+            EmptyView()
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 4) {
             Button { withAnimation { expanded.toggle() } } label: {
                 HStack(spacing: 6) {

@@ -133,6 +133,9 @@ fun BetaLinksThread(
     blockId: String,
     lineId: String?,
     myUid: String?,
+    /** La sección de la PIEDRA entera (lineId null) solo se enseña si tiene enlaces cuando la piedra ya tiene vías:
+     *  cada vía lleva su propia beta y con una sola vía salía "BETA" dos veces seguidas (Álvaro, 2026-10-13). */
+    hideWhenEmpty: Boolean = false,
     viewModel: BetaLinksViewModel = hiltViewModel()
 ) {
     LaunchedEffect(blockId) { viewModel.load(blockId) }
@@ -147,6 +150,8 @@ fun BetaLinksThread(
         allLinks.filter { it.blockId == blockId && it.lineId == lineId && "BETA_LINK:${it.id}" !in hiddenIds }
             .sortedByDescending { it.createdAt ?: "" }
     }
+
+    if (hideWhenEmpty && mine.isEmpty()) return
 
     var expanded by remember { mutableStateOf(false) }
     var viewFilter by remember { mutableStateOf(HeightFilter.ANY) }

@@ -587,7 +587,8 @@ internal fun BoulderFormDialog(
             }
             Spacer(Modifier.height(Spacing.xs))
         }
-        if (expandedVia == null) {
+        // El botón sale si no hay una vía abierta EN ESTA FOTO (antes bastaba con que hubiera una abierta en otra).
+        if (face.bloques.none { it.id == expandedVia }) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

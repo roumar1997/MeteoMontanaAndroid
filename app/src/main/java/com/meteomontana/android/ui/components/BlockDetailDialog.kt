@@ -685,13 +685,14 @@ fun BlockDetailDialog(
                     color = MaterialTheme.colorScheme.onSurface)
             }
 
-            // Enlaces de beta de la PIEDRA en sí (bloques sin vías nombradas)
-            // — Álvaro, 2026-09-15.
+            // Enlaces de beta de la PIEDRA en sí (bloques sin vías nombradas) — Álvaro, 2026-09-15. Con vías, cada
+            // una lleva la suya: esta sección solo sale si la piedra ya tiene enlaces propios (2026-10-13).
             if (!isProposal) {
                 Spacer(Modifier.height(Spacing.sm))
                 BetaLinksThread(
                     blockId = block.id, lineId = null,
-                    myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                    myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid,
+                    hideWhenEmpty = block.lines.isNotEmpty()
                 )
             }
 

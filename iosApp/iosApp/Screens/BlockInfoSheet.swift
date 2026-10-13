@@ -374,8 +374,10 @@ struct BlockInfoSheet: View {
 
                     // (Comentarios solo en cada vía, no en la piedra entera.)
 
-                    // Enlaces de beta de la PIEDRA en sí (bloques sin vías nombradas).
-                    BetaLinksThreadView(store: betaLinksStore, blockId: block.id, lineId: nil)
+                    // Enlaces de beta de la PIEDRA en sí (bloques sin vías nombradas). Con vías, cada una lleva la
+                    // suya: esta sección solo sale si la piedra ya tiene enlaces propios.
+                    BetaLinksThreadView(store: betaLinksStore, blockId: block.id, lineId: nil,
+                                        hideWhenEmpty: !block.lines.isEmpty)
 
                     // Coordenadas (espejo de BlockDetailDialog).
                     Text(String(format: "%.5f, %.5f", block.lat, block.lon))

@@ -257,6 +257,9 @@ global, 10/min. Env en Railway: `GEMINI_API_KEY`, `GEMINI_MODEL` (opcional, admi
 **Banco de frases**: `GeminiPhraseSuite` (123 casos, `GEMINI_LIVE=1 ./mvnw test -Dtest=GeminiPhraseSuite`,
 gasta cupo): 123/123. Cuando Álvaro diga una frase que falla, AÑADIRLA ahí antes de arreglar.
 **NO adjuntar el build a ninguna versión de la tienda hasta que Álvaro valide el asistente.**
+**PLAN (2026-10-13)**: (1) portar el asistente a ANDROID (la lógica de shared ya existe; falta la UI Compose); (2) cuando Álvaro diga
+que Android queda igual que iOS, RESTRINGIRLO A ADMIN (teme costes; la clave de Gemini es de un proyecto sin facturación → no se
+puede cobrar, solo limita). NO restringirlo antes de que lo pida.
 **Pendiente (a su orden)**: aviso DIARIO de tiempo por la mañana (antes, comprobar que los push de iOS
 llegan con la app cerrada — YA verificado en el build 34, 2026-07-03; no se ha repetido desde); guardar "mi casa" para "donde vivo"; respuestas por
 voz; portar a Android tras validar iOS. Detalle y causas en `HISTORIAL.md` 2026-10-08.

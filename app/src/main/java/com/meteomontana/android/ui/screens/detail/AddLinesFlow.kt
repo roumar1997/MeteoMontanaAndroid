@@ -489,7 +489,9 @@ internal fun AddLinesFlow(
                 Spacer(Modifier.height(Spacing.xs))
             }
 
-            if (expandedVia == null) {
+            // El botón sale si no hay una vía abierta EN ESTA FOTO (antes bastaba con que hubiera una abierta en otra y la
+            // foto nueva no podía crear su primera vía; Álvaro, 2026-10-13).
+            if (face.bloques.none { it.id == expandedVia }) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()

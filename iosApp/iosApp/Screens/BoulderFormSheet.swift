@@ -59,6 +59,11 @@ struct BoulderFormSheet: View {
 
     private var faceIdx: Int { min(max(selectedFace, 0), faces.count - 1) }
 
+    /// ¿Hay una vía ABIERTA en la foto que se está viendo? (el botón de añadir vía no puede depender de una abierta en OTRA foto)
+    private var expandedHere: Bool {
+        faces.indices.contains(faceIdx) && faces[faceIdx].blocks.contains { $0.id == expandedVia }
+    }
+
     private static let aspects = Aspect.shared.ALL
 
     /// F: chips de orientación (mismo lenguaje discontinuo-terra de votable).
@@ -477,7 +482,7 @@ struct BoulderFormSheet: View {
                             viaCompacta(idx: idx, via: faces[faceIdx].blocks[idx])
                         }
                     }
-                    if expandedVia == nil {
+                    if !expandedHere {
                         Button { nuevaVia() } label: {
                             Text("+ AÑADIR VÍA").font(Cumbre.mono(12, .bold)).tracking(0.6)
                                 .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 10)
