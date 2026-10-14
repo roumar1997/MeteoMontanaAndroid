@@ -66,6 +66,7 @@ import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.ui.screens.detail.SchoolDetailViewModel
 import com.meteomontana.android.ui.screens.detail.ProposeContributionFlow
 import com.meteomontana.android.ui.screens.detail.AddLinesFlow
+import com.meteomontana.android.ui.guide.guideTarget
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Spacing
@@ -180,7 +181,11 @@ internal fun SchoolMapView(
     /** Lo que va JUSTO debajo del mapa y encima de PARKINGS (aproximaciones).
      *  Es una ranura porque esos datos viven en la pantalla de detalle, pero su
      *  sitio en pantalla está aquí dentro — igual que en iOS. */
-    contenidoTrasMapa: @Composable () -> Unit = {}
+    contenidoTrasMapa: @Composable () -> Unit = {},
+    /** Filtros (grado, vía/bloque) entre las filas de sectores/parkings y el mapa, como en iOS. */
+    filtersContent: @Composable () -> Unit = {},
+    /** Menú de orientación: sobre el mapa, a la izquierda de PROPONER. */
+    orientationControl: @Composable () -> Unit = {}
 ) {
     val ctx = LocalContext.current
     var currentStyle by remember { mutableStateOf(MapStyleOption.SATELLITE) }
@@ -604,16 +609,23 @@ internal fun SchoolMapView(
 
             // Botón "+ PROPONER": pill flotante ARRIBA a la derecha —
             // abajo lo tapaba la mini-ficha de parking/sector.
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(Spacing.sm)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(terraFillColor())
-                    .clickable(onClick = { bridge.proposeOpen = true })
-                    .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+            // A su izquierda va el filtro de orientación (así la fila de sectores de arriba tiene todo el ancho).
+            Row(
+                modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(stringResource(R.string.detail_propose), style = EyebrowTextStyle, color = Color.White)
+                Box(Modifier.guideTarget("detail_map.orientation")) { orientationControl() }
+                Box(
+                    modifier = Modifier
+                        .guideTarget("detail_map.propose")
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(terraFillColor())
+                        .clickable(onClick = { bridge.proposeOpen = true })
+                        .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+                ) {
+                    Text(stringResource(R.string.detail_propose), style = EyebrowTextStyle, color = Color.White)
+                }
             }
 
             // Ampliar / salir de pantalla completa — ARRIBA a la izquierda.
@@ -744,158 +756,33 @@ internal fun SchoolMapView(
         }
     }
 
+    // Altura del mapa en la ficha (como iOS): lo que sobra bajo cabecera, pestañas y filtros. Antes eran 280 fijos y
+    // quedaba medio móvil vacío debajo. Limitada para que ni se quede diminuto ni se coma la pantalla entera.
+    val cardMapHeight = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp - 400).coerceIn(300, 560).dp
+
     Column(modifier = Modifier.fillMaxWidth()) {
 
         flowBanners()
 
+        // SECTORES y PARKINGS arriba, cada uno en su fila y sin rótulos (S / P): tocar uno lleva el mapa allí. Tocar un
+        // sector hace LO MISMO que tocarlo en el mapa (acercarse y desplegar sus piedras): un solo camino de código.
+        // La ficha con "CÓMO LLEGAR" se abre con la mini-ficha, igual que al tocar el marcador.
+        SchoolPlacesRows(
+            blocks = blocks,
+            userLoc = userLoc,
+            onParking = { miniBlock = it; flyToParkingZone(it) },
+            onSector = { onBlockTap(it) }
+        )
+
+        filtersContent()
+
         if (!fullscreenMap) {
-            mapBox(Modifier.fillMaxWidth().height(280.dp))
+            mapBox(Modifier.fillMaxWidth().height(cardMapHeight))
         }
 
-        // APROXIMACIONES van AQUÍ, entre el mapa y los parkings — es donde las
-        // pone iOS (SchoolMapSection.swift: mapArea → ApproachesSection →
-        // parkingsList → sectoresList). En Android caían al final de la ficha,
-        // detrás de sectores (Álvaro, 2026-08-24: igualar Android a iOS).
+        // APROXIMACIONES van AQUÍ, justo debajo del mapa — es donde las pone iOS (SchoolMapSection.swift: mapArea →
+        // ApproachesSection).
         contenidoTrasMapa()
-
-        // ── Lista de parkings ────────────────────────────────────────────
-        // Lo importante para llegar: desde qué parking se va andando. Orden
-        // alfabético (NO por cercanía — la lista debe tener sentido también
-        // viéndola desde casa, lejos de la escuela). La distancia se muestra
-        // solo como dato informativo. Pulsar uno lleva el mapa a SU zona
-        // (encuadra parking + sectores/piedras cercanos, expandiéndolos). La
-        // ficha con "CÓMO LLEGAR" se abre tocando el marker en el mapa.
-        val parkings = remember(blocks) { blocks.filter { it.type == "PARKING" }.sortedBy { it.name } }
-        if (parkings.isNotEmpty()) {
-            Column(modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
-                Text(
-                    stringResource(R.string.school_map_view_v2_parkings),
-                    style = EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)
-                )
-                // Chips horizontales (una línea): cada uno lleva el mapa a SU zona
-                // (mini-ficha + encuadre parking + sectores/piedras cercanos).
-                androidx.compose.foundation.lazy.LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = Spacing.md)
-                ) {
-                    items(parkings.size) { i ->
-                        val parking = parkings[i]
-                        val distanceText = userLoc?.let { loc ->
-                            val km = Geo.haversineKm(loc.lat, loc.lon, parking.lat, parking.lon)
-                            if (km < 1.0) "${(km * 1000).toInt()} m" else "${"%.1f".format(km)} km"
-                        }
-                        Row(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.surface)
-                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
-                                .clickable {
-                                    miniBlock = parking
-                                    flyToParkingZone(parking)
-                                }
-                                .padding(horizontal = Spacing.sm, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                        ) {
-                            Box(
-                                modifier = Modifier.size(20.dp)
-                                    .clip(RoundedCornerShape(5.dp))
-                                    .background(Color(0xFF1A56DB)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("P", color = Color.White,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold)
-                            }
-                            Text(
-                                parking.name.ifBlank { "Parking" } +
-                                    (distanceText?.let { " · $it" } ?: ""),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onBackground,
-                                maxLines = 1
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Fila de SECTORES, igual que la de parkings. Petición de Rodrigo
-        // (2026-08-16): poder ir a un sector desde una lista, en vez de buscarlo
-        // a ojo en el mapa y ampliar a mano. Al pulsar uno se hace lo MISMO que
-        // al tocarlo en el mapa (acercarse y desplegar sus piedras): un solo
-        // camino de código, así no divergen.
-        //
-        // Orden por CERCANÍA real (paridad con iOS, 2026-08-17 — Android se
-        // había quedado en el alfabético de antes, encontrado por Álvaro
-        // 2026-08-24): cerca de la escuela → por distancia (útil en la roca);
-        // lejos o sin GPS → alfabético (estable, no cambia con la deriva del
-        // GPS ni viéndolo desde casa).
-        val sectores = remember(blocks, userLoc) {
-            val zonas = blocks.filter { it.type == "ZONE" }
-            val u = userLoc
-            if (u == null) {
-                zonas.sortedBy { it.name }
-            } else {
-                val conDistancia = zonas.map { it to com.meteomontana.android.domain.util.Geo.haversineKm(u.lat, u.lon, it.lat, it.lon) }
-                val estoyEnLaEscuela = conDistancia.any { it.second <= 20.0 }
-                if (estoyEnLaEscuela) conDistancia.sortedBy { it.second }.map { it.first }
-                else zonas.sortedBy { it.name }
-            }
-        }
-        if (sectores.isNotEmpty()) {
-            Column(modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
-                Text(
-                    stringResource(R.string.school_map_view_v2_sectores),
-                    style = EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)
-                )
-                androidx.compose.foundation.lazy.LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = Spacing.md)
-                ) {
-                    items(sectores.size) { i ->
-                        val sector = sectores[i]
-                        // Cuántas piedras tiene: es lo que de verdad ayuda a
-                        // decidir a cuál subir.
-                        val piedras = blocks.count { it.sectorBlockId == sector.id }
-                        Row(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.surface)
-                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
-                                .clickable { onBlockTap(sector) }
-                                .padding(horizontal = Spacing.sm, vertical = 7.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                        ) {
-                            Box(
-                                modifier = Modifier.size(20.dp)
-                                    .clip(androidx.compose.foundation.shape.CircleShape)
-                                    .background(Color(0xFF3F6B4A)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("Z", color = Color.White,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold)
-                            }
-                            Text(
-                                sector.name.ifBlank { "Sector" } +
-                                    (if (piedras > 0) " · $piedras" else ""),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onBackground,
-                                maxLines = 1
-                            )
-                        }
-                    }
-                }
-            }
-        }
     }
 
     // Dialog de detalles (foto + líneas + vías + CÓMO LLEGAR).

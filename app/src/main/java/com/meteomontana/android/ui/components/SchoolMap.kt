@@ -201,11 +201,6 @@ fun SchoolMap(
             androidx.compose.runtime.LaunchedEffect(schoolId) { orientationVm.load(schoolId) }
             val blockOrientations by orientationVm.orientations.collectAsStateWithLifecycle()
             val orientationFilter by orientationVm.selected.collectAsStateWithLifecycle()
-            OrientationFilterChips(
-                orientations = blockOrientations,
-                selected = orientationFilter,
-                onSelect = orientationVm::select
-            )
             // Filtro Vía/Bloque de ESTA escuela (feature 2: school.style con
             // ambos estilos, ej. "Vía,Bloque"). Solo aporta si la escuela es de
             // AMBOS a la vez — de una sola, siempre pasaría todo. Paridad con
@@ -215,14 +210,6 @@ fun SchoolMap(
                 (schoolStyle ?: "").split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet().size > 1
             }
             var styleFilter by remember { mutableStateOf(setOf<String>()) }
-            if (schoolHasBothStyles) {
-                StyleFilterRow(
-                    selected = styleFilter,
-                    onToggle = { opt ->
-                        styleFilter = if (opt in styleFilter) styleFilter - opt else styleFilter + opt
-                    }
-                )
-            }
             val visibleBlocks = remember(blocks, blockOrientations, orientationFilter, styleFilter) {
                 val aspect = orientationFilter
                 blocks.filter { b ->
@@ -240,15 +227,6 @@ fun SchoolMap(
             val gradeFilter = remember(visibleBlocks, selectedGrades) {
                 com.meteomontana.android.domain.util.filterBlocksByGrades(visibleBlocks, selectedGrades)
             }
-            GradeFilterBar(
-                selectedGrades = selectedGrades,
-                onSelectedGradesChange = { selectedGrades = it },
-                availableGrades = availableGrades,
-                result = gradeFilter,
-                onSelectLine = { match ->
-                    visibleBlocks.firstOrNull { it.id == match.blockId }?.let { selectedBlock = it }
-                }
-            )
             SchoolMapView(
                 centerLat     = centerLat,
                 centerLon     = centerLon,
@@ -260,6 +238,35 @@ fun SchoolMap(
                 bridge        = bridge,
                 wallEdit      = wallEdit,
                 contenidoTrasMapa = contenidoTrasMapa,
+                // Orden de iOS: sectores/parkings → grado → vía/bloque → mapa. Los filtros viajan como ranura porque
+                // los sectores/parkings (que van ANTES) viven dentro del mapa.
+                filtersContent = {
+                    GradeFilterBar(
+                        selectedGrades = selectedGrades,
+                        onSelectedGradesChange = { selectedGrades = it },
+                        availableGrades = availableGrades,
+                        result = gradeFilter,
+                        onSelectLine = { match ->
+                            visibleBlocks.firstOrNull { it.id == match.blockId }?.let { selectedBlock = it }
+                        }
+                    )
+                    if (schoolHasBothStyles) {
+                        StyleFilterRow(
+                            selected = styleFilter,
+                            onToggle = { opt ->
+                                styleFilter = if (opt in styleFilter) styleFilter - opt else styleFilter + opt
+                            }
+                        )
+                    }
+                },
+                // El filtro de orientación es un solo botón sobre el mapa (a la izquierda de PROPONER).
+                orientationControl = {
+                    OrientationMenu(
+                        orientations = blockOrientations,
+                        selected = orientationFilter,
+                        onSelect = orientationVm::select
+                    )
+                },
                 // Ficha de piedra izada a ESTE nivel (deep-links sin MapLibre).
                 onBlockSelected = { selectedBlock = it },
                 onDismissBlock = { selectedBlock = null },

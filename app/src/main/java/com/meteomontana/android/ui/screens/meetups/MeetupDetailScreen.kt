@@ -125,7 +125,7 @@ fun MeetupDetailScreen(
             }
             Text(stringResource(R.string.meetup_detail_title), modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            com.meteomontana.android.ui.components.HelpButton(topicKey = "meetup_detail")
+            com.meteomontana.android.ui.components.HelpButton(topicKey = "meetup_detail", compact = true)
             // Compartir
             state.meetup?.let { m ->
                 IconButton(onClick = {

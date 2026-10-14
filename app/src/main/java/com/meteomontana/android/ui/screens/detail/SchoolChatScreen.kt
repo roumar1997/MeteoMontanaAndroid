@@ -185,12 +185,18 @@ fun SchoolChatScreen(
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.weight(1f)
                 )
-                Text(
-                    stringResource(R.string.school_chat_screen_v2_se_borra_solo_pasados_unos),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                // "Estoy aquí" también se marca desde dentro del chat (Álvaro, 2026-10-14; igual que en iOS).
+                com.meteomontana.android.ui.components.PresenceMarkControl(
+                    schoolId = schoolId, myUid = myUid,
+                    onChanged = { viewModel.refreshPresence(schoolId) }
                 )
             }
+            Text(
+                stringResource(R.string.school_chat_screen_v2_se_borra_solo_pasados_unos),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = Spacing.md)
+            )
             if (viewModel.presentList.isNotEmpty()) {
                 Row(
                     modifier = Modifier

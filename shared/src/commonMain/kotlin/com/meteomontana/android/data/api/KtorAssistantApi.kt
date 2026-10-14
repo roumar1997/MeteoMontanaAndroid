@@ -5,8 +5,10 @@ import com.meteomontana.android.data.api.dto.AssistantAskRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.timeout
+import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import kotlinx.serialization.Serializable
 
 /**
  * Asistente de búsqueda con IA. Exige sesión (token de Firebase): el cupo diario
@@ -27,7 +29,14 @@ class KtorAssistantApi(private val client: HttpClient) {
             setBody(req)
         }.body()
 
+    /** ¿Puede esta cuenta usar el asistente? (GET /api/assistant/access). */
+    @Throws(Exception::class)
+    suspend fun access(): AssistantAccessDto = client.get("assistant/access").body()
+
     private companion object {
         const val ASK_TIMEOUT_MS = 45_000L
     }
 }
+
+@Serializable
+data class AssistantAccessDto(val enabled: Boolean = false)

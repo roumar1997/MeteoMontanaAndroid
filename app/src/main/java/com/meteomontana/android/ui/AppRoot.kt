@@ -59,15 +59,25 @@ fun AppRoot(
     LaunchedEffect(authState) {
         if (authState is AuthManager.AuthState.SignedIn) viewModel.ensureUserProvisioned()
     }
+    // Sin sesión no se guarda nada de la conversación del asistente (es de UNA cuenta y solo vive en el móvil).
+    val appContext = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(authState) {
+        if (authState !is AuthManager.AuthState.SignedIn && authState !is AuthManager.AuthState.Loading) {
+            com.meteomontana.android.ui.assistant.SharedTranscriptStorage(appContext).clear()
+        }
+    }
 
     forceUpdateUrl?.let { url ->
         ForceUpdateScreen(url)
         return
     }
 
-    when (authState) {
-        is AuthManager.AuthState.SignedIn -> MainScreen(deepLink = deepLink, onDeepLinkConsumed = onDeepLinkConsumed)
-        else -> LoginScreen()
+    // Las guías por pantalla ("? AYUDA") se comparten en toda la app: un solo controlador.
+    com.meteomontana.android.ui.guide.ProvideGuides {
+        when (authState) {
+            is AuthManager.AuthState.SignedIn -> MainScreen(deepLink = deepLink, onDeepLinkConsumed = onDeepLinkConsumed)
+            else -> LoginScreen()
+        }
     }
 }
 

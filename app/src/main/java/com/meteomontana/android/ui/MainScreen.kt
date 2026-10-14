@@ -37,6 +37,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,6 +68,7 @@ import com.meteomontana.android.ui.screens.profile.JournalSchoolsScreen
 import com.meteomontana.android.ui.screens.profile.JournalSectorsScreen
 import com.meteomontana.android.ui.screens.profile.ProjectsScreen
 import com.meteomontana.android.ui.screens.profile.ProfileScreen
+import com.meteomontana.android.ui.guide.guideTarget
 import com.meteomontana.android.ui.screens.radar.RadarScreen
 import com.meteomontana.android.ui.screens.schools.SchoolListScreen
 import com.meteomontana.android.ui.screens.submissions.MySubmissionsScreen
@@ -150,6 +152,23 @@ fun MainScreen(
     deepLink: com.meteomontana.android.DeepLinkTarget? = null,
     onDeepLinkConsumed: () -> Unit = {}
 ) {
+    // Asistente de IA: la conversación es de toda la app (vive en la actividad): cerrar el chat, abrir una piedra y volver
+    // a abrir el círculo no la pierde. Se liga a la cuenta activa para guardarla y recuperarla unas horas.
+    val assistantVm: com.meteomontana.android.ui.assistant.AssistantViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        assistantVm.attachSession(com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid)
+    }
+    // La burbuja solo existe para quien tiene el asistente (admin, abierto a todos o activado a mano por un admin). Se
+    // vuelve a preguntar al volver a la app, para notar si se lo han activado o quitado sin reinstalar.
+    val hasAssistantAccess by assistantVm.hasAccess.collectAsStateWithLifecycle()
+    val accessLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    androidx.compose.runtime.DisposableEffect(accessLifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_START) assistantVm.refreshAccess()
+        }
+        accessLifecycle.addObserver(observer)
+        onDispose { accessLifecycle.removeObserver(observer) }
+    }
     // Navegación principal (pantallas a pantalla completa por debajo del sheet):
     // tabs, detalle de escuela, editor topo y admin.
     val navController = rememberNavController()
@@ -270,7 +289,9 @@ fun MainScreen(
     val sheetEntry by sheetNav.currentBackStackEntryAsState()
     val sheetShowsChat = sheetVisible &&
         sheetEntry?.destination?.route in setOf(Routes.CHAT, Routes.GROUP_CHAT)
-    val showBottomBar = currentRoute == TABS_HOST && !sheetShowsChat
+    // Mientras se enseña la bienvenida no hay barra de pestañas ni burbuja: taparían "Ahora no" y el interruptor.
+    var onboardingActive by remember { androidx.compose.runtime.mutableStateOf(false) }
+    val showBottomBar = currentRoute == TABS_HOST && !sheetShowsChat && !onboardingActive
 
     Scaffold(
         bottomBar = {
@@ -498,11 +519,12 @@ fun MainScreen(
                                 .zIndex(if (!weatherShowsRadar) 1f else 0f)
                                 .graphicsLayer { alpha = if (!weatherShowsRadar) 1f else 0f }
                         ) {
+                            com.meteomontana.android.ui.guide.GuideHost("weather") {
                             androidx.compose.foundation.layout.Column(Modifier.fillMaxSize()) {
                                 WeatherRadarToggle(
                                     showRadar = false,
                                     onSelect = { weatherShowsRadar = it },
-                                    modifier = Modifier.padding(top = 8.dp)
+                                    modifier = Modifier.padding(top = 8.dp).guideTarget("weather.toggle")
                                 )
                                 WeatherScreen(
                                     onDayClick = { schoolId, lat, lon, idx ->
@@ -512,6 +534,7 @@ fun MainScreen(
                                     visible = selectedTab == Tab.Weather.route &&
                                         !weatherShowsRadar && !sheetVisible
                                 )
+                            }
                             }
                         }
                         // ── Capa RADAR (mapa a pantalla completa) ──
@@ -538,6 +561,7 @@ fun MainScreen(
                     }
                 }
                         tabContainer(Tab.Schools.route) {
+                    com.meteomontana.android.ui.guide.GuideHost("schools") {
                     SchoolListScreen(
                         volverArribaSignal = volverArriba[Tab.Schools.route] ?: 0,
                         onSchoolClick = { id -> openSheet(Routes.schoolDetail(id)) },
@@ -549,11 +573,14 @@ fun MainScreen(
                         onSearchUsers = { openSheet(Routes.SEARCH_USERS) },
                         onNotifications = { openSheet(Routes.NOTIFICATIONS) },
                         onChats = { openSheet(Routes.CHAT_LIST) },
-                        onCompare = { ids -> openSheet(Routes.compare(ids)) }
+                        onCompare = { ids -> openSheet(Routes.compare(ids)) },
+                        onOnboardingActive = { onboardingActive = it }
                     )
+                    }
                 }
                         tabContainer(Tab.Profile.route) {
                     // Perfil como pestaña: mismo contenido que el sheet, pero sin CERRAR.
+                    com.meteomontana.android.ui.guide.GuideHost("profile") {
                     com.meteomontana.android.ui.screens.profile.ProfileScreen(
                         onBack = {},
                         showClose = false,
@@ -588,6 +615,7 @@ fun MainScreen(
                         onOpenMyPosts = { openSheet(Routes.myPosts()) },
                         onOpenStats = { openSheet(Routes.journalStats()) }
                     )
+                    }
                 }
                         tabContainer(Tab.Community.route) {
                     // Feed social Comunidad (SIGUIENDO | TODOS | RANKING).
@@ -603,6 +631,7 @@ fun MainScreen(
                     )
                 }
                         tabContainer(Tab.Meetups.route) {
+                    com.meteomontana.android.ui.guide.GuideHost("meetups") {
                     MeetupsScreen(
                         onMeetupClick = { id -> openSheet(Routes.meetupDetail(id)) },
                         onOpenChat = { convId -> openSheet(Routes.groupChat(convId)) },
@@ -612,6 +641,7 @@ fun MainScreen(
                         // overlay (al cerrar la hoja de alerta) → icono siempre real.
                         visible = selectedTab == Tab.Meetups.route && !sheetVisible
                     )
+                    }
                 }
                         // ── Overlay estilo Apple, DENTRO del contenido ──
                         // Vive encima de las pestañas (zIndex 2) pero por DEBAJO de
@@ -675,6 +705,17 @@ fun MainScreen(
                             // pegarse al teclado sin dejar un hueco muerto.
                             bottomInset = reservaAbajo
                         )
+                        }
+                        // Burbuja del asistente: abajo a la derecha, por encima de las pestañas y de lo que se abra
+                        // encima (también se ve en la ficha de una escuela). Se esconde en los chats, donde estorba.
+                        if (!sheetShowsChat && !onboardingActive && hasAssistantAccess) {
+                            com.meteomontana.android.ui.assistant.AssistantBubble(
+                                viewModel = assistantVm,
+                                onOpenTarget = { schoolId, viaId -> openSheet(Routes.schoolDetail(schoolId, viaId = viaId)) },
+                                modifier = Modifier.align(Alignment.BottomEnd)
+                                    .padding(end = 16.dp, bottom = reservaAbajo + 12.dp)
+                                    .zIndex(3f)
+                            )
                         }
                     }
                     }

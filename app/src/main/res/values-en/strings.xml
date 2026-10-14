@@ -1581,6 +1581,9 @@
     <string name="w_storms_caps">STORMS</string>
     <string name="w_temps_caps">TEMPERATURES</string>
     <string name="w_all_caps">ALL</string>
+    <string name="school_map_orientation_short">ORIENT.</string>
+    <string name="school_map_view_sector_fallback">Sector</string>
+    <string name="school_map_view_parking_fallback">Parking</string>
     <string name="w_all">All</string>
     <string name="w_route">Route</string>
     <string name="w_boulder">Boulder</string>
@@ -1701,33 +1704,6 @@
     <string name="push_channel_description">Messages, approved proposals, new followers</string>
 
     <!-- Onboarding (tour de primera apertura) -->
-    <string name="onb_1_eyebrow">WELCOME</string>
-    <string name="onb_1_title">Cumbre</string>
-    <string name="onb_1_body">Weather for climbing. We tell you when and where you can climb, with dry rock, across 191 schools.</string>
-    <string name="onb_2_eyebrow">THE 0–100 INDEX</string>
-    <string name="onb_2_title">Can I climb today?</string>
-    <string name="onb_2_body">One number sums up the conditions at each school: temperature, humidity, wind, recent rain and how long THEIR rock type takes to dry (sandstone takes days; granite, hours).</string>
-    <string name="onb_3_eyebrow">MAP AND TOPOS</string>
-    <string name="onb_3_title">Every boulder, in detail</string>
-    <string name="onb_3_body">Open a school and you\'ll see parkings, sectors and boulders on the map. Tap a boulder and its photo appears with the ROUTES drawn on it, its grade and how to get there.</string>
-    <string name="onb_4_eyebrow">PLAN YOUR WEEKEND</string>
-    <string name="onb_4_title">The best window</string>
-    <string name="onb_4_body">Best window of the day, best day of the week, a school comparator and a day picker to decide where to go.</string>
-    <string name="onb_5_eyebrow">FAVOURITES AND ALERTS</string>
-    <string name="onb_5_title">Don\'t miss the good day</string>
-    <string name="onb_5_body">Mark your favourite schools, see them at a glance in the home widget and turn on the alert so it warns you when a good window is coming.</string>
-    <string name="onb_6_eyebrow">YOUR LOGBOOK</string>
-    <string name="onb_6_title">Keep count</string>
-    <string name="onb_6_body">Tick the routes you send: the app keeps your logbook with your stats and your max grade, school by school.</string>
-    <string name="onb_7_eyebrow">ADD TO THE GUIDE</string>
-    <string name="onb_7_title">Community</string>
-    <string name="onb_7_body">Propose new schools, boulders and sectors and leave notes with photos. An admin reviews them before publishing them for the whole community.</string>
-    <string name="onb_8_eyebrow">PROFILE, PEOPLE AND CHAT</string>
-    <string name="onb_8_title">Connect</string>
-    <string name="onb_8_body">Create your profile, find and follow other climbers, see their logbooks and chat 1 to 1. Notifications let you know about followers and messages.</string>
-    <string name="onb_9_eyebrow">OFFLINE + LOCATION</string>
-    <string name="onb_9_title">Ready for the mountains</string>
-    <string name="onb_9_body">Save schools to view them WITHOUT coverage. We\'ll ask for your location only to sort by distance and centre the map: it stays on your phone and is never shared.</string>
     <string name="onb_next">NEXT</string>
     <string name="onb_allow_location_start">ALLOW LOCATION AND START</string>
 
@@ -1755,4 +1731,64 @@
 
     <!-- Código de idioma para lógica dependiente del idioma -->
     <string name="lang_code">en</string>
+
+    <!-- Per-screen guides and the "? HELP" button (2026-10-14) -->
+    <string name="guide_help">HELP</string>
+    <string name="guide_exit">LEAVE</string>
+    <string name="guide_next">NEXT</string>
+    <string name="guide_done">GOT IT</string>
+    <string name="guides_toggle_title">Explain each screen to me</string>
+    <string name="guides_toggle_hint">A “?” blinks the first time you open a screen. You can change this in Settings.</string>
+
+    <!-- Single-screen welcome -->
+    <string name="welcome_eyebrow">WELCOME</string>
+    <string name="welcome_lead">We tell you if you can climb today and where, based on the weather and how long each rock takes to dry.</string>
+    <string name="welcome_scale_good">70+ go climb</string>
+    <string name="welcome_scale_fair">50–69 fair</string>
+    <string name="welcome_scale_bad">&lt;50 bad day</string>
+    <string name="welcome_location_note">We only use your location to sort crags by distance and centre the map. It stays on your phone.</string>
+    <string name="welcome_not_now">NOT NOW</string>
+    <string name="meetups_active_count">%1$d active</string>
+    <string name="schools_filters_with_count">FILTERS (%1$d)</string>
+    <string name="schools_summary_upto_km">Up to %1$d km</string>
+    <string name="schools_summary_any_distance">Any distance</string>
+    <string name="schools_n_days">%1$d DAYS</string>
+
+    <!-- School detail with tabs (2026-10-14) -->
+    <string name="detail_tab_map">MAP</string>
+    <string name="detail_tab_boulders">BOULDERS</string>
+    <string name="detail_tab_routes">ROUTES</string>
+    <string name="detail_tab_boulders_routes">BOULDERS/ROUTES</string>
+    <string name="detail_tab_weather">WEATHER</string>
+    <string name="detail_tab_notes">NOTES</string>
+    <string name="detail_why_index_caps">WHY THIS INDEX?</string>
+    <string name="detail_best_window">Best %1$s–%2$s</string>
+    <string name="detail_rock_dry_caps">DRY ROCK</string>
+    <string name="detail_rock_wet_caps">WET ROCK</string>
+    <string name="detail_chat_cd">Crag chat</string>
+    <string name="presence_here_short">Here</string>
+    <string name="presence_not_here_short">Not now</string>
+    <string name="blocks_search_hint">Search by name…</string>
+    <string name="blocks_filter_grade">GRADE (ONE OR MORE)</string>
+    <string name="blocks_filter_all">ALL</string>
+    <string name="blocks_filter_beta">VIDEO BETA (NONE SELECTED = ALL)</string>
+    <string name="blocks_filter_sort">SORT</string>
+    <string name="blocks_order_repeated">MOST REPEATED</string>
+    <string name="blocks_order_rated">BEST RATED</string>
+    <string name="blocks_beta_tall">▶ +1.70</string>
+    <string name="blocks_beta_short">▶ −1.70</string>
+    <string name="blocks_load_failed">Couldn\'t load the boulders</string>
+    <string name="blocks_none_drawn">This crag has no drawn routes yet.</string>
+    <string name="blocks_none_match">No route matches those filters.</string>
+    <string name="blocks_count_one">1 ROUTE</string>
+    <string name="blocks_count_other">%1$d ROUTES</string>
+    <string name="blocks_repeated_hint">✓ = people who have sent it</string>
+    <string name="blocks_no_sector">No sector</string>
+    <string name="notes_order_most_voted">MOST VOTED</string>
+    <string name="notes_order_least_voted">LEAST VOTED</string>
+    <string name="admin_assistant_tag">ADMIN ONLY</string>
+    <string name="admin_assistant_title">AI assistant</string>
+    <string name="admin_assistant_on">Turned on for this user</string>
+    <string name="admin_assistant_off">Turned off for this user</string>
+    <string name="admin_assistant_hint">Nobody else sees this block. Once on, the assistant bubble shows up as soon as they open the app.</string>
 </resources>

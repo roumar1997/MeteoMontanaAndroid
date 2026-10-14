@@ -66,11 +66,16 @@ fun VotableChip(text: String, modifier: Modifier = Modifier, onClick: () -> Unit
     }
 }
 
-/** Barras de votos (compartidas por orientación y grado). */
+/**
+ * Barras de votos (compartidas por orientación y grado). El orden lo da shared (`VoteOrdering`, el mismo que iOS): más
+ * votado primero y, en empate, por grado o por nombre, para que las barras NO cambien de sitio entre aperturas.
+ * [barColor] = el color de cada opción (los grados llevan el suyo, como en la app); null = terracota.
+ */
 @Composable
-private fun VoteBars(votes: Map<String, Int>, highlight: String?, myVote: String?) {
+private fun VoteBars(votes: Map<String, Int>, highlight: String?, myVote: String?, barColor: ((String) -> Color)? = null) {
     val max = (votes.values.maxOrNull() ?: 1).coerceAtLeast(1)
-    votes.entries.sortedByDescending { it.value }.forEach { (option, count) ->
+    com.meteomontana.android.domain.usecase.community.VoteOrdering.ordered(votes).forEach { (option, count) ->
+        val color = barColor?.invoke(option) ?: Terra
         Row(
             Modifier.fillMaxWidth().padding(vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -85,7 +90,7 @@ private fun VoteBars(votes: Map<String, Int>, highlight: String?, myVote: String
             Box(Modifier.weight(1f).height(14.dp)
                 .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(7.dp))) {
                 Box(Modifier.fillMaxWidth(count / max.toFloat()).height(14.dp)
-                    .background(if (option == highlight) Terra else Terra.copy(alpha = 0.45f),
+                    .background(if (option == highlight) color else color.copy(alpha = 0.55f),
                         RoundedCornerShape(7.dp)))
             }
             Text(
@@ -184,7 +189,9 @@ fun GradeVoteContent(
             modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
         )
         val s = summary ?: return@Column
-        if (s.votes.isNotEmpty()) VoteBars(s.votes, s.displayedGrade, s.myVote)
+        if (s.votes.isNotEmpty()) VoteBars(s.votes, s.displayedGrade, s.myVote) { grade ->
+            Color(com.meteomontana.android.domain.util.gradeArgb(grade).first.toInt())
+        }
         Row(
             Modifier.fillMaxWidth()
                 .padding(top = 8.dp)

@@ -32,4 +32,9 @@ interface AdminRepository {
     /** Rellena grade_score de las vías ya existentes (una sola vez, idempotente)
      *  — BLOCK_SEARCH_DESIGN.md §2/§8. */
     suspend fun backfillGradeScore(): GradeScoreBackfillResult
+
+    /** ¿Tiene este usuario el asistente de IA activado a mano? (su interruptor, no el global ni ser admin). */
+    suspend fun getUserAssistantAccess(uid: String): Boolean
+    /** Activa o desactiva el asistente de IA para un usuario; devuelve el estado guardado. */
+    suspend fun setUserAssistantAccess(uid: String, enabled: Boolean): Boolean
 }

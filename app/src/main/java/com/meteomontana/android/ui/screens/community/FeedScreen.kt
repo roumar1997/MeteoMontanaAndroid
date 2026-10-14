@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
+import com.meteomontana.android.ui.guide.guideTarget
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -123,6 +124,7 @@ fun FeedScreen(
     val hiddenIds by moderation.hiddenIds.collectAsStateWithLifecycle()
     var reportPost by remember { mutableStateOf<FeedPost?>(null) }
 
+    com.meteomontana.android.ui.guide.GuideHost("community") {
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         // Cabecera: título + ayuda "?" + chips SIGUIENDO | TODOS | MÍAS | RANKING.
         Row(
@@ -141,7 +143,8 @@ fun FeedScreen(
         // Perfil): borde fino Rule, activa con borde interior Terra y texto
         // Terra — reemplaza el subrayado tipo Instagram de antes.
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)
+                .guideTarget("community.tabs"),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             com.meteomontana.android.ui.components.MochilaCard(
@@ -160,7 +163,7 @@ fun FeedScreen(
                 icon = Icons.Outlined.EmojiEvents,
                 contentDescription = stringResource(R.string.feed_tab_ranking),
                 selected = state.tab == FeedTab.RANKING,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f).guideTarget("community.ranking")
             ) { viewModel.selectTab(FeedTab.RANKING) }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -214,6 +217,7 @@ fun FeedScreen(
             )
         }
     }
+    }   // GuideHost
 
     // Hoja de denuncia de un post ajeno (target nuevo FEED_POST; mismo
     // endpoint /api/reports que comentarios de vías, 409 idempotente).
@@ -376,6 +380,8 @@ private fun FeedList(
                     }
                 }
                 items(visiblePosts, key = { it.id }) { post ->
+                    // La primera publicación es la que señala la guía de la pantalla.
+                    Box(Modifier.guideTarget("community.post", enabled = post.id == visiblePosts.first().id)) {
                     FeedPostCard(
                         post = post,
                         onOpenSchool = onOpenSchool,
@@ -385,6 +391,7 @@ private fun FeedList(
                         onDelete = { onDeletePost(post) },
                         onReport = { onReportPost(post) }
                     )
+                    }
                 }
                 if (!state.endReached) {
                     item {

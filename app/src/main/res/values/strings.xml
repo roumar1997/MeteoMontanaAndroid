@@ -1640,6 +1640,9 @@
     <string name="w_storms_caps">TORMENTAS</string>
     <string name="w_temps_caps">TEMPERATURAS</string>
     <string name="w_all_caps">TODAS</string>
+    <string name="school_map_orientation_short">ORIENT.</string>
+    <string name="school_map_view_sector_fallback">Sector</string>
+    <string name="school_map_view_parking_fallback">Parking</string>
     <string name="w_all">Todas</string>
     <string name="w_route">Vía</string>
     <string name="w_boulder">Bloque</string>
@@ -1760,33 +1763,6 @@
     <string name="push_channel_description">Mensajes, propuestas aprobadas, nuevos seguidores</string>
 
     <!-- Onboarding (tour de primera apertura) -->
-    <string name="onb_1_eyebrow">BIENVENIDO</string>
-    <string name="onb_1_title">Cumbre</string>
-    <string name="onb_1_body">Tiempo para escalar. Te decimos cuándo y dónde se puede escalar, con la roca seca, en 191 escuelas.</string>
-    <string name="onb_2_eyebrow">EL ÍNDICE 0–100</string>
-    <string name="onb_2_title">¿Hoy se puede?</string>
-    <string name="onb_2_body">Un número resume las condiciones de cada escuela: temperatura, humedad, viento, lluvia reciente y cuánto tarda en secar SU tipo de roca (la arenisca tarda días; el granito, horas).</string>
-    <string name="onb_3_eyebrow">MAPA Y TOPOS</string>
-    <string name="onb_3_title">Cada piedra, al detalle</string>
-    <string name="onb_3_body">Abre una escuela y verás parkings, sectores y piedras en el mapa. Toca una piedra y aparece su foto con las VÍAS dibujadas, su grado y cómo llegar.</string>
-    <string name="onb_4_eyebrow">PLANIFICA EL FINDE</string>
-    <string name="onb_4_title">La mejor ventana</string>
-    <string name="onb_4_body">Ventana óptima del día, mejor día de la semana, comparador de escuelas y selector de días para decidir adónde ir.</string>
-    <string name="onb_5_eyebrow">FAVORITAS Y ALERTAS</string>
-    <string name="onb_5_title">No te pierdas el buen día</string>
-    <string name="onb_5_body">Marca tus escuelas favoritas, míralas de un vistazo en el widget de inicio y activa la alerta para que te avise cuando vaya a haber buena ventana.</string>
-    <string name="onb_6_eyebrow">TU DIARIO</string>
-    <string name="onb_6_title">Lleva la cuenta</string>
-    <string name="onb_6_body">Marca las vías que encadenas: la app guarda tu diario con tus estadísticas y tu grado máximo, escuela por escuela.</string>
-    <string name="onb_7_eyebrow">SUMA A LA GUÍA</string>
-    <string name="onb_7_title">Comunidad</string>
-    <string name="onb_7_body">Propón escuelas, piedras y sectores nuevos y deja notas con foto. Un admin las revisa antes de publicarlas para toda la comunidad.</string>
-    <string name="onb_8_eyebrow">PERFIL, GENTE Y CHAT</string>
-    <string name="onb_8_title">Conecta</string>
-    <string name="onb_8_body">Crea tu perfil, busca y sigue a otros escaladores, mira sus diarios y chatea 1 a 1. Las notificaciones te avisan de seguidores y mensajes.</string>
-    <string name="onb_9_eyebrow">OFFLINE + UBICACIÓN</string>
-    <string name="onb_9_title">Listo para el monte</string>
-    <string name="onb_9_body">Guarda escuelas para verlas SIN cobertura. Te pediremos la ubicación solo para ordenar por cercanía y centrar el mapa: se usa en tu móvil, nunca se comparte.</string>
     <string name="onb_next">SIGUIENTE</string>
     <string name="onb_allow_location_start">PERMITIR UBICACIÓN Y EMPEZAR</string>
 
@@ -1814,4 +1790,64 @@
 
     <!-- Código de idioma para lógica dependiente del idioma -->
     <string name="lang_code">es</string>
+
+    <!-- Guías por pantalla y botón "? AYUDA" (2026-10-14) -->
+    <string name="guide_help">AYUDA</string>
+    <string name="guide_exit">SALIR</string>
+    <string name="guide_next">SIGUIENTE</string>
+    <string name="guide_done">ENTENDIDO</string>
+    <string name="guides_toggle_title">Explicarme cada pantalla</string>
+    <string name="guides_toggle_hint">Un “?” parpadea la primera vez que entras. Puedes cambiarlo en Ajustes.</string>
+
+    <!-- Bienvenida de una sola pantalla -->
+    <string name="welcome_eyebrow">BIENVENIDO</string>
+    <string name="welcome_lead">Te decimos si hoy se puede escalar y dónde, según el tiempo y lo que tarda en secar cada roca.</string>
+    <string name="welcome_scale_good">70+ a escalar</string>
+    <string name="welcome_scale_fair">50–69 regular</string>
+    <string name="welcome_scale_bad">&lt;50 mal día</string>
+    <string name="welcome_location_note">Usamos tu ubicación solo para ordenar las escuelas por cercanía y centrar el mapa. Se queda en tu móvil.</string>
+    <string name="welcome_not_now">AHORA NO</string>
+    <string name="meetups_active_count">%1$d activas</string>
+    <string name="schools_filters_with_count">FILTROS (%1$d)</string>
+    <string name="schools_summary_upto_km">Hasta %1$d km</string>
+    <string name="schools_summary_any_distance">Cualquier distancia</string>
+    <string name="schools_n_days">%1$d DÍAS</string>
+
+    <!-- Ficha de escuela con pestañas (2026-10-14) -->
+    <string name="detail_tab_map">MAPA</string>
+    <string name="detail_tab_boulders">BLOQUES</string>
+    <string name="detail_tab_routes">VÍAS</string>
+    <string name="detail_tab_boulders_routes">BLOQUES/VÍAS</string>
+    <string name="detail_tab_weather">TIEMPO</string>
+    <string name="detail_tab_notes">NOTAS</string>
+    <string name="detail_why_index_caps">¿POR QUÉ ESTE ÍNDICE?</string>
+    <string name="detail_best_window">Óptimo %1$s–%2$s</string>
+    <string name="detail_rock_dry_caps">ROCA SECA</string>
+    <string name="detail_rock_wet_caps">ROCA HÚMEDA</string>
+    <string name="detail_chat_cd">Chat de la escuela</string>
+    <string name="presence_here_short">Aquí</string>
+    <string name="presence_not_here_short">Ya no</string>
+    <string name="blocks_search_hint">Buscar por nombre…</string>
+    <string name="blocks_filter_grade">GRADO (UNO O VARIOS)</string>
+    <string name="blocks_filter_all">TODOS</string>
+    <string name="blocks_filter_beta">BETA EN VÍDEO (SIN MARCAR = TODAS)</string>
+    <string name="blocks_filter_sort">ORDENAR</string>
+    <string name="blocks_order_repeated">MÁS REPETIDOS</string>
+    <string name="blocks_order_rated">MEJOR VALORADOS</string>
+    <string name="blocks_beta_tall">▶ +1,70</string>
+    <string name="blocks_beta_short">▶ −1,70</string>
+    <string name="blocks_load_failed">No se han podido cargar los bloques</string>
+    <string name="blocks_none_drawn">Esta escuela aún no tiene vías dibujadas.</string>
+    <string name="blocks_none_match">Ninguna vía cumple esos filtros.</string>
+    <string name="blocks_count_one">1 VÍA</string>
+    <string name="blocks_count_other">%1$d VÍAS</string>
+    <string name="blocks_repeated_hint">✓ = personas que la han hecho</string>
+    <string name="blocks_no_sector">Sin sector</string>
+    <string name="notes_order_most_voted">MÁS VOTADAS</string>
+    <string name="notes_order_least_voted">MENOS VOTADAS</string>
+    <string name="admin_assistant_tag">SOLO ADMIN</string>
+    <string name="admin_assistant_title">Asistente de IA</string>
+    <string name="admin_assistant_on">Activado para este usuario</string>
+    <string name="admin_assistant_off">Desactivado para este usuario</string>
+    <string name="admin_assistant_hint">Nadie más ve este bloque. Al activarlo, le aparece la burbuja del asistente en cuanto abra la app.</string>
 </resources>

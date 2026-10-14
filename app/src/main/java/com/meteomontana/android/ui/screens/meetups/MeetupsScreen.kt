@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import com.meteomontana.android.ui.guide.guideTarget
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -159,29 +160,30 @@ fun MeetupsScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column {
+            Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.meetups_title).uppercase(), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                // SIEMPRE "Quedar a escalar", como en iOS. Antes, en cuanto
-                // había alguna quedada, el título pasaba a ser "1 activas" — un
-                // contador donde el iPhone tiene el nombre de la pantalla. El
-                // número ya se ve en la lista, no hace falta de titular.
-                Text(
-                    text = stringResource(R.string.meetups_screen_v4_quedar_a_escalar),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                // Solo cuántas hay, y solo si hay: sin el "Quedar a escalar" de relleno cuando está vacío, que
+                // repetía lo que ya dice el título (Álvaro, 2026-10-14; igual que en iOS).
+                if (displayedMeetups.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.meetups_active_count, displayedMeetups.size),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
+            // Ayuda fuera de la cápsula de iconos (la píldora con palabra no cabe dentro).
+            com.meteomontana.android.ui.components.HelpButton(topicKey = "meetups")
             // Agrupados en una píldora, como el resto de cabeceras de la app
             // (CumbrePillGroup) — se quedaron sueltos aquí, era el único sitio
             // que aún se veía "antiguo" (Rodrigo, con captura, 2026-08-21).
             com.meteomontana.android.ui.components.CumbrePillGroup {
-                com.meteomontana.android.ui.components.HelpButton(topicKey = "meetups")
                 IconButton(onClick = { viewModel.loadMeetups() }) {
                     Icon(Icons.Outlined.Refresh, contentDescription = stringResource(R.string.meetups_screen_v2_recargar))
                 }
                 val alertEnabled = alertState?.enabled == true
-                IconButton(onClick = onOpenAlert) {
+                IconButton(onClick = onOpenAlert, modifier = Modifier.guideTarget("meetups.alert")) {
                     Icon(
                         if (alertEnabled) Icons.Outlined.NotificationsActive
                         else Icons.Outlined.NotificationsOff,
@@ -190,7 +192,7 @@ fun MeetupsScreen(
                                else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                IconButton(onClick = onCreateMeetup) {
+                IconButton(onClick = onCreateMeetup, modifier = Modifier.guideTarget("meetups.create")) {
                     Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.meetups_screen_v2_crear_quedada),
                         tint = MaterialTheme.colorScheme.primary)
                 }
@@ -262,6 +264,7 @@ fun MeetupsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = Spacing.md, vertical = Spacing.xs)
+                                .guideTarget("meetups.filters")
                                 .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
                                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
                                 .border(1.dp, MaterialTheme.colorScheme.primary, com.meteomontana.android.ui.theme.CumbrePillShape)

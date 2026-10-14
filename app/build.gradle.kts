@@ -36,8 +36,8 @@ android {
         applicationId = "com.meteomontana.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 117
-        versionName = "6.4"
+        versionCode = 118
+        versionName = "6.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -50,7 +50,13 @@ android {
             // 10.0.2.2  = emulador Android → localhost del PC
             // 192.168.0.12 = móvil físico en la misma red que el PC (Ethernet)
             // buildConfigField("String", "API_BASE_URL", "\"http://192.168.0.12:8080/api/\"")
-            buildConfigField("String", "API_BASE_URL", "\"https://meteomontanaapi-staging.up.railway.app/api/\"")
+            // Ver datos reales sin hacer un release: `gradlew assembleDebug -PdebugApi=prod`.
+            // Por defecto sigue siendo staging; lo que se escriba con -PdebugApi=prod va a PRODUCCIÓN.
+            val debugApi = if (project.findProperty("debugApi") == "prod")
+                "https://api.climbingteams.com/api/"
+            else
+                "https://meteomontanaapi-staging.up.railway.app/api/"
+            buildConfigField("String", "API_BASE_URL", "\"$debugApi\"")
         }
         // Sello de compilacion: se ve en Ajustes. Sirve para responder de un
         // vistazo "que build tengo instalado", que hoy nos costo media manana.

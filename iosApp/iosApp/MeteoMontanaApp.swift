@@ -154,6 +154,7 @@ struct MeteoMontanaApp: App {
             // Al volver a primer plano (recuperada la conexión normalmente),
             // reintenta subir la cola offline de vías hechas.
             if phase == .active {
+                assistant.refreshAccess()
                 Task {
                     try? await AppDependencies.shared.container.flushJournalOutbox()
                     await ContributionOutboxFlusher.flush()

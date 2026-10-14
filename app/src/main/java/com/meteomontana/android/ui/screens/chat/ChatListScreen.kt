@@ -71,7 +71,7 @@ fun ChatListScreen(
             title = stringResource(R.string.chat_list_screen_v2_chats),
             onClose = onBack,
             leading = {
-                com.meteomontana.android.ui.components.HelpButton(topicKey = "chat")
+                com.meteomontana.android.ui.components.HelpButton(topicKey = "chat", compact = true)
             },
             actions = {
                 IconButton(onClick = onNewGroup) {

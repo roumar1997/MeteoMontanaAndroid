@@ -139,7 +139,6 @@ fun SchoolsMapPanel(
     userLat: Double?,
     userLon: Double?,
     expanded: Boolean,
-    onToggle: () -> Unit,
     onSchoolDetail: (String) -> Unit,
     // M2: cámara persistida por el LLAMANTE (SchoolListScreen, que NO se recicla al
     // scrollear). El mapa vive en un item de LazyColumn → al salir/entrar de pantalla
@@ -157,48 +156,14 @@ fun SchoolsMapPanel(
     onRequestLocation: () -> Unit = {},
     locationPermission: Boolean = true
 ) {
+    // Solo el cuerpo: la barra "VER MAPA / OCULTAR MAPA" va aparte ([MapToggleBar]), debajo del selector Escuelas /
+    // Vías-Bloques, y el mapa se abre ENCIMA de él (como en iOS).
+    if (!expanded) return
     Column(modifier = Modifier
         .fillMaxWidth()
         .padding(horizontal = Spacing.lg, vertical = Spacing.xs)) {
 
-        // Toggle "VER MAPA" — botón terracota (borde + texto + tinte) para que se
-        // vea claramente pulsable (antes era una barra gris que parecía pasiva).
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-                .border(1.dp, MaterialTheme.colorScheme.primary, com.meteomontana.android.ui.theme.CumbrePillShape)
-                .clickable(onClick = onToggle)
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
-            Icon(
-                Icons.Outlined.Map,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp)
-            )
-            Text(
-                if (expanded) stringResource(R.string.schools_hide_map) else stringResource(R.string.schools_view_map),
-                style = EyebrowTextStyle,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.weight(1f)
-            )
-            // Chevron de verdad, no un triángulo de texto: es lo que dibuja
-            // iOS (`chevron.down`). El glifo ▾ se veía macizo y más pequeño,
-            // y además depende de la fuente que tenga el móvil.
-            androidx.compose.material3.Icon(
-                imageVector = if (expanded) Icons.Outlined.KeyboardArrowUp
-                              else Icons.Outlined.KeyboardArrowDown,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
-
-        if (expanded) {
-            MapBody(
+        MapBody(
                 schools = schools,
                 scoresById = scoresById,
                 userLat = userLat,
@@ -212,7 +177,38 @@ fun SchoolsMapPanel(
                 onRequestLocation = onRequestLocation,
                 locationPermission = locationPermission
             )
-        }
+    }
+}
+
+/**
+ * Barra "VER MAPA / OCULTAR MAPA": a todo el ancho y en su PROPIA línea, relleno terracota al abrirlo. Solo con el
+ * icono dentro del selector pasaba desapercibido (Álvaro, 2026-10-14: "casi no se ve que existe").
+ */
+@Composable
+fun MapToggleBar(expanded: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+    val terra = MaterialTheme.colorScheme.primary
+    val fg = if (expanded) androidx.compose.ui.graphics.Color.White else terra
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(if (expanded) com.meteomontana.android.ui.theme.terraFillColor() else terra.copy(alpha = 0.10f))
+            .border(1.dp, terra, androidx.compose.foundation.shape.CircleShape)
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 14.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(Icons.Outlined.Map, contentDescription = null, tint = fg, modifier = Modifier.size(18.dp))
+        Text(
+            if (expanded) stringResource(R.string.schools_hide_map) else stringResource(R.string.schools_view_map),
+            style = EyebrowTextStyle, color = fg, modifier = Modifier.weight(1f)
+        )
+        Icon(
+            if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+            contentDescription = null, tint = fg
+        )
     }
 }
 

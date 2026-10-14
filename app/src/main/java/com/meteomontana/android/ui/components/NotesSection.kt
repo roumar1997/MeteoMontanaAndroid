@@ -40,10 +40,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.meteomontana.android.R
+import com.meteomontana.android.ui.guide.guideTarget
 import com.meteomontana.android.domain.model.FileRef
 import com.meteomontana.android.domain.model.Note
 
@@ -56,8 +58,11 @@ fun NotesSection(
 ) {
     // Nota cuya foto se está viendo a pantalla completa (null = ninguna).
     var photoNote by remember { mutableStateOf<Note?>(null) }
-    // Plegada por defecto: con muchas notas la pantalla se hacía eterna.
-    var expanded by remember { mutableStateOf(false) }
+    // Orden por utilidad (▲ − ▼): más votadas primero por defecto; el orden vive en shared (NoteOrdering).
+    var mostVotedFirst by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(true) }
+    val ordered = remember(notes, mostVotedFirst) {
+        com.meteomontana.android.domain.usecase.notes.NoteOrdering.byVotes(notes, mostVotedFirst)
+    }
     // Moderación: denunciar notas ajenas (bandera) + ocultar al instante.
     val moderation: ModerationViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val hiddenIds by moderation.hiddenIds.collectAsStateWithLifecycle()
@@ -66,7 +71,7 @@ fun NotesSection(
 
     Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -74,7 +79,6 @@ fun NotesSection(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(0.dp).padding(horizontal = 4.dp))
             if (notes.isNotEmpty()) {
                 Box(
                     modifier = Modifier
@@ -87,13 +91,26 @@ fun NotesSection(
                         color = MaterialTheme.colorScheme.onSurface)
                 }
             }
-            Spacer(Modifier.weight(1f))
-            Text(if (expanded) "▴" else "▾",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (notes.size > 1) {
+            Spacer(Modifier.height(8.dp))
+            // Orden por votos: más votadas ⇄ menos votadas.
+            Text(
+                (if (mostVotedFirst) stringResource(R.string.notes_order_most_voted) else stringResource(R.string.notes_order_least_voted)) + " ⇅",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontFamily = com.meteomontana.android.ui.theme.Mono, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                fontSize = 11.sp, letterSpacing = 0.8.sp,
+                modifier = Modifier
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.CircleShape)
+                    .clickable { mostVotedFirst = !mostVotedFirst }
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .guideTarget("detail_notes.order")
+            )
         }
 
-        if (expanded) {
+        Column {
             Spacer(Modifier.height(8.dp))
             if (notes.isEmpty()) {
                 Text(
@@ -103,9 +120,8 @@ fun NotesSection(
                 )
                 Spacer(Modifier.height(12.dp))
             } else {
-                // Llegan del backend ordenadas por utilidad (▲ − ▼). Las
-                // denunciadas por ti se ocultan al instante.
-                notes.filter { "NOTE:${it.id}" !in hiddenIds }.forEach { n ->
+                // Ordenadas por utilidad (▲ − ▼) según el selector. Las denunciadas por ti se ocultan al instante.
+                ordered.filter { "NOTE:${it.id}" !in hiddenIds }.forEach { n ->
                     NoteRow(n, onPhotoClick = { photoNote = n }, onVote = { v -> onVote(n, v) },
                         canReport = myUid != null && myUid != n.uid,
                         onReport = { reportTarget = n })
@@ -113,7 +129,7 @@ fun NotesSection(
                 }
                 Spacer(Modifier.height(12.dp))
             }
-            ComposerRow(onPublish = onPublish)
+            Box(Modifier.guideTarget("detail_notes.write")) { ComposerRow(onPublish = onPublish) }
         }
     }
 

@@ -16,4 +16,8 @@ interface AssistantRepository {
         lon: Double?,
         schoolId: String?
     ): AssistantAnswer
+
+    /** ¿Puede esta cuenta usar el asistente? (ya combinado por el servidor: admin, global o activado a mano). */
+    @Throws(Exception::class)
+    suspend fun hasAccess(): Boolean
 }

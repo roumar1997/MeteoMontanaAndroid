@@ -12,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import com.meteomontana.android.ui.guide.guideTarget
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -243,13 +244,15 @@ private fun ProfileTopBar(
         Text(title, style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.align(Alignment.Center))
-        // Izquierda: ayuda (?) + acceso admin con nº de pendientes (solo admins).
-        // Agrupados en una pastilla, como en iOS — ver CumbrePillGroup.
-        com.meteomontana.android.ui.components.CumbrePillGroup(
-            modifier = Modifier.align(Alignment.CenterStart)
+        // Izquierda: "? AYUDA" (ya es una pastilla: NO se mete dentro de otra, se veía el borde doble y no le cabía)
+        // y, solo para admins, el acceso al panel con el nº de pendientes en SU pastilla.
+        Row(
+            modifier = Modifier.align(Alignment.CenterStart),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             com.meteomontana.android.ui.components.HelpButton(topicKey = "profile")
-            if (onAdmin != null) {
+            if (onAdmin != null) com.meteomontana.android.ui.components.CumbrePillGroup {
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
@@ -436,7 +439,7 @@ private fun Header(
 
         // Seguidores / siguiendo centrados.
         Spacer(Modifier.height(16.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(32.dp), modifier = Modifier.guideTarget("profile.follows")) {
             FollowCount(followers, stringResource(R.string.profile_followers).uppercase(), onClickFollowers)
             FollowCount(following, stringResource(R.string.profile_following).uppercase(), onClickFollowing)
         }
@@ -571,6 +574,8 @@ private fun ProfileSettingsScreen(
                 com.meteomontana.android.ui.components.resetAllHints(ctx)
                 android.widget.Toast.makeText(ctx, ctx.getString(R.string.profile_screen_v3_pistas_reactivadas), android.widget.Toast.LENGTH_SHORT).show()
             }
+            // Interruptor general de las guías por pantalla ("? AYUDA" parpadea / guía de Escuelas sale sola).
+            com.meteomontana.android.ui.guide.GuidesToggleRow(Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
 
 
             // Cierre de la pantalla EXACTAMENTE como iOS (AccountView): botón
@@ -752,7 +757,7 @@ private fun StatsRow(
     onOpenStats: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        modifier = Modifier.fillMaxWidth().padding(16.dp).guideTarget("profile.diary"),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // Fila 1: contadores BLOQUES / VÍAS / ESCUELAS.
@@ -805,6 +810,7 @@ private fun AddBlockButton(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
+            .guideTarget("profile.add")
             .height(48.dp)
             .background(MaterialTheme.colorScheme.primary, com.meteomontana.android.ui.theme.CumbrePillShape)
             .clickable(onClick = onClick),

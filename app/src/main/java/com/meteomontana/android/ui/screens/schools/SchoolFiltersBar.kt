@@ -18,6 +18,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.LocationDisabled
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -59,7 +61,6 @@ fun SchoolFiltersBar(
     onOnlySavedOffline: (Boolean) -> Unit = {},
     onClearRocks: () -> Unit = {},
     exploreTab: ExploreTab,
-    onExploreTab: (ExploreTab) -> Unit,
     gradeMin: String?,
     gradeMax: String?,
     onGradeMin: (String?) -> Unit,
@@ -67,15 +68,12 @@ fun SchoolFiltersBar(
     orientations: Set<String>,
     onToggleOrientation: (String) -> Unit,
     exploreSortBy: ExploreSortBy,
-    onExploreSort: (ExploreSortBy) -> Unit,
-    hasLocation: Boolean = true,
-    onRequestLocation: () -> Unit = {}
+    onExploreSort: (ExploreSortBy) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        ExploreTabSwitcher(exploreTab, onExploreTab)
         Section(stringResource(R.string.w_distance_caps)) {
             ChipRow(
                 items = DISTANCE_OPTIONS,
@@ -83,29 +81,6 @@ fun SchoolFiltersBar(
                 label = { if (it == null) AppText.get(R.string.w_all) else "${it.toInt()} km" },
                 onClick = onDistance
             )
-        }
-        // Sin esto un permiso denegado no tenía arreglo desde aquí: la distancia
-        // se ignoraba en silencio para siempre. Igual que en iOS.
-        if (!hasLocation) {
-            Row(
-                modifier = Modifier
-                    .padding(horizontal = 12.dp)
-                    .fillMaxWidth()
-                    .background(Terra.copy(alpha = 0.08f))
-                    .border(1.dp, Terra.copy(alpha = 0.4f))
-                    .clickable(onClick = onRequestLocation)
-                    .padding(10.dp),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(Icons.Outlined.LocationDisabled, contentDescription = null, tint = Terra,
-                    modifier = Modifier.size(18.dp))
-                Text(stringResource(R.string.explore_no_location),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f))
-                Text(stringResource(R.string.explore_activate), style = EyebrowTextStyle, color = Terra)
-            }
         }
         if (exploreTab == ExploreTab.Blocks) {
             Section(stringResource(R.string.explore_grado)) {
@@ -204,7 +179,7 @@ fun SchoolFiltersBar(
 /** Segmented control "Escuelas"/"Vías/Bloques" en terracota — Álvaro,
  *  2026-10-01: "sale en negro y no en el color de la app". */
 @Composable
-private fun ExploreTabSwitcher(tab: ExploreTab, onTab: (ExploreTab) -> Unit) {
+fun ExploreTabSwitcher(tab: ExploreTab, onTab: (ExploreTab) -> Unit) {
     Row(
         modifier = Modifier
             .padding(horizontal = 12.dp)
@@ -231,6 +206,101 @@ private fun TabButton(label: String, active: Boolean, modifier: Modifier = Modif
             color = if (active) androidx.compose.ui.graphics.Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.labelLarge
         )
+    }
+}
+
+/**
+ * Aviso "Sin ubicación — toca para activarla": SIEMPRE a la vista, aunque los filtros estén plegados. Sin esto un
+ * permiso denegado no tenía arreglo desde aquí: la distancia se ignoraba en silencio para siempre. Igual que en iOS.
+ */
+@Composable
+fun LocationWarning(hasLocation: Boolean, onRequestLocation: () -> Unit) {
+    if (hasLocation) return
+    Row(
+        modifier = Modifier
+            .padding(horizontal = 12.dp)
+            .fillMaxWidth()
+            .background(Terra.copy(alpha = 0.08f))
+            .border(1.dp, Terra.copy(alpha = 0.4f))
+            .clickable(onClick = onRequestLocation)
+            .padding(10.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(Icons.Outlined.LocationDisabled, contentDescription = null, tint = Terra, modifier = Modifier.size(18.dp))
+        Text(stringResource(R.string.explore_no_location),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f))
+        Text(stringResource(R.string.explore_activate), style = EyebrowTextStyle, color = Terra)
+    }
+}
+
+/**
+ * Fila plegable de filtros: chip FILTROS (n) + lo aplicado en una línea + chevron, y a la derecha el chip de días
+ * ("HOY ⌄", o el tramo elegido: "VIE–DOM ⌄"). Los filtros y los días salen al tocar cada uno.
+ */
+@Composable
+fun FiltersToggleRow(
+    open: Boolean,
+    activeCount: Int,
+    summary: String,
+    dayLabel: String,
+    daysOpen: Boolean,
+    onToggleOpen: () -> Unit,
+    onToggleDays: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val active = activeCount > 0
+    val fill = com.meteomontana.android.ui.theme.terraFillColor()
+    Row(
+        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.weight(1f).clickable(onClick = onToggleOpen),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(if (active) fill else MaterialTheme.colorScheme.surface)
+                    .border(1.dp, if (active) fill else MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                val fg = if (active) androidx.compose.ui.graphics.Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                Icon(Icons.Outlined.Tune, contentDescription = null, tint = fg, modifier = Modifier.size(15.dp))
+                Text(
+                    if (active) stringResource(R.string.schools_filters_with_count, activeCount) else stringResource(R.string.common_filters),
+                    style = EyebrowTextStyle, color = fg
+                )
+            }
+            Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Icon(
+                if (open) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)
+            )
+        }
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(fill)
+                .clickable(onClick = onToggleDays)
+                .padding(horizontal = 11.dp, vertical = 8.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(dayLabel, style = EyebrowTextStyle, color = androidx.compose.ui.graphics.Color.White)
+            Icon(
+                if (daysOpen) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                contentDescription = null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(14.dp)
+            )
+        }
     }
 }
 

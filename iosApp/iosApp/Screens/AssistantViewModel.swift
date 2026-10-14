@@ -62,6 +62,12 @@ final class AssistantViewModel: ObservableObject {
     /// Cuenta a la que pertenece la conversación; nil = sin sesión.
     private var uid: String?
 
+    /// ¿Puede esta cuenta usar el asistente? Decide si se ve la burbuja. Lo manda el servidor (admin, abierto a todos o
+    /// activado a mano por un admin) y se guarda lo último que se supo POR CUENTA, para que un arranque sin red no
+    /// esconda la burbuja a quien sí la tiene.
+    @Published private(set) var hasAccess = false
+    private static let accessKeyPrefix = "assistant_access_"
+
     init(container: IosDependencyContainer = AppDependencies.shared.container,
          locationBridge: LocationBridge = AppDependencies.shared.locationBridge,
          store: AssistantTranscriptStore = AssistantTranscriptStore()) {
@@ -77,7 +83,8 @@ final class AssistantViewModel: ObservableObject {
     func attachSession(uid newUid: String?) {
         guard newUid != uid else { return }
         uid = newUid
-        guard let newUid else { messages = []; previous = nil; input = ""; store.clear(); return }
+        guard let newUid else { messages = []; previous = nil; input = ""; store.clear(); hasAccess = false; return }
+        refreshAccess()
         messages = []
         previous = nil
         guard let saved = store.load(uid: newUid) else { return }
@@ -95,6 +102,26 @@ final class AssistantViewModel: ObservableObject {
             return m
         }
         previous = saved.previous?.toKotlin()
+    }
+
+    /// Vuelve a preguntar al servidor si esta cuenta tiene el asistente (al abrir la app y al volver a ella: así, si un
+    /// admin se lo activa o se lo quita, se nota sin reinstalar). Sin red o con un servidor antiguo se queda con lo último
+    /// que se supo de ESTA cuenta (de inicio, que no).
+    func refreshAccess() {
+        guard let account = uid else { hasAccess = false; return }
+        hasAccess = UserDefaults.standard.bool(forKey: Self.accessKeyPrefix + account)
+        Task {
+            guard let enabled = try? await container.getAssistantAccess.invoke(), uid == account else { return }
+            hasAccess = enabled.boolValue
+            UserDefaults.standard.set(enabled.boolValue, forKey: Self.accessKeyPrefix + account)
+        }
+    }
+
+    /// El servidor dijo que NO está activado para esta cuenta (se lo quitaron con el chat abierto): fuera la burbuja.
+    private func accessRevoked() {
+        guard let account = uid else { return }
+        hasAccess = false
+        UserDefaults.standard.set(false, forKey: Self.accessKeyPrefix + account)
     }
 
     /// Tarjetas del mensaje como texto (vacío si no tiene). De las vías se guardan TODAS las que se enseñan
@@ -289,6 +316,7 @@ final class AssistantViewModel: ObservableObject {
             }
         default:
             // Ocupado o no disponible son fallos PASAJEROS: se ofrece reintentar con la misma pregunta.
+            if answer.status == .notEnabled { accessRevoked() }
             let transient = answer.status == .busy || answer.status == .unavailable
             messages.append(AssistantMessage(
                 isUser: false,

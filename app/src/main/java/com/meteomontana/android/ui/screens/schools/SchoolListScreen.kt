@@ -10,6 +10,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import com.meteomontana.android.ui.guide.guideTarget
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -60,6 +61,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.meteomontana.android.ui.components.SchoolListItem
 import com.meteomontana.android.ui.theme.Spacing
@@ -90,6 +92,8 @@ fun SchoolListScreen(
     onChats: () -> Unit = {},
     onDonate: () -> Unit = {},
     onCompare: (List<String>) -> Unit = {},
+    /** Avisa a la pantalla principal de si se está enseñando la bienvenida (debe tapar la barra de pestañas y la burbuja). */
+    onOnboardingActive: (Boolean) -> Unit = {},
     /** Resultado del buscador global de vías/bloques → abre la escuela en esa vía. */
     onViaHit: (schoolId: String, viaId: String?, viaName: String?) -> Unit = { s, _, _ -> onSchoolClick(s) },
     viewModel: SchoolListViewModel = hiltViewModel()
@@ -119,6 +123,9 @@ fun SchoolListScreen(
     val chatUnread by viewModel.chatUnread.collectAsStateWithLifecycle()
     val viaHits by viewModel.viaHits.collectAsStateWithLifecycle()
     var mapExpanded by remember { mutableStateOf(false) }
+    // Filtros y días PLEGADOS por defecto ("demasiadas cosas a la vista", 2026-10-14): se abren al tocar su chip.
+    var filtersOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    var daysOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
 
     // ── Pestaña "Vías/Bloques" (BLOCK_SEARCH_DESIGN.md §4.1b) ──
     val exploreTab by viewModel.exploreTab.collectAsStateWithLifecycle()
@@ -233,18 +240,40 @@ fun SchoolListScreen(
         else viewModel.onLocationGranted()
     }
 
+    androidx.compose.runtime.LaunchedEffect(showOnboarding) { onOnboardingActive(showOnboarding) }
     if (showOnboarding) {
-        com.meteomontana.android.ui.onboarding.OnboardingOverlay(onFinish = {
-            com.meteomontana.android.ui.onboarding.markOnboardingDone(context)
-            showOnboarding = false
-            permLauncher.launch(locationPerms)
-        })
+        com.meteomontana.android.ui.onboarding.OnboardingOverlay(
+            onFinish = {
+                com.meteomontana.android.ui.onboarding.markOnboardingDone(context)
+                showOnboarding = false
+                permLauncher.launch(locationPerms)
+            },
+            // "Ahora no": entra sin pedir la ubicación (se puede dar luego desde Escuelas).
+            onSkip = {
+                com.meteomontana.android.ui.onboarding.markOnboardingDone(context)
+                showOnboarding = false
+            }
+        )
         return
     }
 
     // Tras el tutorial: si el perfil aún no tiene username, obligar a elegirlo
     // (solo sale si username == null en el servidor; reinstalar no lo re-muestra).
     com.meteomontana.android.ui.onboarding.UsernameGate()
+
+    // Primera vez tras crear la cuenta: la guía de Escuelas sale sola, una vez (saltable) y solo si las guías están
+    // encendidas. El resto de guías son opcionales (el "? AYUDA" de cada pantalla, que parpadea las primeras visitas).
+    val guides = com.meteomontana.android.ui.guide.LocalGuideController.current
+    val listLoaded = (state as? SchoolListUiState.Success)?.schools?.isNotEmpty() == true
+    LaunchedEffect(listLoaded) {
+        if (!listLoaded) return@LaunchedEffect
+        val prefs = com.meteomontana.android.ui.guide.SharedGuidePrefs(context)
+        if (!prefs.bool(com.meteomontana.android.ui.guide.GuideController.KEY_PENDING_SCHOOLS, false)) return@LaunchedEffect
+        prefs.setBool(com.meteomontana.android.ui.guide.GuideController.KEY_PENDING_SCHOOLS, false)
+        if (!guides.enabled) return@LaunchedEffect
+        kotlinx.coroutines.delay(1200)
+        guides.start("schools")
+    }
 
     // M2: cámara del mapa de escuelas, recordada AQUÍ (fuera del LazyColumn) para
     // que sobreviva al reciclado del item del mapa al scrollear.
@@ -260,16 +289,12 @@ fun SchoolListScreen(
         // solo colaba tocando la esquina superior derecha del botón, donde el
         // arbitraje de gestos de Compose apenas tiene margen para dudar).
         // Fijos aquí, nunca compiten con el pull-to-refresh de la lista.
-        TopIconsRow(
+        SchoolsHeader(
             unread = unread,
             chatUnread = chatUnread,
             onSearchUsers = onSearchUsers,
             onChats = onChats,
             onNotifications = onNotifications,
-            onProfileClick = onProfileClick
-        )
-        HeaderEscuelas(
-            count = (state as? SchoolListUiState.Success)?.schools?.size,
             onSubmitSchool = onSubmitSchool,
             onSubmitBlockPhoto = { eligiendoFoto = true }
         )
@@ -456,77 +481,99 @@ fun SchoolListScreen(
                 }
             }
 
-            // Hint del mapa — justo antes del toggle "VER MAPA"
-            item {
-                com.meteomontana.android.ui.components.FirstTimeHint(
-                    hintKey = "schools_map",
-                    text = stringResource(R.string.school_list_screen_v3_toca_ver_mapa_para_ver)
-                )
+            // El mapa, cuando está abierto, va ENCIMA del selector Escuelas / Vías-Bloques (como en iOS).
+            if (mapExpanded) {
+                item {
+                    val successState = state as? SchoolListUiState.Success
+                    SchoolsMapPanel(
+                        schools = successState?.schools.orEmpty(),
+                        scoresById = scores.mapValues { it.value.todayScore },
+                        userLat = userLocation?.lat,
+                        userLon = userLocation?.lon,
+                        expanded = mapExpanded,
+                        onSchoolDetail = openSchool,
+                        mapState = mapState,
+                        distanceKm = filters.maxDistanceKm,
+                        onDistanceChange = viewModel::setDistance,
+                        style = filters.style,
+                        onStyleChange = viewModel::setStyle,
+                        onRequestLocation = onRequestLocation,
+                        locationPermission = permisoUbicacion
+                    )
+                }
             }
 
-            // Mapa global "VER MAPA" — colapsable con markers de las escuelas
-            // visibles (mismas que la lista de abajo: usa los filtros del VM).
+            item { Spacer(Modifier.height(Spacing.xs)) }
+            item { ExploreTabSwitcher(exploreTab, viewModel::setExploreTab) }
             item {
-                val successState = state as? SchoolListUiState.Success
-                SchoolsMapPanel(
-                    schools = successState?.schools.orEmpty(),
-                    scoresById = scores.mapValues { it.value.todayScore },
-                    userLat = userLocation?.lat,
-                    userLon = userLocation?.lon,
+                Spacer(Modifier.height(Spacing.sm))
+                MapToggleBar(
                     expanded = mapExpanded,
                     onToggle = { mapExpanded = !mapExpanded },
-                    onSchoolDetail = openSchool,
-                    mapState = mapState,
-                    distanceKm = filters.maxDistanceKm,
-                    onDistanceChange = viewModel::setDistance,
-                    style = filters.style,
-                    onStyleChange = viewModel::setStyle,
-                    onRequestLocation = onRequestLocation,
-                    locationPermission = permisoUbicacion
+                    modifier = Modifier.guideTarget("schools.map")
                 )
             }
 
-            // Hint de filtros — justo antes de la barra de filtros
+            // Filtros PLEGADOS: una fila con lo aplicado y el chip de días; se despliegan al tocarla.
             item {
-                com.meteomontana.android.ui.components.FirstTimeHint(
-                    hintKey = "schools_filters",
-                    text = stringResource(R.string.school_list_screen_v3_usa_los_filtros_de_abajo)
+                val schoolCount = (state as? SchoolListUiState.Success)?.schools?.size
+                val summary = filtersSummary(filters, exploreTab, gradeMin, gradeMax, exploreOrientations, exploreSortBy, schoolCount)
+                val letters = remember { CalendarLabels.daysShortMonFirst().map { it.uppercase() } }
+                val dayLabel = dayRangeLabel(
+                    selected = selectedDays,
+                    todayIso = java.time.LocalDate.now().dayOfWeek.value,
+                    dayLetters = letters,
+                    todayLabel = stringResource(R.string.w_today_caps),
+                    nDaysLabel = { n -> context.getString(R.string.schools_n_days, n) }
                 )
+                Column(Modifier.padding(top = Spacing.sm)) {
+                    FiltersToggleRow(
+                        open = filtersOpen,
+                        activeCount = activeFilterCount(filters, exploreTab, gradeMin, gradeMax, exploreOrientations, exploreSortBy),
+                        summary = summary,
+                        dayLabel = dayLabel,
+                        daysOpen = daysOpen,
+                        onToggleOpen = { filtersOpen = !filtersOpen },
+                        onToggleDays = { daysOpen = !daysOpen },
+                        modifier = Modifier.guideTarget("schools.filters")
+                    )
+                    Spacer(Modifier.height(Spacing.sm))
+                    LocationWarning(hasLocation = permisoUbicacion, onRequestLocation = onRequestLocation)
+                }
+            }
+            if (filtersOpen) {
+                item {
+                    SchoolFiltersBar(
+                        filters = filters,
+                        onDistance      = viewModel::setDistance,
+                        onStyle         = viewModel::setStyle,
+                        onRockToggle    = viewModel::toggleRock,
+                        onOnlyFavorites = viewModel::setOnlyFavorites,
+                        onOnlySavedOffline = viewModel::setOnlySavedOffline,
+                        onSort          = viewModel::setSort,
+                        onClearRocks    = viewModel::clearRocks,
+                        exploreTab = exploreTab,
+                        gradeMin = gradeMin,
+                        gradeMax = gradeMax,
+                        onGradeMin = viewModel::setGradeMin,
+                        onGradeMax = viewModel::setGradeMax,
+                        orientations = exploreOrientations,
+                        onToggleOrientation = viewModel::toggleOrientation,
+                        exploreSortBy = exploreSortBy,
+                        onExploreSort = viewModel::setExploreSortBy
+                    )
+                }
             }
 
-            // Filtros
-            item {
-                SchoolFiltersBar(
-                    filters = filters,
-                    onDistance      = viewModel::setDistance,
-                    onStyle         = viewModel::setStyle,
-                    onRockToggle    = viewModel::toggleRock,
-                    onOnlyFavorites = viewModel::setOnlyFavorites,
-                    onOnlySavedOffline = viewModel::setOnlySavedOffline,
-                    onSort          = viewModel::setSort,
-                    onClearRocks    = viewModel::clearRocks,
-                    exploreTab = exploreTab,
-                    onExploreTab = viewModel::setExploreTab,
-                    gradeMin = gradeMin,
-                    gradeMax = gradeMax,
-                    onGradeMin = viewModel::setGradeMin,
-                    onGradeMax = viewModel::setGradeMax,
-                    orientations = exploreOrientations,
-                    onToggleOrientation = viewModel::toggleOrientation,
-                    exploreSortBy = exploreSortBy,
-                    onExploreSort = viewModel::setExploreSortBy,
-                    hasLocation = permisoUbicacion,
-                    onRequestLocation = onRequestLocation
-                )
-            }
-
-            // Selector de días: elige hasta 5 días concretos → la lista se
-            // reordena por las mejores condiciones de ESE tramo (con lluvia).
-            item {
-                DaySelectorRow(
-                    selectedDays = selectedDays,
-                    onToggleDay = viewModel::toggleDay
-                )
+            // Selector de días: elige hasta 5 días concretos → la lista se reordena por las mejores condiciones de
+            // ESE tramo. Plegado tras el chip de días (HOY ⌄).
+            if (daysOpen) {
+                item {
+                    DaySelectorRow(
+                        selectedDays = selectedDays,
+                        onToggleDay = viewModel::toggleDay
+                    )
+                }
             }
 
             item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
@@ -624,7 +671,7 @@ fun SchoolListScreen(
                         // animateItem(): cuando llegan los scores y la lista se
                         // re-ordena, las cards se deslizan a su sitio en vez de
                         // teletransportarse.
-                        Column(modifier = Modifier.animateItem()) {
+                        Column(modifier = Modifier.animateItem().guideTarget("schools.score", enabled = index == 0)) {
                             SchoolListItem(
                                 rank = index + 1,
                                 school = school,
@@ -732,6 +779,34 @@ fun SchoolListScreen(
     }
 }
 
+/** "8 escuelas · Hasta 50 km · Bloque": lo aplicado, sin desplegar los filtros. */
+@Composable
+private fun filtersSummary(
+    filters: SchoolFilters,
+    tab: ExploreTab,
+    gradeMin: String?,
+    gradeMax: String?,
+    orientations: Set<String>,
+    exploreSort: ExploreSortBy,
+    schoolCount: Int?
+): String {
+    val parts = mutableListOf<String>()
+    if (schoolCount != null) parts += stringResource(R.string.schools_count, schoolCount)
+    parts += filters.maxDistanceKm?.let { stringResource(R.string.schools_summary_upto_km, it.toInt()) }
+        ?: stringResource(R.string.schools_summary_any_distance)
+    if (filters.style != StyleFilter.All) parts += stringResource(filters.style.labelRes)
+    if (filters.rockTypes.isNotEmpty()) parts += filters.rockTypes.joinToString("/") { com.meteomontana.android.util.CatalogLabels.rock(it) }
+    if (tab == ExploreTab.Schools) {
+        if (filters.onlyFavorites) parts += stringResource(R.string.w_favourites)
+        else if (filters.onlySavedOffline) parts += stringResource(R.string.w_saved)
+    } else {
+        if (gradeMin != null || gradeMax != null) parts += "${gradeMin ?: "…"}–${gradeMax ?: "…"}"
+        if (orientations.isNotEmpty()) parts += orientations.sorted().joinToString("/")
+        if (exploreSort != ExploreSortBy.Distance) parts += stringResource(exploreSort.labelRes)
+    }
+    return parts.joinToString(" · ")
+}
+
 /**
  * Selector de días: los próximos 7 días (hoy incluido) como chips "LUN 17".
  * Toca para elegir hasta 5; con ≥1 elegido la lista pasa a modo tramo y se
@@ -805,69 +880,83 @@ private fun DaySelectorRow(
 /*  Sub-componentes del header                                                 */
 /* ─────────────────────────────────────────────────────────────────────────── */
 
+/**
+ * Cabecera de Escuelas en UNA fila (como iOS): "? AYUDA" a la izquierda, los iconos en cápsula y "+ Aportar" relleno
+ * a la derecha. Sin el título "Escuelas": ya lo dice la pestaña de abajo, y así los botones respiran (2026-10-14).
+ * Fija, FUERA del PullToRefreshBox: dentro, el gesto de refrescar competía por el toque con APORTAR.
+ */
 @Composable
-private fun TopIconsRow(
+private fun SchoolsHeader(
     unread: Long,
     chatUnread: Long = 0,
     onSearchUsers: () -> Unit,
     onChats: () -> Unit,
     onNotifications: () -> Unit,
-    onProfileClick: () -> Unit
+    onSubmitSchool: () -> Unit,
+    /** Elegir una foto y proponer la piedra en la escuela donde se hizo. */
+    onSubmitBlockPhoto: () -> Unit
 ) {
+    var aportando by remember { mutableStateOf(false) }
+    if (aportando) {
+        AportarSheet(
+            onDismiss = { aportando = false },
+            onPiedra = { aportando = false; onSubmitBlockPhoto() },
+            onEscuela = { aportando = false; onSubmitSchool() }
+        )
+    }
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.xs),
-        horizontalArrangement = Arrangement.End,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Los cinco iconos dentro de una pastilla, como en iOS. Sueltos sobre
-        // el fondo ocupaban toda la parte de arriba y era lo que hacía que la
-        // cabecera no se pareciera en nada a la del iPhone.
-        com.meteomontana.android.ui.components.CumbrePillGroup {
         com.meteomontana.android.ui.components.HelpButton(topicKey = "schools")
-        IconButton(onClick = onSearchUsers) {
-            Icon(Icons.Outlined.Search, contentDescription = stringResource(R.string.search_users_title),
-                tint = MaterialTheme.colorScheme.onBackground)
-        }
-        IconButton(onClick = onChats) {
-            if (chatUnread > 0) {
-                BadgedBox(badge = {
-                    Badge(containerColor = MaterialTheme.colorScheme.primary) {
-                        Text(if (chatUnread > 9) "9+" else chatUnread.toString(), color = Color.White)
-                    }
-                }) {
+        Spacer(Modifier.weight(1f))
+        com.meteomontana.android.ui.components.CumbrePillGroup {
+            IconButton(onClick = onSearchUsers, modifier = Modifier.size(38.dp)) {
+                Icon(Icons.Outlined.Search, contentDescription = stringResource(R.string.search_users_title),
+                    tint = MaterialTheme.colorScheme.onBackground)
+            }
+            IconButton(onClick = onChats, modifier = Modifier.size(38.dp)) {
+                BadgedIcon(chatUnread) {
                     Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = stringResource(R.string.chat_title),
                         tint = MaterialTheme.colorScheme.onBackground)
                 }
-            } else {
-                Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = stringResource(R.string.chat_title),
-                    tint = MaterialTheme.colorScheme.onBackground)
             }
-        }
-        // Tema ANTES que la campana: es el orden de iOS (?, buscar, chats,
-        // luna, campana). Estaban intercambiados y, al comparar las dos
-        // pantallas, la cabecera era lo primero que delataba que no eran la
-        // misma app.
-        ThemeToggleButton()
-        IconButton(onClick = onNotifications) {
-            if (unread > 0) {
-                BadgedBox(badge = {
-                    Badge(containerColor = MaterialTheme.colorScheme.primary) {
-                        Text(if (unread > 9) "9+" else unread.toString(), color = Color.White)
-                    }
-                }) {
+            // Tema ANTES que la campana: es el orden de iOS (buscar, chats, luna, campana).
+            ThemeToggleButton()
+            IconButton(onClick = onNotifications, modifier = Modifier.size(38.dp)) {
+                BadgedIcon(unread) {
                     Icon(Icons.Outlined.Notifications, contentDescription = stringResource(R.string.notifications_title),
                         tint = MaterialTheme.colorScheme.onBackground)
                 }
-            } else {
-                Icon(Icons.Outlined.Notifications, contentDescription = stringResource(R.string.notifications_title),
-                    tint = MaterialTheme.colorScheme.onBackground)
             }
         }
-        }
-        // El perfil ya no va aquí: tiene su propia pestaña inferior.
+        // UN solo botón, con la palabra y relleno: es la acción principal de la cabecera. Las dos formas de aportar
+        // viven en la hoja, donde cada una cabe con su explicación.
+        Text(
+            stringResource(R.string.schools_contribute),
+            color = Color.White,
+            style = com.meteomontana.android.ui.theme.EyebrowTextStyle.copy(fontSize = 12.sp, letterSpacing = 0.5.sp),
+            maxLines = 1,
+            modifier = Modifier
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(terraFillColor())
+                .clickable { aportando = true }
+                .padding(horizontal = 12.dp, vertical = 11.dp)
+        )
     }
+}
+
+/** Icono con la insignia de no leídos (número o "9+"). */
+@Composable
+private fun BadgedIcon(count: Long, icon: @Composable () -> Unit) {
+    if (count > 0) {
+        BadgedBox(badge = {
+            Badge(containerColor = MaterialTheme.colorScheme.primary) {
+                Text(if (count > 9) "9+" else count.toString(), color = Color.White)
+            }
+        }) { icon() }
+    } else icon()
 }
 
 /** Sol / Luna que alterna el tema. Lee el ThemeManager vía hiltViewModel. */
@@ -880,7 +969,7 @@ private fun ThemeToggleButton() {
         com.meteomontana.android.ui.theme.ThemeMode.LIGHT -> false
         com.meteomontana.android.ui.theme.ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
     }
-    IconButton(onClick = vm::toggle) {
+    IconButton(onClick = vm::toggle, modifier = Modifier.size(38.dp)) {
         Icon(
             imageVector = if (isDark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
             contentDescription = stringResource(R.string.a11y_toggle_theme),
@@ -895,50 +984,6 @@ class ThemeToggleViewModel @javax.inject.Inject constructor(
 ) : androidx.lifecycle.ViewModel() {
     val mode = themeManager.mode
     fun toggle() = themeManager.toggle()
-}
-
-/** Header como en la PWA: título grande, count debajo, botón outlined a la derecha. */
-@Composable
-private fun HeaderEscuelas(
-    count: Int?,
-    onSubmitSchool: () -> Unit,
-    /** Elegir una foto y proponer la piedra en la escuela donde se hizo. */
-    onSubmitBlockPhoto: () -> Unit
-) {
-    var aportando by remember { mutableStateOf(false) }
-    if (aportando) {
-        AportarSheet(
-            onDismiss = { aportando = false },
-            onPiedra = { aportando = false; onSubmitBlockPhoto() },
-            onEscuela = { aportando = false; onSubmitSchool() }
-        )
-    }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                stringResource(R.string.schools_title),
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            if (count != null) {
-                Text(
-                    stringResource(R.string.schools_count, count),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        // UN solo boton: corto, entra en cualquier pantalla y con el texto
-        // grande de accesibilidad. Las dos formas de aportar viven en la hoja,
-        // donde cada una cabe con su explicacion.
-        OutlinedCumbreButton(text = stringResource(R.string.schools_contribute),
-            onClick = { aportando = true }, textColor = Terra)
-    }
 }
 
 /** Las dos formas de aportar al catalogo, cada una con su porque. */
@@ -1285,7 +1330,7 @@ private fun ExploreLineRow(
  *  a 44dp tapaba la foto entera — Álvaro, 2026-10-01: "se ve fatal"). Solo
  *  se intuye la línea. */
 @Composable
-private fun MiniTopoThumbnail(photoUrl: String, linePath: String?, grade: String?, modifier: Modifier = Modifier) {
+internal fun MiniTopoThumbnail(photoUrl: String, linePath: String?, grade: String?, modifier: Modifier = Modifier) {
     val points = remember(linePath) {
         val raw = com.meteomontana.android.ui.screens.topo.parseLineStroke(linePath).points
         val out = mutableListOf<androidx.compose.ui.geometry.Offset>()

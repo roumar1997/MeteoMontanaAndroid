@@ -48,6 +48,16 @@ class KtorAdminApi(private val client: HttpClient) {
     suspend fun backfillGradeScore(): GradeScoreBackfillResultDto =
         client.post("admin/search/backfill-grade-score").body()
 
+    /** Interruptor del asistente de IA de UN usuario (solo admin). */
+    suspend fun userAssistantAccess(uid: String): AssistantAccessDto =
+        client.get("admin/assistant-access/users/$uid").body()
+
+    suspend fun setUserAssistantAccess(uid: String, enabled: Boolean): AssistantAccessDto =
+        client.put("admin/assistant-access/users/$uid") {
+            contentType(ContentType.Application.Json)
+            setBody(AssistantAccessDto(enabled))
+        }.body()
+
     suspend fun pendingContributions(status: String? = null): List<ContributionDto> =
         client.get("admin/contributions") {
             if (status != null) url.parameters.append("status", status)

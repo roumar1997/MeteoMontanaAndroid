@@ -18,4 +18,6 @@ class KtorAssistantRepository(private val api: KtorAssistantApi) : AssistantRepo
         schoolId: String?
     ): AssistantAnswer =
         api.ask(AssistantAskRequest(text, previous?.toDto(), lat, lon, schoolId)).toDomain()
+
+    override suspend fun hasAccess(): Boolean = api.access().enabled
 }

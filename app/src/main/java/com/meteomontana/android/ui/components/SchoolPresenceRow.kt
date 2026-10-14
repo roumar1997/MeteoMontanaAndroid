@@ -4,6 +4,7 @@ import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -51,6 +53,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
+import com.meteomontana.android.ui.guide.guideTarget
 
 @HiltViewModel
 class SchoolPresenceViewModel @Inject constructor(
@@ -118,6 +121,9 @@ fun SchoolPresenceRow(
     // otra vez quién hay — sin caché, es información en vivo (Álvaro,
     // 2026-09-04: mejor a demanda que sondear sola cada X segundos).
     refreshKey: Int = 0,
+    /** La cabecera de la ficha (volver | iconos) se pinta AQUÍ, en la misma fila que el chat y "Aquí" (2026-10-14). */
+    leading: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
+    trailing: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
     viewModel: SchoolPresenceViewModel = hiltViewModel()
 ) {
     var showPrivacyNote by remember { mutableStateOf(false) }
@@ -128,51 +134,63 @@ fun SchoolPresenceRow(
     }
 
     Column {
+        // Fila de cabecera: el "atrás" a la izquierda, chat + "Aquí" y, a la derecha, las acciones de la escuela.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = Spacing.md, vertical = Spacing.xs)
-                .height(34.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            if (viewModel.people.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.clickable { showAllPresent = true },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box {
-                        viewModel.people.take(4).forEachIndexed { idx, person ->
-                            Box(
-                                modifier = Modifier
-                                    .padding(start = (idx * 12).dp)
-                                    .size(18.dp)
-                                    .clip(CircleShape)
-                                    .border(1.5.dp, MaterialTheme.colorScheme.background, CircleShape)
-                            ) {
-                                PresenceAvatar(url = person.photoUrl, size = 18.dp)
-                            }
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) { leading() }
+            Row(
+                Modifier.guideTarget("detail.here"),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                PresenceChatButton(onClick = onOpenSchoolChat)
+                PresenceMarkButton(
+                    iAmHere = viewModel.iAmHere,
+                    loading = viewModel.loading,
+                    onClick = {
+                        if (viewModel.iAmHere) viewModel.toggle(schoolId, myUid)
+                        else showPrivacyNote = true
+                    }
+                )
+            }
+            trailing()
+        }
+        // Quién hay ahora mismo: solo ocupa una fila cuando de verdad hay gente.
+        if (viewModel.people.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(horizontal = Spacing.md, vertical = Spacing.xs)
+                    .clickable { showAllPresent = true },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box {
+                    viewModel.people.take(4).forEachIndexed { idx, person ->
+                        Box(
+                            modifier = Modifier
+                                .padding(start = (idx * 12).dp)
+                                .size(18.dp)
+                                .clip(CircleShape)
+                                .border(1.5.dp, MaterialTheme.colorScheme.background, CircleShape)
+                        ) {
+                            PresenceAvatar(url = person.photoUrl, size = 18.dp)
                         }
                     }
-                    Spacer(Modifier.padding(start = (viewModel.people.take(4).size * 12 + 6).dp))
-                    Text(
-                        stringResource(R.string.school_presence_row_v2_1_s_aqui_ahora_2, viewModel.people.size),
-                        style = MaterialTheme.typography.labelMedium.copy(fontFamily = Serif, fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
                 }
+                Spacer(Modifier.padding(start = (viewModel.people.take(4).size * 12 + 6).dp))
+                Text(
+                    stringResource(R.string.school_presence_row_v2_1_s_aqui_ahora_2, viewModel.people.size),
+                    style = MaterialTheme.typography.labelMedium.copy(fontFamily = Serif, fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
             }
-            Spacer(Modifier.weight(1f))
-            PresenceChatButton(onClick = onOpenSchoolChat)
-            Spacer(Modifier.padding(start = Spacing.xs))
-            PresenceMarkButton(
-                iAmHere = viewModel.iAmHere,
-                loading = viewModel.loading,
-                onClick = {
-                    if (viewModel.iAmHere) viewModel.toggle(schoolId, myUid)
-                    else showPrivacyNote = true
-                }
-            )
         }
         androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
         viewModel.errorText?.let { err ->
@@ -211,6 +229,38 @@ fun SchoolPresenceRow(
     }
 }
 
+/**
+ * "Aquí" / "Ya no" suelto, con su propio estado y el aviso de privacidad: para ponerlo DENTRO del chat de la escuela
+ * (donde también se puede marcar "Estoy aquí"). [onChanged] se llama cuando cambia tu presencia (para que el chat
+ * refresque cuántos hay).
+ */
+@Composable
+fun PresenceMarkControl(
+    schoolId: String,
+    myUid: String?,
+    onChanged: () -> Unit = {},
+    viewModel: SchoolPresenceViewModel = hiltViewModel()
+) {
+    var showPrivacyNote by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(schoolId, myUid) { viewModel.load(schoolId, myUid) }
+    // La 1ª lectura no cuenta como cambio: solo cuando pasa de un estado a otro.
+    var first by remember { mutableStateOf(true) }
+    androidx.compose.runtime.LaunchedEffect(viewModel.iAmHere) {
+        if (first) first = false else onChanged()
+    }
+    PresenceMarkButton(
+        iAmHere = viewModel.iAmHere,
+        loading = viewModel.loading,
+        onClick = { if (viewModel.iAmHere) viewModel.toggle(schoolId, myUid) else showPrivacyNote = true }
+    )
+    if (showPrivacyNote) {
+        PresencePrivacySheet(
+            onConfirm = { showPrivacyNote = false; viewModel.toggle(schoolId, myUid) },
+            onDismiss = { showPrivacyNote = false }
+        )
+    }
+}
+
 @Composable
 private fun PresenceAvatar(url: String?, size: androidx.compose.ui.unit.Dp) {
     if (url != null) {
@@ -228,7 +278,7 @@ private fun PresenceAvatar(url: String?, size: androidx.compose.ui.unit.Dp) {
 private fun PresenceChatButton(onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .size(26.dp)
+            .size(38.dp)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
@@ -236,7 +286,7 @@ private fun PresenceChatButton(onClick: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Icon(Icons.Outlined.Chat, contentDescription = stringResource(R.string.school_presence_row_v2_chat_de_la_escuela),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(13.dp))
+            tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(19.dp))
     }
 }
 
@@ -244,19 +294,19 @@ private fun PresenceChatButton(onClick: () -> Unit) {
 private fun PresenceMarkButton(iAmHere: Boolean, loading: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(7.dp))
-            .background(if (iAmHere) MaterialTheme.colorScheme.onSurfaceVariant else Terra)
+            .clip(CircleShape)
+            .background(if (iAmHere) MaterialTheme.colorScheme.onSurfaceVariant else com.meteomontana.android.ui.theme.terraFillColor())
             .clickable(enabled = !loading, onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 5.dp),
+            .padding(horizontal = 11.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(Icons.Outlined.Place, contentDescription = null,
-            tint = Color.White, modifier = Modifier.size(11.dp))
-        Spacer(Modifier.padding(start = 4.dp))
+            tint = Color.White, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.padding(start = 3.dp))
         Text(
-            if (iAmHere) stringResource(R.string.school_presence_row_v3_ya_no_estoy) else stringResource(R.string.school_presence_row_v3_estoy_aqui),
-            style = MaterialTheme.typography.labelSmall.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
-            color = Color.White
+            if (iAmHere) stringResource(R.string.presence_not_here_short) else stringResource(R.string.presence_here_short),
+            style = MaterialTheme.typography.labelMedium.copy(fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 13.sp),
+            color = Color.White, maxLines = 1
         )
     }
 }

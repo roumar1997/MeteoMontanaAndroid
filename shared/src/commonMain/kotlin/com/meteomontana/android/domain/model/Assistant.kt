@@ -16,7 +16,9 @@ enum class AssistantStatus {
     USER_LIMIT,
     GLOBAL_LIMIT,
     /** Muchas preguntas a la vez: "prueba en unos segundos". */
-    BUSY
+    BUSY,
+    /** Un admin no ha activado el asistente para esta cuenta. */
+    NOT_ENABLED
 }
 
 /** Una escuela o un sector que se puede ofrecer al usuario como opción. */

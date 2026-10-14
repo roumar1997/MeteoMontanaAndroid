@@ -23,6 +23,8 @@ enum AssistantPresenter {
             return L("El asistente está descansando por hoy. Vuelve mañana o usa los filtros.")
         case .busy:
             return L("Hay muchas preguntas ahora mismo. Prueba de nuevo en unos segundos.")
+        case .notEnabled:
+            return L("El asistente no está activado para tu cuenta.")
         default:
             return nil
         }

@@ -6,7 +6,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -100,6 +108,62 @@ internal fun OrientationFilterChips(
                 OrientationChip("${CatalogLabels.aspect(aspect)} · $n", selected == aspect, enabled = true) {
                     onSelect(aspect)
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Filtro de orientación en UN botón con brújula (igual que iOS, 2026-10-14): va sobre el mapa, a la izquierda de
+ * PROPONER, y deja la fila de sectores de arriba con todo el ancho. Muestra la elegida; sin piedras con voto no sale.
+ */
+@Composable
+internal fun OrientationMenu(
+    orientations: Map<String, String>,
+    selected: String?,
+    onSelect: (String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (orientations.isEmpty()) return
+    val counts = orientations.values.groupingBy { it }.eachCount()
+    var open by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val active = selected != null
+    Box(modifier) {
+        Row(
+            modifier = Modifier
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(if (active) com.meteomontana.android.ui.theme.terraFillColor() else MaterialTheme.colorScheme.primaryContainer)
+                .border(if (active) 1.dp else 1.5.dp, Terra, androidx.compose.foundation.shape.CircleShape)
+                .clickable { open = true }
+                .padding(horizontal = 10.dp, vertical = 7.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            val tint = if (active) Color.White else Terra
+            androidx.compose.material3.Icon(
+                androidx.compose.material.icons.Icons.Outlined.Explore, contentDescription = null,
+                tint = tint, modifier = Modifier.size(16.dp)
+            )
+            Text(
+                if (selected != null) CatalogLabels.aspect(selected) else stringResource(R.string.school_map_orientation_short),
+                style = EyebrowTextStyle.copy(fontSize = 10.5.sp), color = tint, maxLines = 1
+            )
+            androidx.compose.material3.Icon(
+                androidx.compose.material.icons.Icons.Filled.KeyboardArrowDown, contentDescription = null,
+                tint = tint, modifier = Modifier.size(14.dp)
+            )
+        }
+        androidx.compose.material3.DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            androidx.compose.material3.DropdownMenuItem(
+                text = { Text((if (selected == null) "✓ " else "") + stringResource(R.string.w_all_caps)) },
+                onClick = { open = false; onSelect(null) }
+            )
+            OrientationFilterViewModel.ASPECTS.forEach { aspect ->
+                val n = counts[aspect] ?: 0
+                if (n > 0) androidx.compose.material3.DropdownMenuItem(
+                    text = { Text((if (selected == aspect) "✓ " else "") + "${CatalogLabels.aspect(aspect)} · $n") },
+                    onClick = { open = false; onSelect(aspect) }
+                )
             }
         }
     }

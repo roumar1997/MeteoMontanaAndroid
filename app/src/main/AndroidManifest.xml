@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Notificaciones push (Android 13+ requiere permiso runtime) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Dictado del asistente de IA (reconocimiento de voz del sistema). Solo se pide al pulsar el micrófono. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- AQUI NO VAN READ_MEDIA_IMAGES, READ_EXTERNAL_STORAGE NI ACCESS_MEDIA_LOCATION.
          La politica de Google Play ("Permisos de fotos y videos") solo admite el
          acceso amplio a la galeria si los selectores del sistema no bastan para
@@ -15,6 +17,13 @@
          leer donde se hizo la foto es una comodidad. Con esos tres declarados,
          Play bloqueo el envio a revision de la vc91.
          La foto se elige con un selector del sistema. Ver PhotoPicker.kt. -->
+    <!-- Android 11+: para saber si el móvil tiene un servicio de reconocimiento de voz. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <application
         android:name=".MeteoMontanaApp"
         android:allowBackup="true"

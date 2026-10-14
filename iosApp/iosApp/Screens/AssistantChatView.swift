@@ -9,7 +9,14 @@ struct AssistantBubble: View {
     @EnvironmentObject private var assistant: AssistantViewModel
     @State private var open = false
 
+    /// La burbuja solo existe para quien tiene el asistente (admin, abierto a todos o activado a mano por un admin).
     var body: some View {
+        Group {
+            if assistant.hasAccess { bubble }
+        }
+    }
+
+    private var bubble: some View {
         Image("assistant_bubble")
             .resizable().scaledToFit()
             .frame(width: 58, height: 58)

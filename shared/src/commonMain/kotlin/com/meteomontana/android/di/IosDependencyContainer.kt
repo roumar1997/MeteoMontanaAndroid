@@ -293,6 +293,9 @@ class IosDependencyContainer(
     // Asistente de búsqueda con IA: una pregunta → qué entendió + resultados reales.
     val askAssistant =
         com.meteomontana.android.domain.usecase.assistant.AskAssistantUseCase(assistantRepository)
+    // ¿Puede esta cuenta usar el asistente? Decide si se ve la burbuja (el servidor combina admin / global / activado).
+    val getAssistantAccess =
+        com.meteomontana.android.domain.usecase.assistant.GetAssistantAccessUseCase(assistantRepository)
 
     // Perfil privado (JIT provisioning en el primer getMyProfile).
     val getMyProfile = GetMyProfileUseCase(profileRepository)
@@ -384,6 +387,9 @@ class IosDependencyContainer(
     val getBlock = com.meteomontana.android.domain.usecase.blocks.GetBlockUseCase(blockRepository)
     val editSchool = com.meteomontana.android.domain.usecase.admin.EditSchoolUseCase(adminRepository)
     val backfillGradeScore = com.meteomontana.android.domain.usecase.admin.BackfillGradeScoreUseCase(adminRepository)
+    // Admin: activar el asistente de IA a un usuario concreto desde su perfil.
+    val getUserAssistantAccess = com.meteomontana.android.domain.usecase.admin.GetUserAssistantAccessUseCase(adminRepository)
+    val setUserAssistantAccess = com.meteomontana.android.domain.usecase.admin.SetUserAssistantAccessUseCase(adminRepository)
     // Numerar piedras por sector + arreglar el orden a mano o por GPS (Álvaro, 2026-09-14).
     val reorderBlocks = ReorderBlocksUseCase(blockRepository)
     val autoReorderBlocks = AutoReorderBlocksUseCase(blockRepository)

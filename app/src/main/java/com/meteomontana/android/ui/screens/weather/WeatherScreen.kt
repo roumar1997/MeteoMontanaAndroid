@@ -38,6 +38,7 @@ import com.google.accompanist.permissions.rememberPermissionState
 import com.meteomontana.android.domain.model.FavoriteSchool
 import com.meteomontana.android.ui.components.CumbreChip
 import com.meteomontana.android.ui.components.FavoritesGridTable
+import com.meteomontana.android.ui.guide.guideTarget
 import com.meteomontana.android.ui.components.forecastBody
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
@@ -111,7 +112,7 @@ fun WeatherScreen(
                     // Comparación de favoritas arriba (igual que iOS): ves de un
                     // vistazo el score medio por día de tus escuelas favoritas.
                     if (s.grid != null && s.grid.rows.isNotEmpty()) {
-                        item { FavoritesGridTable(grid = s.grid) }
+                        item { Box(Modifier.guideTarget("weather.compare")) { FavoritesGridTable(grid = s.grid) } }
                         item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
                     }
                     forecastBody(
@@ -153,6 +154,7 @@ private fun FavoriteChips(
     onSelect: (String?) -> Unit
 ) {
     LazyRow(
+        modifier = Modifier.guideTarget("weather.chips"),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {

@@ -72,18 +72,32 @@ import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
 
 /**
- * Botón "?" reutilizable que abre la hoja de ayuda contextual de una pantalla.
- * [topicKey] = clave del [HelpCatalog] (p.ej. "schools", "detail", "profile"…).
+ * Botón de ayuda de una pantalla. [topicKey] = clave del [HelpCatalog] y de la guía ("schools", "detail", "profile"…).
+ *
+ * Por defecto es la píldora "? AYUDA" (la misma en todas las pantallas): abre la GUÍA de la pantalla (foco sobre sus
+ * elementos) y, si esa pantalla aún no tiene guía, la hoja de ayuda de texto de siempre. [compact] = solo el "?" en
+ * un IconButton, para cabeceras donde la píldora no cabe todavía.
  */
 @Composable
-fun HelpButton(topicKey: String, modifier: Modifier = Modifier) {
+fun HelpButton(topicKey: String, modifier: Modifier = Modifier, compact: Boolean = false) {
     var open by remember { mutableStateOf(false) }
-    IconButton(onClick = { open = true }, modifier = modifier) {
-        Icon(
-            Icons.AutoMirrored.Outlined.HelpOutline,
-            contentDescription = stringResource(R.string.help_sheet_v2_ayuda_2),
-            tint = MaterialTheme.colorScheme.onBackground
-        )
+    val guides = com.meteomontana.android.ui.guide.LocalGuideController.current
+    val onClick = {
+        if (!guides.start(topicKey)) {
+            guides.markUsed(topicKey)
+            open = true
+        }
+    }
+    if (compact) {
+        IconButton(onClick = onClick, modifier = modifier) {
+            Icon(
+                Icons.AutoMirrored.Outlined.HelpOutline,
+                contentDescription = stringResource(R.string.help_sheet_v2_ayuda_2),
+                tint = MaterialTheme.colorScheme.onBackground
+            )
+        }
+    } else {
+        com.meteomontana.android.ui.guide.GuidePill(topicKey, modifier.padding(horizontal = 4.dp), onClick)
     }
     if (open) HelpSheet(topicKey = topicKey, onDismiss = { open = false })
 }

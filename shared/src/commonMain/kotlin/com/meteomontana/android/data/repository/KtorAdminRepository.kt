@@ -58,6 +58,11 @@ class KtorAdminRepository(private val api: KtorAdminApi) : AdminRepository {
 
     override suspend fun backfillGradeScore(): GradeScoreBackfillResult =
         api.backfillGradeScore().let { GradeScoreBackfillResult(it.total, it.updated, it.unrecognized) }
+
+    override suspend fun getUserAssistantAccess(uid: String): Boolean = api.userAssistantAccess(uid).enabled
+
+    override suspend fun setUserAssistantAccess(uid: String, enabled: Boolean): Boolean =
+        api.setUserAssistantAccess(uid, enabled).enabled
 }
 
 private fun MeetupReportDto.toDomain() = MeetupReport(

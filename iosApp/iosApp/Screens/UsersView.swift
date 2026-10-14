@@ -114,7 +114,13 @@ final class PublicProfileViewModel: ObservableObject {
     @Published var entries: [JournalSession] = []
     @Published var viaInfo: [String: ViaCatalogInfo] = [:]
     @Published var loading = true
+    /// Interruptor del asistente de IA de ESTE usuario. nil = no se enseña (no eres admin, o es tu propio perfil).
+    @Published var adminAssistant: Bool?
+    @Published var adminAssistantSaving = false
 
+    private let getMyProfile: GetMyProfileUseCase
+    private let getUserAssistantAccess: GetUserAssistantAccessUseCase
+    private let setUserAssistantAccess: SetUserAssistantAccessUseCase
     private let getPublicProfile: GetPublicProfileUseCase
     private let getFollowStatus: GetFollowStatusUseCase
     private let followUser: FollowUserUseCase
@@ -130,8 +136,14 @@ final class PublicProfileViewModel: ObservableObject {
         unfollowUser: UnfollowUserUseCase = AppDependencies.shared.container.unfollowUser,
         getUserStats: GetUserStatsUseCase = AppDependencies.shared.container.getUserStats,
         getUserJournal: GetUserJournalUseCase = AppDependencies.shared.container.getUserJournal,
-        getJournalViaInfo: GetJournalViaInfoUseCase = AppDependencies.shared.container.getJournalViaInfo
+        getJournalViaInfo: GetJournalViaInfoUseCase = AppDependencies.shared.container.getJournalViaInfo,
+        getMyProfile: GetMyProfileUseCase = AppDependencies.shared.container.getMyProfile,
+        getUserAssistantAccess: GetUserAssistantAccessUseCase = AppDependencies.shared.container.getUserAssistantAccess,
+        setUserAssistantAccess: SetUserAssistantAccessUseCase = AppDependencies.shared.container.setUserAssistantAccess
     ) {
+        self.getMyProfile = getMyProfile
+        self.getUserAssistantAccess = getUserAssistantAccess
+        self.setUserAssistantAccess = setUserAssistantAccess
         self.getPublicProfile = getPublicProfile
         self.getFollowStatus = getFollowStatus
         self.followUser = followUser
@@ -148,6 +160,31 @@ final class PublicProfileViewModel: ObservableObject {
         loading = false
         // Diario y stats del usuario (solo si su perfil no está bloqueado).
         await loadJournal(uid: uid)
+        await loadAdminAssistant()
+    }
+
+    /// Solo si quien mira es admin (y no es su propio perfil): lee el interruptor del asistente de IA de este usuario.
+    private func loadAdminAssistant() async {
+        adminAssistant = nil
+        guard let profileUid = profile?.uid,
+              let me = try? await getMyProfile.invoke(), me.isAdmin, me.uid != profileUid,
+              let enabled = try? await getUserAssistantAccess.invoke(uid: profileUid) else { return }
+        adminAssistant = enabled.boolValue
+    }
+
+    /// Activa o desactiva el asistente de IA de este usuario. Si falla, el interruptor vuelve a su sitio.
+    func setAssistantAccess(_ enabled: Bool) {
+        guard let profileUid = profile?.uid, let before = adminAssistant else { return }
+        adminAssistant = enabled
+        adminAssistantSaving = true
+        Task {
+            if let saved = try? await setUserAssistantAccess.invoke(uid: profileUid, enabled: enabled) {
+                adminAssistant = saved.boolValue
+            } else {
+                adminAssistant = before
+            }
+            adminAssistantSaving = false
+        }
     }
 
     /// Carga el diario/stats del usuario. Si su perfil es privado y no le sigues,
@@ -255,6 +292,7 @@ struct PublicProfileView: View {
                     // H: las publicaciones ya NO van inline — se abren desde
                     // la celda PUBLICACIONES (igual que en el perfil propio).
                 }
+                adminAssistantCard
             }
             .frame(maxWidth: .infinity)
             .padding(.top, 24).padding(.horizontal, 24)
@@ -318,6 +356,29 @@ struct PublicProfileView: View {
             }
         }
         .task { await vm.load(uid: uid); await moderation.loadBlocked() }
+    }
+
+    /// Solo admins: activar o desactivar el asistente de IA a este usuario. Nadie más ve este bloque.
+    @ViewBuilder private var adminAssistantCard: some View {
+        if let on = vm.adminAssistant {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(L("SOLO ADMIN")).font(Cumbre.mono(10, .bold)).tracking(1.4).foregroundStyle(Cumbre.terra)
+                Toggle(isOn: Binding(get: { on }, set: { vm.setAssistantAccess($0) })) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(L("Asistente de IA")).font(.system(size: 15, weight: .medium)).foregroundStyle(Cumbre.ink)
+                        Text(on ? L("Activado para este usuario") : L("Desactivado para este usuario"))
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    }
+                }
+                .tint(Cumbre.terra)
+                .disabled(vm.adminAssistantSaving)
+                Text(L("Nadie más ve este bloque. Al activarlo, le aparece la burbuja del asistente en cuanto abra la app."))
+                    .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 10)
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.terra.opacity(0.6), lineWidth: 1))
+            .padding(.top, 8)
+        }
     }
 
     private func stat(_ value: String, _ label: String) -> some View {

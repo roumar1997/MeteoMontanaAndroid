@@ -304,24 +304,37 @@ fun BlockDetailDialog(
             // Caras de la piedra, en el MISMO orden en que se pintan abajo. Se
             // calcula aquí (y no dentro del scroll) porque las pestañas de
             // salto necesitan conocerlas antes de que se dibuje el contenido.
-            val carasOrdenadas = remember(block, highlightVia) {
-                block.facesOrDerived().let { fs ->
-                    val viaName = highlightVia?.trim()
-                    if (viaName.isNullOrBlank()) fs
-                    else {
-                        val hit = fs.indexOfFirst { f ->
-                            f.lines.any { it.name.trim().equals(viaName, ignoreCase = true) }
-                        }
-                        if (hit > 0) listOf(fs[hit]) + fs.filterIndexed { i, _ -> i != hit } else fs
-                    }
+            // SIEMPRE en el orden en que se introdujeron (FOTO 1, FOTO 2...), igual que iOS: antes, al venir de pulsar
+            // una vía, Android ponía su cara la primera y la rebautizaba "FOTO 1", así que la MISMA piedra salía con
+            // fotos numeradas distinto en cada móvil (Álvaro, 2026-10-14, buscando "Le Cranc"). El deep-link solo
+            // hace scroll hasta su cara (más abajo).
+            val carasOrdenadas = remember(block) { block.facesOrDerived() }
+            // Cara que contiene la vía pulsada (deep-link del diario/buscador); -1 si no hay.
+            val caraDeLaVia = remember(block, highlightVia) {
+                val viaName = highlightVia?.trim()
+                if (viaName.isNullOrBlank()) -1
+                else carasOrdenadas.indexOfFirst { f ->
+                    f.lines.any { it.name.trim().equals(viaName, ignoreCase = true) }
                 }
             }
+            // Si el usuario toca una pestaña de foto, se deja de insistir con el salto automático.
+            var saltoManual by remember(block) { mutableStateOf(false) }
             // Dónde empieza cada cara dentro del scroll, para poder saltar.
             val posicionDeCara = remember(block) { mutableStateMapOf<Int, Int>() }
             // Cara visible ahora: la última cuyo inicio ya ha pasado por arriba.
             val caraActual = posicionDeCara.entries
                 .filter { it.value <= contenidoScroll.value + 1 }
                 .maxByOrNull { it.value }?.key ?: 0
+            // Salto a la cara de la vía. Un solo salto se quedaba corto (la hoja aún sube y las fotos cargan después,
+            // y las alturas cambian): se repite un par de veces mientras el usuario no toque otra pestaña.
+            androidx.compose.runtime.LaunchedEffect(caraDeLaVia) {
+                if (caraDeLaVia <= 0) return@LaunchedEffect
+                for (espera in longArrayOf(400, 600, 1000)) {
+                    kotlinx.coroutines.delay(espera)
+                    if (saltoManual) return@LaunchedEffect
+                    posicionDeCara[caraDeLaVia]?.let { contenidoScroll.animateScrollTo(it) }
+                }
+            }
 
             // Saltar de una cara a otra SIN scrollear. El scroll sigue igual:
             // esto es un atajo, no un sustituto (petición de Rodrigo,
@@ -337,6 +350,7 @@ fun BlockDetailDialog(
                     carasOrdenadas.forEachIndexed { idx, cara ->
                         if (!cara.photoPath.isNullOrBlank()) {
                             MochilaCard(label = stringResource(R.string.block_detail_dialog_v2_foto_1_s_2, idx + 1), selected = idx == caraActual) {
+                                saltoManual = true
                                 posicionDeCara[idx]?.let { y ->
                                     shareScope.launch { contenidoScroll.animateScrollTo(y) }
                                 }
@@ -430,9 +444,7 @@ fun BlockDetailDialog(
                         text = stringResource(R.string.block_detail_dialog_v4_toca_la_p_de_una)
                     )
                 }
-                // Si venimos de pulsar una vía (deep-link del diario), su cara va
-                // primero. El orden se calculó arriba, junto a las pestañas de
-                // salto, para que las dos cosas usen exactamente el mismo.
+                // Las caras, en su orden (el mismo de las pestañas de salto de arriba).
                 val orderedFaces = carasOrdenadas
                 orderedFaces.forEachIndexed { faceIdx, face ->
                     val facePhoto = face.photoPath
@@ -447,7 +459,7 @@ fun BlockDetailDialog(
                                 }
                         )
                         if (orderedFaces.size > 1) {
-                            val originalIdx = block.facesOrDerived().indexOf(face).takeIf { i -> i >= 0 } ?: faceIdx
+                            val originalIdx = faceIdx
                             Row(verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                 Text(

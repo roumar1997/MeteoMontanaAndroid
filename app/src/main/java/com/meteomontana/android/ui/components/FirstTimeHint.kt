@@ -31,6 +31,8 @@ import com.meteomontana.android.R
  *  el "Volver a ver las pistas" del perfil. */
 fun resetAllHints(context: Context) {
     context.getSharedPreferences("hints", Context.MODE_PRIVATE).edit().clear().apply()
+    // Y las guías por pantalla: el "? AYUDA" vuelve a parpadear y la de Escuelas vuelve a salir sola una vez.
+    com.meteomontana.android.ui.guide.GuideController.resetAll(com.meteomontana.android.ui.guide.SharedGuidePrefs(context))
 }
 
 /**

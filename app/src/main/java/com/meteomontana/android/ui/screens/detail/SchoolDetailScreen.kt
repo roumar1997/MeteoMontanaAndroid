@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.Forecast
@@ -49,6 +50,7 @@ import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.ui.components.BlocksSection
 import com.meteomontana.android.ui.components.MonthlyStatsSection
 import com.meteomontana.android.ui.components.NotesSection
+import com.meteomontana.android.ui.guide.guideTarget
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
 import com.meteomontana.android.ui.theme.Spacing
@@ -75,6 +77,7 @@ fun SchoolDetailScreen(
     var presenceRefreshKey by remember { mutableStateOf(0) }
     val refreshScope = androidx.compose.runtime.rememberCoroutineScope()
 
+    com.meteomontana.android.ui.guide.GuideHost("detail") {
     Column(modifier = Modifier.fillMaxSize()
         .pointerInput(Unit) {
             awaitPointerEventScope {
@@ -85,60 +88,53 @@ fun SchoolDetailScreen(
             }
         }
         .background(MaterialTheme.colorScheme.background)) {
-        TopBar(
-            title = success?.school?.name ?: "",
-            isFavorite = success?.isFavorite ?: false,
-            showFavorite = success != null,
-            onBack = onBack,
-            onToggleFavorite = viewModel::toggleFavorite,
-            isSavedOffline = success?.isSavedOffline ?: false,
-            showSaveOffline = success != null,
-            onToggleSaveOffline = viewModel::toggleSaveOffline,
-            onDirections = if (success != null) {
-                {
-                    val s = success.school
-                    runCatching {
-                        context.startActivity(
-                            android.content.Intent(
-                                android.content.Intent.ACTION_VIEW,
-                                android.net.Uri.parse(
-                                    "https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}"
-                                )
-                            )
-                        )
-                    }
-                }
-            } else null,
-            onShare = if (success != null) {
-                {
-                    // Con forecast → card de imagen (más viral en WhatsApp);
-                    // sin él, el texto plano de siempre.
-                    if (success.forecast != null) {
-                        runCatching {
-                            com.meteomontana.android.ui.share.shareSchoolAsImage(
-                                context, success.school, success.forecast
-                            )
-                        }.onFailure { shareSchool(context, success.school, success.forecast) }
-                    } else {
-                        shareSchool(context, success.school, success.forecast)
-                    }
-                }
-            } else null,
-            processionaryAlertActive = success?.school?.processionaryAlertActive ?: false,
-            onOpenProcessionary = if (success != null) { { processionaryOpen = true } } else null
-        )
-        // Fijo, fuera del scroll: si no se ve nada más que el título hasta que
-        // bajas, nadie sabe que hay alguien ahí (Álvaro, 2026-09-03, paridad
-        // con SchoolPresenceRow.swift).
-        success?.let { s ->
+        if (success != null) {
+            // Cabecera en UNA fila: [volver] … [chat][Aquí] [cápsula de iconos]. Fija, fuera del scroll (Álvaro,
+            // 2026-09-03: si no, nadie sabe que hay alguien ahí).
+            val s = success
             com.meteomontana.android.ui.components.SchoolPresenceRow(
                 schoolId = s.school.id,
                 schoolName = s.school.name,
                 myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid,
                 onOpenChat = onOpenChat,
                 onOpenSchoolChat = { onOpenSchoolChat(s.school.name) },
-                refreshKey = presenceRefreshKey
+                refreshKey = presenceRefreshKey,
+                leading = { BackPill(onBack) },
+                trailing = {
+                    ActionsCapsule(
+                        isFavorite = s.isFavorite,
+                        onToggleFavorite = viewModel::toggleFavorite,
+                        isSavedOffline = s.isSavedOffline,
+                        onToggleSaveOffline = viewModel::toggleSaveOffline,
+                        onDirections = {
+                            runCatching {
+                                context.startActivity(
+                                    android.content.Intent(
+                                        android.content.Intent.ACTION_VIEW,
+                                        android.net.Uri.parse(
+                                            "https://www.google.com/maps/dir/?api=1&destination=${s.school.lat},${s.school.lon}"
+                                        )
+                                    )
+                                )
+                            }
+                        },
+                        onShare = {
+                            // Con forecast → card de imagen (más viral en WhatsApp); sin él, el texto plano de siempre.
+                            if (s.forecast != null) {
+                                runCatching {
+                                    com.meteomontana.android.ui.share.shareSchoolAsImage(context, s.school, s.forecast)
+                                }.onFailure { shareSchool(context, s.school, s.forecast) }
+                            } else {
+                                shareSchool(context, s.school, s.forecast)
+                            }
+                        },
+                        processionaryAlertActive = s.school.processionaryAlertActive,
+                        onOpenProcessionary = { processionaryOpen = true }
+                    )
+                }
             )
+        } else {
+            Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.sm)) { BackPill(onBack) }
         }
         androidx.compose.material3.pulltorefresh.PullToRefreshBox(
             isRefreshing = isRefreshing,
@@ -205,6 +201,7 @@ fun SchoolDetailScreen(
             }
         }
     }
+    }   // GuideHost
 
     if (addBlockOpen && success != null) {
         AddBlockToSchoolSheet(
@@ -232,83 +229,60 @@ fun SchoolDetailScreen(
     }
 }
 
+/** El "atrás" en su pastilla, como en iOS. */
 @Composable
-private fun TopBar(
-    title: String,
-    isFavorite: Boolean,
-    showFavorite: Boolean,
-    onBack: () -> Unit,
-    onToggleFavorite: () -> Unit,
-    isSavedOffline: Boolean = false,
-    showSaveOffline: Boolean = false,
-    onToggleSaveOffline: () -> Unit = {},
-    onDirections: (() -> Unit)? = null,
-    onShare: (() -> Unit)? = null,
-    processionaryAlertActive: Boolean = false,
-    onOpenProcessionary: (() -> Unit)? = null
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // DOS PASTILLAS, como en iOS: el "atrás" en la suya y las acciones
-        // agrupadas en otra. Sueltos sobre el fondo, como estaban, era una de
-        // las cosas que más delataban que no eran la misma app.
-        com.meteomontana.android.ui.components.CumbrePillGroup {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
-                    tint = MaterialTheme.colorScheme.onBackground)
-            }
-        }
-        // El nombre se queda con el hueco sobrante y se recorta si no cabe: en
-        // una pantalla estrecha manda la pastilla de acciones, no el título.
-        Text(title, style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 1, overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = Spacing.xs).weight(1f))
-        com.meteomontana.android.ui.components.CumbrePillGroup {
-            com.meteomontana.android.ui.components.HelpButton(topicKey = "detail")
-            if (onOpenProcessionary != null) {
-                com.meteomontana.android.ui.components.ProcessionaryButton(
-                    alertActive = processionaryAlertActive,
-                    onClick = onOpenProcessionary
-                )
-            }
-            if (onDirections != null) {
-                IconButton(onClick = onDirections, modifier = Modifier.size(38.dp)) {
-                    Icon(Icons.Outlined.Place, contentDescription = stringResource(R.string.common_directions),
-                        tint = MaterialTheme.colorScheme.onBackground)
-                }
-            }
-            if (onShare != null) {
-                IconButton(onClick = onShare, modifier = Modifier.size(38.dp)) {
-                    Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.common_share),
-                        tint = MaterialTheme.colorScheme.onBackground)
-                }
-            }
-            if (showSaveOffline) {
-                IconButton(onClick = onToggleSaveOffline, modifier = Modifier.size(38.dp)) {
-                    Icon(
-                        imageVector = if (isSavedOffline) Icons.Filled.DownloadDone else Icons.Outlined.FileDownload,
-                        contentDescription = if (isSavedOffline) stringResource(R.string.detail_saved_offline) else stringResource(R.string.detail_save_offline),
-                        tint = if (isSavedOffline) MaterialTheme.colorScheme.primary
-                               else MaterialTheme.colorScheme.onBackground
-                    )
-                }
-            }
-            if (showFavorite) {
-                IconButton(onClick = onToggleFavorite, modifier = Modifier.size(38.dp)) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                        contentDescription = if (isFavorite) stringResource(R.string.school_detail_screen_quitar_de_favoritos) else stringResource(R.string.school_detail_screen_anadir_a_favoritos),
-                        tint = if (isFavorite) MaterialTheme.colorScheme.primary
-                               else MaterialTheme.colorScheme.onBackground
-                    )
-                }
-            }
+private fun BackPill(onBack: () -> Unit) {
+    com.meteomontana.android.ui.components.CumbrePillGroup {
+        IconButton(onClick = onBack, modifier = Modifier.size(40.dp)) {
+            Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
+                tint = MaterialTheme.colorScheme.onBackground)
         }
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+}
+
+/**
+ * Acciones de la escuela, todas a la vista y en una cápsula: cómo llegar, compartir, favorita, offline y procesionaria
+ * (roja si hay alerta). Ya no hay menú "⋯" ni "?" aquí: la ayuda va junto al nombre. Botones de 34 dp para que, con
+ * el chat y "Aquí", la fila entre en una pantalla de 360 dp.
+ */
+@Composable
+private fun ActionsCapsule(
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
+    isSavedOffline: Boolean,
+    onToggleSaveOffline: () -> Unit,
+    onDirections: () -> Unit,
+    onShare: () -> Unit,
+    processionaryAlertActive: Boolean,
+    onOpenProcessionary: () -> Unit
+) {
+    val tint = MaterialTheme.colorScheme.onBackground
+    com.meteomontana.android.ui.components.CumbrePillGroup {
+        IconButton(onClick = onDirections, modifier = Modifier.size(34.dp)) {
+            Icon(Icons.Outlined.Place, contentDescription = stringResource(R.string.common_directions), tint = tint)
+        }
+        IconButton(onClick = onShare, modifier = Modifier.size(34.dp)) {
+            Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.common_share), tint = tint)
+        }
+        IconButton(onClick = onToggleFavorite, modifier = Modifier.size(34.dp)) {
+            Icon(
+                imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                contentDescription = if (isFavorite) stringResource(R.string.school_detail_screen_quitar_de_favoritos) else stringResource(R.string.school_detail_screen_anadir_a_favoritos),
+                tint = if (isFavorite) MaterialTheme.colorScheme.primary else tint
+            )
+        }
+        IconButton(onClick = onToggleSaveOffline, modifier = Modifier.size(34.dp)) {
+            Icon(
+                imageVector = if (isSavedOffline) Icons.Filled.DownloadDone else Icons.Outlined.FileDownload,
+                contentDescription = if (isSavedOffline) stringResource(R.string.detail_saved_offline) else stringResource(R.string.detail_save_offline),
+                tint = if (isSavedOffline) MaterialTheme.colorScheme.primary else tint
+            )
+        }
+        com.meteomontana.android.ui.components.ProcessionaryButton(
+            alertActive = processionaryAlertActive,
+            onClick = onOpenProcessionary
+        )
+    }
 }
 
 @Composable
@@ -411,70 +385,108 @@ private fun Content(
                 )
             }
         } }
-        if (forecast != null) {
-            com.meteomontana.android.ui.components.ForecastBodyColumn(
-                forecast = forecast,
-                afterCurrentWeather = {
-                    Column {
-                        // Boletín de montaña AEMET: solo escuelas de un macizo
-                        // ESPAÑOL. Fuera de España no existe boletín, y enseñar
-                        // un hueco vacío es peor que no ofrecer la función.
-                        mountainBulletin?.takeIf {
-                            com.meteomontana.android.domain.util.SpainOnlyFeatures
-                                .showsMountainBulletin(school?.country)
-                        }?.let { b ->
-                            com.meteomontana.android.ui.components.MountainBulletinSection(b)
-                        }
-                        blocksSection()
-                    }
-                },
-                onDayClick = onDayClick
+        // ── Título + "? AYUDA", tarjeta HOY y pestañas (MAPA · BLOQUES · TIEMPO · NOTAS), como en iOS ──
+        var tab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(SchoolTab.MAP) }
+        var showHelp by remember { mutableStateOf(false) }
+        val guides = com.meteomontana.android.ui.guide.LocalGuideController.current
+        val blocksVm: SchoolBlocksViewModel = hiltViewModel()
+
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // El nombre ya no ocupa cabecera fija: va aquí, como título, y se va con el scroll.
+            Text(
+                school.name,
+                modifier = Modifier.weight(1f).padding(end = 10.dp),
+                style = androidx.compose.ui.text.TextStyle(
+                    fontFamily = com.meteomontana.android.ui.theme.Serif,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    fontSize = 26.sp
+                ),
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 2, overflow = TextOverflow.Ellipsis
             )
-        } else {
-            if (forecastError != null) {
-                Box(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Spacing.lg)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                    .padding(Spacing.lg)
-                ) {
-                    Column {
-                        Text(stringResource(R.string.school_detail_screen_v2_tiempo_no_disponible),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground)
-                        Spacer(Modifier.height(Spacing.xs))
-                        Text(forecastError,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+            // UN solo botón de ayuda que reconoce pantalla y pestaña: la 1ª vez cuenta la pantalla y encadena la de
+            // la pestaña; luego solo la de la pestaña. Sin guía, la ayuda de texto de siempre.
+            com.meteomontana.android.ui.guide.GuidePill("detail") {
+                if (!guides.startScreenAndTab("detail", tab.guideKey)) {
+                    guides.markUsed("detail")
+                    showHelp = true
                 }
-            } else {
-                // Forecast aún cargando: hueco discreto en su zona.
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.padding(start = Spacing.sm))
-                    Text(stringResource(R.string.school_detail_screen_v2_cargando_el_tiempo),
-                        style = MaterialTheme.typography.labelMedium,
+            }
+        }
+        if (showHelp) com.meteomontana.android.ui.components.HelpSheet(topicKey = "detail", onDismiss = { showHelp = false })
+
+        if (forecast != null) {
+            HoyCard(forecast)
+        } else if (forecastError != null) {
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.lg)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                .padding(Spacing.lg)
+            ) {
+                Column {
+                    Text(stringResource(R.string.school_detail_screen_v2_tiempo_no_disponible),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground)
+                    Spacer(Modifier.height(Spacing.xs))
+                    Text(forecastError,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            // Piedras y mapa disponibles YA, con el tiempo cargando o caído.
-            blocksSection()
+        } else {
+            // Forecast aún cargando: hueco discreto en su zona.
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                androidx.compose.material3.CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.padding(start = Spacing.sm))
+                Text(stringResource(R.string.school_detail_screen_v2_cargando_el_tiempo),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
-        NotesSection(notes = notes, onPublish = onPublishNote,
-            onVote = { n, v -> viewModel.voteNote(n, v) })
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
-        // (Guardar offline movido al toolbar superior, como en iOS.)
-        val s = viewModel.uiState.collectAsStateWithLifecycle().value as? SchoolDetailUiState.Success
-        MonthlyStatsSection(stats = s?.monthlyStats, isLoading = s?.monthlyLoading == true)
+        Spacer(Modifier.height(12.dp))
+        SchoolTabBar(
+            selected = tab,
+            onSelect = { tab = it },
+            blocksKind = blocksTabKind(school.style),
+            modifier = Modifier.guideTarget("detail.tabs")
+        )
+        Spacer(Modifier.height(8.dp))
+
+        when (tab) {
+            // Piedras y mapa disponibles YA, con el tiempo cargando o caído.
+            SchoolTab.MAP -> blocksSection()
+            SchoolTab.BLOCKS -> SchoolBlocksTab(blocksVm, onOpen = onBlockClick)
+            SchoolTab.WEATHER -> if (forecast != null) {
+                SchoolWeatherTab(
+                    forecast = forecast,
+                    // Boletín de montaña AEMET: solo escuelas de un macizo ESPAÑOL. Fuera de España no existe boletín, y
+                    // enseñar un hueco vacío es peor que no ofrecer la función.
+                    bulletin = mountainBulletin
+                        ?.takeIf { com.meteomontana.android.domain.util.SpainOnlyFeatures.showsMountainBulletin(school.country) }
+                        ?.let { b -> { com.meteomontana.android.ui.components.MountainBulletinSection(b) } },
+                    onDayClick = onDayClick
+                )
+            }
+            SchoolTab.NOTES -> {
+                NotesSection(notes = notes, onPublish = onPublishNote,
+                    onVote = { n, v -> viewModel.voteNote(n, v) })
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+                // (Guardar offline movido al toolbar superior, como en iOS.)
+                val s = viewModel.uiState.collectAsStateWithLifecycle().value as? SchoolDetailUiState.Success
+                MonthlyStatsSection(stats = s?.monthlyStats, isLoading = s?.monthlyLoading == true)
+            }
+        }
         Spacer(Modifier.height(40.dp))
     }
 
