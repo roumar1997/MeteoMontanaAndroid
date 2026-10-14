@@ -603,6 +603,57 @@ struct SchoolListView: View {
 
     var body: some View {
         NavigationStack {
+            listScroll
+            .background(Cumbre.bg.ignoresSafeArea())
+            .guideHost("schools")
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(item: $navTarget) { SchoolDetailView(school: $0.school, openVia: $0.via) }
+            .overlay {
+                if eligiendoFoto {
+                    SubmitBlockPhotoFlow(
+                        schools: vm.schools,
+                        onOpenSchool: { id in
+                            eligiendoFoto = false
+                            if let s = vm.schools.first(where: { $0.id == id }) {
+                                navTarget = SchoolNavTarget(school: s, via: nil)
+                            }
+                        },
+                        onDismiss: { eligiendoFoto = false })
+                }
+            }
+            .onChange(of: vm.query) { _, _ in dispatchViaSearch() }
+            .overlay(alignment: .bottom) {
+                if vm.compareSelection.count >= 1 {
+                    CompareBar(count: vm.compareSelection.count,
+                               canCompare: vm.compareSelection.count >= 2,
+                               onClear: { vm.clearCompare() },
+                               onCompare: { showCompare = true })
+                }
+            }
+            .sheet(isPresented: $showCompare, onDismiss: { vm.clearCompare() }) {
+                CompareView(schools: vm.filtered.filter { vm.compareSelection.contains($0.id) })
+            }
+            .task { await vm.load() }
+            // Primera vez tras crear la cuenta: la guía de Escuelas sale sola, una vez (saltable). El resto de guías
+            // son opcionales (el "?" de cada pantalla, que parpadea las primeras visitas).
+            .task(id: vm.schools.isEmpty) {
+                guard !vm.schools.isEmpty, UserDefaults.standard.bool(forKey: "guide_pending_schools") else { return }
+                UserDefaults.standard.set(false, forKey: "guide_pending_schools")
+                try? await Task.sleep(nanoseconds: 1_200_000_000)
+                GuideStore.shared.start("schools")
+            }
+            // Al volver a activo (p. ej. tras aceptar el permiso de ubicación en
+            // el primer arranque) reintenta cargar la ubicación si falta, para
+            // que el filtro de 50 km se aplique sin tener que reabrir la app.
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { Task { await vm.refreshLocationIfNeeded() } }
+            }
+            .refreshable { await vm.refresh() }
+        }
+    }
+
+    /// El ScrollView con la cabecera, los filtros y la lista. Aparte de `body` para no saturar el type-checker.
+    @ViewBuilder private var listScroll: some View {
             ScrollView {
                 // VStack NO perezoso a propósito: las 6 muertes por watchdog
                 // (jul-2026) ocurrieron DENTRO de la maquinaria de LazyVStack
@@ -672,52 +723,6 @@ struct SchoolListView: View {
                     }
                 }
             }
-            .background(Cumbre.bg.ignoresSafeArea())
-            .guideHost("schools")
-            .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(item: $navTarget) { SchoolDetailView(school: $0.school, openVia: $0.via) }
-            .overlay {
-                if eligiendoFoto {
-                    SubmitBlockPhotoFlow(
-                        schools: vm.schools,
-                        onOpenSchool: { id in
-                            eligiendoFoto = false
-                            if let s = vm.schools.first(where: { $0.id == id }) {
-                                navTarget = SchoolNavTarget(school: s, via: nil)
-                            }
-                        },
-                        onDismiss: { eligiendoFoto = false })
-                }
-            }
-            .onChange(of: vm.query) { _, _ in dispatchViaSearch() }
-            .overlay(alignment: .bottom) {
-                if vm.compareSelection.count >= 1 {
-                    CompareBar(count: vm.compareSelection.count,
-                               canCompare: vm.compareSelection.count >= 2,
-                               onClear: { vm.clearCompare() },
-                               onCompare: { showCompare = true })
-                }
-            }
-            .sheet(isPresented: $showCompare, onDismiss: { vm.clearCompare() }) {
-                CompareView(schools: vm.filtered.filter { vm.compareSelection.contains($0.id) })
-            }
-            .task { await vm.load() }
-            // Primera vez tras crear la cuenta: la guía de Escuelas sale sola, una vez (saltable). El resto de guías
-            // son opcionales (el "?" de cada pantalla, que parpadea las primeras visitas).
-            .task(id: vm.schools.isEmpty) {
-                guard !vm.schools.isEmpty, UserDefaults.standard.bool(forKey: "guide_pending_schools") else { return }
-                UserDefaults.standard.set(false, forKey: "guide_pending_schools")
-                try? await Task.sleep(nanoseconds: 1_200_000_000)
-                GuideStore.shared.start("schools")
-            }
-            // Al volver a activo (p. ej. tras aceptar el permiso de ubicación en
-            // el primer arranque) reintenta cargar la ubicación si falta, para
-            // que el filtro de 50 km se aplique sin tener que reabrir la app.
-            .onChange(of: scenePhase) { _, phase in
-                if phase == .active { Task { await vm.refreshLocationIfNeeded() } }
-            }
-            .refreshable { await vm.refresh() }
-        }
     }
 
     @State private var showCompare = false
