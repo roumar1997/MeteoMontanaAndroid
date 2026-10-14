@@ -620,18 +620,8 @@ struct SchoolListView: View {
                         viaHitsSection
                     }
 
-                    // Hint del mapa — justo antes del toggle "VER MAPA"
-                    FirstTimeHint(
-                        hintKey: "schools_map",
-                        text: L("Toca el icono del mapa (junto a Vías/Bloques) para ver todas las escuelas en el mapa, coloreadas por su índice del día.")
-                    )
                     MapToggleAndPanel(vm: vm, onOpen: { navTarget = SchoolNavTarget(school: $0, via: nil) })
 
-                    // Hint de filtros — justo antes de la barra de filtros
-                    FirstTimeHint(
-                        hintKey: "schools_filters",
-                        text: L("Toca FILTROS (abajo) para afinar por distancia, tipo de roca o estilo (bloque/vía).")
-                    )
                     FilterChips(vm: vm)
                     Divider().overlay(Cumbre.rule)
 
@@ -660,6 +650,7 @@ struct SchoolListView: View {
                                 // Usamos tap + long-press directos sobre la fila.
                                 SchoolListItemView(
                                     rank: idx + 1,
+                                    isFirst: idx == 0,
                                     school: school,
                                     score: vm.scores[school.id],
                                     range: vm.rangeMode ? vm.rangeScores[school.id] : nil,
@@ -682,6 +673,7 @@ struct SchoolListView: View {
                 }
             }
             .background(Cumbre.bg.ignoresSafeArea())
+            .guideHost("schools")
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(item: $navTarget) { SchoolDetailView(school: $0.school, openVia: $0.via) }
             .overlay {
@@ -710,6 +702,14 @@ struct SchoolListView: View {
                 CompareView(schools: vm.filtered.filter { vm.compareSelection.contains($0.id) })
             }
             .task { await vm.load() }
+            // Primera vez tras crear la cuenta: la guía de Escuelas sale sola, una vez (saltable). El resto de guías
+            // son opcionales (el "?" de cada pantalla, que parpadea las primeras visitas).
+            .task(id: vm.schools.isEmpty) {
+                guard !vm.schools.isEmpty, UserDefaults.standard.bool(forKey: "guide_pending_schools") else { return }
+                UserDefaults.standard.set(false, forKey: "guide_pending_schools")
+                try? await Task.sleep(nanoseconds: 1_200_000_000)
+                GuideStore.shared.start("schools")
+            }
             // Al volver a activo (p. ej. tras aceptar el permiso de ubicación en
             // el primer arranque) reintenta cargar la ubicación si falta, para
             // que el filtro de 50 km se aplique sin tener que reabrir la app.

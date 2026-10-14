@@ -114,6 +114,7 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
             HStack(spacing: 6) {
                 leading.frame(maxWidth: .infinity, alignment: .leading)
                 presenceControls
+                    .guideTarget("detail.here")
                 trailing
             }
             .padding(.horizontal, 12).padding(.vertical, 8)

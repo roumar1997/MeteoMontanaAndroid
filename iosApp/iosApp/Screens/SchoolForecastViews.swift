@@ -31,6 +31,7 @@ struct ForecastBodyView: View {
                 // Ficha de escuela: UNA tarjeta HOY (SÍ/NO, índice, roca, óptimo) que se despliega con las 16 horas
                 // y el "por qué"; así las pestañas y el mapa empiezan mucho más arriba.
                 HoyCard(forecast: f, open: hoyOpen ?? .constant(false), factorsExpanded: $factorsExpanded)
+                    .guideTarget("detail.hoy")
                 tabsSlot
             } else {
                 HeroSection(forecast: f)

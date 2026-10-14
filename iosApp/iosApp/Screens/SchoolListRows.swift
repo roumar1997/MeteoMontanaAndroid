@@ -171,11 +171,14 @@ struct SchoolListItemView: View {
     var isSelected: Bool = false
     var processionaryAlertActive: Bool = false
     var onToggleFavorite: () -> Void = {}
+    /// Primera fila de la lista: es la que señala la guía ("La nota de hoy").
+    var isFirst = false
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             // Modo tramo → el badge muestra el score combinado de los días.
             ScoreBadge(score: range.map { Int($0.combinedScore) } ?? score.map { Int($0.todayScore) }, compact: true)
+                .guideTarget("schools.score", when: isFirst)
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .center, spacing: 0) {
                     Text(String(format: "%02d", rank))

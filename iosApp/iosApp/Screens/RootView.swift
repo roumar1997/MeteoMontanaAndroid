@@ -38,7 +38,7 @@ struct RootView: View {
     @EnvironmentObject private var session: SessionStore
     @ObservedObject private var theme = ThemeManager.shared
     // Onboarding de primera apertura (persistido). Espejo de isOnboardingDone.
-    // v2: tour ampliado (6 pasos). Subir la versión re-muestra el tour una vez.
+    // v2: se mantiene la clave al reducir el tour de 9 pantallas a UNA (2026-10-14): quien ya lo vio no vuelve a verlo.
     @AppStorage("onboarding_done_v2") private var onboardingDone = false
     // Gate de username obligatorio tras el tutorial: condición del SERVIDOR
     // (username == nil en /api/me), no de la instalación — reinstalar no lo
@@ -57,10 +57,14 @@ struct RootView: View {
             } else if session.user == nil {
                 LoginView()
             } else if !onboardingDone {
-                OnboardingView {
+                OnboardingView(onFinish: {
                     AppDependencies.shared.locationBridge.requestPermission()
+                    UserDefaults.standard.set(true, forKey: "guide_pending_schools")
                     onboardingDone = true
-                }
+                }, onSkip: {
+                    UserDefaults.standard.set(true, forKey: "guide_pending_schools")
+                    onboardingDone = true
+                })
             } else if needsUsername == true {
                 UsernameGateView { needsUsername = false }
             } else {

@@ -337,12 +337,14 @@ struct SchoolDetailView: View {
                               },
                               trailing: {
                                   SchoolDetailHeaderActions(vm: vm, school: school,
-                                                            onHelp: { showHelp = true },
+                                                            // Guía de la pantalla; si no la hubiera, la ayuda de texto de siempre.
+                                                            onHelp: { if !GuideStore.shared.start("detail") { showHelp = true } },
                                                             onProcessionary: { showProcessionary = true })
                               })
             scrollContent
         }
         .background(Cumbre.bg.ignoresSafeArea())
+        .guideHost("detail")
         .navigationBarHidden(true)
         .sheet(item: $selectedDay) { d in
             DayDetailView(day: d, allHours: vm.forecast?.hours ?? [])
@@ -393,6 +395,7 @@ struct SchoolDetailView: View {
     @ViewBuilder private func tabbedContent(_ f: Forecast?) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             SchoolTabBar(selection: $tab, schoolStyle: school.style)
+                .guideTarget("detail.tabs")
             switch tab {
             case .map:
                 // Boletín de montaña ENCIMA del mapa (paridad con Android).

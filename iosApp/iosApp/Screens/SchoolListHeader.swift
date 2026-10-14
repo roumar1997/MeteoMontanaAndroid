@@ -71,7 +71,7 @@ struct TopIconsRow: View {
             // cabecera y era lo que hacía que no se pareciera a la de Android
             // (Rodrigo, 2026-08-21).
             HStack(spacing: 0) {
-                HelpButton(topicKey: "schools")
+                GuideHelpButton(topicKey: "schools")
                 iconButton("magnifyingglass") { showSearch = true }
                 chatButton
                 iconButton(theme.iconName) { theme.cycle() }
@@ -633,6 +633,7 @@ struct FilterChips: View {
             dayChip
         }
         .padding(.horizontal, 12)
+        .guideTarget("schools.filters")
     }
 
     /// "SIN LLUVIA": deja solo las escuelas donde no llueve.
@@ -776,6 +777,7 @@ struct FilterChips: View {
                 .accessibilityLabel(L("Mapa"))
         }
         .buttonStyle(.plain)
+        .guideTarget("schools.map")
     }
 
     private func tabButton(_ t: String, active: Bool, action: @escaping () -> Void) -> some View {

@@ -1469,3 +1469,7 @@
 "VOLVER A HOY" = "BACK TO TODAY";
 "%@ DÍAS" = "%@ DAYS";
 "%@ elegido%@ · nota = media de los días" = "%@ picked%@ · score = average of the days";
+"Te decimos si hoy se puede escalar y dónde, según el tiempo y lo que tarda en secar cada roca." = "We tell you if you can climb today and where, based on the weather and how long each rock takes to dry.";
+"Usamos tu ubicación solo para ordenar las escuelas por cercanía y centrar el mapa. Se queda en tu móvil." = "We only use your location to sort crags by distance and centre the map. It stays on your phone.";
+"AHORA NO" = "NOT NOW";
+"Guía de esta pantalla" = "Guide to this screen";

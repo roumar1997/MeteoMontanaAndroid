@@ -90,11 +90,13 @@ struct SchoolDetailHeaderActions: View {
             }
             // En "⋯" solo lo que se usa poco: ayuda y procesionaria.
             Menu {
-                Button(action: onHelp) { Label(L("Ayuda"), systemImage: "questionmark.circle") }
+                Button(action: onHelp) { Label(L("Guía de esta pantalla"), systemImage: "questionmark.circle") }
                 Button(action: onProcessionary) { Label(L("Procesionaria"), systemImage: "exclamationmark.triangle") }
             } label: {
                 Image(systemName: "ellipsis").foregroundStyle(Cumbre.ink3)
                     .frame(width: 29, height: 32)
+                    // Las primeras visitas parpadea: ahí dentro está la guía de la pantalla.
+                    .guidePulse("detail")
             }
         }
         .padding(.horizontal, 2)
