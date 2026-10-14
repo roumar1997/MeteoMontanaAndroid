@@ -39,6 +39,16 @@ final class ShareLinkRouter: ObservableObject {
 
     @Published var target: Target? = nil
 
+    /// Escuela pedida desde el asistente: se abre DENTRO de la pestaña Escuelas, con la barra de pestañas a la vista
+    /// (igual que Android), en vez de a pantalla completa como los enlaces compartidos.
+    @Published var tabSchoolRequest: Target? = nil
+
+    func openSchoolInTabs(id: String, viaId: String? = nil) async {
+        if let school = try? await AppDependencies.shared.container.getSchoolById.invoke(id: id) {
+            tabSchoolRequest = Target(school: school, viaId: viaId)
+        }
+    }
+
     /// Abre una escuela (y, si se indica, la piedra de esa vía) desde cualquier
     /// parte de la app, por el mismo camino que los enlaces compartidos.
     func openSchool(id: String, viaId: String? = nil) async {

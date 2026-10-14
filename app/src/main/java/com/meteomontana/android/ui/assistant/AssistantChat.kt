@@ -12,6 +12,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,7 +20,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -129,13 +132,9 @@ fun AssistantBubble(
     val haptic = LocalHapticFeedback.current
     val words = ChatWords(AppLanguage.effective(LocalContext.current))
 
-    Image(
-        painterResource(R.drawable.assistant_bubble),
-        contentDescription = null,
+    Box(
         modifier = modifier
             .size(58.dp)
-            .shadow(3.dp, CircleShape)
-            .clip(CircleShape)
             .semantics { contentDescription = words.bubbleCd }
             .combinedClickable(
                 onClick = { open = true },
@@ -145,7 +144,11 @@ fun AssistantBubble(
                     open = true
                 }
             )
-    )
+    ) {
+        // El círculo del dibujo ocupa ~89 % del cuadrado, pegado arriba a la izquierda: la sombra va con ESE círculo.
+        Box(Modifier.size(52.dp).offset(0.5.dp, 0.5.dp).shadow(3.dp, CircleShape))
+        Image(painterResource(R.drawable.assistant_bubble), contentDescription = null, modifier = Modifier.fillMaxSize())
+    }
 
     // Al tocar un resultado el chat se cierra y se abre el destino.
     val request = state.openRequest
@@ -171,7 +174,6 @@ private fun AssistantChatSheet(vm: AssistantViewModel, onDismiss: () -> Unit) {
     val assistantWords = remember { AssistantWords(AppLanguage.effective(context)) }
     val voice = remember { AssistantVoiceInput(context, scope) }
     var showMicDenied by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val micLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) voice.start() else showMicDenied = true
@@ -196,12 +198,24 @@ private fun AssistantChatSheet(vm: AssistantViewModel, onDismiss: () -> Unit) {
         onDispose { voice.stop() }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = MaterialTheme.colorScheme.background) {
-        Column(Modifier.fillMaxHeight().imePadding().navigationBarsPadding()) {
-            Header(state.messages.isNotEmpty(), words, onNew = { voice.stop(); vm.reset() }, onClose = { voice.stop(); onDismiss() })
-            MessagesList(vm, state, presenter, assistantWords, words, Modifier.weight(1f))
-            VoiceHint(voice, words)
-            InputBar(vm, state, voice, words, onToggleVoice = ::toggleVoice, onSend = { voice.stop(); vm.send() })
+    // Una hoja a casi pantalla completa, pero NO un ModalBottomSheet: su gesto de arrastrar para cerrar peleaba con el
+    // scroll de la lista (un deslizamiento rápido hacia abajo cerraba el chat y el scroll iba "pesado"). Se cierra con
+    // Cerrar, tocando fuera o con atrás, como pide iOS en la práctica.
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
+    ) {
+        androidx.compose.material3.Surface(
+            modifier = Modifier.fillMaxSize().statusBarsPadding().padding(top = 8.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            Column(Modifier.fillMaxSize().imePadding().navigationBarsPadding()) {
+                Header(state.messages.isNotEmpty(), words, onNew = { voice.stop(); vm.reset() }, onClose = { voice.stop(); onDismiss() })
+                MessagesList(vm, state, presenter, assistantWords, words, Modifier.weight(1f))
+                VoiceHint(voice, words)
+                InputBar(vm, state, voice, words, onToggleVoice = ::toggleVoice, onSend = { voice.stop(); vm.send() })
+            }
         }
     }
 

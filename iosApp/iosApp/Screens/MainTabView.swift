@@ -9,6 +9,8 @@ struct MainTabView: View {
     /// Sube al pulsar "Feed" estando YA en esa pestaña — FeedView lo escucha
     /// para volver arriba del todo (como Instagram/Twitter).
     @State private var feedScrollToTopSignal = 0
+    /// Una escuela pedida desde el asistente: salta a la pestaña Escuelas, que la abre.
+    @ObservedObject private var router = ShareLinkRouter.shared
 
     /// Binding a mano: el `set` de TabView SÍ se llama aunque el valor no
     /// cambie (tocar la pestaña activa), así se detecta el re-toque.
@@ -52,6 +54,9 @@ struct MainTabView: View {
                 .tag(4)
         }
         .tint(Cumbre.terra)
+        .onChange(of: router.tabSchoolRequest?.id) { _, id in
+            if id != nil { tab = 2 }
+        }
         // Burbuja del asistente: siempre visible, encima de la barra de pestañas.
         .overlay(alignment: .bottomTrailing) {
             AssistantBubble()

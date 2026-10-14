@@ -74,9 +74,12 @@ private fun cardModifier(modifier: Modifier = Modifier) = modifier
     .border(1.dp, MaterialTheme.colorScheme.outline, CardShape)
 
 @Composable
-private fun MonoText(text: String, size: Int, color: Color, modifier: Modifier = Modifier, spacing: Float = 0f) =
+private fun MonoText(
+    text: String, size: Int, color: Color, modifier: Modifier = Modifier, spacing: Float = 0f,
+    textAlign: androidx.compose.ui.text.style.TextAlign? = null
+) =
     Text(text, color = color, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = size.sp,
-        letterSpacing = spacing.sp, modifier = modifier)
+        letterSpacing = spacing.sp, textAlign = textAlign, modifier = modifier)
 
 /** Las pocas palabras sueltas de las tarjetas, en el idioma de la app. */
 class AssistantWords(lang: String) {
@@ -170,6 +173,7 @@ fun AssistantBreakdownView(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         breakdown.sectors.forEach { sector -> AssistantSectorView(sector, breakdown.sun, breakdown.school.id, presenter, words, onOpen) }
         MonoText(words.openSchool(breakdown.school.name), 10, Color.White, spacing = 1.8f,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,   // centrado, como en iOS
             modifier = Modifier.fillMaxWidth().clip(CardShape).background(Terra)
                 .clickable { onOpen(breakdown.school.id, null) }.padding(vertical = 10.dp))
     }

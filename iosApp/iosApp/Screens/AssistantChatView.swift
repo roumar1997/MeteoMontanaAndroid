@@ -52,7 +52,7 @@ extension AssistantBubble {
     private func openPendingTarget() {
         guard let request = assistant.openRequest else { return }
         assistant.openRequest = nil
-        Task { await ShareLinkRouter.shared.openSchool(id: request.schoolId, viaId: request.viaId) }
+        Task { await ShareLinkRouter.shared.openSchoolInTabs(id: request.schoolId, viaId: request.viaId) }
     }
 }
 

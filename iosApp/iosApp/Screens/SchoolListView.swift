@@ -550,6 +550,17 @@ final class SchoolListViewModel: ObservableObject {
 struct SchoolListView: View {
     @StateObject private var vm = SchoolListViewModel()
     @Environment(\.scenePhase) private var scenePhase
+    /// Escuela pedida desde el asistente: se abre aquí dentro, con la barra de pestañas visible.
+    @ObservedObject private var router = ShareLinkRouter.shared
+    @EnvironmentObject private var assistant: AssistantViewModel
+
+    /// Abre la escuela que pidió el asistente (si la hay). Se llama al llegar la petición y al aparecer la pestaña
+    /// (si aún no se había creado cuando llegó).
+    private func consumeAssistantRequest() {
+        guard let request = router.tabSchoolRequest, let school = request.school else { return }
+        router.tabSchoolRequest = nil
+        navTarget = SchoolNavTarget(school: school, via: request.viaId)
+    }
 
     var body: some View {
         NavigationStack {
@@ -557,7 +568,14 @@ struct SchoolListView: View {
             .background(Cumbre.bg.ignoresSafeArea())
             .guideHost("schools")
             .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(item: $navTarget) { SchoolDetailView(school: $0.school, openVia: $0.via) }
+            .navigationDestination(item: $navTarget) { target in
+                SchoolDetailView(school: target.school, openVia: target.via)
+                    // Dentro de una escuela, "¿qué sector tiene más sombra?" ya sabe de cuál hablas.
+                    .onAppear { assistant.contextSchoolId = target.school.id }
+                    .onDisappear { assistant.contextSchoolId = nil }
+            }
+            .onChange(of: router.tabSchoolRequest?.id) { _, _ in consumeAssistantRequest() }
+            .onAppear { consumeAssistantRequest() }
             .overlay {
                 if eligiendoFoto {
                     SubmitBlockPhotoFlow(
