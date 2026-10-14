@@ -61,9 +61,6 @@ struct RootView: View {
                     AppDependencies.shared.locationBridge.requestPermission()
                     UserDefaults.standard.set(true, forKey: "guide_pending_schools")
                     onboardingDone = true
-                }, onSkip: {
-                    UserDefaults.standard.set(true, forKey: "guide_pending_schools")
-                    onboardingDone = true
                 })
             } else if needsUsername == true {
                 UsernameGateView { needsUsername = false }

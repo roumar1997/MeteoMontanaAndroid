@@ -7,10 +7,11 @@ import SwiftUI
 // obligatorio lo sigue pidiendo `UsernameGateView`, que es otra pantalla y otra condición (la del servidor).
 
 struct OnboardingView: View {
-    /// "Permitir ubicación y empezar": RootView pide el permiso y marca la bienvenida como vista.
+    /// "Continuar": RootView pide SIEMPRE el permiso de ubicación del sistema y marca la bienvenida como vista.
+    /// Apple (guideline 5.1.1(iv), rechazo del build 281, 2026-10-14) exige dos cosas: que el botón sea neutro
+    /// ("Continuar", no "Permitir ubicación…") y que NO haya forma de saltarse el diálogo del sistema desde esta
+    /// pantalla (antes había un "Ahora no"). Quien no quiera dar la ubicación lo dice en el diálogo de Apple.
     let onFinish: () -> Void
-    /// "Ahora no": entra sin pedir la ubicación (se puede dar luego desde Escuelas).
-    var onSkip: () -> Void = {}
 
     var body: some View {
         VStack {
@@ -41,16 +42,11 @@ struct OnboardingView: View {
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
                 .padding(.bottom, 14)
             Button(action: onFinish) {
-                Text(L("PERMITIR UBICACIÓN Y EMPEZAR"))
+                Text(L("CONTINUAR"))
                     .font(Cumbre.mono(13, .bold)).tracking(0.8)
                     .foregroundStyle(.white)
                     .padding(.vertical, 16).frame(maxWidth: .infinity)
                     .background(Cumbre.terraFill, in: Capsule())
-            }
-            .buttonStyle(.plain)
-            Button(action: onSkip) {
-                Text(L("AHORA NO")).font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.ink3)
-                    .padding(.vertical, 14).frame(maxWidth: .infinity)
             }
             .buttonStyle(.plain)
         }
