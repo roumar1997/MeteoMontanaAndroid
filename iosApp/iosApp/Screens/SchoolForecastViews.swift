@@ -44,12 +44,15 @@ struct ForecastBodyView: View {
     static func weatherTab(_ f: Forecast, onSelectDay: ((DayForecast) -> Void)?) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HeatmapStrip(hours: upcomingHours(f.hours, 24)).padding(16)
+                .guideTarget("detail_weather.heat")
             Divider().overlay(Cumbre.rule)
             CurrentWeather(current: f.current)
+                .guideTarget("detail_weather.now")
             Divider().overlay(Cumbre.rule)
             ConditionsGrid(current: f.current)
             Divider().overlay(Cumbre.rule)
             SectionTitle(L("PRÓXIMOS 7 DÍAS"))
+                .guideTarget("detail_weather.days")
             ForEach(Array(f.days.prefix(7).enumerated()), id: \.offset) { _, d in
                 Button { onSelectDay?(d) } label: { DayRow(day: d) }.buttonStyle(.plain)
                 Divider().overlay(Cumbre.rule)

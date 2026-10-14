@@ -327,6 +327,7 @@ struct FeedView: View {
                 }
             }
             .background(Cumbre.bg.ignoresSafeArea())
+            .guideHost("community")
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(item: $navTarget) { t in
                 switch t {
@@ -387,7 +388,7 @@ struct FeedView: View {
             Text("Feed")
                 .font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
             Spacer()
-            HelpButton(topicKey: "community")
+            GuideHelpButton(topicKey: "community")
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
     }
@@ -413,8 +414,10 @@ struct FeedView: View {
                     .clipShape(RoundedRectangle(cornerRadius: Cumbre.pillRadius))
             }
             .buttonStyle(.plain)
+            .guideTarget("community.ranking")
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
+        .guideTarget("community.tabs")
     }
 
     private func feedCardTab(_ label: String, selected: Bool,
@@ -534,6 +537,7 @@ struct FeedView: View {
                                 onOpenComments: { commentsPost = post },
                                 onDelete: { deleteCandidate = post },
                                 onReport: post.mine ? nil : { reportPost = post })
+                                .guideTarget("community.post", when: post.id == visible.first?.id)
                         }
                         if !vm.endReached {
                             // Sentinel: al aparecer (final de la lista) pide otra página.

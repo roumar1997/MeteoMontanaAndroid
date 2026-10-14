@@ -230,6 +230,7 @@ struct AccountView: View {
                     }
                     badges
                     followCounters
+                        .guideTarget("profile.follows")
                     diarySection
                 }
                 .frame(maxWidth: .infinity)
@@ -237,13 +238,14 @@ struct AccountView: View {
                 .padding(.horizontal, 24)
             }
             .background(Cumbre.bg.ignoresSafeArea())
+            .guideHost("profile")
             // Sin titulo: debajo ya estan tu foto, tu nombre y tu @usuario.
             // Poner "Cuenta" encima solo repite donde estas y roba altura.
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .topBarLeading) {
-                    HelpButton(topicKey: "profile")
+                    GuideHelpButton(topicKey: "profile")
                     // Acceso admin (solo admins) con nº de pendientes, junto al "?".
                     if vm.profile?.isAdmin == true {
                         NavigationLink(destination: AdminView()) {
@@ -300,12 +302,14 @@ struct AccountView: View {
     /// ESCUELAS, y desde dentro se puede borrar.
     @ViewBuilder private var diarySection: some View {
         AccountJournalStatsNav(vm: vm)
+            .guideTarget("profile.diary")
         Button { showAddBlock = true } label: {
             // Terracota: Cumbre.ink se invierte a crema en oscuro (deslumbraba).
             Text(NSLocalizedString("profile_add_block", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8)
                 .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
                 .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
         }.buttonStyle(.plain).padding(.top, 4)
+            .guideTarget("profile.add")
     }
 
     private var avatar: some View {

@@ -74,11 +74,19 @@ extension View {
 private struct GuideHost: ViewModifier {
     let key: String
     @ObservedObject private var store = GuideStore.shared
+    /// Si se cambia el idioma con una guía abierta, se vuelve a pintar en el idioma nuevo.
+    @ObservedObject private var language = LanguageManager.shared
+
+    /// Una pantalla atiende su guía ("detail") y las de sus pestañas ("detail_map", "detail_blocks"…).
+    private func isMine(_ active: String?) -> Bool {
+        guard let active else { return false }
+        return active == key || active.hasPrefix(key + "_")
+    }
 
     func body(content: Content) -> some View {
         content.overlayPreferenceValue(GuideTargetKey.self) { anchors in
             GeometryReader { geo in
-                if store.activeKey == key, let g = store.guide, store.index < g.steps.count {
+                if isMine(store.activeKey), let g = store.guide, store.index < g.steps.count {
                     let step = g.steps[store.index]
                     GuideOverlay(step: step, position: store.index + 1, total: g.steps.count,
                                  hole: anchors[step.target].map { geo[$0] }, size: geo.size,

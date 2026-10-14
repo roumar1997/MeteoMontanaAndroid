@@ -41,6 +41,8 @@ struct SchoolDetailHeaderActions: View {
     @ObservedObject var vm: SchoolDetailViewModel
     let school: School
     let onHelp: () -> Void
+    /// Guía de la PESTAÑA que se está viendo (mapa, bloques, tiempo, notas).
+    let onTabHelp: () -> Void
     let onProcessionary: () -> Void
 
     private func openDirections() {
@@ -91,6 +93,7 @@ struct SchoolDetailHeaderActions: View {
             // En "⋯" solo lo que se usa poco: ayuda y procesionaria.
             Menu {
                 Button(action: onHelp) { Label(L("Guía de esta pantalla"), systemImage: "questionmark.circle") }
+                Button(action: onTabHelp) { Label(L("Guía de esta pestaña"), systemImage: "rectangle.stack") }
                 Button(action: onProcessionary) { Label(L("Procesionaria"), systemImage: "exclamationmark.triangle") }
             } label: {
                 Image(systemName: "ellipsis").foregroundStyle(Cumbre.ink3)

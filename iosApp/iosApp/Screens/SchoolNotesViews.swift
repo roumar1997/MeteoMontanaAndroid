@@ -88,6 +88,7 @@ struct NotesSectionView: View {
             if expanded || alwaysOpen {
             if notes.count > 1 {
                 orderMenu
+                    .guideTarget("detail_notes.order")
             }
             if notes.isEmpty {
                 Text("Sin notas aún. ¡Sé el primero!")
@@ -109,6 +110,7 @@ struct NotesSectionView: View {
             VStack(alignment: .trailing, spacing: 8) {
                 TextField(NSLocalizedString("detail_write_note", comment: ""), text: $draft, axis: .vertical)
                     .lineLimit(1...4)
+                    .guideTarget("detail_notes.write")
                     .font(.system(size: 15))
                     .foregroundStyle(Cumbre.ink)
                     .padding(10)

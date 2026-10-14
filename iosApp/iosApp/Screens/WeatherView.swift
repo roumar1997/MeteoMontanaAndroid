@@ -94,7 +94,7 @@ struct WeatherView: View {
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
             }
             Spacer()
-            HelpButton(topicKey: "weather")
+            GuideHelpButton(topicKey: "weather")
         }
         .padding(.horizontal, 16).padding(.top, 8)
     }
@@ -110,6 +110,7 @@ struct WeatherView: View {
             .padding(.horizontal, 16)
         }
         .padding(.top, 8)
+        .guideTarget("weather.chips")
     }
 
     private func chip(_ t: String, selected: Bool, action: @escaping () -> Void) -> some View {
@@ -187,6 +188,7 @@ private struct FavoritesGridView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("TUS FAVORITAS").eyebrow().padding(.horizontal, 16).padding(.top, 12)
+                .guideTarget("weather.compare")
 
             ScrollView(.horizontal, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 4) {

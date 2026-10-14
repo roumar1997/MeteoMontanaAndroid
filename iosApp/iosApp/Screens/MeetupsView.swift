@@ -277,7 +277,7 @@ struct MeetupsView: View {
                     // sitio que aún se veía "antiguo" (Rodrigo, con captura,
                     // 2026-08-21).
                     HStack(spacing: 0) {
-                        HelpButton(topicKey: "meetups")
+                        GuideHelpButton(topicKey: "meetups")
                         Button { Task { await vm.load() } } label: {
                             Image(systemName: "arrow.clockwise").foregroundColor(Cumbre.ink)
                                 .frame(width: 34, height: 34)
@@ -287,10 +287,12 @@ struct MeetupsView: View {
                                 .foregroundColor(vm.alertEnabled ? Cumbre.terra : Cumbre.ink.opacity(0.5))
                                 .frame(width: 34, height: 34)
                         }
+                        .guideTarget("meetups.alert")
                         Button { activeSheet = .create } label: {
                             Image(systemName: "plus").foregroundColor(Cumbre.terra)
                                 .frame(width: 34, height: 34)
                         }
+                        .guideTarget("meetups.create")
                     }
                     .padding(.horizontal, 2)
                     .background(Cumbre.paper, in: Capsule())
@@ -358,6 +360,7 @@ struct MeetupsView: View {
                     .padding(.horizontal, 16).padding(.vertical, 4)
                     .contentShape(Rectangle())
                     .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { filtersExpanded.toggle() } }
+                    .guideTarget("meetups.filters")
 
                     if filtersExpanded {
                         VStack(alignment: .leading, spacing: 10) {
@@ -477,6 +480,7 @@ struct MeetupsView: View {
                     } // LazyVStack
                 } // ScrollView
             }
+            .guideHost("meetups")
             .navigationBarHidden(true)
             .sheet(item: $activeSheet) { sheet in
                 switch sheet {

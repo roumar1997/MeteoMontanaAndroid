@@ -364,6 +364,7 @@ struct SchoolMapSection: View {
                                         .clipShape(RoundedRectangle(cornerRadius: 11))
                                 }
                                 .buttonStyle(.plain)
+                                .guideTarget("detail_map.propose")
                             }
                             Spacer()
                         }
@@ -694,6 +695,7 @@ struct SchoolMapSection: View {
                 .background(orientationFilter == nil ? Cumbre.terraBg : Cumbre.terraFill, in: Capsule())
                 .overlay(Capsule().stroke(Cumbre.terra, lineWidth: orientationFilter == nil ? 1.5 : 1))
             }
+            .guideTarget("detail_map.orientation")
         }
     }
 
@@ -1249,6 +1251,7 @@ struct SchoolMapSection: View {
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 4)
+            .guideTarget("detail_map.places")
         }
     }
 

@@ -339,6 +339,7 @@ struct SchoolDetailView: View {
                                   SchoolDetailHeaderActions(vm: vm, school: school,
                                                             // Guía de la pantalla; si no la hubiera, la ayuda de texto de siempre.
                                                             onHelp: { if !GuideStore.shared.start("detail") { showHelp = true } },
+                                                            onTabHelp: { GuideStore.shared.start(tab.guideKey) },
                                                             onProcessionary: { showProcessionary = true })
                               })
             scrollContent

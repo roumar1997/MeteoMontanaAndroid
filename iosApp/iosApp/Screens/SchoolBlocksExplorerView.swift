@@ -51,6 +51,7 @@ struct SchoolBlocksExplorerView: View {
                 .background(Cumbre.paper)
                 .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                 .dismissKeyboardOnSubmit()
+                .guideTarget("detail_blocks.search")
             filterToggle
             if model.filtersOpen { filterPanel }
         }
@@ -94,6 +95,7 @@ struct SchoolBlocksExplorerView: View {
             }
             .contentShape(Rectangle())
         }.buttonStyle(.plain)
+        .guideTarget("detail_blocks.filters")
     }
 
     private var filterPanel: some View {
@@ -176,6 +178,7 @@ struct SchoolBlocksExplorerView: View {
                     ForEach(0..<max(0, 3 - view.podium.count), id: \.self) { _ in Color.clear.frame(maxWidth: .infinity) }
                 }
                 .padding(.horizontal, 16).padding(.bottom, 8)
+                .guideTarget("detail_blocks.podium")
             }
             // Por sectores, plegables. Perezoso: un sector abierto con muchas vías no monta todas las miniaturas de golpe.
             LazyVStack(spacing: 0) {

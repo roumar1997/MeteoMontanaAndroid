@@ -4,6 +4,16 @@ import SwiftUI
 enum SchoolTab: CaseIterable {
     case map, blocks, weather, notes
 
+    /// Clave de la guía de esta pestaña (`GuideCatalog`).
+    var guideKey: String {
+        switch self {
+        case .map: return "detail_map"
+        case .blocks: return "detail_blocks"
+        case .weather: return "detail_weather"
+        case .notes: return "detail_notes"
+        }
+    }
+
     /// "BLOQUES" si solo hay bloques, "VÍAS" si solo hay vías y "BLOQUES/VÍAS" si hay de las dos
     /// (`school.style` = "Vía,Bloque"). Sin estilo, "BLOQUES".
     static func blocksLabel(style: String?) -> String {

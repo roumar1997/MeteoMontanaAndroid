@@ -74,8 +74,10 @@ struct WeatherRadarTab: View {
             VStack(spacing: 0) {
                 WeatherRadarToggle(showRadar: false) { showRadar = $0 }
                     .padding(.top, 8)
+                    .guideTarget("weather.toggle")
                 WeatherView()
             }
+            .guideHost("weather")
             .opacity(showRadar ? 0 : 1)
             .zIndex(showRadar ? 0 : 1)
             .allowsHitTesting(!showRadar)
