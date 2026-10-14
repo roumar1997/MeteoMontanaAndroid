@@ -47,6 +47,8 @@ struct FirstTimeHint: View {
         for k in d.dictionaryRepresentation().keys where k.hasPrefix("hint_") {
             d.removeObject(forKey: k)
         }
+        // Y las guías por pantalla: el "?" vuelve a parpadear y la de Escuelas vuelve a salir sola una vez.
+        GuideStore.resetAll()
     }
 
     init(hintKey: String, text: String) {
