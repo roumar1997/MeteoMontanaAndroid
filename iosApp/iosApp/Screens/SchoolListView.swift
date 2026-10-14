@@ -701,7 +701,6 @@ struct SchoolListView: View {
                                 // Usamos tap + long-press directos sobre la fila.
                                 SchoolListItemView(
                                     rank: idx + 1,
-                                    isFirst: idx == 0,
                                     school: school,
                                     score: vm.scores[school.id],
                                     range: vm.rangeMode ? vm.rangeScores[school.id] : nil,
@@ -709,7 +708,8 @@ struct SchoolListView: View {
                                     isFavorite: vm.favoriteIds.contains(school.id),
                                     isSelected: vm.compareSelection.contains(school.id),
                                     processionaryAlertActive: vm.processionaryAlertActive(for: school),
-                                    onToggleFavorite: { vm.toggleFavorite(school.id) }
+                                    onToggleFavorite: { vm.toggleFavorite(school.id) },
+                                    isFirst: idx == 0
                                 )
                                 .contentShape(Rectangle())
                                 .onTapGesture {
