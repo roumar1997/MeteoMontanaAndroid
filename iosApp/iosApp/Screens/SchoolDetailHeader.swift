@@ -17,9 +17,9 @@ struct SchoolDetailHeaderTitle: View {
     var body: some View {
         HStack(spacing: 8) {
             Button(action: onBack) {
-                Image(systemName: "chevron.left").font(.system(size: 16, weight: .semibold))
+                Image(systemName: "chevron.left").font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(Cumbre.ink)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 40, height: 40)
             }
             .background(Cumbre.paper, in: Circle())
             .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
@@ -45,21 +45,21 @@ struct SchoolDetailHeaderActions: View {
         HStack(spacing: 0) {
             Button { openDirections() } label: {
                 Image(systemName: "arrow.triangle.turn.up.right.diamond").foregroundStyle(Cumbre.ink3)
-                    .frame(width: 29, height: 32)
+                    .font(.system(size: 20)).frame(width: 35, height: 42)
             }
             if let f = vm.forecast {
                 ShareLink(item: conditionsShareSummary(f)) {
                     Image(systemName: "square.and.arrow.up").foregroundStyle(Cumbre.ink3)
-                        .frame(width: 29, height: 32)
+                        .font(.system(size: 20)).frame(width: 35, height: 42)
                 }
             }
             Button { vm.toggleFavorite(schoolId: school.id) } label: {
                 Image(systemName: vm.isFavorite ? "star.fill" : "star")
                     .foregroundStyle(vm.isFavorite ? Cumbre.terra : Cumbre.ink3)
-                    .frame(width: 29, height: 32)
+                    .font(.system(size: 20)).frame(width: 35, height: 42)
             }
             if vm.savingOffline {
-                ProgressView().frame(width: 29, height: 32)
+                ProgressView().frame(width: 35, height: 42)
             } else {
                 Button {
                     Task {
@@ -69,21 +69,21 @@ struct SchoolDetailHeaderActions: View {
                 } label: {
                     Image(systemName: vm.isSaved ? "arrow.down.circle.fill" : "arrow.down.circle")
                         .foregroundStyle(vm.isSaved ? Cumbre.terra : Cumbre.ink3)
-                        .frame(width: 29, height: 32)
+                        .font(.system(size: 20)).frame(width: 35, height: 42)
                 }
             }
             // Procesionaria: siempre a la vista (antes iba tras un menú "⋯" con un solo elemento). Roja si hay alerta.
             Button(action: onProcessionary) {
                 if vm.processionaryAlertActive {
                     ProcessionaryIcon(tint: .white)
-                        .frame(width: 15, height: 15)
-                        .frame(width: 26, height: 26)
+                        .frame(width: 18, height: 18)
+                        .frame(width: 32, height: 32)
                         .background(Cumbre.bad, in: Circle())
-                        .frame(width: 29, height: 32)
+                        .frame(width: 35, height: 42)
                 } else {
                     ProcessionaryIcon(tint: Cumbre.ink3)
-                        .frame(width: 17, height: 17)
-                        .frame(width: 29, height: 32)
+                        .frame(width: 22, height: 22)
+                        .frame(width: 35, height: 42)
                 }
             }
             .accessibilityLabel(L("Procesionaria"))

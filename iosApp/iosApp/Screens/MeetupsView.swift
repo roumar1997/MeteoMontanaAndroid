@@ -262,35 +262,40 @@ struct MeetupsView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 // ── Header ──
-                HStack {
+                HStack(spacing: 8) {
+                    // Solo "QUEDADAS" (y cuántas hay si hay): sin el "Quedar a escalar" de relleno cuando está vacío,
+                    // que repetía lo que ya dice el título (Álvaro, 2026-10-14).
                     VStack(alignment: .leading, spacing: 2) {
                         Text("QUEDADAS")
                             .font(.system(size: 10, weight: .bold, design: .monospaced))
                             .tracking(1.8)
                             .foregroundColor(Cumbre.ink.opacity(0.6))
-                        Text(displayedMeetups.isEmpty ? L("Quedar a escalar") : L("%@ activas", displayedMeetups.count))
-                            .font(.headline)
+                        if !displayedMeetups.isEmpty {
+                            Text(L("%@ activas", displayedMeetups.count))
+                                .font(.headline)
+                        }
                     }
                     Spacer()
+                    GuideHelpButton(topicKey: "meetups")
                     // Agrupados en una píldora, como el resto de cabeceras de
                     // esta sesión — se quedaron sueltos aquí, era el único
                     // sitio que aún se veía "antiguo" (Rodrigo, con captura,
                     // 2026-08-21).
-                    GuideHelpButton(topicKey: "meetups")
                     HStack(spacing: 0) {
                         Button { Task { await vm.load() } } label: {
-                            Image(systemName: "arrow.clockwise").foregroundColor(Cumbre.ink)
-                                .frame(width: 34, height: 34)
+                            Image(systemName: "arrow.clockwise").font(.system(size: 20)).foregroundColor(Cumbre.ink)
+                                .frame(width: 42, height: 42)
                         }
                         Button { activeSheet = .alert } label: {
                             Image(systemName: vm.alertEnabled ? "bell.fill" : "bell")
+                                .font(.system(size: 20))
                                 .foregroundColor(vm.alertEnabled ? Cumbre.terra : Cumbre.ink.opacity(0.5))
-                                .frame(width: 34, height: 34)
+                                .frame(width: 42, height: 42)
                         }
                         .guideTarget("meetups.alert")
                         Button { activeSheet = .create } label: {
-                            Image(systemName: "plus").foregroundColor(Cumbre.terra)
-                                .frame(width: 34, height: 34)
+                            Image(systemName: "plus").font(.system(size: 22, weight: .semibold)).foregroundColor(Cumbre.terra)
+                                .frame(width: 42, height: 42)
                         }
                         .guideTarget("meetups.create")
                     }

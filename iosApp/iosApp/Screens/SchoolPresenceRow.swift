@@ -213,9 +213,9 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
         HStack(spacing: 6) {
             Button { showSchoolChat = true } label: {
                 Image(systemName: "bubble.left.and.bubble.right")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(Cumbre.ink)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 40, height: 40)
                     .background(Cumbre.paper, in: Circle())
                     .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
             }
@@ -241,13 +241,13 @@ struct PresenceMarkButton: View {
             if vm.iAmHere { vm.toggle() } else { showPrivacyNote = true }
         } label: {
             HStack(spacing: 3) {
-                Image(systemName: "mappin.circle.fill").font(.system(size: 10))
+                Image(systemName: "mappin.circle.fill").font(.system(size: 14))
                 Text(vm.iAmHere ? L("Ya no") : L("Aquí"))
-                    .font(.system(size: 11, weight: .bold, design: .serif))
+                    .font(.system(size: 14, weight: .bold, design: .serif))
                     .lineLimit(1).fixedSize()
             }
             .foregroundStyle(.white)
-            .padding(.horizontal, 9).padding(.vertical, 6)
+            .padding(.horizontal, 10).padding(.vertical, 10)
             .background(vm.iAmHere ? Cumbre.ink3 : Cumbre.terraFill, in: Capsule())
         }
         .disabled(vm.loading)
