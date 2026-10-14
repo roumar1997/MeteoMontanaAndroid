@@ -652,7 +652,10 @@ struct FilterChips: View {
 
     /// "HOY ⌄" (o el tramo elegido: "VIE–DOM ⌄"): abre los días para comparar un tramo de hasta 5.
     private var dayChip: some View {
-        Button { withAnimation(.easeInOut(duration: 0.2)) { vm.daysOpen.toggle() } } label: {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) { vm.daysOpen.toggle() }
+            if vm.daysOpen { vm.loadDayRainIfNeeded() }
+        } label: {
             HStack(spacing: 4) {
                 Text(DaySelectorRow.rangeLabel(vm.selectedDates.sorted())).font(Cumbre.mono(10.5, .bold)).tracking(0.6)
                 Image(systemName: vm.daysOpen ? "chevron.up" : "chevron.down").font(.system(size: 9, weight: .bold))

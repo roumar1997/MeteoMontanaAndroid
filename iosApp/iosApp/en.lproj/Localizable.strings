@@ -1468,3 +1468,4 @@
 "Mapa" = "Map";
 "VOLVER A HOY" = "BACK TO TODAY";
 "%@ DÍAS" = "%@ DAYS";
+"%@ elegido%@ · nota = media de los días" = "%@ picked%@ · score = average of the days";

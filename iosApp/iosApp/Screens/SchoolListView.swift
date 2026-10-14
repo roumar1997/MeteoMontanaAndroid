@@ -75,6 +75,10 @@ final class SchoolListViewModel: ObservableObject {
     @Published var daysOpen = false
     /// Chip "SIN LLUVIA": deja solo las escuelas donde no llueve (hoy, o ningún día del tramo elegido).
     @Published var onlyDry = false
+    /// Lluvia de cada uno de los próximos 7 días sobre las escuelas de la lista (mediana de mm), para los botones
+    /// del selector de días. Se pide al abrir el panel de días; el resumen lo calcula shared (`DayRainSummary`).
+    @Published var dayRain: [String: DayRain] = [:]
+    private var dayRainTask: Task<Void, Never>?
     @Published var rangeScores: [String: RangeScore] = [:]
     var rangeMode: Bool { !selectedDates.isEmpty }
 
@@ -238,6 +242,30 @@ final class SchoolListViewModel: ObservableObject {
     }
     var activeFilters: Bool { style != nil || rock != nil || maxDistanceKm != nil || showMode != .all }
     func clearFilters() { style = nil; rock = nil; query = ""; maxDistanceKm = nil; showMode = .all; onlyDry = false }
+
+    /// Los próximos 7 días en ISO (yyyy-MM-dd), empezando hoy.
+    static func next7ISO() -> [String] {
+        let cal = Calendar(identifier: .gregorian)
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX")
+        let today = cal.startOfDay(for: Date())
+        return (0..<7).compactMap { cal.date(byAdding: .day, value: $0, to: today) }.map { f.string(from: $0) }
+    }
+
+    /// Pide la lluvia de los 7 días para las 40 primeras escuelas de la lista (las cercanas, una sola llamada; el
+    /// servidor cachea). Solo una vez por sesión de lista: si aún no hay escuelas, se reintenta al volver a abrir.
+    func loadDayRainIfNeeded() {
+        guard dayRain.isEmpty, dayRainTask == nil else { return }
+        let ids = filtered.prefix(40).map { $0.id }
+        guard !ids.isEmpty else { return }
+        let dates = Self.next7ISO()
+        dayRainTask = Task { [weak self] in
+            guard let self else { return }
+            let ranges = (try? await self.getRangeScores.invoke(ids: ids, dates: dates)) ?? []
+            let summary = DayRainSummary.shared.summarize(ranges: ranges, dates: dates)
+            self.dayRain = Dictionary(uniqueKeysWithValues: summary.map { ($0.date, $0) })
+            self.dayRainTask = nil
+        }
+    }
 
     /// Vuelve a "HOY": quita los días elegidos.
     func clearDates() {
