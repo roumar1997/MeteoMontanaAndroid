@@ -276,8 +276,8 @@ struct MeetupsView: View {
                     // esta sesión — se quedaron sueltos aquí, era el único
                     // sitio que aún se veía "antiguo" (Rodrigo, con captura,
                     // 2026-08-21).
+                    GuideHelpButton(topicKey: "meetups")
                     HStack(spacing: 0) {
-                        GuideHelpButton(topicKey: "meetups")
                         Button { Task { await vm.load() } } label: {
                             Image(systemName: "arrow.clockwise").foregroundColor(Cumbre.ink)
                                 .frame(width: 34, height: 34)

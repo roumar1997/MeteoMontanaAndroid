@@ -494,8 +494,15 @@ struct BlockInfoSheet: View {
                 // Sincroniza la pestaña visual con el salto: sin esto, el scroll
                 // llegaba bien pero la pestaña seguía marcando "FOTO 1".
                 caraVisible = i
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    withAnimation { proxy.scrollTo(anclaDeCara(i), anchor: .top) }
+                // Un solo salto se quedaba corto (Álvaro, 2026-10-14: buscando "Le Cranc", de la FOTO 2, "intenta
+                // deslizar pero no baja"): la hoja aún está subiendo y las fotos cargan después, así que las alturas
+                // cambian tras el primer salto. Se repite un par de veces mientras la cara marcada siga siendo esa
+                // (si el usuario toca otra pestaña de foto, deja de insistir).
+                for delay in [0.4, 1.0, 2.0] {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                        guard caraVisible == i else { return }
+                        withAnimation { proxy.scrollTo(anclaDeCara(i), anchor: .top) }
+                    }
                 }
             }
             }   // VStack: pestañas de cara + contenido

@@ -222,8 +222,8 @@ struct GuidePulse: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background(
-                Circle().stroke(Cumbre.terra, lineWidth: 2)
-                    .scaleEffect(pulsing ? 1.7 : 0.9)
+                Capsule().stroke(Cumbre.terra, lineWidth: 2)
+                    .scaleEffect(pulsing ? 1.5 : 0.95)
                     .opacity(enabled ? (pulsing ? 0 : 0.9) : 0)
             )
             .onAppear {
@@ -253,12 +253,8 @@ struct GuideHelpButton: View {
     @State private var showText = false
 
     var body: some View {
-        Button {
+        GuidePill(topicKey: topicKey) {
             if !GuideStore.shared.start(topicKey) { showText = true }
-        } label: {
-            Image(systemName: "questionmark.circle")
-                .foregroundStyle(Cumbre.ink2)
-                .guidePulse(topicKey)
         }
         .sheet(isPresented: $showText) { HelpSheet(topicKey: topicKey) }
     }
@@ -279,5 +275,30 @@ struct GuidesToggleRow: View {
             }
         }
         .tint(Cumbre.terra)
+    }
+}
+
+/// Botón "? AYUDA": el MISMO en todas las pantallas (símbolo "?" + palabra). Con la palabra se entiende qué hace
+/// (Álvaro, 2026-10-14: el "?" suelto no se identificaba); "GUÍA" se descartó porque en una app de escalada se lee
+/// como guía de escalada. Parpadea las primeras visitas.
+struct GuidePill: View {
+    let topicKey: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: "questionmark.circle.fill").font(.system(size: 13, weight: .semibold))
+                Text(L("AYUDA")).font(Cumbre.mono(11, .bold)).tracking(0.8)
+            }
+            .foregroundStyle(Cumbre.terra)
+            .padding(.horizontal, 11).padding(.vertical, 8)
+            .background(Cumbre.terra.opacity(0.10), in: Capsule())
+            .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1.2))
+            .guidePulse(topicKey)
+        }
+        .buttonStyle(.plain)
+        .fixedSize()
+        .accessibilityLabel(L("AYUDA"))
     }
 }

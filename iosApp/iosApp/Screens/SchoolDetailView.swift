@@ -337,9 +337,6 @@ struct SchoolDetailView: View {
                               },
                               trailing: {
                                   SchoolDetailHeaderActions(vm: vm, school: school,
-                                                            // Un solo "?": la guía de la pantalla (la 1ª vez) y la de la pestaña que
-                                                            // se ve; si no hubiera guía, la ayuda de texto de siempre.
-                                                            onHelp: { if !GuideStore.shared.startScreenAndTab(screen: "detail", tab: tab.guideKey) { showHelp = true } },
                                                             onProcessionary: { showProcessionary = true })
                               })
             scrollContent
@@ -436,14 +433,21 @@ struct SchoolDetailView: View {
         }
     }
 
-    /// El nombre de la escuela, como título al principio del contenido (se va con el scroll: no ocupa cabecera fija).
+    /// El nombre de la escuela, como título al principio del contenido (se va con el scroll: no ocupa cabecera fija),
+    /// con el botón "? GUÍA" al lado: un solo botón de ayuda que reconoce pantalla y pestaña. La 1ª vez cuenta la
+    /// pantalla y encadena la de la pestaña; luego solo la de la pestaña. Sin guía, la ayuda de texto de siempre.
     private var schoolTitle: some View {
-        Text(school.name)
-            .font(Cumbre.serif(26, .bold))
-            .foregroundStyle(Cumbre.ink)
-            .lineLimit(2).minimumScaleFactor(0.7)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 2)
+        HStack(alignment: .center, spacing: 10) {
+            Text(school.name)
+                .font(Cumbre.serif(26, .bold))
+                .foregroundStyle(Cumbre.ink)
+                .lineLimit(2).minimumScaleFactor(0.7)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            GuidePill(topicKey: "detail") {
+                if !GuideStore.shared.startScreenAndTab(screen: "detail", tab: tab.guideKey) { showHelp = true }
+            }
+        }
+        .padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 2)
     }
 
     private var scrollContent: some View {

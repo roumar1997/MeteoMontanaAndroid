@@ -207,18 +207,22 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
         .presentationDetents([.medium, .large])
     }
 
-    /// UN símbolo: abre el chat de la escuela, y desde dentro se marca "Estoy aquí" (Álvaro, 2026-10-14).
+    /// Chat de la escuela (símbolo) + "Aquí": con el menú "⋯" fuera sobra sitio en la cabecera (Álvaro, 2026-10-14).
+    /// "Aquí" también se puede marcar desde dentro del chat.
     private var presenceControls: some View {
-        Button { showSchoolChat = true } label: {
-            Image(systemName: "bubble.left.and.bubble.right")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(vm.iAmHere ? Color.white : Cumbre.ink)
-                .frame(width: 36, height: 36)
-                .background(vm.iAmHere ? Cumbre.terraFill : Cumbre.paper, in: Circle())
-                .overlay(Circle().stroke(vm.iAmHere ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
+        HStack(spacing: 6) {
+            Button { showSchoolChat = true } label: {
+                Image(systemName: "bubble.left.and.bubble.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Cumbre.ink)
+                    .frame(width: 36, height: 36)
+                    .background(Cumbre.paper, in: Circle())
+                    .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L("Chat de la escuela"))
+            PresenceMarkButton(vm: vm)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(L("Chat de la escuela"))
     }
 
     private var peopleLabel: String {

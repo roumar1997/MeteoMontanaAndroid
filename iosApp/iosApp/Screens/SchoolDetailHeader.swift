@@ -28,13 +28,11 @@ struct SchoolDetailHeaderTitle: View {
     }
 }
 
-/// Acciones de la escuela: cómo llegar, compartir, favorita y offline a la vista; ayuda y procesionaria en "⋯".
-/// La procesionaria sale fuera del menú SOLO cuando hay alerta activa (no debe esconderse).
+/// Acciones de la escuela: cómo llegar, compartir, favorita, offline y procesionaria, todas a la vista.
+/// La ayuda ("? GUÍA") va junto al nombre de la escuela, no aquí.
 struct SchoolDetailHeaderActions: View {
     @ObservedObject var vm: SchoolDetailViewModel
     let school: School
-    /// UN solo "?": reconoce la pantalla y la pestaña que se están viendo y abre su guía.
-    let onHelp: () -> Void
     let onProcessionary: () -> Void
 
     private func openDirections() {
@@ -45,14 +43,6 @@ struct SchoolDetailHeaderActions: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            if vm.processionaryAlertActive {
-                Button(action: onProcessionary) {
-                    ProcessionaryIcon(tint: .white)
-                        .frame(width: 15, height: 15)
-                        .frame(width: 26, height: 26)
-                        .background(Cumbre.bad, in: Circle())
-                }
-            }
             Button { openDirections() } label: {
                 Image(systemName: "arrow.triangle.turn.up.right.diamond").foregroundStyle(Cumbre.ink3)
                     .frame(width: 29, height: 32)
@@ -82,18 +72,21 @@ struct SchoolDetailHeaderActions: View {
                         .frame(width: 29, height: 32)
                 }
             }
-            // Ayuda a la vista (las primeras visitas parpadea); en "⋯" lo que se usa poco.
-            Button(action: onHelp) {
-                Image(systemName: "questionmark.circle").foregroundStyle(Cumbre.ink3)
-                    .frame(width: 29, height: 32)
-                    .guidePulse("detail")
+            // Procesionaria: siempre a la vista (antes iba tras un menú "⋯" con un solo elemento). Roja si hay alerta.
+            Button(action: onProcessionary) {
+                if vm.processionaryAlertActive {
+                    ProcessionaryIcon(tint: .white)
+                        .frame(width: 15, height: 15)
+                        .frame(width: 26, height: 26)
+                        .background(Cumbre.bad, in: Circle())
+                        .frame(width: 29, height: 32)
+                } else {
+                    ProcessionaryIcon(tint: Cumbre.ink3)
+                        .frame(width: 17, height: 17)
+                        .frame(width: 29, height: 32)
+                }
             }
-            Menu {
-                Button(action: onProcessionary) { Label(L("Procesionaria"), systemImage: "exclamationmark.triangle") }
-            } label: {
-                Image(systemName: "ellipsis").foregroundStyle(Cumbre.ink3)
-                    .frame(width: 29, height: 32)
-            }
+            .accessibilityLabel(L("Procesionaria"))
         }
         .padding(.horizontal, 2)
         .background(Cumbre.paper, in: Capsule())

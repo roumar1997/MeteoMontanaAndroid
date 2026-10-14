@@ -56,7 +56,7 @@ struct TopIconsRow: View {
     var onNotificationsClosed: () -> Void = {}
     /// Dentro de la fila del título (sin hueco propio ni relleno): iconos un poco más pequeños.
     var compact = false
-    private var side: CGFloat { compact ? 36 : 40 }
+    private var side: CGFloat { compact ? 38 : 44 }
     @State private var showAccount = false
     @State private var showNotifications = false
     @State private var showSearch = false
@@ -71,7 +71,6 @@ struct TopIconsRow: View {
             // cabecera y era lo que hacía que no se pareciera a la de Android
             // (Rodrigo, 2026-08-21).
             HStack(spacing: 0) {
-                GuideHelpButton(topicKey: "schools")
                 iconButton("magnifyingglass") { showSearch = true }
                 chatButton
                 iconButton(theme.iconName) { theme.cycle() }
@@ -93,7 +92,7 @@ struct TopIconsRow: View {
     private func iconButton(_ name: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: name)
-                .font(.system(size: 18))
+                .font(.system(size: 20))
                 .foregroundStyle(Cumbre.ink)
                 .frame(width: side, height: side)
                 .contentShape(Rectangle())
@@ -105,7 +104,7 @@ struct TopIconsRow: View {
     private var chatButton: some View {
         Button { showChats = true } label: {
             Image(systemName: "bubble.left")
-                .font(.system(size: 18)).foregroundStyle(Cumbre.ink)
+                .font(.system(size: 20)).foregroundStyle(Cumbre.ink)
                 .frame(width: side, height: side).contentShape(Rectangle())
                 .overlay(alignment: .topTrailing) {
                     if chatUnread > 0 {
@@ -124,7 +123,7 @@ struct TopIconsRow: View {
     private var bellButton: some View {
         Button { showNotifications = true } label: {
             Image(systemName: "bell")
-                .font(.system(size: 18)).foregroundStyle(Cumbre.ink)
+                .font(.system(size: 20)).foregroundStyle(Cumbre.ink)
                 .frame(width: side, height: side).contentShape(Rectangle())
                 .overlay(alignment: .topTrailing) {
                     if unreadCount > 0 {
@@ -149,6 +148,7 @@ struct HeaderEscuelas: View {
     var onSubmitBlockPhoto: () -> Void = {}
     @State private var showSubmit = false
     @State private var aportando = false
+    @State private var showHelp = false
 
     /// Ejecuta [accion] cuando la hoja ya se ha cerrado del todo.
     ///
@@ -159,11 +159,11 @@ struct HeaderEscuelas: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: accion)
     }
     var body: some View {
-        HStack(alignment: .center, spacing: 8) {
-            Text(NSLocalizedString("schools_title", comment: ""))
-                .font(Cumbre.serif(28, .bold))
-                .foregroundStyle(Cumbre.ink)
-                .lineLimit(1).minimumScaleFactor(0.6)
+        HStack(alignment: .center, spacing: 6) {
+            // Sin el título "Escuelas": ya lo dice la pestaña de abajo, y así los botones respiran y se hacen más grandes.
+            GuidePill(topicKey: "schools") {
+                if !GuideStore.shared.start("schools") { showHelp = true }
+            }
             Spacer(minLength: 0)
             TopIconsRow(unreadCount: unreadCount, chatUnread: chatUnread,
                         onNotificationsClosed: onNotificationsClosed, compact: true)
@@ -172,17 +172,18 @@ struct HeaderEscuelas: View {
             // explicación — "enviar piedra" no se entiende a secas.
             // Con la palabra: el "+" suelto no decía qué se podía hacer (Álvaro, 2026-10-14).
             Button { aportando = true } label: {
-                Text(L("+ Aportar")).font(Cumbre.mono(11, .bold)).tracking(0.5)
+                Text(L("+ Aportar")).font(Cumbre.mono(12, .bold)).tracking(0.5)
                     .lineLimit(1).fixedSize()
-                    .foregroundStyle(Cumbre.terra)
-                    .padding(.horizontal, 10).padding(.vertical, 8)
-                    .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1.5))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12).padding(.vertical, 11)
+                    .background(Cumbre.terraFill, in: Capsule())
             }
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 6)
         .sheet(isPresented: $showSubmit) { SubmitSchoolView() }
+        .sheet(isPresented: $showHelp) { HelpSheet(topicKey: "schools") }
         .sheet(isPresented: $aportando) {
             AportarSheet(
                 onPiedra: { aportando = false; trasCerrar { onSubmitBlockPhoto() } },
