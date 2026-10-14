@@ -11,10 +11,23 @@ import CoreLocation
 struct DaySelectorRow: View {
     @ObservedObject var vm: SchoolListViewModel
 
-    private static let isoFmt: DateFormatter = {
+    fileprivate static let isoFmt: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX"); return f
     }()
     private let dayLetters = CalendarLabels.weekdaysShortSunFirst().map { $0.uppercased() }  // weekday 1=domingo
+
+    /// "HOY" sin días; "VIE" con uno; "VIE–DOM" si son seguidos; "3 DÍAS" si no.
+    static func rangeLabel(_ isos: [String]) -> String {
+        guard !isos.isEmpty else { return L("HOY") }
+        let cal = Calendar(identifier: .gregorian)
+        let dates = isos.compactMap { isoFmt.date(from: $0) }.sorted()
+        let letters = CalendarLabels.weekdaysShortSunFirst().map { $0.uppercased() }
+        func name(_ d: Date) -> String { letters[cal.component(.weekday, from: d) - 1] }
+        guard let first = dates.first, let last = dates.last else { return L("%@ DÍAS", isos.count) }
+        if dates.count == 1 { return name(first) }
+        let span = cal.dateComponents([.day], from: first, to: last).day ?? 0
+        return span == dates.count - 1 ? "\(name(first))–\(name(last))" : L("%@ DÍAS", dates.count)
+    }
 
     private var next7: [Date] {
         let cal = Calendar(identifier: .gregorian)
@@ -24,9 +37,18 @@ struct DaySelectorRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(vm.selectedDates.isEmpty ? L("DÍAS · elige hasta 5 para comparar el tramo")
-                 : L("DÍAS · %@ elegido%@", vm.selectedDates.count, vm.selectedDates.count > 1 ? "s" : ""))
-                .eyebrow().padding(.horizontal, 12)
+            HStack {
+                Text(vm.selectedDates.isEmpty ? L("Elige hasta 5 días para comparar el tramo")
+                     : L("%@ elegido%@ · manda el peor día", vm.selectedDates.count, vm.selectedDates.count > 1 ? "s" : ""))
+                    .font(.system(size: 11.5)).foregroundStyle(Cumbre.ink3)
+                Spacer()
+                if !vm.selectedDates.isEmpty {
+                    Button { vm.clearDates() } label: {
+                        Text(L("VOLVER A HOY")).font(Cumbre.mono(9.5, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
+                    }.buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 12)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(next7, id: \.self) { d in
@@ -142,9 +164,9 @@ struct SchoolListItemView: View {
     var onToggleFavorite: () -> Void = {}
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: 10) {
             // Modo tramo → el badge muestra el score combinado de los días.
-            ScoreBadge(score: range.map { Int($0.combinedScore) } ?? score.map { Int($0.todayScore) })
+            ScoreBadge(score: range.map { Int($0.combinedScore) } ?? score.map { Int($0.todayScore) }, compact: true)
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .center, spacing: 0) {
                     Text(String(format: "%02d", rank))
@@ -186,9 +208,10 @@ struct SchoolListItemView: View {
                     .buttonStyle(.borderless)
                 }
                 Text(subtitle)
-                    .font(Cumbre.mono(12))
+                    .font(Cumbre.mono(11.5))
                     .foregroundStyle(Cumbre.ink3)
-                    .padding(.top, 4)
+                    .lineLimit(1)
+                    .padding(.top, 2)
                 HStack(alignment: .center, spacing: 8) {
                     if let range {
                         DayRangeRow(range: range)
@@ -199,10 +222,10 @@ struct SchoolListItemView: View {
                         DryWetTag(dry: score?.dryRock, rainProb: score.map { Int($0.rainProb) }, rainMm: score?.rainMm)
                     }
                 }
-                .padding(.top, 8)
+                .padding(.top, 5)
             }
         }
-        .padding(.horizontal, 12).padding(.vertical, 12)
+        .padding(.horizontal, 12).padding(.vertical, 8)
         .overlay(isSelected ? Rectangle().stroke(Cumbre.terra, lineWidth: 2) : nil)
         .contentShape(Rectangle())
     }
@@ -210,7 +233,8 @@ struct SchoolListItemView: View {
     private var subtitle: String {
         var parts: [String] = []
         if let r = school.rockType, !r.isEmpty { parts.append(rockLabel(r).uppercased()) }
-        if let reg = school.region, !reg.isEmpty { parts.append(regionLabel(reg)) }
+        // La comunidad solo cuando no hay distancia: con "25 KM" ya se sabe lo que importa y la línea no se parte en dos.
+        if distanceKm == nil, let reg = school.region, !reg.isEmpty { parts.append(regionLabel(reg)) }
         if let km = distanceKm { parts.append("\(km) KM") }
         return parts.joined(separator: "  ·  ")
     }
@@ -218,18 +242,20 @@ struct SchoolListItemView: View {
 
 struct ScoreBadge: View {
     let score: Int?
+    /// En la lista de escuelas: más pequeño, para que quepan más filas.
+    var compact = false
     var body: some View {
         let color = score.map { Cumbre.score($0) } ?? Cumbre.rule
         VStack(spacing: 1) {
             Text(score.map(String.init) ?? "—")
-                .font(Cumbre.serif(28, .bold))
+                .font(Cumbre.serif(compact ? 23 : 28, .bold))
                 .foregroundStyle(score != nil ? color : Cumbre.ink2)
             Text(Cumbre.scoreLabel(score))
-                .font(.system(size: 8, weight: .bold))
+                .font(.system(size: compact ? 7 : 8, weight: .bold))
                 .tracking(0.6)
                 .foregroundStyle(score != nil ? color : Cumbre.ink3)
         }
-        .frame(width: 64, height: 72)
+        .frame(width: compact ? 54 : 64, height: compact ? 56 : 72)
         .background((score != nil ? color : Cumbre.paper).opacity(score != nil ? 0.12 : 1))
         .overlay(RoundedRectangle(cornerRadius: 2).stroke(color, lineWidth: 1.5))
         .clipShape(RoundedRectangle(cornerRadius: 2))
@@ -248,7 +274,7 @@ struct HeatmapBar: View {
                 Rectangle().fill(s.map { Cumbre.score($0) } ?? Cumbre.rule.opacity(0.35))
             }
         }
-        .frame(height: 16)
+        .frame(height: 9)
         .frame(maxWidth: .infinity)
     }
 }
@@ -265,7 +291,9 @@ struct DryWetTag: View {
                     .tracking(0.8)
                     .foregroundStyle(dry ? Cumbre.ok : Cumbre.bad)
             }
-            if dry == false, let p = rainProb, p > 0 {
+            if let mm = rainMm, mm > 0 {
+                Text("💧 " + String(format: "%.1f mm", mm)).font(.system(size: 10.5, weight: .semibold)).foregroundStyle(Cumbre.rain)
+            } else if dry == false, let p = rainProb, p > 0 {
                 Text("\(p)%").font(.system(size: 10)).foregroundStyle(Cumbre.bad)
             }
         }

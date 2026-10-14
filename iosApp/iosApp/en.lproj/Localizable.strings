@@ -1459,3 +1459,12 @@
 "Procesionaria" = "Processionary";
 "Cómo llegar" = "Directions";
 "Compartir" = "Share";
+"Elige hasta 5 días para comparar el tramo" = "Pick up to 5 days to compare the range";
+"%@ elegido%@ · manda el peor día" = "%@ picked%@ · the worst day rules";
+"Hoy llueve en %@ de tus %@ escuelas." = "It rains today at %@ of your %@ crags.";
+"Llueve algún día del tramo en %@ de tus %@ escuelas." = "It rains on some day of the range at %@ of your %@ crags.";
+"Toca el icono del mapa (junto a Vías/Bloques) para ver todas las escuelas en el mapa, coloreadas por su índice del día." = "Tap the map icon (next to Routes/Boulders) to see all crags on the map, coloured by today's index.";
+"SIN LLUVIA" = "NO RAIN";
+"Mapa" = "Map";
+"VOLVER A HOY" = "BACK TO TODAY";
+"%@ DÍAS" = "%@ DAYS";

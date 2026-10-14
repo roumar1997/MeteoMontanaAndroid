@@ -69,6 +69,12 @@ final class SchoolListViewModel: ObservableObject {
     // ── Selector de días (tramo) ──
     // Fechas ISO (yyyy-MM-dd) elegidas, máx 5. Vacío = modo "hoy".
     @Published var selectedDates: Set<String> = []
+    /// Mapa de la lista desplegado (botón del mapa en la fila Escuelas / Vías-Bloques).
+    @Published var showMap = false
+    /// Panel de días desplegado (chip HOY ⌄): plegado por defecto para que la lista se vea antes.
+    @Published var daysOpen = false
+    /// Chip "SIN LLUVIA": deja solo las escuelas donde no llueve (hoy, o ningún día del tramo elegido).
+    @Published var onlyDry = false
     @Published var rangeScores: [String: RangeScore] = [:]
     var rangeMode: Bool { !selectedDates.isEmpty }
 
@@ -231,7 +237,13 @@ final class SchoolListViewModel: ObservableObject {
         return first + all.filter { r in !first.contains(r) }
     }
     var activeFilters: Bool { style != nil || rock != nil || maxDistanceKm != nil || showMode != .all }
-    func clearFilters() { style = nil; rock = nil; query = ""; maxDistanceKm = nil; showMode = .all }
+    func clearFilters() { style = nil; rock = nil; query = ""; maxDistanceKm = nil; showMode = .all; onlyDry = false }
+
+    /// Vuelve a "HOY": quita los días elegidos.
+    func clearDates() {
+        selectedDates = []
+        rangeScores = [:]
+    }
 
     func toggleCompare(_ id: String) {
         if compareSelection.contains(id) { compareSelection.remove(id) }
@@ -252,6 +264,7 @@ final class SchoolListViewModel: ObservableObject {
         parts.append(rock ?? "")
         parts.append(String(maxDistanceKm ?? -1))
         parts.append(String(describing: showMode))
+        parts.append(String(onlyDry))
         parts.append(String(describing: sortBy))
         parts.append(String(rangeMode))
         parts.append(String(schools.count))
@@ -268,7 +281,25 @@ final class SchoolListViewModel: ObservableObject {
         return list
     }
 
-    private func computeFiltered() -> [School] {
+    /// Cuántas escuelas de la lista (con sus filtros, SIN el de lluvia) tienen lluvia, y cuántas hay — para el aviso
+    /// "Hoy llueve en X de tus Y escuelas". Memoizado igual que `filtered`.
+    private var rainCache: (sig: String, info: (rainy: Int, total: Int))? = nil
+    var rainInfo: (rainy: Int, total: Int) {
+        let sig = "\(scores.count)|\(rangeScores.count)|\(rangeMode)|\(query)|\(style ?? "")|\(rock ?? "")|\(maxDistanceKm ?? -1)|\(userLat ?? 0)|\(userLon ?? 0)|\(schools.count)"
+        if let c = rainCache, c.sig == sig { return c.info }
+        let list = computeFiltered(applyRainFilter: false)
+        let rainy = list.filter { isRainy($0) }.count
+        let info = (rainy: rainy, total: list.count)
+        rainCache = (sig, info)
+        return info
+    }
+
+    /// La regla de "¿llueve?" vive en shared (`SchoolRain`, con test): igual en iOS y Android.
+    private func isRainy(_ s: School) -> Bool {
+        SchoolRain.shared.isRainy(today: scores[s.id], range: rangeMode ? rangeScores[s.id] : nil)
+    }
+
+    private func computeFiltered(applyRainFilter: Bool = true) -> [School] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         // En modo GUARDADOS partimos de las escuelas guardadas offline: si el
         // catálogo no está en caché (sin red, primera vez), las sintetizamos
@@ -308,6 +339,7 @@ final class SchoolListViewModel: ObservableObject {
             case .favorites: list = list.filter { favoriteIds.contains($0.id) }
             case .saved: break   // `base` ya está restringido a las guardadas
             }
+            if applyRainFilter && onlyDry { list = list.filter { !isRainy($0) } }
         }
         // Orden DECORATE-SORT: la clave se calcula UNA vez por escuela (cada
         // acceso a un objeto Kotlin cruza el puente ObjC; hacerlo dentro del
@@ -551,10 +583,9 @@ struct SchoolListView: View {
                 // de ms en Release y elimina esa maquinaria entera (mismo
                 // movimiento «piedras fluidas» que en Android).
                 VStack(spacing: 0) {
-                    TopIconsRow(unreadCount: vm.unreadNotifications,
-                                chatUnread: vm.unreadChats,
-                                onNotificationsClosed: { Task { await vm.refreshUnread() } })
-                    HeaderEscuelas(count: vm.loading ? nil : vm.schools.count,
+                    HeaderEscuelas(unreadCount: vm.unreadNotifications,
+                                   chatUnread: vm.unreadChats,
+                                   onNotificationsClosed: { Task { await vm.refreshUnread() } },
                                    onSubmitBlockPhoto: { eligiendoFoto = true })
                     SearchField(text: $vm.query)
                     if vm.query.trimmingCharacters(in: .whitespaces).count >= 2 {
@@ -564,7 +595,7 @@ struct SchoolListView: View {
                     // Hint del mapa — justo antes del toggle "VER MAPA"
                     FirstTimeHint(
                         hintKey: "schools_map",
-                        text: L("Toca \"VER MAPA\" para ver todas las escuelas en el mapa, coloreadas por su índice del día.")
+                        text: L("Toca el icono del mapa (junto a Vías/Bloques) para ver todas las escuelas en el mapa, coloreadas por su índice del día.")
                     )
                     MapToggleAndPanel(vm: vm, onOpen: { navTarget = SchoolNavTarget(school: $0, via: nil) })
 
@@ -574,13 +605,12 @@ struct SchoolListView: View {
                         text: L("Toca FILTROS (abajo) para afinar por distancia, tipo de roca o estilo (bloque/vía).")
                     )
                     FilterChips(vm: vm)
-                    DaySelectorRow(vm: vm)
                     Divider().overlay(Cumbre.rule)
 
                     // Hint de comparar — justo antes de la lista
                     FirstTimeHint(
                         hintKey: "schools_compare",
-                        text: L("Mantén pulsada una escuela para compararla con otras (hasta 3). También puedes tocar los días de arriba para ver un tramo de varios días.")
+                        text: L("Mantén pulsada una escuela para compararla con otras (hasta 3). También puedes abrir HOY para ver un tramo de varios días.")
                     )
 
                     if vm.loading {
