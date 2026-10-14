@@ -15,6 +15,16 @@ final class GuideStore: ObservableObject {
 
     @Published private(set) var activeKey: String?
     @Published private(set) var index = 0
+    /// Sube cada vez que se abre una guía: los "?" que parpadean lo observan y dejan de parpadear al momento
+    /// (antes seguían hasta volver a entrar en la pantalla).
+    @Published private(set) var usedVersion = 0
+    /// Guía que arranca sola al terminar la actual (la de la pantalla seguida de la de su pestaña).
+    private var chained: String?
+
+    /// Interruptor general de las guías: lo decide el usuario al empezar y se cambia desde Ajustes. Apagado, ningún
+    /// "?" parpadea y la de Escuelas no sale sola; los "?" siguen abriendo su guía si se pulsan.
+    nonisolated static var enabled: Bool { UserDefaults.standard.object(forKey: "guides_enabled") as? Bool ?? true }
+    nonisolated static func setEnabled(_ on: Bool) { UserDefaults.standard.set(on, forKey: "guides_enabled") }
 
     var guide: Guide? {
         activeKey.flatMap { GuideCatalog.shared.byKey(key: $0, lang: LanguageManager.shared.effectiveCode) }
@@ -22,20 +32,32 @@ final class GuideStore: ObservableObject {
 
     /// Abre la guía de esa pantalla. Si no existe, no hace nada (el llamante cae a la ayuda de texto).
     @discardableResult
-    func start(_ key: String) -> Bool {
+    func start(_ key: String, then followUp: String? = nil) -> Bool {
         guard GuideCatalog.shared.byKey(key: key, lang: LanguageManager.shared.effectiveCode) != nil else { return false }
         activeKey = key
         index = 0
+        chained = followUp
         UserDefaults.standard.set(true, forKey: Self.usedKey(key))   // ya la ha abierto: el "?" deja de parpadear
+        usedVersion += 1
         return true
+    }
+
+    /// UN solo "?" por pantalla: la primera vez cuenta la pantalla y, a continuación, la pestaña que se está viendo;
+    /// las siguientes, solo la de la pestaña.
+    @discardableResult
+    func startScreenAndTab(screen: String, tab: String) -> Bool {
+        if UserDefaults.standard.bool(forKey: Self.usedKey(screen)) { return start(tab) }
+        return start(screen, then: tab)
     }
 
     func next() {
         guard let g = guide else { return stop() }
-        if index + 1 < g.steps.count { index += 1 } else { stop() }
+        if index + 1 < g.steps.count { index += 1; return }
+        if let follow = chained, start(follow) { return }   // terminó la de la pantalla: sigue la de la pestaña
+        stop()
     }
 
-    func stop() { activeKey = nil; index = 0 }
+    func stop() { activeKey = nil; index = 0; chained = nil }
 
     static func usedKey(_ key: String) -> String { "guide_used_\(key)" }
 
@@ -46,6 +68,7 @@ final class GuideStore: ObservableObject {
             d.removeObject(forKey: k)
         }
         d.set(true, forKey: "guide_pending_schools")
+        setEnabled(true)
     }
 }
 
@@ -191,6 +214,7 @@ private struct GuideOverlay: View {
 /// haya abierto su guía: llama la atención sin molestar a quien ya la conoce.
 struct GuidePulse: ViewModifier {
     let key: String
+    @ObservedObject private var store = GuideStore.shared
     @State private var pulsing = false
     @State private var enabled = false
     private static let maxVisits = 3
@@ -206,9 +230,15 @@ struct GuidePulse: ViewModifier {
                 let d = UserDefaults.standard
                 let visits = d.integer(forKey: "guide_visits_\(key)") + 1
                 d.set(visits, forKey: "guide_visits_\(key)")
-                enabled = !d.bool(forKey: GuideStore.usedKey(key)) && visits <= Self.maxVisits
+                enabled = GuideStore.enabled && !d.bool(forKey: GuideStore.usedKey(key)) && visits <= Self.maxVisits
                 guard enabled else { return }
                 withAnimation(.easeOut(duration: 1.3).repeatForever(autoreverses: false)) { pulsing = true }
+            }
+            // Pulsado el "?" (o apagadas las guías), deja de parpadear en el acto.
+            .onChange(of: store.usedVersion) { _, _ in
+                guard enabled, UserDefaults.standard.bool(forKey: GuideStore.usedKey(key)) else { return }
+                enabled = false
+                withTransaction(Transaction(animation: nil)) { pulsing = false }
             }
     }
 }
@@ -231,5 +261,23 @@ struct GuideHelpButton: View {
                 .guidePulse(topicKey)
         }
         .sheet(isPresented: $showText) { HelpSheet(topicKey: topicKey) }
+    }
+}
+
+/// "Explicarme cada pantalla": interruptor general de las guías. Se ofrece en la bienvenida y se puede cambiar en Ajustes.
+/// Apagado, ningún "?" parpadea y la guía de Escuelas no sale sola (los "?" siguen funcionando si se pulsan).
+struct GuidesToggleRow: View {
+    @AppStorage("guides_enabled") private var enabled = true
+
+    var body: some View {
+        Toggle(isOn: $enabled) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L("Explicarme cada pantalla")).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                Text(L("Un “?” parpadea la primera vez que entras. Puedes cambiarlo en Ajustes."))
+                    .font(.system(size: 12.5)).foregroundStyle(Cumbre.ink3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .tint(Cumbre.terra)
     }
 }

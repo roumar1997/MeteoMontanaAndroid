@@ -163,19 +163,20 @@ struct HeaderEscuelas: View {
             Text(NSLocalizedString("schools_title", comment: ""))
                 .font(Cumbre.serif(28, .bold))
                 .foregroundStyle(Cumbre.ink)
-                .lineLimit(1).minimumScaleFactor(0.75)
+                .lineLimit(1).minimumScaleFactor(0.6)
             Spacer(minLength: 0)
             TopIconsRow(unreadCount: unreadCount, chatUnread: chatUnread,
                         onNotificationsClosed: onNotificationsClosed, compact: true)
             // UN solo botón: corto, entra en cualquier pantalla. Las dos formas
             // de aportar viven en la hoja, donde cada una cabe con su
             // explicación — "enviar piedra" no se entiende a secas.
+            // Con la palabra: el "+" suelto no decía qué se podía hacer (Álvaro, 2026-10-14).
             Button { aportando = true } label: {
-                Image(systemName: "plus").font(.system(size: 15, weight: .bold))
+                Text(L("+ Aportar")).font(Cumbre.mono(11, .bold)).tracking(0.5)
+                    .lineLimit(1).fixedSize()
                     .foregroundStyle(Cumbre.terra)
-                    .frame(width: 34, height: 34)
-                    .overlay(Circle().stroke(Cumbre.terra, lineWidth: 1.5))
-                    .accessibilityLabel(L("+ Aportar"))
+                    .padding(.horizontal, 10).padding(.vertical, 8)
+                    .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1.5))
             }
             .buttonStyle(.plain)
         }
@@ -562,9 +563,9 @@ struct FilterChips: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             tabSwitcher
+            mapButton
             filterToggleRow
             locationWarning
-            rainNote
             if vm.daysOpen { DaySelectorRow(vm: vm) }
             if open { filterSections }
         }
@@ -626,36 +627,16 @@ struct FilterChips: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            // Solo cuando llueve en alguna escuela (o ya está puesto, para poder quitarlo).
-            if vm.exploreTab == .schools && (vm.onlyDry || vm.rainInfo.rainy > 0) {
-                rainChip
-            }
             dayChip
         }
         .padding(.horizontal, 12)
         .guideTarget("schools.filters")
     }
 
-    /// "SIN LLUVIA": deja solo las escuelas donde no llueve.
-    private var rainChip: some View {
-        Button { vm.onlyDry.toggle() } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "drop.fill").font(.system(size: 10))
-                Text(L("SIN LLUVIA")).font(Cumbre.mono(10.5, .bold)).tracking(0.6)
-            }
-            .foregroundStyle(vm.onlyDry ? Color.white : Cumbre.rain)
-            .padding(.horizontal, 10).padding(.vertical, 7)
-            .background(vm.onlyDry ? Cumbre.rain : Cumbre.rain.opacity(0.12), in: Capsule())
-            .overlay(Capsule().stroke(Cumbre.rain, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-    }
-
     /// "HOY ⌄" (o el tramo elegido: "VIE–DOM ⌄"): abre los días para comparar un tramo de hasta 5.
     private var dayChip: some View {
         Button {
             withAnimation(.easeInOut(duration: 0.2)) { vm.daysOpen.toggle() }
-            if vm.daysOpen { vm.loadDayRainIfNeeded() }
         } label: {
             HStack(spacing: 4) {
                 Text(DaySelectorRow.rangeLabel(vm.selectedDates.sorted())).font(Cumbre.mono(10.5, .bold)).tracking(0.6)
@@ -666,22 +647,6 @@ struct FilterChips: View {
             .background(Cumbre.terraFill, in: Capsule())
         }
         .buttonStyle(.plain)
-    }
-
-    /// "Hoy llueve en 6 de tus 9 escuelas": se ve de un vistazo y el chip SIN LLUVIA lo resuelve.
-    @ViewBuilder private var rainNote: some View {
-        let info = vm.rainInfo
-        if vm.exploreTab == .schools && info.rainy > 0 {
-            Text(vm.rangeMode
-                 ? L("Llueve algún día del tramo en %@ de tus %@ escuelas.", info.rainy, info.total)
-                 : L("Hoy llueve en %@ de tus %@ escuelas.", info.rainy, info.total))
-                .font(.system(size: 11.5)).foregroundStyle(Cumbre.rain)
-                .padding(.horizontal, 10).padding(.vertical, 6)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Cumbre.rain.opacity(0.10), in: RoundedRectangle(cornerRadius: 8))
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Cumbre.rain.opacity(0.4), lineWidth: 1))
-                .padding(.horizontal, 12)
-        }
     }
 
     // Sin esto, un permiso denegado se quedaba sin forma de arreglarse
@@ -760,24 +725,33 @@ struct FilterChips: View {
         HStack(spacing: 2) {
             tabButton(L("Escuelas"), active: vm.exploreTab == .schools) { vm.exploreTab = .schools }
             tabButton(L("Vías/Bloques"), active: vm.exploreTab == .blocks) { vm.exploreTab = .blocks; vm.dispatchExplore() }
-            mapButton
         }
         .padding(3)
         .background(Cumbre.rule.opacity(0.18), in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
         .padding(.horizontal, 12)
     }
 
-    /// Abre/cierra el mapa de la lista (antes era una barra entera "VER MAPA").
+    /// Abre/cierra el mapa de la lista. En su PROPIA línea y a todo el ancho: dentro del selector pasaba desapercibido
+    /// (Álvaro, 2026-10-14: "casi no se ve que existe" y "su propia línea me parecía más intuitivo").
     private var mapButton: some View {
         Button { withAnimation { vm.showMap.toggle() } } label: {
-            Image(systemName: "map").font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(vm.showMap ? Color.white : Cumbre.terra)
-                .frame(width: 46).padding(.vertical, 8)
-                .background(vm.showMap ? Cumbre.terra : Color.clear, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius - 2))
-                .accessibilityLabel(L("Mapa"))
+            HStack(spacing: 8) {
+                Image(systemName: "map").font(.system(size: 14, weight: .semibold))
+                Text(vm.showMap ? L("OCULTAR MAPA") : L("VER MAPA")).font(Cumbre.mono(12, .bold)).tracking(0.8)
+                Spacer(minLength: 0)
+                Image(systemName: vm.showMap ? "chevron.up" : "chevron.down").font(.system(size: 11, weight: .bold))
+            }
+            .foregroundStyle(vm.showMap ? Color.white : Cumbre.terra)
+            .padding(.horizontal, 14).padding(.vertical, 11)
+            .frame(maxWidth: .infinity)
+            .background(vm.showMap ? Cumbre.terra : Cumbre.terra.opacity(0.10), in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+            .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(Cumbre.terra, lineWidth: 1))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .padding(.horizontal, 12)
         .guideTarget("schools.map")
+        .accessibilityLabel(L("Mapa"))
     }
 
     private func tabButton(_ t: String, active: Bool, action: @escaping () -> Void) -> some View {

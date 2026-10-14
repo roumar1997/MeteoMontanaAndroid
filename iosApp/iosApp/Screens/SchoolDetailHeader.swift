@@ -9,10 +9,9 @@ import Shared
 // capturas, 2026-08-21). Android ya resolvía esto con una fila propia donde el título se queda con el hueco
 // sobrante (`weight(1f)` + ellipsis) — mismo patrón aquí.
 
-/// Volver + nombre. El nombre se ENCOGE hasta caber (una sola línea: con dos, una palabra larga se partía por
-/// letras, "Albarrací/n").
+/// Solo "volver". El nombre de la escuela ya no ocupa sitio fijo en la cabecera: va como título al principio del
+/// contenido (Álvaro, 2026-10-14), y la fila se queda para los iconos.
 struct SchoolDetailHeaderTitle: View {
-    let name: String
     let onBack: () -> Void
 
     var body: some View {
@@ -24,13 +23,7 @@ struct SchoolDetailHeaderTitle: View {
             }
             .background(Cumbre.paper, in: Circle())
             .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
-
-            Text(name)
-                .font(.system(size: 19, weight: .semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .foregroundStyle(Cumbre.ink)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 0)
         }
     }
 }
@@ -40,9 +33,8 @@ struct SchoolDetailHeaderTitle: View {
 struct SchoolDetailHeaderActions: View {
     @ObservedObject var vm: SchoolDetailViewModel
     let school: School
+    /// UN solo "?": reconoce la pantalla y la pestaña que se están viendo y abre su guía.
     let onHelp: () -> Void
-    /// Guía de la PESTAÑA que se está viendo (mapa, bloques, tiempo, notas).
-    let onTabHelp: () -> Void
     let onProcessionary: () -> Void
 
     private func openDirections() {
@@ -90,16 +82,17 @@ struct SchoolDetailHeaderActions: View {
                         .frame(width: 29, height: 32)
                 }
             }
-            // En "⋯" solo lo que se usa poco: ayuda y procesionaria.
+            // Ayuda a la vista (las primeras visitas parpadea); en "⋯" lo que se usa poco.
+            Button(action: onHelp) {
+                Image(systemName: "questionmark.circle").foregroundStyle(Cumbre.ink3)
+                    .frame(width: 29, height: 32)
+                    .guidePulse("detail")
+            }
             Menu {
-                Button(action: onHelp) { Label(L("Guía de esta pantalla"), systemImage: "questionmark.circle") }
-                Button(action: onTabHelp) { Label(L("Guía de esta pestaña"), systemImage: "rectangle.stack") }
                 Button(action: onProcessionary) { Label(L("Procesionaria"), systemImage: "exclamationmark.triangle") }
             } label: {
                 Image(systemName: "ellipsis").foregroundStyle(Cumbre.ink3)
                     .frame(width: 29, height: 32)
-                    // Las primeras visitas parpadea: ahí dentro está la guía de la pantalla.
-                    .guidePulse("detail")
             }
         }
         .padding(.horizontal, 2)

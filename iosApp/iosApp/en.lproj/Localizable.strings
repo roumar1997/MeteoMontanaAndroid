@@ -1461,10 +1461,7 @@
 "Compartir" = "Share";
 "Elige hasta 5 días para comparar el tramo" = "Pick up to 5 days to compare the range";
 "%@ elegido%@ · manda el peor día" = "%@ picked%@ · the worst day rules";
-"Hoy llueve en %@ de tus %@ escuelas." = "It rains today at %@ of your %@ crags.";
-"Llueve algún día del tramo en %@ de tus %@ escuelas." = "It rains on some day of the range at %@ of your %@ crags.";
 "Toca el icono del mapa (junto a Vías/Bloques) para ver todas las escuelas en el mapa, coloreadas por su índice del día." = "Tap the map icon (next to Routes/Boulders) to see all crags on the map, coloured by today's index.";
-"SIN LLUVIA" = "NO RAIN";
 "Mapa" = "Map";
 "VOLVER A HOY" = "BACK TO TODAY";
 "%@ DÍAS" = "%@ DAYS";
@@ -1472,5 +1469,7 @@
 "Te decimos si hoy se puede escalar y dónde, según el tiempo y lo que tarda en secar cada roca." = "We tell you if you can climb today and where, based on the weather and how long each rock takes to dry.";
 "Usamos tu ubicación solo para ordenar las escuelas por cercanía y centrar el mapa. Se queda en tu móvil." = "We only use your location to sort crags by distance and centre the map. It stays on your phone.";
 "AHORA NO" = "NOT NOW";
-"Guía de esta pantalla" = "Guide to this screen";
-"Guía de esta pestaña" = "Guide to this tab";
+"Explicarme cada pantalla" = "Explain each screen to me";
+"Un “?” parpadea la primera vez que entras. Puedes cambiarlo en Ajustes." = "A “?” blinks the first time you open a screen. You can change this in Settings.";
+"Chat de la escuela" = "Crag chat";
+"VER MAPA" = "SHOW MAP";

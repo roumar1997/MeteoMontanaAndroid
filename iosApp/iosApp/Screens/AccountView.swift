@@ -419,6 +419,7 @@ struct AccountSettingsView: View {
                 menuRow(NSLocalizedString("profile_weather_alert", comment: ""), "bell.badge", WeekendAlertView())
                 FeedPublishSettingRow()
                 LanguageSettingRow()
+                GuidesToggleRow().padding(.vertical, 8)
                 Button {
                     FirstTimeHint.resetAll()
                     showHintsReset = true

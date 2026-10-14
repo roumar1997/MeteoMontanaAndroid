@@ -35,6 +35,11 @@ struct OnboardingView: View {
                     .padding(.top, 10)
             }
             Spacer()
+            GuidesToggleRow()
+                .padding(14)
+                .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+                .padding(.bottom, 14)
             Button(action: onFinish) {
                 Text(L("PERMITIR UBICACIÓN Y EMPEZAR"))
                     .font(Cumbre.mono(13, .bold)).tracking(0.8)

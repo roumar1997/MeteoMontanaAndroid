@@ -73,12 +73,6 @@ final class SchoolListViewModel: ObservableObject {
     @Published var showMap = false
     /// Panel de días desplegado (chip HOY ⌄): plegado por defecto para que la lista se vea antes.
     @Published var daysOpen = false
-    /// Chip "SIN LLUVIA": deja solo las escuelas donde no llueve (hoy, o ningún día del tramo elegido).
-    @Published var onlyDry = false
-    /// Lluvia de cada uno de los próximos 7 días sobre las escuelas de la lista (mediana de mm), para los botones
-    /// del selector de días. Se pide al abrir el panel de días; el resumen lo calcula shared (`DayRainSummary`).
-    @Published var dayRain: [String: DayRain] = [:]
-    private var dayRainTask: Task<Void, Never>?
     @Published var rangeScores: [String: RangeScore] = [:]
     var rangeMode: Bool { !selectedDates.isEmpty }
 
@@ -241,31 +235,7 @@ final class SchoolListViewModel: ObservableObject {
         return first + all.filter { r in !first.contains(r) }
     }
     var activeFilters: Bool { style != nil || rock != nil || maxDistanceKm != nil || showMode != .all }
-    func clearFilters() { style = nil; rock = nil; query = ""; maxDistanceKm = nil; showMode = .all; onlyDry = false }
-
-    /// Los próximos 7 días en ISO (yyyy-MM-dd), empezando hoy.
-    static func next7ISO() -> [String] {
-        let cal = Calendar(identifier: .gregorian)
-        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX")
-        let today = cal.startOfDay(for: Date())
-        return (0..<7).compactMap { cal.date(byAdding: .day, value: $0, to: today) }.map { f.string(from: $0) }
-    }
-
-    /// Pide la lluvia de los 7 días para las 40 primeras escuelas de la lista (las cercanas, una sola llamada; el
-    /// servidor cachea). Solo una vez por sesión de lista: si aún no hay escuelas, se reintenta al volver a abrir.
-    func loadDayRainIfNeeded() {
-        guard dayRain.isEmpty, dayRainTask == nil else { return }
-        let ids = filtered.prefix(40).map { $0.id }
-        guard !ids.isEmpty else { return }
-        let dates = Self.next7ISO()
-        dayRainTask = Task { [weak self] in
-            guard let self else { return }
-            let ranges = (try? await self.getRangeScores.invoke(ids: ids, dates: dates)) ?? []
-            let summary = DayRainSummary.shared.summarize(ranges: ranges, dates: dates)
-            self.dayRain = Dictionary(uniqueKeysWithValues: summary.map { ($0.date, $0) })
-            self.dayRainTask = nil
-        }
-    }
+    func clearFilters() { style = nil; rock = nil; query = ""; maxDistanceKm = nil; showMode = .all }
 
     /// Vuelve a "HOY": quita los días elegidos.
     func clearDates() {
@@ -292,7 +262,6 @@ final class SchoolListViewModel: ObservableObject {
         parts.append(rock ?? "")
         parts.append(String(maxDistanceKm ?? -1))
         parts.append(String(describing: showMode))
-        parts.append(String(onlyDry))
         parts.append(String(describing: sortBy))
         parts.append(String(rangeMode))
         parts.append(String(schools.count))
@@ -309,25 +278,7 @@ final class SchoolListViewModel: ObservableObject {
         return list
     }
 
-    /// Cuántas escuelas de la lista (con sus filtros, SIN el de lluvia) tienen lluvia, y cuántas hay — para el aviso
-    /// "Hoy llueve en X de tus Y escuelas". Memoizado igual que `filtered`.
-    private var rainCache: (sig: String, info: (rainy: Int, total: Int))? = nil
-    var rainInfo: (rainy: Int, total: Int) {
-        let sig = "\(scores.count)|\(rangeScores.count)|\(rangeMode)|\(query)|\(style ?? "")|\(rock ?? "")|\(maxDistanceKm ?? -1)|\(userLat ?? 0)|\(userLon ?? 0)|\(schools.count)"
-        if let c = rainCache, c.sig == sig { return c.info }
-        let list = computeFiltered(applyRainFilter: false)
-        let rainy = list.filter { isRainy($0) }.count
-        let info = (rainy: rainy, total: list.count)
-        rainCache = (sig, info)
-        return info
-    }
-
-    /// La regla de "¿llueve?" vive en shared (`SchoolRain`, con test): igual en iOS y Android.
-    private func isRainy(_ s: School) -> Bool {
-        SchoolRain.shared.isRainy(today: scores[s.id], range: rangeMode ? rangeScores[s.id] : nil)
-    }
-
-    private func computeFiltered(applyRainFilter: Bool = true) -> [School] {
+    private func computeFiltered() -> [School] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         // En modo GUARDADOS partimos de las escuelas guardadas offline: si el
         // catálogo no está en caché (sin red, primera vez), las sintetizamos
@@ -367,7 +318,6 @@ final class SchoolListViewModel: ObservableObject {
             case .favorites: list = list.filter { favoriteIds.contains($0.id) }
             case .saved: break   // `base` ya está restringido a las guardadas
             }
-            if applyRainFilter && onlyDry { list = list.filter { !isRainy($0) } }
         }
         // Orden DECORATE-SORT: la clave se calcula UNA vez por escuela (cada
         // acceso a un objeto Kotlin cruza el puente ObjC; hacerlo dentro del
@@ -639,6 +589,7 @@ struct SchoolListView: View {
             .task(id: vm.schools.isEmpty) {
                 guard !vm.schools.isEmpty, UserDefaults.standard.bool(forKey: "guide_pending_schools") else { return }
                 UserDefaults.standard.set(false, forKey: "guide_pending_schools")
+                guard GuideStore.enabled else { return }
                 try? await Task.sleep(nanoseconds: 1_200_000_000)
                 GuideStore.shared.start("schools")
             }

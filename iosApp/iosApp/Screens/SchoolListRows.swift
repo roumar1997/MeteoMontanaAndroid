@@ -57,26 +57,18 @@ struct DaySelectorRow: View {
                         let weekday = cal.component(.weekday, from: d)
                         let dayNum = cal.component(.day, from: d)
                         let selected = vm.selectedDates.contains(iso)
-                        let rain = vm.dayRain[iso]
-                        let rainy = rain?.rainy ?? false
                         Button { vm.toggleDate(iso) } label: {
                             VStack(spacing: 1) {
                                 Text(dayLetters[weekday - 1]).font(Cumbre.mono(11, .bold)).tracking(0.6)
                                     .foregroundStyle(selected ? .white : Cumbre.ink2)
                                 Text("\(dayNum)").font(.system(size: 10))
                                     .foregroundStyle(selected ? .white.opacity(0.85) : Cumbre.ink3)
-                                // Llueve en la mitad o más de las escuelas de la lista: mm típicos (mediana).
-                                if let rain, rainy {
-                                    Text("💧" + String(format: "%.0f", max(rain.medianMm, 1)))
-                                        .font(Cumbre.mono(9.5, .bold))
-                                        .foregroundStyle(selected ? .white : Cumbre.rain)
-                                }
                             }
                             .padding(.horizontal, 12).padding(.vertical, 7)
-                            .background(selected ? Cumbre.terra : (rainy ? Cumbre.rain.opacity(0.10) : Cumbre.paper),
+                            .background(selected ? Cumbre.terra : Cumbre.paper,
                                         in: RoundedRectangle(cornerRadius: Cumbre.statCardRadius))
                             .overlay(RoundedRectangle(cornerRadius: Cumbre.statCardRadius)
-                                .stroke(rainy && !selected ? Cumbre.rain.opacity(0.6) : Cumbre.rule, lineWidth: 1))
+                                .stroke(Cumbre.rule, lineWidth: 1))
                         }
                         .buttonStyle(.plain)
                     }

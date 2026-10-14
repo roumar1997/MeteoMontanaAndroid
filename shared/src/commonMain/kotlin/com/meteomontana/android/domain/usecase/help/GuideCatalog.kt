@@ -48,7 +48,7 @@ object GuideCatalog {
             GuideStep("detail.tabs", "Cuatro pestañas",
                 "MAPA: sectores, parkings y piedras. BLOQUES: busca vías por grado, sector o beta. TIEMPO: los próximos días. NOTAS: lo que cuenta la comunidad."),
             GuideStep("detail.here", "Cuando estés en la roca",
-                "Pulsa «Aquí» para que otros sepan que estás, y usa el chat para hablar con quien vaya a esa escuela.")
+                "Abre el chat de la escuela para hablar con quien vaya, y desde dentro pulsa «Aquí» para que los demás sepan que estás.")
         ),
         "detail_map" to listOf(
             GuideStep("detail_map.places", "Sectores y parkings",
@@ -129,7 +129,7 @@ object GuideCatalog {
             GuideStep("detail.tabs", "Four tabs",
                 "MAP: sectors, car parks and boulders. BOULDERS: find routes by grade, sector or beta. WEATHER: the next days. NOTES: what the community says."),
             GuideStep("detail.here", "When you're at the crag",
-                "Tap \"Here\" so others know you're there, and use the chat to talk to whoever is heading to that crag.")
+                "Open the crag chat to talk to whoever is heading there, and tap \"Here\" inside it so others know you're at the crag.")
         ),
         "detail_map" to listOf(
             GuideStep("detail_map.places", "Sectors and car parks",

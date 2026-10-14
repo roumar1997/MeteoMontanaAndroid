@@ -92,7 +92,6 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
     let leading: Leading
     let trailing: Trailing
     @StateObject private var vm: SchoolPresenceViewModel
-    @State private var showPrivacyNote = false
     @State private var openChatFor: ChatTarget?
     @State private var showSchoolChat = false
     @State private var showAllPresent = false
@@ -133,14 +132,15 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
         }
         .task { await vm.load() }
         .task(id: refreshTrigger) { if refreshTrigger > 0 { await vm.load() } }
-        .sheet(isPresented: $showPrivacyNote) {
-            privacySheet
-        }
         .navigationDestination(item: $openChatFor) { target in
             ChatView(otherUid: target.uid, otherName: target.name)
         }
         .navigationDestination(isPresented: $showSchoolChat) {
             SchoolChatView(schoolId: schoolId, schoolName: schoolName)
+        }
+        // Dentro del chat se puede marcar "Estoy aquí": al volver, la fila refleja quién hay.
+        .onChange(of: showSchoolChat) { _, open in
+            if !open { Task { await vm.load() } }
         }
         .sheet(isPresented: $showAllPresent) {
             allPresentSheet
@@ -207,44 +207,47 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
         .presentationDetents([.medium, .large])
     }
 
-    /// Chat de la escuela + "Aquí" juntos, en una sola cápsula pequeña: dejan sitio a "Cómo llegar" y "Compartir".
+    /// UN símbolo: abre el chat de la escuela, y desde dentro se marca "Estoy aquí" (Álvaro, 2026-10-14).
     private var presenceControls: some View {
-        HStack(spacing: 2) {
-            Button { showSchoolChat = true } label: {
-                Image(systemName: "bubble.left.and.bubble.right")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Cumbre.ink2)
-                    .frame(width: 28, height: 28)
-            }
-            markButton
+        Button { showSchoolChat = true } label: {
+            Image(systemName: "bubble.left.and.bubble.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(vm.iAmHere ? Color.white : Cumbre.ink)
+                .frame(width: 36, height: 36)
+                .background(vm.iAmHere ? Cumbre.terraFill : Cumbre.paper, in: Circle())
+                .overlay(Circle().stroke(vm.iAmHere ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
         }
-        .padding(2)
-        .background(Cumbre.paper, in: Capsule())
-        .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
+        .buttonStyle(.plain)
+        .accessibilityLabel(L("Chat de la escuela"))
     }
 
     private var peopleLabel: String {
         vm.people.isEmpty ? "" : L("%@ aquí ahora", vm.people.count)
     }
+}
 
-    private var markButton: some View {
+/// "Estoy aquí" / "Ya no": marca o quita tu presencia en la escuela (con el aviso de privacidad la primera vez de cada
+/// vez). Vive DENTRO del chat de la escuela; la fila de la ficha solo enseña un símbolo que lleva al chat.
+struct PresenceMarkButton: View {
+    @ObservedObject var vm: SchoolPresenceViewModel
+    @State private var showPrivacyNote = false
+
+    var body: some View {
         Button {
-            if vm.iAmHere {
-                vm.toggle()
-            } else {
-                showPrivacyNote = true
-            }
+            if vm.iAmHere { vm.toggle() } else { showPrivacyNote = true }
         } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "mappin.circle.fill").font(.system(size: 11))
+            HStack(spacing: 3) {
+                Image(systemName: "mappin.circle.fill").font(.system(size: 10))
                 Text(vm.iAmHere ? L("Ya no") : L("Aquí"))
-                    .font(.system(size: 11.5, weight: .bold, design: .serif))
+                    .font(.system(size: 11, weight: .bold, design: .serif))
+                    .lineLimit(1).fixedSize()
             }
             .foregroundStyle(.white)
-            .padding(.horizontal, 8).padding(.vertical, 6)
+            .padding(.horizontal, 9).padding(.vertical, 6)
             .background(vm.iAmHere ? Cumbre.ink3 : Cumbre.terraFill, in: Capsule())
         }
         .disabled(vm.loading)
+        .sheet(isPresented: $showPrivacyNote) { privacySheet }
     }
 
     private var privacySheet: some View {

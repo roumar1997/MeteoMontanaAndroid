@@ -86,6 +86,8 @@ struct SchoolChatView: View {
     let schoolId: String
     let schoolName: String
     @StateObject private var vm: SchoolChatViewModel
+    /// Tu presencia en la escuela: desde aquí se marca "Estoy aquí".
+    @StateObject private var presence: SchoolPresenceViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showAllPresent = false
     @State private var openChatFor: SchoolChatTarget?
@@ -94,6 +96,8 @@ struct SchoolChatView: View {
         self.schoolId = schoolId
         self.schoolName = schoolName
         _vm = StateObject(wrappedValue: SchoolChatViewModel(schoolId: schoolId))
+        _presence = StateObject(wrappedValue: SchoolPresenceViewModel(
+            schoolId: schoolId, myUid: AppDependencies.shared.authBridge.currentUid()))
     }
 
     var body: some View {
@@ -119,7 +123,9 @@ struct SchoolChatView: View {
         }
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationBarHidden(true)
-        .task { vm.start() }
+        .task { vm.start(); await presence.load() }
+        // Al marcar o quitar "Estoy aquí", la cuenta de la cabecera se actualiza.
+        .onChange(of: presence.iAmHere) { _, _ in Task { await vm.refreshPresence() } }
         .sheet(isPresented: $showAllPresent) { allPresentSheet }
         .navigationDestination(item: $openChatFor) { target in
             ChatView(otherUid: target.uid, otherName: target.name)
@@ -137,10 +143,11 @@ struct SchoolChatView: View {
                     .font(.system(size: 17, weight: .bold, design: .serif))
                     .foregroundStyle(Cumbre.ink)
                 Spacer()
-                Text("se borra solo pasados unos días")
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundStyle(Cumbre.ink3)
+                PresenceMarkButton(vm: presence)
             }
+            Text("se borra solo pasados unos días")
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundStyle(Cumbre.ink3)
             if !vm.presentList.isEmpty {
                 Button { showAllPresent = true } label: {
                     HStack(spacing: 6) {

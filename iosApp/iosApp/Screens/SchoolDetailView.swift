@@ -333,13 +333,13 @@ struct SchoolDetailView: View {
                               myUid: AppDependencies.shared.authBridge.currentUid(),
                               refreshTrigger: presenceRefreshTrigger,
                               leading: {
-                                  SchoolDetailHeaderTitle(name: school.name) { dismiss() }
+                                  SchoolDetailHeaderTitle { dismiss() }
                               },
                               trailing: {
                                   SchoolDetailHeaderActions(vm: vm, school: school,
-                                                            // Guía de la pantalla; si no la hubiera, la ayuda de texto de siempre.
-                                                            onHelp: { if !GuideStore.shared.start("detail") { showHelp = true } },
-                                                            onTabHelp: { GuideStore.shared.start(tab.guideKey) },
+                                                            // Un solo "?": la guía de la pantalla (la 1ª vez) y la de la pestaña que
+                                                            // se ve; si no hubiera guía, la ayuda de texto de siempre.
+                                                            onHelp: { if !GuideStore.shared.startScreenAndTab(screen: "detail", tab: tab.guideKey) { showHelp = true } },
                                                             onProcessionary: { showProcessionary = true })
                               })
             scrollContent
@@ -436,8 +436,20 @@ struct SchoolDetailView: View {
         }
     }
 
+    /// El nombre de la escuela, como título al principio del contenido (se va con el scroll: no ocupa cabecera fija).
+    private var schoolTitle: some View {
+        Text(school.name)
+            .font(Cumbre.serif(26, .bold))
+            .foregroundStyle(Cumbre.ink)
+            .lineLimit(2).minimumScaleFactor(0.7)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 2)
+    }
+
     private var scrollContent: some View {
         ScrollView {
+            VStack(spacing: 0) {
+            schoolTitle
             if vm.loading {
                 ProgressView().padding(.top, 60)
                     .frame(maxWidth: .infinity, minHeight: 320)
@@ -479,6 +491,7 @@ struct SchoolDetailView: View {
             } else {
                 // Sin previsión: las pestañas van igualmente (el tiempo no tiene nada que enseñar).
                 tabbedContent(nil)
+            }
             }
         }
         // Deslizar hacia abajo recarga el tiempo Y pide otra vez quién hay en
