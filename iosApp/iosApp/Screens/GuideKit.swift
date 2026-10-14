@@ -38,6 +38,15 @@ final class GuideStore: ObservableObject {
     func stop() { activeKey = nil; index = 0 }
 
     static func usedKey(_ key: String) -> String { "guide_used_\(key)" }
+
+    /// "Volver a ver las guías": borra lo que recuerda (visitas y guías abiertas) y deja la de Escuelas pendiente.
+    nonisolated static func resetAll() {
+        let d = UserDefaults.standard
+        for k in d.dictionaryRepresentation().keys where k.hasPrefix("guide_visits_") || k.hasPrefix("guide_used_") {
+            d.removeObject(forKey: k)
+        }
+        d.set(true, forKey: "guide_pending_schools")
+    }
 }
 
 // MARK: - Registrar elementos
