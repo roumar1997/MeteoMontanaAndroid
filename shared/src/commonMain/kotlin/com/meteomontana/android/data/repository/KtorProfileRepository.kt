@@ -2,8 +2,10 @@ package com.meteomontana.android.data.repository
 
 import com.meteomontana.android.data.api.KtorProfileApi
 import com.meteomontana.android.data.api.dto.FcmTokenRequest
+import com.meteomontana.android.data.api.dto.HeightDto
 import com.meteomontana.android.data.api.dto.UpdateProfileRequest
 import com.meteomontana.android.data.api.dto.toDomain
+import com.meteomontana.android.domain.model.HeightGroup
 import com.meteomontana.android.domain.model.PrivateProfile
 import com.meteomontana.android.domain.model.WeekendAlert
 import com.meteomontana.android.domain.repository.ProfileRepository
@@ -18,6 +20,11 @@ class KtorProfileRepository(private val api: KtorProfileApi) : ProfileRepository
     override suspend fun updateFcmToken(req: FcmTokenRequest) = api.updateFcmToken(req)
 
     override suspend fun deleteMyAccount() = api.deleteMyAccount()
+
+    override suspend fun getMyHeight(): HeightGroup? = HeightGroup.parse(api.getMyHeight().group)
+
+    override suspend fun setMyHeight(group: HeightGroup): HeightGroup =
+        HeightGroup.parse(api.setMyHeight(HeightDto(group.apiValue)).group) ?: group
 
     override suspend fun getWeekendAlert(): WeekendAlert = api.getWeekendAlert().toDomain()
 

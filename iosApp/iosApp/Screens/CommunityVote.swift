@@ -35,8 +35,12 @@ final class CommunityVoteStore: ObservableObject {
     @Published var orientation: [OrientationSummary] = []
     @Published var sunByPhoto: [Int: SunHours] = [:]   // -1 = bloque entero
     @Published var grade: GradeSummary? = nil
+    /// Lo justo de cada vía para pintar su pastilla de grado sin abrir la hoja: nº de votos y si la altura parte la opinión.
+    @Published var gradeBadges: [String: GradeBadge] = [:]
     /// Votos de grado por vía (lineId → total), para enseñar "N votos" junto al grado sin abrir la hoja.
-    @Published var gradeCounts: [String: Int] = [:]
+    var gradeCounts: [String: Int] { gradeBadges.mapValues { $0.count } }
+    /// Mi altura (más o menos de 1,70 m), privada; nil = todavía no la he elegido.
+    @Published var myHeight: HeightGroup? = nil
 
     private var container: IosDependencyContainer { AppDependencies.shared.container }
 
@@ -77,34 +81,66 @@ final class CommunityVoteStore: ObservableObject {
         grade = nil
         if let g = try? await container.getGradeVotes.invoke(lineId: lineId) {
             grade = g
-            gradeCounts[lineId] = total(g)
+            gradeBadges[lineId] = Self.badge(g)
+            if let mine = Self.height(from: g.myHeight) { myHeight = mine }
         }
     }
 
     private func total(_ g: GradeSummary) -> Int { g.votes.values.reduce(0) { $0 + $1.intValue } }
 
+    /// El grupo de altura que manda el servidor (TALL | SHORT | NONE) como valor Swift.
+    private static func height(from raw: String?) -> HeightGroup? {
+        switch raw {
+        case "TALL": return .tall
+        case "SHORT": return .short
+        case "NONE": return .unspecified
+        default: return nil
+        }
+    }
+
+    nonisolated static func badge(_ g: GradeSummary) -> GradeBadge {
+        GradeBadge(
+            count: g.votes.values.reduce(0) { $0 + $1.intValue },
+            split: g.heightSplit.map { GradeSplitInfo(tall: $0.tallGrade, short: $0.shortGrade) })
+    }
+
+    /// Mi altura guardada (para saber si hay que pedirla al votar).
+    func loadMyHeight() async {
+        if let h = try? await container.getMyHeight.invoke() { myHeight = h }
+    }
+
+    /// La elijo UNA vez (en la hoja de votar o en la mochilita); sus votos ya hechos pasan a contar en su grupo.
+    func setMyHeight(_ group: HeightGroup) async {
+        if let saved = await reporting(L("No se pudo guardar tu altura"), {
+            try await self.container.setMyHeight.invoke(group: group)
+        }) {
+            myHeight = saved
+            if let lineId = grade?.lineId { await loadGrade(lineId: lineId) }
+        }
+    }
+
     /// Votos de grado de todas las vías de una piedra, a la vez (una consulta por vía; una piedra tiene pocas).
     func loadGradeCounts(lineIds: [String]) async {
         let container = self.container
-        var found: [String: Int] = [:]
-        await withTaskGroup(of: (String, Int)?.self) { group in
+        var found: [String: GradeBadge] = [:]
+        await withTaskGroup(of: (String, GradeBadge)?.self) { group in
             for id in lineIds {
                 group.addTask {
                     guard let g = try? await container.getGradeVotes.invoke(lineId: id) else { return nil }
-                    return (id, g.votes.values.reduce(0) { $0 + $1.intValue })
+                    return (id, CommunityVoteStore.badge(g))
                 }
             }
             for await r in group { if let r { found[r.0] = r.1 } }
         }
         // Se vuelca FUERA del grupo: así la propiedad (del actor principal) se toca desde el actor principal.
-        gradeCounts.merge(found) { _, new in new }
+        gradeBadges.merge(found) { _, new in new }
     }
 
     func voteGrade(lineId: String, grade newGrade: String) async {
         do {
             let g = try await container.voteGrade.invoke(lineId: lineId, grade: newGrade)
             grade = g
-            gradeCounts[lineId] = total(g)
+            gradeBadges[lineId] = Self.badge(g)
         } catch {
             let text = String(describing: error)
             ErrorPresenter.shared.show(
@@ -231,6 +267,8 @@ struct GradeVoteSheet: View {
     let lineId: String
     let canVote: Bool
     @Environment(\.dismiss) private var dismiss
+    /// "Cambiar" mi altura: vuelve a enseñar las tres opciones.
+    @State private var changingHeight = false
 
     private let suffixes = ["a", "a+", "b", "b+", "c", "c+"]
 
@@ -244,7 +282,15 @@ struct GradeVoteSheet: View {
                  : L("Solo puede votar quien la tiene en su diario (pruébala o encadénala primero)."))
                 .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
             if let s = store.grade {
-                if !s.votes.isEmpty {
+                if s.heightSplit != nil {
+                    Text(L("Opinión repartida según la altura"))
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.terra)
+                        .padding(8).frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Cumbre.terraBg).clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+                if HeightVoteGroups.hasHeightData(s) {
+                    HeightVoteGroups(summary: s)
+                } else if !s.votes.isEmpty {
                     VoteBars(votes: s.votes.mapValues { $0.intValue },
                              highlight: s.displayedGrade, myVote: s.myVote, gradeColored: true)
                 }
@@ -260,7 +306,27 @@ struct GradeVoteSheet: View {
                 .background(Cumbre.terraBg)
                 .clipShape(RoundedRectangle(cornerRadius: 6))
                 if canVote {
+                    // La altura se pide UNA vez, aquí mismo: hasta que se elige, los grados están apagados.
+                    if store.myHeight == nil || changingHeight {
+                        HeightPromptCard(selected: store.myHeight) { group in
+                            Task { await store.setMyHeight(group); changingHeight = false }
+                        }
+                    } else if let mine = store.myHeight {
+                        HStack {
+                            Text(L("Tu altura: %@", heightLabel(mine))).font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Cumbre.ink)
+                            Spacer()
+                            Button(L("Cambiar")) { changingHeight = true }
+                                .font(.system(size: 12)).foregroundStyle(Cumbre.terra)
+                        }
+                        .padding(10).background(Cumbre.paper)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.rule, lineWidth: 1))
+                    }
                     Text("TU VOTO").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
+                    if store.myHeight == nil {
+                        Text(L("Elige tu altura para votar")).font(.system(size: 12)).foregroundStyle(Cumbre.terra)
+                    }
                     ForEach(["4", "5", "6", "7", "8"], id: \.self) { n in
                         HStack(spacing: 6) {
                             ForEach(suffixes, id: \.self) { suf in
@@ -278,6 +344,8 @@ struct GradeVoteSheet: View {
                                             .stroke(selected ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
                                 }
                                 .buttonStyle(.plain)
+                                .disabled(store.myHeight == nil)
+                                .opacity(store.myHeight == nil ? 0.38 : 1)
                             }
                         }
                     }

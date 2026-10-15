@@ -338,6 +338,15 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideGetMyProfileUseCase(repo: ProfileRepository) = GetMyProfileUseCase(repo)
 
+    // Mi altura (más o menos de 1,70 m), para agrupar mis votos de grado.
+    @Provides @Singleton
+    fun provideGetMyHeightUseCase(repo: ProfileRepository) =
+        com.meteomontana.android.domain.usecase.profile.GetMyHeightUseCase(repo)
+
+    @Provides @Singleton
+    fun provideSetMyHeightUseCase(repo: ProfileRepository) =
+        com.meteomontana.android.domain.usecase.profile.SetMyHeightUseCase(repo)
+
     @Provides @Singleton
     fun provideUpdateMyProfileUseCase(repo: ProfileRepository) = UpdateMyProfileUseCase(repo)
 

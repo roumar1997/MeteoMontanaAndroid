@@ -10,6 +10,10 @@ interface ProfileRepository {
     suspend fun updateFcmToken(req: FcmTokenRequest)
     suspend fun deleteMyAccount()
 
+    /** Mi altura (para agrupar mis votos de grado); null si todavía no la he elegido. */
+    suspend fun getMyHeight(): com.meteomontana.android.domain.model.HeightGroup?
+    suspend fun setMyHeight(group: com.meteomontana.android.domain.model.HeightGroup): com.meteomontana.android.domain.model.HeightGroup
+
     // ── Alerta de tiempo (fin de semana / ventana óptima) ──
     suspend fun getWeekendAlert(): com.meteomontana.android.domain.model.WeekendAlert
     suspend fun updateWeekendAlert(

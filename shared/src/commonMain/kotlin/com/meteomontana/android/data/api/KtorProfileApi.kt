@@ -1,6 +1,7 @@
 package com.meteomontana.android.data.api
 
 import com.meteomontana.android.data.api.dto.FcmTokenRequest
+import com.meteomontana.android.data.api.dto.HeightDto
 import com.meteomontana.android.data.api.dto.PrivateProfileDto
 import com.meteomontana.android.data.api.dto.UpdateProfileRequest
 import com.meteomontana.android.data.api.dto.WeekendAlertDto
@@ -25,6 +26,11 @@ class KtorProfileApi(private val client: HttpClient) {
     suspend fun deleteMyAccount() {
         client.delete("me")
     }
+
+    /** Mi altura (más o menos de 1,70 m), privada. GET/PUT /api/me/height. */
+    suspend fun getMyHeight(): HeightDto = client.get("me/height").body()
+
+    suspend fun setMyHeight(req: HeightDto): HeightDto = client.put("me/height") { setBody(req) }.body()
 
     suspend fun getWeekendAlert(): WeekendAlertDto =
         client.get("me/weekend-alert").body()

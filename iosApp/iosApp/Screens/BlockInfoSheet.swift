@@ -248,15 +248,12 @@ struct BlockInfoSheet: View {
                                             .frame(width: 24, height: 24)
                                             .background(Circle().fill(GradeColor.chip(l.grade)))
                                         if let g = l.grade, !g.isEmpty {
-                                            // C5: el grado es VOTABLE (chip discontinuo terra).
-                                            VotableChip(text: g) {
+                                            // C5: el grado es VOTABLE. Pastilla con SU color y una flecha clara (y debajo, cuántos
+                                            // votos y qué pasa al tocar); si la altura parte la opinión, son dos colores.
+                                            GradeChip(grade: g, split: community.gradeBadges[l.id]?.split) {
                                                 let canVote = tickedLines.contains(l.id) || projectLines.contains(l.id)
                                                 gradeTarget = GradeVoteTarget(lineId: l.id, canVote: canVote)
                                                 Task { await community.loadGrade(lineId: l.id) }
-                                            }
-                                            // Cuántos han votado el grado: visible sin abrir la hoja (como la orientación).
-                                            if let n = community.gradeCounts[l.id], n > 0 {
-                                                Text(L("%@ votos", n)).font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
                                             }
                                         }
                                         Text(l.name.isEmpty ? L("Vía %@", idx + 1) : l.displayName)
@@ -337,6 +334,12 @@ struct BlockInfoSheet: View {
                                         .buttonStyle(.plain)
                                         .disabled(tickingLine != nil || togglingProject != nil)
                                     }
+                                    // Qué hace la pastilla del grado: cuántos votos hay y que se puede votar.
+                                    if let g = l.grade, !g.isEmpty {
+                                        Text((community.gradeBadges[l.id] ?? GradeBadge(count: 0, split: nil)).caption)
+                                            .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                                            .padding(.leading, 34)
+                                    }
                                     // Estrellas de valoración
                                     if onRateLine != nil {
                                         LineStarsRow(
@@ -400,6 +403,7 @@ struct BlockInfoSheet: View {
                 await community.loadOrientation(blockId: block.id)
                 await community.loadSun(blockId: block.id, photoIndex: nil)
                 await community.loadGradeCounts(lineIds: block.lines.map { $0.id })
+                await community.loadMyHeight()
             }
             .sheet(item: $orientationTarget) { target in
                 OrientationVoteSheet(store: community, blockId: block.id,

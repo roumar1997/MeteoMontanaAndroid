@@ -59,6 +59,17 @@ struct MyGearSheet: View {
                     .background(Cumbre.paper)
                     .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
 
+                    // Altura: se usa para agrupar tus votos de grado. Privada, solo en grupos (más o menos de 1,70 m).
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(L("ALTURA")).font(Cumbre.mono(10, .bold)).tracking(1).foregroundStyle(Cumbre.ink3)
+                        HeightChoiceView(selected: vm.height) { group in Task { await vm.setHeight(group) } }
+                        Text(L("Solo sirve para agrupar tus votos de grado. No se ve en tu perfil ni en tus publicaciones."))
+                            .font(.footnote).foregroundStyle(Cumbre.ink3)
+                    }
+                    .padding(12)
+                    .background(Cumbre.paper)
+                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+
                     if let aviso = vm.aviso {
                         Text(aviso).font(.footnote).foregroundStyle(Cumbre.terra)
                     }
@@ -101,19 +112,33 @@ final class MyGearViewModel: ObservableObject {
     @Published var loading = false
     @Published var saving = false
     @Published var aviso: String?
+    /// Mi altura (más o menos de 1,70 m); nil = aún no la he elegido.
+    @Published var height: HeightGroup?
 
     private let getMyProfile: GetMyProfileUseCase
     private let updateMyProfile: UpdateMyProfileUseCase
+    private let getMyHeight: GetMyHeightUseCase
+    private let setMyHeight: SetMyHeightUseCase
 
     init(getMyProfile: GetMyProfileUseCase = AppDependencies.shared.container.getMyProfile,
-         updateMyProfile: UpdateMyProfileUseCase = AppDependencies.shared.container.updateMyProfile) {
+         updateMyProfile: UpdateMyProfileUseCase = AppDependencies.shared.container.updateMyProfile,
+         getMyHeight: GetMyHeightUseCase = AppDependencies.shared.container.getMyHeight,
+         setMyHeight: SetMyHeightUseCase = AppDependencies.shared.container.setMyHeight) {
         self.getMyProfile = getMyProfile
         self.updateMyProfile = updateMyProfile
+        self.getMyHeight = getMyHeight
+        self.setMyHeight = setMyHeight
+    }
+
+    /// La altura se guarda al tocarla (no espera al botón Guardar del material).
+    func setHeight(_ group: HeightGroup) async {
+        if let saved = try? await setMyHeight.invoke(group: group) { height = saved }
     }
 
     func load() async {
         loading = true
         defer { loading = false }
+        if let h = try? await getMyHeight.invoke() { height = h }
         do {
             let p = try await getMyProfile.invoke()
             // TRAZA TEMPORAL (build 125): el material se guardaba en el servidor

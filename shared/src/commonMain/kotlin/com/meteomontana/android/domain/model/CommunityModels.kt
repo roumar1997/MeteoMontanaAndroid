@@ -19,8 +19,17 @@ data class GradeSummary(
     val votes: Map<String, Int>,
     val setterGrade: String?,
     val displayedGrade: String?,
-    val myVote: String?
+    val myVote: String?,
+    /** Votos separados por altura: "TALL" (más de 1,70 m), "SHORT" (menos) y "NONE" (sin dato). Vacío con un servidor antiguo. */
+    val votesByHeight: Map<String, Map<String, Int>> = emptyMap(),
+    /** Los dos grados preferidos cuando la altura parte la opinión; null si no hay desacuerdo suficiente. */
+    val heightSplit: HeightSplit? = null,
+    /** El grupo de altura de QUIEN CONSULTA ("TALL", "SHORT", "NONE") o null si aún no lo ha elegido. */
+    val myHeight: String? = null
 )
+
+/** Cuando la gente más alta y la más baja votan un grado muy distinto, el grado se "parte" en dos. */
+data class HeightSplit(val tallGrade: String, val shortGrade: String)
 
 /** Una franja horaria de sol de una pared. */
 data class SunHour(val time: String, val inSun: Boolean)

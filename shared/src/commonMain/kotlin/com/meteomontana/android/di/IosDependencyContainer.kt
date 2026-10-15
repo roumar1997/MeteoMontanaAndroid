@@ -299,6 +299,9 @@ class IosDependencyContainer(
 
     // Perfil privado (JIT provisioning en el primer getMyProfile).
     val getMyProfile = GetMyProfileUseCase(profileRepository)
+    // Mi altura (más o menos de 1,70 m): agrupa mis votos de grado. Privada.
+    val getMyHeight = com.meteomontana.android.domain.usecase.profile.GetMyHeightUseCase(profileRepository)
+    val setMyHeight = com.meteomontana.android.domain.usecase.profile.SetMyHeightUseCase(profileRepository)
     val updateMyProfile = UpdateMyProfileUseCase(profileRepository)
     val deleteMyAccount = DeleteMyAccountUseCase(profileRepository)
     val updateFcmToken = com.meteomontana.android.domain.usecase.profile.UpdateFcmTokenUseCase(profileRepository)
