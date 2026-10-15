@@ -7,8 +7,29 @@ struct GradePill: View {
     let grade: String?
     var small = false
     var large = false
+    /// Si la altura parte la opinión sobre este grado: los dos grados, cada uno con su color.
+    var split: GradeSplitInfo? = nil
 
     var body: some View {
+        if let split {
+            HStack(spacing: 0) { half(split.tall); half(split.short) }
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
+        } else {
+            single
+        }
+    }
+
+    private func half(_ g: String) -> some View {
+        let dark = GradeColor.style(g).dark
+        return Text(g)
+            .font(Cumbre.mono(large ? 12 : (small ? 10 : 11), .bold))
+            .foregroundStyle(dark ? Color.black.opacity(0.75) : Color.white)
+            .padding(.horizontal, large ? 9 : 7).padding(.vertical, large ? 6 : 3)
+            .background(GradeColor.chip(g))
+    }
+
+    private var single: some View {
         let s = GradeColor.style(grade)
         Text(grade ?? "")
             .font(Cumbre.mono(large ? 12 : (small ? 10 : 11), .bold))

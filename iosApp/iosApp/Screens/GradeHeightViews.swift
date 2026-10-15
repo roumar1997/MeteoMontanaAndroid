@@ -54,7 +54,8 @@ struct GradeChip: View {
         return Text(g)
             .font(Cumbre.mono(12, .bold))
             .foregroundStyle(dark ? Color.black : Color.white)
-            .padding(.leading, 10).padding(.trailing, 8).padding(.vertical, 5)
+            .padding(.leading, 10).padding(.trailing, 8)
+            .frame(height: 30)
             .background(GradeColor.chip(g))
     }
 
@@ -64,8 +65,7 @@ struct GradeChip: View {
         return Image(systemName: "chevron.down")
             .font(.system(size: 10, weight: .bold))
             .foregroundStyle(dark ? Color.black : Color.white)
-            .frame(width: 26)
-            .padding(.vertical, 7)
+            .frame(width: 28, height: 30)
             .background(GradeColor.chip(last).overlay(Color.black.opacity(0.18)))
     }
 }

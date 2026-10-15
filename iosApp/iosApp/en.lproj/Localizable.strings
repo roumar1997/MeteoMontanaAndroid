@@ -1502,3 +1502,9 @@
 "No se pudo guardar tu altura" = "Couldn't save your height";
 "ALTURA" = "HEIGHT";
 "Solo sirve para agrupar tus votos de grado. No se ve en tu perfil ni en tus publicaciones." = "It's only used to group your grade votes. It isn't shown on your profile or in your posts.";
+"QUITAR MI VOTO" = "REMOVE MY VOTE";
+"No se pudo quitar el voto" = "Couldn't remove the vote";
+"Pulsa un grado. Si dudas entre dos, elige uno y añade el contiguo debajo." = "Tap a grade. If you're torn between two, pick one and add the next one below.";
+"Dudas entre dos: %@" = "Torn between two: %@";
+"¿Dudas entre dos?" = "Torn between two?";
+"Solo %@" = "Only %@";

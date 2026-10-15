@@ -23,6 +23,8 @@ final class SchoolBlocksExplorerModel: ObservableObject {
     @Published private(set) var all: [LineSearchHit] = []
     @Published private(set) var loading = true
     @Published private(set) var failed = false
+    /// Vías de la escuela cuyo grado parte la altura (lineId → los dos grados): se pintan en dos colores en las listas.
+    @Published private(set) var splits: [String: GradeSplitInfo] = [:]
     @Published var query = ""
     @Published var grades: Set<String> = []
     /// Alturas de beta marcadas. Vacío = sin filtrar; las dos = cualquier vía con beta.
@@ -66,6 +68,10 @@ final class SchoolBlocksExplorerModel: ObservableObject {
         do {
             all = try await loadSchoolLines.invoke(schoolId: schoolId)
             loadedSchool = schoolId
+            // Los grados partidos por altura son un extra: si falla, las listas salen con el grado de siempre.
+            if let map = try? await AppDependencies.shared.container.getSchoolGradeSplits.invoke(schoolId: schoolId) {
+                splits = map.mapValues { GradeSplitInfo(tall: $0.tallGrade, short: $0.shortGrade) }
+            }
         } catch is CancellationError {
             // La vista se fue a medias: no es un fallo, se reintenta al volver.
         } catch {

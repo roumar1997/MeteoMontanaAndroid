@@ -250,7 +250,7 @@ struct SchoolBlocksExplorerView: View {
                 }
                 HStack(spacing: 4) {
                     Text("✓ \(repetitions(h))").foregroundStyle(Cumbre.ok)
-                    GradePill(grade: h.grade, small: true)
+                    GradePill(grade: h.grade, small: true, split: h.lineId.flatMap { model.splits[$0] })
                 }.font(Cumbre.mono(10, .bold))
             }
             .padding(8).frame(maxWidth: .infinity, alignment: .topLeading)
@@ -270,7 +270,7 @@ struct SchoolBlocksExplorerView: View {
                     HStack(spacing: 6) {
                         Text(h.lineName ?? h.blockName).font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(Cumbre.ink).lineLimit(1)
-                        GradePill(grade: h.grade)
+                        GradePill(grade: h.grade, split: h.lineId.flatMap { model.splits[$0] })
                     }
                     HStack(spacing: 8) {
                         if repetitions(h) > 0 {

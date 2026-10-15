@@ -136,6 +136,16 @@ final class CommunityVoteStore: ObservableObject {
         gradeBadges.merge(found) { _, new in new }
     }
 
+    /// Quita MI voto de grado (y recalcula el resumen).
+    func removeGrade(lineId: String) async {
+        if let g = await reporting(L("No se pudo quitar el voto"), {
+            try await self.container.removeGradeVote.invoke(lineId: lineId)
+        }) {
+            grade = g
+            gradeBadges[lineId] = Self.badge(g)
+        }
+    }
+
     func voteGrade(lineId: String, grade newGrade: String) async {
         do {
             let g = try await container.voteGrade.invoke(lineId: lineId, grade: newGrade)
@@ -173,7 +183,7 @@ struct VoteBars: View {
                 HStack(spacing: 8) {
                     Text(option).font(Cumbre.mono(12, .bold))
                         .foregroundStyle(option == highlight ? Cumbre.terra : Cumbre.ink)
-                        .frame(width: 38, alignment: .leading)
+                        .frame(width: ordered.contains { $0.option.contains("/") } ? 64 : 38, alignment: .leading)
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule().fill(Cumbre.paper2)
@@ -272,6 +282,42 @@ struct GradeVoteSheet: View {
 
     private let suffixes = ["a", "a+", "b", "b+", "c", "c+"]
 
+    /// Todos los grados en orden (4a, 4a+, ... 8c+): sirve para saber cuáles son contiguos.
+    private var allGrades: [String] {
+        ["4", "5", "6", "7", "8"].flatMap { n in suffixes.map { n + $0 } }
+    }
+
+    /// Votar "entre dos grados": el voto doble es un par CONTIGUO (6b/6b+). Con un grado suelto se ofrecen sus
+    /// vecinos; con un par, se ofrece dejar solo uno.
+    @ViewBuilder private func doubtRow(_ mine: String) -> some View {
+        let parts = mine.split(separator: "/").map(String.init)
+        if parts.count == 2 {
+            HStack(spacing: 8) {
+                Text(L("Dudas entre dos: %@", mine)).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
+                Spacer()
+                ForEach(parts, id: \.self) { g in
+                    pairButton(L("Solo %@", g), vote: g)
+                }
+            }
+        } else if parts.count == 1, let i = allGrades.firstIndex(of: parts[0]) {
+            HStack(spacing: 8) {
+                Text(L("¿Dudas entre dos?")).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
+                Spacer()
+                if i > 0 { pairButton(allGrades[i - 1] + "/" + parts[0], vote: allGrades[i - 1] + "/" + parts[0]) }
+                if i < allGrades.count - 1 { pairButton(parts[0] + "/" + allGrades[i + 1], vote: parts[0] + "/" + allGrades[i + 1]) }
+            }
+        }
+    }
+
+    private func pairButton(_ label: String, vote: String) -> some View {
+        Button { Task { await store.voteGrade(lineId: lineId, grade: vote) } } label: {
+            Text(label).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                .padding(.horizontal, 10).padding(.vertical, 7)
+                .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
     var body: some View {
         ScrollView {
         VStack(alignment: .leading, spacing: 10) {
@@ -327,11 +373,13 @@ struct GradeVoteSheet: View {
                     if store.myHeight == nil {
                         Text(L("Elige tu altura para votar")).font(.system(size: 12)).foregroundStyle(Cumbre.terra)
                     }
+                    Text(L("Pulsa un grado. Si dudas entre dos, elige uno y añade el contiguo debajo."))
+                        .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
                     ForEach(["4", "5", "6", "7", "8"], id: \.self) { n in
                         HStack(spacing: 6) {
                             ForEach(suffixes, id: \.self) { suf in
                                 let g = n + suf
-                                let selected = s.myVote == g
+                                let selected = (s.myVote ?? "").split(separator: "/").map(String.init).contains(g)
                                 Button {
                                     Task { await store.voteGrade(lineId: lineId, grade: g) }
                                 } label: {
@@ -348,6 +396,15 @@ struct GradeVoteSheet: View {
                                 .opacity(store.myHeight == nil ? 0.38 : 1)
                             }
                         }
+                    }
+                    if let mine = s.myVote, store.myHeight != nil {
+                        doubtRow(mine)
+                        Button { Task { await store.removeGrade(lineId: lineId) } } label: {
+                            Text(L("QUITAR MI VOTO")).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                                .frame(maxWidth: .infinity).padding(.vertical, 10)
+                                .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             } else {

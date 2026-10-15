@@ -258,6 +258,10 @@ class IosDependencyContainer(
         com.meteomontana.android.domain.usecase.community.GetGradeVotesUseCase(communityRepository)
     val voteGrade =
         com.meteomontana.android.domain.usecase.community.VoteGradeUseCase(communityRepository)
+    val removeGradeVote =
+        com.meteomontana.android.domain.usecase.community.RemoveGradeVoteUseCase(communityRepository)
+    val getSchoolGradeSplits =
+        com.meteomontana.android.domain.usecase.community.GetSchoolGradeSplitsUseCase(communityRepository)
     val updateJournalDate =
         com.meteomontana.android.domain.usecase.journal.UpdateJournalDateUseCase(journalRepository)
     val updateJournalStyle =

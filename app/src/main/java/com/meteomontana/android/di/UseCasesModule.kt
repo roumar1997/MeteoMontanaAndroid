@@ -455,6 +455,14 @@ object UseCasesModule {
         com.meteomontana.android.domain.usecase.community.VoteGradeUseCase(repo)
 
     @Provides @Singleton
+    fun provideRemoveGradeVoteUseCase(repo: com.meteomontana.android.domain.repository.CommunityRepository) =
+        com.meteomontana.android.domain.usecase.community.RemoveGradeVoteUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetSchoolGradeSplitsUseCase(repo: com.meteomontana.android.domain.repository.CommunityRepository) =
+        com.meteomontana.android.domain.usecase.community.GetSchoolGradeSplitsUseCase(repo)
+
+    @Provides @Singleton
     fun provideGetMyJournalStatsUseCase(repo: JournalRepository) = GetMyJournalStatsUseCase(repo)
 
     @Provides @Singleton

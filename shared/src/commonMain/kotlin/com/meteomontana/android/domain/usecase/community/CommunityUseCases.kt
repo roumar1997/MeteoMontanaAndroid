@@ -41,3 +41,16 @@ class VoteGradeUseCase(private val repo: CommunityRepository) {
     suspend operator fun invoke(lineId: String, grade: String): GradeSummary =
         repo.voteGrade(lineId, grade)
 }
+
+/** Quita mi voto de grado de una vía. */
+class RemoveGradeVoteUseCase(private val repo: CommunityRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(lineId: String): GradeSummary = repo.removeGradeVote(lineId)
+}
+
+/** Los grados partidos por altura de toda una escuela (lineId → {alta, baja}), para pintar las listas. */
+class GetSchoolGradeSplitsUseCase(private val repo: CommunityRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(schoolId: String): Map<String, com.meteomontana.android.domain.model.HeightSplit> =
+        repo.getSchoolGradeSplits(schoolId)
+}
