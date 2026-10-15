@@ -1705,7 +1705,6 @@
 
     <!-- Onboarding (tour de primera apertura) -->
     <string name="onb_next">NEXT</string>
-    <string name="onb_allow_location_start">ALLOW LOCATION AND START</string>
 
     <!-- Presencia, material de quedada y contador -->
     <string name="presence_error_remove">Could not remove your presence. Check your connection.</string>
@@ -1747,7 +1746,6 @@
     <string name="welcome_scale_fair">50–69 fair</string>
     <string name="welcome_scale_bad">&lt;50 bad day</string>
     <string name="welcome_location_note">We only use your location to sort crags by distance and centre the map. It stays on your phone.</string>
-    <string name="welcome_not_now">NOT NOW</string>
     <string name="meetups_active_count">%1$d active</string>
     <string name="schools_filters_with_count">FILTERS (%1$d)</string>
     <string name="schools_summary_upto_km">Up to %1$d km</string>
@@ -1791,4 +1789,31 @@
     <string name="admin_assistant_on">Turned on for this user</string>
     <string name="admin_assistant_off">Turned off for this user</string>
     <string name="admin_assistant_hint">Nobody else sees this block. Once on, the assistant bubble shows up as soon as they open the app.</string>
+    <string name="grade_badge_no_votes">No votes · vote</string>
+    <string name="grade_badge_one_vote">1 vote</string>
+    <string name="grade_badge_votes">%1$d votes</string>
+    <string name="grade_badge_view_and_vote"> · view and vote</string>
+    <string name="grade_badge_by_height"> · by height</string>
+    <string name="grade_chip_cd">Grade %1$s. View and vote</string>
+    <string name="height_prefer_not">Prefer not to say</string>
+    <string name="height_prompt_title">First, your height</string>
+    <string name="height_prompt_body">That way your vote counts with people your height. We keep it in your pack and never show it to anyone.</string>
+    <string name="height_unsaid">not said</string>
+    <string name="height_group_tall">OVER 1.70</string>
+    <string name="height_group_short">UNDER 1.70</string>
+    <string name="height_group_none">NO DATA</string>
+    <string name="height_votes_one_caps">1 VOTE</string>
+    <string name="height_votes_caps">%1$d VOTES</string>
+    <string name="grade_split_note">Opinion split by height</string>
+    <string name="height_yours">Your height: %1$s</string>
+    <string name="height_change">Change</string>
+    <string name="height_pick_to_vote">Choose your height to vote</string>
+    <string name="height_save_error">Couldn\'t save your height</string>
+    <string name="height_caps">HEIGHT</string>
+    <string name="height_gear_hint">It\'s only used to group your grade votes. It isn\'t shown on your profile or in your posts.</string>
+    <string name="grade_vote_remove">REMOVE MY VOTE</string>
+    <string name="grade_vote_remove_error">Couldn\'t remove the vote</string>
+    <string name="grade_vote_hint">Tap a grade. If you\'re torn between two, tap the one next to it too.</string>
+    <string name="grade_vote_save">SAVE</string>
+    <string name="onb_continue">CONTINUE</string>
 </resources>

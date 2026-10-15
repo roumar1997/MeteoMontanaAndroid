@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.meteomontana.android.ui.components.CumbreSheetHeader
 import com.meteomontana.android.ui.screens.meetups.buildGearJson
 import com.meteomontana.android.ui.screens.meetups.gearItemsForDiscipline
@@ -58,6 +59,8 @@ import com.meteomontana.android.R
 @Composable
 fun MyGearSheet(
     gearJson: String?,
+    height: com.meteomontana.android.domain.model.HeightGroup?,
+    onSetHeight: (com.meteomontana.android.domain.model.HeightGroup) -> Unit,
     onClose: () -> Unit,
     onSave: (String) -> Unit
 ) {
@@ -156,6 +159,22 @@ fun MyGearSheet(
                 }
             }
 
+            // Altura: se usa para agrupar tus votos de grado. Privada, solo en grupos (más o menos de 1,70 m).
+            Spacer(Modifier.height(Spacing.md))
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.outline)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                Text(stringResource(R.string.height_caps), style = EyebrowTextStyle.copy(fontSize = 10.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                com.meteomontana.android.ui.components.HeightChoiceView(selected = height, onSelect = onSetHeight)
+                Text(stringResource(R.string.height_gear_hint), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }

@@ -47,11 +47,26 @@ class ProfileViewModel @Inject constructor(
     private val updateMyProfile: com.meteomontana.android.domain.usecase.profile.UpdateMyProfileUseCase,
     private val profileCache: com.meteomontana.android.data.local.ProfileCache,
     private val deleteMyAccount: com.meteomontana.android.domain.usecase.profile.DeleteMyAccountUseCase,
-    private val authManager: AuthManager
+    private val authManager: AuthManager,
+    private val getMyHeight: com.meteomontana.android.domain.usecase.profile.GetMyHeightUseCase,
+    private val setMyHeightUc: com.meteomontana.android.domain.usecase.profile.SetMyHeightUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ProfileUiState>(ProfileUiState.Loading)
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
+
+    /** Mi altura (más o menos de 1,70 m), privada y solo para agrupar mis votos de grado; null = aún no la he elegido. */
+    private val _myHeight = MutableStateFlow<com.meteomontana.android.domain.model.HeightGroup?>(null)
+    val myHeight: StateFlow<com.meteomontana.android.domain.model.HeightGroup?> = _myHeight.asStateFlow()
+
+    fun loadMyHeight() {
+        viewModelScope.launch { runCatching { getMyHeight() }.onSuccess { _myHeight.value = it } }
+    }
+
+    /** La altura se guarda al tocarla (no espera al botón Guardar del material). */
+    fun setMyHeight(group: com.meteomontana.android.domain.model.HeightGroup) {
+        viewModelScope.launch { runCatching { setMyHeightUc(group) }.onSuccess { _myHeight.value = it } }
+    }
 
     init { load() }
 

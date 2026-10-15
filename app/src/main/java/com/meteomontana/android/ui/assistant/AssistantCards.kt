@@ -225,7 +225,7 @@ private fun AssistantStoneRow(stone: AssistantStone, confirmed: Boolean, schoolI
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(stone.name, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Medium, fontSize = 13.sp,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                GradePill(stone.grade, small = true)
+                GradePill(stone.grade, small = true, lineId = stone.firstLineId)
             }
             stone.lineName?.takeIf { it.isNotEmpty() && it != stone.name }?.let {
                 Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -428,7 +428,7 @@ private fun AssistantHitRow(hit: LineSearchHit, presenter: AssistantPresenter, w
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(hit.lineName ?: hit.blockName, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Medium, fontSize = 14.sp,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                GradePill(hit.grade, small = true)
+                GradePill(hit.grade, small = true, lineId = hit.lineId)
                 val kind = com.meteomontana.android.domain.util.SchoolKind.from(hit.discipline)
                 if (kind.isSingle) com.meteomontana.android.ui.components.SchoolKindIcons(kind, height = 13.dp)
             }
@@ -469,7 +469,7 @@ fun AssistantJournalListView(
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(e.blockName, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Medium, fontSize = 14.sp,
                                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                            GradePill(e.grade, small = true)
+                            GradePill(e.grade, small = true, lineId = e.lineId)
                         }
                         // "Albarracín · 8 oct": escuela y día en que se apuntó.
                         Text(listOfNotNull(e.schoolName, presenter.dateRange(e.date, null)).joinToString(" · "),

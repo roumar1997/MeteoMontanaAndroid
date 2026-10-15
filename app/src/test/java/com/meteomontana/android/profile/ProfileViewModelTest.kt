@@ -70,7 +70,8 @@ class ProfileViewModelTest {
 
     private fun vm() = ProfileViewModel(
         getMyProfile, getStats, createJournal, getPendingSubs, getPendingContribs,
-        getFollowStatus, updateMyProfile, cache, deleteAccount, auth)
+        getFollowStatus, updateMyProfile, cache, deleteAccount, auth,
+        mockk(relaxed = true), mockk(relaxed = true))
 
     @Test fun `carga produce Success con followers y projectCount`() = runTest {
         coEvery { getMyProfile() } returns profile()

@@ -233,10 +233,11 @@ fun JournalEntriesScreen(
             viewModel.clearStyleError()
         }
     }
-    // G: filtro por grado activo (null = todos).
-    var gradeFilter by androidx.compose.runtime.saveable.rememberSaveable {
-        androidx.compose.runtime.mutableStateOf<String?>(null)
-    }
+    // G: filtro por grado, de VARIOS a la vez (vacío = todos). Un grado doble ("6b+/6c") cuenta para sus dos chips.
+    var gradeFilters by androidx.compose.runtime.saveable.rememberSaveable(
+        stateSaver = androidx.compose.runtime.saveable.listSaver<Set<String>, String>(
+            save = { it.toList() }, restore = { it.toSet() })
+    ) { androidx.compose.runtime.mutableStateOf(emptySet<String>()) }
     // Filtro por ESTILO: "aVista" | "alFlash" | null (todos). Cliente, como
     // el de grado — no necesita ruta nueva (Rodrigo, 2026-08-21).
     var styleFilter by androidx.compose.runtime.saveable.rememberSaveable {
@@ -297,7 +298,7 @@ fun JournalEntriesScreen(
                         }
                         // G: filtro por GRADO (chips con la paleta de topos).
                         val grades = s.entries
-                            .mapNotNull { it.grade?.trim()?.lowercase()?.takeIf(String::isNotEmpty) }
+                            .flatMap { com.meteomontana.android.ui.components.gradeParts(it.grade) }
                             .distinct()
                             .sortedByDescending {
                                 com.meteomontana.android.domain.usecase.journal.JournalStatsCalculator.gradeRank(it)
@@ -312,13 +313,13 @@ fun JournalEntriesScreen(
                                         val g = grades[gi]
                                         val gs = com.meteomontana.android.ui.theme.gradeChipStyle(g)
                                         val accent = if (gs.dark) MaterialTheme.colorScheme.onSurface else gs.stroke
-                                        val active = gradeFilter == g
+                                        val active = g in gradeFilters
                                         Box(Modifier
                                             .background(
                                                 if (active) accent else MaterialTheme.colorScheme.surface,
                                                 RoundedCornerShape(6.dp))
                                             .border(1.dp, accent, RoundedCornerShape(6.dp))
-                                            .clickable { gradeFilter = if (active) null else g }
+                                            .clickable { gradeFilters = if (active) gradeFilters - g else gradeFilters + g }
                                             .padding(horizontal = 10.dp, vertical = 5.dp)) {
                                             Text(g, style = MaterialTheme.typography.labelMedium,
                                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
@@ -347,9 +348,9 @@ fun JournalEntriesScreen(
                                 }
                             }
                         }
-                        val visibleEntries = (gradeFilter?.let { g ->
-                            s.entries.filter { it.grade?.trim()?.equals(g, ignoreCase = true) == true }
-                        } ?: s.entries).let { list ->
+                        val visibleEntries = s.entries.filter {
+                            com.meteomontana.android.ui.components.gradeMatches(it.grade, gradeFilters)
+                        }.let { list ->
                             when (styleFilter) {
                                 "aVista" -> list.filter { it.aVista }
                                 "alFlash" -> list.filter { it.alFlash }
@@ -442,7 +443,11 @@ internal fun EntryRow(
                 // Grado ACTUAL del catálogo (refleja correcciones) o, si no se
                 // pudo resolver, el guardado al marcar la vía.
                 val eGrade = info?.grade ?: e.grade
-                if (!eGrade.isNullOrBlank()) {
+                val eSplit = com.meteomontana.android.ui.components.rememberLineSplit(e.lineId)
+                if (!eGrade.isNullOrBlank() && eSplit != null) {
+                    // La altura parte la opinión: el grado va en dos colores.
+                    com.meteomontana.android.ui.screens.detail.GradePill(eGrade, lineId = e.lineId)
+                } else if (!eGrade.isNullOrBlank()) {
                     val gs = com.meteomontana.android.ui.theme.gradeChipStyle(eGrade)
                     Box(modifier = Modifier
                         .background(gs.stroke, RoundedCornerShape(3.dp))

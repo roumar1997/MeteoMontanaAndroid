@@ -11,6 +11,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -52,6 +54,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.meteomontana.android.R
@@ -130,6 +133,8 @@ fun BlockDetailDialog(
     val sunByPhoto by communityVm.sun.collectAsStateWithLifecycle()
     val gradeSummary by communityVm.grade.collectAsStateWithLifecycle()
     val communityError by communityVm.error.collectAsStateWithLifecycle()
+    val gradeBadges by communityVm.gradeBadges.collectAsStateWithLifecycle()
+    val myHeight by communityVm.myHeight.collectAsStateWithLifecycle()
     var orientationTarget by remember { mutableStateOf<Int?>(null) }
     var orientationOpen by remember { mutableStateOf(false) }
     var gradeVoteLine by remember { mutableStateOf<com.meteomontana.android.domain.model.BlockLine?>(null) }
@@ -138,6 +143,9 @@ fun BlockDetailDialog(
             communityVm.clearForBlock()
             communityVm.loadOrientation(block.id)
             communityVm.loadSun(block.id, null)
+            // Votos de grado de cada vía (para la pastilla y su pie) y mi altura (para pedirla solo si falta).
+            communityVm.loadGradeCounts(block.lines.map { it.id }.filter { it.isNotBlank() })
+            communityVm.loadMyHeight()
         }
     }
     androidx.compose.runtime.LaunchedEffect(communityError) {
@@ -525,7 +533,8 @@ fun BlockDetailDialog(
                                 if (lineGrade != null) {
                                     // C5: el grado es VOTABLE (chip discontinuo terra).
                                     if (!isProposal && line.id.isNotBlank()) {
-                                        VotableChip(text = lineGrade) {
+                                        // Pastilla con SU color y una flecha clara; si la altura parte la opinión, dos colores.
+                                        GradeChip(grade = lineGrade, split = gradeBadges[line.id]?.split) {
                                             gradeVoteLine = line
                                             communityVm.loadGrade(line.id)
                                         }
@@ -649,6 +658,15 @@ fun BlockDetailDialog(
                                     modifier = Modifier.padding(start = 28.dp, bottom = 2.dp)
                                 )
                             }
+                            // Qué hace la pastilla del grado: cuántos votos hay y que se puede votar.
+                            if (!isProposal && line.id.isNotBlank() && !lineGrade.isNullOrEmpty()) {
+                                Text(
+                                    gradeBadgeCaption(gradeBadges[line.id]),
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(start = 28.dp, bottom = 2.dp)
+                                )
+                            }
                             // Estrellas: valoración media + votar (si está habilitado)
                             if (onRateLine != null && !isProposal && block.type == "BLOCK") {
                                 LineStarsRow(
@@ -756,20 +774,27 @@ fun BlockDetailDialog(
     // ── C5: diálogo de votar grado ────────────────────────────────────────
     gradeVoteLine?.let { gl ->
         val canVote = tickedLines.contains(gl.id) || projectLines.contains(gl.id)
-        androidx.compose.material3.AlertDialog(
+        // PANTALLA COMPLETA: elegir grado(s), GUARDAR; QUITAR MI VOTO y CERRAR siempre a la vista.
+        androidx.compose.ui.window.Dialog(
             onDismissRequest = { gradeVoteLine = null },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = { gradeVoteLine = null }) {
-                    Text(stringResource(R.string.block_detail_dialog_v2_cerrar), style = EyebrowTextStyle, color = Terra)
-                }
-            },
-            containerColor = MaterialTheme.colorScheme.surface,
-            text = {
-                GradeVoteContent(summary = gradeSummary, canVote = canVote) { g ->
-                    communityVm.voteGrade(gl.id, g)
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            androidx.compose.material3.Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                Box(Modifier.fillMaxSize().systemBarsPadding()) {
+                    GradeVoteContent(
+                        summary = gradeSummary, canVote = canVote, myHeight = myHeight,
+                        onSetHeight = { communityVm.setMyHeight(it) },
+                        onRemove = { communityVm.removeGrade(gl.id) },
+                        onClose = { gradeVoteLine = null }
+                    ) { g ->
+                        communityVm.voteGrade(gl.id, g) { gradeVoteLine = null }
+                    }
                 }
             }
-        )
+        }
     }
 
     if (showLinePicker && onEditLine != null) {

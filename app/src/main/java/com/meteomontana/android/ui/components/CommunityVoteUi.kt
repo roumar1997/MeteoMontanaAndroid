@@ -10,14 +10,22 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.graphics.graphicsLayer
+import com.meteomontana.android.domain.model.HeightGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -72,7 +80,7 @@ fun VotableChip(text: String, modifier: Modifier = Modifier, onClick: () -> Unit
  * [barColor] = el color de cada opción (los grados llevan el suyo, como en la app); null = terracota.
  */
 @Composable
-private fun VoteBars(votes: Map<String, Int>, highlight: String?, myVote: String?, barColor: ((String) -> Color)? = null) {
+internal fun VoteBars(votes: Map<String, Int>, highlight: String?, myVote: String?, barColor: ((String) -> Color)? = null) {
     val max = (votes.values.maxOrNull() ?: 1).coerceAtLeast(1)
     com.meteomontana.android.domain.usecase.community.VoteOrdering.ordered(votes).forEach { (option, count) ->
         val color = barColor?.invoke(option) ?: Terra
@@ -85,7 +93,7 @@ private fun VoteBars(votes: Map<String, Int>, highlight: String?, myVote: String
                 option,
                 style = EyebrowTextStyle.copy(fontSize = 12.sp),
                 color = if (option == highlight) Terra else MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.width(38.dp)
+                modifier = Modifier.widthIn(min = 38.dp)
             )
             Box(Modifier.weight(1f).height(14.dp)
                 .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(7.dp))) {
@@ -171,30 +179,74 @@ private fun AspectChip(aspect: String, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
-/** Contenido del diálogo de votar GRADO (C5). */
+/** Todos los grados en orden (4a, 4a+, ... 8c+): sirve para saber cuáles son contiguos. */
+private val SUFFIXES = listOf("a", "a+", "b", "b+", "c", "c+")
+private val ALL_GRADES = listOf("4", "5", "6", "7", "8").flatMap { n -> SUFFIXES.map { n + it } }
+
+/**
+ * Qué voto queda al pulsar [g]: si ya está elegido, se quita de un voto doble (queda el otro); si es el contiguo del
+ * grado elegido, el voto pasa a ser el PAR (6b/6b+, de menor a mayor); si no, es el nuevo voto.
+ */
+internal fun nextGradeVote(g: String, current: String?): String {
+    val parts = gradeParts(current)
+    val gi = ALL_GRADES.indexOf(g)
+    if (gi < 0) return g
+    if (g in parts) return if (parts.size == 2) (if (parts[0] == g) parts[1] else parts[0]) else g
+    if (parts.size == 1) {
+        val pi = ALL_GRADES.indexOf(parts[0])
+        if (pi >= 0 && kotlin.math.abs(pi - gi) == 1) return if (pi < gi) parts[0] + "/" + g else g + "/" + parts[0]
+    }
+    return g
+}
+
+/** Contenido del diálogo de votar GRADO (C5), con la altura de quien vota (espejo de GradeVoteSheet de iOS). */
 @Composable
 fun GradeVoteContent(
     summary: GradeSummary?,
     canVote: Boolean,
-    onVote: (String) -> Unit
+    myHeight: HeightGroup?,
+    onSetHeight: (HeightGroup) -> Unit,
+    onRemove: () -> Unit,
+    onClose: () -> Unit,
+    onSave: (String) -> Unit
 ) {
-    Column(Modifier.padding(horizontal = 4.dp)) {
+    // "Cambiar" mi altura: vuelve a enseñar las tres opciones.
+    var changingHeight by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    // Lo elegido pero AÚN NO guardado: pulsar grados solo cambia esto; el voto se guarda con GUARDAR.
+    var edited by androidx.compose.runtime.remember(summary?.lineId, summary?.myVote) { androidx.compose.runtime.mutableStateOf(false) }
+    var draft by androidx.compose.runtime.remember(summary?.lineId, summary?.myVote) { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.weight(1f).padding(horizontal = 16.dp).verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.community_vote_ui_que_grado_le_das), style = EyebrowTextStyle, color = Terra)
         Text(
             if (canVote)
                 stringResource(R.string.community_vote_ui_v3_el_grado_que_se_muestra)
             else
                 stringResource(R.string.community_vote_ui_v3_solo_puede_votar_quien_la),
-            fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
+            fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        val s = summary ?: return@Column
-        if (s.votes.isNotEmpty()) VoteBars(s.votes, s.displayedGrade, s.myVote) { grade ->
+        val s = summary
+        if (s == null) {
+            androidx.compose.material3.CircularProgressIndicator(color = Terra,
+                modifier = Modifier.padding(24.dp).align(Alignment.CenterHorizontally))
+            return@Column
+        }
+        if (s.heightSplit != null) {
+            Text(
+                stringResource(R.string.grade_split_note),
+                fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Terra,
+                modifier = Modifier.fillMaxWidth()
+                    .background(Terra.copy(alpha = 0.12f), RoundedCornerShape(8.dp)).padding(8.dp)
+            )
+        }
+        if (hasHeightData(s)) HeightVoteGroups(s)
+        else if (s.votes.isNotEmpty()) VoteBars(s.votes, s.displayedGrade, s.myVote) { grade ->
             Color(com.meteomontana.android.domain.util.gradeArgb(grade).first.toInt())
         }
         Row(
             Modifier.fillMaxWidth()
-                .padding(top = 8.dp)
                 .background(Terra.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
                 .padding(horizontal = 10.dp, vertical = 7.dp),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -208,26 +260,102 @@ fun GradeVoteContent(
             )
         }
         if (canVote) {
-            Spacer(Modifier.height(10.dp))
-            GradePicker(current = s.myVote ?: s.displayedGrade, onPick = onVote)
+            // La altura se pide UNA vez, aquí mismo: hasta que se elige, los grados están apagados.
+            if (myHeight == null || changingHeight) {
+                HeightPromptCard(myHeight) { group -> onSetHeight(group); changingHeight = false }
+            } else {
+                Row(
+                    Modifier.fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(10.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+                        .padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(stringResource(R.string.height_yours, heightLabel(myHeight)),
+                        fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.height_change), fontSize = 12.sp, color = Terra,
+                        modifier = Modifier.clickable { changingHeight = true })
+                }
+            }
+            GradePicker(
+                current = if (edited) draft else s.myVote, enabled = myHeight != null,
+                onPick = { g -> draft = nextGradeVote(g, if (edited) draft else s.myVote); edited = true }
+            )
         }
+        Spacer(Modifier.height(8.dp))
+    }
+    // Acciones FIJAS abajo: siempre se ven sin hacer scroll.
+    val canSave = canVote && myHeight != null && edited && draft != null && draft != summary?.myVote
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (canVote) {
+            Text(
+                stringResource(R.string.grade_vote_save), style = EyebrowTextStyle.copy(fontSize = 12.sp), color = Color.White,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+                    .graphicsLayer(alpha = if (canSave) 1f else 0.38f)
+                    .background(Terra, RoundedCornerShape(50))
+                    .clickable(enabled = canSave) { draft?.let(onSave) }
+                    .padding(vertical = 12.dp)
+            )
+            if (summary?.myVote != null && myHeight != null) {
+                Text(
+                    stringResource(R.string.grade_vote_remove), style = EyebrowTextStyle.copy(fontSize = 11.sp), color = Terra,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                        .border(1.dp, Terra, RoundedCornerShape(50))
+                        .clickable(onClick = onRemove)
+                        .padding(vertical = 10.dp)
+                )
+            }
+        }
+        Text(
+            stringResource(R.string.block_detail_dialog_v2_cerrar), style = EyebrowTextStyle, color = Terra,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onClose).padding(vertical = 8.dp)
+        )
+    }
     }
 }
 
-/** Selector de grado francés: rejilla completa (número + letra + plus). */
+
+/**
+ * Selector de grado francés: rejilla completa. Cada botón lleva el COLOR de su grado; el elegido (o los DOS, si dudas)
+ * va relleno. Apagado hasta que se elige la altura.
+ */
 @Composable
-private fun GradePicker(current: String?, onPick: (String) -> Unit) {
-    val suffixes = listOf("a", "a+", "b", "b+", "c", "c+")
-    Column {
+private fun GradePicker(current: String?, enabled: Boolean, onPick: (String) -> Unit) {
+    Column(Modifier.graphicsLayer(alpha = if (enabled) 1f else 0.38f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(stringResource(R.string.community_vote_ui_v2_tu_voto), style = EyebrowTextStyle.copy(fontSize = 10.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(4.dp))
+        if (!enabled) {
+            Text(stringResource(R.string.height_pick_to_vote), fontSize = 12.sp, color = Terra)
+        }
+        Text(stringResource(R.string.grade_vote_hint), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        val mine = gradeParts(current)
         listOf("4", "5", "6", "7", "8").forEach { n ->
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.padding(vertical = 2.dp)) {
-                suffixes.forEach { suf ->
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                SUFFIXES.forEach { suf ->
                     val g = n + suf
-                    AspectChip(g, selected = current == g) { onPick(g) }
+                    val selected = g in mine
+                    val style = com.meteomontana.android.ui.theme.gradeChipStyle(g)
+                    val accent = if (style.dark) MaterialTheme.colorScheme.onSurface else style.stroke
+                    Box(
+                        Modifier.weight(1f)
+                            .background(if (selected) com.meteomontana.android.ui.theme.gradeChipColor(g)
+                                        else MaterialTheme.colorScheme.surface, RoundedCornerShape(6.dp))
+                            .border(1.dp, if (selected && !style.dark) Color.Transparent else accent, RoundedCornerShape(6.dp))
+                            .clickable(enabled = enabled) { onPick(g) }
+                            .padding(vertical = 7.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            g, style = EyebrowTextStyle.copy(fontSize = 11.sp),
+                            color = if (selected) (if (style.dark) Color.Black else Color.White) else accent,
+                            maxLines = 1
+                        )
+                    }
                 }
             }
         }

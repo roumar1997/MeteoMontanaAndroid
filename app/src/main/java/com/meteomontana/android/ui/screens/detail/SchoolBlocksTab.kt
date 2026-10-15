@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import com.meteomontana.android.ui.components.rememberLineSplit
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -309,7 +310,7 @@ private fun PodiumCard(h: LineSearchHit, modifier: Modifier, onOpen: (String) ->
         }
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("✓ ${h.repetitions ?: 0}", color = Ok, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 10.sp)
-            GradePill(h.grade, small = true)
+            GradePill(h.grade, small = true, lineId = h.lineId)
         }
     }
 }
@@ -327,7 +328,7 @@ private fun LineRow(h: LineSearchHit, onOpen: (String) -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(h.lineName ?: h.blockName, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                GradePill(h.grade)
+                GradePill(h.grade, lineId = h.lineId)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val reps = h.repetitions ?: 0
@@ -347,8 +348,27 @@ private fun LineRow(h: LineSearchHit, onOpen: (String) -> Unit) {
  * llevan texto oscuro y borde para no perderse sobre el papel. Nada si no hay grado.
  */
 @Composable
-fun GradePill(grade: String?, modifier: Modifier = Modifier, small: Boolean = false, large: Boolean = false) {
+fun GradePill(
+    grade: String?, modifier: Modifier = Modifier, small: Boolean = false, large: Boolean = false,
+    /** Si se da la vía, la pastilla pide su reparto por altura: si la altura parte la opinión, son dos colores. */
+    lineId: String? = null
+) {
     if (grade.isNullOrBlank()) return
+    val split = rememberLineSplit(lineId)
+    if (split != null) {
+        Row(modifier.clip(CircleShape)) {
+            listOf(split.tallGrade, split.shortGrade).forEach { g ->
+                val (c, _, d) = gradeArgb(g)
+                Text(
+                    g, color = if (d) Color.Black.copy(alpha = 0.75f) else Color.White,
+                    fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = (if (large) 12 else if (small) 10 else 11).sp,
+                    modifier = Modifier.background(Color(c.toInt()))
+                        .padding(horizontal = if (large) 9.dp else 6.dp, vertical = if (large) 6.dp else 3.dp)
+                )
+            }
+        }
+        return
+    }
     val (argb, _, dark) = gradeArgb(grade)
     Text(
         grade,

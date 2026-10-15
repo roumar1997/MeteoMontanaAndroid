@@ -247,11 +247,6 @@ fun SchoolListScreen(
                 com.meteomontana.android.ui.onboarding.markOnboardingDone(context)
                 showOnboarding = false
                 permLauncher.launch(locationPerms)
-            },
-            // "Ahora no": entra sin pedir la ubicación (se puede dar luego desde Escuelas).
-            onSkip = {
-                com.meteomontana.android.ui.onboarding.markOnboardingDone(context)
-                showOnboarding = false
             }
         )
         return
@@ -433,12 +428,16 @@ fun SchoolListScreen(
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Column(Modifier.weight(1f)) {
-                                            Text(
-                                                (h.lineName ?: h.blockName) +
-                                                    (h.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                maxLines = 1)
+                                            Row(verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Text(
+                                                    h.lineName ?: h.blockName,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    maxLines = 1, modifier = Modifier.weight(1f, fill = false))
+                                                com.meteomontana.android.ui.screens.detail.GradePill(
+                                                    h.grade, small = true, lineId = h.lineId)
+                                            }
                                             Text(
                                                 listOf(h.blockName.takeIf { h.lineName != null },
                                                        h.sectorName, h.schoolName)
@@ -1285,9 +1284,14 @@ private fun ExploreLineRow(
                     color = MaterialTheme.colorScheme.onBackground, maxLines = 1)
                 h.grade?.takeIf { it.isNotBlank() }?.let {
                     Spacer(Modifier.size(6.dp))
-                    val argb = com.meteomontana.android.domain.util.gradeArgb(it).first
-                    Text(it, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = androidx.compose.ui.graphics.Color(argb.toInt()))
+                    if (com.meteomontana.android.ui.components.rememberLineSplit(h.lineId) != null) {
+                        // La altura parte la opinión: el grado va en dos colores.
+                        com.meteomontana.android.ui.screens.detail.GradePill(it, small = true, lineId = h.lineId)
+                    } else {
+                        val argb = com.meteomontana.android.domain.util.gradeArgb(it).first
+                        Text(it, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = androidx.compose.ui.graphics.Color(argb.toInt()))
+                    }
                 }
                 // Cuántas personas la han hecho (solo con el orden "Más repetidos").
                 h.repetitions?.takeIf { it > 0 }?.let {

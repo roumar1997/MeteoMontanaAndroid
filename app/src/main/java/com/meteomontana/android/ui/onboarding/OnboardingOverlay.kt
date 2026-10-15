@@ -61,16 +61,18 @@ fun markOnboardingDone(context: Context) {
  * ANTES de pedirla. Lo demás se aprende en la propia app (guía corta de primera vez y "? AYUDA" por pantalla), y aquí
  * mismo se decide si se quieren esas guías.
  *
- * [onFinish] = "Permitir ubicación y empezar" (el llamante pide el permiso); [onSkip] = "Ahora no" (entra sin pedirlo,
- * se puede dar luego desde Escuelas).
+ * [onFinish] = "CONTINUAR": el llamante pide SIEMPRE el permiso de ubicación del sistema y marca la bienvenida como vista.
+ * Misma regla que iOS (Apple, guideline 5.1.1(iv), 2026-10-14): el botón es neutro ("Continuar", no "Permitir
+ * ubicación…") y NO hay forma de saltarse el diálogo del sistema desde esta pantalla (antes había un "Ahora no").
+ * Quien no quiera dar la ubicación lo dice en el diálogo de Android, y la puede dar luego desde Escuelas.
  */
 @Composable
-fun OnboardingOverlay(onFinish: () -> Unit, onSkip: () -> Unit) {
+fun OnboardingOverlay(onFinish: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            // Entre las barras del sistema: "Ahora no" no puede quedar bajo la barra de navegación.
+            // Entre las barras del sistema: el botón no puede quedar bajo la barra de navegación.
             .systemBarsPadding()
             .padding(Spacing.xl)
     ) {
@@ -123,14 +125,9 @@ fun OnboardingOverlay(onFinish: () -> Unit, onSkip: () -> Unit) {
                 .padding(vertical = Spacing.md),
             contentAlignment = Alignment.Center
         ) {
-            Text(stringResource(R.string.onb_allow_location_start),
+            Text(stringResource(R.string.onb_continue),
                 style = MaterialTheme.typography.labelLarge, color = Color.White)
         }
-        Text(stringResource(R.string.welcome_not_now),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onSkip).padding(vertical = Spacing.md))
     }
 }
 

@@ -146,8 +146,12 @@ fun ProfileScreen(
                 skipPartiallyExpanded = true),
             containerColor = MaterialTheme.colorScheme.background
         ) {
+            val myHeight by viewModel.myHeight.collectAsStateWithLifecycle()
+            androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.loadMyHeight() }
             MyGearSheet(
                 gearJson = successState.profile.gearJson,
+                height = myHeight,
+                onSetHeight = { viewModel.setMyHeight(it) },
                 onClose = { gearOpen = false },
                 onSave = { json -> viewModel.saveGear(json) { gearOpen = false } }
             )
