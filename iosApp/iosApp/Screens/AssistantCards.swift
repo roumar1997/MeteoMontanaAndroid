@@ -171,23 +171,29 @@ struct AssistantSectorView: View {
 /// (a través de esa vía, como hace el resto de la app); si no, solo se muestra.
 struct AssistantStoneRow: View {
     @EnvironmentObject private var assistant: AssistantViewModel
+    /// Grados partidos por altura (se piden juntos para todas las filas).
+    @ObservedObject private var gradeSplits = GradeSplitsStore.shared
     let stone: AssistantStone
     let confirmed: Bool
     let schoolId: String
 
     var body: some View {
-        if let line = stone.firstLineId {
-            Button { assistant.requestOpen(schoolId: schoolId, viaId: line) } label: {
-                content(showsChevron: true)
+        Group {
+            if let line = stone.firstLineId {
+                Button { assistant.requestOpen(schoolId: schoolId, viaId: line) } label: {
+                    content(showsChevron: true)
+                }
+                .buttonStyle(.plain)
+            } else {
+                content(showsChevron: false)
             }
-            .buttonStyle(.plain)
-        } else {
-            content(showsChevron: false)
         }
+        .onAppear { gradeSplits.want(stone.firstLineId) }
     }
 
     private func content(showsChevron: Bool) -> some View {
         HStack(spacing: 10) {
+            // (el .onAppear con los grados partidos está en el cuerpo de la fila)
             // La misma miniatura con el trazo de la vía que en los resultados de búsqueda.
             if let photo = stone.photoPath, !photo.isEmpty {
                 MiniTopoThumbnail(photoUrl: photo, points: dedupPoints(TopoParse.points(stone.linePath)),
@@ -201,7 +207,11 @@ struct AssistantStoneRow: View {
                     Text(stone.name)
                         .font(.system(size: 13, weight: .medium)).foregroundStyle(Cumbre.ink).lineLimit(1)
                     if let grade = stone.grade, !grade.isEmpty {
-                        Text(grade).font(Cumbre.mono(11, .bold)).foregroundStyle(GradeColor.color(grade))
+                        if let split = stone.firstLineId.flatMap({ gradeSplits.splits[$0] }) {
+                            GradePill(grade: grade, small: true, split: split)
+                        } else {
+                            Text(grade).font(Cumbre.mono(11, .bold)).foregroundStyle(GradeColor.color(grade))
+                        }
                     }
                 }
                 if let line = stone.lineName, !line.isEmpty, line != stone.name {

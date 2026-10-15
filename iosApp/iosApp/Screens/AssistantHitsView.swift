@@ -132,6 +132,8 @@ struct AssistantHitGroupView: View {
 /// piedra y orientación votada (o aviso de que no la tiene).
 struct AssistantHitRow: View {
     @EnvironmentObject private var assistant: AssistantViewModel
+    /// Grados partidos por altura (se piden juntos para todas las filas).
+    @ObservedObject private var gradeSplits = GradeSplitsStore.shared
     let hit: LineSearchHit
 
     var body: some View {
@@ -149,7 +151,11 @@ struct AssistantHitRow: View {
                         Text(hit.lineName ?? hit.blockName)
                             .font(.system(size: 14, weight: .medium)).foregroundStyle(Cumbre.ink).lineLimit(1)
                         if let g = hit.grade {
-                            Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(GradeColor.color(g))
+                            if let split = hit.lineId.flatMap({ gradeSplits.splits[$0] }) {
+                                GradePill(grade: g, small: true, split: split)
+                            } else {
+                                Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(GradeColor.color(g))
+                            }
                         }
                         let kind = SchoolKind(style: hit.discipline)
                         if kind.isSingle { SchoolKindIcons(kind: kind, height: 13) }
@@ -175,6 +181,7 @@ struct AssistantHitRow: View {
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
             .contentShape(Rectangle())
+            .onAppear { gradeSplits.want(hit.lineId) }
         }
         .buttonStyle(.plain)
     }

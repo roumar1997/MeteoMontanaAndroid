@@ -30,6 +30,8 @@ struct SchoolMapSection: View {
     // de piedra del mapa. Piedras sin votos → solo en TODAS. Espejo de
     // OrientationFilter.kt de Android.
     @State private var blockOrientations: [String: String] = [:]
+    /// Grados partidos por altura (se piden juntos para los resultados del buscador).
+    @ObservedObject private var gradeSplits = GradeSplitsStore.shared
     @State private var orientationFilter: String? = nil
     // Filtro LOCAL por GRADO (ver BLOCK_SEARCH_DESIGN.md §7). No llama al
     // servidor: la escuela ya trae todas sus vías. Las piedras sin ninguna vía
@@ -631,14 +633,24 @@ struct SchoolMapSection: View {
                                 selectedBlock = h.block
                             } label: {
                                 HStack {
-                                    Text(h.label).font(.system(size: 14))
-                                        .foregroundStyle(Cumbre.ink).lineLimit(1)
+                                    if let g = h.grade, let split = h.lineId.flatMap({ gradeSplits.splits[$0] }) {
+                                        // La altura parte la opinión: el grado va en dos colores.
+                                        HStack(spacing: 6) {
+                                            Text(h.name).font(.system(size: 14))
+                                                .foregroundStyle(Cumbre.ink).lineLimit(1)
+                                            GradePill(grade: g, small: true, split: split)
+                                        }
+                                    } else {
+                                        Text(h.label).font(.system(size: 14))
+                                            .foregroundStyle(Cumbre.ink).lineLimit(1)
+                                    }
                                     Spacer()
                                     Text(h.sub).font(.system(size: 12))
                                         .foregroundStyle(Cumbre.ink3).lineLimit(1)
                                 }
                                 .padding(.horizontal, 12).padding(.vertical, 9)
                                 .contentShape(Rectangle())
+                                .onAppear { gradeSplits.want(h.lineId) }
                             }
                             .buttonStyle(.plain)
                         }

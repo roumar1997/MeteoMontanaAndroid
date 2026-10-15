@@ -5,6 +5,8 @@ import Shared
 /// tocable, la más reciente primero. Tocar una abre esa vía en su escuela (igual que los resultados de búsqueda).
 struct AssistantJournalListView: View {
     @EnvironmentObject private var assistant: AssistantViewModel
+    /// Grados partidos por altura (se piden juntos para todas las filas).
+    @ObservedObject private var gradeSplits = GradeSplitsStore.shared
     let entries: [JournalSession]
     let total: Int
 
@@ -32,7 +34,11 @@ struct AssistantJournalListView: View {
                         Text(e.blockName)
                             .font(.system(size: 14, weight: .medium)).foregroundStyle(Cumbre.ink).lineLimit(1)
                         if let g = e.grade, !g.isEmpty {
-                            Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(GradeColor.color(g))
+                            if let split = e.lineId.flatMap({ gradeSplits.splits[$0] }) {
+                                GradePill(grade: g, small: true, split: split)
+                            } else {
+                                Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(GradeColor.color(g))
+                            }
                         }
                     }
                     Text(subtitle(e)).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(1)
@@ -45,6 +51,7 @@ struct AssistantJournalListView: View {
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
             .contentShape(Rectangle())
+            .onAppear { gradeSplits.want(e.lineId) }
         }
         .buttonStyle(.plain)
         .disabled(e.schoolId == nil)

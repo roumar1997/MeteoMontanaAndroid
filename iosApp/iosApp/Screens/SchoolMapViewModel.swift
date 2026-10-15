@@ -38,13 +38,20 @@ final class SchoolMapViewModel: ObservableObject {
         if hiddenTypes.contains(type) { hiddenTypes.remove(type) } else { hiddenTypes.insert(type) }
     }
 
-    struct SearchHit { let id: String; let label: String; let sub: String; let viaName: String?; let block: Block }
+    struct SearchHit {
+        let id: String; let label: String; let sub: String; let viaName: String?; let block: Block
+        /// Para pintar el grado partido por altura: la vía (nil si el resultado es una piedra), su nombre y su grado.
+        var lineId: String? = nil
+        var name: String = ""
+        var grade: String? = nil
+    }
     func searchHits(_ q: String) -> [SearchHit] {
         var out: [SearchHit] = []
         for b in blocks where b.type.uppercased() == "BLOCK" {
             for l in b.lines where l.name.localizedCaseInsensitiveContains(q) {
                 let grade = (l.grade?.isEmpty == false) ? " · \(l.grade!)" : ""
-                out.append(SearchHit(id: l.id, label: l.name + grade, sub: b.name, viaName: l.name, block: b))
+                out.append(SearchHit(id: l.id, label: l.name + grade, sub: b.name, viaName: l.name, block: b,
+                                     lineId: l.id, name: l.name, grade: l.grade))
             }
             if b.name.localizedCaseInsensitiveContains(q) {
                 out.append(SearchHit(id: b.id, label: b.name, sub: L("%@ vías", b.lines.count), viaName: nil, block: b))

@@ -785,6 +785,7 @@ struct SchoolListView: View {
                 }
                 ForEach(viaHits, id: \.stableId) { h in
                     Button {
+                        // (el .onAppear con los grados partidos está al final de la fila)
                         if let school = vm.schools.first(where: { $0.id == h.schoolId }) {
                             navTarget = SchoolNavTarget(
                                 school: school, via: h.lineId ?? h.lineName ?? h.blockName)
@@ -792,8 +793,17 @@ struct SchoolListView: View {
                     } label: {
                         HStack {
                             VStack(alignment: .leading, spacing: 1) {
-                                Text((h.lineName ?? h.blockName) + (h.grade.map { " · \($0)" } ?? ""))
-                                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink).lineLimit(1)
+                                if let g = h.grade, let split = h.lineId.flatMap({ gradeSplits.splits[$0] }) {
+                                    // La altura parte la opinión: el grado va en dos colores.
+                                    HStack(spacing: 6) {
+                                        Text(h.lineName ?? h.blockName)
+                                            .font(.system(size: 14)).foregroundStyle(Cumbre.ink).lineLimit(1)
+                                        GradePill(grade: g, small: true, split: split)
+                                    }
+                                } else {
+                                    Text((h.lineName ?? h.blockName) + (h.grade.map { " · \($0)" } ?? ""))
+                                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink).lineLimit(1)
+                                }
                                 Text([h.lineName != nil ? h.blockName : nil, h.sectorName, h.schoolName]
                                         .compactMap { $0 }.filter { !$0.isEmpty }
                                         .joined(separator: " · "))
@@ -805,6 +815,7 @@ struct SchoolListView: View {
                         }
                         .padding(.horizontal, 12).padding(.vertical, 9)
                         .contentShape(Rectangle())
+                        .onAppear { gradeSplits.want(h.lineId) }
                     }
                     .buttonStyle(.plain)
                     // Mini-topo: foto de la cara con la linea dibujada (si el
