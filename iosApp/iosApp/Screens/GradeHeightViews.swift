@@ -24,6 +24,48 @@ struct GradeBadge: Equatable {
     }
 }
 
+/// Grados partidos por altura de CUALQUIER lista (buscador entre escuelas, diario…). Las filas avisan con `want` de las
+/// vías que enseñan y la tienda las pide juntas (una sola consulta cada pocos instantes), sin repetir las ya pedidas.
+@MainActor
+final class GradeSplitsStore: ObservableObject {
+    static let shared = GradeSplitsStore()
+
+    @Published private(set) var splits: [String: GradeSplitInfo] = [:]
+    private var asked: Set<String> = []
+    private var pending: Set<String> = []
+    private var flushing = false
+
+    /// Una fila dice "voy a enseñar esta vía": se junta con las demás y se pide todo de golpe.
+    func want(_ lineId: String?) {
+        guard let lineId, !lineId.isEmpty, !asked.contains(lineId) else { return }
+        pending.insert(lineId)
+        guard !flushing else { return }
+        flushing = true
+        Task {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            let ids = Array(pending)
+            pending.removeAll()
+            flushing = false
+            await load(lineIds: ids)
+        }
+    }
+
+    private func load(lineIds: [String]) async {
+        let fresh = lineIds.filter { !asked.contains($0) }
+        var start = 0
+        while start < fresh.count {
+            let chunk = Array(fresh[start..<min(start + 500, fresh.count)])
+            start += 500
+            asked.formUnion(chunk)
+            if let map = try? await AppDependencies.shared.container.getGradeSplits.invoke(lineIds: chunk) {
+                for (id, s) in map { splits[id] = GradeSplitInfo(tall: s.tallGrade, short: s.shortGrade) }
+            } else {
+                asked.subtract(chunk)   // sin red: se volverá a pedir al reaparecer la fila
+            }
+        }
+    }
+}
+
 /// El grado como una pastilla con su COLOR de siempre y una flecha clara en un círculo (se lee como botón). Si la
 /// altura parte la opinión, son dos colores seguidos.
 struct GradeChip: View {

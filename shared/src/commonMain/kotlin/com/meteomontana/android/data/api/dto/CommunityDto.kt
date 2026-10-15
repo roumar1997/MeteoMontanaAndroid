@@ -43,6 +43,9 @@ data class HeightDto(val group: String? = null)
 data class GradeVoteRequest(val grade: String)
 
 @Serializable
+data class GradeSplitsRequest(val lineIds: List<String>)
+
+@Serializable
 data class SunHourDto(val time: String, val inSun: Boolean)
 
 @Serializable

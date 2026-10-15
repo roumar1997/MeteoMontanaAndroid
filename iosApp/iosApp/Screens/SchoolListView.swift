@@ -552,6 +552,8 @@ struct SchoolListView: View {
     @Environment(\.scenePhase) private var scenePhase
     /// Escuela pedida desde el asistente: se abre aquí dentro, con la barra de pestañas visible.
     @ObservedObject private var router = ShareLinkRouter.shared
+    /// Grados partidos por altura de los resultados del buscador (se piden juntos).
+    @ObservedObject private var gradeSplits = GradeSplitsStore.shared
     @EnvironmentObject private var assistant: AssistantViewModel
 
     /// Abre la escuela que pidió el asistente (si la hay). Se llama al llegar la petición y al aparecer la pestaña
@@ -941,6 +943,7 @@ struct SchoolListView: View {
             }
         } label: {
             HStack(spacing: 10) {
+                // (el .onAppear está al final de la fila)
                 if let photo = h.photoPath, !photo.isEmpty {
                     // Trazo fino SIN badge de número/tipo de inicio — el badge
                     // de TopoPhotoView está pensado para el visor grande; a 44pt
@@ -956,7 +959,12 @@ struct SchoolListView: View {
                         Text(h.lineName ?? h.blockName).font(.system(size: 14, weight: .medium))
                             .foregroundStyle(Cumbre.ink).lineLimit(1)
                         if let g = h.grade {
-                            Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(GradeColor.color(g))
+                            if let split = h.lineId.flatMap({ gradeSplits.splits[$0] }) {
+                                // La altura parte la opinión: los dos grados, cada uno con su color.
+                                GradePill(grade: g, small: true, split: split)
+                            } else {
+                                Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(GradeColor.color(g))
+                            }
                         }
                         if let r = h.repetitions?.intValue, r > 0 {
                             Text("✓ \(r)").font(Cumbre.mono(10.5, .bold)).foregroundStyle(Cumbre.ok)
@@ -990,6 +998,7 @@ struct SchoolListView: View {
             }
             .padding(.horizontal, 16).padding(.vertical, 9)
             .contentShape(Rectangle())
+            .onAppear { gradeSplits.want(h.lineId) }
         }
         .buttonStyle(.plain)
     }

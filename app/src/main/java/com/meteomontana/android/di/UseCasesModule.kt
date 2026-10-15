@@ -459,6 +459,10 @@ object UseCasesModule {
         com.meteomontana.android.domain.usecase.community.RemoveGradeVoteUseCase(repo)
 
     @Provides @Singleton
+    fun provideGetGradeSplitsUseCase(repo: com.meteomontana.android.domain.repository.CommunityRepository) =
+        com.meteomontana.android.domain.usecase.community.GetGradeSplitsUseCase(repo)
+
+    @Provides @Singleton
     fun provideGetSchoolGradeSplitsUseCase(repo: com.meteomontana.android.domain.repository.CommunityRepository) =
         com.meteomontana.android.domain.usecase.community.GetSchoolGradeSplitsUseCase(repo)
 

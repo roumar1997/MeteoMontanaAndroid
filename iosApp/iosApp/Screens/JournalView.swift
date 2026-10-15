@@ -213,6 +213,8 @@ struct JournalRow: View {
     var onDelete: (() -> Void)? = nil
     @State private var showDatePicker = false
     @State private var pickedDate = Date()
+    /// Grados partidos por altura (se piden juntos para todas las filas visibles).
+    @ObservedObject private var gradeSplits = GradeSplitsStore.shared
 
     /// "Escuela · Piedra N · Sector" — lo que se pueda resolver del catálogo.
     private var subtitle: String {
@@ -223,15 +225,32 @@ struct JournalRow: View {
         return parts.joined(separator: " · ")
     }
 
+    private func splitHalf(_ g: String) -> some View {
+        Text(g).font(Cumbre.mono(9, .bold))
+            .foregroundStyle(GradeColor.chipStyle(g).dark ? Color.black : Color.white)
+            .minimumScaleFactor(0.7).lineLimit(1)
+            .frame(width: 22, height: 32).background(GradeColor.chip(g))
+    }
+
     private var leading: some View {
         HStack(spacing: 12) {
             // Grado ACTUAL del catálogo (refleja correcciones) o el guardado.
             if let g = (info?.grade ?? entry.grade), !g.isEmpty {
-                // Texto negro sobre grados claros (≤5c son blancos) para que se lea.
-                Text(g).font(Cumbre.mono(12, .bold))
-                    .foregroundStyle(GradeColor.chipStyle(g).dark ? .black : .white)
-                    .frame(width: 44, height: 32).background(GradeColor.chip(g))
-                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: GradeColor.chipStyle(g).dark ? 1 : 0))
+                if let split = entry.lineId.flatMap({ gradeSplits.splits[$0] }) {
+                    // La altura parte la opinión sobre esta vía: dos mitades, cada una con su grado y su color.
+                    HStack(spacing: 0) {
+                        splitHalf(split.tall)
+                        splitHalf(split.short)
+                    }
+                    .frame(width: 44, height: 32)
+                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                } else {
+                    // Texto negro sobre grados claros (≤5c son blancos) para que se lea.
+                    Text(g).font(Cumbre.mono(12, .bold))
+                        .foregroundStyle(GradeColor.chipStyle(g).dark ? .black : .white)
+                        .frame(width: 44, height: 32).background(GradeColor.chip(g))
+                        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: GradeColor.chipStyle(g).dark ? 1 : 0))
+                }
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.blockName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
@@ -301,7 +320,7 @@ struct JournalRow: View {
                 .contentShape(Rectangle())
             }
             HStack(spacing: 12) {
-                leading
+                leading.onAppear { gradeSplits.want(entry.lineId) }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
                 if onChangeDate != nil {

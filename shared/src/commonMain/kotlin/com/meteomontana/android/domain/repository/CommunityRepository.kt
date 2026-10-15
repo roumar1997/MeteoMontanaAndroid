@@ -32,6 +32,10 @@ interface CommunityRepository {
     @Throws(Exception::class)
     suspend fun removeGradeVote(lineId: String): GradeSummary
 
+    /** Grados partidos por altura de una lista cualquiera de vías (buscador entre escuelas, diario). */
+    @Throws(Exception::class)
+    suspend fun getGradeSplits(lineIds: List<String>): Map<String, com.meteomontana.android.domain.model.HeightSplit>
+
     /** Vías de la escuela cuyo grado parte la altura (lineId → los dos grados), en una sola consulta. */
     @Throws(Exception::class)
     suspend fun getSchoolGradeSplits(schoolId: String): Map<String, com.meteomontana.android.domain.model.HeightSplit>

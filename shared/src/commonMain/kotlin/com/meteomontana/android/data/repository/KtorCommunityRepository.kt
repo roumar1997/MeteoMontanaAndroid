@@ -38,6 +38,12 @@ class KtorCommunityRepository(private val api: KtorCommunityApi) : CommunityRepo
         api.removeGradeVote(lineId).toDomain()
 
     @Throws(Exception::class)
+    override suspend fun getGradeSplits(lineIds: List<String>): Map<String, com.meteomontana.android.domain.model.HeightSplit> =
+        api.getGradeSplits(lineIds).mapValues {
+            com.meteomontana.android.domain.model.HeightSplit(it.value.tallGrade, it.value.shortGrade)
+        }
+
+    @Throws(Exception::class)
     override suspend fun getSchoolGradeSplits(schoolId: String): Map<String, com.meteomontana.android.domain.model.HeightSplit> =
         api.getSchoolGradeSplits(schoolId).mapValues {
             com.meteomontana.android.domain.model.HeightSplit(it.value.tallGrade, it.value.shortGrade)

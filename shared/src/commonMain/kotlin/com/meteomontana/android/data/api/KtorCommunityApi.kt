@@ -1,5 +1,6 @@
 package com.meteomontana.android.data.api
 
+import com.meteomontana.android.data.api.dto.GradeSplitsRequest
 import com.meteomontana.android.data.api.dto.GradeSummaryDto
 import com.meteomontana.android.data.api.dto.HeightSplitDto
 import com.meteomontana.android.data.api.dto.GradeVoteRequest
@@ -10,6 +11,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
+import io.ktor.client.request.post
 import io.ktor.client.request.parameter
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
@@ -43,6 +45,10 @@ class KtorCommunityApi(private val client: HttpClient) {
     /** Quita MI voto de grado (DELETE). Devuelve el resumen ya recalculado. */
     suspend fun removeGradeVote(lineId: String): GradeSummaryDto =
         client.delete("lines/$lineId/grade-votes").body()
+
+    /** Lo mismo para UNA lista de vías cualquiera (buscador entre escuelas, diario). POST /lines/grade-splits. */
+    suspend fun getGradeSplits(lineIds: List<String>): Map<String, HeightSplitDto> =
+        client.post("lines/grade-splits") { setBody(GradeSplitsRequest(lineIds)) }.body()
 
     /** Vías de la escuela cuyo grado parte la altura: lineId → los dos grados. Una consulta por escuela. */
     suspend fun getSchoolGradeSplits(schoolId: String): Map<String, HeightSplitDto> =
