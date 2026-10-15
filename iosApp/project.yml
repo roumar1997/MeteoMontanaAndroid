@@ -111,7 +111,7 @@ targets:
         # publicada, hay que subir la VERSIÓN, no basta con el número de build.
         #   - 2.25.3/256 también quedó cerrada (6.8 enviada, 2026-10-08) → 2.25.4
         #     (asistente de IA: burbuja, chat y modo hablar)
-        CFBundleShortVersionString: "2.25.4"
+        CFBundleShortVersionString: "2.25.5"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
         # ÚNICO y mayor que el anterior.
         CFBundleVersion: "283"
