@@ -146,17 +146,21 @@ final class CommunityVoteStore: ObservableObject {
         }
     }
 
-    func voteGrade(lineId: String, grade newGrade: String) async {
+    /// Guarda el voto. Devuelve true si salió bien (la hoja de votar se cierra solo entonces).
+    @discardableResult
+    func voteGrade(lineId: String, grade newGrade: String) async -> Bool {
         do {
             let g = try await container.voteGrade.invoke(lineId: lineId, grade: newGrade)
             grade = g
             gradeBadges[lineId] = Self.badge(g)
+            return true
         } catch {
             let text = String(describing: error)
             ErrorPresenter.shared.show(
                 text.contains("403") || text.contains("GRADE_VOTE")
                     ? L("Solo puede votar el grado quien la tiene en su diario")
                     : ErrorPresenter.friendly(error, fallback: L("No se pudo registrar el voto")))
+            return false
         }
     }
 }
@@ -279,6 +283,13 @@ struct GradeVoteSheet: View {
     @Environment(\.dismiss) private var dismiss
     /// "Cambiar" mi altura: vuelve a enseñar las tres opciones.
     @State private var changingHeight = false
+    /// Lo que has elegido pero AÚN NO has guardado: pulsar grados solo lo cambia, el voto se guarda con GUARDAR.
+    @State private var draft: String? = nil
+    @State private var edited = false
+    @State private var saving = false
+
+    /// El voto que se enseña marcado: tu borrador si has tocado algo, y si no el que ya tienes guardado.
+    private func shownVote(_ s: GradeSummary) -> String? { edited ? draft : s.myVote }
 
     private let suffixes = ["a", "a+", "b", "b+", "c", "c+"]
 
@@ -360,11 +371,13 @@ struct GradeVoteSheet: View {
                         HStack(spacing: 6) {
                             ForEach(suffixes, id: \.self) { suf in
                                 let g = n + suf
-                                let selected = gradeParts(s.myVote).contains(g)
+                                let selected = gradeParts(shownVote(s)).contains(g)
                                 let style = GradeColor.chipStyle(g)
                                 let accent = style.dark ? Cumbre.ink : style.stroke
                                 Button {
-                                    Task { await store.voteGrade(lineId: lineId, grade: nextVote(tapping: g, current: s.myVote)) }
+                                    // Solo se elige: el voto no se guarda hasta pulsar GUARDAR.
+                                    draft = nextVote(tapping: g, current: shownVote(s))
+                                    edited = true
                                 } label: {
                                     // Cada grado con SU color; el elegido (o los DOS, si dudas) va relleno.
                                     Text(g).font(Cumbre.mono(11, .bold))
@@ -381,8 +394,32 @@ struct GradeVoteSheet: View {
                             }
                         }
                     }
+                    // GUARDAR: se activa cuando hay una elección nueva distinta de la ya guardada.
+                    let canSave = store.myHeight != nil && edited && draft != nil && draft != s.myVote && !saving
+                    Button {
+                        guard let vote = draft else { return }
+                        saving = true
+                        Task {
+                            let ok = await store.voteGrade(lineId: lineId, grade: vote)
+                            saving = false
+                            if ok { dismiss() }
+                        }
+                    } label: {
+                        Text(L("GUARDAR")).font(Cumbre.mono(12, .bold)).foregroundStyle(.white)
+                            .frame(maxWidth: .infinity).padding(.vertical, 12)
+                            .background(Capsule().fill(Cumbre.terra))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canSave)
+                    .opacity(canSave ? 1 : 0.38)
                     if s.myVote != nil, store.myHeight != nil {
-                        Button { Task { await store.removeGrade(lineId: lineId) } } label: {
+                        Button {
+                            Task {
+                                await store.removeGrade(lineId: lineId)
+                                edited = false
+                                draft = nil
+                            }
+                        } label: {
                             Text(L("QUITAR MI VOTO")).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
                                 .frame(maxWidth: .infinity).padding(.vertical, 10)
                                 .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1))
@@ -399,7 +436,8 @@ struct GradeVoteSheet: View {
         }
         .padding(16)
         }
-        .presentationDetents([.medium, .large])
+        // A pantalla completa: GUARDAR, QUITAR MI VOTO y CERRAR tienen que verse siempre sin arrastrar la hoja.
+        .presentationDetents([.large])
     }
 }
 
