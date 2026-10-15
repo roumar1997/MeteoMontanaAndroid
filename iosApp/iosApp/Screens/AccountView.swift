@@ -561,8 +561,8 @@ private struct AccountBlocksList: View {
     /// nil = todos · false = solo bloques (BOULDER) · true = solo vías (ROUTE).
     /// Las entradas viejas sin modalidad cuentan como BOULDER (igual que stats).
     var routeOnly: Bool? = nil
-    /// Grado por el que se filtra (nil = todos).
-    @State private var gradeFilter: String? = nil
+    /// Grados por los que se filtra, VARIOS a la vez (vacío = todos).
+    @State private var gradeFilters: Set<String> = []
     private var entries: [JournalSession] {
         guard let r = routeOnly else { return vm.entries }
         return vm.entries.filter { (($0.discipline).uppercased() == "ROUTE") == r }
@@ -579,7 +579,7 @@ private struct AccountBlocksList: View {
     /// Grados presentes, de mas duro a mas facil.
     private var availableGrades: [String] {
         let calc = JournalStatsCalculator.shared
-        return Set(entries.compactMap(gradeOf))
+        return Set(entries.flatMap { gradeParts(gradeOf($0)) })
             .sorted { calc.gradeRank(grade: $0) > calc.gradeRank(grade: $1) }
     }
 
@@ -600,7 +600,7 @@ private struct AccountBlocksList: View {
     }
 
     private var visibles: [JournalSession] {
-        let byGrade = gradeFilter.map { g in entries.filter { gradeOf($0) == g } } ?? entries
+        let byGrade = entries.filter { gradeMatches(gradeOf($0), anyOf: gradeFilters) }
         switch styleFilter {
         case "aVista": return byGrade.filter { $0.aVista }
         case "alFlash": return byGrade.filter { $0.alFlash }
@@ -633,8 +633,8 @@ private struct AccountBlocksList: View {
                                     ForEach(availableGrades, id: \.self) { g in
                                         let estilo = GradeColor.chipStyle(g)
                                         let color = estilo.dark ? Cumbre.ink : estilo.stroke
-                                        let activo = gradeFilter == g
-                                        Button { gradeFilter = activo ? nil : g } label: {
+                                        let activo = gradeFilters.contains(g)
+                                        Button { if activo { gradeFilters.remove(g) } else { gradeFilters.insert(g) } } label: {
                                             Text(g)
                                                 .font(Cumbre.mono(11, .bold))
                                                 .foregroundStyle(activo ? .white : color)

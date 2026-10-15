@@ -287,35 +287,16 @@ struct GradeVoteSheet: View {
         ["4", "5", "6", "7", "8"].flatMap { n in suffixes.map { n + $0 } }
     }
 
-    /// Votar "entre dos grados": el voto doble es un par CONTIGUO (6b/6b+). Con un grado suelto se ofrecen sus
-    /// vecinos; con un par, se ofrece dejar solo uno.
-    @ViewBuilder private func doubtRow(_ mine: String) -> some View {
-        let parts = mine.split(separator: "/").map(String.init)
-        if parts.count == 2 {
-            HStack(spacing: 8) {
-                Text(L("Dudas entre dos: %@", mine)).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
-                Spacer()
-                ForEach(parts, id: \.self) { g in
-                    pairButton(L("Solo %@", g), vote: g)
-                }
-            }
-        } else if parts.count == 1, let i = allGrades.firstIndex(of: parts[0]) {
-            HStack(spacing: 8) {
-                Text(L("¿Dudas entre dos?")).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
-                Spacer()
-                if i > 0 { pairButton(allGrades[i - 1] + "/" + parts[0], vote: allGrades[i - 1] + "/" + parts[0]) }
-                if i < allGrades.count - 1 { pairButton(parts[0] + "/" + allGrades[i + 1], vote: parts[0] + "/" + allGrades[i + 1]) }
-            }
+    /// Qué voto queda al pulsar [g]: si ya está elegido, se quita de un voto doble (queda el otro); si es el contiguo
+    /// del grado elegido, el voto pasa a ser el PAR (6b/6b+, de menor a mayor); si no, es el nuevo voto.
+    private func nextVote(tapping g: String, current: String?) -> String {
+        let parts = gradeParts(current)
+        guard let gi = allGrades.firstIndex(of: g) else { return g }
+        if parts.contains(g) { return parts.count == 2 ? (parts[0] == g ? parts[1] : parts[0]) : g }
+        if parts.count == 1, let pi = allGrades.firstIndex(of: parts[0]), abs(pi - gi) == 1 {
+            return pi < gi ? parts[0] + "/" + g : g + "/" + parts[0]
         }
-    }
-
-    private func pairButton(_ label: String, vote: String) -> some View {
-        Button { Task { await store.voteGrade(lineId: lineId, grade: vote) } } label: {
-            Text(label).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
-                .padding(.horizontal, 10).padding(.vertical, 7)
-                .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
+        return g
     }
 
     var body: some View {
@@ -373,23 +354,26 @@ struct GradeVoteSheet: View {
                     if store.myHeight == nil {
                         Text(L("Elige tu altura para votar")).font(.system(size: 12)).foregroundStyle(Cumbre.terra)
                     }
-                    Text(L("Pulsa un grado. Si dudas entre dos, elige uno y añade el contiguo debajo."))
+                    Text(L("Pulsa un grado. Si dudas entre dos, pulsa también el de al lado."))
                         .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
                     ForEach(["4", "5", "6", "7", "8"], id: \.self) { n in
                         HStack(spacing: 6) {
                             ForEach(suffixes, id: \.self) { suf in
                                 let g = n + suf
-                                let selected = (s.myVote ?? "").split(separator: "/").map(String.init).contains(g)
+                                let selected = gradeParts(s.myVote).contains(g)
+                                let style = GradeColor.chipStyle(g)
+                                let accent = style.dark ? Cumbre.ink : style.stroke
                                 Button {
-                                    Task { await store.voteGrade(lineId: lineId, grade: g) }
+                                    Task { await store.voteGrade(lineId: lineId, grade: nextVote(tapping: g, current: s.myVote)) }
                                 } label: {
+                                    // Cada grado con SU color; el elegido (o los DOS, si dudas) va relleno.
                                     Text(g).font(Cumbre.mono(11, .bold))
-                                        .foregroundStyle(selected ? .white : Cumbre.ink)
+                                        .foregroundStyle(selected ? (style.dark ? Color.black : Color.white) : accent)
                                         .frame(maxWidth: .infinity).padding(.vertical, 7)
                                         .background(RoundedRectangle(cornerRadius: 6)
-                                            .fill(selected ? Cumbre.terra : Cumbre.paper))
+                                            .fill(selected ? GradeColor.chip(g) : Cumbre.paper))
                                         .overlay(RoundedRectangle(cornerRadius: 6)
-                                            .stroke(selected ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                                            .stroke(selected && !style.dark ? Color.clear : accent, lineWidth: 1))
                                 }
                                 .buttonStyle(.plain)
                                 .disabled(store.myHeight == nil)
@@ -397,8 +381,7 @@ struct GradeVoteSheet: View {
                             }
                         }
                     }
-                    if let mine = s.myVote, store.myHeight != nil {
-                        doubtRow(mine)
+                    if s.myVote != nil, store.myHeight != nil {
                         Button { Task { await store.removeGrade(lineId: lineId) } } label: {
                             Text(L("QUITAR MI VOTO")).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
                                 .frame(maxWidth: .infinity).padding(.vertical, 10)

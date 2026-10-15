@@ -5,6 +5,18 @@ import Shared
 // cada persona elige UNA vez si mide más o menos de 1,70 m (se guarda en la mochilita, privado) y sus votos se agrupan
 // con los de su altura. Cuando los dos grupos votan un grado muy distinto, el grado se "parte" en dos colores.
 
+/// Los grados sueltos de un grado, en minúsculas ("6b+/6c" → ["6b+", "6c"]; "6b" → ["6b"]; vacío → []).
+func gradeParts(_ grade: String?) -> [String] {
+    guard let g = grade?.trimmingCharacters(in: .whitespaces).lowercased(), !g.isEmpty else { return [] }
+    return g.split(separator: "/").map { String($0).trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+}
+
+/// ¿Cuadra este grado con los filtros elegidos? Sin filtros, todo. Un grado doble cuadra si CUALQUIERA de sus dos
+/// grados está elegido (así "6b+/6c" sale al filtrar por 6b+ y también al filtrar por 6c).
+func gradeMatches(_ grade: String?, anyOf filters: Set<String>) -> Bool {
+    filters.isEmpty || !Set(gradeParts(grade)).isDisjoint(with: filters)
+}
+
 /// Un reparto de grado por altura: el grado preferido por los de más y por los de menos de 1,70 m.
 struct GradeSplitInfo: Equatable {
     let tall: String

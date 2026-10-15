@@ -30,7 +30,7 @@ final class JournalViewModel: ObservableObject {
     @Published var entriesByMonth: [String: [JournalSession]] = [:]
     @Published var monthKeys: [String] = []
     /// G: filtro por grado activo (nil = todos) + grados presentes ordenados.
-    @Published var gradeFilter: String? = nil
+    @Published var gradeFilters: Set<String> = []
     @Published var availableGrades: [String] = []
 
     func load() async {
@@ -38,9 +38,8 @@ final class JournalViewModel: ObservableObject {
         entries = (try? await getMyJournal.invoke()) ?? []
         stats = try? await getMyStats.invoke()
         let calc = JournalStatsCalculator.shared
-        availableGrades = Set(entries.compactMap {
-            $0.grade?.trimmingCharacters(in: .whitespaces).lowercased()
-        }.filter { !$0.isEmpty })
+        // Un grado doble ("6b+/6c") cuenta para los DOS chips.
+        availableGrades = Set(entries.flatMap { gradeParts($0.grade) })
             .sorted { calc.gradeRank(grade: $0) > calc.gradeRank(grade: $1) }
         regroup()
         loading = false
@@ -49,9 +48,7 @@ final class JournalViewModel: ObservableObject {
     /// Reagrupa por mes aplicando el filtro de grado (PRECOMPUTADO: nada de
     /// agrupar en el body — lección del watchdog).
     func regroup() {
-        let visible = gradeFilter.map { g in
-            entries.filter { $0.grade?.lowercased() == g }
-        } ?? entries
+        let visible = entries.filter { gradeMatches($0.grade, anyOf: gradeFilters) }
         entriesByMonth = Dictionary(grouping: visible.sorted { $0.date > $1.date },
                                     by: { String($0.date.prefix(7)) })
         monthKeys = entriesByMonth.keys.sorted(by: >)
@@ -125,9 +122,10 @@ struct JournalView: View {
                                         ForEach(vm.availableGrades, id: \.self) { g in
                                             let estilo = GradeColor.chipStyle(g)
                                             let color = estilo.dark ? Cumbre.ink : estilo.stroke
-                                            let activo = vm.gradeFilter == g
+                                            let activo = vm.gradeFilters.contains(g)
                                             Button {
-                                                vm.gradeFilter = activo ? nil : g
+                                                // VARIOS a la vez: tocar añade o quita ese grado del filtro.
+                                                if activo { vm.gradeFilters.remove(g) } else { vm.gradeFilters.insert(g) }
                                                 vm.regroup()
                                             } label: {
                                                 Text(g)
@@ -876,20 +874,17 @@ struct JournalBlocksListView: View {
     /// nil = todos · false = solo bloques (BOULDER) · true = solo vías (ROUTE).
     var routeOnly: Bool? = nil
     /// G: filtro por grado (chips con la paleta de topos).
-    @State private var gradeFilter: String? = nil
+    @State private var gradeFilters: Set<String> = []
     private var byDiscipline: [JournalSession] {
         guard let r = routeOnly else { return entries }
         return entries.filter { (($0.discipline).uppercased() == "ROUTE") == r }
     }
     private var shown: [JournalSession] {
-        guard let g = gradeFilter else { return byDiscipline }
-        return byDiscipline.filter { $0.grade?.lowercased() == g }
+        byDiscipline.filter { gradeMatches($0.grade, anyOf: gradeFilters) }
     }
     private var availableGrades: [String] {
         let calc = JournalStatsCalculator.shared
-        return Set(byDiscipline.compactMap {
-            $0.grade?.trimmingCharacters(in: .whitespaces).lowercased()
-        }.filter { !$0.isEmpty })
+        return Set(byDiscipline.flatMap { gradeParts($0.grade) })
             .sorted { calc.gradeRank(grade: $0) > calc.gradeRank(grade: $1) }
     }
     var body: some View {
@@ -900,8 +895,8 @@ struct JournalBlocksListView: View {
                     ForEach(availableGrades, id: \.self) { g in
                         let st = GradeColor.chipStyle(g)
                         let accent = st.dark ? Cumbre.ink : st.stroke
-                        let active = gradeFilter == g
-                        Button { gradeFilter = active ? nil : g } label: {
+                        let active = gradeFilters.contains(g)
+                        Button { if active { gradeFilters.remove(g) } else { gradeFilters.insert(g) } } label: {
                             Text(g).font(.system(size: 12, weight: .bold))
                                 .foregroundStyle(active ? .white : accent)
                                 .padding(.horizontal, 10).padding(.vertical, 5)
