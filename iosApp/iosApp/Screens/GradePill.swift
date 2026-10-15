@@ -29,7 +29,7 @@ struct GradePill: View {
             .background(GradeColor.chip(g))
     }
 
-    private var single: some View {
+    @ViewBuilder private var single: some View {
         let s = GradeColor.style(grade)
         Text(grade ?? "")
             .font(Cumbre.mono(large ? 12 : (small ? 10 : 11), .bold))
