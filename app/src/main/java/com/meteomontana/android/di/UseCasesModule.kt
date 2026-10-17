@@ -362,6 +362,23 @@ object UseCasesModule {
     fun provideGetSchoolActiveRestrictionsUseCase(repo: RestrictionRepository) =
         com.meteomontana.android.domain.usecase.restriction.GetSchoolActiveRestrictionsUseCase(repo)
 
+    // Objetivo del año (pantalla de Estadísticas).
+    @Provides @Singleton
+    fun provideGoalRepository(client: io.ktor.client.HttpClient): com.meteomontana.android.domain.repository.GoalRepository =
+        com.meteomontana.android.data.repository.KtorGoalRepository(com.meteomontana.android.data.api.KtorGoalApi(client))
+
+    @Provides @Singleton
+    fun provideGetYearGoalUseCase(repo: com.meteomontana.android.domain.repository.GoalRepository) =
+        com.meteomontana.android.domain.usecase.journal.GetYearGoalUseCase(repo)
+
+    @Provides @Singleton
+    fun provideSaveYearGoalUseCase(repo: com.meteomontana.android.domain.repository.GoalRepository) =
+        com.meteomontana.android.domain.usecase.journal.SaveYearGoalUseCase(repo)
+
+    @Provides @Singleton
+    fun provideDeleteYearGoalUseCase(repo: com.meteomontana.android.domain.repository.GoalRepository) =
+        com.meteomontana.android.domain.usecase.journal.DeleteYearGoalUseCase(repo)
+
     // Mejor hora por sector (fila plegable de la tarjeta de la nota).
     @Provides @Singleton
     fun provideGetSectorHoursUseCase(client: io.ktor.client.HttpClient) =

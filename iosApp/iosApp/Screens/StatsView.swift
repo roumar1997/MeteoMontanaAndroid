@@ -25,12 +25,17 @@ struct StatsView: View {
     @State private var expandedDay: String? = nil
     // Escuela desplegada inline en TUS ESCUELAS (nil = ninguna).
     @State private var expandedSchool: String? = nil
+    @State private var showGoalSheet = false
 
     private var monthShort: [String] { CalendarLabels.monthsShort().map { $0.uppercased() } }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                // ── Objetivo del año (solo en las tuyas) ────────────────────
+                if store.isOwn && store.goalLoaded {
+                    GoalSection(goal: store.goal, year: store.currentYear) { showGoalSheet = true }
+                }
                 // ── Filtros ─────────────────────────────────────────────────
                 HStack(spacing: 8) {
                     filterChip(L("BLOQUE"), selected: store.discipline == "BOULDER") {
@@ -91,6 +96,8 @@ struct StatsView: View {
                         metric("\(s.projectsFallen)", L("PROYECTOS CAÍDOS"))
                         metric(String(format: "%.1f", s.avgPerDay), L("MEDIA/DÍA"))
                     }
+                    // % flash / a vista y, con un año elegido, comparado con el anterior.
+                    StyleAndYearSection(share: store.styleShare, comparison: store.yearComparison)
 
                     // ── Pirámide ────────────────────────────────────────────
                     Text("PIRÁMIDE DE GRADOS").eyebrow().padding(.top, 6)
@@ -192,8 +199,18 @@ struct StatsView: View {
                 if store.summary == nil && !store.loading {
                     infoCard(L("Marca vías como hechas y aquí verás tu pirámide, tu racha y tu progresión."))
                 }
+
+                // ── Logros (de todo el diario, no del filtro) ───────────────
+                if !store.loading {
+                    AchievementsSection(items: store.achievements).padding(.top, 8)
+                }
             }
             .padding(16)
+        }
+        .sheet(isPresented: $showGoalSheet) {
+            GoalSheet(year: store.currentYear, initial: store.yearGoal,
+                      onSave: { d, g, a, days in await store.saveGoal(discipline: d, grade: g, ascents: a, days: days) },
+                      onRemove: { Task { await store.removeGoal() } })
         }
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle("Mis estadísticas")
@@ -455,11 +472,22 @@ final class StatsStore: ObservableObject {
     @Published var availableYears: [String] = []
     @Published var summary: JournalStatsCalculator.Summary? = nil
     @Published var progression: JournalStatsCalculator.Progression? = nil
+    // Objetivo del año, extras y logros (2026-10-18), espejo de StatsViewModel.kt.
+    let currentYear = Calendar.current.component(.year, from: Date())
+    @Published var goal: GoalProgress? = nil
+    @Published var goalLoaded = false
+    @Published var styleShare: StyleShare? = nil
+    @Published var yearComparison: YearComparison? = nil
+    @Published var achievements: [Achievement] = []
+    @Published private(set) var isOwn = true
 
     private var entries: [JournalSession] = []
+    private var places: [String: SchoolPlace] = [:]
+    private(set) var yearGoal: YearGoal? = nil
 
     func load(uid: String? = nil) async {
         guard entries.isEmpty else { return }
+        isOwn = uid == nil
         let container = AppDependencies.shared.container
         if let uid {
             if let list = try? await container.getUserJournal.invoke(uid: uid) { entries = list }
@@ -468,6 +496,34 @@ final class StatsStore: ObservableObject {
         }
         loading = false
         recompute()
+        // Región y país de cada escuela (logros de explorar). Si falla, esos logros quedan sin conseguir.
+        if let schools = try? await container.getSchools.invoke(region: nil, style: nil, rockType: nil,
+                                                                 lat: nil, lon: nil, radioKm: nil) {
+            places = Dictionary(schools.map { ($0.id, SchoolPlace(region: $0.region, country: $0.country)) },
+                                uniquingKeysWith: { a, _ in a })
+        }
+        if uid == nil {
+            yearGoal = try? await container.getYearGoal.invoke(year: Int32(currentYear))
+            goalLoaded = true
+        }
+        recompute()
+    }
+
+    /// Guarda el objetivo del año en curso. false si no se pudo (sin red…).
+    func saveGoal(discipline: String?, grade: String?, ascents: Int?, days: Int?) async -> Bool {
+        let g = YearGoal(year: Int32(currentYear), discipline: discipline, grade: grade,
+                         ascents: ascents.map { KotlinInt(int: Int32($0)) }, days: days.map { KotlinInt(int: Int32($0)) })
+        guard let saved = try? await AppDependencies.shared.container.saveYearGoal.invoke(goal: g) else { return false }
+        yearGoal = saved
+        recompute()
+        return true
+    }
+
+    func removeGoal() async {
+        if (try? await AppDependencies.shared.container.deleteYearGoal.invoke(year: Int32(currentYear))) != nil {
+            yearGoal = nil
+            recompute()
+        }
     }
 
     /** G: grados presentes, del más duro al más fácil (para el filtro). */
@@ -537,5 +593,11 @@ final class StatsStore: ObservableObject {
         availableYears = calc.availableYears(entries: entries)
         summary = calc.summary(entries: filtered, allEntries: entries, today: today)
         progression = calc.progression(entries: filtered, today: today)
+        let goals = GoalCalculator.shared
+        goal = yearGoal.map { goals.progress(goal: $0, all: entries) }
+        styleShare = goals.styleShare(entries: filtered)
+        yearComparison = year.map { goals.compareYears(entries: calc.filter(entries: entries, discipline: discipline, year: nil),
+                                                       year: $0) }
+        achievements = AchievementsCalculator.shared.compute(all: entries, places: places, today: today)
     }
 }

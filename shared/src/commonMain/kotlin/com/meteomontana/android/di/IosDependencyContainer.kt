@@ -323,6 +323,13 @@ class IosDependencyContainer(
     val deleteRestriction =
         com.meteomontana.android.domain.usecase.restriction.DeleteRestrictionUseCase(restrictionRepository)
 
+    // Objetivo del año (pantalla de Estadísticas).
+    private val goalRepository = com.meteomontana.android.data.repository.KtorGoalRepository(
+        com.meteomontana.android.data.api.KtorGoalApi(httpClient))
+    val getYearGoal = com.meteomontana.android.domain.usecase.journal.GetYearGoalUseCase(goalRepository)
+    val saveYearGoal = com.meteomontana.android.domain.usecase.journal.SaveYearGoalUseCase(goalRepository)
+    val deleteYearGoal = com.meteomontana.android.domain.usecase.journal.DeleteYearGoalUseCase(goalRepository)
+
     // Mejor hora por sector (fila plegable de la tarjeta de la nota).
     val getSectorHours = com.meteomontana.android.domain.usecase.forecast.GetSectorHoursUseCase(
         com.meteomontana.android.data.repository.KtorSectorHoursRepository(

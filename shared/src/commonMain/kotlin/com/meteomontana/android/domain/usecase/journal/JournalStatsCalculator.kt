@@ -165,6 +165,9 @@ object JournalStatsCalculator {
     /** Nº de semana absoluta (lunes como inicio) desde la época. */
     fun epochWeek(date: String): Int = (epochDay(date) + 3) / 7  // 1970-01-01 fue jueves
 
+    /** Nº de día absoluto desde 1970-01-01 (para saber el día de la semana). */
+    fun epochDayOf(date: String): Int = epochDay(date)
+
     private fun epochDay(date: String): Int {
         val y = date.take(4).toInt()
         val m = date.substring(5, 7).toInt()

@@ -111,6 +111,29 @@ fun StatsScreen(
             }
             Spacer(Modifier.height(Spacing.md))
 
+            // ── Objetivo del año (solo en las tuyas) ─────────────────────────
+            if (state.isOwn && state.goalLoaded) {
+                var goalSheetOpen by remember { mutableStateOf(false) }
+                val goalCtx = androidx.compose.ui.platform.LocalContext.current
+                GoalSection(state.goal, state.currentYear, onEdit = { goalSheetOpen = true })
+                if (goalSheetOpen) {
+                    GoalSheet(
+                        year = state.currentYear,
+                        initial = viewModel.currentGoal(),
+                        onSave = { d, g, a, days ->
+                            viewModel.saveGoal(d, g, a, days) { ok ->
+                                if (ok) goalSheetOpen = false
+                                else android.widget.Toast.makeText(goalCtx, AppText.get(R.string.goal_save_error),
+                                    android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        onRemove = { viewModel.removeGoal(); goalSheetOpen = false },
+                        onDismiss = { goalSheetOpen = false }
+                    )
+                }
+                Spacer(Modifier.height(Spacing.md))
+            }
+
             // ── Filtros: disciplina + año desplegable + mes ──────────────────
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically) {
@@ -243,6 +266,9 @@ fun StatsScreen(
                     MetricCard(stringResource(R.string.stats_screen_v3_proyectos_caidos), s.projectsFallen.toString(), Modifier.weight(1f))
                     MetricCard(stringResource(R.string.stats_screen_v3_media_dia), s.avgPerDay.toString(), Modifier.weight(1f))
                 }
+                Spacer(Modifier.height(Spacing.sm))
+                // % flash / a vista y, con un año elegido, comparado con el anterior.
+                StyleAndYearSection(state.styleShare, state.yearComparison)
                 Spacer(Modifier.height(Spacing.lg))
 
                 // ── Pirámide ────────────────────────────────────────────────
@@ -419,6 +445,12 @@ fun StatsScreen(
 
             if (state.summary == null && !state.loading) {
                 InfoCard(stringResource(R.string.stats_screen_v3_marca_vias_como_hechas_y))
+            }
+
+            // ── Logros (de todo el diario, no del filtro) ────────────────────
+            if (!state.loading) {
+                Spacer(Modifier.height(Spacing.lg))
+                AchievementsSection(state.achievements)
             }
         }
     }

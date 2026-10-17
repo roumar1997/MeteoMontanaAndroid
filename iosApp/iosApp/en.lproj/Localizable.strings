@@ -1530,3 +1530,38 @@
 "Hoy: %@ · de %@ a %@ h" = "Today: %@ · %@ to %@ h";
 "%@–%@ h" = "%@–%@ h";
 "Según el sol en cada pared, la temperatura, el viento y la humedad. Punto blanco = le da el sol. Solo sectores con orientación votada." = "Based on sun on each wall, temperature, wind and humidity. White dot = in the sun. Only sectors with a voted orientation.";
+
+/* Objetivo del año, extras y logros */
+"OBJETIVO %@" = "%@ GOAL";
+"+ PONER OBJETIVO %@" = "+ SET %@ GOAL";
+"¿Te pones un objetivo para este año? Un grado, un número de ascensiones o de días de roca. Es opcional y solo lo ves tú." = "Set yourself a goal for this year? A grade, a number of ascents or days on rock. Optional and only you see it.";
+"Poner objetivo" = "Set goal";
+"EDITAR" = "EDIT";
+"Grado de vía" = "Route grade";
+"Grado de bloque" = "Boulder grade";
+"ahora %@" = "now %@";
+"Ascensiones" = "Ascents";
+"Días de roca" = "Days on rock";
+"Rellena lo que quieras: un grado, ascensiones o días. Con una cosa basta." = "Fill in whatever you like: a grade, ascents or days. One is enough.";
+"GRADO (OPCIONAL)" = "GRADE (OPTIONAL)";
+"Quitar objetivo" = "Remove goal";
+"% AL FLASH" = "% FLASHED";
+"% A VISTA" = "% ONSIGHT";
+"%@ FRENTE A %@" = "%@ VS %@";
+"Grado máximo" = "Top grade";
+"LOGROS" = "ACHIEVEMENTS";
+"Primer %@ de vía" = "First %@ route";
+"Primer %@ de bloque" = "First %@ boulder";
+"%@ ascensiones" = "%@ ascents";
+"%@ al flash" = "%@ flashes";
+"%@ a vista" = "%@ onsights";
+"Flash de tu grado máximo" = "Flash your top grade";
+"A vista de tu grado máximo" = "Onsight your top grade";
+"%@ escuelas distintas" = "%@ different crags";
+"%@ comunidades distintas" = "%@ different regions";
+"Una escuela fuera de España" = "A crag outside Spain";
+"%@ fines de semana seguidos" = "%@ weekends in a row";
+"%@ días de roca en un año" = "%@ days on rock in a year";
+"Un año entero saliendo cada mes" = "A full year climbing every month";
+"Cerrar un proyecto" = "Send a project";
+"Cerrar %@ proyectos" = "Send %@ projects";
