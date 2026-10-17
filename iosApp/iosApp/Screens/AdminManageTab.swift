@@ -21,6 +21,8 @@ struct GestionarTab: View {
     /// "EDITAR DATOS": nombre/ubicación/región/estilo/roca de la escuela
     /// (Álvaro, 2026-09-30) — antes solo se podía mover el pin.
     @State private var editSchool: School?
+    /// Restricciones de escalada de la escuela (cierres por nidificación…), 2026-10-18.
+    @State private var restrictionsSchool: School?
 
     private var filtered: [School] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
@@ -88,6 +90,12 @@ struct GestionarTab: View {
                                     .font(Cumbre.mono(11, .bold))
                             }
                         }
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button { restrictionsSchool = s } label: {
+                                Label("RESTRICCIONES", systemImage: "exclamationmark.circle")
+                                    .font(Cumbre.mono(11, .bold))
+                            }
+                        }
                     }
             }
         }
@@ -99,6 +107,9 @@ struct GestionarTab: View {
         }
         .sheet(item: $editSchool) { s in
             EditSchoolSheet(school: s) { Task { await vm.loadSchools() } }
+        }
+        .fullScreenCover(item: $restrictionsSchool) { s in
+            AdminRestrictionsSheet(school: s)
         }
     }
 }

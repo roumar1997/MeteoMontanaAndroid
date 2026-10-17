@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -312,6 +313,17 @@ private fun Content(
     // esperar a que el usuario scrollee. Antes era un LazyColumn y la sección
     // del mapa (la que abre la ficha) no existía hasta entrar en pantalla —
     // hicieron falta parches (scroll programático + velo) que esto elimina.
+    // Restricciones en vigor ("!" en sectores y piedras): se dan aquí una vez y las leen los hijos.
+    val restrictionsVm: SchoolRestrictionsViewModel = hiltViewModel()
+    LaunchedEffect(school.id) { restrictionsVm.load(school.id) }
+    val restrictions by restrictionsVm.state.collectAsStateWithLifecycle()
+    val restrictionsUi = remember(restrictions, blocks) {
+        restrictions?.takeUnless { it.isEmpty }?.let { com.meteomontana.android.ui.components.SchoolRestrictionsUi(it, blocks) }
+    }
+    var showRestrictions by remember { mutableStateOf(false) }
+    androidx.compose.runtime.CompositionLocalProvider(
+        com.meteomontana.android.ui.components.LocalSchoolRestrictions provides restrictionsUi
+    ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -407,6 +419,11 @@ private fun Content(
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 2, overflow = TextOverflow.Ellipsis
             )
+            // "! 2 CERRADOS" junto al nombre: solo DENTRO de la escuela (nunca en la lista), toca y ves el detalle.
+            restrictionsUi?.let {
+                com.meteomontana.android.ui.components.RestrictionsPill(it.restrictions) { showRestrictions = true }
+                Spacer(Modifier.size(8.dp))
+            }
             // UN solo botón de ayuda que reconoce pantalla y pestaña: la 1ª vez cuenta la pantalla y encadena la de
             // la pestaña; luego solo la de la pestaña. Sin guía, la ayuda de texto de siempre.
             com.meteomontana.android.ui.guide.GuidePill("detail") {
@@ -488,6 +505,11 @@ private fun Content(
             }
         }
         Spacer(Modifier.height(40.dp))
+    }
+    }
+    if (showRestrictions && restrictionsUi != null) {
+        com.meteomontana.android.ui.components.RestrictionsSheet(
+            restrictionsUi.restrictions.active, blocks, onDismiss = { showRestrictions = false })
     }
 
     // Aproximaciones: pantallas completas (Dialog), fuera del scroll de arriba.

@@ -38,6 +38,8 @@ struct BlockInfoSheet: View {
     let block: Block
     var sectors: [Block] = []
     var schoolName: String? = nil
+    /// Restricciones en vigor de la escuela (las da la ficha): aviso fijo arriba si afectan a esta piedra o sector.
+    @Environment(\.schoolRestrictions) private var restrictionsUI
     /// Vía objetivo (deep-link del diario): su cara/foto se muestra la primera.
     var highlightVia: String? = nil
     var onEditLines: (() -> Void)? = nil
@@ -155,6 +157,9 @@ struct BlockInfoSheet: View {
         NavigationStack {
             ScrollViewReader { proxy in
             VStack(spacing: 0) {
+            if let ui = restrictionsUI {
+                RestrictionBanner(items: block.type.uppercased() == "ZONE" ? ui.allInSector(block.id) : ui.forBlockId(block.id))
+            }
             // Saltar de una cara a otra sin scrollear. El scroll sigue
             // funcionando igual: esto es un atajo, no un sustituto (petición de
             // Rodrigo, 2026-08-16). Mismo estilo "mochila" que las pestañas del

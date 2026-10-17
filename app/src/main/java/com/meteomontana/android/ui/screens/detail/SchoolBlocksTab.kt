@@ -277,6 +277,12 @@ private fun SectorBlock(g: SectorGroup, state: SchoolBlocksViewModel.UiState, vm
     ) {
         Text(g.sector ?: stringResource(R.string.blocks_no_sector), color = MaterialTheme.colorScheme.onBackground,
             fontWeight = FontWeight.SemiBold, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        val ui = com.meteomontana.android.ui.components.LocalSchoolRestrictions.current
+        val sectorId = ui?.blocks?.firstOrNull { it.type == "ZONE" && it.name == g.sector }?.id
+        if (ui != null && sectorId != null) {
+            com.meteomontana.android.ui.components.RestrictionMarkButton(ui.allInSector(sectorId))
+            Spacer(Modifier.size(8.dp))
+        }
         Text("${g.hits.size}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 11.sp)
         Spacer(Modifier.size(6.dp))
         Icon(if (open) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown, null,
@@ -329,6 +335,9 @@ private fun LineRow(h: LineSearchHit, onOpen: (String) -> Unit) {
                 Text(h.lineName ?: h.blockName, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                 GradePill(h.grade, lineId = h.lineId)
+                com.meteomontana.android.ui.components.LocalSchoolRestrictions.current?.let { ui ->
+                    com.meteomontana.android.ui.components.RestrictionMarkButton(ui.forBlockId(h.blockId))
+                }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val reps = h.repetitions ?: 0

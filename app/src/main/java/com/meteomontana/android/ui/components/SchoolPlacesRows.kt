@@ -54,6 +54,7 @@ internal fun SchoolPlacesRows(
     onParking: (Block) -> Unit,
     onSector: (Block) -> Unit
 ) {
+    val restrictions = LocalSchoolRestrictions.current
     val sectors = orderedByProximity(blocks.filter { it.type == "ZONE" }, userLoc)
     val parkings = orderedByProximity(blocks.filter { it.type == "PARKING" }, userLoc)
     if (sectors.isEmpty() && parkings.isEmpty()) return
@@ -68,6 +69,7 @@ internal fun SchoolPlacesRows(
                     val name = s.name.ifBlank { stringResource(R.string.school_map_view_sector_fallback) }
                     if (stones > 0) "$name · $stones" else name
                 },
+                badge = { s -> restrictions?.let { RestrictionMarkButton(it.allInSector(s.id)) } },
                 onClick = onSector)
         }
         if (parkings.isNotEmpty()) {
@@ -85,6 +87,7 @@ private fun PlacesLine(
     color: Color,
     shape: androidx.compose.ui.graphics.Shape,
     label: @Composable (Block) -> String,
+    badge: @Composable (Block) -> Unit = {},
     onClick: (Block) -> Unit
 ) {
     LazyRow(
@@ -112,6 +115,7 @@ private fun PlacesLine(
                 }
                 Text(label(place), style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onBackground, maxLines = 1)
+                badge(place)
             }
         }
     }

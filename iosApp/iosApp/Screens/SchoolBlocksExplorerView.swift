@@ -14,6 +14,8 @@ struct SchoolBlocksExplorerView: View {
     @ObservedObject var model: SchoolBlocksExplorerModel
     /// Toca una vía: la ficha pasa al mapa y abre su piedra.
     let onOpen: (String) -> Void
+    /// Restricciones en vigor (las da la ficha): "!" en el sector y en cada vía afectada.
+    @Environment(\.schoolRestrictions) private var restrictionsUI
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -203,6 +205,7 @@ struct SchoolBlocksExplorerView: View {
             HStack {
                 Text(g.sector ?? L("Sin sector")).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
                 Spacer()
+                RestrictionMarkButton(items: restrictionsUI?.allInSectorNamed(g.sector) ?? [])
                 Text("\(g.hits.count)").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink2)
                 Image(systemName: open ? "chevron.up" : "chevron.down").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
             }
@@ -271,6 +274,7 @@ struct SchoolBlocksExplorerView: View {
                         Text(h.lineName ?? h.blockName).font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(Cumbre.ink).lineLimit(1)
                         GradePill(grade: h.grade, split: h.lineId.flatMap { model.splits[$0] })
+                        RestrictionMarkButton(items: restrictionsUI?.forBlockId(h.blockId) ?? [])
                     }
                     HStack(spacing: 8) {
                         if repetitions(h) > 0 {

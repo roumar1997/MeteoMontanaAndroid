@@ -1,6 +1,7 @@
 package com.meteomontana.android.di
 
 import com.meteomontana.android.domain.repository.AdminRepository
+import com.meteomontana.android.domain.repository.RestrictionRepository
 import com.meteomontana.android.domain.repository.BlockRepository
 import com.meteomontana.android.domain.repository.ContributionRepository
 import com.meteomontana.android.domain.repository.FavoritesRepository
@@ -346,6 +347,20 @@ object UseCasesModule {
     @Provides @Singleton
     fun provideSetMyHeightUseCase(repo: ProfileRepository) =
         com.meteomontana.android.domain.usecase.profile.SetMyHeightUseCase(repo)
+
+    // Restricciones de escalada ("!" en sectores y bloques).
+    @Provides @Singleton
+    fun provideRestrictionRepository(client: io.ktor.client.HttpClient): RestrictionRepository =
+        com.meteomontana.android.data.repository.KtorRestrictionRepository(
+            com.meteomontana.android.data.api.KtorRestrictionApi(client))
+
+    @Provides @Singleton
+    fun provideGetActiveRestrictionsUseCase(repo: RestrictionRepository) =
+        com.meteomontana.android.domain.usecase.restriction.GetActiveRestrictionsUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetSchoolActiveRestrictionsUseCase(repo: RestrictionRepository) =
+        com.meteomontana.android.domain.usecase.restriction.GetSchoolActiveRestrictionsUseCase(repo)
 
     @Provides @Singleton
     fun provideUpdateMyProfileUseCase(repo: ProfileRepository) = UpdateMyProfileUseCase(repo)

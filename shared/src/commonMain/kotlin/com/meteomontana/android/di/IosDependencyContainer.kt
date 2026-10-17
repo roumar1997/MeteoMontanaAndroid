@@ -308,6 +308,20 @@ class IosDependencyContainer(
     // Mi altura (más o menos de 1,70 m): agrupa mis votos de grado. Privada.
     val getMyHeight = com.meteomontana.android.domain.usecase.profile.GetMyHeightUseCase(profileRepository)
     val setMyHeight = com.meteomontana.android.domain.usecase.profile.SetMyHeightUseCase(profileRepository)
+
+    // Restricciones de escalada (cierres por nidificación…): "!" en sectores y bloques; CRUD del admin.
+    private val restrictionRepository = com.meteomontana.android.data.repository.KtorRestrictionRepository(
+        com.meteomontana.android.data.api.KtorRestrictionApi(httpClient))
+    val getActiveRestrictions =
+        com.meteomontana.android.domain.usecase.restriction.GetActiveRestrictionsUseCase(restrictionRepository)
+    val getSchoolActiveRestrictions =
+        com.meteomontana.android.domain.usecase.restriction.GetSchoolActiveRestrictionsUseCase(restrictionRepository)
+    val getSchoolRestrictions =
+        com.meteomontana.android.domain.usecase.restriction.GetSchoolRestrictionsUseCase(restrictionRepository)
+    val saveRestriction =
+        com.meteomontana.android.domain.usecase.restriction.SaveRestrictionUseCase(restrictionRepository)
+    val deleteRestriction =
+        com.meteomontana.android.domain.usecase.restriction.DeleteRestrictionUseCase(restrictionRepository)
     val updateMyProfile = UpdateMyProfileUseCase(profileRepository)
     val deleteMyAccount = DeleteMyAccountUseCase(profileRepository)
     val updateFcmToken = com.meteomontana.android.domain.usecase.profile.UpdateFcmTokenUseCase(profileRepository)

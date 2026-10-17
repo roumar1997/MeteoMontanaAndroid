@@ -313,6 +313,9 @@ struct SchoolDetailView: View {
     @State private var returnToBlocks = false
     /// Estado de la pestaña BLOQUES: aquí para que sobreviva al cambiar de pestaña.
     @StateObject private var blocksModel = SchoolBlocksExplorerModel()
+    /// Restricciones en vigor ("!" en sectores y piedras): se cargan aquí y las leen los hijos por el entorno.
+    @StateObject private var restrictionsModel = SchoolRestrictionsModel()
+    @State private var showRestrictions = false
     /// Tarjeta HOY abierta a mano. En la pestaña TIEMPO se muestra abierta sola (es justo el tiempo).
     @State private var hoyManual = false
     private var hoyOpen: Binding<Bool> {
@@ -364,6 +367,13 @@ struct SchoolDetailView: View {
             )
         }
         .task { await vm.load(school: school) }
+        .task { await restrictionsModel.load(schoolId: school.id) }
+        .environment(\.schoolRestrictions, restrictionsModel.ui)
+        .sheet(isPresented: $showRestrictions) {
+            if let ui = restrictionsModel.ui {
+                RestrictionsSheet(items: ui.restrictions.active, blocks: ui.blocks)
+            }
+        }
         .alert("¿Guardar también las fotos?",
                isPresented: Binding(get: { vm.ofertaFotos != nil },
                                     set: { if !$0 { vm.ofertaFotos = nil } })) {
@@ -443,6 +453,10 @@ struct SchoolDetailView: View {
                 .foregroundStyle(Cumbre.ink)
                 .lineLimit(2).minimumScaleFactor(0.7)
                 .frame(maxWidth: .infinity, alignment: .leading)
+            // "! 2 CERRADOS" junto al nombre: solo DENTRO de la escuela (nunca en la lista).
+            if let ui = restrictionsModel.ui {
+                RestrictionsPill(ui: ui) { showRestrictions = true }
+            }
             GuidePill(topicKey: "detail") {
                 if !GuideStore.shared.startScreenAndTab(screen: "detail", tab: tab.guideKey) { showHelp = true }
             }

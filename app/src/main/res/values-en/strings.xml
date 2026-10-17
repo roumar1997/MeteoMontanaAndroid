@@ -1816,4 +1816,17 @@
     <string name="grade_vote_hint">Tap a grade. If you\'re torn between two, tap the one next to it too.</string>
     <string name="grade_vote_save">SAVE</string>
     <string name="onb_continue">CONTINUE</string>
+    <string name="restriction_kind_closed">Closed</string>
+    <string name="restriction_kind_regulated">Regulated</string>
+    <string name="restriction_kind_notice">Notice</string>
+    <string name="restriction_pill_closed_one">1 closed</string>
+    <string name="restriction_pill_closed_other">%1$d closed</string>
+    <string name="restriction_until">%1$s until %2$s</string>
+    <string name="restriction_permanent">%1$s permanently</string>
+    <string name="restriction_yearly">Repeats every year on the same dates</string>
+    <string name="restriction_source">Source: %1$s</string>
+    <string name="restriction_place_sector">Sector %1$s</string>
+    <string name="restriction_place_blocks">%1$d boulders</string>
+    <string name="restriction_sheet_title">Restrictions in force</string>
+    <string name="restriction_disclaimer">Taken from the official regulations. If in doubt, follow the signs on site.</string>
 </resources>

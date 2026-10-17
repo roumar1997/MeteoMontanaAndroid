@@ -1875,4 +1875,17 @@
     <string name="grade_vote_hint">Pulsa un grado. Si dudas entre dos, pulsa también el de al lado.</string>
     <string name="grade_vote_save">GUARDAR</string>
     <string name="onb_continue">CONTINUAR</string>
+    <string name="restriction_kind_closed">Cerrado</string>
+    <string name="restriction_kind_regulated">Regulado</string>
+    <string name="restriction_kind_notice">Aviso</string>
+    <string name="restriction_pill_closed_one">1 cerrado</string>
+    <string name="restriction_pill_closed_other">%1$d cerrados</string>
+    <string name="restriction_until">%1$s hasta el %2$s</string>
+    <string name="restriction_permanent">%1$s siempre</string>
+    <string name="restriction_yearly">Se repite cada año en las mismas fechas</string>
+    <string name="restriction_source">Fuente: %1$s</string>
+    <string name="restriction_place_sector">Sector %1$s</string>
+    <string name="restriction_place_blocks">%1$d piedras</string>
+    <string name="restriction_sheet_title">Restricciones en vigor</string>
+    <string name="restriction_disclaimer">Datos de la normativa oficial. Ante la duda, manda la señalización en el lugar.</string>
 </resources>

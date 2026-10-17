@@ -80,6 +80,8 @@ struct SchoolMapSection: View {
     // Mini-ficha flotante de PARKING/ZONA sobre el mapa (la ficha grande queda
     // solo para PIEDRAS). confirmDeleteMini = confirmación de borrado (admin).
     @State private var miniBlock: Block?
+    /// Restricciones en vigor de la escuela (las da la ficha): "!" en el chip del sector.
+    @Environment(\.schoolRestrictions) private var restrictionsUI
     @State private var confirmDeleteMini = false
     @State private var editLinesBlock: Block?
     @State private var assignSectorBlock: Block?
@@ -1238,7 +1240,8 @@ struct SchoolMapSection: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
                             ForEach(sectores, id: \.id) { s in
-                                placeChip(symbol: "S", color: zoneColor, corner: 10, label: etiquetaSector(s)) {
+                                placeChip(symbol: "S", color: zoneColor, corner: 10, label: etiquetaSector(s),
+                                          restrictions: restrictionsUI?.allInSector(s.id) ?? []) {
                                     miniBlock = s
                                     irAlSector(s)
                                 }
@@ -1268,6 +1271,7 @@ struct SchoolMapSection: View {
     }
 
     private func placeChip(symbol: String, color: UIColor, corner: CGFloat, label: String,
+                           restrictions: [Restriction] = [],
                            action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 6) {
@@ -1276,6 +1280,7 @@ struct SchoolMapSection: View {
                     .background(Color(color))
                     .clipShape(RoundedRectangle(cornerRadius: corner))
                 Text(label).font(.system(size: 13, weight: .medium)).foregroundStyle(Cumbre.ink).lineLimit(1)
+                RestrictionMarkButton(items: restrictions)
             }
             .padding(.horizontal, 10).padding(.vertical, 6)
             .background(Cumbre.paper, in: Capsule())

@@ -308,6 +308,29 @@ fun BlockDetailDialog(
                     }
                 }
             )
+            // Restricción en vigor de esta piedra o sector: aviso fijo arriba (no se pierde con el scroll).
+            LocalSchoolRestrictions.current?.let { ui ->
+                val items = if (block.type == "ZONE") ui.allInSector(block.id) else ui.forBlockId(block.id)
+                items.minByOrNull { it.kind.ordinal }?.let { r ->
+                    var openRestrictions by remember { mutableStateOf(false) }
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .background(restrictionColor(r.kind).copy(alpha = 0.12f))
+                            .clickable { openRestrictions = true }
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        RestrictionMark(r.kind, size = 20)
+                        Column(Modifier.weight(1f)) {
+                            Text(restrictionWhenText(r), color = restrictionColor(r.kind), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(r.reason, color = MaterialTheme.colorScheme.onBackground, fontSize = 13.sp, maxLines = 2,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        }
+                    }
+                    if (openRestrictions) RestrictionsSheet(items, ui.blocks) { openRestrictions = false }
+                }
+            }
 
             // Caras de la piedra, en el MISMO orden en que se pintan abajo. Se
             // calcula aquí (y no dentro del scroll) porque las pestañas de
