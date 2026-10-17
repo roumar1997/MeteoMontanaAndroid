@@ -429,6 +429,8 @@ private fun AssistantHitRow(hit: LineSearchHit, presenter: AssistantPresenter, w
                 Text(hit.lineName ?: hit.blockName, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Medium, fontSize = 14.sp,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                 GradePill(hit.grade, small = true, lineId = hit.lineId)
+                // Restricción en vigor (cierre por nidificación…): el detalle se ve al abrir la escuela.
+                hit.restrictionKind?.let { com.meteomontana.android.ui.components.RestrictionMark(it, size = 14) }
                 val kind = com.meteomontana.android.domain.util.SchoolKind.from(hit.discipline)
                 if (kind.isSingle) com.meteomontana.android.ui.components.SchoolKindIcons(kind, height = 13.dp)
             }

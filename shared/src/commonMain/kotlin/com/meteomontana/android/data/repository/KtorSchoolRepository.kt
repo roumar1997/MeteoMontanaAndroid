@@ -49,5 +49,6 @@ private fun LineSearchHitDto.toDomain() = LineSearchHit(
     lineId = lineId, lineName = lineName, grade = grade, sectorName = sectorName,
     photoPath = photoPath, linePath = linePath, startType = startType,
     lat = lat, lon = lon, orientation = orientation, discipline = discipline,
-    rating = rating, ratingCount = ratingCount, repetitions = repetitions
+    rating = rating, ratingCount = ratingCount, repetitions = repetitions,
+    sectorBlockId = sectorBlockId, restrictionLevel = restrictionLevel
 )

@@ -157,6 +157,8 @@ struct AssistantHitRow: View {
                                 Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(GradeColor.color(g))
                             }
                         }
+                        // Restricción en vigor (cierre por nidificación…): el detalle se ve al abrir la escuela.
+                        if let k = hit.restrictionKind { RestrictionMark(kind: k, size: 14) }
                         let kind = SchoolKind(style: hit.discipline)
                         if kind.isSingle { SchoolKindIcons(kind: kind, height: 13) }
                     }

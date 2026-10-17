@@ -1293,6 +1293,11 @@ private fun ExploreLineRow(
                             color = androidx.compose.ui.graphics.Color(argb.toInt()))
                     }
                 }
+                // Restricción en vigor (cierre por nidificación…): el detalle se ve al abrir la escuela.
+                h.restrictionKind?.let {
+                    Spacer(Modifier.size(6.dp))
+                    com.meteomontana.android.ui.components.RestrictionMark(it, size = 14)
+                }
                 // Cuántas personas la han hecho (solo con el orden "Más repetidos").
                 h.repetitions?.takeIf { it > 0 }?.let {
                     Spacer(Modifier.size(6.dp))

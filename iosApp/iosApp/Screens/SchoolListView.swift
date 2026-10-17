@@ -977,6 +977,8 @@ struct SchoolListView: View {
                                 Text(g).font(Cumbre.mono(11, .bold)).foregroundStyle(GradeColor.color(g))
                             }
                         }
+                        // Restricción en vigor (cierre por nidificación…): el detalle se ve al abrir la escuela.
+                        if let k = h.restrictionKind { RestrictionMark(kind: k, size: 14) }
                         if let r = h.repetitions?.intValue, r > 0 {
                             Text("✓ \(r)").font(Cumbre.mono(10.5, .bold)).foregroundStyle(Cumbre.ok)
                         }

@@ -31,5 +31,12 @@ data class LineSearchHit(
     /** Cuántas personas la han valorado (null si no se pidieron). */
     val ratingCount: Int? = null,
     /** Personas distintas que la tienen hecha en su diario (solo el total); null si no se pidió o es una piedra. */
-    val repetitions: Int? = null
-)
+    val repetitions: Int? = null,
+    /** Sector (ZONE) de la piedra, o null si va suelta. */
+    val sectorBlockId: String? = null,
+    /** Restricción en vigor hoy sobre la piedra o su sector: null, "NOTICE", "REGULATED" o "CLOSED". */
+    val restrictionLevel: String? = null
+) {
+    /** El tipo de restricción para pintar el "!", o null si no hay. */
+    val restrictionKind: RestrictionKind? get() = restrictionLevel?.let { RestrictionKind.parse(it) }
+}

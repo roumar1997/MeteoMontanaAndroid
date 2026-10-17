@@ -156,5 +156,8 @@ data class LineSearchHitDto(
     val rating: Double? = null,
     val ratingCount: Int? = null,
     // Cuántas personas la han hecho (aditivo; solo con withRepetitions=true o sort=MOST_REPEATED).
-    val repetitions: Int? = null
+    val repetitions: Int? = null,
+    // Sector de la piedra y restricción en vigor hoy (aditivos; null con backends viejos).
+    val sectorBlockId: String? = null,
+    val restrictionLevel: String? = null
 )
