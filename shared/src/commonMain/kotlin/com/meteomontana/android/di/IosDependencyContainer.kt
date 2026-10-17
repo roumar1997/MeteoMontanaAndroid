@@ -322,6 +322,11 @@ class IosDependencyContainer(
         com.meteomontana.android.domain.usecase.restriction.SaveRestrictionUseCase(restrictionRepository)
     val deleteRestriction =
         com.meteomontana.android.domain.usecase.restriction.DeleteRestrictionUseCase(restrictionRepository)
+
+    // Mejor hora por sector (fila plegable de la tarjeta de la nota).
+    val getSectorHours = com.meteomontana.android.domain.usecase.forecast.GetSectorHoursUseCase(
+        com.meteomontana.android.data.repository.KtorSectorHoursRepository(
+            com.meteomontana.android.data.api.KtorSectorHoursApi(httpClient)))
     val updateMyProfile = UpdateMyProfileUseCase(profileRepository)
     val deleteMyAccount = DeleteMyAccountUseCase(profileRepository)
     val updateFcmToken = com.meteomontana.android.domain.usecase.profile.UpdateFcmTokenUseCase(profileRepository)

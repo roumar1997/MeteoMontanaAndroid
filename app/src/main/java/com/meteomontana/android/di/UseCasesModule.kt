@@ -362,6 +362,13 @@ object UseCasesModule {
     fun provideGetSchoolActiveRestrictionsUseCase(repo: RestrictionRepository) =
         com.meteomontana.android.domain.usecase.restriction.GetSchoolActiveRestrictionsUseCase(repo)
 
+    // Mejor hora por sector (fila plegable de la tarjeta de la nota).
+    @Provides @Singleton
+    fun provideGetSectorHoursUseCase(client: io.ktor.client.HttpClient) =
+        com.meteomontana.android.domain.usecase.forecast.GetSectorHoursUseCase(
+            com.meteomontana.android.data.repository.KtorSectorHoursRepository(
+                com.meteomontana.android.data.api.KtorSectorHoursApi(client)))
+
     @Provides @Singleton
     fun provideUpdateMyProfileUseCase(repo: ProfileRepository) = UpdateMyProfileUseCase(repo)
 

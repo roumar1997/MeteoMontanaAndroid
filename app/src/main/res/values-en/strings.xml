@@ -1829,4 +1829,8 @@
     <string name="restriction_place_blocks">%1$d boulders</string>
     <string name="restriction_sheet_title">Restrictions in force</string>
     <string name="restriction_disclaimer">Taken from the official regulations. If in doubt, follow the signs on site.</string>
+    <string name="sector_hours_title">BEST TIME BY SECTOR</string>
+    <string name="sector_hours_best">Today: %1$s · %2$d to %3$d h</string>
+    <string name="sector_hours_window">%1$d–%2$d h</string>
+    <string name="sector_hours_hint">Based on sun on each wall, temperature, wind and humidity. White dot = in the sun. Only sectors with a voted orientation.</string>
 </resources>

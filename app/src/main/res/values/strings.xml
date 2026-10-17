@@ -1888,4 +1888,8 @@
     <string name="restriction_place_blocks">%1$d piedras</string>
     <string name="restriction_sheet_title">Restricciones en vigor</string>
     <string name="restriction_disclaimer">Datos de la normativa oficial. Ante la duda, manda la señalización en el lugar.</string>
+    <string name="sector_hours_title">MEJOR HORA POR SECTOR</string>
+    <string name="sector_hours_best">Hoy: %1$s · de %2$d a %3$d h</string>
+    <string name="sector_hours_window">%1$d–%2$d h</string>
+    <string name="sector_hours_hint">Según el sol en cada pared, la temperatura, el viento y la humedad. Punto blanco = le da el sol. Solo sectores con orientación votada.</string>
 </resources>

@@ -1524,3 +1524,9 @@
 "%@ piedras" = "%@ boulders";
 "Restricciones en vigor" = "Restrictions in force";
 "Datos de la normativa oficial. Ante la duda, manda la señalización en el lugar." = "Taken from the official regulations. If in doubt, follow the signs on site.";
+
+/* Mejor hora por sector */
+"MEJOR HORA POR SECTOR" = "BEST TIME BY SECTOR";
+"Hoy: %@ · de %@ a %@ h" = "Today: %@ · %@ to %@ h";
+"%@–%@ h" = "%@–%@ h";
+"Según el sol en cada pared, la temperatura, el viento y la humedad. Punto blanco = le da el sol. Solo sectores con orientación votada." = "Based on sun on each wall, temperature, wind and humidity. White dot = in the sun. Only sectors with a voted orientation.";

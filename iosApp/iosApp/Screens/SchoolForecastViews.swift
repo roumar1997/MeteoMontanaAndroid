@@ -169,6 +169,8 @@ private struct HoyCard: View {
                 Text(subtitle).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
                     .padding(.horizontal, 12).padding(.top, 8)
                 FactorsAccordion(current: c, expanded: $factorsExpanded, compact: true)
+                // Mejor hora por sector: se pide ahora, al abrir la tarjeta (no al entrar en la escuela).
+                SectorHoursSection(schoolId: forecast.schoolId)
                 HoursGrid(hours: upcomingHours(forecast.hours, 16), compact: true).padding(.top, 2).padding(.bottom, 10)
             }
         }
