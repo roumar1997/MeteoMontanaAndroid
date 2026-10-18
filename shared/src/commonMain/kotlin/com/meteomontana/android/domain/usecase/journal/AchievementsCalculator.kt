@@ -107,7 +107,9 @@ object AchievementsCalculator {
     /** Día en que se completan [n] fines de semana SEGUIDOS con salida, o null. */
     private fun weekendStreakDate(dates: List<String>, n: Int): String? {
         val weekendDates = dates.filter { isWeekend(it) }.sorted()
-        val weeks = weekendDates.groupBy { JournalStatsCalculator.epochWeek(it) }.toSortedMap()
+        // Ordenado por semana (toSortedMap es solo de JVM; esto vale también en iOS).
+        val weeks = weekendDates.groupBy { JournalStatsCalculator.epochWeek(it) }.entries.sortedBy { it.key }
+            .associate { it.key to it.value }
         var run = 0
         var prev: Int? = null
         for ((week, ds) in weeks) {
