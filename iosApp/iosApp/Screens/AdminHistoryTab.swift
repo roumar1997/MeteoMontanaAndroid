@@ -84,6 +84,9 @@ struct AdminHistoryTab: View {
                     Text(c.entityType == "LINE" ? L("VÍA") : L("PIEDRA")).font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
                     Text(c.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink).lineLimit(1)
                 }
+                if let s = c.schoolId, !s.isEmpty {
+                    Text(s.replacingOccurrences(of: "-", with: " ").capitalized).font(.system(size: 11, weight: .semibold)).foregroundStyle(Cumbre.terra)
+                }
                 Text(summary(c)).font(.system(size: 12)).foregroundStyle(Cumbre.ink2).lineLimit(2)
                 Text("\(c.actorName ?? L("Sistema")) · \(c.createdAt.replacingOccurrences(of: "T", with: " ").prefix(16))")
                     .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
@@ -160,6 +163,58 @@ struct ChangeDetailSheet: View {
     @State private var confirm = false
     @State private var error: String?
     @State private var working = false
+    /// La piedra a la que pertenece el cambio: de ahí sale la foto sobre la que se dibuja el trazo.
+    @State private var block: Block?
+
+    private func points(_ json: String?) -> [CGPoint] { TopoParse.points(json) }
+
+    /// Foto del cambio: la propia (si cambió la foto) o la de la cara de la piedra donde está la vía.
+    private var photoUrl: String? {
+        if let p = change.after["photoPath"] ?? change.before["photoPath"], !p.isEmpty { return p }
+        guard let b = block else { return nil }
+        if let face = b.faces.first(where: { f in f.lines.contains { $0.id == change.entityId } }), let p = face.photoPath, !p.isEmpty { return p }
+        if let p = b.faces.first?.photoPath, !p.isEmpty { return p }
+        return b.photoPath
+    }
+
+    /// La foto con el trazo de DESPUÉS fuerte y el de ANTES difuminado; si es una piedra, con sus vías actuales.
+    @ViewBuilder private var visual: some View {
+        if let url = photoUrl {
+            let after = points(change.after["linePath"]), before = points(change.before["linePath"])
+            let name = change.title
+            let afterLine = TopoLineVM(id: "after", name: name, grade: change.after["grade"], startType: change.after["startType"], points: after)
+            let beforeLine = TopoLineVM(id: "before", name: name, grade: change.before["grade"], startType: change.before["startType"], points: before)
+            VStack(alignment: .leading, spacing: 6) {
+                if change.entityType == "LINE" && (!after.isEmpty || !before.isEmpty) {
+                    TopoPhotoView(photoUrl: url, lines: after.isEmpty ? [beforeLine] : [afterLine],
+                                  referenceLines: after.isEmpty || before.isEmpty ? [] : [beforeLine], interactive: false)
+                    if !after.isEmpty && !before.isEmpty && !TopoParse.pointsEqual(after, before) {
+                        Text("Trazo fuerte = después del cambio · trazo difuminado = como estaba antes")
+                            .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                    } else if after.isEmpty {
+                        Text("La vía se borró: así estaba dibujada").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                    }
+                } else {
+                    TopoPhotoView(photoUrl: url, lines: currentLines(for: url), interactive: false)
+                }
+            }
+        }
+    }
+
+    /// Las vías de la cara que lleva esa foto (o todas las de la piedra).
+    private func currentLines(for url: String) -> [TopoLineVM] {
+        var source: [BlockLine] = block?.lines ?? []
+        if let face = block?.faces.first(where: { $0.photoPath == url }) { source = face.lines }
+        return source.map { TopoLineVM($0) }
+    }
+
+    /// Dónde está: escuela y piedra, en claro (no «Piedra 1» a secas).
+    private var whereLine: String {
+        var parts: [String] = []
+        if let s = change.schoolId, !s.isEmpty { parts.append(s.replacingOccurrences(of: "-", with: " ").capitalized) }
+        if let b = block, change.entityType == "LINE" { parts.append("piedra «\(b.name)»") }
+        return parts.joined(separator: " · ")
+    }
 
     var body: some View {
         NavigationStack {
@@ -170,12 +225,14 @@ struct ChangeDetailSheet: View {
                         Spacer()
                         SourceBadge(source: change.source)
                     }
+                    if !whereLine.isEmpty { Text(whereLine).font(.system(size: 12)).foregroundStyle(Cumbre.ink2) }
+                    visual
                     Text("\(change.actorName ?? L("Sistema")) · \(change.createdAt.replacingOccurrences(of: "T", with: " ").prefix(16))")
                         .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
                     let fields = change.isCreation || change.isDeletion
                         ? Array((change.isCreation ? change.after : change.before).keys).sorted()
                         : change.changedFields
-                    ForEach(fields, id: \.self) { k in
+                    ForEach(fields.filter { $0 != "linePath" && $0 != "photoPath" }, id: \.self) { k in
                         VStack(alignment: .leading, spacing: 3) {
                             Text(fieldLabel(k).uppercased()).font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
                             if let b = change.before[k] {
@@ -188,6 +245,8 @@ struct ChangeDetailSheet: View {
                         }
                         Divider().overlay(Cumbre.rule)
                     }
+                    if fields.contains("photoPath") { Text("La foto cambió (arriba ves la de después).").font(.system(size: 12)).foregroundStyle(Cumbre.ink2) }
+                    if fields.contains("linePath") { Text("El trazo de la vía cambió: míralo sobre la foto, arriba.").font(.system(size: 12)).foregroundStyle(Cumbre.ink2) }
                     if let error { Text(error).font(.system(size: 13)).foregroundStyle(Cumbre.bad) }
                     if !change.isCreation {
                         Text("Restaurar deja esta piedra o vía exactamente como estaba ANTES de este cambio. Queda apuntado en el historial como «restaurado», así que también se puede deshacer.")
@@ -199,6 +258,7 @@ struct ChangeDetailSheet: View {
             }
             .background(Cumbre.bg.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
+            .task { block = try? await AppDependencies.shared.container.getBlock.invoke(blockId: change.blockId ?? change.entityId) }
             .toolbar { ToolbarItem(placement: .topBarLeading) {
                 Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra) } }
             .confirmationDialog(L("¿Dejarla como estaba antes de este cambio?"), isPresented: $confirm, titleVisibility: .visible) {

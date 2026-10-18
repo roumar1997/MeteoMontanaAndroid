@@ -173,6 +173,7 @@ struct RewardsBlock: View {
     @StateObject private var model = RewardsModel()
     @State private var sheet = false
     @State private var promptDone = UserDefaults.standard.bool(forKey: promptKey)
+    @State private var badgeInfo: String?
 
     var body: some View {
         VStack(spacing: 6) {
@@ -184,6 +185,9 @@ struct RewardsBlock: View {
         }
         .task { await model.load(uid: uid) }
         .onChange(of: sheet) { open in if open { Task { await model.loadMineIds() } } }
+        .alert(badgeInfo ?? "", isPresented: Binding(get: { badgeInfo != nil }, set: { if !$0 { badgeInfo = nil } })) {
+            Button("OK", role: .cancel) {}
+        }
         .sheet(isPresented: $sheet) {
             if let r = model.rewards { RewardsSheet(rewards: r, model: model) }
         }
@@ -197,9 +201,21 @@ struct RewardsBlock: View {
                 FeaturedAchievement(achievement: a, rarity: model.rarity)
             }
             HStack(spacing: 6) {
-                if let t = r.climberType { badge(climberTypeLabel(t), climberTypeStyle(t).color) }
-                if r.badges.contains("COLLABORATOR") { badge(L("Colaborador"), Cumbre.terra) }
-                if r.badges.contains("TRUSTED") { badge(L("De confianza"), Cumbre.ok) }
+                if let t = r.climberType { badge(climberTypeLabel(t), climberTypeStyle(t).color, info: nil) }
+                else if uid == nil { badge(L("¿Viero o bloquero?"), Cumbre.ink3, info: nil) }
+                if r.badges.contains("COLLABORATOR") {
+                    badge(L("Colaborador"), Cumbre.terra, info: L("Colaborador: tiene al menos una aportación aprobada (una piedra, una vía o un cambio que un admin ha dado por bueno)."))
+                }
+                if r.badges.contains("TRUSTED") {
+                    badge(L("De confianza"), Cumbre.ok, info: L("De confianza: lo que propone se publica sin pasar por revisión. Se consigue con 20 aportaciones aprobadas o lo da un admin."))
+                }
+            }
+            if uid == nil {
+                HStack(spacing: 5) {
+                    Image(systemName: "pencil").font(.system(size: 10, weight: .bold))
+                    Text(L("TOCA TU TÍTULO PARA ELEGIR TÍTULO, VIERO/BLOQUERO Y LOGRO")).font(Cumbre.mono(8.5, .bold)).tracking(0.5)
+                        .multilineTextAlignment(.center)
+                }.foregroundStyle(Cumbre.terra.opacity(0.85))
             }
             if uid == nil, let next = r.nextLevel?.intValue {
                 Text(L("%@ aportaciones aprobadas · siguiente nivel con %@", r.approved, next))
@@ -211,10 +227,16 @@ struct RewardsBlock: View {
         }
     }
 
-    private func badge(_ text: String, _ color: Color) -> some View {
-        Text(text.uppercased()).font(Cumbre.mono(10, .bold)).tracking(0.8).foregroundStyle(color)
+    @ViewBuilder
+    private func badge(_ text: String, _ color: Color, info: String?) -> some View {
+        let pill = Text(text.uppercased()).font(Cumbre.mono(10, .bold)).tracking(0.8).foregroundStyle(color)
             .padding(.horizontal, 9).padding(.vertical, 4)
             .overlay(Capsule().stroke(color, lineWidth: 1))
+        if let info {
+            Button { badgeInfo = info } label: { pill }.buttonStyle(.plain)
+        } else if uid == nil {
+            Button { sheet = true } label: { pill }.buttonStyle(.plain)
+        } else { pill }
     }
 
     private var prompt: some View {
@@ -256,6 +278,21 @@ private func chip(_ text: String, on: Bool) -> some View {
 private struct RewardsSheet: View {
     let rewards: UserRewards
     @ObservedObject var model: RewardsModel
+    @State private var featuredOpen = false
+    @State private var tierFilter: Int? = nil
+
+    private func tierPick(_ title: String, _ color: Color, on: Bool, count: Int, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Text(title).font(Cumbre.mono(10, .bold)).tracking(0.5)
+                Text("\(count)").font(Cumbre.mono(9.5)).opacity(0.85)
+            }
+            .foregroundStyle(on ? Color.white : color)
+            .padding(.horizontal, 11).padding(.vertical, 7)
+            .background(on ? color : color.opacity(0.10), in: Capsule())
+            .overlay(Capsule().stroke(color.opacity(0.7), lineWidth: 1))
+        }.buttonStyle(.plain)
+    }
 
     var body: some View {
         let r = model.rewards ?? rewards
@@ -267,14 +304,39 @@ private struct RewardsSheet: View {
                         climberChip(t.isEmpty ? nil : t, on: (r.climberType ?? "") == t)
                     }.buttonStyle(.plain)
                 }
-                Text(L("TU LOGRO DESTACADO")).eyebrow(Cumbre.terra)
-                if let ids = model.mineIds {
-                    let unlocked = AchievementsCalculator.shared.catalog.filter { ids.contains($0.id) }
+                Button { withAnimation { featuredOpen.toggle() } } label: {
+                    HStack {
+                        Text(L("TU LOGRO DESTACADO")).eyebrow(Cumbre.terra)
+                        Spacer()
+                        Text(r.featuredAchievement.flatMap { AchievementsCalculator.shared.byId(id: $0) }.map { achievementText($0) } ?? L("Ninguno"))
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink2).lineLimit(1)
+                        Image(systemName: featuredOpen ? "chevron.up" : "chevron.down").font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.terra)
+                    }
+                    .padding(12).background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.terra.opacity(0.5), lineWidth: 1))
+                }.buttonStyle(.plain)
+                if !featuredOpen {
+                    EmptyView()
+                } else if let ids = model.mineIds {
+                    let allUnlocked = AchievementsCalculator.shared.catalog.filter { ids.contains($0.id) }
                         .sorted { tierRank($0.tier) > tierRank($1.tier) }
-                    if unlocked.isEmpty {
+                    let unlocked = allUnlocked.filter { tierFilter == nil || tierRank($0.tier) == tierFilter }
+                    if allUnlocked.isEmpty {
                         Text(L("Aún no tienes logros sincronizados. Abre Mis estadísticas una vez y vuelve aquí."))
                             .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                     } else {
+                        // Chips por dificultad, como en Mis estadísticas: tocas ÉPICO y solo salen los épicos que tienes.
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 6) {
+                                tierPick(L("TODOS"), Cumbre.terra, on: tierFilter == nil, count: allUnlocked.count) { tierFilter = nil }
+                                ForEach(Array(Set(allUnlocked.map { tierRank($0.tier) })).sorted(), id: \.self) { r in
+                                    if let first = allUnlocked.first(where: { tierRank($0.tier) == r }) {
+                                        tierPick(tierName(first.tier).uppercased(), tierColor(first.tier), on: tierFilter == r,
+                                                 count: allUnlocked.filter { tierRank($0.tier) == r }.count) { tierFilter = (tierFilter == r ? nil : r) }
+                                    }
+                                }
+                            }
+                        }
                         VStack(spacing: 8) {
                             Button { Task { await model.update(climberType: nil, titleLevel: nil, featured: "") } } label: {
                                 HStack {

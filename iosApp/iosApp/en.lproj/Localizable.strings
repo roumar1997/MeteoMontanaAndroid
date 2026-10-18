@@ -1656,3 +1656,8 @@
 "MEDIA AL MES" = "AVERAGE A MONTH";
 "MEJOR MES" = "BEST MONTH";
 "línea discontinua = tu media" = "dashed line = your average";
+"racha actual" = "current streak";
+"¿Viero o bloquero?" = "Routes or boulders?";
+"Colaborador: tiene al menos una aportación aprobada (una piedra, una vía o un cambio que un admin ha dado por bueno)." = "Contributor: has at least one approved contribution (a boulder, a route or a change an admin accepted).";
+"De confianza: lo que propone se publica sin pasar por revisión. Se consigue con 20 aportaciones aprobadas o lo da un admin." = "Trusted: what they propose is published without review. Earned with 20 approved contributions or granted by an admin.";
+"TOCA TU TÍTULO PARA ELEGIR TÍTULO, VIERO/BLOQUERO Y LOGRO" = "TAP YOUR TITLE TO PICK TITLE, ROUTES/BOULDERS AND ACHIEVEMENT";

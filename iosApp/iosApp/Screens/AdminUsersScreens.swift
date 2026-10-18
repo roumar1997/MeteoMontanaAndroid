@@ -19,11 +19,31 @@ enum AdminUsersMode: Hashable {
     }
 }
 
+/// Si cada persona tiene el asistente de IA activado a mano (se pide al aparecer su fila y se recuerda).
+@MainActor
+final class AssistantFlagStore: ObservableObject {
+    @Published private(set) var flags: [String: Bool] = [:]
+    private var asked: Set<String> = []
+
+    func want(_ uid: String) {
+        guard !asked.contains(uid) else { return }
+        asked.insert(uid)
+        Task {
+            if let on = try? await AppDependencies.shared.container.getUserAssistantAccess.invoke(uid: uid) {
+                flags[uid] = on.boolValue
+            } else { asked.remove(uid) }
+        }
+    }
+}
+
 struct AdminUsersScreen: View {
     let mode: AdminUsersMode
     @State private var users: [AdminUserRow]?
     @State private var query = ""
     @State private var onlyNew = false
+    /// Aportaciones aprobadas por persona y si tiene la IA activada a mano.
+    @State private var approved: [String: Int] = [:]
+    @StateObject private var ai = AssistantFlagStore()
 
     var body: some View {
         ScrollView {
@@ -32,8 +52,16 @@ struct AdminUsersScreen: View {
                     .padding(.top, 8)
                 if mode == .all {
                     HStack {
-                        Button { onlyNew.toggle() } label: {
-                            AdminChip(text: "NUEVOS · 7 DÍAS", color: Cumbre.terra, filled: onlyNew)
+                        Button { withAnimation { onlyNew.toggle() } } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: onlyNew ? "checkmark.circle.fill" : "line.3.horizontal.decrease.circle")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text("SOLO NUEVOS · 7 DÍAS").font(Cumbre.mono(11, .bold)).tracking(0.5)
+                            }
+                            .foregroundStyle(onlyNew ? Color.white : Cumbre.terra)
+                            .padding(.horizontal, 14).padding(.vertical, 9)
+                            .background(onlyNew ? Cumbre.terraFill : Cumbre.terra.opacity(0.08), in: Capsule())
+                            .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1.5))
                         }.buttonStyle(.plain)
                         Spacer()
                     }
@@ -54,7 +82,11 @@ struct AdminUsersScreen: View {
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle(mode.title)
         .navigationBarTitleDisplayMode(.inline)
-        .task { if users == nil { users = (try? await AppDependencies.shared.container.getAdminUsers.invoke()) ?? [] } }
+        .task {
+            if users == nil { users = (try? await AppDependencies.shared.container.getAdminUsers.invoke()) ?? [] }
+            let contributors = (try? await AppDependencies.shared.container.getContributors.invoke(uid: nil)) ?? []
+            approved = Dictionary(contributors.map { ($0.uid, Int($0.approved)) }, uniquingKeysWith: { a, _ in a })
+        }
         .refreshable { users = (try? await AppDependencies.shared.container.getAdminUsers.invoke()) ?? users }
     }
 
@@ -85,6 +117,7 @@ struct AdminUsersScreen: View {
     private func row(_ u: AdminUserRow) -> some View {
         HStack(spacing: 12) {
             AvatarCircle(url: u.photoPath, size: 40)
+                .onAppear { ai.want(u.uid) }
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(u.username.map { "@" + $0 } ?? (u.displayName ?? String(u.uid.prefix(10))))
@@ -92,6 +125,13 @@ struct AdminUsersScreen: View {
                     if u.isAdmin { AdminChip(text: "ADMIN", color: Cumbre.terra) }
                 }
                 Text("Alta: \(dayLabel(u.createdAt))").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                HStack(spacing: 5) {
+                    let n = approved[u.uid] ?? 0
+                    AdminChip(text: n == 1 ? "1 APORTACIÓN" : "\(n) APORTACIONES", color: n > 0 ? Cumbre.ok : Cumbre.ink3)
+                    if u.isAdmin { AdminChip(text: "IA · ADMIN", color: Cumbre.terra) }
+                    else if ai.flags[u.uid] == true { AdminChip(text: "IA ACTIVADA", color: Cumbre.terra, filled: true) }
+                    else if ai.flags[u.uid] == false { AdminChip(text: "SIN IA", color: Cumbre.ink3) }
+                }
             }
             Spacer(minLength: 6)
             VStack(alignment: .trailing, spacing: 2) {

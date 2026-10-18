@@ -287,6 +287,24 @@ struct StatsView: View {
         }
     }
 
+    /// De poco a mucho: azul → verde → naranja. Cada mes tiene su color según cuánto subiste (no todo el mismo tono).
+    private func heat(_ t: Double) -> Color {
+        let stops: [(Double, Double, Double)] = [(0.16, 0.45, 0.75), (0.20, 0.58, 0.40), (0.85, 0.48, 0.10)]
+        let x = min(max(t, 0), 1) * 2
+        let i = min(Int(x), 1)
+        let f = x - Double(i)
+        let a = stops[i], b = stops[i + 1]
+        return Color(red: a.0 + (b.0 - a.0) * f, green: a.1 + (b.1 - a.1) * f, blue: a.2 + (b.2 - a.2) * f)
+    }
+
+    /// Verde si saliste esa semana; terracota las de la racha actual (las últimas seguidas); gris si no.
+    private func weekColor(_ i: Int, _ flags: [Bool]) -> Color {
+        guard flags[i] else { return Cumbre.paper2 }
+        var streak = 0
+        for f in flags.reversed() { if f { streak += 1 } else { break } }
+        return i >= flags.count - streak ? Cumbre.terra : Cumbre.ok
+    }
+
     /// Etiqueta bajo cada casilla de semana: «ahora» en la última, «-N» cada tres.
     private func weekTick(_ i: Int, total: Int) -> String {
         if i == total - 1 { return L("ahora") }
@@ -381,7 +399,7 @@ struct StatsView: View {
                             ForEach(Array(p.weeksOut.enumerated()), id: \.offset) { i, out in
                                 VStack(spacing: 3) {
                                     RoundedRectangle(cornerRadius: 5)
-                                        .fill(out.boolValue ? Cumbre.terra : Cumbre.paper2)
+                                        .fill(weekColor(i, p.weeksOut.map { $0.boolValue }))
                                         .frame(height: 26)
                                     Text(weekTick(i, total: p.weeksOut.count))
                                         .font(Cumbre.mono(8)).foregroundStyle(Cumbre.ink3).lineLimit(1).minimumScaleFactor(0.6)
@@ -389,7 +407,8 @@ struct StatsView: View {
                             }
                         }
                         HStack(spacing: 14) {
-                            legendDot(Cumbre.terra, L("saliste esa semana"))
+                            legendDot(Cumbre.ok, L("saliste esa semana"))
+                            legendDot(Cumbre.terra, L("racha actual"))
                             legendDot(Cumbre.paper2, L("no saliste"))
                         }
                     }
@@ -577,7 +596,7 @@ struct StatsView: View {
                             ZStack(alignment: .bottom) {
                                 Color.clear.frame(height: barLane)
                                 UnevenRoundedRectangle(topLeadingRadius: 4, topTrailingRadius: 4)
-                                    .fill(isBest ? Cumbre.terra : Cumbre.terra.opacity(0.30 + 0.45 * Double(count) / Double(maxCount)))
+                                    .fill(count == 0 ? Cumbre.paper2 : heat(Double(count) / Double(maxCount)))
                                     .frame(height: max(barLane * CGFloat(count) / CGFloat(maxCount), count > 0 ? 4 : 1))
                             }
                             Text(String(monthName(pair.first! as String).prefix(3)))
