@@ -323,6 +323,14 @@ class IosDependencyContainer(
     val deleteRestriction =
         com.meteomontana.android.domain.usecase.restriction.DeleteRestrictionUseCase(restrictionRepository)
 
+    // Admin: historial de cambios del catálogo (restaurar) y aportaciones por persona con su confianza.
+    private val adminHistoryRepository = com.meteomontana.android.data.repository.KtorAdminHistoryRepository(
+        com.meteomontana.android.data.api.KtorAdminHistoryApi(httpClient))
+    val getContentHistory = com.meteomontana.android.domain.usecase.admin.GetContentHistoryUseCase(adminHistoryRepository)
+    val restoreContentChange = com.meteomontana.android.domain.usecase.admin.RestoreContentChangeUseCase(adminHistoryRepository)
+    val getContributors = com.meteomontana.android.domain.usecase.admin.GetContributorsUseCase(adminHistoryRepository)
+    val setUserTrust = com.meteomontana.android.domain.usecase.admin.SetUserTrustUseCase(adminHistoryRepository)
+
     // Objetivo del año (pantalla de Estadísticas).
     private val goalRepository = com.meteomontana.android.data.repository.KtorGoalRepository(
         com.meteomontana.android.data.api.KtorGoalApi(httpClient))

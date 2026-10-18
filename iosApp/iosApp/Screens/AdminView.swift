@@ -159,6 +159,8 @@ struct AdminView: View {
                 rows: vm.suggestions,
                 onRespond: { id, resolved, reply in vm.respondToSuggestion(id, resolved: resolved, reply: reply) })
             case .push: AdminPushTab(vm: vm)
+            case .historial: AdminHistoryTab()
+            case .aportaciones: AdminContributorsTab()
             }
         }
         .background(Cumbre.bg.ignoresSafeArea())

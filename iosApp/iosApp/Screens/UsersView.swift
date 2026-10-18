@@ -117,6 +117,8 @@ final class PublicProfileViewModel: ObservableObject {
     /// Interruptor del asistente de IA de ESTE usuario. nil = no se enseña (no eres admin, o es tu propio perfil).
     @Published var adminAssistant: Bool?
     @Published var adminAssistantSaving = false
+    /// Solo admin: aportaciones de este usuario y si es de confianza.
+    @Published var adminContrib: ContributorItem?
 
     private let getMyProfile: GetMyProfileUseCase
     private let getUserAssistantAccess: GetUserAssistantAccessUseCase
@@ -170,6 +172,22 @@ final class PublicProfileViewModel: ObservableObject {
               let me = try? await getMyProfile.invoke(), me.isAdmin, me.uid != profileUid,
               let enabled = try? await getUserAssistantAccess.invoke(uid: profileUid) else { return }
         adminAssistant = enabled.boolValue
+        // Aportaciones y confianza de este usuario (solo admin). Si no ha aportado nada, ceros.
+        let list = (try? await AppDependencies.shared.container.getContributors.invoke(uid: profileUid)) ?? []
+        adminContrib = list.first ?? ContributorItem(uid: profileUid, name: nil, approved: 0, rejected: 0, pending: 0,
+                                                     lastAt: nil, trusted: false)
+    }
+
+    /// Da o quita la confianza (publicar sin revisión). Si falla, el interruptor vuelve a su sitio.
+    func setTrust(_ trusted: Bool) {
+        guard let c = adminContrib else { return }
+        adminContrib = c.doCopy(uid: c.uid, name: c.name, approved: c.approved, rejected: c.rejected, pending: c.pending,
+                                lastAt: c.lastAt, trusted: trusted)
+        Task {
+            if (try? await AppDependencies.shared.container.setUserTrust.invoke(uid: c.uid, trusted: trusted)) == nil {
+                adminContrib = c
+            }
+        }
     }
 
     /// Activa o desactiva el asistente de IA de este usuario. Si falla, el interruptor vuelve a su sitio.
@@ -374,6 +392,19 @@ struct PublicProfileView: View {
                 .disabled(vm.adminAssistantSaving)
                 Text(L("Nadie más ve este bloque. Al activarlo, le aparece la burbuja del asistente en cuanto abra la app."))
                     .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                if let c = vm.adminContrib {
+                    Divider().overlay(Cumbre.rule).padding(.vertical, 4)
+                    Text(L("APORTACIONES: %@ aprobadas · %@ rechazadas · %@ pendientes", c.approved, c.rejected, c.pending))
+                        .font(Cumbre.mono(10.5, .bold)).foregroundStyle(Cumbre.ink2)
+                    Toggle(isOn: Binding(get: { c.trusted }, set: { vm.setTrust($0) })) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(L("De confianza")).font(.system(size: 15, weight: .medium)).foregroundStyle(Cumbre.ink)
+                            Text(L("Lo que proponga se publica sin revisión (llega sola con 20 aprobadas)."))
+                                .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                        }
+                    }
+                    .tint(Cumbre.terra)
+                }
             }
             .padding(.horizontal, 12).padding(.vertical, 10)
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.terra.opacity(0.6), lineWidth: 1))
