@@ -1,6 +1,10 @@
 package com.meteomontana.android.ui.screens.detail
 
 import androidx.compose.animation.AnimatedVisibility
+import com.meteomontana.android.ui.theme.Terra
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -88,20 +92,22 @@ fun SectorHoursSection(
     if (list.isEmpty()) return
     var expanded by rememberSaveable { mutableStateOf(false) }
     val best = list.first()
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(10.dp)
 
     Column(
         Modifier.padding(horizontal = 12.dp, vertical = 6.dp).fillMaxWidth().clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
+            .background(Terra.copy(alpha = 0.08f))
             .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), shape)
     ) {
         Row(
-            Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(horizontal = 16.dp, vertical = 12.dp),
+            Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Icon(androidx.compose.material.icons.Icons.Filled.WbSunny, null, tint = Terra, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.sector_hours_title), fontFamily = com.meteomontana.android.ui.theme.Serif,
-                    fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
+                    fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Terra)
                 if (!dryRock) {
                     Text(stringResource(R.string.sector_hours_wet_short), color = MaterialTheme.colorScheme.error,
                         fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 10.5.sp)

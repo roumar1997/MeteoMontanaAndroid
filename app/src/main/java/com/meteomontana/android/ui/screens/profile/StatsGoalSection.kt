@@ -330,7 +330,7 @@ fun AchievementsSection(items: List<Achievement>, rarity: AchievementRarity? = n
 @Composable
 private fun TierFilterBar(items: List<Achievement>, selected: Int?, onSelect: (Int?) -> Unit, onlyGot: Boolean, onOnlyGot: (Boolean) -> Unit) {
     val tiers = items.map { it.tier }.distinct().sortedBy { it.ordinal }
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         TierFilterChip(stringResource(R.string.ach_filter_all), Terra, selected == null, null) { onSelect(null) }
         tiers.forEach { t ->
             val inTier = items.filter { it.tier == t }

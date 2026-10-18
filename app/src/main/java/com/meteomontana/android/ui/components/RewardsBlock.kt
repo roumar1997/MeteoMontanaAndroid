@@ -1,6 +1,9 @@
 package com.meteomontana.android.ui.components
 
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -435,10 +438,15 @@ private fun RewardsSheet(rewards: UserRewards, mineIds: Set<String>?, rarity: Ac
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp).navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.climber_prompt_title), style = EyebrowTextStyle, color = Terra)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                (UserRewards.CLIMBER_TYPES + "").forEach { t ->
-                    val on = (rewards.climberType ?: "") == t
-                    ClimberChip(t.ifEmpty { null }, on) { onSave(t, null, null) }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                (UserRewards.CLIMBER_TYPES + "").chunked(2).forEach { pair ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        pair.forEach { t ->
+                            val on = (rewards.climberType ?: "") == t
+                            Box(Modifier.weight(1f)) { ClimberChip(t.ifEmpty { null }, on) { onSave(t, null, null) } }
+                        }
+                        if (pair.size == 1) Box(Modifier.weight(1f)) {}
+                    }
                 }
             }
             Text(stringResource(R.string.rewards_title_pick), style = EyebrowTextStyle, color = Terra)
@@ -477,7 +485,7 @@ private fun RewardsSheet(rewards: UserRewards, mineIds: Set<String>?, rarity: Ac
                 mineIds == null -> Text(stringResource(R.string.featured_loading), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 allUnlocked.isNullOrEmpty() -> Text(stringResource(R.string.featured_none_synced), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 else -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         TierPick(stringResource(R.string.ach_filter_all), Terra, tierFilter == null, allUnlocked.size) { tierFilter = null }
                         allUnlocked.map { it.tier }.distinct().sortedBy { it.ordinal }.forEach { t ->
                             TierPick(stringResource(tierNameRes(t)).uppercase(), com.meteomontana.android.ui.screens.profile.tierColor(t),

@@ -54,12 +54,12 @@ fun HoyCard(forecast: Forecast, modifier: Modifier = Modifier) {
     val good = cur.score >= 55
     val verdictColor = if (good) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
     val rockColor = if (cur.dryRock) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(10.dp)
 
     Column {
     Column(
         modifier
-            .padding(horizontal = 12.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
             .fillMaxWidth()
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
@@ -67,33 +67,33 @@ fun HoyCard(forecast: Forecast, modifier: Modifier = Modifier) {
             .guideTarget("detail.hoy")
     ) {
         Row(
-            Modifier.fillMaxWidth().clickable { open = !open }.padding(horizontal = 16.dp, vertical = 12.dp),
+            Modifier.fillMaxWidth().clickable { open = !open }.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 if (good) stringResource(R.string.detail_yes) else stringResource(R.string.detail_no),
-                color = verdictColor, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 38.sp
+                color = verdictColor, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 26.sp
             )
             Spacer(Modifier.width(10.dp))
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(cur.score.toString(), color = MaterialTheme.colorScheme.primary, fontFamily = Serif,
-                    fontWeight = FontWeight.Bold, fontSize = 28.sp)
-                Text("/100", color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = Mono, fontSize = 11.sp,
-                    modifier = Modifier.padding(start = 2.dp, bottom = 4.dp))
+                Text(cur.score.toString(), color = com.meteomontana.android.ui.theme.scoreColor(cur.score), fontFamily = Serif,
+                    fontWeight = FontWeight.Bold, fontSize = 24.sp)
+                Text("/100", color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = Mono, fontSize = 9.sp,
+                    modifier = Modifier.padding(start = 1.dp, bottom = 3.dp))
             }
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     "● " + stringResource(if (cur.dryRock) R.string.detail_rock_dry_caps else R.string.detail_rock_wet_caps),
-                    color = rockColor, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 0.8.sp
+                    color = rockColor, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 10.5.sp
                 )
                 forecast.bestWindow?.let {
                     Text(stringResource(R.string.detail_best_window, it.start, it.end),
-                        color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.5.sp, maxLines = 1)
                 }
             }
             Icon(if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
+                tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
         }
         // Las próximas 16 horas van SIEMPRE a la vista (Álvaro, 2026-10-18).
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
