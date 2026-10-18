@@ -11,6 +11,12 @@ class SyncMyAchievementsUseCase(private val repository: AchievementsRepository) 
     }
 }
 
+/** Mis logros ya sincronizados (de entre ellos se elige el destacado del perfil). */
+class GetMyAchievementIdsUseCase(private val repository: AchievementsRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(): Set<String> = repository.mineIds()
+}
+
 /** Cuánta gente tiene cada logro. */
 class GetAchievementRarityUseCase(private val repository: AchievementsRepository) {
     @Throws(Exception::class)

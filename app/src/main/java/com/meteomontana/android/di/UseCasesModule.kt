@@ -389,6 +389,10 @@ object UseCasesModule {
         com.meteomontana.android.domain.usecase.journal.SyncMyAchievementsUseCase(repo)
 
     @Provides @Singleton
+    fun provideGetMyAchievementIdsUseCase(repo: com.meteomontana.android.domain.repository.AchievementsRepository) =
+        com.meteomontana.android.domain.usecase.journal.GetMyAchievementIdsUseCase(repo)
+
+    @Provides @Singleton
     fun provideGetAchievementRarityUseCase(repo: com.meteomontana.android.domain.repository.AchievementsRepository) =
         com.meteomontana.android.domain.usecase.journal.GetAchievementRarityUseCase(repo)
 

@@ -12,6 +12,8 @@ data class UserRewards(
     val titleLevel: Int,
     val climberType: String?,
     val badges: List<String>,
+    /** Id del logro que enseña bajo su nombre (uno de los desbloqueados), o null. */
+    val featuredAchievement: String? = null,
 ) {
     /** Niveles cuyo título ya puede elegir (de menor a mayor). */
     val unlockedLevels: List<Int> get() = LEVELS.filter { it <= level }

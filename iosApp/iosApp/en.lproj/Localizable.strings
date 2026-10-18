@@ -1615,3 +1615,9 @@
 "Sabio de la Roca" = "Rock Sage";
 "Viento de Granito" = "Granite Wind";
 "Señor de la Cumbre" = "Lord of the Summit";
+
+/* Logro destacado */
+"TU LOGRO DESTACADO" = "YOUR FEATURED ACHIEVEMENT";
+"Ninguno" = "None";
+"Cargando tus logros…" = "Loading your achievements…";
+"Aún no tienes logros sincronizados. Abre Mis estadísticas una vez y vuelve aquí." = "You have no synced achievements yet. Open My statistics once and come back.";

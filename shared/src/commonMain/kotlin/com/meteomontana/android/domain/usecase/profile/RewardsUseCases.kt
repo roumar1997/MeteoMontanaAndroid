@@ -14,9 +14,9 @@ class GetMyRewardsUseCase(private val repository: RewardsRepository) {
     suspend operator fun invoke(): UserRewards = repository.mine()
 }
 
-/** climberType "" = quitarlo, null = no tocarlo; titleLevel -1 = quitar, null = no tocarlo. */
+/** climberType "" = quitarlo, null = no tocarlo; titleLevel -1 = quitar, null = no tocarlo; featuredAchievement "" = quitar. */
 class UpdateMyRewardsUseCase(private val repository: RewardsRepository) {
     @Throws(Exception::class)
-    suspend operator fun invoke(climberType: String?, titleLevel: Int?): UserRewards =
-        repository.update(climberType, titleLevel)
+    suspend operator fun invoke(climberType: String?, titleLevel: Int?, featuredAchievement: String? = null): UserRewards =
+        repository.update(climberType, titleLevel, featuredAchievement)
 }

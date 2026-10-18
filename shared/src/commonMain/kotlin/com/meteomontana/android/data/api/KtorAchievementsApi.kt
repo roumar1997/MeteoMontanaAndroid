@@ -19,6 +19,9 @@ class KtorAchievementsApi(private val client: HttpClient) {
         client.put("me/achievements") { setBody(body) }
     }
 
+    /** GET /api/me/achievements — los míos sincronizados: id → día. */
+    suspend fun mine(): Map<String, String?> = client.get("me/achievements").body()
+
     /** GET /api/achievements/rarity — público: cuánta gente tiene cada logro. */
     suspend fun rarity(): AchievementsRarityDto = client.get("achievements/rarity").body()
 }

@@ -58,6 +58,12 @@ object AchievementsCalculator {
         else -> AchievementTier.LEGENDARY
     }
 
+    /** Todos los logros del catálogo, sin conseguir. */
+    val catalog: List<Achievement> by lazy { compute(emptyList(), emptyMap(), "") }
+
+    /** El logro con ese id (para enseñar el destacado de otra persona), o null si el id ya no existe. */
+    fun byId(id: String): Achievement? = catalog.firstOrNull { it.id == id }
+
     private fun rank(grade: String?) = JournalStatsCalculator.gradeRank(grade ?: "")
     private fun lineKey(e: JournalSession) = e.lineId ?: "${e.schoolId}|${e.blockName.trim().lowercase()}"
 

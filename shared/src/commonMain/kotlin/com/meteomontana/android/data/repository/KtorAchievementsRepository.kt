@@ -11,6 +11,8 @@ class KtorAchievementsRepository(private val api: KtorAchievementsApi) : Achieve
         api.sync(AchievementsSyncDto(unlockedOn.keys.toList(), unlockedOn))
     }
 
+    override suspend fun mineIds(): Set<String> = api.mine().keys
+
     override suspend fun rarity(): AchievementRarity {
         val r = api.rarity()
         val total = r.totalUsers.toInt()

@@ -16,11 +16,12 @@ data class RewardsDto(
     val titleLevel: Int = 0,
     val climberType: String? = null,
     val badges: List<String> = emptyList(),
+    val featuredAchievement: String? = null,
 )
 
 /** climberType "" = quitarlo, null = no tocarlo; titleLevel -1 = quitar, null = no tocarlo. */
 @Serializable
-data class UpdateRewardsDto(val climberType: String? = null, val titleLevel: Int? = null)
+data class UpdateRewardsDto(val climberType: String? = null, val titleLevel: Int? = null, val featuredAchievement: String? = null)
 
 class KtorRewardsApi(private val client: HttpClient) {
     suspend fun of(uid: String): RewardsDto = client.get("users/$uid/rewards").body()

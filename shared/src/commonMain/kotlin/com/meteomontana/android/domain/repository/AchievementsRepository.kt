@@ -8,4 +8,7 @@ interface AchievementsRepository {
     suspend fun sync(unlockedOn: Map<String, String>)
 
     suspend fun rarity(): AchievementRarity
+
+    /** Ids de mis logros ya sincronizados con el servidor. */
+    suspend fun mineIds(): Set<String>
 }

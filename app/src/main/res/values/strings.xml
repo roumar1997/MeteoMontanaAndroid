@@ -1969,4 +1969,8 @@
     <string name="ach_day_route">%1$d vías de %2$s o más en un día</string>
     <string name="ach_total_boulder">%1$d bloques de %2$s o más</string>
     <string name="ach_total_route">%1$d vías de %2$s o más</string>
+    <string name="featured_pick">TU LOGRO DESTACADO</string>
+    <string name="featured_none">Ninguno</string>
+    <string name="featured_loading">Cargando tus logros…</string>
+    <string name="featured_none_synced">Aún no tienes logros sincronizados. Abre Mis estadísticas una vez y vuelve aquí.</string>
 </resources>

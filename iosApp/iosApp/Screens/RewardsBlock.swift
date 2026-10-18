@@ -7,16 +7,26 @@ import Shared
 @MainActor
 final class RewardsModel: ObservableObject {
     @Published var rewards: UserRewards?
+    /// Cuánta gente tiene cada logro (nil = sin red o aún no se sabe: se enseña solo la dificultad).
+    @Published var rarity: AchievementRarity?
+    /// Mis logros ya sincronizados, para elegir el destacado (nil = aún no cargados).
+    @Published var mineIds: Set<String>?
     private let c = AppDependencies.shared.container
 
     func load(uid: String?) async {
         if let uid { rewards = try? await c.getUserRewards.invoke(uid: uid) }
         else { rewards = try? await c.getMyRewards.invoke() }
+        rarity = try? await c.getAchievementRarity.invoke()
     }
 
-    func update(climberType: String?, titleLevel: Int?) async {
+    func loadMineIds() async {
+        if let ids = try? await c.getMyAchievementIds.invoke() { mineIds = Set(ids) }
+    }
+
+    func update(climberType: String?, titleLevel: Int?, featured: String? = nil) async {
         if let r = try? await c.updateMyRewards.invoke(climberType: climberType,
-                                                       titleLevel: titleLevel.map { KotlinInt(int: Int32($0)) }) {
+                                                       titleLevel: titleLevel.map { KotlinInt(int: Int32($0)) },
+                                                       featuredAchievement: featured) {
             rewards = r
         }
     }
@@ -77,6 +87,30 @@ private func climberTypeLabel(_ t: String?) -> String {
 
 private let promptKey = "climber_type_prompt_done"
 
+/// «★ 3 bloques de 7c o más en un día» con «ÉPICO · 3% de escaladores» debajo, en el color de su dificultad.
+private struct FeaturedAchievement: View {
+    let achievement: Achievement
+    let rarity: AchievementRarity?
+    /// Con menos escaladores sincronizados que esto el porcentaje no dice nada: se enseña solo la dificultad.
+    private let minUsersForPercent = 5
+
+    var body: some View {
+        let color = tierColor(achievement.tier)
+        let enough = (rarity?.totalUsers ?? 0) >= Int32(minUsersForPercent)
+        let pct = enough ? Int(rarity?.percentById[achievement.id]?.intValue ?? 0) : 0
+        VStack(spacing: 2) {
+            Text("★ " + achievementText(achievement)).font(.system(size: 13, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                .multilineTextAlignment(.center)
+            Text(tierName(achievement.tier).uppercased()
+                 + (enough ? " · " + (pct < 1 ? L("menos del 1% de escaladores") : L("%@% de escaladores", pct)) : ""))
+                .font(Cumbre.mono(9.5, .bold)).foregroundStyle(color)
+        }
+        .padding(.horizontal, 14).padding(.vertical, 7)
+        .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(color, lineWidth: 1))
+    }
+}
+
 struct RewardsBlock: View {
     let uid: String?
     @StateObject private var model = RewardsModel()
@@ -92,6 +126,7 @@ struct RewardsBlock: View {
             }
         }
         .task { await model.load(uid: uid) }
+        .onChange(of: sheet) { open in if open { Task { await model.loadMineIds() } } }
         .sheet(isPresented: $sheet) {
             if let r = model.rewards { RewardsSheet(rewards: r, model: model) }
         }
@@ -100,6 +135,10 @@ struct RewardsBlock: View {
     private func summary(_ r: UserRewards) -> some View {
         VStack(spacing: 6) {
             RewardTitle(level: Int(r.titleLevel))
+            // El logro que la persona ha elegido enseñar (con su dificultad y el % de gente que lo tiene).
+            if let id = r.featuredAchievement, let a = AchievementsCalculator.shared.byId(id: id) {
+                FeaturedAchievement(achievement: a, rarity: model.rarity)
+            }
             HStack(spacing: 6) {
                 if let t = r.climberType { badge(climberTypeLabel(t), Cumbre.ink2) }
                 if r.badges.contains("COLLABORATOR") { badge(L("Colaborador"), Cumbre.terra) }
@@ -170,6 +209,27 @@ private struct RewardsSheet: View {
                     Button { Task { await model.update(climberType: t, titleLevel: nil) } } label: {
                         chip(climberTypeLabel(t.isEmpty ? nil : t), on: (r.climberType ?? "") == t)
                     }.buttonStyle(.plain)
+                }
+                Text(L("TU LOGRO DESTACADO")).eyebrow(Cumbre.terra)
+                if let ids = model.mineIds {
+                    let unlocked = AchievementsCalculator.shared.catalog.filter { ids.contains($0.id) }
+                        .sorted { tierRank($0.tier) > tierRank($1.tier) }
+                    if unlocked.isEmpty {
+                        Text(L("Aún no tienes logros sincronizados. Abre Mis estadísticas una vez y vuelve aquí."))
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    } else {
+                        FlowChips(items: [""] + unlocked.map { $0.id }) { id in
+                            Button { Task { await model.update(climberType: nil, titleLevel: nil, featured: id) } } label: {
+                                if id.isEmpty {
+                                    chip(L("Ninguno"), on: r.featuredAchievement == nil)
+                                } else if let a = AchievementsCalculator.shared.byId(id: id) {
+                                    chip("★ " + achievementText(a), on: r.featuredAchievement == id)
+                                }
+                            }.buttonStyle(.plain)
+                        }
+                    }
+                } else {
+                    Text(L("Cargando tus logros…")).font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                 }
                 Text(L("TU TÍTULO")).eyebrow(Cumbre.terra)
                 Text(L("Desbloqueas títulos con tus aportaciones aprobadas (llevas %@).", r.approved))

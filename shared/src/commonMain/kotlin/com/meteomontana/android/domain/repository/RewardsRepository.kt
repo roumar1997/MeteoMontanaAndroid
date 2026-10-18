@@ -7,5 +7,6 @@ interface RewardsRepository {
     suspend fun of(uid: String): UserRewards
     suspend fun mine(): UserRewards
     /** climberType "" = quitarlo, null = no tocarlo; titleLevel -1 = quitar, null = no tocarlo. */
-    suspend fun update(climberType: String?, titleLevel: Int?): UserRewards
+    /** featuredAchievement "" = quitarlo, null = no tocarlo. */
+    suspend fun update(climberType: String?, titleLevel: Int?, featuredAchievement: String? = null): UserRewards
 }

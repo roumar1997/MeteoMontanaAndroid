@@ -1910,4 +1910,8 @@
     <string name="ach_day_route">%1$d routes of %2$s or harder in a day</string>
     <string name="ach_total_boulder">%1$d boulders of %2$s or harder</string>
     <string name="ach_total_route">%1$d routes of %2$s or harder</string>
+    <string name="featured_pick">YOUR FEATURED ACHIEVEMENT</string>
+    <string name="featured_none">None</string>
+    <string name="featured_loading">Loading your achievements…</string>
+    <string name="featured_none_synced">You have no synced achievements yet. Open My statistics once and come back.</string>
 </resources>
