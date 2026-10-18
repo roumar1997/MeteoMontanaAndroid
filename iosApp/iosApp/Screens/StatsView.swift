@@ -279,27 +279,42 @@ struct StatsView: View {
 
                     if !p.maxGradePerQuarter.isEmpty {
                         Text("GRADO MÁXIMO POR TRIMESTRE").eyebrow().padding(.top, 6)
-                        let quarters = Array(p.maxGradePerQuarter.suffix(6))
-                        HStack(spacing: 6) {
-                            ForEach(Array(quarters.enumerated()), id: \.offset) { _, pair in
-                                let g = pair.second! as String
-                                let c = gradeAccent(g)
-                                let parts = (pair.first! as String).components(separatedBy: "-")
-                                VStack(spacing: 6) {
-                                    Text(g).font(Cumbre.serif(17, .bold)).foregroundStyle(c)
-                                        .lineLimit(1).minimumScaleFactor(0.6)
-                                    Text((parts.last ?? "") + (parts.first.map { " '" + $0.suffix(2) } ?? ""))
-                                        .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
-                                }
-                                .frame(maxWidth: .infinity).padding(.vertical, 12)
-                                .background(c.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(c.opacity(0.5), lineWidth: 1))
-                            }
-                        }
+                        quartersRow(p)
                     }
 
                     weeksSection(p)
                     schoolsSection(p)
+        }
+    }
+
+    /// Etiqueta bajo cada casilla de semana: «ahora» en la última, «-N» cada tres.
+    private func weekTick(_ i: Int, total: Int) -> String {
+        if i == total - 1 { return L("ahora") }
+        if i % 3 == 0 { return "-" + String(total - 1 - i) }
+        return " "
+    }
+
+    private func quarterLabel(_ key: String) -> String {
+        let parts: [String] = key.components(separatedBy: "-")
+        let q: String = parts.last ?? ""
+        let y: String = String((parts.first ?? "").suffix(2))
+        return q + " '" + y
+    }
+
+    private func quartersRow(_ p: JournalStatsCalculator.Progression) -> some View {
+        let quarters = Array(p.maxGradePerQuarter.suffix(6))
+        return HStack(spacing: 6) {
+            ForEach(Array(quarters.enumerated()), id: \.offset) { _, pair in
+                let g: String = pair.second! as String
+                let c: Color = gradeAccent(g)
+                VStack(spacing: 6) {
+                    Text(g).font(Cumbre.serif(17, .bold)).foregroundStyle(c).lineLimit(1).minimumScaleFactor(0.6)
+                    Text(quarterLabel(pair.first! as String)).font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
+                }
+                .frame(maxWidth: .infinity).padding(.vertical, 12)
+                .background(c.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(c.opacity(0.5), lineWidth: 1))
+            }
         }
     }
 
@@ -368,7 +383,7 @@ struct StatsView: View {
                                     RoundedRectangle(cornerRadius: 5)
                                         .fill(out.boolValue ? Cumbre.terra : Cumbre.paper2)
                                         .frame(height: 26)
-                                    Text(i == p.weeksOut.count - 1 ? L("ahora") : (i % 3 == 0 ? "-\(p.weeksOut.count - 1 - i)" : " "))
+                                    Text(weekTick(i, total: p.weeksOut.count))
                                         .font(Cumbre.mono(8)).foregroundStyle(Cumbre.ink3).lineLimit(1).minimumScaleFactor(0.6)
                                 }.frame(maxWidth: .infinity)
                             }
