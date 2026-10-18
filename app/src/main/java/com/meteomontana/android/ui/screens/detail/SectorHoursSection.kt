@@ -72,30 +72,40 @@ class SectorHoursViewModel @Inject constructor(private val getSectorHours: GetSe
  * Desplegada: cada sector con su orientación, su franja y una tira de 8 a 20 h coloreada por nota (punto = sol).
  */
 @Composable
-fun SectorHoursSection(schoolId: String, viewModel: SectorHoursViewModel = hiltViewModel()) {
+fun SectorHoursSection(schoolId: String, alwaysOpen: Boolean = false, viewModel: SectorHoursViewModel = hiltViewModel()) {
     LaunchedEffect(schoolId) { viewModel.load(schoolId) }
     val sectors by viewModel.sectors.collectAsStateWithLifecycle()
     val list = sectors?.filter { it.bestFrom != null } ?: return
     if (list.isEmpty()) return
-    var expanded by rememberSaveable { mutableStateOf(false) }
+    var expandedByUser by rememberSaveable { mutableStateOf(false) }
+    // Dentro de la tarjeta HOY: sin desplegable, siempre abierta y con el título llamativo.
+    val expanded = alwaysOpen || expandedByUser
     val best = list.first()
 
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         Row(
-            Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(vertical = 12.dp),
+            Modifier.fillMaxWidth().clickable(enabled = !alwaysOpen) { expandedByUser = !expandedByUser }
+                .padding(top = if (alwaysOpen) 14.dp else 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.sector_hours_title), style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (alwaysOpen) {
+                    Text(stringResource(R.string.sector_hours_title), fontFamily = com.meteomontana.android.ui.theme.Serif,
+                        fontWeight = FontWeight.Bold, fontSize = 17.sp, color = MaterialTheme.colorScheme.primary)
+                } else {
+                    Text(stringResource(R.string.sector_hours_title), style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 if (!expanded) {
                     Text(stringResource(R.string.sector_hours_best, best.name, best.bestFrom!!, best.bestTo!! + 1),
                         color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, maxLines = 1,
                         overflow = TextOverflow.Ellipsis)
                 }
             }
-            Icon(if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (!alwaysOpen) {
+                Icon(if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
         AnimatedVisibility(expanded) {
             Column(Modifier.padding(bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

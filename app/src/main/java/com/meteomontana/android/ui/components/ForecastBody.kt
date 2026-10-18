@@ -177,23 +177,30 @@ fun RockStatusBand(cur: Current) {
 }
 
 @Composable
-fun FactorsAccordion(current: Current, expanded: Boolean, onToggle: () -> Unit) {
+fun FactorsAccordion(current: Current, expanded: Boolean, onToggle: () -> Unit, alwaysOpen: Boolean = false) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+        if (alwaysOpen) {
+            // Dentro de la tarjeta HOY: sin desplegable, siempre abierto y con el título llamativo (Álvaro, 2026-10-18).
             Text(stringResource(R.string.detail_why_index),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Icon(
-                imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold, fontSize = 17.sp,
+                color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 14.dp, bottom = 6.dp))
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(stringResource(R.string.detail_why_index),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(
+                    imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
-        AnimatedVisibility(expanded) { FactorList(current.factors) }
+        AnimatedVisibility(expanded || alwaysOpen) { FactorList(current.factors) }
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
 }

@@ -1629,4 +1629,7 @@
 "ADMIN" = "ADMIN";
 "Sin vías dibujadas" = "No routes drawn";
 "↕ %@ m desde la anterior" = "↕ %@ m from the previous one";
-
+"Pirámide, objetivo del año y logros" = "Pyramid, yearly goal and achievements";
+"%@ en 12 meses · media %@ al mes · mejor: %@ (%@)" = "%@ in 12 months · avg %@ a month · best: %@ (%@)";
+"%@ semanas seguidas saliendo" = "%@ weeks in a row climbing";
+"%@ meses seguidos saliendo" = "%@ months in a row climbing";

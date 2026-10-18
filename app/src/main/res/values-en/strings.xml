@@ -1915,4 +1915,8 @@
     <string name="featured_loading">Loading your achievements…</string>
     <string name="featured_none_synced">You have no synced achievements yet. Open My statistics once and come back.</string>
     <string name="schools_clear_short">CLEAR</string>
+    <string name="stats_entry_sub">Pyramid, yearly goal and achievements</string>
+    <string name="stats_months_summary">%1$d in 12 months · avg %2$s a month · best: %3$s (%4$d)</string>
+    <string name="ach_week_streak">%1$s weeks in a row climbing</string>
+    <string name="ach_month_streak">%1$s months in a row climbing</string>
 </resources>

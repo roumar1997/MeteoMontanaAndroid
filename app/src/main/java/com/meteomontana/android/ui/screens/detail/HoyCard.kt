@@ -102,9 +102,10 @@ fun HoyCard(forecast: Forecast, modifier: Modifier = Modifier) {
                     else stringResource(R.string.forecast_body_v3_mejor_esperar_a_que_seque)
                 Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp))
-                FactorsAccordion(current = cur, expanded = factorsOpen, onToggle = { factorsOpen = !factorsOpen })
+                // Al abrir la tarjeta sale TODO a la vez (porqué del índice + mejor hora por sector).
+                FactorsAccordion(current = cur, expanded = factorsOpen, onToggle = { factorsOpen = !factorsOpen }, alwaysOpen = true)
                 // Mejor hora por sector: se pide ahora, al abrir la tarjeta (no al entrar en la escuela).
-                SectorHoursSection(forecast.schoolId)
+                SectorHoursSection(forecast.schoolId, alwaysOpen = true)
                 Box(Modifier.padding(vertical = 8.dp)) { HourlyScoreGrid(hours = forecast.hours) }
             }
         }

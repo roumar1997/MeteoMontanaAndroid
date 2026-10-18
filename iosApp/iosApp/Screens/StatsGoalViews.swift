@@ -371,6 +371,8 @@ func achievementText(_ a: Achievement) -> String {
     case .regions: return L("%@ comunidades distintas", a.param)
     case .abroad: return L("Una escuela fuera de España")
     case .weekends: return L("%@ fines de semana seguidos", a.param)
+    case .weekStreak: return L("%@ semanas seguidas saliendo", a.param)
+    case .monthStreak: return L("%@ meses seguidos saliendo", a.param)
     case .daysInYear: return L("%@ días de roca en un año", a.param)
     case .everyMonth: return L("Un año entero saliendo cada mes")
     case .projects: return a.param == "1" ? L("Cerrar un proyecto") : L("Cerrar %@ proyectos", a.param)

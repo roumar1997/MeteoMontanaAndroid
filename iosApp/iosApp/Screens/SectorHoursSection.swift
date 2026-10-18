@@ -23,8 +23,11 @@ final class SectorHoursModel: ObservableObject {
 /// Espejo de `SectorHoursSection` (Android).
 struct SectorHoursSection: View {
     let schoolId: String
+    /// Dentro de la tarjeta HOY: sin desplegable, siempre abierta y con el título llamativo.
+    var alwaysOpen = false
     @StateObject private var model = SectorHoursModel()
-    @State private var expanded = false
+    @State private var expandedByUser = false
+    private var expanded: Bool { alwaysOpen || expandedByUser }
 
     var body: some View {
         let list = (model.sectors ?? []).filter { $0.bestFrom != nil }
@@ -34,19 +37,23 @@ struct SectorHoursSection: View {
             Color.clear.frame(height: 0)   // ancla real para el `.task`
             if let best = list.first {
                 VStack(spacing: 0) {
-                    Button { withAnimation { expanded.toggle() } } label: {
+                    Button { if !alwaysOpen { withAnimation { expandedByUser.toggle() } } } label: {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(L("MEJOR HORA POR SECTOR")).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink2)
+                                if alwaysOpen {
+                                    Text(L("MEJOR HORA POR SECTOR")).font(Cumbre.serif(17, .bold)).tracking(0.5).foregroundStyle(Cumbre.terra)
+                                } else {
+                                    Text(L("MEJOR HORA POR SECTOR")).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink2)
+                                }
                                 if !expanded {
                                     Text(L("Hoy: %@ · de %@ a %@ h", best.name, hour(best.bestFrom), hour(best.bestTo, plus: 1)))
                                         .font(.system(size: 12.5)).foregroundStyle(Cumbre.ink).lineLimit(1)
                                 }
                             }
                             Spacer()
-                            Image(systemName: expanded ? "chevron.up" : "chevron.down").foregroundStyle(Cumbre.ink3)
+                            if !alwaysOpen { Image(systemName: expanded ? "chevron.up" : "chevron.down").foregroundStyle(Cumbre.ink3) }
                         }
-                        .padding(.horizontal, 16).padding(.vertical, 6)
+                        .padding(.horizontal, 16).padding(.top, alwaysOpen ? 14 : 6).padding(.bottom, 6)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)

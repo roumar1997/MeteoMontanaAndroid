@@ -437,26 +437,57 @@ struct StatsView: View {
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(Cumbre.rule, lineWidth: 1))
     }
 
+    /// Ascensos por mes (últimos 12): número sobre cada barra, el mejor mes en terracota sólido, el último (este mes)
+    /// con la inicial en negrita, una línea discontinua con la MEDIA y una frase con el total, la media y el mejor mes.
     private func monthBars(_ counts: [KotlinPair<NSString, KotlinInt>]) -> some View {
-        let maxCount = max(counts.map { $0.second!.intValue }.max() ?? 1, 1)
-        return HStack(alignment: .bottom, spacing: 4) {
-            ForEach(Array(counts.enumerated()), id: \.offset) { _, pair in
-                let count = pair.second!.intValue
-                VStack(spacing: 2) {
-                    if count > 0 {
-                        Text("\(count)").font(.system(size: 8)).foregroundStyle(Cumbre.ink3)
+        let values = counts.map { $0.second!.intValue }
+        let maxCount = max(values.max() ?? 1, 1)
+        let total = values.reduce(0, +)
+        let avg = values.isEmpty ? 0 : Double(total) / Double(values.count)
+        let bestIndex = values.enumerated().max { $0.element < $1.element }.flatMap { $0.element > 0 ? $0.offset : nil }
+        let barLane: CGFloat = 96, numberLane: CGFloat = 16
+        func monthName(_ key: String) -> String {
+            let n = Int(key.components(separatedBy: "-").last ?? "1") ?? 1
+            return monthShort[max(0, min(11, n - 1))]
+        }
+        return VStack(alignment: .leading, spacing: 6) {
+            Text(L("%@ en 12 meses · media %@ al mes · mejor: %@ (%@)", total, String(format: "%.1f", avg),
+                   bestIndex.map { monthName(counts[$0].first! as String) } ?? "—", bestIndex.map { values[$0] } ?? 0))
+                .font(.system(size: 12)).foregroundStyle(Cumbre.ink)
+            ZStack(alignment: .topLeading) {
+                HStack(alignment: .bottom, spacing: 4) {
+                    ForEach(Array(counts.enumerated()), id: \.offset) { i, pair in
+                        let count = values[i]
+                        let isBest = bestIndex == i
+                        let isNow = i == counts.count - 1
+                        VStack(spacing: 0) {
+                            Text(count > 0 ? "\(count)" : " ")
+                                .font(.system(size: 10, weight: isBest ? .bold : .regular))
+                                .foregroundStyle(isBest ? Cumbre.terra : Cumbre.ink3).frame(height: numberLane)
+                            ZStack(alignment: .bottom) {
+                                Color.clear.frame(height: barLane)
+                                UnevenRoundedRectangle(topLeadingRadius: 4, topTrailingRadius: 4)
+                                    .fill(isBest ? Cumbre.terra : Cumbre.terra.opacity(0.30 + 0.45 * Double(count) / Double(maxCount)))
+                                    .frame(height: max(barLane * CGFloat(count) / CGFloat(maxCount), count > 0 ? 4 : 1))
+                            }
+                            Text(String(monthName(pair.first! as String).prefix(3)))
+                                .font(.system(size: 9, weight: isNow ? .bold : .regular))
+                                .foregroundStyle(isNow ? Cumbre.terra : Cumbre.ink3).lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Cumbre.terra.opacity(0.4 + 0.6 * Double(count) / Double(maxCount)))
-                        .frame(height: max(CGFloat(70 * count / maxCount), count > 0 ? 4 : 1))
-                    let monthNum = Int((pair.first! as String).components(separatedBy: "-").last ?? "1") ?? 1
-                    Text(String(monthShort[monthNum - 1].prefix(1)))
-                        .font(.system(size: 8)).foregroundStyle(Cumbre.ink3)
                 }
-                .frame(maxWidth: .infinity)
+                // Línea discontinua de la media, a su altura dentro del carril de las barras.
+                GeometryReader { geo in
+                    Path { p in
+                        let y = numberLane + barLane * (1 - CGFloat(min(max(avg / Double(maxCount), 0), 1)))
+                        p.move(to: CGPoint(x: 0, y: y)); p.addLine(to: CGPoint(x: geo.size.width, y: y))
+                    }
+                    .stroke(Cumbre.ink3.opacity(0.6), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+                }
+                .allowsHitTesting(false)
             }
         }
-        .frame(height: 96)
     }
 }
 

@@ -90,6 +90,31 @@ class AchievementsCalculatorTest {
     }
 
     @Test
+    fun logrosDeConstanciaIntermedios() {
+        // Dos sábados seguidos: 2 fines de semana, pero no 4.
+        val sat = listOf("2026-10-03", "2026-10-10").map { e(it) }
+        val a = AchievementsCalculator.compute(sat, emptyMap(), "2026-10-18")
+        assertTrue(unlocked(a, "weekends_2").unlocked)
+        assertFalse(unlocked(a, "weekends_4").unlocked)
+
+        // Cuatro lunes en semanas seguidas: 4 semanas seguidas, sin fines de semana.
+        val mondays = listOf("2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26").map { e(it) }
+        val b = AchievementsCalculator.compute(mondays, emptyMap(), "2026-10-27")
+        assertEquals("2026-10-26", unlocked(b, "weeks_4").unlockedOn)   // el día en que se completa la racha
+        assertFalse(unlocked(b, "weekends_2").unlocked)
+
+        // Tres meses seguidos (agosto, septiembre, octubre).
+        val months = listOf("2026-08-10", "2026-09-10", "2026-10-10").map { e(it) }
+        val c = AchievementsCalculator.compute(months, emptyMap(), "2026-10-18")
+        assertEquals("2026-10-10", unlocked(c, "months_3").unlockedOn)
+        assertFalse(unlocked(c, "months_6").unlocked)
+
+        // Diez días distintos en un año.
+        val ten = (1..10).map { e("2026-03-" + it.toString().padStart(2, '0')) }
+        assertTrue(unlocked(AchievementsCalculator.compute(ten, emptyMap(), "2026-10-18"), "days_10").unlocked)
+    }
+
+    @Test
     fun progresoDelObjetivoDelAno() {
         val all = listOf(e("2025-12-30", "7b"), e("2026-01-05", "7a"), e("2026-01-05", "6c"), e("2026-02-01", "7a+"))
         val p = GoalCalculator.progress(YearGoal(2026, "BOULDER", "7a+", 100, 20), all)

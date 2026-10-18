@@ -4,7 +4,7 @@ import com.meteomontana.android.domain.model.JournalSession
 
 /** Familia de un logro: las apps escriben el texto con la familia + [Achievement.param] (ES/EN). */
 enum class AchievementKind { GRADE, DAY_GRADE, TOTAL_GRADE, VOLUME, FLASHES, ONSIGHTS, FLASH_MAX, ONSIGHT_MAX,
-    SCHOOLS, REGIONS, ABROAD, WEEKENDS, DAYS_IN_YEAR, EVERY_MONTH, PROJECTS }
+    SCHOOLS, REGIONS, ABROAD, WEEKENDS, WEEK_STREAK, MONTH_STREAK, DAYS_IN_YEAR, EVERY_MONTH, PROJECTS }
 
 /** Dificultad de diseño de un logro (cuando haya datos de verdad, manda el % de gente que lo tiene). */
 enum class AchievementTier { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY;
@@ -125,13 +125,31 @@ object AchievementsCalculator {
         add(Achievement("abroad_1", AchievementKind.ABROAD, "1", null, abroad != null, abroad?.date,
             AchievementTier.UNCOMMON, AchievementGroup.EXPLORE))
 
-        val weekendStreak = weekendStreakDate(done.map { it.date }, 4)
-        add(Achievement("weekends_4", AchievementKind.WEEKENDS, "4", null, weekendStreak != null, weekendStreak,
-            AchievementTier.UNCOMMON, AchievementGroup.CONSISTENCY))
-        val days20 = done.map { it.date }.distinct().groupBy { it.take(4) }.entries
-            .firstOrNull { it.value.size >= 20 }?.value?.sorted()?.get(19)
-        add(Achievement("days_20", AchievementKind.DAYS_IN_YEAR, "20", null, days20 != null, days20,
-            AchievementTier.UNCOMMON, AchievementGroup.CONSISTENCY))
+        val dates = done.map { it.date }
+        // Fines de semana SEGUIDOS con salida (2, 4, 8, 12).
+        listOf(2, 4, 8, 12).zip(listOf(AchievementTier.COMMON, AchievementTier.UNCOMMON, AchievementTier.RARE, AchievementTier.EPIC))
+            .forEach { (n, tier) ->
+                val day = weekendStreakDate(dates, n)
+                add(Achievement("weekends_$n", AchievementKind.WEEKENDS, "$n", null, day != null, day, tier, AchievementGroup.CONSISTENCY))
+            }
+        // Semanas SEGUIDAS con alguna salida (4, 8, 12, 26).
+        listOf(4, 8, 12, 26).zip(listOf(AchievementTier.COMMON, AchievementTier.UNCOMMON, AchievementTier.RARE, AchievementTier.EPIC))
+            .forEach { (n, tier) ->
+                val day = weekStreakDate(dates, n)
+                add(Achievement("weeks_$n", AchievementKind.WEEK_STREAK, "$n", null, day != null, day, tier, AchievementGroup.CONSISTENCY))
+            }
+        // Meses SEGUIDOS con alguna salida (3, 6, 9); el año entero (12 del mismo año) va más abajo.
+        listOf(3, 6, 9).zip(listOf(AchievementTier.COMMON, AchievementTier.UNCOMMON, AchievementTier.RARE)).forEach { (n, tier) ->
+            val day = monthStreakDate(dates, n)
+            add(Achievement("months_$n", AchievementKind.MONTH_STREAK, "$n", null, day != null, day, tier, AchievementGroup.CONSISTENCY))
+        }
+        // Días de roca en un mismo año (10, 20, 30, 50, 75, 100).
+        val daysPerYear = dates.distinct().groupBy { it.take(4) }.values.map { it.sorted() }
+        listOf(10, 20, 30, 50, 75, 100).zip(listOf(AchievementTier.COMMON, AchievementTier.UNCOMMON, AchievementTier.UNCOMMON,
+            AchievementTier.RARE, AchievementTier.EPIC, AchievementTier.LEGENDARY)).forEach { (n, tier) ->
+            val day = daysPerYear.mapNotNull { it.getOrNull(n - 1) }.minOrNull()
+            add(Achievement("days_$n", AchievementKind.DAYS_IN_YEAR, "$n", null, day != null, day, tier, AchievementGroup.CONSISTENCY))
+        }
         val fullYear = done.groupBy { it.date.take(4) }.entries.sortedBy { it.key }
             .firstOrNull { (_, es) -> es.map { it.date.substring(5, 7) }.toSet().size == 12 }
         add(Achievement("every_month", AchievementKind.EVERY_MONTH, "12", null, fullYear != null,
@@ -163,6 +181,33 @@ object AchievementsCalculator {
         return all.filter { it.status == "DONE" }
             .filter { e -> projectSince[key(e)]?.let { it <= e.date } == true }
             .distinctBy(::key).map { it.date }.sorted()
+    }
+
+    /** Día en que se completan [n] SEMANAS seguidas con alguna salida, o null. */
+    private fun weekStreakDate(dates: List<String>, n: Int): String? {
+        val byWeek = dates.sorted().groupBy { JournalStatsCalculator.epochWeek(it) }.entries.sortedBy { it.key }
+        var run = 0
+        var prev: Int? = null
+        for ((week, ds) in byWeek) {
+            run = if (prev != null && week == prev + 1) run + 1 else 1
+            prev = week
+            if (run >= n) return ds.first()
+        }
+        return null
+    }
+
+    /** Día en que se completan [n] MESES seguidos con alguna salida, o null. */
+    private fun monthStreakDate(dates: List<String>, n: Int): String? {
+        fun monthIndex(d: String) = d.take(4).toInt() * 12 + d.substring(5, 7).toInt()
+        val byMonth = dates.sorted().groupBy(::monthIndex).entries.sortedBy { it.key }
+        var run = 0
+        var prev: Int? = null
+        for ((month, ds) in byMonth) {
+            run = if (prev != null && month == prev + 1) run + 1 else 1
+            prev = month
+            if (run >= n) return ds.first()
+        }
+        return null
     }
 
     /** Día en que se completan [n] fines de semana SEGUIDOS con salida, o null. */

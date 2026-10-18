@@ -361,6 +361,8 @@ fun achievementText(a: Achievement): String = when (a.kind) {
     AchievementKind.REGIONS -> stringResource(R.string.ach_regions, a.param)
     AchievementKind.ABROAD -> stringResource(R.string.ach_abroad)
     AchievementKind.WEEKENDS -> stringResource(R.string.ach_weekends, a.param)
+    AchievementKind.WEEK_STREAK -> stringResource(R.string.ach_week_streak, a.param)
+    AchievementKind.MONTH_STREAK -> stringResource(R.string.ach_month_streak, a.param)
     AchievementKind.DAYS_IN_YEAR -> stringResource(R.string.ach_days_year, a.param)
     AchievementKind.EVERY_MONTH -> stringResource(R.string.ach_every_month)
     AchievementKind.PROJECTS -> if (a.param == "1") stringResource(R.string.ach_project_one)

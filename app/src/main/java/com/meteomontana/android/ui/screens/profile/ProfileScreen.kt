@@ -790,7 +790,7 @@ private fun StatsRow(
             StatCell(stringResource(R.string.feed_my_posts_section).uppercase(), "›", Modifier.weight(1f).clickable(onClick = onMyPosts))
         }
         // Fila 4: ESTADÍSTICAS a todo el ancho, como en iOS.
-        StatCell(stringResource(R.string.profile_screen_v3_estadisticas), "▃▅▇", Modifier.fillMaxWidth().clickable(onClick = onOpenStats))
+        com.meteomontana.android.ui.components.StatsEntryButton(onClick = onOpenStats)
     }
 }
 

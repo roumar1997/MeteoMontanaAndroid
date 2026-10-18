@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -509,28 +510,52 @@ private fun InfoCard(text: String) {
     }
 }
 
+/**
+ * Ascensos por mes (últimos 12): número sobre cada barra, el mejor mes en terracota sólido, el último (este mes) marcado
+ * con un punto, una línea discontinua con la MEDIA y una frase con el total, la media y el mejor mes.
+ */
 @Composable
 private fun MonthBars(counts: List<Pair<String, Int>>) {
     val max = (counts.maxOfOrNull { it.second } ?: 1).coerceAtLeast(1)
-    // Carriles FIJOS (número 14 / barra 56 anclada abajo / letra): todas las
-    // barras nacen de la MISMA línea base, sin desbordes (feedback S5).
-    Row(Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        counts.forEach { (month, count) ->
-            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.height(14.dp), contentAlignment = Alignment.BottomCenter) {
-                    if (count > 0) Text(count.toString(), fontSize = 8.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val total = counts.sumOf { it.second }
+    val avg = if (counts.isEmpty()) 0f else total / counts.size.toFloat()
+    val best = counts.maxByOrNull { it.second }?.takeIf { it.second > 0 }
+    val barLane = 96.dp
+    val numberLane = 16.dp
+    val line = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            stringResource(R.string.stats_months_summary, total, "%.1f".format(avg),
+                best?.let { MONTHS[it.first.substringAfter('-').toInt() - 1] } ?: "—", best?.second ?: 0),
+            fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface
+        )
+        Row(
+            Modifier.fillMaxWidth().drawBehind {
+                // Línea discontinua de la media, a su altura dentro del carril de las barras.
+                val y = numberLane.toPx() + barLane.toPx() * (1f - (avg / max).coerceIn(0f, 1f))
+                drawLine(line.copy(alpha = 0.6f), androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(size.width, y),
+                    strokeWidth = 1.dp.toPx(), pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f, 8f)))
+            },
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            counts.forEachIndexed { i, (month, count) ->
+                val isBest = best != null && best.first == month
+                val isNow = i == counts.lastIndex
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(Modifier.height(numberLane), contentAlignment = Alignment.BottomCenter) {
+                        if (count > 0) Text(count.toString(), fontSize = 10.sp, fontWeight = if (isBest) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isBest) Terra else MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Box(Modifier.fillMaxWidth().height(barLane), contentAlignment = Alignment.BottomCenter) {
+                        Box(Modifier.fillMaxWidth()
+                            .height((barLane.value * count / max).coerceAtLeast(if (count > 0) 4f else 1f).dp)
+                            .background(if (isBest) Terra else Terra.copy(alpha = 0.30f + 0.45f * count / max),
+                                RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)))
+                    }
+                    Text(MONTHS[month.substringAfter('-').toInt() - 1].take(3), fontSize = 9.sp,
+                        fontWeight = if (isNow) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isNow) Terra else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                 }
-                Box(Modifier.fillMaxWidth().height(56.dp),
-                    contentAlignment = Alignment.BottomCenter) {
-                    Box(Modifier.fillMaxWidth()
-                        .height((56 * count / max).coerceAtLeast(if (count > 0) 4 else 1).dp)
-                        .background(Terra.copy(alpha = 0.4f + 0.6f * count / max),
-                            RoundedCornerShape(3.dp)))
-                }
-                Text(MONTHS[month.substringAfter('-').toInt() - 1].take(1), fontSize = 8.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

@@ -970,14 +970,13 @@ struct JournalStatsNav: View {
                 cell("\(stats.projectCount)", L("PROYECTOS"))
             }.buttonStyle(.plain)
             if showStatsAndPosts {
-                HStack(spacing: 8) {
-                    NavigationLink(destination: StatsView(uid: projectsUid)) {
-                        cell("▸", L("ESTADÍSTICAS"))
-                    }.buttonStyle(.plain)
-                    NavigationLink(destination: MyPostsView(uid: projectsUid)) {
-                        cell("▸", L("PUBLICACIONES"))
-                    }.buttonStyle(.plain)
-                }
+                // El MISMO botón de estadísticas que en el perfil propio, y las publicaciones debajo.
+                NavigationLink(destination: StatsView(uid: projectsUid)) {
+                    StatsEntryLabel()
+                }.buttonStyle(.plain)
+                NavigationLink(destination: MyPostsView(uid: projectsUid)) {
+                    cell("▸", L("PUBLICACIONES"))
+                }.buttonStyle(.plain)
             }
         }
     }

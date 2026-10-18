@@ -539,7 +539,7 @@ private struct AccountJournalStatsNav: View {
                 }
                 // C4: MIS ESTADISTICAS (piramide, racha, progresion).
                 NavigationLink(destination: StatsView()) {
-                    cell("▃▅▇", L("ESTADÍSTICAS"))
+                    StatsEntryLabel()
                 }.buttonStyle(.plain)
             }
         }

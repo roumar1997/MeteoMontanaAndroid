@@ -483,9 +483,10 @@ private fun ActivityStatsRow(
         }
         // H: ESTADÍSTICAS y PUBLICACIONES como CELDAS (igual que el resto del
         // perfil) — antes eran texto rojo con flecha y un feed inline enorme.
+        // El MISMO botón de estadísticas que en el perfil propio, y las publicaciones debajo.
+        com.meteomontana.android.ui.components.StatsEntryButton(onClick = onStatsClick)
         Row(modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatBox(stringResource(R.string.profile_screen_v3_estadisticas), "▸", Modifier.weight(1f), onStatsClick)
             StatBox(stringResource(R.string.feed_posts_section).uppercase(), "▸",
                 Modifier.weight(1f), onPostsClick)
         }

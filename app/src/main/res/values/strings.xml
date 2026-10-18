@@ -1974,4 +1974,8 @@
     <string name="featured_loading">Cargando tus logros…</string>
     <string name="featured_none_synced">Aún no tienes logros sincronizados. Abre Mis estadísticas una vez y vuelve aquí.</string>
     <string name="schools_clear_short">BORRAR</string>
+    <string name="stats_entry_sub">Pirámide, objetivo del año y logros</string>
+    <string name="stats_months_summary">%1$d en 12 meses · media %2$s al mes · mejor: %3$s (%4$d)</string>
+    <string name="ach_week_streak">%1$s semanas seguidas saliendo</string>
+    <string name="ach_month_streak">%1$s meses seguidos saliendo</string>
 </resources>

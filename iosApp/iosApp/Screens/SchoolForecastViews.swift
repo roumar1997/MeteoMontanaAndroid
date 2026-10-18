@@ -168,9 +168,11 @@ private struct HoyCard: View {
                 Divider().overlay(Cumbre.rule)
                 Text(subtitle).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
                     .padding(.horizontal, 12).padding(.top, 8)
-                FactorsAccordion(current: c, expanded: $factorsExpanded, compact: true)
+                // Al abrir la tarjeta sale TODO a la vez (porqué del índice + mejor hora por sector), con títulos grandes
+                // para que se lea de un vistazo (Álvaro, 2026-10-18: «muchísimos despliegues» y «con otra letra»).
+                FactorsAccordion(current: c, expanded: $factorsExpanded, compact: true, alwaysOpen: true)
                 // Mejor hora por sector: se pide ahora, al abrir la tarjeta (no al entrar en la escuela).
-                SectorHoursSection(schoolId: forecast.schoolId)
+                SectorHoursSection(schoolId: forecast.schoolId, alwaysOpen: true)
                 HoursGrid(hours: upcomingHours(forecast.hours, 16), compact: true).padding(.top, 2).padding(.bottom, 10)
             }
         }
@@ -225,8 +227,14 @@ private struct FactorsAccordion: View {
     @Binding var expanded: Bool
     /// Ficha de escuela: la misma cabecera pero más baja y con letra más pequeña.
     var compact = false
+    /// Dentro de la tarjeta HOY: sin desplegable, siempre abierto y con el título llamativo.
+    var alwaysOpen = false
     var body: some View {
         VStack(spacing: 0) {
+            if alwaysOpen {
+                Text("¿POR QUÉ ESTE ÍNDICE?").font(Cumbre.serif(17, .bold)).tracking(0.5).foregroundStyle(Cumbre.terra)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 6)
+            } else {
             Button { withAnimation { expanded.toggle() } } label: {
                 HStack {
                     Text("¿POR QUÉ ESTE ÍNDICE?").font(Cumbre.mono(compact ? 10 : 12, .bold)).foregroundStyle(Cumbre.ink2)
@@ -237,7 +245,8 @@ private struct FactorsAccordion: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            if expanded {
+            }
+            if expanded || alwaysOpen {
                 VStack(spacing: 0) {
                     ForEach(Array(current.factors.enumerated()), id: \.offset) { _, f in
                         HStack(spacing: 10) {
