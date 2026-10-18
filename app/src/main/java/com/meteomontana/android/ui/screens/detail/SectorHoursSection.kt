@@ -73,7 +73,15 @@ class SectorHoursViewModel @Inject constructor(private val getSectorHours: GetSe
  * Desplegada: cada sector con su orientación, su franja y una tira de 8 a 20 h coloreada por nota (punto = sol).
  */
 @Composable
-fun SectorHoursSection(schoolId: String, viewModel: SectorHoursViewModel = hiltViewModel()) {
+fun SectorHoursSection(
+    schoolId: String,
+    /** Si la roca está húmeda, la «mejor hora» solo vale cuando haya secado (Álvaro, 2026-10-18). */
+    dryRock: Boolean = true,
+    dryingMessage: String? = null,
+    /** Horas de HOY con lluvia en la previsión: se marcan y no cuentan como buenas. */
+    rainHours: Set<Int> = emptySet(),
+    viewModel: SectorHoursViewModel = hiltViewModel()
+) {
     LaunchedEffect(schoolId) { viewModel.load(schoolId) }
     val sectors by viewModel.sectors.collectAsStateWithLifecycle()
     val list = sectors?.filter { it.bestFrom != null } ?: return
@@ -94,8 +102,13 @@ fun SectorHoursSection(schoolId: String, viewModel: SectorHoursViewModel = hiltV
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.sector_hours_title), fontFamily = com.meteomontana.android.ui.theme.Serif,
                     fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
+                if (!dryRock) {
+                    Text(stringResource(R.string.sector_hours_wet_short), color = MaterialTheme.colorScheme.error,
+                        fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 10.5.sp)
+                }
                 if (!expanded) {
-                    Text(stringResource(R.string.sector_hours_best, best.name, best.bestFrom!!, best.bestTo!! + 1),
+                    Text(stringResource(if (dryRock) R.string.sector_hours_best else R.string.sector_hours_best_when_dry,
+                        best.name, best.bestFrom!!, best.bestTo!! + 1),
                         color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, maxLines = 1,
                         overflow = TextOverflow.Ellipsis)
                 }
@@ -105,7 +118,19 @@ fun SectorHoursSection(schoolId: String, viewModel: SectorHoursViewModel = hiltV
         }
         AnimatedVisibility(expanded) {
             Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                list.forEach { SectorHoursRow(it) }
+                if (!dryRock) {
+                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.08f)).padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(stringResource(R.string.sector_hours_wet_title), color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text(dryingMessage ?: stringResource(R.string.forecast_body_v3_mejor_esperar_a_que_seque),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                        Text(stringResource(R.string.sector_hours_wet_hint), color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp)
+                    }
+                }
+                list.forEach { SectorHoursRow(it, dryRock, rainHours) }
                 Text(stringResource(R.string.sector_hours_hint), color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp)
             }
@@ -114,7 +139,7 @@ fun SectorHoursSection(schoolId: String, viewModel: SectorHoursViewModel = hiltV
 }
 
 @Composable
-private fun SectorHoursRow(s: SectorHours) {
+private fun SectorHoursRow(s: SectorHours, dryRock: Boolean, rainHours: Set<Int>) {
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(s.name, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
@@ -130,14 +155,17 @@ private fun SectorHoursRow(s: SectorHours) {
         // Tira de 8 a 20 h: color = nota de esa hora para ESTA pared; la mejor franja con borde; punto blanco = sol.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             s.hours.forEach { h ->
-                val inBest = s.bestFrom != null && h.hour in s.bestFrom!!..s.bestTo!!
+                val inBest = dryRock && s.bestFrom != null && h.hour in s.bestFrom!!..s.bestTo!!
+                val rainy = h.hour in rainHours
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(
                         Modifier.fillMaxWidth().height(if (inBest) 18.dp else 12.dp).clip(RoundedCornerShape(2.dp))
-                            .background(scoreColor(h.score).copy(alpha = if (inBest) 1f else 0.55f)),
+                            .background((if (rainy) com.meteomontana.android.ui.theme.Rain else scoreColor(h.score))
+                                .copy(alpha = if (inBest) 1f else 0.55f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        if (h.sun) Box(Modifier.size(5.dp).clip(CircleShape).background(Color.White))
+                        if (rainy) Box(Modifier.size(5.dp).clip(CircleShape).background(Color.White))
+                        else if (h.sun) Box(Modifier.size(5.dp).clip(CircleShape).background(Color.White))
                     }
                     if (h.hour % 2 == 0) {
                         Text("${h.hour}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = Mono, fontSize = 9.sp)

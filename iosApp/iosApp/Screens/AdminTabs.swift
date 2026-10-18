@@ -350,30 +350,91 @@ struct DailyActivityView: View {
     }
 }
 
-/// Tab ACTIVIDAD — registro de acciones admin (espejo de ActivityTab).
+/// Tab ACTIVIDAD — registro de acciones admin. Cada acción en castellano, con icono, QUIÉN la hizo y sobre qué
+/// (Álvaro, 2026-10-18: «me sale todo en inglés, no entiendo qué es lo que está haciendo de verdad»).
 struct AdminLogsTab: View {
     let logs: [AdminLog]
+    @State private var names: [String: String] = [:]
+
+    /// (frase, icono, color) de cada código que escribe el servidor.
+    private func describe(_ action: String) -> (String, String, Color) {
+        switch action {
+        case "APPROVE_SCHOOL_SUBMISSION": return ("Aprobó una escuela propuesta", "checkmark.circle.fill", Cumbre.ok)
+        case "REJECT_SCHOOL_SUBMISSION": return ("Rechazó una escuela propuesta", "xmark.circle.fill", Cumbre.bad)
+        case "SEND_PUSH": return ("Envió una notificación", "bell.fill", Cumbre.terra)
+        case "REORDER_SECTOR_BLOCKS": return ("Reordenó las piedras de un sector", "arrow.up.arrow.down", Cumbre.terra)
+        case "BACKFILL_BACKUP_BEFORE_SECTOR_ORDER": return ("Copia de seguridad automática antes de numerar", "externaldrive.fill", Cumbre.ink3)
+        case "MERGE_LOOSE_BLOCKS_INTO_SECTOR": return ("Juntó piedras sueltas en un sector", "square.stack.3d.down.right.fill", Cumbre.ink3)
+        case "RESTORE_CONTENT": return ("Restauró una versión anterior", "arrow.uturn.backward.circle.fill", Cumbre.warn)
+        case "GRANT_TRUST": return ("Marcó a alguien como de confianza", "checkmark.shield.fill", Cumbre.ok)
+        case "REVOKE_TRUST": return ("Quitó la confianza a alguien", "shield.slash.fill", Cumbre.bad)
+        case "CREATE_RESTRICTION": return ("Creó una restricción de acceso", "exclamationmark.triangle.fill", Cumbre.warn)
+        case "UPDATE_RESTRICTION": return ("Editó una restricción de acceso", "pencil.circle.fill", Cumbre.warn)
+        case "DELETE_RESTRICTION": return ("Borró una restricción de acceso", "trash.circle.fill", Cumbre.bad)
+        default: return (action.replacingOccurrences(of: "_", with: " ").lowercased().capitalized, "circle.fill", Cumbre.ink3)
+        }
+    }
+
+    private func targetLabel(_ t: String) -> String {
+        switch t {
+        case "school_submission": return "propuesta de escuela"
+        case "school_block_sector": return "sector"
+        case "school": return "escuela"
+        case "restriction": return "restricción"
+        case "user": return "usuario"
+        case "fcm": return "notificación"
+        case "BLOCK": return "piedra"
+        case "LINE": return "vía"
+        default: return t
+        }
+    }
+
+    /// Traduce el texto libre que guarda el servidor y deja los nombres técnicos (la-cascaravana) legibles.
+    private func detailText(_ d: String) -> String {
+        var t = d
+        let pairs = [("Created school: ", "Escuela creada: "), ("Rejected: ", "Motivo: "), ("title='", "Título: '"),
+                     (" sent=", " · enviada a "), ("Escuela ", "Escuela "), ("Versión anterior al cambio ", "Versión anterior al cambio ")]
+        for (a, b) in pairs { t = t.replacingOccurrences(of: a, with: b) }
+        return t
+    }
+
+    private func prettySlug(_ s: String) -> String {
+        s.contains("-") && !s.contains(" ") && s.count < 60 && s.lowercased() == s
+            ? s.replacingOccurrences(of: "-", with: " ").capitalized : s
+    }
+
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                if logs.isEmpty {
-                    Text("Sin actividad reciente.").font(.system(size: 14))
-                        .foregroundStyle(Cumbre.ink3).padding(24)
-                }
+            LazyVStack(alignment: .leading, spacing: 8) {
+                Text("Todo lo que hacen los administradores: quién, qué y cuándo. Sirve para saber si alguien tocó algo.")
+                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3).padding(.top, 4)
+                if logs.isEmpty { AdminEmptyState(symbol: "list.bullet.rectangle", text: "Sin actividad reciente.") }
                 ForEach(logs, id: \.id) { l in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(l.action).font(Cumbre.mono(13, .bold)).foregroundStyle(Cumbre.ink)
-                        Text("\(l.targetType)/\(l.targetId)").font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
-                        if let d = l.details, !d.isEmpty {
-                            Text(d).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
+                    let (label, symbol, color) = describe(l.action)
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: symbol).font(.system(size: 20)).foregroundStyle(color).frame(width: 26)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(label).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                            HStack(spacing: 6) {
+                                AdminChip(text: (names[l.actorUid] ?? (l.actorUid.hasPrefix("system") ? "AUTOMÁTICO" : String(l.actorUid.prefix(8)))).uppercased(), color: Cumbre.terra)
+                                AdminChip(text: targetLabel(l.targetType).uppercased(), color: Cumbre.ink2)
+                            }
+                            if let d = l.details, !d.isEmpty {
+                                Text(prettySlug(detailText(d))).font(.system(size: 12)).foregroundStyle(Cumbre.ink2).lineLimit(4)
+                            }
+                            Text(String(l.createdAt.prefix(16)).replacingOccurrences(of: "T", with: " · "))
+                                .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                         }
-                        Text(String(l.createdAt.prefix(16))).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                        Spacer(minLength: 0)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 16).padding(.vertical, 10)
-                    Divider().overlay(Cumbre.rule)
+                    .adminCard()
                 }
             }
+            .padding(.horizontal, 16).padding(.bottom, 30)
+        }
+        .task {
+            let users = (try? await AppDependencies.shared.container.getAdminUsers.invoke()) ?? []
+            names = Dictionary(uniqueKeysWithValues: users.map { ($0.uid, $0.username.map { "@" + $0 } ?? ($0.displayName ?? String($0.uid.prefix(8)))) })
         }
     }
 }
@@ -416,7 +477,8 @@ struct AdminPushTab: View {
                     AdminField(placeholder: "Buscar por @usuario o nombre para añadir…", text: $query)
                         .onChange(of: query) { _, q in
                             searchTask?.cancel()
-                            let t = q.trimmingCharacters(in: .whitespaces)
+                            // Sin la @: el servidor busca el texto tal cual y «@arroba» no está en ningún nombre.
+                            let t = q.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "@", with: "")
                             guard t.count >= 2 else { results = []; return }
                             searchTask = Task {
                                 try? await Task.sleep(nanoseconds: 250_000_000)

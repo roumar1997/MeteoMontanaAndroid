@@ -1646,3 +1646,13 @@
 "TU MEJOR MES" = "YOUR BEST MONTH";
 "ascensos" = "ascents";
 "SALISTE %@ DE %@" = "YOU CLIMBED %@ OF %@";
+"Roca húmeda: no escales aún" = "Wet rock: don't climb yet";
+"Cuando seque: %@ · de %@ a %@ h" = "Once dry: %@ · from %@ to %@ h";
+"La roca está húmeda ahora" = "The rock is wet right now";
+"Las horas de abajo son las que mejor van por sol, temperatura y viento, pero solo valen cuando la roca haya secado. Las marcadas con lluvia no sirven." = "The hours below are the best for sun, temperature and wind, but only count once the rock has dried. Hours marked with rain are no good.";
+"Según el sol en cada pared, la temperatura, el viento y la humedad. Punto blanco = le da el sol, gota = llueve. Solo sectores con orientación votada." = "Based on sun on each wall, temperature, wind and humidity. White dot = in the sun, drop = rain. Only sectors with a voted orientation.";
+"Solo los que he conseguido" = "Only the ones I've earned";
+"EN 12 MESES" = "IN 12 MONTHS";
+"MEDIA AL MES" = "AVERAGE A MONTH";
+"MEJOR MES" = "BEST MONTH";
+"línea discontinua = tu media" = "dashed line = your average";

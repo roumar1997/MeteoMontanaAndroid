@@ -295,6 +295,9 @@ private const val MIN_USERS_FOR_PERCENT = 5
 fun AchievementsSection(items: List<Achievement>, rarity: AchievementRarity? = null) {
     if (items.isEmpty()) return
     var open by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    // Filtro por dificultad (null = todas) y «solo los conseguidos» (Álvaro, 2026-10-18).
+    var tierFilter by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<Int?>(null) }
+    var onlyGot by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     val got = items.count { it.unlocked }
     Column(cardModifier()) {
         Row(Modifier.fillMaxWidth().clickable { open = !open }.padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -305,8 +308,9 @@ fun AchievementsSection(items: List<Achievement>, rarity: AchievementRarity? = n
         }
         if (open) {
             Spacer(Modifier.height(Spacing.sm))
+            TierFilterBar(items, tierFilter, { tierFilter = it }, onlyGot, { onlyGot = it })
             AchievementGroup.entries.forEach { group ->
-                val inGroup = items.filter { it.group == group }
+                val inGroup = items.filter { it.group == group && (tierFilter == null || it.tier.ordinal == tierFilter) && (!onlyGot || it.unlocked) }
                 if (inGroup.isEmpty()) return@forEach
                 Text("${groupName(group).uppercase()}  ${inGroup.count { it.unlocked }}/${inGroup.size}",
                     style = EyebrowTextStyle.copy(fontSize = 9.sp), color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -318,6 +322,40 @@ fun AchievementsSection(items: List<Achievement>, rarity: AchievementRarity? = n
                 }
             }
         }
+    }
+}
+
+/** Chips COMÚN / POCO COMÚN / RARO / ÉPICO / LEGENDARIO con «conseguidos/total» y el interruptor de solo conseguidos. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun TierFilterBar(items: List<Achievement>, selected: Int?, onSelect: (Int?) -> Unit, onlyGot: Boolean, onOnlyGot: (Boolean) -> Unit) {
+    val tiers = items.map { it.tier }.distinct().sortedBy { it.ordinal }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        TierFilterChip(stringResource(R.string.ach_filter_all), Terra, selected == null, null) { onSelect(null) }
+        tiers.forEach { t ->
+            val inTier = items.filter { it.tier == t }
+            TierFilterChip(tierName(t).uppercase(), tierColor(t), selected == t.ordinal,
+                "${inTier.count { it.unlocked }}/${inTier.size}") { onSelect(if (selected == t.ordinal) null else t.ordinal) }
+        }
+    }
+    Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(R.string.ach_filter_only_got), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f))
+        androidx.compose.material3.Switch(checked = onlyGot, onCheckedChange = onOnlyGot)
+    }
+}
+
+@Composable
+private fun TierFilterChip(title: String, color: Color, on: Boolean, count: String?, onClick: () -> Unit) {
+    val fg = if (on) Color.White else color
+    Row(
+        Modifier.clip(androidx.compose.foundation.shape.CircleShape).background(if (on) color else color.copy(alpha = 0.10f))
+            .border(1.dp, color.copy(alpha = 0.7f), androidx.compose.foundation.shape.CircleShape)
+            .clickable(onClick = onClick).padding(horizontal = 11.dp, vertical = 7.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(title, color = fg, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 0.5.sp)
+        if (count != null) Text(count, color = fg.copy(alpha = 0.85f), fontFamily = Mono, fontSize = 9.5.sp)
     }
 }
 

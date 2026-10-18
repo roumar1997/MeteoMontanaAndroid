@@ -111,6 +111,14 @@ fun HoyCard(forecast: Forecast, modifier: Modifier = Modifier) {
         }
     }
     // Mejor hora por sector: tarjeta propia y llamativa, debajo (no dentro del «por qué este índice»).
-    SectorHoursSection(forecast.schoolId)
+    SectorHoursSection(forecast.schoolId, dryRock = cur.dryRock, dryingMessage = cur.drying?.message,
+        rainHours = todayRainHours(forecast.hours))
     }
+}
+
+/** Horas (0-23) de HOY con lluvia en la previsión; «hoy» = el día de la primera hora que trae. */
+private fun todayRainHours(hours: List<com.meteomontana.android.domain.model.HourForecast>): Set<Int> {
+    val day = hours.firstOrNull()?.time?.take(10) ?: return emptySet()
+    return hours.filter { it.time.startsWith(day) && it.precipitation >= 0.1 }
+        .mapNotNull { it.time.drop(11).take(2).toIntOrNull() }.toSet()
 }

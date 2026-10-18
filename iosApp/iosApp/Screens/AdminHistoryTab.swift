@@ -29,6 +29,16 @@ struct AdminHistoryTab: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if actorUid == nil {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("QUÉ ES ESTO").font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.terra)
+                    Text("Cada vez que alguien cambia una piedra, una vía o un muro, queda aquí apuntado: quién, cuándo y qué cambió (lo de antes en rojo, lo nuevo en verde). Toca un cambio para verlo y, si hace falta, RESTAURAR la versión anterior.")
+                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
+                    Text("ADMIN = lo hizo un administrador · PROPUESTA = se aprobó una propuesta · SIN REVISIÓN = lo publicó alguien de confianza sin pasar por ti · RESTAURADO = se devolvió a una versión anterior.")
+                        .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                }
+                .adminCard().padding(.horizontal, 16).padding(.top, 8)
+            }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
                     ForEach(Filter.allCases, id: \.self) { f in
@@ -43,14 +53,12 @@ struct AdminHistoryTab: View {
                 }.padding(.horizontal, 16).padding(.vertical, 8)
             }
             ScrollView {
-                LazyVStack(spacing: 0) {
+                LazyVStack(spacing: 8) {
                     if items.isEmpty && !loading {
-                        Text(L("Sin cambios con este filtro.")).font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
-                            .padding(.top, 40)
+                        AdminEmptyState(symbol: "clock.arrow.circlepath", text: L("Sin cambios con este filtro."))
                     }
                     ForEach(items, id: \.id) { c in
                         Button { selected = c } label: { row(c) }.buttonStyle(.plain)
-                        Divider().overlay(Cumbre.rule)
                     }
                     if loading { ProgressView().padding() }
                     else if canLoadMore && !items.isEmpty {
@@ -83,7 +91,7 @@ struct AdminHistoryTab: View {
             Spacer()
             SourceBadge(source: c.source)
         }
-        .padding(.horizontal, 16).padding(.vertical, 10).contentShape(Rectangle())
+        .adminCard().padding(.horizontal, 16).contentShape(Rectangle())
     }
 
     private func summary(_ c: ContentChangeItem) -> String {
@@ -182,12 +190,9 @@ struct ChangeDetailSheet: View {
                     }
                     if let error { Text(error).font(.system(size: 13)).foregroundStyle(Cumbre.bad) }
                     if !change.isCreation {
-                        Button { confirm = true } label: {
-                            Text(L("RESTAURAR LA VERSIÓN ANTERIOR")).font(Cumbre.mono(12, .bold)).foregroundStyle(.white)
-                                .frame(maxWidth: .infinity).padding(.vertical, 12)
-                                .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: 4))
-                        }
-                        .buttonStyle(.plain).disabled(working)
+                        Text("Restaurar deja esta piedra o vía exactamente como estaba ANTES de este cambio. Queda apuntado en el historial como «restaurado», así que también se puede deshacer.")
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                        AdminButton(title: L("RESTAURAR LA VERSIÓN ANTERIOR"), symbol: "arrow.uturn.backward", busy: working) { confirm = true }
                     }
                 }
                 .padding(20)
@@ -224,8 +229,14 @@ struct AdminContributorsTab: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0) {
-                Text(L("Con 20 aportaciones aprobadas una persona pasa a ser de confianza y lo que propone se publica sin revisión. Puedes quitarla o darla a mano."))
-                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3).padding(16)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("QUÉ ES ESTO").font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.terra)
+                    Text(L("Con 20 aportaciones aprobadas una persona pasa a ser de confianza y lo que propone se publica sin revisión. Puedes quitarla o darla a mano."))
+                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
+                    Text("El interruptor de la derecha es «de confianza». Toca el nombre para ver todo lo que ha cambiado esa persona.")
+                        .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                }
+                .adminCard().padding(16)
                 if loading { ProgressView().padding(.top, 30) }
                 ForEach(items, id: \.uid) { c in
                     HStack(spacing: 10) {
@@ -241,8 +252,7 @@ struct AdminContributorsTab: View {
                         Toggle("", isOn: Binding(get: { c.trusted }, set: { v in Task { await setTrust(c, v) } }))
                             .labelsHidden().tint(Cumbre.terra)
                     }
-                    .padding(.horizontal, 16).padding(.vertical, 10)
-                    Divider().overlay(Cumbre.rule)
+                    .adminCard().padding(.horizontal, 16).padding(.bottom, 6)
                 }
             }
         }

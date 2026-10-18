@@ -24,6 +24,11 @@ final class SectorHoursModel: ObservableObject {
 /// Espejo de `SectorHoursSection` (Android).
 struct SectorHoursSection: View {
     let schoolId: String
+    /// La roca ahora mismo: si está húmeda, la «mejor hora» solo vale cuando haya secado (Álvaro, 2026-10-18).
+    var dryRock = true
+    var dryingMessage: String? = nil
+    /// Horas de HOY en las que la previsión trae lluvia: en la tira se marcan y no cuentan como buenas.
+    var rainHours: Set<Int> = []
     @StateObject private var model = SectorHoursModel()
     @State private var expanded = false
 
@@ -40,8 +45,14 @@ struct SectorHoursSection: View {
                             Image(systemName: "sun.max.fill").font(.system(size: 18)).foregroundStyle(Cumbre.terra)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(L("MEJOR HORA POR SECTOR")).font(Cumbre.serif(15, .bold)).tracking(0.4).foregroundStyle(Cumbre.terra)
+                                if !dryRock {
+                                    Text(L("Roca húmeda: no escales aún"))
+                                        .font(Cumbre.mono(10.5, .bold)).foregroundStyle(Cumbre.bad)
+                                }
                                 if !expanded {
-                                    Text(L("Hoy: %@ · de %@ a %@ h", best.name, hour(best.bestFrom), hour(best.bestTo, plus: 1)))
+                                    Text(dryRock
+                                         ? L("Hoy: %@ · de %@ a %@ h", best.name, hour(best.bestFrom), hour(best.bestTo, plus: 1))
+                                         : L("Cuando seque: %@ · de %@ a %@ h", best.name, hour(best.bestFrom), hour(best.bestTo, plus: 1)))
                                         .font(.system(size: 12.5)).foregroundStyle(Cumbre.ink).lineLimit(1)
                                 }
                             }
@@ -55,8 +66,20 @@ struct SectorHoursSection: View {
                     if expanded {
                         Divider().overlay(Cumbre.rule)
                         VStack(alignment: .leading, spacing: 12) {
+                            if !dryRock {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(L("La roca está húmeda ahora"))
+                                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(Cumbre.bad)
+                                    Text(dryingMessage ?? L("Mejor esperar a que seque"))
+                                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
+                                    Text(L("Las horas de abajo son las que mejor van por sol, temperatura y viento, pero solo valen cuando la roca haya secado. Las marcadas con lluvia no sirven."))
+                                        .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                                }
+                                .padding(10).frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Cumbre.bad.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                            }
                             ForEach(list, id: \.sectorId) { row($0) }
-                            Text(L("Según el sol en cada pared, la temperatura, el viento y la humedad. Punto blanco = le da el sol. Solo sectores con orientación votada."))
+                            Text(L("Según el sol en cada pared, la temperatura, el viento y la humedad. Punto blanco = le da el sol, gota = llueve. Solo sectores con orientación votada."))
                                 .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
                         }
                         .padding(.horizontal, 12).padding(.vertical, 10)
@@ -90,13 +113,15 @@ struct SectorHoursSection: View {
             HStack(alignment: .top, spacing: 2) {
                 ForEach(s.hours, id: \.hour) { h in
                     let hr = Int(h.hour)
-                    let inBest = from.map { f in to.map { hr >= f && hr <= $0 } ?? false } ?? false
+                    let inBest = (from.map { f in to.map { hr >= f && hr <= $0 } ?? false } ?? false) && dryRock
+                    let rainy = rainHours.contains(hr)
                     VStack(spacing: 1) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 2)
-                                .fill(Cumbre.score(Int(h.score)).opacity(inBest ? 1 : 0.55))
+                                .fill((rainy ? Cumbre.rain : Cumbre.score(Int(h.score))).opacity(inBest ? 1 : 0.55))
                                 .frame(height: inBest ? 18 : 12)
-                            if h.sun { Circle().fill(.white).frame(width: 5, height: 5) }
+                            if rainy { Image(systemName: "drop.fill").font(.system(size: 6)).foregroundStyle(.white) }
+                            else if h.sun { Circle().fill(.white).frame(width: 5, height: 5) }
                         }
                         Text(hr % 2 == 0 ? "\(hr)" : " ").font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
                     }

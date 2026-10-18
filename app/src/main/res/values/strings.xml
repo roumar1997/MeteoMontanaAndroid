@@ -1891,7 +1891,7 @@
     <string name="sector_hours_title">MEJOR HORA POR SECTOR</string>
     <string name="sector_hours_best">Hoy: %1$s · de %2$d a %3$d h</string>
     <string name="sector_hours_window">%1$d–%2$d h</string>
-    <string name="sector_hours_hint">Según el sol en cada pared, la temperatura, el viento y la humedad. Punto blanco = le da el sol. Solo sectores con orientación votada.</string>
+    <string name="sector_hours_hint">Según el sol en cada pared, la temperatura, el viento y la humedad. Punto blanco = le da el sol, gota = llueve. Solo sectores con orientación votada.</string>
     <string name="goal_title">OBJETIVO %1$d</string>
     <string name="goal_prompt">¿Te pones un objetivo para este año? Un grado, un número de ascensiones o de días de roca. Es opcional y solo lo ves tú.</string>
     <string name="goal_set">Poner objetivo</string>
@@ -1986,4 +1986,14 @@
     <string name="stats_school_ascents">%1$d ascensos</string>
     <string name="stats_best_month_title">TU MEJOR MES</string>
     <string name="stats_ascents_word">ascensos</string>
+    <string name="sector_hours_wet_short">Roca húmeda: no escales aún</string>
+    <string name="sector_hours_best_when_dry">Cuando seque: %1$s · de %2$d a %3$d h</string>
+    <string name="sector_hours_wet_title">La roca está húmeda ahora</string>
+    <string name="sector_hours_wet_hint">Las horas de abajo son las que mejor van por sol, temperatura y viento, pero solo valen cuando la roca haya secado. Las marcadas con lluvia no sirven.</string>
+    <string name="ach_filter_all">TODOS</string>
+    <string name="ach_filter_only_got">Solo los que he conseguido</string>
+    <string name="stats_in_12_months">EN 12 MESES</string>
+    <string name="stats_avg_month">MEDIA AL MES</string>
+    <string name="stats_best_month_short">MEJOR MES</string>
+    <string name="stats_dashed_avg">línea discontinua = tu media</string>
 </resources>

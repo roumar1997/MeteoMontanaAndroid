@@ -32,7 +32,8 @@ struct ForecastBodyView: View {
                 // y el "por qué"; así las pestañas y el mapa empiezan mucho más arriba.
                 HoyCard(forecast: f, open: hoyOpen ?? .constant(false), factorsExpanded: $factorsExpanded)
                     .guideTarget("detail.hoy")
-                SectorHoursSection(schoolId: f.schoolId)
+                SectorHoursSection(schoolId: f.schoolId, dryRock: f.current.dryRock, dryingMessage: f.current.drying?.message,
+                                   rainHours: todayRainHours(f.hours))
                 tabsSlot
             } else {
                 HeroSection(forecast: f)
@@ -377,6 +378,13 @@ private struct DayRow: View {
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
     }
+}
+
+/// Horas (0-23) de HOY con lluvia en la previsión; «hoy» = el día de la primera hora que trae.
+private func todayRainHours(_ hours: [HourForecast]) -> Set<Int> {
+    guard let day = hours.first?.time.prefix(10) else { return [] }
+    return Set(hours.filter { $0.time.hasPrefix(day) && $0.precipitation >= 0.1 }
+        .compactMap { Int($0.time.dropFirst(11).prefix(2)) })
 }
 
 private func short(_ iso: String) -> String {

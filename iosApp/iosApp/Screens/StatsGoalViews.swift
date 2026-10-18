@@ -253,6 +253,9 @@ struct AchievementsSection: View {
     let items: [Achievement]
     var rarity: AchievementRarity? = nil
     @State private var open = false
+    /// Filtro por dificultad (nil = todas) y «solo los conseguidos» (Álvaro, 2026-10-18).
+    @State private var tierFilter: Int? = nil
+    @State private var onlyGot = false
 
     /// Con menos escaladores sincronizados que esto el porcentaje no dice nada: se enseña la dificultad de diseño.
     private let minUsersForPercent = 5
@@ -271,8 +274,9 @@ struct AchievementsSection: View {
                     }.contentShape(Rectangle())
                 }.buttonStyle(.plain)
                 if open {
+                    tierFilterBar
                     ForEach(groups, id: \.self) { g in
-                        let inGroup = items.filter { $0.group == g }
+                        let inGroup = items.filter { $0.group == g && (tierFilter == nil || tierRank($0.tier) == tierFilter) && (!onlyGot || $0.unlocked) }
                         if !inGroup.isEmpty {
                             Text("\(groupName(g).uppercased())  \(inGroup.filter(\.unlocked).count)/\(inGroup.count)")
                                 .font(Cumbre.mono(9, .bold)).tracking(1).foregroundStyle(Cumbre.ink3).padding(.top, 6)
@@ -287,6 +291,42 @@ struct AchievementsSection: View {
             }
             .modifier(StatsCard())
         }
+    }
+
+    /// Chips COMÚN / POCO COMÚN / RARO / ÉPICO / LEGENDARIO con «conseguidos/total» y el interruptor de solo conseguidos.
+    private var tierFilterBar: some View {
+        let tiers = Array(Set(items.map { tierRank($0.tier) })).sorted()
+        return VStack(alignment: .leading, spacing: 8) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    tierChip(title: L("TODOS"), color: Cumbre.terra, on: tierFilter == nil, count: nil) { tierFilter = nil }
+                    ForEach(tiers, id: \.self) { r in
+                        let inTier = items.filter { tierRank($0.tier) == r }
+                        if let first = inTier.first {
+                            tierChip(title: tierName(first.tier).uppercased(), color: tierColor(first.tier), on: tierFilter == r,
+                                     count: "\(inTier.filter(\.unlocked).count)/\(inTier.count)") { tierFilter = (tierFilter == r ? nil : r) }
+                        }
+                    }
+                }
+            }
+            Toggle(isOn: $onlyGot) {
+                Text(L("Solo los que he conseguido")).font(.system(size: 13)).foregroundStyle(Cumbre.ink)
+            }.tint(Cumbre.terra)
+        }
+        .padding(.top, 4)
+    }
+
+    private func tierChip(title: String, color: Color, on: Bool, count: String?, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Text(title).font(Cumbre.mono(10, .bold)).tracking(0.5)
+                if let count { Text(count).font(Cumbre.mono(9.5)).opacity(0.85) }
+            }
+            .foregroundStyle(on ? Color.white : color)
+            .padding(.horizontal, 11).padding(.vertical, 7)
+            .background(on ? color : color.opacity(0.10), in: Capsule())
+            .overlay(Capsule().stroke(color.opacity(0.7), lineWidth: 1))
+        }.buttonStyle(.plain)
     }
 
     private func chip(_ a: Achievement) -> some View {

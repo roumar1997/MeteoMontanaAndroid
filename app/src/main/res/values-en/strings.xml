@@ -1832,7 +1832,7 @@
     <string name="sector_hours_title">BEST TIME BY SECTOR</string>
     <string name="sector_hours_best">Today: %1$s · %2$d to %3$d h</string>
     <string name="sector_hours_window">%1$d–%2$d h</string>
-    <string name="sector_hours_hint">Based on sun on each wall, temperature, wind and humidity. White dot = in the sun. Only sectors with a voted orientation.</string>
+    <string name="sector_hours_hint">Based on sun on each wall, temperature, wind and humidity. White dot = in the sun, drop = rain. Only sectors with a voted orientation.</string>
     <string name="goal_title">%1$d GOAL</string>
     <string name="goal_prompt">Set yourself a goal for this year? A grade, a number of ascents or days on rock. Optional and only you see it.</string>
     <string name="goal_set">Set goal</string>
@@ -1927,4 +1927,14 @@
     <string name="stats_school_ascents">%1$d ascents</string>
     <string name="stats_best_month_title">YOUR BEST MONTH</string>
     <string name="stats_ascents_word">ascents</string>
+    <string name="sector_hours_wet_short">Wet rock: don\'t climb yet</string>
+    <string name="sector_hours_best_when_dry">Once dry: %1$s · from %2$d to %3$d h</string>
+    <string name="sector_hours_wet_title">The rock is wet right now</string>
+    <string name="sector_hours_wet_hint">The hours below are the best for sun, temperature and wind, but only count once the rock has dried. Hours marked with rain are no good.</string>
+    <string name="ach_filter_all">ALL</string>
+    <string name="ach_filter_only_got">Only the ones I\'ve earned</string>
+    <string name="stats_in_12_months">IN 12 MONTHS</string>
+    <string name="stats_avg_month">AVERAGE A MONTH</string>
+    <string name="stats_best_month_short">BEST MONTH</string>
+    <string name="stats_dashed_avg">dashed line = your average</string>
 </resources>

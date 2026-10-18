@@ -371,17 +371,15 @@ fun StatsScreen(
                     Text(stringResource(R.string.stats_screen_grado_maximo_por_trimestre), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(Spacing.xs))
-                    Row(horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                         p.maxGradePerQuarter.takeLast(6).forEach { (q, g) ->
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Box(Modifier.width(10.dp).height(10.dp)
-                                    .background(terraFillColor(), CircleShape))
-                                Text(g, fontFamily = FontFamily.Serif,
-                                    fontWeight = FontWeight.Bold, fontSize = 14.sp,
-                                    color = gradeAccent(g))
-                                Text(q.substringAfter('-'), fontSize = 9.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            val c = gradeAccent(g)
+                            Column(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(c.copy(alpha = 0.10f))
+                                .border(1.dp, c.copy(alpha = 0.5f), RoundedCornerShape(12.dp)).padding(vertical = 12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(g, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = c, maxLines = 1)
+                                Text(q.substringAfter('-') + " '" + q.substringBefore('-').takeLast(2), fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -430,22 +428,23 @@ fun StatsScreen(
                         .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
                         .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                         .padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Column(Modifier.fillMaxWidth().clickable { expandedSchool = if (isOpen) null else school },
-                        verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(school, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1,
-                                color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                    Row(Modifier.fillMaxWidth().clickable { expandedSchool = if (isOpen) null else school },
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.width(62.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("$count", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 26.sp, color = Terra)
+                            Text(stringResource(R.string.stats_ascents_word), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+                                fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                            Text(school, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, maxLines = 2,
+                                color = MaterialTheme.colorScheme.onSurface)
+                            Box(Modifier.fillMaxWidth().height(6.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                                Box(Modifier.fillMaxWidth(count.toFloat() / maxSchool).height(6.dp).clip(CircleShape).background(Terra))
+                            }
+                        }
+                        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             maxGrade?.let { GradePill(it) }
                             Text(if (isOpen) "▴" else "▾", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                        }
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Box(Modifier.weight(1f).height(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)) {
-                                Box(Modifier.fillMaxWidth(count.toFloat() / maxSchool).height(8.dp).clip(CircleShape).background(Terra))
-                            }
-                            Text(stringResource(R.string.stats_school_ascents, count), color = Terra,
-                                fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 10.sp)
                         }
                     }
                     // Desplegado inline: los nombres de las vías de esa escuela,
@@ -593,12 +592,15 @@ private fun MonthBars(counts: List<Pair<String, Int>>) {
     val barLane = 96.dp
     val numberLane = 16.dp
     val line = MaterialTheme.colorScheme.onSurfaceVariant
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            stringResource(R.string.stats_months_summary, total, "%.1f".format(avg),
-                best?.let { MONTHS[it.first.substringAfter('-').toInt() - 1] } ?: "—", best?.second ?: 0),
-            fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface
-        )
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surface)
+        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            MonthTile("$total", stringResource(R.string.stats_in_12_months), false, Modifier.weight(1f))
+            MonthTile("%.1f".format(avg), stringResource(R.string.stats_avg_month), false, Modifier.weight(1f))
+            MonthTile(best?.let { MONTHS[it.first.substringAfter('-').toInt() - 1] } ?: "—",
+                stringResource(R.string.stats_best_month_short) + (best?.let { " · ${it.second}" } ?: ""), true, Modifier.weight(1f))
+        }
         Row(
             Modifier.fillMaxWidth().drawBehind {
                 // Línea discontinua de la media, a su altura dentro del carril de las barras.
@@ -628,5 +630,17 @@ private fun MonthBars(counts: List<Pair<String, Int>>) {
                 }
             }
         }
+        Text(stringResource(R.string.stats_dashed_avg), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun MonthTile(value: String, label: String, terra: Boolean, modifier: Modifier) {
+    Column(modifier.clip(RoundedCornerShape(9.dp)).background(MaterialTheme.colorScheme.background).padding(vertical = 9.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(value, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 20.sp, maxLines = 1,
+            color = if (terra) Terra else MaterialTheme.colorScheme.onSurface)
+        Text(label, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 8.sp, maxLines = 2,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

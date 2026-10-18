@@ -148,18 +148,21 @@ struct StatsView: View {
 
                     if !p.maxGradePerQuarter.isEmpty {
                         Text("GRADO MÁXIMO POR TRIMESTRE").eyebrow().padding(.top, 6)
-                        HStack {
-                            ForEach(Array(p.maxGradePerQuarter.suffix(6).enumerated()),
-                                    id: \.offset) { _, pair in
-                                Spacer()
-                                VStack(spacing: 2) {
-                                    Circle().fill(Cumbre.terraFill).frame(width: 10, height: 10)
-                                    Text(pair.second! as String).font(Cumbre.serif(14, .bold))
-                                        .foregroundStyle(gradeAccent(pair.second! as String))
-                                    Text((pair.first! as String).components(separatedBy: "-").last ?? "")
-                                        .font(.system(size: 9)).foregroundStyle(Cumbre.ink3)
+                        let quarters = Array(p.maxGradePerQuarter.suffix(6))
+                        HStack(spacing: 6) {
+                            ForEach(Array(quarters.enumerated()), id: \.offset) { _, pair in
+                                let g = pair.second! as String
+                                let c = gradeAccent(g)
+                                let parts = (pair.first! as String).components(separatedBy: "-")
+                                VStack(spacing: 6) {
+                                    Text(g).font(Cumbre.serif(17, .bold)).foregroundStyle(c)
+                                        .lineLimit(1).minimumScaleFactor(0.6)
+                                    Text((parts.last ?? "") + (parts.first.map { " '" + $0.suffix(2) } ?? ""))
+                                        .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
                                 }
-                                Spacer()
+                                .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                .background(c.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(c.opacity(0.5), lineWidth: 1))
                             }
                         }
                     }
@@ -200,25 +203,27 @@ struct StatsView: View {
                         // Tarjeta desplegable: nombre, barra proporcional, nº de ascensos y grado máximo en su color.
                         VStack(spacing: 6) {
                             Button { withAnimation { expandedSchool = isOpen ? nil : school } } label: {
-                                VStack(alignment: .leading, spacing: 7) {
-                                    HStack(spacing: 8) {
-                                        Text(school).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
-                                            .lineLimit(1)
-                                        Spacer(minLength: 4)
-                                        if let g = t.third as? String { gradePill(g) }
-                                        Image(systemName: isOpen ? "chevron.up" : "chevron.down")
-                                            .font(.system(size: 11, weight: .semibold)).foregroundStyle(Cumbre.ink3)
+                                HStack(spacing: 12) {
+                                    VStack(spacing: 0) {
+                                        Text("\(count)").font(Cumbre.serif(26, .bold)).foregroundStyle(Cumbre.terra)
+                                        Text(L("ascensos")).font(Cumbre.mono(8, .bold)).foregroundStyle(Cumbre.ink3)
                                     }
-                                    HStack(spacing: 8) {
+                                    .frame(width: 62)
+                                    VStack(alignment: .leading, spacing: 7) {
+                                        Text(school).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                                            .lineLimit(2).multilineTextAlignment(.leading)
                                         GeometryReader { geo in
                                             ZStack(alignment: .leading) {
                                                 Capsule().fill(Cumbre.paper2)
                                                 Capsule().fill(Cumbre.terra)
                                                     .frame(width: max(8, geo.size.width * CGFloat(count) / CGFloat(maxSchool)))
                                             }
-                                        }.frame(height: 8)
-                                        Text(L("%@ ascensos", count)).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
-                                            .fixedSize()
+                                        }.frame(height: 6)
+                                    }
+                                    VStack(alignment: .trailing, spacing: 6) {
+                                        if let g = t.third as? String { gradePill(g) }
+                                        Image(systemName: isOpen ? "chevron.up" : "chevron.down")
+                                            .font(.system(size: 11, weight: .semibold)).foregroundStyle(Cumbre.ink3)
                                     }
                                 }
                                 .contentShape(Rectangle())
@@ -517,10 +522,13 @@ struct StatsView: View {
             let n = Int(key.components(separatedBy: "-").last ?? "1") ?? 1
             return monthShort[max(0, min(11, n - 1))]
         }
-        return VStack(alignment: .leading, spacing: 6) {
-            Text(L("%@ en 12 meses · media %@ al mes · mejor: %@ (%@)", total, String(format: "%.1f", avg),
-                   bestIndex.map { monthName(counts[$0].first! as String) } ?? "—", bestIndex.map { values[$0] } ?? 0))
-                .font(.system(size: 12)).foregroundStyle(Cumbre.ink)
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                monthTile("\(total)", L("EN 12 MESES"), Cumbre.ink)
+                monthTile(String(format: "%.1f", avg), L("MEDIA AL MES"), Cumbre.ink)
+                monthTile(bestIndex.map { monthName(counts[$0].first! as String) } ?? "—",
+                          L("MEJOR MES") + (bestIndex.map { " · \(values[$0])" } ?? ""), Cumbre.terra)
+            }
             ZStack(alignment: .topLeading) {
                 HStack(alignment: .bottom, spacing: 4) {
                     ForEach(Array(counts.enumerated()), id: \.offset) { i, pair in
@@ -554,7 +562,23 @@ struct StatsView: View {
                 }
                 .allowsHitTesting(false)
             }
+            HStack(spacing: 6) {
+                Rectangle().fill(Cumbre.ink3.opacity(0.6)).frame(width: 14, height: 1)
+                Text(L("línea discontinua = tu media")).font(.system(size: 10)).foregroundStyle(Cumbre.ink3)
+            }
         }
+        .padding(12).background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+    }
+
+    private func monthTile(_ value: String, _ label: String, _ color: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(value).font(Cumbre.serif(20, .bold)).foregroundStyle(color).lineLimit(1).minimumScaleFactor(0.6)
+            Text(label).font(Cumbre.mono(8, .bold)).tracking(0.5).foregroundStyle(Cumbre.ink3)
+                .multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 9)
+        .background(Cumbre.bg, in: RoundedRectangle(cornerRadius: 9))
     }
 }
 
