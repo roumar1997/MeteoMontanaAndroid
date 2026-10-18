@@ -516,7 +516,7 @@ fun SchoolListScreen(
             // Filtros PLEGADOS: una fila con lo aplicado y el chip de días; se despliegan al tocarla.
             item {
                 val schoolCount = (state as? SchoolListUiState.Success)?.schools?.size
-                val summary = filtersSummary(filters, exploreTab, gradeMin, gradeMax, exploreOrientations, exploreSortBy, schoolCount)
+                val countText = schoolCount?.let { stringResource(R.string.schools_count, it) }
                 val letters = remember { CalendarLabels.daysShortMonFirst().map { it.uppercase() } }
                 val dayLabel = dayRangeLabel(
                     selected = selectedDays,
@@ -529,11 +529,12 @@ fun SchoolListScreen(
                     FiltersToggleRow(
                         open = filtersOpen,
                         activeCount = activeFilterCount(filters, exploreTab, gradeMin, gradeMax, exploreOrientations, exploreSortBy),
-                        summary = summary,
+                        countText = countText,
                         dayLabel = dayLabel,
                         daysOpen = daysOpen,
                         onToggleOpen = { filtersOpen = !filtersOpen },
                         onToggleDays = { daysOpen = !daysOpen },
+                        onClear = viewModel::clearAllFilters,
                         modifier = Modifier.guideTarget("schools.filters")
                     )
                     Spacer(Modifier.height(Spacing.sm))

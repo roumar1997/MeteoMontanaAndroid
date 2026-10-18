@@ -620,7 +620,10 @@ struct FilterChips: View {
                     .padding(.horizontal, 12).padding(.vertical, 7)
                     .background(activeCount > 0 ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
                     .overlay(Capsule().stroke(activeCount > 0 ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
-                    Text(summary).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                    if !vm.loading {
+                        Text(L("%@ escuelas", vm.filtered.count)).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
                     Spacer(minLength: 0)
                     Image(systemName: open ? "chevron.up" : "chevron.down")
                         .font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink3)
@@ -628,10 +631,39 @@ struct FilterChips: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            clearButton
             dayChip
         }
         .padding(.horizontal, 12)
         .guideTarget("schools.filters")
+    }
+
+    /// «BORRAR FILTROS»: aparece solo cuando hay algún filtro movido y lo deja todo como de base, sin desplegar nada.
+    @ViewBuilder private var clearButton: some View {
+        if activeCount > 0 {
+            Button { withAnimation(.easeInOut(duration: 0.2)) { resetFilters() } } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "xmark").font(.system(size: 9, weight: .bold))
+                    Text(L("BORRAR")).font(Cumbre.mono(10.5, .bold)).tracking(0.6)
+                }
+                .foregroundStyle(Cumbre.terra)
+                .padding(.horizontal, 10).padding(.vertical, 7)
+                .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    /// Todo como de base: 50 km, cualquier estilo y roca, todas las escuelas, sin grado ni orientación, por cercanía.
+    private func resetFilters() {
+        vm.maxDistanceKm = 50
+        vm.style = nil
+        vm.rock = nil
+        vm.showMode = .all
+        vm.gradeMin = nil
+        vm.gradeMax = nil
+        vm.orientations = []
+        vm.exploreSort = .distance
     }
 
     /// "HOY ⌄" (o el tramo elegido: "VIE–DOM ⌄"): abre los días para comparar un tramo de hasta 5.

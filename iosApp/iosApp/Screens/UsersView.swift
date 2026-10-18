@@ -256,6 +256,7 @@ struct PublicProfileView: View {
     // Moderación: denunciar / bloquear a este usuario (menú superior).
     @ObservedObject private var moderation = ModerationStore.shared
     @State private var showReport = false
+    @State private var showAdminSheet = false   // solo admin: hoja con asistente, aportaciones, confianza y denuncias
     @State private var showModeration = false   // solo admin: consola de denuncias/sanciones de este usuario
     @State private var zoomPhoto = false   // foto de perfil a pantalla completa
 
@@ -272,6 +273,8 @@ struct PublicProfileView: View {
                 }
                 // Título, insignias y viero/bloquero de esta persona.
                 if let profileUid = vm.profile?.uid { RewardsBlock(uid: profileUid) }
+                // Solo admins: un cuadradito bajo el nombre que abre todo lo de gestión de esta persona.
+                if vm.adminAssistant != nil { adminButton }
                 if vm.profile?.locked == true {
                     // Perfil privado: bloqueado para quien no le sigue. Solo
                     // nombre/avatar + botón para solicitar seguir.
@@ -323,7 +326,6 @@ struct PublicProfileView: View {
                     // H: las publicaciones ya NO van inline — se abren desde
                     // la celda PUBLICACIONES (igual que en el perfil propio).
                 }
-                adminAssistantCard
             }
             .frame(maxWidth: .infinity)
             .padding(.top, 24).padding(.horizontal, 24)
@@ -379,6 +381,17 @@ struct PublicProfileView: View {
                 }
             }
         }
+        .sheet(isPresented: $showAdminSheet) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(L("ADMIN · %@", vm.profile?.username.map { "@" + $0 } ?? vm.profile?.displayName ?? "")).eyebrow(Cumbre.terra)
+                    adminAssistantCard
+                }
+                .padding(16)
+            }
+            .background(Cumbre.bg.ignoresSafeArea())
+            .presentationDetents([.medium, .large])
+        }
         .sheet(isPresented: $showModeration, onDismiss: { Task { await vm.refreshModeration() } }) {
             if let u = vm.profile?.uid { UserModerationSheet(uid: u) }
         }
@@ -390,6 +403,24 @@ struct PublicProfileView: View {
             }
         }
         .task { await vm.load(uid: uid); await moderation.loadBlocked() }
+    }
+
+    /// El cuadradito ADMIN bajo el nombre: rojo si esa persona tiene denuncias, avisos o está baneada.
+    private var adminButton: some View {
+        let m = vm.adminModeration
+        let bad = (m?.reportCount ?? 0) > 0 || (m?.warnings ?? 0) > 0 || m?.banned == true
+        return Button { showAdminSheet = true } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "shield.lefthalf.filled").font(.system(size: 12))
+                Text(L("ADMIN")).font(Cumbre.mono(11, .bold)).tracking(1)
+                if bad { Text("!").font(Cumbre.mono(11, .bold)) }
+            }
+            .foregroundStyle(bad ? Color.white : Cumbre.terra)
+            .padding(.horizontal, 12).padding(.vertical, 6)
+            .background(bad ? Cumbre.bad : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(bad ? Cumbre.bad : Cumbre.terra, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 
     /// Solo admins: activar o desactivar el asistente de IA a este usuario. Nadie más ve este bloque.

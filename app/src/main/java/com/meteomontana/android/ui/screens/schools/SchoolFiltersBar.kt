@@ -244,11 +244,12 @@ fun LocationWarning(hasLocation: Boolean, onRequestLocation: () -> Unit) {
 fun FiltersToggleRow(
     open: Boolean,
     activeCount: Int,
-    summary: String,
+    countText: String?,
     dayLabel: String,
     daysOpen: Boolean,
     onToggleOpen: () -> Unit,
     onToggleDays: () -> Unit,
+    onClear: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val active = activeCount > 0
@@ -279,12 +280,27 @@ fun FiltersToggleRow(
                     style = EyebrowTextStyle, color = fg
                 )
             }
-            Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Text(countText.orEmpty(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             Icon(
                 if (open) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
                 contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)
             )
+        }
+        // BORRAR: solo si hay algún filtro movido; lo deja todo como de base sin desplegar nada (Álvaro, 2026-10-18).
+        if (active) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
+                    .clickable(onClick = onClear)
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text("✕", color = MaterialTheme.colorScheme.primary, style = EyebrowTextStyle)
+                Text(stringResource(R.string.schools_clear_short), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary)
+            }
         }
         Row(
             modifier = Modifier

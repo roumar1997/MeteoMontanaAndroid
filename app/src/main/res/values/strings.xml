@@ -1973,4 +1973,5 @@
     <string name="featured_none">Ninguno</string>
     <string name="featured_loading">Cargando tus logros…</string>
     <string name="featured_none_synced">Aún no tienes logros sincronizados. Abre Mis estadísticas una vez y vuelve aquí.</string>
+    <string name="schools_clear_short">BORRAR</string>
 </resources>

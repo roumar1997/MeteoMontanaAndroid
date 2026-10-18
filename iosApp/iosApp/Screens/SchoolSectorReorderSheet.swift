@@ -36,14 +36,7 @@ struct SchoolSectorReorderSheet: View {
                 } else {
                     List {
                         ForEach(Array(ordered.enumerated()), id: \.element.id) { idx, b in
-                            HStack(spacing: 10) {
-                                Text("\(idx + 1)").font(Cumbre.mono(13, .bold)).foregroundStyle(Cumbre.terra)
-                                    .frame(width: 28, alignment: .leading)
-                                Text(b.name.isEmpty ? L("(sin número)") : b.name)
-                                    .font(Cumbre.serif(15, .semibold)).foregroundStyle(Cumbre.ink)
-                                Spacer()
-                                Image(systemName: "line.3.horizontal").foregroundStyle(Cumbre.ink3)
-                            }
+                            row(idx: idx, block: b, previous: idx > 0 ? ordered[idx - 1] : nil)
                         }
                         .onMove { from, to in
                             ordered.move(fromOffsets: from, toOffset: to)
@@ -66,6 +59,52 @@ struct SchoolSectorReorderSheet: View {
                 Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.ink3) } }
         }
         .task { await reload() }
+    }
+
+    /// Una piedra para poder RECONOCERLA al ordenar (Álvaro, 2026-10-18: «solo pone 1, 2, 3, 4, no veo qué piedra es
+    /// cada una»): foto con su primer trazo, número, vías con sus grados, descripción y distancia desde la anterior.
+    private func row(idx: Int, block b: Block, previous: Block?) -> some View {
+        let lines = b.lines
+        let firstDrawn = lines.first { !($0.linePath ?? "").isEmpty }
+        let photo = b.photoPath ?? lines.compactMap { $0.photoPath }.first
+        let grades = lines.compactMap { $0.grade }.filter { !$0.isEmpty }
+        let calc = JournalStatsCalculator.shared
+        let sorted = grades.sorted { calc.gradeRank(grade: $0) < calc.gradeRank(grade: $1) }
+        let range = sorted.isEmpty ? nil : (sorted.first == sorted.last ? sorted.first! : "\(sorted.first!)–\(sorted.last!)")
+        return HStack(spacing: 10) {
+            Text("\(idx + 1)").font(Cumbre.mono(13, .bold)).foregroundStyle(Cumbre.terra).frame(width: 24, alignment: .leading)
+            Group {
+                if let photo, !photo.isEmpty {
+                    MiniTopoThumbnail(photoUrl: photo, points: dedupPoints(TopoParse.points(firstDrawn?.linePath)), grade: firstDrawn?.grade)
+                } else {
+                    Cumbre.rule.opacity(0.25)
+                }
+            }
+            .frame(width: 58, height: 58).clipped().clipShape(RoundedRectangle(cornerRadius: 4))
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.rule, lineWidth: 1))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(b.name.isEmpty ? L("(sin número)") : b.name).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
+                if lines.isEmpty {
+                    Text(L("Sin vías dibujadas")).font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                } else {
+                    Text(lines.prefix(3).map { l in l.grade.map { "\(l.name) \($0)" } ?? l.name }.joined(separator: " · ")
+                         + (lines.count > 3 ? " …" : ""))
+                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink2).lineLimit(2)
+                    Text(L("%@ vías", lines.count) + (range.map { " · \($0)" } ?? ""))
+                        .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
+                }
+                if let d = b.descriptionText, !d.isEmpty {
+                    Text(d).font(.system(size: 11)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                }
+                if let p = previous {
+                    let m = Geo.shared.haversineKm(lat1: p.lat, lon1: p.lon, lat2: b.lat, lon2: b.lon) * 1000
+                    Text(L("↕ %@ m desde la anterior", Int(m.rounded()))).font(Cumbre.mono(10)).foregroundStyle(Cumbre.terra)
+                }
+            }
+            Spacer(minLength: 4)
+            Image(systemName: "line.3.horizontal").foregroundStyle(Cumbre.ink3)
+        }
+        .padding(.vertical, 4)
     }
 
     private var sectorPicker: some View {

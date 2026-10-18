@@ -26,12 +26,47 @@ struct AdminHealthTab: View {
                         Text(L("Ningún error en las últimas 24 horas.")).font(.system(size: 14)).foregroundStyle(Cumbre.ok)
                     }
                     ForEach(h.topErrors, id: \.endpoint) { e in
-                        HStack {
-                            Text(e.endpoint).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink).lineLimit(2)
-                            Spacer()
-                            Text("\(e.count)").font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.bad)
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack {
+                                Text(e.endpoint).font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink).lineLimit(2)
+                                Spacer()
+                                Text("\(e.count)").font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.bad)
+                            }
+                            // Qué falló la última vez (clase de la excepción y mensaje) y cuándo.
+                            if let why = e.lastSummary, !why.isEmpty {
+                                Text(why).font(.system(size: 12)).foregroundStyle(Cumbre.bad).lineLimit(4)
+                            }
+                            if let at = e.last { Text(L("Último: %@", clock(at))).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3) }
                         }
                         Divider().overlay(Cumbre.rule)
+                    }
+
+                    if !h.recentFailures.isEmpty {
+                        Text(L("ÚLTIMOS FALLOS")).eyebrow().padding(.top, 6)
+                        ForEach(Array(h.recentFailures.enumerated()), id: \.offset) { _, f in
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack {
+                                    Text("\(f.status) · \(f.endpoint)").font(Cumbre.mono(10.5, .bold)).foregroundStyle(Cumbre.ink).lineLimit(2)
+                                    Spacer()
+                                    Text(clock(f.at)).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                                }
+                                Text(f.summary).font(.system(size: 12)).foregroundStyle(Cumbre.ink2).lineLimit(4)
+                            }
+                            Divider().overlay(Cumbre.rule)
+                        }
+                    }
+
+                    if !h.slowest.isEmpty {
+                        Text(L("ENDPOINTS MÁS LENTOS")).eyebrow().padding(.top, 6)
+                        ForEach(h.slowest, id: \.endpoint) { l in
+                            HStack {
+                                Text(l.endpoint).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink).lineLimit(2)
+                                Spacer()
+                                Text(L("%@ ms de media · máx %@ · %@ llamadas", l.avgMs, l.maxMs, l.calls))
+                                    .font(Cumbre.mono(10)).foregroundStyle(l.avgMs > 1500 ? Cumbre.warn : Cumbre.ink2)
+                            }
+                            Divider().overlay(Cumbre.rule)
+                        }
                     }
                     Text(L("Se reinicia con cada despliegue. Cierres de las apps: Crashlytics."))
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
@@ -59,6 +94,17 @@ struct AdminHealthTab: View {
         } else {
             failed = true
         }
+    }
+
+    /// «d MMM HH:mm» de un instante ISO del servidor (UTC), en la hora del móvil.
+    private func clock(_ iso: String) -> String {
+        let p = ISO8601DateFormatter()
+        p.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let d = p.date(from: iso) ?? ISO8601DateFormatter().date(from: iso) else { return iso }
+        let f = DateFormatter()
+        f.dateFormat = "d MMM HH:mm"
+        f.locale = LanguageManager.shared.locale
+        return f.string(from: d)
     }
 
     private func assistantColor(_ h: AdminHealth) -> Color {

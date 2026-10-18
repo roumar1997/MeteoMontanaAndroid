@@ -148,7 +148,7 @@ fun InboxDto.toDomain() = Inbox(unreadCount, items.map { it.toDomain() })
 // Admin
 fun AdminStatsDto.toDomain() = AdminStats(
     totalUsers, totalAdmins, totalSchools, totalNotes, submissionsPending, submissionsApproved, submissionsRejected,
-    dailyActiveUsers, weeklyActiveUsers, monthlyActiveUsers, dailyOpensTotal
+    dailyActiveUsers, weeklyActiveUsers, monthlyActiveUsers, dailyOpensTotal, quarterlyActiveUsers
 )
 fun AdminLogDto.toDomain() = AdminLog(id, actorUid, action, targetType, targetId, details, createdAt)
 fun AdminPushResponse.toDomain() = AdminPushResult(sent, recipients)

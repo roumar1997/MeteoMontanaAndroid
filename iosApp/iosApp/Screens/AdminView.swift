@@ -132,50 +132,6 @@ struct AdminView: View {
     /// nil = el menú principal (lista vertical); una sección = su contenido con un «‹ ADMIN» para volver.
     @State private var tab: AdminTab? = nil
 
-    /// Secciones del menú, agrupadas por para qué se usan (Álvaro, 2026-10-18: «todo de seguido en un vertical,
-    /// sin la barra de arriba que se desliza»).
-    private var menuGroups: [(title: String, items: [(tab: AdminTab, badge: Int?)])] {
-        [
-            ("REVISAR", [(.propuestas, vm.submissions.count + vm.contributions.count),
-                         (.denuncias, nil), (.sugerencias, nil)]),
-            ("CONTENIDO", [(.gestionar, nil), (.historial, nil), (.aportaciones, nil)]),
-            ("SERVIDOR", [(.salud, nil), (.stats, nil), (.actividad, nil)]),
-            ("COMUNICAR", [(.push, nil)]),
-        ]
-    }
-
-    private var menu: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(menuGroups, id: \.title) { group in
-                    Text(group.title).font(Cumbre.mono(10, .bold)).tracking(1.4).foregroundStyle(Cumbre.terra)
-                        .padding(.horizontal, 16).padding(.top, 22).padding(.bottom, 8)
-                    ForEach(group.items, id: \.tab) { item in
-                        Button { tab = item.tab } label: {
-                            HStack(spacing: 10) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.tab.title).font(.system(size: 16, weight: .semibold)).foregroundStyle(Cumbre.ink)
-                                    Text(item.tab.hint).font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                                }
-                                Spacer()
-                                if let n = item.badge, n > 0 {
-                                    Text("\(n)").font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
-                                        .padding(.horizontal, 8).padding(.vertical, 3)
-                                        .background(Cumbre.terraFill, in: Capsule())
-                                }
-                                Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                            }
-                            .padding(.horizontal, 16).padding(.vertical, 12).contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        Divider().overlay(Cumbre.rule).padding(.leading, 16)
-                    }
-                }
-            }
-            .padding(.bottom, 30)
-        }
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             if let current = tab {
@@ -192,7 +148,7 @@ struct AdminView: View {
                 Divider().overlay(Cumbre.rule)
             }
             switch tab {
-            case .none: menu
+            case .none: AdminHome(vm: vm, onOpen: { tab = $0 })
             case .some(let t): section(t)
             }
         }

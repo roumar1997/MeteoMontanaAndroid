@@ -1914,4 +1914,5 @@
     <string name="featured_none">None</string>
     <string name="featured_loading">Loading your achievements…</string>
     <string name="featured_none_synced">You have no synced achievements yet. Open My statistics once and come back.</string>
+    <string name="schools_clear_short">CLEAR</string>
 </resources>

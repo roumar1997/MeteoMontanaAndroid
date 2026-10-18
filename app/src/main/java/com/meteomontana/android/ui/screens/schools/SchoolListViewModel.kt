@@ -252,6 +252,19 @@ class SchoolListViewModel @Inject constructor(
         // "Más repetidos" cambia lo que se pide al servidor; los otros dos órdenes se resuelven en local.
         dispatchExplore()
     }
+    /**
+     * Todos los filtros como de base (50 km, cualquier estilo y roca, todas las escuelas, sin grado ni orientación, por
+     * mejor score / cercanía). Lo usa el botón BORRAR de la fila de filtros. Conserva lo que se haya escrito en el buscador.
+     */
+    fun clearAllFilters() {
+        _filters.update { SchoolFilters(query = it.query) }
+        _gradeMin.value = null; _gradeMax.value = null; _orientations.value = emptySet()
+        _exploreSortBy.value = ExploreSortBy.Distance
+        explorePrefs.edit().remove("grade_min").remove("grade_max").apply()
+        load()
+        dispatchExplore()
+    }
+
     fun toggleExploreGrouped() { _exploreGrouped.value = !_exploreGrouped.value }
 
     /** Quita grado/orientación (sin salir de la pestaña Vías/Bloques) — lo usa

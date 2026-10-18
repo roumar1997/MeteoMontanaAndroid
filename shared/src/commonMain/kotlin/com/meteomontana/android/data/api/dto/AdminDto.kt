@@ -14,7 +14,8 @@ data class AdminStatsDto(
     val dailyActiveUsers: Long = 0,
     val weeklyActiveUsers: Long = 0,
     val monthlyActiveUsers: Long = 0,
-    val dailyOpensTotal: Long = 0
+    val dailyOpensTotal: Long = 0,
+    val quarterlyActiveUsers: Long = 0
 )
 
 /** Un usuario que abrió la app un día concreto (Álvaro, 2026-09-30). */

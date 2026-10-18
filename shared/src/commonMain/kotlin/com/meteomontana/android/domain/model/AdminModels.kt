@@ -14,7 +14,9 @@ data class AdminStats(
     val weeklyActiveUsers: Long = 0,
     val monthlyActiveUsers: Long = 0,
     // Aperturas TOTALES de hoy (cuenta repetidas: quien entra 5 veces suma 5).
-    val dailyOpensTotal: Long = 0
+    val dailyOpensTotal: Long = 0,
+    // Usuarios distintos de los últimos 90 días.
+    val quarterlyActiveUsers: Long = 0
 )
 
 /** Un usuario que abrió la app un día concreto, y cuántas veces ese día

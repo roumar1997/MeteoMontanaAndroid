@@ -1621,3 +1621,12 @@
 "Ninguno" = "None";
 "Cargando tus logros…" = "Loading your achievements…";
 "Aún no tienes logros sincronizados. Abre Mis estadísticas una vez y vuelve aquí." = "You have no synced achievements yet. Open My statistics once and come back.";
+"Último: %@" = "Last: %@";
+"ÚLTIMOS FALLOS" = "LATEST FAILURES";
+"ENDPOINTS MÁS LENTOS" = "SLOWEST ENDPOINTS";
+"%@ ms de media · máx %@ · %@ llamadas" = "%@ ms avg · max %@ · %@ calls";
+"ADMIN · %@" = "ADMIN · %@";
+"ADMIN" = "ADMIN";
+"Sin vías dibujadas" = "No routes drawn";
+"↕ %@ m desde la anterior" = "↕ %@ m from the previous one";
+

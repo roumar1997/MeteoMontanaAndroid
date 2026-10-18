@@ -6,7 +6,13 @@ import io.ktor.client.request.get
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class EndpointErrorsDto(val endpoint: String, val count: Int, val last: String? = null)
+data class EndpointErrorsDto(val endpoint: String, val count: Int, val last: String? = null, val lastSummary: String? = null)
+
+@Serializable
+data class FailureDto(val endpoint: String, val status: Int = 500, val summary: String = "", val at: String = "")
+
+@Serializable
+data class LatencyDto(val endpoint: String, val calls: Long = 0, val avgMs: Long = 0, val maxMs: Long = 0)
 
 @Serializable
 data class AdminHealthDto(
@@ -18,6 +24,8 @@ data class AdminHealthDto(
     val assistantDailyLimit: Int = -1,
     val pendingContributions: Int = -1,
     val checkedAt: String = "",
+    val recentFailures: List<FailureDto> = emptyList(),
+    val slowest: List<LatencyDto> = emptyList(),
 )
 
 class KtorAdminHealthApi(private val client: HttpClient) {
