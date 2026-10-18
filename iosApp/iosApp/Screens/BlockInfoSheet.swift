@@ -261,8 +261,15 @@ struct BlockInfoSheet: View {
                                                 Task { await community.loadGrade(lineId: l.id) }
                                             }
                                         }
-                                        Text(l.name.isEmpty ? L("Vía %@", idx + 1) : l.displayName)
-                                            .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                                        // Nombre corto junto al grado y, debajo, la variante/descripción en pequeño: así la fila
+                                        // no cambia de alto y las estrellas no se mueven (Álvaro, 2026-10-18).
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(l.name.isEmpty ? L("Vía %@", idx + 1) : l.name)
+                                                .font(.system(size: 14)).foregroundStyle(Cumbre.ink).lineLimit(2)
+                                            if let v = l.variant, !v.trimmingCharacters(in: .whitespaces).isEmpty {
+                                                Text(v).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(2)
+                                            }
+                                        }
                                         Spacer()
                                         if let st = l.startType, !st.isEmpty {
                                             Text(st).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)

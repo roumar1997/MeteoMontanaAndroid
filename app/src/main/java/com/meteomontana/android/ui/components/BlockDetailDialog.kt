@@ -674,12 +674,22 @@ fun BlockDetailDialog(
                             // sea y las acciones de arriba quedan siempre accesibles.
                             if (line.name.isNotBlank()) {
                                 Text(
-                                    line.displayName,
+                                    line.name,
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Medium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.padding(start = 28.dp, bottom = 2.dp)
                                 )
+                                // La variante/descripción, debajo y en pequeño (la fila no cambia de alto).
+                                if (!line.variant.isNullOrBlank()) {
+                                    Text(
+                                        line.variant!!,
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 2,
+                                        modifier = Modifier.padding(start = 28.dp, bottom = 2.dp)
+                                    )
+                                }
                             }
                             // Qué hace la pastilla del grado: cuántos votos hay y que se puede votar.
                             if (!isProposal && line.id.isNotBlank() && !lineGrade.isNullOrEmpty()) {
