@@ -100,6 +100,8 @@ struct GradeChip: View {
             .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
         }
         .buttonStyle(.plain)
+        .fixedSize()
+        .layoutPriority(1)
         .accessibilityLabel(L("Grado %@. Ver y votar", grade))
     }
 
@@ -107,6 +109,7 @@ struct GradeChip: View {
         let dark = GradeColor.chipStyle(g).dark
         return Text(g)
             .font(Cumbre.mono(12, .bold))
+            .lineLimit(1).fixedSize(horizontal: true, vertical: false)   // nunca «…»: el nombre largo de al lado no lo aprieta
             .foregroundStyle(dark ? Color.black : Color.white)
             .padding(.leading, 10).padding(.trailing, 8)
             .frame(height: 30)
