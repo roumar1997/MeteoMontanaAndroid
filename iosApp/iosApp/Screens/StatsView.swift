@@ -36,6 +36,10 @@ struct StatsView: View {
                 if store.isOwn && store.goalLoaded {
                     GoalSection(goal: store.goal, year: store.currentYear) { showGoalSheet = true }
                 }
+                // ── Logros: plegados bajo un botón, arriba (de todo el diario, no del filtro) ──
+                if !store.loading {
+                    AchievementsSection(items: store.achievements, rarity: store.rarity)
+                }
                 // ── Filtros ─────────────────────────────────────────────────
                 HStack(spacing: 8) {
                     filterChip(L("BLOQUE"), selected: store.discipline == "BOULDER") {
@@ -200,10 +204,6 @@ struct StatsView: View {
                     infoCard(L("Marca vías como hechas y aquí verás tu pirámide, tu racha y tu progresión."))
                 }
 
-                // ── Logros (de todo el diario, no del filtro) ───────────────
-                if !store.loading {
-                    AchievementsSection(items: store.achievements).padding(.top, 8)
-                }
             }
             .padding(16)
         }
@@ -479,6 +479,9 @@ final class StatsStore: ObservableObject {
     @Published var styleShare: StyleShare? = nil
     @Published var yearComparison: YearComparison? = nil
     @Published var achievements: [Achievement] = []
+    /// Cuánta gente tiene cada logro (nil = aún no se sabe o sin red).
+    @Published var rarity: AchievementRarity? = nil
+    private var lastSyncedIds: Set<String> = []
     @Published private(set) var isOwn = true
 
     private var entries: [JournalSession] = []
@@ -496,6 +499,8 @@ final class StatsStore: ObservableObject {
         }
         loading = false
         recompute()
+        // Cuánta gente tiene cada logro: si falla, simplemente no se enseña el porcentaje.
+        rarity = try? await container.getAchievementRarity.invoke()
         // Región y país de cada escuela (logros de explorar). Si falla, esos logros quedan sin conseguir.
         if let schools = try? await container.getSchools.invoke(region: nil, style: nil, rockType: nil,
                                                                  lat: nil, lon: nil, radioKm: nil) {
@@ -599,5 +604,19 @@ final class StatsStore: ObservableObject {
         yearComparison = year.map { goals.compareYears(entries: calc.filter(entries: entries, discipline: discipline, year: nil),
                                                        year: $0) }
         achievements = AchievementsCalculator.shared.compute(all: entries, places: places, today: today)
+        syncAchievementsIfChanged()
+    }
+
+    /// Solo en las mías y solo si cambió el conjunto de logros desde la última vez. Silencioso.
+    private func syncAchievementsIfChanged() {
+        guard isOwn, !entries.isEmpty else { return }
+        let unlocked = achievements.filter { $0.unlocked }
+        let ids = Set(unlocked.map { $0.id })
+        guard ids != lastSyncedIds else { return }
+        lastSyncedIds = ids
+        Task {
+            do { try await AppDependencies.shared.container.syncMyAchievements.invoke(achievements: unlocked) }
+            catch { lastSyncedIds = [] }
+        }
     }
 }

@@ -247,44 +247,121 @@ struct StyleAndYearSection: View {
     }
 }
 
-/// LOGROS: conseguidos en color (con la fecha) y los que faltan en gris.
+/// LOGROS, plegados bajo un botón («LOGROS 12 / 75 ▾»): al desplegar salen por secciones; los conseguidos primero, con la
+/// fecha, y todos con su dificultad. Si hay datos suficientes, también «lo tiene el N % de los escaladores».
 struct AchievementsSection: View {
     let items: [Achievement]
+    var rarity: AchievementRarity? = nil
+    @State private var open = false
+
+    /// Con menos escaladores sincronizados que esto el porcentaje no dice nada: se enseña la dificultad de diseño.
+    private let minUsersForPercent = 5
+
+    private let groups: [AchievementGroup] = [.grades, .inADay, .totals, .volume, .style, .explore, .consistency, .projects]
 
     var body: some View {
         if !items.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text(L("LOGROS")).eyebrow()
-                    Spacer()
-                    Text("\(items.filter(\.unlocked).count) / \(items.count)").font(Cumbre.mono(12, .bold))
-                        .foregroundStyle(Cumbre.terra)
-                }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 6)], alignment: .leading, spacing: 6) {
-                    ForEach(items.sorted { $0.unlocked && !$1.unlocked }, id: \.id) { a in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text((a.unlocked ? "★ " : "☆ ") + achievementText(a))
-                                .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Cumbre.ink)
-                                .fixedSize(horizontal: false, vertical: true)
-                            if a.unlocked, let d = a.unlockedOn {
-                                Text(d).font(Cumbre.mono(9.5)).foregroundStyle(Cumbre.ink3)
+            VStack(alignment: .leading, spacing: 8) {
+                Button { withAnimation { open.toggle() } } label: {
+                    HStack {
+                        Text(L("LOGROS")).eyebrow(Cumbre.terra)
+                        Spacer()
+                        Text("\(items.filter(\.unlocked).count) / \(items.count)").font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.ink)
+                        Image(systemName: open ? "chevron.up" : "chevron.down").font(.system(size: 12)).foregroundStyle(Cumbre.terra)
+                    }.contentShape(Rectangle())
+                }.buttonStyle(.plain)
+                if open {
+                    ForEach(groups, id: \.self) { g in
+                        let inGroup = items.filter { $0.group == g }
+                        if !inGroup.isEmpty {
+                            Text("\(groupName(g).uppercased())  \(inGroup.filter(\.unlocked).count)/\(inGroup.count)")
+                                .font(Cumbre.mono(9, .bold)).tracking(1).foregroundStyle(Cumbre.ink3).padding(.top, 6)
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 6)], alignment: .leading, spacing: 6) {
+                                ForEach(inGroup.sorted {
+                                    $0.unlocked != $1.unlocked ? $0.unlocked : tierRank($0.tier) < tierRank($1.tier)
+                                }, id: \.id) { chip($0) }
                             }
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 10).padding(.vertical, 6)
-                        .background(a.unlocked ? Cumbre.terra.opacity(0.12) : Cumbre.paper, in: RoundedRectangle(cornerRadius: 6))
-                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(a.unlocked ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-                        .opacity(a.unlocked ? 1 : 0.55)
                     }
                 }
             }
+            .modifier(StatsCard())
+        }
+    }
+
+    private func chip(_ a: Achievement) -> some View {
+        let color = tierColor(a.tier)
+        let enough = (rarity?.totalUsers ?? 0) >= Int32(minUsersForPercent)
+        let pct = enough ? Int(rarity?.percentById[a.id]?.intValue ?? 0) : 0
+        return VStack(alignment: .leading, spacing: 2) {
+            Text((a.unlocked ? "★ " : "☆ ") + achievementText(a))
+                .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(tierName(a.tier).uppercased() + (enough ? " · " + (pct < 1 ? L("menos del 1% de escaladores") : L("%@% de escaladores", pct)) : ""))
+                .font(Cumbre.mono(9, .bold)).foregroundStyle(color)
+            if a.unlocked, let d = a.unlockedOn {
+                Text(d).font(Cumbre.mono(9.5)).foregroundStyle(Cumbre.ink3)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10).padding(.vertical, 6)
+        .background(a.unlocked ? color.opacity(0.12) : Cumbre.paper, in: RoundedRectangle(cornerRadius: 6))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(a.unlocked ? color : Cumbre.rule, lineWidth: 1))
+        .opacity(a.unlocked ? 1 : 0.6)
+    }
+
+    private func groupName(_ g: AchievementGroup) -> String {
+        switch g {
+        case .grades: return L("Primer grado")
+        case .inADay: return L("En un día")
+        case .totals: return L("En total")
+        case .volume: return L("Volumen")
+        case .style: return L("Estilo")
+        case .explore: return L("Explorar")
+        case .consistency: return L("Constancia")
+        default: return L("Proyectos")
         }
     }
 }
 
+/// Color de cada dificultad: gris, verde, azul, morado y dorado.
+func tierColor(_ t: AchievementTier) -> Color {
+    switch t {
+    case .common: return Cumbre.ink2
+    case .uncommon: return Cumbre.ok
+    case .rare: return Color(red: 0.15, green: 0.39, blue: 0.78)
+    case .epic: return Color(red: 0.55, green: 0.36, blue: 0.96)
+    default: return Cumbre.warn
+    }
+}
+
+/// Orden de dificultad (el enum de Kotlin llega a Swift sin `ordinal`).
+func tierRank(_ t: AchievementTier) -> Int {
+    switch t {
+    case .common: return 0
+    case .uncommon: return 1
+    case .rare: return 2
+    case .epic: return 3
+    default: return 4
+    }
+}
+
+func tierName(_ t: AchievementTier) -> String {
+    switch t {
+    case .common: return L("Común")
+    case .uncommon: return L("Poco común")
+    case .rare: return L("Raro")
+    case .epic: return L("Épico")
+    default: return L("Legendario")
+    }
+}
+
 func achievementText(_ a: Achievement) -> String {
+    let route = a.discipline == "ROUTE"
     switch a.kind {
-    case .grade: return a.discipline == "ROUTE" ? L("Primer %@ de vía", a.param) : L("Primer %@ de bloque", a.param)
+    case .grade: return route ? L("Primer %@ de vía", a.param) : L("Primer %@ de bloque", a.param)
+    case .dayGrade: return route ? L("%@ vías de %@ o más en un día", a.count, a.param) : L("%@ bloques de %@ o más en un día", a.count, a.param)
+    case .totalGrade: return route ? L("%@ vías de %@ o más", a.count, a.param) : L("%@ bloques de %@ o más", a.count, a.param)
     case .volume: return L("%@ ascensiones", a.param)
     case .flashes: return L("%@ al flash", a.param)
     case .onsights: return L("%@ a vista", a.param)

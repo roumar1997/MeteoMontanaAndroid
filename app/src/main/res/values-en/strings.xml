@@ -1891,4 +1891,23 @@
     <string name="climber_prompt_body">Do you mostly climb routes or boulders? It changes your profile Cumbri. Optional, and you can change it anytime by tapping your title.</string>
     <string name="rewards_title_pick">YOUR TITLE</string>
     <string name="rewards_title_hint">You unlock titles with approved contributions (you have %1$d).</string>
+    <string name="tier_common">Common</string>
+    <string name="tier_uncommon">Uncommon</string>
+    <string name="tier_rare">Rare</string>
+    <string name="tier_epic">Epic</string>
+    <string name="tier_legendary">Legendary</string>
+    <string name="ach_pct">%1$d%% of climbers</string>
+    <string name="ach_pct_lt1">under 1%% of climbers</string>
+    <string name="ach_group_grades">First grade</string>
+    <string name="ach_group_day">In one day</string>
+    <string name="ach_group_totals">In total</string>
+    <string name="ach_group_volume">Volume</string>
+    <string name="ach_group_style">Style</string>
+    <string name="ach_group_explore">Explore</string>
+    <string name="ach_group_consistency">Consistency</string>
+    <string name="ach_group_projects">Projects</string>
+    <string name="ach_day_boulder">%1$d boulders of %2$s or harder in a day</string>
+    <string name="ach_day_route">%1$d routes of %2$s or harder in a day</string>
+    <string name="ach_total_boulder">%1$d boulders of %2$s or harder</string>
+    <string name="ach_total_route">%1$d routes of %2$s or harder</string>
 </resources>

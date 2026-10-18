@@ -1587,3 +1587,27 @@
 "¿Escalas sobre todo vías o bloque? Cambia tu Cumbri del perfil. Es opcional y puedes cambiarlo cuando quieras tocando tu título." = "Do you mostly climb routes or boulders? It changes your profile Cumbri. Optional, and you can change it anytime by tapping your title.";
 "TU TÍTULO" = "YOUR TITLE";
 "Desbloqueas títulos con tus aportaciones aprobadas (llevas %@)." = "You unlock titles with approved contributions (you have %@).";
+
+/* Admin: denuncias en el perfil */
+"DENUNCIAS: %@ · AVISOS: %@" = "REPORTS: %@ · WARNINGS: %@";
+"BANEADO" = "BANNED";
+"VER / ACTUAR" = "VIEW / ACT";
+
+/* Logros: dificultad, secciones y nuevos */
+"Común" = "Common";
+"Poco común" = "Uncommon";
+"Raro" = "Rare";
+"Épico" = "Epic";
+"Legendario" = "Legendary";
+"%@% de escaladores" = "%@% of climbers";
+"menos del 1% de escaladores" = "under 1% of climbers";
+"Primer grado" = "First grade";
+"En un día" = "In one day";
+"En total" = "In total";
+"Volumen" = "Volume";
+"Estilo" = "Style";
+"Constancia" = "Consistency";
+"%@ vías de %@ o más en un día" = "%@ routes of %@ or harder in a day";
+"%@ bloques de %@ o más en un día" = "%@ boulders of %@ or harder in a day";
+"%@ vías de %@ o más" = "%@ routes of %@ or harder";
+"%@ bloques de %@ o más" = "%@ boulders of %@ or harder";

@@ -689,10 +689,15 @@ struct FilterChips: View {
                 section(L("GRADO")) { gradeRangeSection }
                 section(L("ORIENTACIÓN")) { orientationChips }
             }
-            section(L("ESTILO")) {
-                chipRow([String?.none] + vm.styles.map { Optional($0) }, id: { $0 ?? "all" },
-                        isSel: { $0 == vm.style },
-                        label: { $0.map(styleLabel) ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.style = $0 }
+            // En VÍAS/BLOQUES se ve todo: el filtro Vía/Bloque sobraba (Álvaro, 2026-10-18). Solo en ESCUELAS.
+            if vm.exploreTab != .blocks {
+                section(L("ESTILO")) {
+                    chipRow([String?.none] + vm.styles.map { Optional($0) }, id: { $0 ?? "all" },
+                            isSel: { $0 == vm.style },
+                            label: { $0.map(styleLabel) ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.style = $0 }
+                }
+            } else {
+                Color.clear.frame(height: 0).onAppear { if vm.style != nil { vm.style = nil } }
             }
             section(L("TIPO DE ROCA")) {
                 chipRow([String?.none] + vm.rocks.map { Optional($0) }, id: { $0 ?? "all" },

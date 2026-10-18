@@ -343,6 +343,12 @@ class IosDependencyContainer(
     val getMyRewards = com.meteomontana.android.domain.usecase.profile.GetMyRewardsUseCase(rewardsRepository)
     val updateMyRewards = com.meteomontana.android.domain.usecase.profile.UpdateMyRewardsUseCase(rewardsRepository)
 
+    // Logros: sincronizar los míos y cuánta gente tiene cada uno.
+    private val achievementsRepository = com.meteomontana.android.data.repository.KtorAchievementsRepository(
+        com.meteomontana.android.data.api.KtorAchievementsApi(httpClient))
+    val syncMyAchievements = com.meteomontana.android.domain.usecase.journal.SyncMyAchievementsUseCase(achievementsRepository)
+    val getAchievementRarity = com.meteomontana.android.domain.usecase.journal.GetAchievementRarityUseCase(achievementsRepository)
+
     // Objetivo del año (pantalla de Estadísticas).
     private val goalRepository = com.meteomontana.android.data.repository.KtorGoalRepository(
         com.meteomontana.android.data.api.KtorGoalApi(httpClient))

@@ -44,7 +44,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.usecase.journal.Achievement
+import com.meteomontana.android.domain.repository.AchievementRarity
+import com.meteomontana.android.domain.usecase.journal.AchievementGroup
 import com.meteomontana.android.domain.usecase.journal.AchievementKind
+import com.meteomontana.android.domain.usecase.journal.AchievementTier
 import com.meteomontana.android.domain.usecase.journal.GoalProgress
 import com.meteomontana.android.domain.usecase.journal.StyleShare
 import com.meteomontana.android.domain.usecase.journal.YearComparison
@@ -249,34 +252,94 @@ private fun SmallMetric(label: String, value: String, modifier: Modifier) {
     }
 }
 
-/** LOGROS: conseguidos en color (con la fecha) y los que faltan en gris. */
+/** Color de cada dificultad: gris, verde, azul, morado y dorado. */
+@Composable
+fun tierColor(tier: AchievementTier): Color = when (tier) {
+    AchievementTier.COMMON -> MaterialTheme.colorScheme.onSurfaceVariant
+    AchievementTier.UNCOMMON -> Ok
+    AchievementTier.RARE -> com.meteomontana.android.ui.theme.Rain
+    AchievementTier.EPIC -> Color(0xFF8B5CF6)
+    AchievementTier.LEGENDARY -> com.meteomontana.android.ui.theme.Warn
+}
+
+@Composable
+private fun tierName(tier: AchievementTier): String = stringResource(when (tier) {
+    AchievementTier.COMMON -> R.string.tier_common
+    AchievementTier.UNCOMMON -> R.string.tier_uncommon
+    AchievementTier.RARE -> R.string.tier_rare
+    AchievementTier.EPIC -> R.string.tier_epic
+    AchievementTier.LEGENDARY -> R.string.tier_legendary
+})
+
+@Composable
+private fun groupName(group: AchievementGroup): String = stringResource(when (group) {
+    AchievementGroup.GRADES -> R.string.ach_group_grades
+    AchievementGroup.IN_A_DAY -> R.string.ach_group_day
+    AchievementGroup.TOTALS -> R.string.ach_group_totals
+    AchievementGroup.VOLUME -> R.string.ach_group_volume
+    AchievementGroup.STYLE -> R.string.ach_group_style
+    AchievementGroup.EXPLORE -> R.string.ach_group_explore
+    AchievementGroup.CONSISTENCY -> R.string.ach_group_consistency
+    AchievementGroup.PROJECTS -> R.string.ach_group_projects
+})
+
+/** Con menos escaladores sincronizados que esto el porcentaje no dice nada: se enseña la dificultad de diseño. */
+private const val MIN_USERS_FOR_PERCENT = 5
+
+/**
+ * LOGROS, plegados bajo un botón («LOGROS 12 / 75 ▾»): al desplegar salen por secciones; los conseguidos primero, con
+ * la fecha, y todos con su dificultad. Si hay datos suficientes, también «lo tiene el N % de los escaladores».
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun AchievementsSection(items: List<Achievement>) {
+fun AchievementsSection(items: List<Achievement>, rarity: AchievementRarity? = null) {
     if (items.isEmpty()) return
+    var open by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     val got = items.count { it.unlocked }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(stringResource(R.string.achievements_title), style = EyebrowTextStyle,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-        Text("$got / ${items.size}", fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Terra)
-    }
-    Spacer(Modifier.height(Spacing.xs))
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        items.sortedByDescending { it.unlocked }.forEach { a ->
-            val text = achievementText(a)
-            Column(
-                Modifier.clip(RoundedCornerShape(6.dp))
-                    .background(if (a.unlocked) Terra.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface)
-                    .border(1.dp, if (a.unlocked) Terra else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(6.dp))
-                    .alpha(if (a.unlocked) 1f else 0.55f)
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-            ) {
-                Text((if (a.unlocked) "★ " else "☆ ") + text, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface)
-                a.unlockedOn?.takeIf { a.unlocked }?.let {
-                    Text(it, fontFamily = Mono, fontSize = 9.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(cardModifier()) {
+        Row(Modifier.fillMaxWidth().clickable { open = !open }.padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.achievements_title), style = EyebrowTextStyle, color = Terra, modifier = Modifier.weight(1f))
+            Text("$got / ${items.size}", fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurface)
+            Text(if (open) "  ▴" else "  ▾", color = Terra, fontSize = 14.sp)
+        }
+        if (open) {
+            Spacer(Modifier.height(Spacing.sm))
+            AchievementGroup.entries.forEach { group ->
+                val inGroup = items.filter { it.group == group }
+                if (inGroup.isEmpty()) return@forEach
+                Text("${groupName(group).uppercase()}  ${inGroup.count { it.unlocked }}/${inGroup.size}",
+                    style = EyebrowTextStyle.copy(fontSize = 9.sp), color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = Spacing.sm, bottom = 6.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    inGroup.sortedWith(compareByDescending<Achievement> { it.unlocked }.thenBy { it.tier.ordinal }).forEach { a ->
+                        AchievementChip(a, rarity)
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AchievementChip(a: Achievement, rarity: AchievementRarity?) {
+    val color = tierColor(a.tier)
+    val pct = rarity?.takeIf { it.totalUsers >= MIN_USERS_FOR_PERCENT }?.percentById?.get(a.id) ?: 0
+    val havePct = rarity != null && rarity.totalUsers >= MIN_USERS_FOR_PERCENT
+    Column(
+        Modifier.clip(RoundedCornerShape(6.dp))
+            .background(if (a.unlocked) color.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface)
+            .border(1.dp, if (a.unlocked) color else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(6.dp))
+            .alpha(if (a.unlocked) 1f else 0.6f)
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Text((if (a.unlocked) "★ " else "☆ ") + achievementText(a), fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface)
+        Text(
+            tierName(a.tier).uppercase() + if (havePct) " · " + (if (pct < 1) stringResource(R.string.ach_pct_lt1) else stringResource(R.string.ach_pct, pct)) else "",
+            fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 9.sp, color = color)
+        a.unlockedOn?.takeIf { a.unlocked }?.let {
+            Text(it, fontFamily = Mono, fontSize = 9.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -285,6 +348,10 @@ fun AchievementsSection(items: List<Achievement>) {
 fun achievementText(a: Achievement): String = when (a.kind) {
     AchievementKind.GRADE -> stringResource(
         if (a.discipline == "ROUTE") R.string.ach_grade_route else R.string.ach_grade_boulder, a.param)
+    AchievementKind.DAY_GRADE -> stringResource(
+        if (a.discipline == "ROUTE") R.string.ach_day_route else R.string.ach_day_boulder, a.count, a.param)
+    AchievementKind.TOTAL_GRADE -> stringResource(
+        if (a.discipline == "ROUTE") R.string.ach_total_route else R.string.ach_total_boulder, a.count, a.param)
     AchievementKind.VOLUME -> stringResource(R.string.ach_volume, a.param)
     AchievementKind.FLASHES -> stringResource(R.string.ach_flashes, a.param)
     AchievementKind.ONSIGHTS -> stringResource(R.string.ach_onsights, a.param)

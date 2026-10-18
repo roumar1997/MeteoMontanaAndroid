@@ -8,6 +8,7 @@ struct GestionarTab: View {
     @ObservedObject var vm: AdminViewModel
     @State private var query = ""
     @State private var selected: School?
+    @State private var viewSchool: School?
     /// `SchoolBlocksManageSheet` (mapa con pines → editar bloque, con MODALIDAD
     /// bloque/vía) existía en el código pero no estaba enganchada a ningún
     /// botón — el admin no tenía forma de llegar a ella (Álvaro, 2026-09-08:
@@ -23,6 +24,13 @@ struct GestionarTab: View {
     @State private var editSchool: School?
     /// Restricciones de escalada de la escuela (cierres por nidificación…), 2026-10-18.
     @State private var restrictionsSchool: School?
+
+    /// Cierra la hoja de acciones y, cuando ya se ha ido, abre lo elegido (SwiftUI ignora una presentación nueva
+    /// lanzada mientras otra aún se está cerrando).
+    private func then(_ open: @escaping () -> Void) {
+        selected = nil
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45, execute: open)
+    }
 
     private var filtered: [School] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
@@ -64,40 +72,20 @@ struct GestionarTab: View {
                 }
             }
         }
-        .fullScreenCover(item: $selected) { s in
-            NavigationStack {
-                SchoolDetailView(school: s)
-                    .toolbar {
-                        ToolbarItem(placement: .topBarLeading) {
-                            Button("CERRAR") { selected = nil }
-                                .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
-                        }
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button { manageBlocksSchool = s } label: {
-                                Label("GESTIONAR BLOQUES", systemImage: "wrench.and.screwdriver")
-                                    .font(Cumbre.mono(11, .bold))
-                            }
-                        }
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button { reorderSchool = s } label: {
-                                Label("ORDENAR PIEDRAS", systemImage: "arrow.up.arrow.down")
-                                    .font(Cumbre.mono(11, .bold))
-                            }
-                        }
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button { editSchool = s } label: {
-                                Label("EDITAR DATOS", systemImage: "pencil")
-                                    .font(Cumbre.mono(11, .bold))
-                            }
-                        }
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button { restrictionsSchool = s } label: {
-                                Label("RESTRICCIONES", systemImage: "exclamationmark.circle")
-                                    .font(Cumbre.mono(11, .bold))
-                            }
-                        }
-                    }
-            }
+        // Antes: la ficha con botones en la barra superior. Desde el rediseño del 14-oct esa barra está oculta y
+        // los botones eran INVISIBLES (Álvaro, 2026-10-18: «me abre la Pedriza tal cual»). Ahora: una lista
+        // vertical con lo que se puede hacer en la escuela.
+        .sheet(item: $selected) { s in
+            SchoolAdminActionsSheet(
+                school: s,
+                onView: { then { viewSchool = s } },
+                onBlocks: { then { manageBlocksSchool = s } },
+                onReorder: { then { reorderSchool = s } },
+                onEdit: { then { editSchool = s } },
+                onRestrictions: { then { restrictionsSchool = s } })
+        }
+        .fullScreenCover(item: $viewSchool) { s in
+            NavigationStack { SchoolDetailView(school: s) }
         }
         .fullScreenCover(item: $manageBlocksSchool) { s in
             SchoolBlocksManageSheet(school: s)
@@ -110,6 +98,49 @@ struct GestionarTab: View {
         }
         .fullScreenCover(item: $restrictionsSchool) { s in
             AdminRestrictionsSheet(school: s)
+        }
+    }
+}
+
+/// Qué se puede hacer con una escuela desde el panel de admin: una lista vertical, sin barras ocultas.
+struct SchoolAdminActionsSheet: View {
+    let school: School
+    let onView: () -> Void
+    let onBlocks: () -> Void
+    let onReorder: () -> Void
+    let onEdit: () -> Void
+    let onRestrictions: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(school.name).font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
+                .padding(.horizontal, 16).padding(.top, 22).padding(.bottom, 10)
+            row("Ver la ficha", "Como la ve cualquier usuario", "eye", onView)
+            row("Restricciones", "Cierres por nidificación, avisos de acceso", "exclamationmark.circle", onRestrictions)
+            row("Gestionar bloques", "Mapa con todas las piedras: editar, mover, borrar", "wrench.and.screwdriver", onBlocks)
+            row("Ordenar piedras", "Numerar por sector, a mano o por GPS", "arrow.up.arrow.down", onReorder)
+            row("Editar datos", "Nombre, ubicación, región, estilo, roca", "pencil", onEdit)
+            Spacer()
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .presentationDetents([.medium])
+    }
+
+    private func row(_ title: String, _ hint: String, _ icon: String, _ action: @escaping () -> Void) -> some View {
+        VStack(spacing: 0) {
+            Button(action: action) {
+                HStack(spacing: 12) {
+                    Image(systemName: icon).font(.system(size: 16)).foregroundStyle(Cumbre.terra).frame(width: 24)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title).font(.system(size: 16, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                        Text(hint).font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                }
+                .padding(.horizontal, 16).padding(.vertical, 12).contentShape(Rectangle())
+            }.buttonStyle(.plain)
+            Divider().overlay(Cumbre.rule).padding(.leading, 52)
         }
     }
 }

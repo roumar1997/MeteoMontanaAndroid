@@ -684,4 +684,36 @@ enum AdminTab: String, CaseIterable {
     case historial = "HISTORIAL"
     case aportaciones = "APORTACIONES"
     case salud = "SALUD"
+
+    /// Nombre en el menú vertical del panel.
+    var title: String {
+        switch self {
+        case .propuestas: return "Propuestas"
+        case .denuncias: return "Denuncias"
+        case .gestionar: return "Escuelas"
+        case .stats: return "Estadísticas"
+        case .actividad: return "Actividad"
+        case .sugerencias: return "Sugerencias"
+        case .push: return "Notificaciones"
+        case .historial: return "Historial de cambios"
+        case .aportaciones: return "Aportaciones y confianza"
+        case .salud: return "Salud del servidor"
+        }
+    }
+
+    /// Una línea que dice qué hay dentro.
+    var hint: String {
+        switch self {
+        case .propuestas: return "Piedras, sectores y correcciones por aprobar"
+        case .denuncias: return "Contenido y personas denunciadas"
+        case .gestionar: return "Editar escuelas, bloques, restricciones"
+        case .stats: return "Usuarios, escuelas y actividad en números"
+        case .actividad: return "Lo que han hecho los admins"
+        case .sugerencias: return "Lo que cuentan los usuarios"
+        case .push: return "Enviar un aviso a los usuarios"
+        case .historial: return "Quién cambió qué, con restaurar"
+        case .aportaciones: return "Cuánto aporta cada persona"
+        case .salud: return "Errores, usuarios hoy y asistente"
+        }
+    }
 }

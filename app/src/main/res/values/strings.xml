@@ -1950,4 +1950,23 @@
     <string name="climber_prompt_body">¿Escalas sobre todo vías o bloque? Cambia tu Cumbri del perfil. Es opcional y puedes cambiarlo cuando quieras tocando tu título.</string>
     <string name="rewards_title_pick">TU TÍTULO</string>
     <string name="rewards_title_hint">Desbloqueas títulos con tus aportaciones aprobadas (llevas %1$d).</string>
+    <string name="tier_common">Común</string>
+    <string name="tier_uncommon">Poco común</string>
+    <string name="tier_rare">Raro</string>
+    <string name="tier_epic">Épico</string>
+    <string name="tier_legendary">Legendario</string>
+    <string name="ach_pct">%1$d%% de escaladores</string>
+    <string name="ach_pct_lt1">menos del 1%% de escaladores</string>
+    <string name="ach_group_grades">Primer grado</string>
+    <string name="ach_group_day">En un día</string>
+    <string name="ach_group_totals">En total</string>
+    <string name="ach_group_volume">Volumen</string>
+    <string name="ach_group_style">Estilo</string>
+    <string name="ach_group_explore">Explorar</string>
+    <string name="ach_group_consistency">Constancia</string>
+    <string name="ach_group_projects">Proyectos</string>
+    <string name="ach_day_boulder">%1$d bloques de %2$s o más en un día</string>
+    <string name="ach_day_route">%1$d vías de %2$s o más en un día</string>
+    <string name="ach_total_boulder">%1$d bloques de %2$s o más</string>
+    <string name="ach_total_route">%1$d vías de %2$s o más</string>
 </resources>

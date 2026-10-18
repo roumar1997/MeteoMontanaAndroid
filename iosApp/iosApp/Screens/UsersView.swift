@@ -119,6 +119,8 @@ final class PublicProfileViewModel: ObservableObject {
     @Published var adminAssistantSaving = false
     /// Solo admin: aportaciones de este usuario y si es de confianza.
     @Published var adminContrib: ContributorItem?
+    /// Solo admin: denuncias, avisos y sanciones de este usuario.
+    @Published var adminModeration: UserModerationDto?
 
     private let getMyProfile: GetMyProfileUseCase
     private let getUserAssistantAccess: GetUserAssistantAccessUseCase
@@ -176,6 +178,14 @@ final class PublicProfileViewModel: ObservableObject {
         let list = (try? await AppDependencies.shared.container.getContributors.invoke(uid: profileUid)) ?? []
         adminContrib = list.first ?? ContributorItem(uid: profileUid, name: nil, approved: 0, rejected: 0, pending: 0,
                                                      lastAt: nil, trusted: false)
+        // Denuncias, avisos y estado (baneo / suspensión) de esta persona.
+        adminModeration = (try? await AppDependencies.shared.container.moderationApi.getUserModeration(uid: profileUid)) ?? nil
+    }
+
+    /// Vuelve a leer las denuncias/sanciones (tras actuar en la consola).
+    func refreshModeration() async {
+        guard let profileUid = profile?.uid, adminModeration != nil else { return }
+        adminModeration = (try? await AppDependencies.shared.container.moderationApi.getUserModeration(uid: profileUid)) ?? adminModeration
     }
 
     /// Da o quita la confianza (publicar sin revisión). Si falla, el interruptor vuelve a su sitio.
@@ -246,6 +256,7 @@ struct PublicProfileView: View {
     // Moderación: denunciar / bloquear a este usuario (menú superior).
     @ObservedObject private var moderation = ModerationStore.shared
     @State private var showReport = false
+    @State private var showModeration = false   // solo admin: consola de denuncias/sanciones de este usuario
     @State private var zoomPhoto = false   // foto de perfil a pantalla completa
 
     var body: some View {
@@ -368,6 +379,9 @@ struct PublicProfileView: View {
                 }
             }
         }
+        .sheet(isPresented: $showModeration, onDismiss: { Task { await vm.refreshModeration() } }) {
+            if let u = vm.profile?.uid { UserModerationSheet(uid: u) }
+        }
         .sheet(isPresented: $showReport) {
             ReportSheet(title: L("DENUNCIAR USUARIO"),
                         authorLabel: vm.profile?.username.map { "@" + $0 } ?? "usuario") { reason, alsoBlock in
@@ -406,6 +420,19 @@ struct PublicProfileView: View {
                         }
                     }
                     .tint(Cumbre.terra)
+                }
+                if let m = vm.adminModeration {
+                    Divider().overlay(Cumbre.rule).padding(.vertical, 4)
+                    Button { showModeration = true } label: {
+                        HStack {
+                            let bad = m.reportCount > 0 || m.warnings > 0 || m.banned
+                            Text(L("DENUNCIAS: %@ · AVISOS: %@", m.reportCount, m.warnings)
+                                 + (m.banned ? " · " + L("BANEADO") : ""))
+                                .font(Cumbre.mono(10.5, .bold)).foregroundStyle(bad ? Cumbre.bad : Cumbre.ok)
+                            Spacer()
+                            Text(L("VER / ACTUAR")).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                        }.contentShape(Rectangle())
+                    }.buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 10)

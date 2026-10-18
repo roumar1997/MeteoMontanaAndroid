@@ -134,6 +134,12 @@ fun StatsScreen(
                 Spacer(Modifier.height(Spacing.md))
             }
 
+            // ── Logros: plegados bajo un botón, arriba (de todo el diario, no del filtro) ──
+            if (!state.loading) {
+                AchievementsSection(state.achievements, state.rarity)
+                Spacer(Modifier.height(Spacing.md))
+            }
+
             // ── Filtros: disciplina + año desplegable + mes ──────────────────
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically) {
@@ -447,11 +453,6 @@ fun StatsScreen(
                 InfoCard(stringResource(R.string.stats_screen_v3_marca_vias_como_hechas_y))
             }
 
-            // ── Logros (de todo el diario, no del filtro) ────────────────────
-            if (!state.loading) {
-                Spacer(Modifier.height(Spacing.lg))
-                AchievementsSection(state.achievements)
-            }
         }
     }
 }

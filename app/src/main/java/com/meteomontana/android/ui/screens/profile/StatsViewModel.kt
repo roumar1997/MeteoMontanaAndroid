@@ -32,6 +32,8 @@ class StatsViewModel @Inject constructor(
     private val saveYearGoal: com.meteomontana.android.domain.usecase.journal.SaveYearGoalUseCase,
     private val deleteYearGoal: com.meteomontana.android.domain.usecase.journal.DeleteYearGoalUseCase,
     private val getSchools: com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase,
+    private val syncMyAchievements: com.meteomontana.android.domain.usecase.journal.SyncMyAchievementsUseCase,
+    private val getAchievementRarity: com.meteomontana.android.domain.usecase.journal.GetAchievementRarityUseCase,
     savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
 
@@ -60,6 +62,8 @@ class StatsViewModel @Inject constructor(
         /** Solo con un año concreto elegido. */
         val yearComparison: YearComparison? = null,
         val achievements: List<Achievement> = emptyList(),
+        /** Cuánta gente tiene cada logro (null = aún no se sabe o sin red). */
+        val rarity: com.meteomontana.android.domain.repository.AchievementRarity? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -68,6 +72,7 @@ class StatsViewModel @Inject constructor(
     private var entries: List<JournalSession> = emptyList()
     private var places: Map<String, SchoolPlace> = emptyMap()
     private var goal: YearGoal? = null
+    private var lastSyncedIds: Set<String> = emptySet()
 
     init { load() }
 
@@ -83,6 +88,10 @@ class StatsViewModel @Inject constructor(
                 places = list.associate { it.id to SchoolPlace(it.region, it.country) }
                 recompute()
             }
+        }
+        // Cuánta gente tiene cada logro: si falla, simplemente no se enseña el porcentaje.
+        viewModelScope.launch {
+            runCatching { getAchievementRarity() }.onSuccess { _state.value = _state.value.copy(rarity = it) }
         }
         if (uid == null) viewModelScope.launch {
             goal = runCatching { getYearGoal(_state.value.currentYear) }.getOrNull()
@@ -144,6 +153,18 @@ class StatsViewModel @Inject constructor(
         return filtered
     }
 
+    /** Solo en las mías y solo si cambió el conjunto de logros desde la última vez. Silencioso: si falla, ya se reintentará. */
+    private fun syncAchievementsIfChanged() {
+        if (uid != null) return
+        val unlocked = _state.value.achievements.filter { it.unlocked }
+        val ids = unlocked.map { it.id }.toSet()
+        if (entries.isEmpty() || ids == lastSyncedIds) return
+        lastSyncedIds = ids
+        viewModelScope.launch {
+            runCatching { syncMyAchievements(unlocked) }.onFailure { lastSyncedIds = emptySet() }
+        }
+    }
+
     private fun recompute() {
         val st = _state.value
         val today = java.time.LocalDate.now().toString()
@@ -162,5 +183,6 @@ class StatsViewModel @Inject constructor(
             yearComparison = st.year?.let { GoalCalculator.compareYears(byDiscipline, it) },
             achievements = AchievementsCalculator.compute(entries, places, today),
         )
+        syncAchievementsIfChanged()
     }
 }

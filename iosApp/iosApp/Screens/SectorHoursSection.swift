@@ -28,7 +28,10 @@ struct SectorHoursSection: View {
 
     var body: some View {
         let list = (model.sectors ?? []).filter { $0.bestFrom != nil }
-        Group {
+        // OJO: el `.task` va en un contenedor que SIEMPRE tiene contenido. Pegado a un `Group` que empieza vacío
+        // (todavía sin sectores) SwiftUI no lo ejecuta nunca y la fila no cargaba (Álvaro, 2026-10-18, build 289).
+        VStack(spacing: 0) {
+            Color.clear.frame(height: 0)   // ancla real para el `.task`
             if let best = list.first {
                 VStack(spacing: 0) {
                     Button { withAnimation { expanded.toggle() } } label: {

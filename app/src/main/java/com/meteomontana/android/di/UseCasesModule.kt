@@ -379,6 +379,19 @@ object UseCasesModule {
     fun provideUpdateMyRewardsUseCase(repo: com.meteomontana.android.domain.repository.RewardsRepository) =
         com.meteomontana.android.domain.usecase.profile.UpdateMyRewardsUseCase(repo)
 
+    // Logros: sincronizar los míos y cuánta gente tiene cada uno.
+    @Provides @Singleton
+    fun provideAchievementsRepository(client: io.ktor.client.HttpClient): com.meteomontana.android.domain.repository.AchievementsRepository =
+        com.meteomontana.android.data.repository.KtorAchievementsRepository(com.meteomontana.android.data.api.KtorAchievementsApi(client))
+
+    @Provides @Singleton
+    fun provideSyncMyAchievementsUseCase(repo: com.meteomontana.android.domain.repository.AchievementsRepository) =
+        com.meteomontana.android.domain.usecase.journal.SyncMyAchievementsUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetAchievementRarityUseCase(repo: com.meteomontana.android.domain.repository.AchievementsRepository) =
+        com.meteomontana.android.domain.usecase.journal.GetAchievementRarityUseCase(repo)
+
     // Objetivo del año (pantalla de Estadísticas).
     @Provides @Singleton
     fun provideGoalRepository(client: io.ktor.client.HttpClient): com.meteomontana.android.domain.repository.GoalRepository =

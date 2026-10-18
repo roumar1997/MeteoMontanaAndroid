@@ -129,27 +129,94 @@ struct AdminView: View {
         return groups.keys.sorted().map { (school: $0, items: groups[$0] ?? []) }
     }
 
-    @State private var tab: AdminTab = .propuestas
+    /// nil = el menú principal (lista vertical); una sección = su contenido con un «‹ ADMIN» para volver.
+    @State private var tab: AdminTab? = nil
+
+    /// Secciones del menú, agrupadas por para qué se usan (Álvaro, 2026-10-18: «todo de seguido en un vertical,
+    /// sin la barra de arriba que se desliza»).
+    private var menuGroups: [(title: String, items: [(tab: AdminTab, badge: Int?)])] {
+        [
+            ("REVISAR", [(.propuestas, vm.submissions.count + vm.contributions.count),
+                         (.denuncias, nil), (.sugerencias, nil)]),
+            ("CONTENIDO", [(.gestionar, nil), (.historial, nil), (.aportaciones, nil)]),
+            ("SERVIDOR", [(.salud, nil), (.stats, nil), (.actividad, nil)]),
+            ("COMUNICAR", [(.push, nil)]),
+        ]
+    }
+
+    private var menu: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(menuGroups, id: \.title) { group in
+                    Text(group.title).font(Cumbre.mono(10, .bold)).tracking(1.4).foregroundStyle(Cumbre.terra)
+                        .padding(.horizontal, 16).padding(.top, 22).padding(.bottom, 8)
+                    ForEach(group.items, id: \.tab) { item in
+                        Button { tab = item.tab } label: {
+                            HStack(spacing: 10) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.tab.title).font(.system(size: 16, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                                    Text(item.tab.hint).font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                                }
+                                Spacer()
+                                if let n = item.badge, n > 0 {
+                                    Text("\(n)").font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
+                                        .padding(.horizontal, 8).padding(.vertical, 3)
+                                        .background(Cumbre.terraFill, in: Capsule())
+                                }
+                                Image(systemName: "chevron.right").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                            }
+                            .padding(.horizontal, 16).padding(.vertical, 12).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        Divider().overlay(Cumbre.rule).padding(.leading, 16)
+                    }
+                }
+            }
+            .padding(.bottom, 30)
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Selector de tabs (espejo de AdminScreen.kt).
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(AdminTab.allCases, id: \.self) { t in
-                        let on = tab == t
-                        Button { tab = t } label: {
-                            Text(t.rawValue).font(Cumbre.mono(11, .bold)).tracking(0.8)
-                                .foregroundStyle(on ? .white : Cumbre.ink2)
-                                .padding(.horizontal, 12).padding(.vertical, 7)
-                                .background(on ? Cumbre.terra : Color.clear)
-                                .overlay(Rectangle().stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-                        }.buttonStyle(.plain)
+            if let current = tab {
+                Button { tab = nil } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "chevron.left").font(.system(size: 12, weight: .bold))
+                        Text("ADMIN").font(Cumbre.mono(11, .bold)).tracking(0.8)
+                        Text("· \(current.title.uppercased())").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink3)
+                        Spacer()
                     }
-                }.padding(.horizontal, 16).padding(.vertical, 8)
+                    .foregroundStyle(Cumbre.terra).padding(.horizontal, 16).padding(.vertical, 10).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                Divider().overlay(Cumbre.rule)
             }
-            Divider().overlay(Cumbre.rule)
             switch tab {
+            case .none: menu
+            case .some(let t): section(t)
+            }
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .onAppear { if openDenuncias { tab = .denuncias } }
+        .navigationTitle("Admin")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await vm.load(); await vm.loadSuggestions() }
+        .task(id: tab) {
+            if tab == .stats, vm.stats == nil { await vm.loadStats() }
+            if tab == .actividad, vm.logs.isEmpty { await vm.loadLogs() }
+            if tab == .gestionar, vm.allSchools.isEmpty { await vm.loadSchools() }
+            if tab == .sugerencias { await vm.loadSuggestions() }
+        }
+        .sheet(item: $rejecting) { target in
+            RejectReasonSheet { reason in
+                if target.isSubmission { vm.reviewSubmission(target.id, approve: false, reason: reason) }
+                else { vm.reviewContribution(target.id, approve: false, reason: reason) }
+            }
+        }
+    }
+
+    @ViewBuilder private func section(_ t: AdminTab) -> some View {
+        switch t {
             case .propuestas: propuestasContent
             case .denuncias: AdminReportsTab()
             case .gestionar: GestionarTab(vm: vm)
@@ -162,32 +229,6 @@ struct AdminView: View {
             case .historial: AdminHistoryTab()
             case .aportaciones: AdminContributorsTab()
             case .salud: AdminHealthTab()
-            }
-        }
-        .background(Cumbre.bg.ignoresSafeArea())
-        .onAppear { if openDenuncias { tab = .denuncias } }
-        .navigationTitle("Admin")
-        .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await vm.load()
-            // Álvaro, 2026-09-30: "si no hay propuestas, que se abra siempre
-            // lo de admin en stats" — Propuestas vacía no aporta nada al
-            // entrar; Stats sí. openDenuncias manda si venía del push.
-            if !openDenuncias, vm.submissions.isEmpty, vm.contributions.isEmpty {
-                tab = .stats
-            }
-        }
-        .task(id: tab) {
-            if tab == .stats, vm.stats == nil { await vm.loadStats() }
-            if tab == .actividad, vm.logs.isEmpty { await vm.loadLogs() }
-            if tab == .gestionar, vm.allSchools.isEmpty { await vm.loadSchools() }
-            if tab == .sugerencias { await vm.loadSuggestions() }
-        }
-        .sheet(item: $rejecting) { target in
-            RejectReasonSheet { reason in
-                if target.isSubmission { vm.reviewSubmission(target.id, approve: false, reason: reason) }
-                else { vm.reviewContribution(target.id, approve: false, reason: reason) }
-            }
         }
     }
 

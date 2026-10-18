@@ -3,8 +3,16 @@ package com.meteomontana.android.domain.usecase.journal
 import com.meteomontana.android.domain.model.JournalSession
 
 /** Familia de un logro: las apps escriben el texto con la familia + [Achievement.param] (ES/EN). */
-enum class AchievementKind { GRADE, VOLUME, FLASHES, ONSIGHTS, FLASH_MAX, ONSIGHT_MAX, SCHOOLS, REGIONS, ABROAD,
-    WEEKENDS, DAYS_IN_YEAR, EVERY_MONTH, PROJECTS }
+enum class AchievementKind { GRADE, DAY_GRADE, TOTAL_GRADE, VOLUME, FLASHES, ONSIGHTS, FLASH_MAX, ONSIGHT_MAX,
+    SCHOOLS, REGIONS, ABROAD, WEEKENDS, DAYS_IN_YEAR, EVERY_MONTH, PROJECTS }
+
+/** Dificultad de diseño de un logro (cuando haya datos de verdad, manda el % de gente que lo tiene). */
+enum class AchievementTier { COMMON, UNCOMMON, RARE, EPIC, LEGENDARY;
+    fun bumped(): AchievementTier = entries[minOf(ordinal + 1, entries.lastIndex)]
+}
+
+/** Sección donde se enseña en la pantalla de logros. */
+enum class AchievementGroup { GRADES, IN_A_DAY, TOTALS, VOLUME, STYLE, EXPLORE, CONSISTENCY, PROJECTS }
 
 /**
  * Un logro del catálogo. [param] = el número o el grado que pide ("7a", "100"…); [discipline] solo en los de grado.
@@ -17,6 +25,10 @@ data class Achievement(
     val discipline: String?,
     val unlocked: Boolean,
     val unlockedOn: String?,
+    val tier: AchievementTier = AchievementTier.COMMON,
+    val group: AchievementGroup = AchievementGroup.VOLUME,
+    /** Cuántas hacen falta (3 en un día, 10 en total…); 0 si el número va en [param]. */
+    val count: Int = 0,
 )
 
 /** Región y país de una escuela, para los logros de explorar (los da el catálogo de escuelas). */
@@ -30,69 +42,112 @@ data class SchoolPlace(val region: String?, val country: String?)
 object AchievementsCalculator {
 
     val GRADE_STEPS = listOf("6a", "6c", "7a", "7b", "7c", "8a")
+    /** Grados de los logros «3 en un día» y «10 en total» (de 5c a 8a, en bloque y en vía). */
+    val LADDER_GRADES = listOf("5c", "6a", "6b", "6c", "7a", "7b", "7c", "8a")
+    const val PER_DAY = 3
+    const val PER_TOTAL = 10
     val VOLUME_STEPS = listOf(10, 50, 100, 250, 500)
     val SCHOOL_STEPS = listOf(5, 10, 25)
+
+    /** Dificultad de diseño de un grado: sirve de base hasta que haya datos reales de cuánta gente lo tiene. */
+    fun baseTier(grade: String): AchievementTier = when (grade) {
+        "5c", "6a", "6b" -> AchievementTier.COMMON
+        "6c" -> AchievementTier.UNCOMMON
+        "7a", "7b" -> AchievementTier.RARE
+        "7c" -> AchievementTier.EPIC
+        else -> AchievementTier.LEGENDARY
+    }
+
+    private fun rank(grade: String?) = JournalStatsCalculator.gradeRank(grade ?: "")
+    private fun lineKey(e: JournalSession) = e.lineId ?: "${e.schoolId}|${e.blockName.trim().lowercase()}"
 
     fun compute(all: List<JournalSession>, places: Map<String, SchoolPlace>, today: String): List<Achievement> {
         val done = all.filter { it.status == "DONE" }.sortedBy { it.date }
         val out = mutableListOf<Achievement>()
+        fun add(a: Achievement) { out += a }
 
         for (disc in listOf("BOULDER", "ROUTE")) {
             val inDisc = done.filter { it.discipline == disc }
+            val d = disc.lowercase()
             for (g in GRADE_STEPS) {
-                val first = inDisc.firstOrNull { JournalStatsCalculator.gradeRank(it.grade ?: "") >= JournalStatsCalculator.gradeRank(g) }
-                out += Achievement("grade_${disc.lowercase()}_$g", AchievementKind.GRADE, g, disc, first != null, first?.date)
+                val first = inDisc.firstOrNull { rank(it.grade) >= rank(g) }
+                add(Achievement("grade_${d}_$g", AchievementKind.GRADE, g, disc, first != null, first?.date,
+                    baseTier(g), AchievementGroup.GRADES))
+            }
+            val byDay = inDisc.groupBy { it.date }
+            val uniqueRoutes = inDisc.distinctBy(::lineKey)
+            for (g in LADDER_GRADES) {
+                // «3 de 7c o más en un día»: tres ascensiones HECHAS ese día de ese grado o más duras.
+                val day = byDay.entries.sortedBy { it.key }
+                    .firstOrNull { (_, es) -> es.count { rank(it.grade) >= rank(g) } >= PER_DAY }?.key
+                add(Achievement("day_${d}_$g", AchievementKind.DAY_GRADE, g, disc, day != null, day,
+                    baseTier(g).bumped(), AchievementGroup.IN_A_DAY, PER_DAY))
+                // «10 de 7a o más en total»: diez vías distintas.
+                val hard = uniqueRoutes.filter { rank(it.grade) >= rank(g) }
+                add(Achievement("total_${d}_$g", AchievementKind.TOTAL_GRADE, g, disc, hard.size >= PER_TOTAL,
+                    hard.getOrNull(PER_TOTAL - 1)?.date, baseTier(g), AchievementGroup.TOTALS, PER_TOTAL))
             }
         }
-        for (n in VOLUME_STEPS) {
-            out += Achievement("volume_$n", AchievementKind.VOLUME, "$n", null, done.size >= n, done.getOrNull(n - 1)?.date)
+        val volumeTiers = listOf(AchievementTier.COMMON, AchievementTier.UNCOMMON, AchievementTier.RARE,
+            AchievementTier.EPIC, AchievementTier.LEGENDARY)
+        VOLUME_STEPS.forEachIndexed { i, n ->
+            add(Achievement("volume_$n", AchievementKind.VOLUME, "$n", null, done.size >= n, done.getOrNull(n - 1)?.date,
+                volumeTiers[i], AchievementGroup.VOLUME))
         }
         done.filter { it.alFlash }.let { f ->
-            out += Achievement("flashes_10", AchievementKind.FLASHES, "10", null, f.size >= 10, f.getOrNull(9)?.date)
+            add(Achievement("flashes_10", AchievementKind.FLASHES, "10", null, f.size >= 10, f.getOrNull(9)?.date,
+                AchievementTier.UNCOMMON, AchievementGroup.STYLE))
         }
         done.filter { it.aVista }.let { o ->
-            out += Achievement("onsights_10", AchievementKind.ONSIGHTS, "10", null, o.size >= 10, o.getOrNull(9)?.date)
+            add(Achievement("onsights_10", AchievementKind.ONSIGHTS, "10", null, o.size >= 10, o.getOrNull(9)?.date,
+                AchievementTier.UNCOMMON, AchievementGroup.STYLE))
         }
-        out += styleAtMax("flash_max", AchievementKind.FLASH_MAX, done) { it.alFlash }
-        out += styleAtMax("onsight_max", AchievementKind.ONSIGHT_MAX, done) { it.aVista }
+        add(styleAtMax("flash_max", AchievementKind.FLASH_MAX, done, AchievementTier.RARE) { it.alFlash })
+        add(styleAtMax("onsight_max", AchievementKind.ONSIGHT_MAX, done, AchievementTier.EPIC) { it.aVista })
 
         val firstPerSchool = done.filter { it.schoolId != null }.distinctBy { it.schoolId }
-        for (n in SCHOOL_STEPS) {
-            out += Achievement("schools_$n", AchievementKind.SCHOOLS, "$n", null, firstPerSchool.size >= n,
-                firstPerSchool.getOrNull(n - 1)?.date)
+        val schoolTiers = listOf(AchievementTier.COMMON, AchievementTier.UNCOMMON, AchievementTier.RARE)
+        SCHOOL_STEPS.forEachIndexed { i, n ->
+            add(Achievement("schools_$n", AchievementKind.SCHOOLS, "$n", null, firstPerSchool.size >= n,
+                firstPerSchool.getOrNull(n - 1)?.date, schoolTiers[i], AchievementGroup.EXPLORE))
         }
         val firstPerRegion = firstPerSchool.mapNotNull { e -> places[e.schoolId]?.region?.takeIf { it.isNotBlank() }?.let { it to e } }
             .distinctBy { it.first }
-        out += Achievement("regions_3", AchievementKind.REGIONS, "3", null, firstPerRegion.size >= 3,
-            firstPerRegion.getOrNull(2)?.second?.date)
+        add(Achievement("regions_3", AchievementKind.REGIONS, "3", null, firstPerRegion.size >= 3,
+            firstPerRegion.getOrNull(2)?.second?.date, AchievementTier.UNCOMMON, AchievementGroup.EXPLORE))
         val abroad = firstPerSchool.firstOrNull { e -> places[e.schoolId]?.country?.let { it.isNotBlank() && it != "ES" } == true }
-        out += Achievement("abroad_1", AchievementKind.ABROAD, "1", null, abroad != null, abroad?.date)
+        add(Achievement("abroad_1", AchievementKind.ABROAD, "1", null, abroad != null, abroad?.date,
+            AchievementTier.UNCOMMON, AchievementGroup.EXPLORE))
 
         val weekendStreak = weekendStreakDate(done.map { it.date }, 4)
-        out += Achievement("weekends_4", AchievementKind.WEEKENDS, "4", null, weekendStreak != null, weekendStreak)
+        add(Achievement("weekends_4", AchievementKind.WEEKENDS, "4", null, weekendStreak != null, weekendStreak,
+            AchievementTier.UNCOMMON, AchievementGroup.CONSISTENCY))
         val days20 = done.map { it.date }.distinct().groupBy { it.take(4) }.entries
             .firstOrNull { it.value.size >= 20 }?.value?.sorted()?.get(19)
-        out += Achievement("days_20", AchievementKind.DAYS_IN_YEAR, "20", null, days20 != null, days20)
+        add(Achievement("days_20", AchievementKind.DAYS_IN_YEAR, "20", null, days20 != null, days20,
+            AchievementTier.UNCOMMON, AchievementGroup.CONSISTENCY))
         val fullYear = done.groupBy { it.date.take(4) }.entries.sortedBy { it.key }
             .firstOrNull { (_, es) -> es.map { it.date.substring(5, 7) }.toSet().size == 12 }
-        out += Achievement("every_month", AchievementKind.EVERY_MONTH, "12", null, fullYear != null,
-            fullYear?.value?.maxOf { it.date })
+        add(Achievement("every_month", AchievementKind.EVERY_MONTH, "12", null, fullYear != null,
+            fullYear?.value?.maxOf { it.date }, AchievementTier.EPIC, AchievementGroup.CONSISTENCY))
 
         val fallen = fallenProjects(all)
-        out += Achievement("projects_1", AchievementKind.PROJECTS, "1", null, fallen.isNotEmpty(), fallen.getOrNull(0))
-        out += Achievement("projects_5", AchievementKind.PROJECTS, "5", null, fallen.size >= 5, fallen.getOrNull(4))
+        add(Achievement("projects_1", AchievementKind.PROJECTS, "1", null, fallen.isNotEmpty(), fallen.getOrNull(0),
+            AchievementTier.UNCOMMON, AchievementGroup.PROJECTS))
+        add(Achievement("projects_5", AchievementKind.PROJECTS, "5", null, fallen.size >= 5, fallen.getOrNull(4),
+            AchievementTier.RARE, AchievementGroup.PROJECTS))
         return out
     }
 
     /** Flash / a vista de tu grado máximo (en cualquiera de las dos modalidades). */
-    private fun styleAtMax(id: String, kind: AchievementKind, done: List<JournalSession>,
+    private fun styleAtMax(id: String, kind: AchievementKind, done: List<JournalSession>, tier: AchievementTier,
                            style: (JournalSession) -> Boolean): Achievement {
         val hit = listOf("BOULDER", "ROUTE").mapNotNull { disc ->
             val inDisc = done.filter { it.discipline == disc && !it.grade.isNullOrBlank() }
-            val max = inDisc.maxOfOrNull { JournalStatsCalculator.gradeRank(it.grade!!) } ?: return@mapNotNull null
-            if (max == 0) null else inDisc.firstOrNull { style(it) && JournalStatsCalculator.gradeRank(it.grade!!) == max }
+            val max = inDisc.maxOfOrNull { rank(it.grade) } ?: return@mapNotNull null
+            if (max == 0) null else inDisc.firstOrNull { style(it) && rank(it.grade) == max }
         }.minByOrNull { it.date }
-        return Achievement(id, kind, "1", null, hit != null, hit?.date)
+        return Achievement(id, kind, "1", null, hit != null, hit?.date, tier, AchievementGroup.STYLE)
     }
 
     /** Días (ordenados) en que cayó un proyecto: HECHA después de haberla tenido como PROYECTO. */
