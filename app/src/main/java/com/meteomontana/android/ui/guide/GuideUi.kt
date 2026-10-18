@@ -147,7 +147,11 @@ private fun GuideOverlay(
     val inset = with(density) { 6.dp.toPx() }
     val radius = with(density) { 12.dp.toPx() }
     val stroke = with(density) { 2.dp.toPx() }
-    val focus = hole?.inflate(inset)
+    // El elemento solo cuenta si se ve de verdad por encima de la barra de abajo: si queda fuera (p. ej. con el mapa
+    // abierto) la tarjeta salía pegada al borde, bajo la barra, sin dejar pulsar SIGUIENTE (Álvaro, 2026-10-18).
+    val bottomReserve = with(density) { 112.dp.toPx() }
+    val screenH = with(density) { androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp.toPx() }
+    val focus = hole?.takeIf { it.top < screenH - bottomReserve - 24f && it.bottom > 0f }?.inflate(inset)
     val terra = Terra
 
     Box(
@@ -174,14 +178,14 @@ private fun GuideOverlay(
                 GuideCard(step, position, total, onNext, onStop, m)
             }
             when {
-                focus == null -> card(Modifier.align(Alignment.Center))
+                focus == null -> card(Modifier.align(Alignment.Center).padding(bottom = with(density) { (bottomReserve / 2f).toDp() }))
                 focus.center.y < heightPx * 0.55f -> card(
                     Modifier.align(Alignment.TopCenter)
                         .offset { IntOffset(0, minOf(focus.bottom + gap, heightPx * 0.62f).toInt()) }
                 )
                 else -> card(
                     Modifier.align(Alignment.BottomCenter)
-                        .offset { IntOffset(0, -maxOf(heightPx - focus.top + gap, 0f).toInt()) }
+                        .offset { IntOffset(0, -maxOf(heightPx - focus.top + gap, bottomReserve).toInt()) }
                 )
             }
         }

@@ -131,6 +131,17 @@ private struct GuideOverlay: View {
     let onNext: () -> Void
     let onStop: () -> Void
 
+    /// Alto que ocupa la barra de pestañas de abajo: la tarjeta nunca se pinta por debajo (si no, tapa SIGUIENTE).
+    private let bottomReserve: CGFloat = 112
+
+    /// El elemento solo cuenta si se ve de verdad: con el mapa abierto, por ejemplo, la nota queda más abajo de la
+    /// pantalla y la tarjeta salía pegada al borde, bajo la barra, sin dejar pulsar SIGUIENTE (Álvaro, 2026-10-18).
+    private var visibleHole: CGRect? {
+        guard let hole else { return nil }
+        let visible = CGRect(x: 0, y: 0, width: size.width, height: size.height - bottomReserve)
+        return hole.intersects(visible) && hole.midY < visible.maxY - 24 ? hole : nil
+    }
+
     var body: some View {
         ZStack {
             dim
@@ -141,7 +152,7 @@ private struct GuideOverlay: View {
 
     /// Pantalla atenuada con un hueco redondeado sobre el elemento (relleno par-impar).
     private var dim: some View {
-        let focus = hole.map { $0.insetBy(dx: -6, dy: -6) }
+        let focus = visibleHole.map { $0.insetBy(dx: -6, dy: -6) }
         return ZStack {
             Path { p in
                 p.addRect(CGRect(origin: .zero, size: size))
@@ -186,7 +197,7 @@ private struct GuideOverlay: View {
         .padding(.horizontal, 20)
 
         return Group {
-            if let hole {
+            if let hole = visibleHole {
                 // Debajo del elemento si está en la mitad de arriba; encima si está abajo.
                 if hole.midY < size.height * 0.55 {
                     VStack(spacing: 0) {
@@ -198,11 +209,17 @@ private struct GuideOverlay: View {
                     VStack(spacing: 0) {
                         Spacer(minLength: 0)
                         cardBody
-                        Spacer().frame(height: max(size.height - hole.minY + 18, 0))
+                        Spacer().frame(height: max(size.height - hole.minY + 18, bottomReserve))
                     }
                 }
             } else {
-                cardBody
+                // Sin elemento a la vista: centrada en la parte libre (sobre la barra de pestañas).
+                VStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    cardBody
+                    Spacer(minLength: 0)
+                    Color.clear.frame(height: bottomReserve)
+                }
             }
         }
     }
