@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.meteomontana.android.ui.theme.Ok
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -402,7 +403,7 @@ fun StatsScreen(
                         p.weeksOut.forEachIndexed { i, out ->
                             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                                 Box(Modifier.fillMaxWidth().height(26.dp)
-                                    .background(if (out) Terra else MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(5.dp)))
+                                    .background(weekColor(i, p.weeksOut, out), RoundedCornerShape(5.dp)))
                                 Text(if (i == p.weeksOut.size - 1) stringResource(R.string.stats_now)
                                      else if (i % 3 == 0) "-${p.weeksOut.size - 1 - i}" else " ",
                                     fontSize = 8.sp, maxLines = 1, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -410,7 +411,8 @@ fun StatsScreen(
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        LegendDot(Terra, stringResource(R.string.stats_legend_out))
+                        LegendDot(Ok, stringResource(R.string.stats_legend_out))
+                        LegendDot(Terra, stringResource(R.string.stats_legend_streak))
                         LegendDot(MaterialTheme.colorScheme.surfaceVariant, stringResource(R.string.stats_legend_not_out))
                     }
                 }
@@ -492,6 +494,22 @@ fun StatsScreen(
 private fun gradeAccent(grade: String?): Color {
     val gs = com.meteomontana.android.ui.theme.gradeChipStyle(grade)
     return if (gs.dark) MaterialTheme.colorScheme.onSurface else gs.stroke
+}
+
+/** De poco a mucho: azul → verde → naranja. Cada mes tiene su color según cuánto subiste (no todo el mismo tono). */
+private fun heatColor(t: Float): Color {
+    val stops = listOf(Color(0xFF2973BF), Color(0xFF339466), Color(0xFFD97A1A))
+    val x = t.coerceIn(0f, 1f) * 2f
+    val i = x.toInt().coerceAtMost(1)
+    return androidx.compose.ui.graphics.lerp(stops[i], stops[i + 1], x - i)
+}
+
+/** Verde si saliste esa semana; terracota las de la racha actual (las últimas seguidas); gris si no. */
+@Composable
+private fun weekColor(i: Int, flags: List<Boolean>, out: Boolean): Color {
+    if (!out) return MaterialTheme.colorScheme.surfaceVariant
+    val streak = flags.reversed().takeWhile { it }.size
+    return if (i >= flags.size - streak) Terra else Ok
 }
 
 /** Grado en una píldora con SU color (el de los topos). */
@@ -621,7 +639,7 @@ private fun MonthBars(counts: List<Pair<String, Int>>) {
                     Box(Modifier.fillMaxWidth().height(barLane), contentAlignment = Alignment.BottomCenter) {
                         Box(Modifier.fillMaxWidth()
                             .height((barLane.value * count / max).coerceAtLeast(if (count > 0) 4f else 1f).dp)
-                            .background(if (isBest) Terra else Terra.copy(alpha = 0.30f + 0.45f * count / max),
+                            .background(if (count == 0) MaterialTheme.colorScheme.surfaceVariant else heatColor(count.toFloat() / max),
                                 RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)))
                     }
                     Text(MONTHS[month.substringAfter('-').toInt() - 1].take(3), fontSize = 9.sp,

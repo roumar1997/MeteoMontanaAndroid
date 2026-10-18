@@ -247,7 +247,13 @@ fun RewardsBlock(uid: String?, viewModel: RewardsViewModel = hiltViewModel(key =
     val rewards = r ?: return
     val own = uid == null
     var sheet by remember { mutableStateOf(false) }
+    var badgeInfo by remember { mutableStateOf<Int?>(null) }
     LaunchedEffect(sheet) { if (sheet) viewModel.loadMineIds() }
+    badgeInfo?.let { res ->
+        androidx.compose.material3.AlertDialog(onDismissRequest = { badgeInfo = null },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { badgeInfo = null }) { Text("OK") } },
+            text = { Text(stringResource(res)) })
+    }
 
     Column(
         Modifier.widthIn(max = 420.dp).fillMaxWidth().then(if (own) Modifier.clickable { sheet = true } else Modifier)
@@ -257,13 +263,18 @@ fun RewardsBlock(uid: String?, viewModel: RewardsViewModel = hiltViewModel(key =
         RewardTitle(rewards.titleLevel)
         // El logro que la persona ha elegido enseñar (con su dificultad y el % de gente que lo tiene).
         FeaturedAchievement(rewards.featuredAchievement, rarity)
-        if (rewards.badges.isNotEmpty() || rewards.climberType != null) {
+        if (rewards.badges.isNotEmpty() || rewards.climberType != null || own) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
                 verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 rewards.climberType?.let { Badge(climberTypeLabel(it), climberTypeStyle(it).first) }
-                if ("COLLABORATOR" in rewards.badges) Badge(stringResource(R.string.badge_collaborator), Terra)
-                if ("TRUSTED" in rewards.badges) Badge(stringResource(R.string.badge_trusted), Ok)
+                    ?: if (own) Badge(stringResource(R.string.rewards_pick_type), MaterialTheme.colorScheme.onSurfaceVariant) else Unit
+                if ("COLLABORATOR" in rewards.badges) Badge(stringResource(R.string.badge_collaborator), Terra) { badgeInfo = R.string.badge_collaborator_info }
+                if ("TRUSTED" in rewards.badges) Badge(stringResource(R.string.badge_trusted), Ok) { badgeInfo = R.string.badge_trusted_info }
             }
+        }
+        if (own) {
+            Text("✎ " + stringResource(R.string.rewards_tap_hint), color = Terra.copy(alpha = 0.85f), fontFamily = Mono,
+                fontWeight = FontWeight.Bold, fontSize = 8.5.sp, textAlign = TextAlign.Center)
         }
         if (own) {
             rewards.nextLevel?.let { next ->
@@ -282,10 +293,12 @@ fun RewardsBlock(uid: String?, viewModel: RewardsViewModel = hiltViewModel(key =
 }
 
 @Composable
-private fun Badge(text: String, color: Color) {
+private fun Badge(text: String, color: Color, onClick: (() -> Unit)? = null) {
     Text(text.uppercase(), color = color, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 10.sp,
         letterSpacing = 0.8.sp,
-        modifier = Modifier.clip(CircleShape).border(1.dp, color, CircleShape).padding(horizontal = 9.dp, vertical = 4.dp))
+        modifier = Modifier.clip(CircleShape).border(1.dp, color, CircleShape)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 9.dp, vertical = 4.dp))
 }
 
 /** Con menos escaladores sincronizados que esto el porcentaje no dice nada: se enseña solo la dificultad. */
@@ -363,6 +376,20 @@ private fun TierChip(text: String, color: Color, filled: Boolean) {
             .border(1.dp, color.copy(alpha = if (filled) 0f else 0.5f), CircleShape).padding(horizontal = 8.dp, vertical = 3.dp))
 }
 
+@Composable
+private fun TierPick(title: String, color: Color, on: Boolean, count: Int, onClick: () -> Unit) {
+    val fg = if (on) Color.White else color
+    Row(
+        Modifier.clip(CircleShape).background(if (on) color else color.copy(alpha = 0.10f))
+            .border(1.dp, color.copy(alpha = 0.7f), CircleShape).clickable(onClick = onClick)
+            .padding(horizontal = 11.dp, vertical = 7.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(title, color = fg, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 0.5.sp)
+        Text("$count", color = fg.copy(alpha = 0.85f), fontFamily = Mono, fontSize = 9.5.sp)
+    }
+}
+
 /** Fila para elegir el logro destacado: franja con el color de su dificultad, texto, y «ÉPICO · 3% de escaladores». */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -419,13 +446,36 @@ private fun RewardsSheet(rewards: UserRewards, mineIds: Set<String>?, rarity: Ac
                     }
                 }
             }
-            // Logro destacado: uno de los desbloqueados, el más raro primero.
-            Text(stringResource(R.string.featured_pick), style = EyebrowTextStyle, color = Terra)
-            val unlocked = mineIds?.let { ids -> AchievementsCalculator.catalog.filter { it.id in ids }.sortedByDescending { it.tier.ordinal } }
+            // Logro destacado: desplegable; uno de los desbloqueados, con chips por dificultad como en las estadísticas.
+            var featuredOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+            var tierFilter by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<Int?>(null) }
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, Terra.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                    .clickable { featuredOpen = !featuredOpen }.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(stringResource(R.string.featured_pick), style = EyebrowTextStyle, color = Terra, modifier = Modifier.weight(1f))
+                Text(rewards.featuredAchievement?.let { AchievementsCalculator.byId(it) }
+                    ?.let { com.meteomontana.android.ui.screens.profile.achievementText(it) } ?: stringResource(R.string.featured_none),
+                    fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+                    modifier = Modifier.weight(1f, fill = false).padding(horizontal = 8.dp))
+                Text(if (featuredOpen) "▴" else "▾", color = Terra)
+            }
+            val allUnlocked = mineIds?.let { ids -> AchievementsCalculator.catalog.filter { it.id in ids }.sortedByDescending { it.tier.ordinal } }
+            val unlocked = allUnlocked?.filter { tierFilter == null || it.tier.ordinal == tierFilter }
             when {
+                !featuredOpen -> Unit
                 mineIds == null -> Text(stringResource(R.string.featured_loading), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                unlocked.isNullOrEmpty() -> Text(stringResource(R.string.featured_none_synced), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                allUnlocked.isNullOrEmpty() -> Text(stringResource(R.string.featured_none_synced), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 else -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        TierPick(stringResource(R.string.ach_filter_all), Terra, tierFilter == null, allUnlocked.size) { tierFilter = null }
+                        allUnlocked.map { it.tier }.distinct().sortedBy { it.ordinal }.forEach { t ->
+                            TierPick(stringResource(tierNameRes(t)).uppercase(), com.meteomontana.android.ui.screens.profile.tierColor(t),
+                                tierFilter == t.ordinal, allUnlocked.count { it.tier == t }) { tierFilter = if (tierFilter == t.ordinal) null else t.ordinal }
+                        }
+                    }
                     val noneOn = rewards.featuredAchievement == null
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface)
@@ -437,7 +487,7 @@ private fun RewardsSheet(rewards: UserRewards, mineIds: Set<String>?, rarity: Ac
                             color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
                         if (noneOn) Icon(Icons.Filled.CheckCircle, null, tint = Terra)
                     }
-                    unlocked.forEach { a ->
+                    (unlocked ?: emptyList()).forEach { a ->
                         AchievementPickRow(a, rarity, rewards.featuredAchievement == a.id) { onSave(null, null, a.id) }
                     }
                 }

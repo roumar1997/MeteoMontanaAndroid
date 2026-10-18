@@ -1996,4 +1996,9 @@
     <string name="stats_avg_month">MEDIA AL MES</string>
     <string name="stats_best_month_short">MEJOR MES</string>
     <string name="stats_dashed_avg">línea discontinua = tu media</string>
+    <string name="stats_legend_streak">racha actual</string>
+    <string name="rewards_pick_type">¿Viero o bloquero?</string>
+    <string name="rewards_tap_hint">TOCA TU TÍTULO PARA ELEGIR TÍTULO, VIERO/BLOQUERO Y LOGRO</string>
+    <string name="badge_collaborator_info">Colaborador: tiene al menos una aportación aprobada (una piedra, una vía o un cambio que un admin ha dado por bueno).</string>
+    <string name="badge_trusted_info">De confianza: lo que propone se publica sin pasar por revisión. Se consigue con 20 aportaciones aprobadas o lo da un admin.</string>
 </resources>

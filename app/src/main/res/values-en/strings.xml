@@ -1937,4 +1937,9 @@
     <string name="stats_avg_month">AVERAGE A MONTH</string>
     <string name="stats_best_month_short">BEST MONTH</string>
     <string name="stats_dashed_avg">dashed line = your average</string>
+    <string name="stats_legend_streak">current streak</string>
+    <string name="rewards_pick_type">Routes or boulders?</string>
+    <string name="rewards_tap_hint">TAP YOUR TITLE TO PICK TITLE, ROUTES/BOULDERS AND ACHIEVEMENT</string>
+    <string name="badge_collaborator_info">Contributor: has at least one approved contribution (a boulder, a route or a change an admin accepted).</string>
+    <string name="badge_trusted_info">Trusted: what they propose is published without review. Earned with 20 approved contributions or granted by an admin.</string>
 </resources>
