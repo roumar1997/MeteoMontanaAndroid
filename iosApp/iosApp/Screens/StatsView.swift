@@ -142,101 +142,7 @@ struct StatsView: View {
                 }
 
                 // ── Progresión ──────────────────────────────────────────────
-                if let p = store.progression {
-                    Text("ASCENSOS POR MES · ÚLT. 12").eyebrow().padding(.top, 6)
-                    monthBars(p.monthlyCounts)
-
-                    if !p.maxGradePerQuarter.isEmpty {
-                        Text("GRADO MÁXIMO POR TRIMESTRE").eyebrow().padding(.top, 6)
-                        let quarters = Array(p.maxGradePerQuarter.suffix(6))
-                        HStack(spacing: 6) {
-                            ForEach(Array(quarters.enumerated()), id: \.offset) { _, pair in
-                                let g = pair.second! as String
-                                let c = gradeAccent(g)
-                                let parts = (pair.first! as String).components(separatedBy: "-")
-                                VStack(spacing: 6) {
-                                    Text(g).font(Cumbre.serif(17, .bold)).foregroundStyle(c)
-                                        .lineLimit(1).minimumScaleFactor(0.6)
-                                    Text((parts.last ?? "") + (parts.first.map { " '" + $0.suffix(2) } ?? ""))
-                                        .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
-                                }
-                                .frame(maxWidth: .infinity).padding(.vertical, 12)
-                                .background(c.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(c.opacity(0.5), lineWidth: 1))
-                            }
-                        }
-                    }
-
-                    let outWeeks = p.weeksOut.filter { $0.boolValue }.count
-                    HStack {
-                        Text("ÚLTIMAS 12 SEMANAS").eyebrow()
-                        Spacer()
-                        AdminChip(text: L("SALISTE %@ DE %@", outWeeks, p.weeksOut.count), color: Cumbre.terra, filled: true)
-                    }.padding(.top, 6)
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 4) {
-                            ForEach(Array(p.weeksOut.enumerated()), id: \.offset) { i, out in
-                                VStack(spacing: 3) {
-                                    RoundedRectangle(cornerRadius: 5)
-                                        .fill(out.boolValue ? Cumbre.terra : Cumbre.paper2)
-                                        .frame(height: 26)
-                                    Text(i == p.weeksOut.count - 1 ? L("ahora") : (i % 3 == 0 ? "-\(p.weeksOut.count - 1 - i)" : " "))
-                                        .font(Cumbre.mono(8)).foregroundStyle(Cumbre.ink3).lineLimit(1).minimumScaleFactor(0.6)
-                                }.frame(maxWidth: .infinity)
-                            }
-                        }
-                        HStack(spacing: 14) {
-                            legendDot(Cumbre.terra, L("saliste esa semana"))
-                            legendDot(Cumbre.paper2, L("no saliste"))
-                        }
-                    }
-                    .padding(12).background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
-
-                    Text("TUS ESCUELAS").eyebrow().padding(.top, 6)
-                    let topSchools = Array(p.perSchool.prefix(8))
-                    let maxSchool = max(topSchools.map { $0.second!.intValue }.max() ?? 1, 1)
-                    ForEach(Array(topSchools.enumerated()), id: \.offset) { _, t in
-                        let school = t.first! as String
-                        let isOpen = expandedSchool == school
-                        let count = t.second!.intValue
-                        // Tarjeta desplegable: nombre, barra proporcional, nº de ascensos y grado máximo en su color.
-                        VStack(spacing: 6) {
-                            Button { withAnimation { expandedSchool = isOpen ? nil : school } } label: {
-                                HStack(spacing: 12) {
-                                    VStack(spacing: 0) {
-                                        Text("\(count)").font(Cumbre.serif(26, .bold)).foregroundStyle(Cumbre.terra)
-                                        Text(L("ascensos")).font(Cumbre.mono(8, .bold)).foregroundStyle(Cumbre.ink3)
-                                    }
-                                    .frame(width: 62)
-                                    VStack(alignment: .leading, spacing: 7) {
-                                        Text(school).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
-                                            .lineLimit(2).multilineTextAlignment(.leading)
-                                        GeometryReader { geo in
-                                            ZStack(alignment: .leading) {
-                                                Capsule().fill(Cumbre.paper2)
-                                                Capsule().fill(Cumbre.terra)
-                                                    .frame(width: max(8, geo.size.width * CGFloat(count) / CGFloat(maxSchool)))
-                                            }
-                                        }.frame(height: 6)
-                                    }
-                                    VStack(alignment: .trailing, spacing: 6) {
-                                        if let g = t.third as? String { gradePill(g) }
-                                        Image(systemName: isOpen ? "chevron.up" : "chevron.down")
-                                            .font(.system(size: 11, weight: .semibold)).foregroundStyle(Cumbre.ink3)
-                                    }
-                                }
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            if isOpen {
-                                schoolEntriesInline(school)
-                            }
-                        }
-                        .padding(12).background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
-                    }
-                }
+                if let p = store.progression { progressionSection(p) }
 
                 if store.summary == nil && !store.loading {
                     infoCard(L("Marca vías como hechas y aquí verás tu pirámide, tu racha y tu progresión."))
@@ -361,6 +267,120 @@ struct StatsView: View {
                 .padding(16)
             }
             .presentationDetents([.medium, .large])
+        }
+    }
+
+    /// Progresión (ascensos por mes, trimestres, semanas, escuelas). Aparte del body para que el compilador respire.
+    @ViewBuilder
+    private func progressionSection(_ p: JournalStatsCalculator.Progression) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+                    Text("ASCENSOS POR MES · ÚLT. 12").eyebrow().padding(.top, 6)
+                    monthBars(p.monthlyCounts)
+
+                    if !p.maxGradePerQuarter.isEmpty {
+                        Text("GRADO MÁXIMO POR TRIMESTRE").eyebrow().padding(.top, 6)
+                        let quarters = Array(p.maxGradePerQuarter.suffix(6))
+                        HStack(spacing: 6) {
+                            ForEach(Array(quarters.enumerated()), id: \.offset) { _, pair in
+                                let g = pair.second! as String
+                                let c = gradeAccent(g)
+                                let parts = (pair.first! as String).components(separatedBy: "-")
+                                VStack(spacing: 6) {
+                                    Text(g).font(Cumbre.serif(17, .bold)).foregroundStyle(c)
+                                        .lineLimit(1).minimumScaleFactor(0.6)
+                                    Text((parts.last ?? "") + (parts.first.map { " '" + $0.suffix(2) } ?? ""))
+                                        .font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
+                                }
+                                .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                .background(c.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(c.opacity(0.5), lineWidth: 1))
+                            }
+                        }
+                    }
+
+                    weeksSection(p)
+                    schoolsSection(p)
+        }
+    }
+
+    @ViewBuilder
+    private func schoolsSection(_ p: JournalStatsCalculator.Progression) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+                    Text("TUS ESCUELAS").eyebrow().padding(.top, 6)
+                    let topSchools = Array(p.perSchool.prefix(8))
+                    let maxSchool = max(topSchools.map { $0.second!.intValue }.max() ?? 1, 1)
+                    ForEach(Array(topSchools.enumerated()), id: \.offset) { _, t in
+                        let school = t.first! as String
+                        let isOpen = expandedSchool == school
+                        let count = t.second!.intValue
+                        // Tarjeta desplegable: nombre, barra proporcional, nº de ascensos y grado máximo en su color.
+                        VStack(spacing: 6) {
+                            Button { withAnimation { expandedSchool = isOpen ? nil : school } } label: {
+                                HStack(spacing: 12) {
+                                    VStack(spacing: 0) {
+                                        Text("\(count)").font(Cumbre.serif(26, .bold)).foregroundStyle(Cumbre.terra)
+                                        Text(L("ascensos")).font(Cumbre.mono(8, .bold)).foregroundStyle(Cumbre.ink3)
+                                    }
+                                    .frame(width: 62)
+                                    VStack(alignment: .leading, spacing: 7) {
+                                        Text(school).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                                            .lineLimit(2).multilineTextAlignment(.leading)
+                                        GeometryReader { geo in
+                                            ZStack(alignment: .leading) {
+                                                Capsule().fill(Cumbre.paper2)
+                                                Capsule().fill(Cumbre.terra)
+                                                    .frame(width: max(8, geo.size.width * CGFloat(count) / CGFloat(maxSchool)))
+                                            }
+                                        }.frame(height: 6)
+                                    }
+                                    VStack(alignment: .trailing, spacing: 6) {
+                                        if let g = t.third as? String { gradePill(g) }
+                                        Image(systemName: isOpen ? "chevron.up" : "chevron.down")
+                                            .font(.system(size: 11, weight: .semibold)).foregroundStyle(Cumbre.ink3)
+                                    }
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            if isOpen {
+                                schoolEntriesInline(school)
+                            }
+                        }
+                        .padding(12).background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+                    }
+        }
+    }
+
+    @ViewBuilder
+    private func weeksSection(_ p: JournalStatsCalculator.Progression) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+                    let outWeeks = p.weeksOut.filter { $0.boolValue }.count
+                    HStack {
+                        Text("ÚLTIMAS 12 SEMANAS").eyebrow()
+                        Spacer()
+                        AdminChip(text: L("SALISTE %@ DE %@", outWeeks, p.weeksOut.count), color: Cumbre.terra, filled: true)
+                    }.padding(.top, 6)
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 4) {
+                            ForEach(Array(p.weeksOut.enumerated()), id: \.offset) { i, out in
+                                VStack(spacing: 3) {
+                                    RoundedRectangle(cornerRadius: 5)
+                                        .fill(out.boolValue ? Cumbre.terra : Cumbre.paper2)
+                                        .frame(height: 26)
+                                    Text(i == p.weeksOut.count - 1 ? L("ahora") : (i % 3 == 0 ? "-\(p.weeksOut.count - 1 - i)" : " "))
+                                        .font(Cumbre.mono(8)).foregroundStyle(Cumbre.ink3).lineLimit(1).minimumScaleFactor(0.6)
+                                }.frame(maxWidth: .infinity)
+                            }
+                        }
+                        HStack(spacing: 14) {
+                            legendDot(Cumbre.terra, L("saliste esa semana"))
+                            legendDot(Cumbre.paper2, L("no saliste"))
+                        }
+                    }
+                    .padding(12).background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+
         }
     }
 
