@@ -66,6 +66,19 @@ final class AdminViewModel: ObservableObject {
         }
     }
 
+    /// Envía el mismo aviso a varias personas elegidas (una llamada por persona).
+    func sendPushMany(targetUids: [String], title: String, body: String) {
+        pushBusy = true; pushResult = nil
+        Task {
+            var sent = 0
+            for uid in targetUids {
+                if let r = try? await c.sendPush.invoke(targetUid: uid, title: title, body: body) { sent += Int(r.sent) }
+            }
+            pushResult = "Enviado a \(sent) de \(targetUids.count) personas"
+            pushBusy = false
+        }
+    }
+
     func reviewSubmission(_ id: String, approve: Bool, reason: String?) {
         working.insert(id)
         Task {
@@ -129,46 +142,39 @@ struct AdminView: View {
         return groups.keys.sorted().map { (school: $0, items: groups[$0] ?? []) }
     }
 
-    /// nil = el menú principal (lista vertical); una sección = su contenido con un «‹ ADMIN» para volver.
+    /// La sección abierta (nil = la portada). Se EMPUJA en la pila de navegación: el «atrás» de arriba a la izquierda
+    /// vuelve a la portada, y desde la portada al perfil (Álvaro, 2026-10-18: «hay dos atrás»).
     @State private var tab: AdminTab? = nil
+    /// Para abrir la sección del push UNA sola vez (onAppear se repite al volver de una sección).
+    @State private var openedFromPush = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            if let current = tab {
-                Button { tab = nil } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "chevron.left").font(.system(size: 12, weight: .bold))
-                        Text("ADMIN").font(Cumbre.mono(11, .bold)).tracking(0.8)
-                        Text("· \(current.title.uppercased())").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink3)
-                        Spacer()
+        AdminHome(vm: vm, openTab: { tab = $0 })
+            .background(Cumbre.bg.ignoresSafeArea())
+            .navigationTitle("Admin")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(item: $tab) { t in
+                section(t)
+                    .background(Cumbre.bg.ignoresSafeArea())
+                    .navigationTitle(t.title)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .task {
+                        if t == .stats, vm.stats == nil { await vm.loadStats() }
+                        if t == .actividad, vm.logs.isEmpty { await vm.loadLogs() }
+                        if t == .gestionar, vm.allSchools.isEmpty { await vm.loadSchools() }
+                        if t == .sugerencias { await vm.loadSuggestions() }
                     }
-                    .foregroundStyle(Cumbre.terra).padding(.horizontal, 16).padding(.vertical, 10).contentShape(Rectangle())
+            }
+            .onAppear {
+                if openDenuncias && !openedFromPush { openedFromPush = true; tab = .denuncias }
+            }
+            .task { await vm.load(); await vm.loadSuggestions() }
+            .sheet(item: $rejecting) { target in
+                RejectReasonSheet { reason in
+                    if target.isSubmission { vm.reviewSubmission(target.id, approve: false, reason: reason) }
+                    else { vm.reviewContribution(target.id, approve: false, reason: reason) }
                 }
-                .buttonStyle(.plain)
-                Divider().overlay(Cumbre.rule)
             }
-            switch tab {
-            case .none: AdminHome(vm: vm, onOpen: { tab = $0 })
-            case .some(let t): section(t)
-            }
-        }
-        .background(Cumbre.bg.ignoresSafeArea())
-        .onAppear { if openDenuncias { tab = .denuncias } }
-        .navigationTitle("Admin")
-        .navigationBarTitleDisplayMode(.inline)
-        .task { await vm.load(); await vm.loadSuggestions() }
-        .task(id: tab) {
-            if tab == .stats, vm.stats == nil { await vm.loadStats() }
-            if tab == .actividad, vm.logs.isEmpty { await vm.loadLogs() }
-            if tab == .gestionar, vm.allSchools.isEmpty { await vm.loadSchools() }
-            if tab == .sugerencias { await vm.loadSuggestions() }
-        }
-        .sheet(item: $rejecting) { target in
-            RejectReasonSheet { reason in
-                if target.isSubmission { vm.reviewSubmission(target.id, approve: false, reason: reason) }
-                else { vm.reviewContribution(target.id, approve: false, reason: reason) }
-            }
-        }
     }
 
     @ViewBuilder private func section(_ t: AdminTab) -> some View {
@@ -193,11 +199,8 @@ struct AdminView: View {
             if vm.loading {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if vm.submissions.isEmpty && vm.contributions.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "checkmark.seal").font(.system(size: 36)).foregroundStyle(Cumbre.ok)
-                    Text("Nada pendiente de revisar.").font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity).padding(32)
+                AdminEmptyState(symbol: "checkmark.seal", text: "Nada pendiente de revisar.")
+                    .frame(maxHeight: .infinity)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
@@ -210,7 +213,7 @@ struct AdminView: View {
                                         onApprove: { vm.reviewSubmission(s.id, approve: true, reason: nil) },
                                         onReject: { rejecting = RejectTarget(id: s.id, isSubmission: true) }
                                     )
-                                    Divider().overlay(Cumbre.rule)
+                                    .proposalCard()
                                 }
                             } header: { sectionHeader("ESCUELAS NUEVAS · \(vm.submissions.count)") }
                         }
@@ -224,18 +227,18 @@ struct AdminView: View {
                                             Button { filter = f } label: {
                                                 Text(f.rawValue).font(Cumbre.mono(10, .bold)).tracking(0.6)
                                                     .foregroundStyle(on ? .white : Cumbre.ink2)
-                                                    .padding(.horizontal, 10).padding(.vertical, 6)
-                                                    .background(on ? Cumbre.ink : Color.clear)
-                                                    .overlay(Rectangle().stroke(on ? Cumbre.ink : Cumbre.rule, lineWidth: 1))
+                                                    .padding(.horizontal, 12).padding(.vertical, 7)
+                                                    .background(on ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
+                                                    .overlay(Capsule().stroke(on ? Color.clear : Cumbre.rule, lineWidth: 1))
                                             }.buttonStyle(.plain)
                                         }
                                     }.padding(.horizontal, 16).padding(.vertical, 8)
                                 }
                                 ForEach(groupedBySchool, id: \.school) { group in
                                     Text("\(group.school.uppercased()) · \(group.items.count)")
-                                        .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                                        .font(Cumbre.mono(10, .bold)).tracking(1).foregroundStyle(Cumbre.terra)
                                         .frame(maxWidth: .infinity, alignment: .leading)
-                                        .padding(.horizontal, 16).padding(.top, 8)
+                                        .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 2)
                                     ForEach(group.items, id: \.id) { c in
                                         ContributionAdminCard(
                                             contribution: c,
@@ -244,7 +247,7 @@ struct AdminView: View {
                                             onReject: { rejecting = RejectTarget(id: c.id, isSubmission: false) },
                                             onApproveEdited: { edited in vm.approveContributionEdited(c.id, editedBloquesJson: edited) }
                                         )
-                                        Divider().overlay(Cumbre.rule)
+                                        .proposalCard()
                                     }
                                 }
                             } header: { sectionHeader("MEJORAS · \(filteredContributions.count)") }
@@ -264,3 +267,14 @@ struct AdminView: View {
 }
 
 private struct RejectTarget: Identifiable { let id: String; let isSubmission: Bool }
+
+extension View {
+    /// Una propuesta como tarjeta redondeada con aire alrededor (en vez de filas pegadas con una línea).
+    func proposalCard() -> some View {
+        self
+            .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Cumbre.rule, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .padding(.horizontal, 12).padding(.vertical, 6)
+    }
+}

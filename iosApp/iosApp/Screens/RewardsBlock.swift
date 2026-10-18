@@ -49,6 +49,42 @@ func rewardTitle(_ level: Int) -> String {
     }
 }
 
+/// Cada título tiene su color y su icono (Álvaro, 2026-10-18: «que cada título tenga su propio estilo»).
+func rewardStyle(_ level: Int) -> (color: Color, symbol: String) {
+    switch level {
+    case 0: return (Color(red: 0.45, green: 0.47, blue: 0.5), "leaf.fill")
+    case 1: return (Color(red: 0.80, green: 0.36, blue: 0.20), "hand.raised.fill")
+    case 5: return (Color(red: 0.20, green: 0.55, blue: 0.30), "figure.hiking")
+    case 10: return (Color(red: 0.16, green: 0.45, blue: 0.75), "map.fill")
+    case 15: return (Color(red: 0.05, green: 0.55, blue: 0.55), "scope")
+    case 20: return (Color(red: 0.36, green: 0.35, blue: 0.62), "shield.fill")
+    case 25: return (Color(red: 0.85, green: 0.48, blue: 0.10), "scribble.variable")
+    case 30: return (Color(red: 0.72, green: 0.18, blue: 0.22), "mountain.2.fill")
+    case 35: return (Color(red: 0.27, green: 0.31, blue: 0.70), "point.3.connected.trianglepath.dotted")
+    case 40: return (Color(red: 0.55, green: 0.25, blue: 0.62), "book.fill")
+    case 45: return (Color(red: 0.30, green: 0.45, blue: 0.55), "wind")
+    default: return (Color(red: 0.72, green: 0.53, blue: 0.04), "crown.fill")
+    }
+}
+
+/// Píldora de un título con su color e icono.
+struct TitlePill: View {
+    let level: Int
+    var on = false
+    var locked = false
+    var body: some View {
+        let st = rewardStyle(level)
+        HStack(spacing: 6) {
+            Image(systemName: locked ? "lock.fill" : st.symbol).font(.system(size: 12, weight: .semibold))
+            Text(rewardTitle(level)).font(.system(size: 14, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
+        }
+        .foregroundStyle(on ? Color.white : (locked ? Cumbre.ink3 : st.color))
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(on ? st.color : st.color.opacity(locked ? 0.04 : 0.10), in: Capsule())
+        .overlay(Capsule().stroke(st.color.opacity(locked ? 0.25 : 0.7), lineWidth: 1))
+    }
+}
+
 /// El título. El nivel 50 («Señor de la Cumbre») se nota a la legua: oro con brillo que recorre las letras, destellos a
 /// los lados y un borde dorado. El resto, en terracota como siempre (Álvaro, 2026-10-18).
 private struct RewardTitle: View {
@@ -60,7 +96,7 @@ private struct RewardTitle: View {
 
     var body: some View {
         if level < 50 {
-            Text(rewardTitle(level)).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.terra)
+            TitlePill(level: level)
         } else {
             let g = LinearGradient(colors: gold, startPoint: shine ? .trailing : .leading, endPoint: shine ? UnitPoint(x: 2, y: 1) : UnitPoint(x: 1, y: 1))
             HStack(spacing: 8) {
@@ -83,6 +119,27 @@ private func climberTypeLabel(_ t: String?) -> String {
     case "BOTH": return L("Las dos")
     default: return L("Prefiero no decirlo")
     }
+}
+
+private func climberTypeStyle(_ t: String?) -> (color: Color, symbol: String) {
+    switch t {
+    case "ROUTES": return (Color(red: 0.16, green: 0.45, blue: 0.75), "figure.climbing")
+    case "BOULDER": return (Color(red: 0.85, green: 0.48, blue: 0.10), "square.stack.3d.up.fill")
+    case "BOTH": return (Color(red: 0.20, green: 0.55, blue: 0.30), "arrow.up.arrow.down")
+    default: return (Color(red: 0.45, green: 0.47, blue: 0.5), "questionmark")
+    }
+}
+
+private func climberChip(_ t: String?, on: Bool) -> some View {
+    let st = climberTypeStyle(t)
+    return HStack(spacing: 6) {
+        Image(systemName: st.symbol).font(.system(size: 12, weight: .semibold))
+        Text(climberTypeLabel(t)).font(.system(size: 13, weight: .semibold))
+    }
+    .foregroundStyle(on ? Color.white : st.color)
+    .padding(.horizontal, 12).padding(.vertical, 8)
+    .background(on ? st.color : st.color.opacity(0.10), in: Capsule())
+    .overlay(Capsule().stroke(st.color.opacity(0.7), lineWidth: 1))
 }
 
 private let promptKey = "climber_type_prompt_done"
@@ -140,7 +197,7 @@ struct RewardsBlock: View {
                 FeaturedAchievement(achievement: a, rarity: model.rarity)
             }
             HStack(spacing: 6) {
-                if let t = r.climberType { badge(climberTypeLabel(t), Cumbre.ink2) }
+                if let t = r.climberType { badge(climberTypeLabel(t), climberTypeStyle(t).color) }
                 if r.badges.contains("COLLABORATOR") { badge(L("Colaborador"), Cumbre.terra) }
                 if r.badges.contains("TRUSTED") { badge(L("De confianza"), Cumbre.ok) }
             }
@@ -170,7 +227,7 @@ struct RewardsBlock: View {
                     Button {
                         Task { await model.update(climberType: t, titleLevel: nil) }
                         close()
-                    } label: { chip(climberTypeLabel(t), on: false) }.buttonStyle(.plain)
+                    } label: { climberChip(t, on: false) }.buttonStyle(.plain)
                 }
             }
             Button { close() } label: {
@@ -207,7 +264,7 @@ private struct RewardsSheet: View {
                 Text(L("¿VIERO O BLOQUERO?")).eyebrow(Cumbre.terra)
                 FlowChips(items: ["ROUTES", "BOULDER", "BOTH", ""]) { t in
                     Button { Task { await model.update(climberType: t, titleLevel: nil) } } label: {
-                        chip(climberTypeLabel(t.isEmpty ? nil : t), on: (r.climberType ?? "") == t)
+                        climberChip(t.isEmpty ? nil : t, on: (r.climberType ?? "") == t)
                     }.buttonStyle(.plain)
                 }
                 Text(L("TU LOGRO DESTACADO")).eyebrow(Cumbre.terra)
@@ -218,14 +275,21 @@ private struct RewardsSheet: View {
                         Text(L("Aún no tienes logros sincronizados. Abre Mis estadísticas una vez y vuelve aquí."))
                             .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                     } else {
-                        FlowChips(items: [""] + unlocked.map { $0.id }) { id in
-                            Button { Task { await model.update(climberType: nil, titleLevel: nil, featured: id) } } label: {
-                                if id.isEmpty {
-                                    chip(L("Ninguno"), on: r.featuredAchievement == nil)
-                                } else if let a = AchievementsCalculator.shared.byId(id: id) {
-                                    chip("★ " + achievementText(a), on: r.featuredAchievement == id)
+                        VStack(spacing: 8) {
+                            Button { Task { await model.update(climberType: nil, titleLevel: nil, featured: "") } } label: {
+                                HStack {
+                                    Text(L("Ninguno")).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                                    Spacer()
+                                    if r.featuredAchievement == nil { Image(systemName: "checkmark.circle.fill").foregroundStyle(Cumbre.terra) }
                                 }
+                                .padding(12).background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 10))
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(r.featuredAchievement == nil ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
                             }.buttonStyle(.plain)
+                            ForEach(unlocked, id: \.id) { a in
+                                Button { Task { await model.update(climberType: nil, titleLevel: nil, featured: a.id) } } label: {
+                                    achievementRow(a, rarity: model.rarity, on: r.featuredAchievement == a.id)
+                                }.buttonStyle(.plain)
+                            }
                         }
                     }
                 } else {
@@ -234,10 +298,20 @@ private struct RewardsSheet: View {
                 Text(L("TU TÍTULO")).eyebrow(Cumbre.terra)
                 Text(L("Desbloqueas títulos con tus aportaciones aprobadas (llevas %@).", r.approved))
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                FlowChips(items: r.unlockedLevels.map { Int(truncating: $0) }) { l in
-                    Button { Task { await model.update(climberType: nil, titleLevel: l) } } label: {
-                        chip(rewardTitle(l), on: Int(r.titleLevel) == l)
-                    }.buttonStyle(.plain)
+                let unlockedLevels = Set(r.unlockedLevels.map { Int(truncating: $0) })
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(allRewardLevels, id: \.self) { l in
+                        let has = unlockedLevels.contains(l)
+                        HStack(spacing: 10) {
+                            Button { if has { Task { await model.update(climberType: nil, titleLevel: l) } } } label: {
+                                TitlePill(level: l, on: Int(r.titleLevel) == l, locked: !has)
+                            }.buttonStyle(.plain).disabled(!has)
+                            if !has {
+                                Text(L("con %@ aportaciones", l)).font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                    }
                 }
             }
             .padding(20)
@@ -245,6 +319,35 @@ private struct RewardsSheet: View {
         .background(Cumbre.bg.ignoresSafeArea())
         .presentationDetents([.medium, .large])
     }
+}
+
+/// Los doce niveles de título, de menor a mayor.
+private let allRewardLevels = [0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+
+/// Fila para elegir el logro destacado: franja del color de su dificultad, texto, y «ÉPICO · 3% de escaladores».
+private func achievementRow(_ a: Achievement, rarity: AchievementRarity?, on: Bool) -> some View {
+    let color = tierColor(a.tier)
+    let enough = (rarity?.totalUsers ?? 0) >= 5
+    let pct = enough ? Int(rarity?.percentById[a.id]?.intValue ?? 0) : 0
+    return HStack(spacing: 0) {
+        Rectangle().fill(color).frame(width: 5)
+        VStack(alignment: .leading, spacing: 5) {
+            Text(achievementText(a)).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                .multilineTextAlignment(.leading)
+            HStack(spacing: 6) {
+                AdminChip(text: tierName(a.tier).uppercased(), color: color, filled: true)
+                if enough {
+                    AdminChip(text: pct < 1 ? L("<1% de escaladores") : L("%@% de escaladores", pct), color: color)
+                }
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 10)
+        Spacer(minLength: 0)
+        if on { Image(systemName: "checkmark.circle.fill").foregroundStyle(Cumbre.terra).padding(.trailing, 12) }
+    }
+    .background(on ? color.opacity(0.08) : Cumbre.paper)
+    .clipShape(RoundedRectangle(cornerRadius: 10))
+    .overlay(RoundedRectangle(cornerRadius: 10).stroke(on ? color : Cumbre.rule, lineWidth: on ? 1.5 : 1))
 }
 
 /// Chips que saltan de línea cuando no caben.

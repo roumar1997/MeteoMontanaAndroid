@@ -378,101 +378,117 @@ struct AdminLogsTab: View {
     }
 }
 
-/// Tab PUSH — envío manual de notificación (espejo de PushTab).
+/// Tab PUSH — envío manual de notificación (espejo de PushTab). Rehecha el 2026-10-18: buscar y elegir VARIAS
+/// personas (chips), o a todos; con vista previa del aviso.
 struct AdminPushTab: View {
     @ObservedObject var vm: AdminViewModel
-    @State private var targetUid: String? = nil
-    @State private var targetLabel: String? = nil
+    @State private var recipients: [PublicProfile] = []
     @State private var query = ""
     @State private var results: [PublicProfile] = []
     @State private var searchTask: Task<Void, Never>? = nil
     @State private var title = ""
     @State private var body_ = ""
     @State private var confirmAll = false
+
+    private var canSend: Bool { !vm.pushBusy && !title.trimmingCharacters(in: .whitespaces).isEmpty && !body_.trimmingCharacters(in: .whitespaces).isEmpty }
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                if let uid = targetUid {
-                    HStack(spacing: 8) {
-                        Text("PARA: " + (targetLabel ?? uid))
-                            .font(Cumbre.mono(11, .bold)).tracking(0.6)
-                            .foregroundStyle(Cumbre.terra)
-                        Button("✕ QUITAR") { targetUid = nil; targetLabel = nil }
-                            .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
-                            .buttonStyle(.plain)
-                    }
-                } else {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("DESTINATARIO").eyebrow()
-                        TextField("Buscar por @usuario o nombre…", text: $query)
-                            .font(.system(size: 15)).foregroundStyle(Cumbre.ink)
-                            .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                            .dismissKeyboardOnSubmit()
-                            .onChange(of: query) { _, q in
-                                searchTask?.cancel()
-                                let t = q.trimmingCharacters(in: .whitespaces)
-                                guard t.count >= 2 else { results = []; return }
-                                searchTask = Task {
-                                    try? await Task.sleep(nanoseconds: 250_000_000)
-                                    guard !Task.isCancelled else { return }
-                                    results = (try? await AppDependencies.shared.container.searchUsers.invoke(query: t, limit: 10)) ?? []
-                                }
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    AdminSectionLabel(text: "PARA QUIÉN")
+                    if recipients.isEmpty {
+                        AdminChip(text: "TODOS LOS USUARIOS", color: Cumbre.terra, filled: true)
+                    } else {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 6)], alignment: .leading, spacing: 6) {
+                            ForEach(recipients, id: \.uid) { u in
+                                Button { recipients.removeAll { $0.uid == u.uid } } label: {
+                                    HStack(spacing: 4) {
+                                        Text(name(u)).font(Cumbre.mono(10.5, .bold))
+                                        Image(systemName: "xmark").font(.system(size: 9, weight: .bold))
+                                    }
+                                    .foregroundStyle(.white).padding(.horizontal, 10).padding(.vertical, 6)
+                                    .background(Cumbre.terraFill, in: Capsule())
+                                }.buttonStyle(.plain)
                             }
-                        ForEach(results.prefix(6), id: \.uid) { u in
-                            Button {
-                                targetUid = u.uid
-                                targetLabel = u.username.map { "@" + $0 } ?? u.displayName
-                                query = ""; results = []
-                            } label: {
-                                Text(u.username.map { "@" + $0 } ?? (u.displayName ?? u.uid))
-                                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.horizontal, 10).padding(.vertical, 8)
-                                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                            }.buttonStyle(.plain)
                         }
-                        Text("Sin destinatario → se enviará a TODOS los usuarios.")
-                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    }
+                    AdminField(placeholder: "Buscar por @usuario o nombre para añadir…", text: $query)
+                        .onChange(of: query) { _, q in
+                            searchTask?.cancel()
+                            let t = q.trimmingCharacters(in: .whitespaces)
+                            guard t.count >= 2 else { results = []; return }
+                            searchTask = Task {
+                                try? await Task.sleep(nanoseconds: 250_000_000)
+                                guard !Task.isCancelled else { return }
+                                results = (try? await AppDependencies.shared.container.searchUsers.invoke(query: t, limit: 10)) ?? []
+                            }
+                        }
+                    ForEach(results.filter { r in !recipients.contains { $0.uid == r.uid } }.prefix(6), id: \.uid) { u in
+                        Button {
+                            recipients.append(u); query = ""; results = []
+                        } label: {
+                            HStack(spacing: 10) {
+                                AvatarCircle(url: u.photoUrl, size: 30)
+                                Text(name(u)).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                                Spacer()
+                                Image(systemName: "plus.circle.fill").foregroundStyle(Cumbre.terra)
+                            }
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.rule, lineWidth: 1))
+                        }.buttonStyle(.plain)
+                    }
+                    Text(recipients.isEmpty ? "Sin nadie elegido, el aviso llega a TODOS." : "Solo recibirán el aviso estas \(recipients.count) personas.")
+                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                }
+                .adminCard()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    AdminSectionLabel(text: "EL AVISO")
+                    AdminField(placeholder: "Título", text: $title)
+                    AdminField(placeholder: "Mensaje", text: $body_, axis: .vertical, lines: 3...8)
+                }
+                .adminCard()
+
+                if !title.isEmpty || !body_.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        AdminSectionLabel(text: "ASÍ SE VERÁ")
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: "mountain.2.fill").foregroundStyle(.white)
+                                .frame(width: 34, height: 34).background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: 8))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(title.isEmpty ? "Título" : title).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                                Text(body_.isEmpty ? "Mensaje" : body_).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                        .padding(12).background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 14))
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Cumbre.rule, lineWidth: 1))
                     }
                 }
-                field("TÍTULO", $title, "Título")
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("MENSAJE").eyebrow()
-                    TextField("Mensaje", text: $body_, axis: .vertical).lineLimit(3...6)
-                        .font(.system(size: 15)).foregroundStyle(Cumbre.ink)
-                        .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+
+                AdminButton(title: recipients.isEmpty ? "ENVIAR A TODOS LOS USUARIOS" : "ENVIAR A \(recipients.count)",
+                            symbol: "paperplane.fill", busy: vm.pushBusy) {
+                    if recipients.isEmpty { confirmAll = true }
+                    else { vm.sendPushMany(targetUids: recipients.map { $0.uid }, title: title, body: body_) }
                 }
-                Button {
-                    if targetUid == nil { confirmAll = true }
-                    else { vm.sendPush(targetUid: targetUid, title: title, body: body_) }
-                } label: {
-                    HStack { if vm.pushBusy { ProgressView().tint(.white) }
-                        Text(targetUid == nil ? "ENVIAR A TODOS LOS USUARIOS" : "ENVIAR PUSH")
-                            .font(Cumbre.mono(13, .bold)).tracking(0.8) }
-                    .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity).background(Cumbre.terraFill)
-                }.buttonStyle(.plain)
-                .disabled(vm.pushBusy || title.isEmpty || body_.isEmpty)
+                .disabled(!canSend).opacity(canSend ? 1 : 0.5)
                 .alert("¿Enviar a TODOS?", isPresented: $confirmAll) {
                     Button("Cancelar", role: .cancel) {}
-                    Button("Sí, a todos", role: .destructive) {
-                        vm.sendPush(targetUid: nil, title: title, body: body_)
-                    }
+                    Button("Sí, a todos", role: .destructive) { vm.sendPush(targetUid: nil, title: title, body: body_) }
                 } message: {
                     Text("El push llegará a todos los usuarios de Cumbre.")
                 }
                 if let r = vm.pushResult {
-                    Text(r).font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink2)
+                    AdminChip(text: r.uppercased(), color: Cumbre.ok)
                 }
-            }.padding(16)
+            }
+            .padding(16)
         }
     }
-    private func field(_ label: String, _ text: Binding<String>, _ ph: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(label).eyebrow()
-            TextField(ph, text: text).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
-                .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-        }
-    }
+
+    private func name(_ u: PublicProfile) -> String { u.username.map { "@" + $0 } ?? (u.displayName ?? String(u.uid.prefix(10))) }
 }
 
 

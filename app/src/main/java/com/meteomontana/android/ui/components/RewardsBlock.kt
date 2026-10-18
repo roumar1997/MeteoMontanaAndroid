@@ -13,8 +13,30 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.BackHand
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material.icons.filled.Gesture
+import androidx.compose.material.icons.filled.GpsFixed
+import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.filled.Hiking
+import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.filled.ViewInAr
+import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
@@ -109,6 +131,39 @@ fun rewardTitle(level: Int): String = stringResource(when (level) {
     35 -> R.string.title_l35; 40 -> R.string.title_l40; 45 -> R.string.title_l45; else -> R.string.title_l50
 })
 
+/** Cada título tiene su color y su icono (Álvaro, 2026-10-18: «que cada título tenga su propio estilo»). */
+private fun rewardStyle(level: Int): Pair<Color, ImageVector> = when (level) {
+    0 -> Color(0xFF73787F) to Icons.Filled.Eco
+    1 -> Color(0xFFCC5C33) to Icons.Filled.BackHand
+    5 -> Color(0xFF338C4D) to Icons.Filled.Hiking
+    10 -> Color(0xFF2973BF) to Icons.Filled.Map
+    15 -> Color(0xFF0D8C8C) to Icons.Filled.GpsFixed
+    20 -> Color(0xFF5C599E) to Icons.Filled.Shield
+    25 -> Color(0xFFD97A1A) to Icons.Filled.Gesture
+    30 -> Color(0xFFB82E38) to Icons.Filled.Landscape
+    35 -> Color(0xFF454FB3) to Icons.Filled.Timeline
+    40 -> Color(0xFF8C409E) to Icons.Filled.MenuBook
+    45 -> Color(0xFF4D738C) to Icons.Filled.Air
+    else -> Color(0xFFB8860B) to Icons.Filled.WorkspacePremium
+}
+
+/** Píldora de un título con su color e icono; apagada con candado si aún no se ha desbloqueado. */
+@Composable
+private fun TitlePill(level: Int, on: Boolean = false, locked: Boolean = false, modifier: Modifier = Modifier) {
+    val (color, icon) = rewardStyle(level)
+    val fg = if (on) Color.White else if (locked) MaterialTheme.colorScheme.onSurfaceVariant else color
+    Row(
+        modifier.clip(CircleShape)
+            .background(if (on) color else color.copy(alpha = if (locked) 0.04f else 0.10f))
+            .border(1.dp, color.copy(alpha = if (locked) 0.25f else 0.7f), CircleShape)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(if (locked) Icons.Filled.Lock else icon, null, tint = fg, modifier = Modifier.size(14.dp))
+        Text(rewardTitle(level), color = fg, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1)
+    }
+}
+
 /** Oro del nivel máximo: un degradado que se desplaza (brillo) sobre el texto y el borde. */
 private val GoldColors = listOf(Color(0xFFB8860B), Color(0xFFFFD54A), Color(0xFFFFF6C2), Color(0xFFFFD54A), Color(0xFFB8860B))
 
@@ -120,7 +175,7 @@ private val GoldColors = listOf(Color(0xFFB8860B), Color(0xFFFFD54A), Color(0xFF
 private fun RewardTitle(level: Int) {
     val title = rewardTitle(level)
     if (level < 50) {
-        Text(title, color = Terra, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, textAlign = TextAlign.Center)
+        TitlePill(level)
         return
     }
     val shine by androidx.compose.animation.core.rememberInfiniteTransition(label = "oro").animateFloat(
@@ -153,6 +208,28 @@ private fun climberTypeLabel(type: String?): String = stringResource(when (type)
     else -> R.string.climber_none
 })
 
+private fun climberTypeStyle(type: String?): Pair<Color, ImageVector> = when (type) {
+    "ROUTES" -> Color(0xFF2973BF) to Icons.Filled.Timeline
+    "BOULDER" -> Color(0xFFD97A1A) to Icons.Filled.ViewInAr
+    "BOTH" -> Color(0xFF338C4D) to Icons.Filled.SwapVert
+    else -> Color(0xFF73787F) to Icons.Filled.HelpOutline
+}
+
+@Composable
+private fun ClimberChip(type: String?, on: Boolean, onClick: () -> Unit) {
+    val (color, icon) = climberTypeStyle(type)
+    val fg = if (on) Color.White else color
+    Row(
+        Modifier.clip(CircleShape).background(if (on) color else color.copy(alpha = 0.10f))
+            .border(1.dp, color.copy(alpha = 0.7f), CircleShape).clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(icon, null, tint = fg, modifier = Modifier.size(14.dp))
+        Text(climberTypeLabel(type), color = fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+    }
+}
+
 private const val PROMPT_KEY = "climber_type_prompt_done"
 
 /**
@@ -183,7 +260,7 @@ fun RewardsBlock(uid: String?, viewModel: RewardsViewModel = hiltViewModel(key =
         if (rewards.badges.isNotEmpty() || rewards.climberType != null) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
                 verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                rewards.climberType?.let { Badge(climberTypeLabel(it), MaterialTheme.colorScheme.onSurfaceVariant) }
+                rewards.climberType?.let { Badge(climberTypeLabel(it), climberTypeStyle(it).first) }
                 if ("COLLABORATOR" in rewards.badges) Badge(stringResource(R.string.badge_collaborator), Terra)
                 if ("TRUSTED" in rewards.badges) Badge(stringResource(R.string.badge_trusted), Ok)
             }
@@ -258,7 +335,7 @@ private fun ClimberTypePrompt(rewards: UserRewards, onChoose: (String) -> Unit) 
         Text(stringResource(R.string.climber_prompt_title), style = EyebrowTextStyle, color = Terra)
         Text(stringResource(R.string.climber_prompt_body), color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            UserRewards.CLIMBER_TYPES.forEach { t -> Choice(climberTypeLabel(t), false) { onChoose(t); close() } }
+            UserRewards.CLIMBER_TYPES.forEach { t -> ClimberChip(t, false) { onChoose(t); close() } }
             Text(stringResource(R.string.goal_not_now).uppercase(), color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 11.sp,
                 modifier = Modifier.clickable { close() }.padding(vertical = 8.dp))
@@ -275,6 +352,45 @@ private fun Choice(text: String, on: Boolean, onClick: () -> Unit) {
             .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 7.dp))
 }
 
+private val ALL_LEVELS = listOf(0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50)
+
+/** Etiqueta redondeada (dificultad, porcentaje). */
+@Composable
+private fun TierChip(text: String, color: Color, filled: Boolean) {
+    Text(text, color = if (filled) Color.White else color, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 9.5.sp,
+        letterSpacing = 0.6.sp,
+        modifier = Modifier.clip(CircleShape).background(if (filled) color else color.copy(alpha = 0.10f))
+            .border(1.dp, color.copy(alpha = if (filled) 0f else 0.5f), CircleShape).padding(horizontal = 8.dp, vertical = 3.dp))
+}
+
+/** Fila para elegir el logro destacado: franja con el color de su dificultad, texto, y «ÉPICO · 3% de escaladores». */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AchievementPickRow(a: com.meteomontana.android.domain.usecase.journal.Achievement, rarity: AchievementRarity?,
+                               on: Boolean, onClick: () -> Unit) {
+    val color = com.meteomontana.android.ui.screens.profile.tierColor(a.tier)
+    val enough = rarity != null && rarity.totalUsers >= MIN_USERS_FOR_PERCENT
+    val pct = if (enough) rarity?.percentById?.get(a.id) ?: 0 else 0
+    val shape = RoundedCornerShape(10.dp)
+    Row(
+        Modifier.fillMaxWidth().clip(shape).background(if (on) color.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface)
+            .border(if (on) 1.5.dp else 1.dp, if (on) color else MaterialTheme.colorScheme.outline, shape)
+            .clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        androidx.compose.foundation.layout.Box(Modifier.width(5.dp).height(56.dp).background(color))
+        Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Text(com.meteomontana.android.ui.screens.profile.achievementText(a), fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurface)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                TierChip(stringResource(tierNameRes(a.tier)).uppercase(), color, true)
+                if (enough) TierChip(if (pct < 1) stringResource(R.string.ach_pct_lt1) else stringResource(R.string.ach_pct, pct), color, false)
+            }
+        }
+        if (on) Icon(Icons.Filled.CheckCircle, null, tint = Terra, modifier = Modifier.padding(end = 12.dp))
+    }
+}
+
 /** Elegir el título (entre los desbloqueados) y si eres viero, bloquero o las dos. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -287,14 +403,21 @@ private fun RewardsSheet(rewards: UserRewards, mineIds: Set<String>?, rarity: Ac
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 (UserRewards.CLIMBER_TYPES + "").forEach { t ->
                     val on = (rewards.climberType ?: "") == t
-                    Choice(climberTypeLabel(t.ifEmpty { null }), on) { onSave(t, null, null) }
+                    ClimberChip(t.ifEmpty { null }, on) { onSave(t, null, null) }
                 }
             }
             Text(stringResource(R.string.rewards_title_pick), style = EyebrowTextStyle, color = Terra)
             Text(stringResource(R.string.rewards_title_hint, rewards.approved), color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                rewards.unlockedLevels.forEach { l -> Choice(rewardTitle(l), rewards.titleLevel == l) { onSave(null, l, null) } }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ALL_LEVELS.forEach { l ->
+                    val has = l in rewards.unlockedLevels
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        TitlePill(l, on = rewards.titleLevel == l, locked = !has,
+                            modifier = if (has) Modifier.clickable { onSave(null, l, null) } else Modifier)
+                        if (!has) Text(stringResource(R.string.rewards_needs, l), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                    }
+                }
             }
             // Logro destacado: uno de los desbloqueados, el más raro primero.
             Text(stringResource(R.string.featured_pick), style = EyebrowTextStyle, color = Terra)
@@ -302,12 +425,20 @@ private fun RewardsSheet(rewards: UserRewards, mineIds: Set<String>?, rarity: Ac
             when {
                 mineIds == null -> Text(stringResource(R.string.featured_loading), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 unlocked.isNullOrEmpty() -> Text(stringResource(R.string.featured_none_synced), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                else -> FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Choice(stringResource(R.string.featured_none), rewards.featuredAchievement == null) { onSave(null, null, "") }
+                else -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val noneOn = rewards.featuredAchievement == null
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface)
+                            .border(1.dp, if (noneOn) Terra else MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+                            .clickable { onSave(null, null, "") }.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(stringResource(R.string.featured_none), fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                        if (noneOn) Icon(Icons.Filled.CheckCircle, null, tint = Terra)
+                    }
                     unlocked.forEach { a ->
-                        Choice("★ " + com.meteomontana.android.ui.screens.profile.achievementText(a), rewards.featuredAchievement == a.id) {
-                            onSave(null, null, a.id)
-                        }
+                        AchievementPickRow(a, rarity, rewards.featuredAchievement == a.id) { onSave(null, null, a.id) }
                     }
                 }
             }

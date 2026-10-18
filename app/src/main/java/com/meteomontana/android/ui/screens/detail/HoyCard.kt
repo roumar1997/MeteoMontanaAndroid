@@ -56,6 +56,7 @@ fun HoyCard(forecast: Forecast, modifier: Modifier = Modifier) {
     val rockColor = if (cur.dryRock) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
     val shape = RoundedCornerShape(14.dp)
 
+    Column {
     Column(
         modifier
             .padding(horizontal = 12.dp)
@@ -94,6 +95,9 @@ fun HoyCard(forecast: Forecast, modifier: Modifier = Modifier) {
             Icon(if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
         }
+        // Las próximas 16 horas van SIEMPRE a la vista (Álvaro, 2026-10-18).
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        Box(Modifier.padding(vertical = 6.dp)) { HourlyScoreGrid(hours = forecast.hours) }
         AnimatedVisibility(open) {
             Column {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -102,12 +106,11 @@ fun HoyCard(forecast: Forecast, modifier: Modifier = Modifier) {
                     else stringResource(R.string.forecast_body_v3_mejor_esperar_a_que_seque)
                 Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp))
-                // Al abrir la tarjeta sale TODO a la vez (porqué del índice + mejor hora por sector).
                 FactorsAccordion(current = cur, expanded = factorsOpen, onToggle = { factorsOpen = !factorsOpen }, alwaysOpen = true)
-                // Mejor hora por sector: se pide ahora, al abrir la tarjeta (no al entrar en la escuela).
-                SectorHoursSection(forecast.schoolId, alwaysOpen = true)
-                Box(Modifier.padding(vertical = 8.dp)) { HourlyScoreGrid(hours = forecast.hours) }
             }
         }
+    }
+    // Mejor hora por sector: tarjeta propia y llamativa, debajo (no dentro del «por qué este índice»).
+    SectorHoursSection(forecast.schoolId)
     }
 }

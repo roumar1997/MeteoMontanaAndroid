@@ -2,6 +2,7 @@ package com.meteomontana.android.ui.screens.detail
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -68,54 +69,48 @@ class SectorHoursViewModel @Inject constructor(private val getSectorHours: GetSe
 }
 
 /**
- * Fila plegable dentro de la tarjeta HOY, como «¿Por qué este índice?». Plegada: el mejor sector de hoy y su franja.
+ * Tarjeta plegable PROPIA bajo la tarjeta HOY (Álvaro, 2026-10-18). Plegada: el mejor sector de hoy y su franja.
  * Desplegada: cada sector con su orientación, su franja y una tira de 8 a 20 h coloreada por nota (punto = sol).
  */
 @Composable
-fun SectorHoursSection(schoolId: String, alwaysOpen: Boolean = false, viewModel: SectorHoursViewModel = hiltViewModel()) {
+fun SectorHoursSection(schoolId: String, viewModel: SectorHoursViewModel = hiltViewModel()) {
     LaunchedEffect(schoolId) { viewModel.load(schoolId) }
     val sectors by viewModel.sectors.collectAsStateWithLifecycle()
     val list = sectors?.filter { it.bestFrom != null } ?: return
     if (list.isEmpty()) return
-    var expandedByUser by rememberSaveable { mutableStateOf(false) }
-    // Dentro de la tarjeta HOY: sin desplegable, siempre abierta y con el título llamativo.
-    val expanded = alwaysOpen || expandedByUser
+    var expanded by rememberSaveable { mutableStateOf(false) }
     val best = list.first()
+    val shape = RoundedCornerShape(14.dp)
 
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+    Column(
+        Modifier.padding(horizontal = 12.dp, vertical = 6.dp).fillMaxWidth().clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), shape)
+    ) {
         Row(
-            Modifier.fillMaxWidth().clickable(enabled = !alwaysOpen) { expandedByUser = !expandedByUser }
-                .padding(top = if (alwaysOpen) 14.dp else 12.dp, bottom = 12.dp),
+            Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                if (alwaysOpen) {
-                    Text(stringResource(R.string.sector_hours_title), fontFamily = com.meteomontana.android.ui.theme.Serif,
-                        fontWeight = FontWeight.Bold, fontSize = 17.sp, color = MaterialTheme.colorScheme.primary)
-                } else {
-                    Text(stringResource(R.string.sector_hours_title), style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                Text(stringResource(R.string.sector_hours_title), fontFamily = com.meteomontana.android.ui.theme.Serif,
+                    fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
                 if (!expanded) {
                     Text(stringResource(R.string.sector_hours_best, best.name, best.bestFrom!!, best.bestTo!! + 1),
                         color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, maxLines = 1,
                         overflow = TextOverflow.Ellipsis)
                 }
             }
-            if (!alwaysOpen) {
-                Icon(if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            Icon(if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null,
+                tint = MaterialTheme.colorScheme.primary)
         }
         AnimatedVisibility(expanded) {
-            Column(Modifier.padding(bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 list.forEach { SectorHoursRow(it) }
                 Text(stringResource(R.string.sector_hours_hint), color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp)
             }
         }
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
 }
 
 @Composable

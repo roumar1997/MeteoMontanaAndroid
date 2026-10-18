@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -350,7 +352,7 @@ fun StatsScreen(
                     Box(Modifier.clickable {
                         viewModel.setYear(bm.take(4)); viewModel.setMonth(bm.substringAfter('-'))
                     }) {
-                        InfoCard(stringResource(R.string.stats_screen_v3_tu_mejor_mes_ascensos_toca, formatMonth(bm), s.bestMonthCount))
+                        BestMonthCard(formatMonth(bm), s.bestMonthCount)
                     }
                 }
                 Spacer(Modifier.height(Spacing.lg))
@@ -386,36 +388,65 @@ fun StatsScreen(
                     Spacer(Modifier.height(Spacing.lg))
                 }
 
-                Text(stringResource(R.string.stats_screen_ultimas_12_semanas), style = EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.stats_screen_ultimas_12_semanas), style = EyebrowTextStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.stats_weeks_out_chip, p.weeksOut.count { it }, p.weeksOut.size),
+                        color = Color.White, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 9.5.sp,
+                        modifier = Modifier.clip(CircleShape).background(Terra).padding(horizontal = 8.dp, vertical = 3.dp))
+                }
                 Spacer(Modifier.height(Spacing.xs))
-                Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    p.weeksOut.forEach { out ->
-                        Box(Modifier.weight(1f).height(18.dp)
-                            .background(
-                                if (out) Terra else MaterialTheme.colorScheme.surfaceVariant,
-                                RoundedCornerShape(4.dp)))
+                Column(Modifier.fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                    .padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        p.weeksOut.forEachIndexed { i, out ->
+                            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(Modifier.fillMaxWidth().height(26.dp)
+                                    .background(if (out) Terra else MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(5.dp)))
+                                Text(if (i == p.weeksOut.size - 1) stringResource(R.string.stats_now)
+                                     else if (i % 3 == 0) "-${p.weeksOut.size - 1 - i}" else " ",
+                                    fontSize = 8.sp, maxLines = 1, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        LegendDot(Terra, stringResource(R.string.stats_legend_out))
+                        LegendDot(MaterialTheme.colorScheme.surfaceVariant, stringResource(R.string.stats_legend_not_out))
                     }
                 }
-                Text(stringResource(R.string.stats_screen_cada_casilla_1_semana), fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 3.dp))
                 Spacer(Modifier.height(Spacing.lg))
 
                 Text(stringResource(R.string.stats_screen_v2_tus_escuelas), style = EyebrowTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.xs))
-                p.perSchool.take(8).forEach { (school, count, maxGrade) ->
+                val topSchools = p.perSchool.take(8)
+                val maxSchool = (topSchools.maxOfOrNull { it.second } ?: 1).coerceAtLeast(1)
+                topSchools.forEach { (school, count, maxGrade) ->
                     val isOpen = expandedSchool == school
-                    Row(Modifier.fillMaxWidth()
-                        .clickable { expandedSchool = if (isOpen) null else school }
-                        .padding(vertical = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(school, style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface)
-                        Text("$count" + (maxGrade?.let { stringResource(R.string.stats_screen_max_grade_suffix, it) } ?: "") +
-                            (if (isOpen) " ▴" else " ▾"),
-                            style = EyebrowTextStyle.copy(fontSize = 11.sp), color = Terra)
+                    // Tarjeta desplegable: nombre, barra proporcional, nº de ascensos y grado máximo en su color.
+                    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                        .padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Column(Modifier.fillMaxWidth().clickable { expandedSchool = if (isOpen) null else school },
+                        verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(school, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1,
+                                color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
+                            maxGrade?.let { GradePill(it) }
+                            Text(if (isOpen) "▴" else "▾", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                        }
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(Modifier.weight(1f).height(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)) {
+                                Box(Modifier.fillMaxWidth(count.toFloat() / maxSchool).height(8.dp).clip(CircleShape).background(Terra))
+                            }
+                            Text(stringResource(R.string.stats_school_ascents, count), color = Terra,
+                                fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                        }
                     }
                     // Desplegado inline: los nombres de las vías de esa escuela,
                     // pulsables → abren la piedra en su escuela.
@@ -434,9 +465,7 @@ fun StatsScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween) {
                                     Text(e.blockName, style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurface)
-                                    Text((e.grade ?: "—") + (if (e.schoolId != null) " ▸" else ""),
-                                        style = EyebrowTextStyle.copy(fontSize = 10.sp),
-                                        color = gradeAccent(e.grade))
+                                    GradePill(e.grade ?: "—")
                                 }
                             }
                             Text(stringResource(R.string.stats_screen_v2_ver_en_el_diario), style = EyebrowTextStyle.copy(fontSize = 9.sp),
@@ -445,7 +474,7 @@ fun StatsScreen(
                                     .clickable { onOpenSchool(school) }
                                     .padding(vertical = 6.dp))
                         }
-                        Spacer(Modifier.height(Spacing.xs))
+                    }
                     }
                 }
             }
@@ -464,6 +493,47 @@ fun StatsScreen(
 private fun gradeAccent(grade: String?): Color {
     val gs = com.meteomontana.android.ui.theme.gradeChipStyle(grade)
     return if (gs.dark) MaterialTheme.colorScheme.onSurface else gs.stroke
+}
+
+/** Grado en una píldora con SU color (el de los topos). */
+@Composable
+private fun GradePill(grade: String) {
+    val c = gradeAccent(grade)
+    Text(grade, color = c, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 11.sp,
+        modifier = Modifier.clip(CircleShape).background(c.copy(alpha = 0.14f))
+            .border(1.dp, c.copy(alpha = 0.6f), CircleShape).padding(horizontal = 9.dp, vertical = 3.dp))
+}
+
+@Composable
+private fun LegendDot(color: Color, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Box(Modifier.width(12.dp).height(12.dp).background(color, RoundedCornerShape(3.dp)))
+        Text(text, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** El mejor mes, destacado: calendario, nombre y número grande. */
+@Composable
+private fun BestMonthCard(month: String, count: Int) {
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Terra.copy(alpha = 0.10f))
+        .border(1.dp, Terra.copy(alpha = 0.5f), RoundedCornerShape(14.dp)).padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        Box(Modifier.width(52.dp).height(52.dp).clip(RoundedCornerShape(12.dp)).background(terraFillColor()),
+            contentAlignment = Alignment.Center) {
+            androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Filled.EventAvailable, null,
+                tint = Color.White, modifier = Modifier.width(28.dp).height(28.dp))
+        }
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.stats_best_month_title), style = EyebrowTextStyle, color = Terra)
+            Text(month.replaceFirstChar { it.uppercase() }, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
+                fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("$count", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 30.sp, color = Terra)
+            Text(stringResource(R.string.stats_ascents_word), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+                fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
 }
 
 private val MONTHS get() = CalendarLabels.monthsShort().map { it.uppercase() }

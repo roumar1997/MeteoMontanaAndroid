@@ -136,7 +136,7 @@ struct StatsView: View {
                             store.month = String(bm.suffix(2))
                             store.recompute()
                         } label: {
-                            infoCard(L("Tu mejor mes: %@ (%@ ascensos). Toca para verlo ▾", formatMonth(bm), s.bestMonthCount))
+                            bestMonthCard(formatMonth(bm), Int(s.bestMonthCount))
                         }.buttonStyle(.plain)
                     }
                 }
@@ -164,39 +164,72 @@ struct StatsView: View {
                         }
                     }
 
-                    Text("ÚLTIMAS 12 SEMANAS").eyebrow().padding(.top, 6)
-                    HStack(spacing: 3) {
-                        ForEach(Array(p.weeksOut.enumerated()), id: \.offset) { _, out in
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(out.boolValue ? Cumbre.terra : Cumbre.paper2)
-                                .frame(height: 18).frame(maxWidth: .infinity)
+                    let outWeeks = p.weeksOut.filter { $0.boolValue }.count
+                    HStack {
+                        Text("ÚLTIMAS 12 SEMANAS").eyebrow()
+                        Spacer()
+                        AdminChip(text: L("SALISTE %@ DE %@", outWeeks, p.weeksOut.count), color: Cumbre.terra, filled: true)
+                    }.padding(.top, 6)
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 4) {
+                            ForEach(Array(p.weeksOut.enumerated()), id: \.offset) { i, out in
+                                VStack(spacing: 3) {
+                                    RoundedRectangle(cornerRadius: 5)
+                                        .fill(out.boolValue ? Cumbre.terra : Cumbre.paper2)
+                                        .frame(height: 26)
+                                    Text(i == p.weeksOut.count - 1 ? L("ahora") : (i % 3 == 0 ? "-\(p.weeksOut.count - 1 - i)" : " "))
+                                        .font(Cumbre.mono(8)).foregroundStyle(Cumbre.ink3).lineLimit(1).minimumScaleFactor(0.6)
+                                }.frame(maxWidth: .infinity)
+                            }
+                        }
+                        HStack(spacing: 14) {
+                            legendDot(Cumbre.terra, L("saliste esa semana"))
+                            legendDot(Cumbre.paper2, L("no saliste"))
                         }
                     }
-                    Text("Cada casilla = 1 semana · terra = saliste")
-                        .font(.system(size: 10)).foregroundStyle(Cumbre.ink3)
+                    .padding(12).background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
 
                     Text("TUS ESCUELAS").eyebrow().padding(.top, 6)
-                    ForEach(Array(p.perSchool.prefix(8).enumerated()), id: \.offset) { _, t in
+                    let topSchools = Array(p.perSchool.prefix(8))
+                    let maxSchool = max(topSchools.map { $0.second!.intValue }.max() ?? 1, 1)
+                    ForEach(Array(topSchools.enumerated()), id: \.offset) { _, t in
                         let school = t.first! as String
                         let isOpen = expandedSchool == school
-                        // Fila desplegable: los nombres de las vías inline.
-                        Button { expandedSchool = isOpen ? nil : school } label: {
-                            HStack {
-                                Text(school).font(.system(size: 14))
-                                    .foregroundStyle(Cumbre.ink)
-                                Spacer()
-                                Text("\(t.second!.intValue)"
-                                     + ((t.third as? String).map { L(" · máx %@", $0) } ?? "")
-                                     + (isOpen ? " ▴" : " ▾"))
-                                    .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
+                        let count = t.second!.intValue
+                        // Tarjeta desplegable: nombre, barra proporcional, nº de ascensos y grado máximo en su color.
+                        VStack(spacing: 6) {
+                            Button { withAnimation { expandedSchool = isOpen ? nil : school } } label: {
+                                VStack(alignment: .leading, spacing: 7) {
+                                    HStack(spacing: 8) {
+                                        Text(school).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                                            .lineLimit(1)
+                                        Spacer(minLength: 4)
+                                        if let g = t.third as? String { gradePill(g) }
+                                        Image(systemName: isOpen ? "chevron.up" : "chevron.down")
+                                            .font(.system(size: 11, weight: .semibold)).foregroundStyle(Cumbre.ink3)
+                                    }
+                                    HStack(spacing: 8) {
+                                        GeometryReader { geo in
+                                            ZStack(alignment: .leading) {
+                                                Capsule().fill(Cumbre.paper2)
+                                                Capsule().fill(Cumbre.terra)
+                                                    .frame(width: max(8, geo.size.width * CGFloat(count) / CGFloat(maxSchool)))
+                                            }
+                                        }.frame(height: 8)
+                                        Text(L("%@ ascensos", count)).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                                            .fixedSize()
+                                    }
+                                }
+                                .contentShape(Rectangle())
                             }
-                            .padding(.vertical, 4)
-                            .contentShape(Rectangle())
+                            .buttonStyle(.plain)
+                            if isOpen {
+                                schoolEntriesInline(school)
+                            }
                         }
-                        .buttonStyle(.plain)
-                        if isOpen {
-                            schoolEntriesInline(school)
-                        }
+                        .padding(12).background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
                     }
                 }
 
@@ -373,8 +406,7 @@ struct StatsView: View {
             Text(e.blockName).font(.system(size: 13)).foregroundStyle(Cumbre.ink)
                 .padding(.leading, 16)
             Spacer()
-            Text((e.grade ?? "—") + (navigable ? " ▸" : ""))
-                .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+            gradePill(e.grade ?? "—")
         }
         .padding(.vertical, 5)
         .contentShape(Rectangle())
@@ -384,11 +416,46 @@ struct StatsView: View {
         HStack {
             Text(e.blockName).font(.system(size: 13)).foregroundStyle(Cumbre.ink)
             Spacer()
-            Text((e.grade ?? "—") + (navigable ? " ▸" : ""))
-                .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+            gradePill(e.grade ?? "—")
         }
         .padding(.vertical, 6)
         .contentShape(Rectangle())
+    }
+
+    /// Grado en una píldora con SU color (el de los topos); legible sobre el papel.
+    private func gradePill(_ grade: String) -> some View {
+        let c = gradeAccent(grade)
+        return Text(grade).font(Cumbre.mono(11, .bold)).foregroundStyle(c)
+            .padding(.horizontal, 9).padding(.vertical, 3)
+            .background(c.opacity(0.14), in: Capsule())
+            .overlay(Capsule().stroke(c.opacity(0.6), lineWidth: 1))
+    }
+
+    private func legendDot(_ color: Color, _ text: String) -> some View {
+        HStack(spacing: 5) {
+            RoundedRectangle(cornerRadius: 3).fill(color).frame(width: 12, height: 12)
+            Text(text).font(.system(size: 11)).foregroundStyle(Cumbre.ink2)
+        }
+    }
+
+    /// El mejor mes, destacado: calendario, nombre y número grande; al tocarlo filtra por ese mes.
+    private func bestMonthCard(_ month: String, _ count: Int) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: "calendar.badge.checkmark").font(.system(size: 26)).foregroundStyle(.white)
+                .frame(width: 52, height: 52).background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: 12))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L("TU MEJOR MES")).font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.terra)
+                Text(month.capitalized).font(Cumbre.serif(20, .bold)).foregroundStyle(Cumbre.ink)
+            }
+            Spacer()
+            VStack(spacing: 0) {
+                Text("\(count)").font(Cumbre.serif(30, .bold)).foregroundStyle(Cumbre.terra)
+                Text(L("ascensos")).font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.ink3)
+            }
+        }
+        .padding(14)
+        .background(Cumbre.terraBg, in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Cumbre.terra.opacity(0.5), lineWidth: 1))
     }
 
     /// G: color por grado (paleta de topos); los grados blancos → tinta.

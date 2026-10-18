@@ -263,6 +263,10 @@ struct PublicProfileView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
+                // Solo admins: botón arriba a la izquierda que abre todo lo de gestión de esta persona.
+                if vm.adminAssistant != nil {
+                    HStack { adminButton; Spacer() }.padding(.bottom, -4)
+                }
                 // Avatar ampliable con zoom al tocarlo (si tiene foto).
                 AvatarCircle(url: vm.profile?.photoUrl, size: 88)
                     .onTapGesture { if vm.profile?.photoUrl != nil { zoomPhoto = true } }
@@ -273,8 +277,6 @@ struct PublicProfileView: View {
                 }
                 // Título, insignias y viero/bloquero de esta persona.
                 if let profileUid = vm.profile?.uid { RewardsBlock(uid: profileUid) }
-                // Solo admins: un cuadradito bajo el nombre que abre todo lo de gestión de esta persona.
-                if vm.adminAssistant != nil { adminButton }
                 if vm.profile?.locked == true {
                     // Perfil privado: bloqueado para quien no le sigue. Solo
                     // nombre/avatar + botón para solicitar seguir.
@@ -405,7 +407,17 @@ struct PublicProfileView: View {
         .task { await vm.load(uid: uid); await moderation.loadBlocked() }
     }
 
-    /// El cuadradito ADMIN bajo el nombre: rojo si esa persona tiene denuncias, avisos o está baneada.
+    /// Resumen para el botón ADMIN: qué tiene esa persona («2 DENUNCIAS · 1 AVISO · BANEADA»), vacío si nada.
+    private var adminReason: String {
+        guard let m = vm.adminModeration else { return "" }
+        var parts: [String] = []
+        if m.reportCount > 0 { parts.append("\(m.reportCount) " + (m.reportCount == 1 ? L("DENUNCIA") : L("DENUNCIAS"))) }
+        if m.warnings > 0 { parts.append("\(m.warnings) " + (m.warnings == 1 ? L("AVISO") : L("AVISOS"))) }
+        if m.banned { parts.append(L("BANEADA")) }
+        return parts.joined(separator: " · ")
+    }
+
+    /// El botón ADMIN (arriba a la izquierda): rojo, con el motivo, si esa persona tiene denuncias, avisos o está baneada.
     private var adminButton: some View {
         let m = vm.adminModeration
         let bad = (m?.reportCount ?? 0) > 0 || (m?.warnings ?? 0) > 0 || m?.banned == true
@@ -413,7 +425,7 @@ struct PublicProfileView: View {
             HStack(spacing: 6) {
                 Image(systemName: "shield.lefthalf.filled").font(.system(size: 12))
                 Text(L("ADMIN")).font(Cumbre.mono(11, .bold)).tracking(1)
-                if bad { Text("!").font(Cumbre.mono(11, .bold)) }
+                if bad { Text("· " + adminReason).font(Cumbre.mono(10, .bold)).lineLimit(1) }
             }
             .foregroundStyle(bad ? Color.white : Cumbre.terra)
             .padding(.horizontal, 12).padding(.vertical, 6)

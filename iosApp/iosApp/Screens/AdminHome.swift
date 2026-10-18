@@ -6,8 +6,14 @@ import Shared
 /// gente que ha entrado hoy, 30 días, 3 meses… y que yo haga scroll hacia abajo»). Tocar un cuadradito abre su sección.
 struct AdminHome: View {
     @ObservedObject var vm: AdminViewModel
-    let onOpen: (AdminTab) -> Void
+    let openTab: (AdminTab) -> Void
     @State private var health: AdminHealth?
+    /// Pantallas propias de los cuadraditos (empujadas en la pila) y hojas de «quién entró» / propuestas pasadas.
+    @State private var dest: Dest?
+    @State private var showDaily = false
+    @State private var historyStatus: String?
+
+    enum Dest: Hashable { case users(AdminUsersMode), notes, maintenance }
 
     private let columns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
 
@@ -17,20 +23,20 @@ struct AdminHome: View {
                 header("REVISAR")
                 grid {
                     let pending = vm.submissions.count + vm.contributions.count
-                    tile(value: "\(pending)", label: "PROPUESTAS", note: "por aprobar", hot: pending > 0, tab: .propuestas)
-                    tile(symbol: "flag", label: "DENUNCIAS", note: "contenido y personas", tab: .denuncias)
-                    tile(symbol: "text.bubble", label: "SUGERENCIAS", note: "lo que cuentan los usuarios", tab: .sugerencias)
+                    tile(value: "\(pending)", label: "PROPUESTAS", note: "por aprobar", hot: pending > 0) { openTab(.propuestas) }
+                    tile(symbol: "flag", label: "DENUNCIAS", note: "contenido y personas") { openTab(.denuncias) }
+                    tile(symbol: "text.bubble", label: "SUGERENCIAS", note: "lo que cuentan los usuarios") { openTab(.sugerencias) }
                 }
 
                 header("USUARIOS")
                 grid {
                     if let s = vm.stats {
-                        tile(value: "\(s.dailyActiveUsers)", label: "HOY", note: "usuarios distintos", tab: .stats, accent: true)
-                        tile(value: "\(s.weeklyActiveUsers)", label: "7 DÍAS", note: "usuarios distintos", tab: .stats, accent: true)
-                        tile(value: "\(s.monthlyActiveUsers)", label: "30 DÍAS", note: "usuarios distintos", tab: .stats, accent: true)
-                        tile(value: "\(s.quarterlyActiveUsers)", label: "3 MESES", note: "usuarios distintos", tab: .stats, accent: true)
-                        tile(value: "\(s.dailyOpensTotal)", label: "APERTURAS HOY", note: "de la app, en total", tab: .stats)
-                        tile(value: "\(s.totalUsers)", label: "REGISTRADOS", note: "\(s.totalAdmins) admins", tab: .stats)
+                        tile(value: "\(s.dailyActiveUsers)", label: "HOY", note: "usuarios distintos", accent: true) { dest = .users(.active(days: 1)) }
+                        tile(value: "\(s.weeklyActiveUsers)", label: "7 DÍAS", note: "usuarios distintos", accent: true) { dest = .users(.active(days: 7)) }
+                        tile(value: "\(s.monthlyActiveUsers)", label: "30 DÍAS", note: "usuarios distintos", accent: true) { dest = .users(.active(days: 30)) }
+                        tile(value: "\(s.quarterlyActiveUsers)", label: "3 MESES", note: "usuarios distintos", accent: true) { dest = .users(.active(days: 90)) }
+                        tile(value: "\(s.dailyOpensTotal)", label: "ENTRADAS POR DÍA", note: "\(s.dailyOpensTotal) aperturas hoy · quién entró") { showDaily = true }
+                        tile(value: "\(s.totalUsers)", label: "TODOS LOS USUARIOS", note: "del primero al último · \(s.totalAdmins) admins") { dest = .users(.all) }
                     } else {
                         loadingTile
                     }
@@ -39,43 +45,54 @@ struct AdminHome: View {
                 header("CONTENIDO")
                 grid {
                     if let s = vm.stats {
-                        tile(value: "\(s.totalSchools)", label: "ESCUELAS", note: "editar, restricciones", tab: .gestionar)
-                        tile(value: "\(s.totalNotes)", label: "NOTAS", note: "de los usuarios", tab: .stats)
-                        tile(value: "\(s.submissionsApproved)", label: "APROBADAS", note: "propuestas", tab: .stats)
-                        tile(value: "\(s.submissionsRejected)", label: "RECHAZADAS", note: "propuestas", tab: .stats)
+                        tile(value: "\(s.totalSchools)", label: "ESCUELAS", note: "editar, restricciones") { openTab(.gestionar) }
+                        tile(value: "\(s.totalNotes)", label: "NOTAS", note: "de los usuarios") { dest = .notes }
+                        tile(value: "\(s.submissionsApproved)", label: "APROBADAS", note: "propuestas pasadas") { historyStatus = "APPROVED" }
+                        tile(value: "\(s.submissionsRejected)", label: "RECHAZADAS", note: "propuestas pasadas") { historyStatus = "REJECTED" }
                     } else {
-                        tile(symbol: "map", label: "ESCUELAS", note: "editar, restricciones", tab: .gestionar)
+                        tile(symbol: "map", label: "ESCUELAS", note: "editar, restricciones") { openTab(.gestionar) }
                     }
-                    tile(symbol: "clock.arrow.circlepath", label: "HISTORIAL", note: "cambios, con restaurar", tab: .historial)
-                    tile(symbol: "person.2", label: "APORTACIONES", note: "y confianza", tab: .aportaciones)
+                    tile(symbol: "clock.arrow.circlepath", label: "HISTORIAL", note: "cambios, con restaurar") { openTab(.historial) }
+                    tile(symbol: "person.2", label: "APORTACIONES", note: "y confianza") { openTab(.aportaciones) }
                 }
 
                 header("SERVIDOR")
                 grid {
                     if let h = health {
                         tile(value: "\(h.errors24h)", label: "ERRORES 24 H", note: h.errors24h == 0 ? "todo bien" : "toca para ver cuáles",
-                             hot: h.errors24h > 0, tab: .salud)
-                        tile(value: uptime(Int(h.uptimeMinutes)), label: "API ARRIBA", note: "desde el último despliegue", tab: .salud)
+                             hot: h.errors24h > 0) { openTab(.salud) }
+                        tile(value: uptime(Int(h.uptimeMinutes)), label: "API ARRIBA", note: "desde el último despliegue")
                         if h.assistantDailyLimit > 0 {
                             tile(value: "\(h.assistantUsedToday)/\(h.assistantDailyLimit)", label: "ASISTENTE HOY", note: "preguntas gastadas",
-                                 hot: Double(h.assistantUsedToday) / Double(h.assistantDailyLimit) >= 0.8, tab: .salud)
+                                 hot: Double(h.assistantUsedToday) / Double(h.assistantDailyLimit) >= 0.8)
                         }
                     } else {
-                        tile(symbol: "heart.text.square", label: "SALUD", note: "errores, usuarios, asistente", tab: .salud)
+                        tile(symbol: "heart.text.square", label: "SALUD", note: "errores, usuarios, asistente") { openTab(.salud) }
                     }
-                    tile(symbol: "chart.bar", label: "ESTADÍSTICAS", note: "listas y mantenimiento", tab: .stats)
-                    tile(symbol: "list.bullet.rectangle", label: "ACTIVIDAD", note: "lo que han hecho los admins", tab: .actividad)
+                    tile(symbol: "wrench.and.screwdriver", label: "MANTENIMIENTO", note: "tareas puntuales") { dest = .maintenance }
+                    tile(symbol: "list.bullet.rectangle", label: "ACTIVIDAD", note: "lo que han hecho los admins") { openTab(.actividad) }
                 }
 
                 header("COMUNICAR")
                 grid {
-                    tile(symbol: "bell", label: "NOTIFICACIONES", note: "avisar a los usuarios", tab: .push)
+                    tile(symbol: "bell", label: "NOTIFICACIONES", note: "avisar a los usuarios") { openTab(.push) }
                 }
             }
             .padding(.horizontal, 16).padding(.bottom, 40)
         }
         .refreshable { await load() }
         .task { await load() }
+        .navigationDestination(item: $dest) { d in
+            switch d {
+            case .users(let mode): AdminUsersScreen(mode: mode)
+            case .notes: AdminNotesScreen()
+            case .maintenance: AdminMaintenanceScreen()
+            }
+        }
+        .sheet(isPresented: $showDaily) { DailyActivityView() }
+        .sheet(isPresented: Binding(get: { historyStatus != nil }, set: { if !$0 { historyStatus = nil } })) {
+            if let status = historyStatus { SubmissionsHistoryView(status: status) }
+        }
     }
 
     private func load() async {
@@ -105,8 +122,8 @@ struct AdminHome: View {
     /// Un cuadradito: número grande (o un icono), nombre en mayúsculas y una línea de pista. `hot` = pide atención
     /// (terracota); `accent` = actividad de usuarios (fondo cálido).
     private func tile(value: String? = nil, symbol: String? = nil, label: String, note: String, hot: Bool = false,
-                      tab: AdminTab, accent: Bool = false) -> some View {
-        Button { onOpen(tab) } label: {
+                      accent: Bool = false, action: (() -> Void)? = nil) -> some View {
+        Button { action?() } label: {
             VStack(alignment: .leading, spacing: 4) {
                 if let value {
                     Text(value).font(Cumbre.serif(30, .bold)).foregroundStyle(hot ? .white : (accent ? Cumbre.terra : Cumbre.ink))
@@ -123,5 +140,6 @@ struct AdminHome: View {
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(hot ? Cumbre.terraFill : (accent ? Cumbre.terra.opacity(0.5) : Cumbre.rule), lineWidth: 1))
         }
         .buttonStyle(.plain)
+        .allowsHitTesting(action != nil)
     }
 }

@@ -32,6 +32,7 @@ struct ForecastBodyView: View {
                 // y el "por qué"; así las pestañas y el mapa empiezan mucho más arriba.
                 HoyCard(forecast: f, open: hoyOpen ?? .constant(false), factorsExpanded: $factorsExpanded)
                     .guideTarget("detail.hoy")
+                SectorHoursSection(schoolId: f.schoolId)
                 tabsSlot
             } else {
                 HeroSection(forecast: f)
@@ -164,16 +165,15 @@ private struct HoyCard: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            // Las próximas 16 horas van SIEMPRE a la vista, algo más apretadas (Álvaro, 2026-10-18).
+            Divider().overlay(Cumbre.rule)
+            HoursGrid(hours: upcomingHours(forecast.hours, 16), compact: true).padding(.vertical, 6)
             if open {
                 Divider().overlay(Cumbre.rule)
                 Text(subtitle).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
                     .padding(.horizontal, 12).padding(.top, 8)
-                // Al abrir la tarjeta sale TODO a la vez (porqué del índice + mejor hora por sector), con títulos grandes
-                // para que se lea de un vistazo (Álvaro, 2026-10-18: «muchísimos despliegues» y «con otra letra»).
                 FactorsAccordion(current: c, expanded: $factorsExpanded, compact: true, alwaysOpen: true)
-                // Mejor hora por sector: se pide ahora, al abrir la tarjeta (no al entrar en la escuela).
-                SectorHoursSection(schoolId: forecast.schoolId, alwaysOpen: true)
-                HoursGrid(hours: upcomingHours(forecast.hours, 16), compact: true).padding(.top, 2).padding(.bottom, 10)
+                    .padding(.bottom, 4)
             }
         }
         .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 10))
@@ -293,13 +293,13 @@ private struct HoursGrid: View {
     var compact = false
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
+            HStack(spacing: compact ? 7 : 10) {
                 ForEach(Array(hours.enumerated()), id: \.offset) { _, h in
-                    VStack(spacing: compact ? 3 : 6) {
-                        Text(short(h.time)).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-                        WmoIcon(code: Int(h.weatherCode), size: compact ? 18 : 22, tint: Cumbre.ink2)
+                    VStack(spacing: compact ? 2 : 6) {
+                        Text(short(h.time)).font(Cumbre.mono(compact ? 10 : 11)).foregroundStyle(Cumbre.ink3)
+                        WmoIcon(code: Int(h.weatherCode), size: compact ? 16 : 22, tint: Cumbre.ink2)
                         RoundedRectangle(cornerRadius: 2).fill(Cumbre.score(Int(h.score)))
-                            .frame(width: 30, height: compact ? 24 : 30)
+                            .frame(width: compact ? 28 : 30, height: compact ? 20 : 30)
                             .overlay(Text("\(Int(h.score))").font(Cumbre.mono(11, .bold)).foregroundStyle(.white))
                         Text("\(Int(h.temperature))°").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink2)
                         // Lluvia en mm (solo si la hay) — paridad con ForecastBody.

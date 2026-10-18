@@ -1919,4 +1919,12 @@
     <string name="stats_months_summary">%1$d in 12 months · avg %2$s a month · best: %3$s (%4$d)</string>
     <string name="ach_week_streak">%1$s weeks in a row climbing</string>
     <string name="ach_month_streak">%1$s months in a row climbing</string>
+    <string name="rewards_needs">needs %1$d contributions</string>
+    <string name="stats_weeks_out_chip">YOU CLIMBED %1$d OF %2$d</string>
+    <string name="stats_now">now</string>
+    <string name="stats_legend_out">you climbed that week</string>
+    <string name="stats_legend_not_out">you didn\'t climb</string>
+    <string name="stats_school_ascents">%1$d ascents</string>
+    <string name="stats_best_month_title">YOUR BEST MONTH</string>
+    <string name="stats_ascents_word">ascents</string>
 </resources>

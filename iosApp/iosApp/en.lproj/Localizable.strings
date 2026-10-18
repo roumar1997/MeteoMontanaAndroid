@@ -1633,3 +1633,16 @@
 "%@ en 12 meses · media %@ al mes · mejor: %@ (%@)" = "%@ in 12 months · avg %@ a month · best: %@ (%@)";
 "%@ semanas seguidas saliendo" = "%@ weeks in a row climbing";
 "%@ meses seguidos saliendo" = "%@ months in a row climbing";
+"BANEADA" = "BANNED";
+"DENUNCIA" = "REPORT";
+"DENUNCIAS" = "REPORTS";
+"AVISO" = "WARNING";
+"AVISOS" = "WARNINGS";
+"con %@ aportaciones" = "needs %@ contributions";
+"<1% de escaladores" = "<1% of climbers";
+"ahora" = "now";
+"saliste esa semana" = "you climbed that week";
+"no saliste" = "you didn't climb";
+"TU MEJOR MES" = "YOUR BEST MONTH";
+"ascensos" = "ascents";
+"SALISTE %@ DE %@" = "YOU CLIMBED %@ OF %@";

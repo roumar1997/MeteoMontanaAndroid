@@ -19,21 +19,16 @@ struct AdminReportsTab: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 if contentReports.isEmpty && meetupReports.isEmpty {
-                    Text("Sin denuncias pendientes")
-                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
-                        .frame(maxWidth: .infinity).padding(.top, 40)
+                    AdminEmptyState(symbol: "checkmark.shield", text: "Sin denuncias pendientes")
                 }
                 if !contentReports.isEmpty {
-                    Text("CONTENIDO (comentarios / notas / usuarios)")
-                        .font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
+                    AdminSectionLabel(text: "CONTENIDO · \(contentReports.count)")
                     ForEach(contentReports, id: \.id) { r in
                         contentCard(r)
                     }
                 }
                 if !meetupReports.isEmpty {
-                    Text("QUEDADAS")
-                        .font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
-                        .padding(.top, 6)
+                    AdminSectionLabel(text: "QUEDADAS · \(meetupReports.count)").padding(.top, 6)
                     ForEach(meetupReports, id: \.id) { r in
                         meetupCard(r)
                     }
@@ -95,94 +90,57 @@ struct AdminReportsTab: View {
     }
 
     @ViewBuilder private func contentCard(_ r: ContentReportDto) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(kindLabel(r.targetType) + " - " + reasonLabel(r.reason))
-                    .font(.system(size: 13, weight: .bold)).foregroundStyle(Cumbre.bad)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                AdminChip(text: kindLabel(r.targetType), color: Cumbre.bad, filled: true)
+                AdminChip(text: reasonLabel(r.reason).uppercased(), color: Cumbre.bad)
                 Spacer()
-                Text(String((r.createdAt ?? "").prefix(10)))
-                    .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+                Text(String((r.createdAt ?? "").prefix(10))).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
             }
             Text(r.snapshot ?? "(contenido no disponible)")
                 .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
-            HStack(spacing: 8) {
-                Button { resolveContent(r.id, "REMOVE") } label: {
-                    Text(r.targetType == "USER" ? "MARCAR REVISADO" : "RETIRAR CONTENIDO")
-                        .font(Cumbre.mono(11, .bold)).tracking(0.5).foregroundStyle(Cumbre.bad)
-                        .frame(maxWidth: .infinity).padding(.vertical, 9)
-                        .overlay(Rectangle().stroke(Cumbre.bad, lineWidth: 1))
-                }.buttonStyle(.plain)
-                Button { resolveContent(r.id, "IGNORE") } label: {
-                    Text("IGNORAR")
-                        .font(Cumbre.mono(11, .bold)).tracking(0.5).foregroundStyle(Cumbre.ink3)
-                        .frame(maxWidth: .infinity).padding(.vertical, 9)
-                        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                }.buttonStyle(.plain)
-            }
-            // VER POST: denuncias del feed (post o comentario) — patrón VER QUEDADA.
+                .padding(10).frame(maxWidth: .infinity, alignment: .leading)
+                .background(Cumbre.bg, in: RoundedRectangle(cornerRadius: 9))
             if r.targetType == "FEED_POST" || r.targetType == "FEED_COMMENT" {
-                Button { feedPostTarget = FeedPostTarget(postId: r.targetId) } label: {
-                    Text("VER POST ▸").font(Cumbre.mono(11, .bold)).tracking(0.5)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity).padding(.vertical, 9)
-                        .background(Cumbre.terraFill)
-                }.buttonStyle(.plain)
+                AdminButton(title: "VER POST", symbol: "arrow.up.right.square") { feedPostTarget = FeedPostTarget(postId: r.targetId) }
+            }
+            HStack(spacing: 8) {
+                AdminButton(title: r.targetType == "USER" ? "MARCAR REVISADO" : "RETIRAR CONTENIDO", symbol: "trash", kind: .danger) {
+                    resolveContent(r.id, "REMOVE")
+                }
+                AdminButton(title: "IGNORAR", kind: .outline) { resolveContent(r.id, "IGNORE") }
             }
             if let author = r.authorUid {
-                Button { modTarget = ModTarget(uid: author) } label: {
-                    Text("VER AUTOR ▸").font(Cumbre.mono(10, .bold)).tracking(0.8)
-                        .foregroundStyle(Cumbre.terra)
-                        .frame(maxWidth: .infinity).padding(.vertical, 6)
-                }.buttonStyle(.plain)
+                AdminButton(title: "VER AUTOR", symbol: "person.crop.circle", kind: .quiet) { modTarget = ModTarget(uid: author) }
             }
         }
-        .padding(12)
-        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+        .adminCard()
     }
 
     @ViewBuilder private func meetupCard(_ r: MeetupReport) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(reasonLabel(String(describing: r.reason)) + " - quedada " + String(r.meetupId.prefix(8)))
-                .font(.system(size: 13, weight: .bold)).foregroundStyle(Cumbre.bad)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                AdminChip(text: "QUEDADA", color: Cumbre.bad, filled: true)
+                AdminChip(text: reasonLabel(String(describing: r.reason)).uppercased(), color: Cumbre.bad)
+                Spacer()
+                Text(String(r.meetupId.prefix(8))).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
+            }
             if let ctx = r.context, !ctx.isEmpty {
                 Text(ctx).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                    .padding(10).frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Cumbre.bg, in: RoundedRectangle(cornerRadius: 9))
             }
-            // Ver la quedada entera para juzgar por qué la denunciaron.
-            Button { meetupTarget = MeetupTarget(meetupId: r.meetupId) } label: {
-                Text("VER QUEDADA ▸").font(Cumbre.mono(11, .bold)).tracking(0.5)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity).padding(.vertical, 9)
-                    .background(Cumbre.terraFill)
-            }.buttonStyle(.plain)
-            // Acción principal: ELIMINAR la quedada denunciada.
-            Button { resolveMeetup(r.id, "delete") } label: {
-                Text("ELIMINAR QUEDADA").font(Cumbre.mono(11, .bold)).tracking(0.5)
-                    .foregroundStyle(Cumbre.bad)
-                    .frame(maxWidth: .infinity).padding(.vertical, 9)
-                    .overlay(Rectangle().stroke(Cumbre.bad, lineWidth: 1))
-            }.buttonStyle(.plain)
-            if let author = r.reportedUid {
-                Button { modTarget = ModTarget(uid: author) } label: {
-                    Text("VER AUTOR ▸").font(Cumbre.mono(10, .bold)).tracking(0.8)
-                        .foregroundStyle(Cumbre.terra)
-                        .frame(maxWidth: .infinity).padding(.vertical, 6)
-                }.buttonStyle(.plain)
-            }
+            AdminButton(title: "VER QUEDADA", symbol: "arrow.up.right.square") { meetupTarget = MeetupTarget(meetupId: r.meetupId) }
+            AdminButton(title: "ELIMINAR QUEDADA", symbol: "trash", kind: .danger) { resolveMeetup(r.id, "delete") }
             HStack(spacing: 8) {
-                Button { resolveMeetup(r.id, "resolve") } label: {
-                    Text("OK, REVISADA").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink3)
-                        .frame(maxWidth: .infinity).padding(.vertical, 9)
-                        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                }.buttonStyle(.plain)
-                Button { resolveMeetup(r.id, "dismiss") } label: {
-                    Text("DESESTIMAR").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink3)
-                        .frame(maxWidth: .infinity).padding(.vertical, 9)
-                        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                }.buttonStyle(.plain)
+                AdminButton(title: "OK, REVISADA", kind: .outline) { resolveMeetup(r.id, "resolve") }
+                AdminButton(title: "DESESTIMAR", kind: .outline) { resolveMeetup(r.id, "dismiss") }
+            }
+            if let author = r.reportedUid {
+                AdminButton(title: "VER AUTOR", symbol: "person.crop.circle", kind: .quiet) { modTarget = ModTarget(uid: author) }
             }
         }
-        .padding(12)
-        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+        .adminCard()
     }
 
     private func kindLabel(_ t: String) -> String {

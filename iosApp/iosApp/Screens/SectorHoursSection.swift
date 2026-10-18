@@ -18,16 +18,14 @@ final class SectorHoursModel: ObservableObject {
     }
 }
 
-/// Fila plegable dentro de la tarjeta HOY, como «¿Por qué este índice?». Plegada: el mejor sector de hoy y su franja.
+/// Tarjeta plegable PROPIA bajo la tarjeta HOY (Álvaro, 2026-10-18: «que sea su propio desplegable llamativo»).
+/// Plegada: el mejor sector de hoy y su franja.
 /// Desplegada: cada sector con su orientación, su franja y una tira de 8 a 20 h coloreada por nota (punto = sol).
 /// Espejo de `SectorHoursSection` (Android).
 struct SectorHoursSection: View {
     let schoolId: String
-    /// Dentro de la tarjeta HOY: sin desplegable, siempre abierta y con el título llamativo.
-    var alwaysOpen = false
     @StateObject private var model = SectorHoursModel()
-    @State private var expandedByUser = false
-    private var expanded: Bool { alwaysOpen || expandedByUser }
+    @State private var expanded = false
 
     var body: some View {
         let list = (model.sectors ?? []).filter { $0.bestFrom != nil }
@@ -37,35 +35,37 @@ struct SectorHoursSection: View {
             Color.clear.frame(height: 0)   // ancla real para el `.task`
             if let best = list.first {
                 VStack(spacing: 0) {
-                    Button { if !alwaysOpen { withAnimation { expandedByUser.toggle() } } } label: {
-                        HStack {
+                    Button { withAnimation { expanded.toggle() } } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "sun.max.fill").font(.system(size: 18)).foregroundStyle(Cumbre.terra)
                             VStack(alignment: .leading, spacing: 2) {
-                                if alwaysOpen {
-                                    Text(L("MEJOR HORA POR SECTOR")).font(Cumbre.serif(17, .bold)).tracking(0.5).foregroundStyle(Cumbre.terra)
-                                } else {
-                                    Text(L("MEJOR HORA POR SECTOR")).font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink2)
-                                }
+                                Text(L("MEJOR HORA POR SECTOR")).font(Cumbre.serif(15, .bold)).tracking(0.4).foregroundStyle(Cumbre.terra)
                                 if !expanded {
                                     Text(L("Hoy: %@ · de %@ a %@ h", best.name, hour(best.bestFrom), hour(best.bestTo, plus: 1)))
                                         .font(.system(size: 12.5)).foregroundStyle(Cumbre.ink).lineLimit(1)
                                 }
                             }
                             Spacer()
-                            if !alwaysOpen { Image(systemName: expanded ? "chevron.up" : "chevron.down").foregroundStyle(Cumbre.ink3) }
+                            Image(systemName: expanded ? "chevron.up" : "chevron.down").font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.terra)
                         }
-                        .padding(.horizontal, 16).padding(.top, alwaysOpen ? 14 : 6).padding(.bottom, 6)
+                        .padding(.horizontal, 12).padding(.vertical, 10)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     if expanded {
+                        Divider().overlay(Cumbre.rule)
                         VStack(alignment: .leading, spacing: 12) {
                             ForEach(list, id: \.sectorId) { row($0) }
                             Text(L("Según el sol en cada pared, la temperatura, el viento y la humedad. Punto blanco = le da el sol. Solo sectores con orientación votada."))
                                 .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
                         }
-                        .padding(.horizontal, 16).padding(.bottom, 10)
+                        .padding(.horizontal, 12).padding(.vertical, 10)
                     }
                 }
+                .background(Cumbre.terraBg.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+                .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.terra.opacity(0.5), lineWidth: 1))
+                .padding(.horizontal, 12).padding(.vertical, 6)
             }
         }
         .task { await model.load(schoolId: schoolId) }
