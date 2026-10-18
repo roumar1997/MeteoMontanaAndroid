@@ -24,18 +24,45 @@ final class RewardsModel: ObservableObject {
 
 func rewardTitle(_ level: Int) -> String {
     switch level {
-    case 0: return L("Recién llegado")
-    case 1: return L("Colaborador")
-    case 5: return L("Aportador")
-    case 10: return L("Croquista")
-    case 15: return L("Explorador de sectores")
-    case 20: return L("De confianza")
-    case 25: return L("Guardián de la roca")
-    case 30: return L("Cartógrafo")
-    case 35: return L("Equipador de la guía")
-    case 40: return L("Veterano de Cumbre")
-    case 45: return L("Maestro de topos")
-    default: return L("Leyenda de Cumbre")
+    case 0: return L("Aspirante")
+    case 1: return L("Primer Agarre")
+    case 5: return L("Abrecaminos")
+    case 10: return L("Cartógrafo de Roca")
+    case 15: return L("Rastreador de Sectores")
+    case 20: return L("Guardián de la Roca")
+    case 25: return L("Señor de los Topos")
+    case 30: return L("Domador de Muros")
+    case 35: return L("Tejedor de Caminos")
+    case 40: return L("Sabio de la Roca")
+    case 45: return L("Viento de Granito")
+    default: return L("Señor de la Cumbre")
+    }
+}
+
+/// El título. El nivel 50 («Señor de la Cumbre») se nota a la legua: oro con brillo que recorre las letras, destellos a
+/// los lados y un borde dorado. El resto, en terracota como siempre (Álvaro, 2026-10-18).
+private struct RewardTitle: View {
+    let level: Int
+    @State private var shine = false
+    private let gold = [Color(red: 0.72, green: 0.53, blue: 0.04), Color(red: 1, green: 0.84, blue: 0.29),
+                        Color(red: 1, green: 0.96, blue: 0.76), Color(red: 1, green: 0.84, blue: 0.29),
+                        Color(red: 0.72, green: 0.53, blue: 0.04)]
+
+    var body: some View {
+        if level < 50 {
+            Text(rewardTitle(level)).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.terra)
+        } else {
+            let g = LinearGradient(colors: gold, startPoint: shine ? .trailing : .leading, endPoint: shine ? UnitPoint(x: 2, y: 1) : UnitPoint(x: 1, y: 1))
+            HStack(spacing: 8) {
+                Text("✦").font(.system(size: 14)).foregroundStyle(g)
+                Text(rewardTitle(level)).font(.system(size: 20, weight: .bold)).foregroundStyle(g)
+                    .shadow(color: Color(red: 1, green: 0.7, blue: 0).opacity(0.55), radius: 8)
+                Text("✦").font(.system(size: 14)).foregroundStyle(g)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 7)
+            .overlay(Capsule().stroke(g, lineWidth: 1.5))
+            .onAppear { withAnimation(.linear(duration: 2.6).repeatForever(autoreverses: true)) { shine = true } }
+        }
     }
 }
 
@@ -72,7 +99,7 @@ struct RewardsBlock: View {
 
     private func summary(_ r: UserRewards) -> some View {
         VStack(spacing: 6) {
-            Text(rewardTitle(Int(r.titleLevel))).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.terra)
+            RewardTitle(level: Int(r.titleLevel))
             HStack(spacing: 6) {
                 if let t = r.climberType { badge(climberTypeLabel(t), Cumbre.ink2) }
                 if r.badges.contains("COLLABORATOR") { badge(L("Colaborador"), Cumbre.terra) }

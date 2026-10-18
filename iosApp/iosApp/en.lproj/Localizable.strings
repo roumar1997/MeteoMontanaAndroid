@@ -1567,18 +1567,8 @@
 "Cerrar %@ proyectos" = "Send %@ projects";
 
 /* Recompensas */
-"Recién llegado" = "Newcomer";
 "Colaborador" = "Contributor";
-"Aportador" = "Regular contributor";
-"Croquista" = "Topo drawer";
-"Explorador de sectores" = "Sector explorer";
 "De confianza" = "Trusted";
-"Guardián de la roca" = "Rock keeper";
-"Cartógrafo" = "Cartographer";
-"Equipador de la guía" = "Guidebook bolter";
-"Veterano de Cumbre" = "Cumbre veteran";
-"Maestro de topos" = "Topo master";
-"Leyenda de Cumbre" = "Cumbre legend";
 "Viero" = "Route climber";
 "Bloquero" = "Boulderer";
 "Las dos" = "Both";
@@ -1611,3 +1601,17 @@
 "%@ bloques de %@ o más en un día" = "%@ boulders of %@ or harder in a day";
 "%@ vías de %@ o más" = "%@ routes of %@ or harder";
 "%@ bloques de %@ o más" = "%@ boulders of %@ or harder";
+
+/* Títulos de recompensa (elegidos por Álvaro) */
+"Aspirante" = "Aspirant";
+"Primer Agarre" = "First Hold";
+"Abrecaminos" = "Pathfinder";
+"Cartógrafo de Roca" = "Rock Cartographer";
+"Rastreador de Sectores" = "Sector Tracker";
+"Guardián de la Roca" = "Rock Guardian";
+"Señor de los Topos" = "Lord of the Topos";
+"Domador de Muros" = "Wall Tamer";
+"Tejedor de Caminos" = "Path Weaver";
+"Sabio de la Roca" = "Rock Sage";
+"Viento de Granito" = "Granite Wind";
+"Señor de la Cumbre" = "Lord of the Summit";

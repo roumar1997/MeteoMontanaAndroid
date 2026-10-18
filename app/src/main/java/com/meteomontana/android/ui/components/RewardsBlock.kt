@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -89,6 +90,44 @@ fun rewardTitle(level: Int): String = stringResource(when (level) {
     35 -> R.string.title_l35; 40 -> R.string.title_l40; 45 -> R.string.title_l45; else -> R.string.title_l50
 })
 
+/** Oro del nivel máximo: un degradado que se desplaza (brillo) sobre el texto y el borde. */
+private val GoldColors = listOf(Color(0xFFB8860B), Color(0xFFFFD54A), Color(0xFFFFF6C2), Color(0xFFFFD54A), Color(0xFFB8860B))
+
+/**
+ * El título. El nivel 50 («Señor de la Cumbre») se nota a la legua: oro con brillo que recorre las letras, destellos
+ * a los lados y un borde dorado. El resto, en terracota como siempre (Álvaro, 2026-10-18).
+ */
+@Composable
+private fun RewardTitle(level: Int) {
+    val title = rewardTitle(level)
+    if (level < 50) {
+        Text(title, color = Terra, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, textAlign = TextAlign.Center)
+        return
+    }
+    val shine by androidx.compose.animation.core.rememberInfiniteTransition(label = "oro").animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            androidx.compose.animation.core.tween(2600, easing = androidx.compose.animation.core.LinearEasing),
+            androidx.compose.animation.core.RepeatMode.Reverse),
+        label = "brillo")
+    val gold = androidx.compose.ui.graphics.Brush.linearGradient(
+        GoldColors,
+        start = androidx.compose.ui.geometry.Offset(-300f + 700f * shine, 0f),
+        end = androidx.compose.ui.geometry.Offset(100f + 700f * shine, 90f))
+    Row(
+        Modifier.clip(CircleShape).border(androidx.compose.foundation.BorderStroke(1.5.dp, gold), CircleShape)
+            .padding(horizontal = 16.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text("✦", style = androidx.compose.ui.text.TextStyle(brush = gold, fontSize = 14.sp))
+        Text(title, textAlign = TextAlign.Center,
+            style = androidx.compose.ui.text.TextStyle(
+                brush = gold, fontWeight = FontWeight.Bold, fontSize = 20.sp,
+                shadow = androidx.compose.ui.graphics.Shadow(Color(0x88FFB300), blurRadius = 16f)))
+        Text("✦", style = androidx.compose.ui.text.TextStyle(brush = gold, fontSize = 14.sp))
+    }
+}
+
 @Composable
 private fun climberTypeLabel(type: String?): String = stringResource(when (type) {
     "ROUTES" -> R.string.climber_routes; "BOULDER" -> R.string.climber_boulder; "BOTH" -> R.string.climber_both
@@ -116,8 +155,7 @@ fun RewardsBlock(uid: String?, viewModel: RewardsViewModel = hiltViewModel(key =
             .padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Text(rewardTitle(rewards.titleLevel), color = Terra, fontWeight = FontWeight.SemiBold, fontSize = 15.sp,
-            textAlign = TextAlign.Center)
+        RewardTitle(rewards.titleLevel)
         if (rewards.badges.isNotEmpty() || rewards.climberType != null) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
                 verticalArrangement = Arrangement.spacedBy(6.dp)) {
