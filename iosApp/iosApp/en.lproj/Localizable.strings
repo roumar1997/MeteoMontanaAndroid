@@ -1565,3 +1565,25 @@
 "Un año entero saliendo cada mes" = "A full year climbing every month";
 "Cerrar un proyecto" = "Send a project";
 "Cerrar %@ proyectos" = "Send %@ projects";
+
+/* Recompensas */
+"Recién llegado" = "Newcomer";
+"Colaborador" = "Contributor";
+"Aportador" = "Regular contributor";
+"Croquista" = "Topo drawer";
+"Explorador de sectores" = "Sector explorer";
+"De confianza" = "Trusted";
+"Guardián de la roca" = "Rock keeper";
+"Cartógrafo" = "Cartographer";
+"Equipador de la guía" = "Guidebook bolter";
+"Veterano de Cumbre" = "Cumbre veteran";
+"Maestro de topos" = "Topo master";
+"Leyenda de Cumbre" = "Cumbre legend";
+"Viero" = "Route climber";
+"Bloquero" = "Boulderer";
+"Las dos" = "Both";
+"%@ aportaciones aprobadas · siguiente nivel con %@" = "%@ approved contributions · next level at %@";
+"¿VIERO O BLOQUERO?" = "ROUTES OR BOULDERING?";
+"¿Escalas sobre todo vías o bloque? Cambia tu Cumbri del perfil. Es opcional y puedes cambiarlo cuando quieras tocando tu título." = "Do you mostly climb routes or boulders? It changes your profile Cumbri. Optional, and you can change it anytime by tapping your title.";
+"TU TÍTULO" = "YOUR TITLE";
+"Desbloqueas títulos con tus aportaciones aprobadas (llevas %@)." = "You unlock titles with approved contributions (you have %@).";

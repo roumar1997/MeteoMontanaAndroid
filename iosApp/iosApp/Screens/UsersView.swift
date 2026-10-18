@@ -259,6 +259,8 @@ struct PublicProfileView: View {
                 if let u = vm.profile?.username, !u.isEmpty {
                     Text("@\(u)").font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink3)
                 }
+                // Título, insignias y viero/bloquero de esta persona.
+                if let profileUid = vm.profile?.uid { RewardsBlock(uid: profileUid) }
                 if vm.profile?.locked == true {
                     // Perfil privado: bloqueado para quien no le sigue. Solo
                     // nombre/avatar + botón para solicitar seguir.

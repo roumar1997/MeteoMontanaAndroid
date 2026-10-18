@@ -413,6 +413,8 @@ private fun Header(
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        // Título, insignias y nivel por aportaciones (tocar = elegir título y viero/bloquero).
+        com.meteomontana.android.ui.components.RewardsBlock(uid = null)
         p.email?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)

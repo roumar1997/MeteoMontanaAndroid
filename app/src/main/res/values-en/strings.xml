@@ -1868,4 +1868,27 @@
     <string name="ach_every_month">A full year climbing every month</string>
     <string name="ach_project_one">Send a project</string>
     <string name="ach_projects">Send %1$s projects</string>
+    <string name="title_l0">Newcomer</string>
+    <string name="title_l1">Contributor</string>
+    <string name="title_l5">Regular contributor</string>
+    <string name="title_l10">Topo drawer</string>
+    <string name="title_l15">Sector explorer</string>
+    <string name="title_l20">Trusted</string>
+    <string name="title_l25">Rock keeper</string>
+    <string name="title_l30">Cartographer</string>
+    <string name="title_l35">Guidebook bolter</string>
+    <string name="title_l40">Cumbre veteran</string>
+    <string name="title_l45">Topo master</string>
+    <string name="title_l50">Cumbre legend</string>
+    <string name="climber_routes">Route climber</string>
+    <string name="climber_boulder">Boulderer</string>
+    <string name="climber_both">Both</string>
+    <string name="climber_none">Rather not say</string>
+    <string name="badge_collaborator">Contributor</string>
+    <string name="badge_trusted">Trusted</string>
+    <string name="rewards_progress">%1$d approved contributions · next level at %2$d</string>
+    <string name="climber_prompt_title">ROUTES OR BOULDERING?</string>
+    <string name="climber_prompt_body">Do you mostly climb routes or boulders? It changes your profile Cumbri. Optional, and you can change it anytime by tapping your title.</string>
+    <string name="rewards_title_pick">YOUR TITLE</string>
+    <string name="rewards_title_hint">You unlock titles with approved contributions (you have %1$d).</string>
 </resources>

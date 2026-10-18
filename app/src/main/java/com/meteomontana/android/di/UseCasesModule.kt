@@ -362,6 +362,23 @@ object UseCasesModule {
     fun provideGetSchoolActiveRestrictionsUseCase(repo: RestrictionRepository) =
         com.meteomontana.android.domain.usecase.restriction.GetSchoolActiveRestrictionsUseCase(repo)
 
+    // Recompensas: nivel, título, insignias y viero/bloquero.
+    @Provides @Singleton
+    fun provideRewardsRepository(client: io.ktor.client.HttpClient): com.meteomontana.android.domain.repository.RewardsRepository =
+        com.meteomontana.android.data.repository.KtorRewardsRepository(com.meteomontana.android.data.api.KtorRewardsApi(client))
+
+    @Provides @Singleton
+    fun provideGetUserRewardsUseCase(repo: com.meteomontana.android.domain.repository.RewardsRepository) =
+        com.meteomontana.android.domain.usecase.profile.GetUserRewardsUseCase(repo)
+
+    @Provides @Singleton
+    fun provideGetMyRewardsUseCase(repo: com.meteomontana.android.domain.repository.RewardsRepository) =
+        com.meteomontana.android.domain.usecase.profile.GetMyRewardsUseCase(repo)
+
+    @Provides @Singleton
+    fun provideUpdateMyRewardsUseCase(repo: com.meteomontana.android.domain.repository.RewardsRepository) =
+        com.meteomontana.android.domain.usecase.profile.UpdateMyRewardsUseCase(repo)
+
     // Objetivo del año (pantalla de Estadísticas).
     @Provides @Singleton
     fun provideGoalRepository(client: io.ktor.client.HttpClient): com.meteomontana.android.domain.repository.GoalRepository =

@@ -38,6 +38,7 @@ class SwiftBoundaryThrowsTest {
         "domain/usecase/forecast/GetSectorHoursUseCase.kt",
         "domain/usecase/journal/GoalUseCases.kt",
         "domain/usecase/admin/AdminHistoryUseCases.kt",
+        "domain/usecase/profile/RewardsUseCases.kt",
         // ── Repositories expuestos como val público ──
         "data/stats/MonthlyStatsRepository.kt",
         "data/saved/CachedSchoolsRepository.kt",

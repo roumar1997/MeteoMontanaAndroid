@@ -360,6 +360,8 @@ private fun Body(
             Text("@${p.username ?: p.displayName?.lowercase()?.replace(" ", "_") ?: "usuario"}",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // Título, insignias y viero/bloquero de esta persona.
+            com.meteomontana.android.ui.components.RewardsBlock(uid = p.uid)
             if (!locked) {
                 p.bio?.takeIf { it.isNotBlank() }?.let {
                     Spacer(Modifier.height(4.dp))

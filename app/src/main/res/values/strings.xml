@@ -1927,4 +1927,27 @@
     <string name="ach_every_month">Un año entero saliendo cada mes</string>
     <string name="ach_project_one">Cerrar un proyecto</string>
     <string name="ach_projects">Cerrar %1$s proyectos</string>
+    <string name="title_l0">Recién llegado</string>
+    <string name="title_l1">Colaborador</string>
+    <string name="title_l5">Aportador</string>
+    <string name="title_l10">Croquista</string>
+    <string name="title_l15">Explorador de sectores</string>
+    <string name="title_l20">De confianza</string>
+    <string name="title_l25">Guardián de la roca</string>
+    <string name="title_l30">Cartógrafo</string>
+    <string name="title_l35">Equipador de la guía</string>
+    <string name="title_l40">Veterano de Cumbre</string>
+    <string name="title_l45">Maestro de topos</string>
+    <string name="title_l50">Leyenda de Cumbre</string>
+    <string name="climber_routes">Viero</string>
+    <string name="climber_boulder">Bloquero</string>
+    <string name="climber_both">Las dos</string>
+    <string name="climber_none">Prefiero no decirlo</string>
+    <string name="badge_collaborator">Colaborador</string>
+    <string name="badge_trusted">De confianza</string>
+    <string name="rewards_progress">%1$d aportaciones aprobadas · siguiente nivel con %2$d</string>
+    <string name="climber_prompt_title">¿VIERO O BLOQUERO?</string>
+    <string name="climber_prompt_body">¿Escalas sobre todo vías o bloque? Cambia tu Cumbri del perfil. Es opcional y puedes cambiarlo cuando quieras tocando tu título.</string>
+    <string name="rewards_title_pick">TU TÍTULO</string>
+    <string name="rewards_title_hint">Desbloqueas títulos con tus aportaciones aprobadas (llevas %1$d).</string>
 </resources>
