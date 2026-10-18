@@ -331,6 +331,11 @@ class IosDependencyContainer(
     val getContributors = com.meteomontana.android.domain.usecase.admin.GetContributorsUseCase(adminHistoryRepository)
     val setUserTrust = com.meteomontana.android.domain.usecase.admin.SetUserTrustUseCase(adminHistoryRepository)
 
+    // Admin: panel de SALUD (errores 24 h, usuarios activos, cupo del asistente, propuestas pendientes).
+    val getAdminHealth = com.meteomontana.android.domain.usecase.admin.GetAdminHealthUseCase(
+        com.meteomontana.android.data.repository.KtorAdminHealthRepository(
+            com.meteomontana.android.data.api.KtorAdminHealthApi(httpClient)))
+
     // Recompensas: nivel, título, insignias y viero/bloquero.
     private val rewardsRepository = com.meteomontana.android.data.repository.KtorRewardsRepository(
         com.meteomontana.android.data.api.KtorRewardsApi(httpClient))

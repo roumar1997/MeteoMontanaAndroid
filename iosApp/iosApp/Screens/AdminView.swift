@@ -161,6 +161,7 @@ struct AdminView: View {
             case .push: AdminPushTab(vm: vm)
             case .historial: AdminHistoryTab()
             case .aportaciones: AdminContributorsTab()
+            case .salud: AdminHealthTab()
             }
         }
         .background(Cumbre.bg.ignoresSafeArea())

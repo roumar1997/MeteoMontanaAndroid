@@ -683,4 +683,5 @@ enum AdminTab: String, CaseIterable {
     case push = "PUSH"
     case historial = "HISTORIAL"
     case aportaciones = "APORTACIONES"
+    case salud = "SALUD"
 }
