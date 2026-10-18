@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.BackHand
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material.icons.filled.ExpandCircleDown
 import androidx.compose.material.icons.filled.Gesture
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.HelpOutline
@@ -52,7 +53,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -149,17 +152,18 @@ private fun rewardStyle(level: Int): Pair<Color, ImageVector> = when (level) {
 
 /** Píldora de un título con su color e icono; apagada con candado si aún no se ha desbloqueado. */
 @Composable
-private fun TitlePill(level: Int, on: Boolean = false, locked: Boolean = false, modifier: Modifier = Modifier) {
+private fun TitlePill(level: Int, on: Boolean = false, locked: Boolean = false, modifier: Modifier = Modifier, showCheck: Boolean = false) {
     val (color, icon) = rewardStyle(level)
     val fg = if (on) Color.White else if (locked) MaterialTheme.colorScheme.onSurfaceVariant else color
     Row(
-        modifier.clip(CircleShape)
+        modifier.then(if (on && showCheck) Modifier.shadow(6.dp, CircleShape, ambientColor = color, spotColor = color) else Modifier)
+            .clip(CircleShape)
             .background(if (on) color else color.copy(alpha = if (locked) 0.04f else 0.10f))
-            .border(1.dp, color.copy(alpha = if (locked) 0.25f else 0.7f), CircleShape)
+            .border(if (on && showCheck) 3.dp else 1.dp, color.copy(alpha = if (locked) 0.25f else if (on) 1f else 0.7f), CircleShape)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Icon(if (locked) Icons.Filled.Lock else icon, null, tint = fg, modifier = Modifier.size(14.dp))
+        Icon(if (locked) Icons.Filled.Lock else if (on && showCheck) Icons.Filled.CheckCircle else icon, null, tint = fg, modifier = Modifier.size(14.dp))
         Text(rewardTitle(level), color = fg, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1)
     }
 }
@@ -218,15 +222,18 @@ private fun climberTypeStyle(type: String?): Pair<Color, ImageVector> = when (ty
 @Composable
 private fun ClimberChip(type: String?, on: Boolean, onClick: () -> Unit) {
     val (color, icon) = climberTypeStyle(type)
-    val fg = if (on) Color.White else color
+    val fg = if (on) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+    // El elegido, clarísimo: relleno, check, borde grueso y sombra; los demás, apagados.
     Row(
-        Modifier.clip(CircleShape).background(if (on) color else color.copy(alpha = 0.10f))
-            .border(1.dp, color.copy(alpha = 0.7f), CircleShape).clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+        Modifier.then(if (on) Modifier.shadow(6.dp, CircleShape, ambientColor = color, spotColor = color) else Modifier)
+            .clip(CircleShape).background(if (on) color else MaterialTheme.colorScheme.surface)
+            .border(if (on) 3.dp else 1.dp, if (on) color else MaterialTheme.colorScheme.outline, CircleShape)
+            .alpha(if (on) 1f else 0.8f).clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Icon(icon, null, tint = fg, modifier = Modifier.size(14.dp))
-        Text(climberTypeLabel(type), color = fg, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+        Icon(if (on) Icons.Filled.CheckCircle else icon, null, tint = fg, modifier = Modifier.size(15.dp))
+        Text(climberTypeLabel(type), color = fg, fontWeight = if (on) FontWeight.Bold else FontWeight.Medium, fontSize = 13.sp)
     }
 }
 
@@ -260,7 +267,11 @@ fun RewardsBlock(uid: String?, viewModel: RewardsViewModel = hiltViewModel(key =
             .padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        RewardTitle(rewards.titleLevel)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            RewardTitle(rewards.titleLevel)
+            // Solo en el tuyo: una flechita que dice «aquí se puede elegir».
+            if (own) Icon(Icons.Filled.ExpandCircleDown, null, tint = Terra.copy(alpha = 0.8f), modifier = Modifier.size(19.dp))
+        }
         // El logro que la persona ha elegido enseñar (con su dificultad y el % de gente que lo tiene).
         FeaturedAchievement(rewards.featuredAchievement, rarity)
         if (rewards.badges.isNotEmpty() || rewards.climberType != null || own) {
@@ -272,10 +283,7 @@ fun RewardsBlock(uid: String?, viewModel: RewardsViewModel = hiltViewModel(key =
                 if ("TRUSTED" in rewards.badges) Badge(stringResource(R.string.badge_trusted), Ok) { badgeInfo = R.string.badge_trusted_info }
             }
         }
-        if (own) {
-            Text("✎ " + stringResource(R.string.rewards_tap_hint), color = Terra.copy(alpha = 0.85f), fontFamily = Mono,
-                fontWeight = FontWeight.Bold, fontSize = 8.5.sp, textAlign = TextAlign.Center)
-        }
+
         if (own) {
             rewards.nextLevel?.let { next ->
                 Text(stringResource(R.string.rewards_progress, rewards.approved, next),
@@ -440,7 +448,7 @@ private fun RewardsSheet(rewards: UserRewards, mineIds: Set<String>?, rarity: Ac
                 ALL_LEVELS.forEach { l ->
                     val has = l in rewards.unlockedLevels
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        TitlePill(l, on = rewards.titleLevel == l, locked = !has,
+                        TitlePill(l, on = rewards.titleLevel == l, locked = !has, showCheck = true,
                             modifier = if (has) Modifier.clickable { onSave(null, l, null) } else Modifier)
                         if (!has) Text(stringResource(R.string.rewards_needs, l), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                     }

@@ -72,16 +72,19 @@ struct TitlePill: View {
     let level: Int
     var on = false
     var locked = false
+    /// En la hoja de elegir: el título elegido lleva check, borde grueso y sombra (en el perfil, no).
+    var showCheck = false
     var body: some View {
         let st = rewardStyle(level)
         HStack(spacing: 6) {
-            Image(systemName: locked ? "lock.fill" : st.symbol).font(.system(size: 12, weight: .semibold))
+            Image(systemName: locked ? "lock.fill" : (on && showCheck ? "checkmark.circle.fill" : st.symbol)).font(.system(size: 12, weight: .semibold))
             Text(rewardTitle(level)).font(.system(size: 14, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
         }
         .foregroundStyle(on ? Color.white : (locked ? Cumbre.ink3 : st.color))
         .padding(.horizontal, 12).padding(.vertical, 8)
         .background(on ? st.color : st.color.opacity(locked ? 0.04 : 0.10), in: Capsule())
-        .overlay(Capsule().stroke(st.color.opacity(locked ? 0.25 : 0.7), lineWidth: 1))
+        .overlay(Capsule().stroke(st.color.opacity(locked ? 0.25 : (on ? 1 : 0.7)), lineWidth: on && showCheck ? 3 : 1))
+        .shadow(color: on && showCheck ? st.color.opacity(0.45) : .clear, radius: 6, y: 2)
     }
 }
 
@@ -133,13 +136,15 @@ private func climberTypeStyle(_ t: String?) -> (color: Color, symbol: String) {
 private func climberChip(_ t: String?, on: Bool) -> some View {
     let st = climberTypeStyle(t)
     return HStack(spacing: 6) {
-        Image(systemName: st.symbol).font(.system(size: 12, weight: .semibold))
-        Text(climberTypeLabel(t)).font(.system(size: 13, weight: .semibold))
+        Image(systemName: on ? "checkmark.circle.fill" : st.symbol).font(.system(size: 13, weight: .bold))
+        Text(climberTypeLabel(t)).font(.system(size: 13, weight: on ? .bold : .medium))
     }
-    .foregroundStyle(on ? Color.white : st.color)
-    .padding(.horizontal, 12).padding(.vertical, 8)
-    .background(on ? st.color : st.color.opacity(0.10), in: Capsule())
-    .overlay(Capsule().stroke(st.color.opacity(0.7), lineWidth: 1))
+    .foregroundStyle(on ? Color.white : Cumbre.ink2)
+    .padding(.horizontal, 12).padding(.vertical, 9)
+    .background(on ? st.color : Cumbre.paper, in: Capsule())
+    .overlay(Capsule().stroke(on ? st.color : Cumbre.rule, lineWidth: on ? 3 : 1))
+    .shadow(color: on ? st.color.opacity(0.45) : .clear, radius: 6, y: 2)
+    .opacity(on ? 1 : 0.8)
 }
 
 private let promptKey = "climber_type_prompt_done"
@@ -195,7 +200,13 @@ struct RewardsBlock: View {
 
     private func summary(_ r: UserRewards) -> some View {
         VStack(spacing: 6) {
-            RewardTitle(level: Int(r.titleLevel))
+            HStack(spacing: 6) {
+                RewardTitle(level: Int(r.titleLevel))
+                // Solo en el tuyo: una flechita que dice «aquí se puede elegir».
+                if uid == nil {
+                    Image(systemName: "chevron.down.circle.fill").font(.system(size: 17)).foregroundStyle(Cumbre.terra.opacity(0.8))
+                }
+            }
             // El logro que la persona ha elegido enseñar (con su dificultad y el % de gente que lo tiene).
             if let id = r.featuredAchievement, let a = AchievementsCalculator.shared.byId(id: id) {
                 FeaturedAchievement(achievement: a, rarity: model.rarity)
@@ -210,13 +221,7 @@ struct RewardsBlock: View {
                     badge(L("De confianza"), Cumbre.ok, info: L("De confianza: lo que propone se publica sin pasar por revisión. Se consigue con 20 aportaciones aprobadas o lo da un admin."))
                 }
             }
-            if uid == nil {
-                HStack(spacing: 5) {
-                    Image(systemName: "pencil").font(.system(size: 10, weight: .bold))
-                    Text(L("TOCA TU TÍTULO PARA ELEGIR TÍTULO, VIERO/BLOQUERO Y LOGRO")).font(Cumbre.mono(8.5, .bold)).tracking(0.5)
-                        .multilineTextAlignment(.center)
-                }.foregroundStyle(Cumbre.terra.opacity(0.85))
-            }
+
             if uid == nil, let next = r.nextLevel?.intValue {
                 Text(L("%@ aportaciones aprobadas · siguiente nivel con %@", r.approved, next))
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3).multilineTextAlignment(.center)
@@ -366,7 +371,7 @@ private struct RewardsSheet: View {
                         let has = unlockedLevels.contains(l)
                         HStack(spacing: 10) {
                             Button { if has { Task { await model.update(climberType: nil, titleLevel: l) } } } label: {
-                                TitlePill(level: l, on: Int(r.titleLevel) == l, locked: !has)
+                                TitlePill(level: l, on: Int(r.titleLevel) == l, locked: !has, showCheck: true)
                             }.buttonStyle(.plain).disabled(!has)
                             if !has {
                                 Text(L("con %@ aportaciones", l)).font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
