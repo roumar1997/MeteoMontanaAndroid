@@ -118,7 +118,7 @@ class KtorModerationApi(private val client: HttpClient) {
 
     /** Quienes abrieron la app en los últimos [days] días (1 = hoy): misma cuenta que el cuadradito de la portada. */
     suspend fun getAdminActiveUsers(days: Int): List<AdminUserRowDto> =
-        client.get("admin/users") { parameter("activeDays", days) }.body()
+        try { client.get("admin/users") { parameter("activeDays", days) }.body() } catch (_: Throwable) { emptyList() }
 
     /** Quién entró un día concreto (Álvaro, 2026-09-30). [date] en ISO
      *  (yyyy-MM-dd); null = hoy. */
