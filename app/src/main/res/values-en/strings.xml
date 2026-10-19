@@ -1947,4 +1947,6 @@
     <string name="verified">Verified</string>
     <string name="journal_search_hint">Search by name, crag or sector</string>
     <string name="journal_no_sector">NO SECTOR</string>
+    <string name="journal_delete_confirm_title">Delete “%1$s” from your log?</string>
+    <string name="journal_delete_confirm_body">It will be removed from your log and your stats.</string>
 </resources>

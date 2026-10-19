@@ -1667,3 +1667,5 @@
 "Verificado" = "Verified";
 "SIN SECTOR" = "NO SECTOR";
 "Buscar por nombre, escuela o sector" = "Search by name, crag or sector";
+"¿Borrar «%@» del diario?" = "Delete “%@” from your log?";
+"Se quitará de tu diario y de tus estadísticas." = "It will be removed from your log and your stats.";

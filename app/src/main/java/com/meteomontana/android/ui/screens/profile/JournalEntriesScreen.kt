@@ -425,6 +425,25 @@ internal fun EntryRow(
     var showDatePicker by androidx.compose.runtime.remember {
         androidx.compose.runtime.mutableStateOf(false)
     }
+    // Borrar pide confirmación: un toque sin querer en el cubo no se lleva la entrada (Álvaro, 2026-10-19).
+    var confirmDelete by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    if (confirmDelete) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(stringResource(R.string.journal_delete_confirm_title, e.blockName)) },
+            text = { Text(stringResource(R.string.journal_delete_confirm_body)) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmDelete = false; onDelete() }) {
+                    Text(stringResource(R.string.journal_entries_screen_v2_borrar), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmDelete = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
+    }
     if (showDatePicker && onChangeDate != null) {
         val pickerState = androidx.compose.material3.rememberDatePickerState(
             selectableDates = object : androidx.compose.material3.SelectableDates {
@@ -540,7 +559,7 @@ internal fun EntryRow(
             )
         }
         if (canDelete) {
-            IconButton(onClick = onDelete) {
+            IconButton(onClick = { confirmDelete = true }) {
                 Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.journal_entries_screen_v2_borrar),
                     tint = MaterialTheme.colorScheme.error)
             }

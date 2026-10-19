@@ -2006,4 +2006,6 @@
     <string name="verified">Verificado</string>
     <string name="journal_search_hint">Buscar por nombre, escuela o sector</string>
     <string name="journal_no_sector">SIN SECTOR</string>
+    <string name="journal_delete_confirm_title">¿Borrar «%1$s» del diario?</string>
+    <string name="journal_delete_confirm_body">Se quitará de tu diario y de tus estadísticas.</string>
 </resources>

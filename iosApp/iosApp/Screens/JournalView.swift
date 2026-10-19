@@ -211,6 +211,8 @@ struct JournalRow: View {
     var onDelete: (() -> Void)? = nil
     @State private var showDatePicker = false
     @State private var pickedDate = Date()
+    /// Borrar pide confirmación: un toque sin querer en el cubo no se lleva la entrada (Álvaro, 2026-10-19).
+    @State private var confirmDelete = false
     /// Grados partidos por altura (se piden juntos para todas las filas visibles).
     @ObservedObject private var gradeSplits = GradeSplitsStore.shared
 
@@ -356,9 +358,15 @@ struct JournalRow: View {
                     Text(String(entry.date.prefix(10))).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                 }
                 if let onDelete {
-                    Button(action: onDelete) {
+                    Button { confirmDelete = true } label: {
                         Image(systemName: "trash").font(.system(size: 14)).foregroundStyle(Cumbre.bad)
                     }.buttonStyle(.plain)
+                    .alert(L("¿Borrar «%@» del diario?", entry.blockName), isPresented: $confirmDelete) {
+                        Button(L("Cancelar"), role: .cancel) {}
+                        Button(L("Borrar"), role: .destructive, action: onDelete)
+                    } message: {
+                        Text(L("Se quitará de tu diario y de tus estadísticas."))
+                    }
                 }
                 if schoolId != nil, !(schoolId ?? "").isEmpty {
                     Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
