@@ -674,7 +674,7 @@ struct SchoolListView: View {
     /// La lista moderna (Álvaro, 2026-10-19, propuesta A): cada escuela en su tarjeta con el anillo de la nota.
     @ViewBuilder private func schoolsSection(_ items: [School]) -> some View {
         VStack(spacing: 10) {
-            ForEach(Array(items.enumerated()), id: .element.id) { idx, school in
+            ForEach(Array(items.enumerated()), id: \.element.id) { idx, school in
                 schoolCard(school, isFirst: idx == 0)
             }
         }
