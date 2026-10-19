@@ -664,36 +664,72 @@ struct SchoolListView: View {
                         if items.isEmpty {
                             EmptyRow(canClear: vm.activeFilters || !vm.query.isEmpty) { vm.clearFilters() }
                         } else {
-                            ForEach(Array(items.enumerated()), id: \.element.id) { idx, school in
-                                // Tap: si hay selección de comparar activa, togglea;
-                                // si no, navega al detalle. Mantener pulsado: entra en
-                                // modo comparar. Sin Button/NavigationLink: dentro de un
-                                // ScrollView el Button se "come" el long-press (no fiable).
-                                // Usamos tap + long-press directos sobre la fila.
-                                SchoolListItemView(
-                                    rank: idx + 1,
-                                    school: school,
-                                    score: vm.scores[school.id],
-                                    range: vm.rangeMode ? vm.rangeScores[school.id] : nil,
-                                    distanceKm: vm.distanceKm(school),
-                                    isFavorite: vm.favoriteIds.contains(school.id),
-                                    isSelected: vm.compareSelection.contains(school.id),
-                                    processionaryAlertActive: vm.processionaryAlertActive(for: school),
-                                    onToggleFavorite: { vm.toggleFavorite(school.id) },
-                                    isFirst: idx == 0
-                                )
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    if vm.compareSelection.isEmpty { navTarget = SchoolNavTarget(school: school, via: nil) }
-                                    else { vm.toggleCompare(school.id) }
-                                }
-                                .onLongPressGesture(minimumDuration: 0.35) { vm.toggleCompare(school.id) }
-                                Divider().overlay(Cumbre.rule)
-                            }
+                            schoolsSection(items)
                         }
                     }
                 }
             }
+    }
+
+    /// La lista moderna (Álvaro, 2026-10-19): ordenadas por nota y sin búsqueda, la primera va destacada como
+    /// LA MEJOR DE HOY y el resto en filas compactas dentro de un bloque. Ordenadas por distancia o buscando, todas
+    /// compactas (decir «la mejor» de una lista que no va por nota sería mentir).
+    @ViewBuilder private func schoolsSection(_ items: [School]) -> some View {
+        let showHero = vm.sortBy == .score && vm.query.trimmingCharacters(in: .whitespaces).isEmpty
+            && (vm.rangeMode ? vm.rangeScores[items[0].id] != nil : vm.scores[items[0].id] != nil)
+        if showHero {
+            schoolHero(items[0])
+        }
+        let rest = showHero ? Array(items.dropFirst()) : items
+        if !rest.isEmpty {
+            if showHero {
+                SchoolListSectionLabel(text: L("EL RESTO · POR NOTA"))
+            } else {
+                Color.clear.frame(height: 12)
+            }
+            SchoolRowsBlock {
+                ForEach(Array(rest.enumerated()), id: \.element.id) { idx, school in
+                    if idx > 0 { Divider().overlay(Cumbre.rule) }
+                    schoolRow(school, guideTarget: !showHero && idx == 0)
+                }
+            }
+            Color.clear.frame(height: 12)
+        }
+    }
+
+    private func schoolHero(_ school: School) -> some View {
+        SchoolHeroCard(
+            school: school,
+            score: vm.scores[school.id],
+            range: vm.rangeMode ? vm.rangeScores[school.id] : nil,
+            distanceKm: vm.distanceKm(school),
+            isFavorite: vm.favoriteIds.contains(school.id),
+            isSelected: vm.compareSelection.contains(school.id),
+            processionaryAlertActive: vm.processionaryAlertActive(for: school),
+            onToggleFavorite: { vm.toggleFavorite(school.id) }
+        )
+        .modifier(SchoolTapGestures(open: { openSchool(school) }, compare: { vm.toggleCompare(school.id) }))
+    }
+
+    private func schoolRow(_ school: School, guideTarget: Bool) -> some View {
+        SchoolCompactRow(
+            school: school,
+            score: vm.scores[school.id],
+            range: vm.rangeMode ? vm.rangeScores[school.id] : nil,
+            distanceKm: vm.distanceKm(school),
+            isFavorite: vm.favoriteIds.contains(school.id),
+            isSelected: vm.compareSelection.contains(school.id),
+            processionaryAlertActive: vm.processionaryAlertActive(for: school),
+            onToggleFavorite: { vm.toggleFavorite(school.id) },
+            isGuideTarget: guideTarget
+        )
+        .modifier(SchoolTapGestures(open: { openSchool(school) }, compare: { vm.toggleCompare(school.id) }))
+    }
+
+    /// Tocar: si hay selección de comparar activa, la cambia; si no, abre la escuela.
+    private func openSchool(_ school: School) {
+        if vm.compareSelection.isEmpty { navTarget = SchoolNavTarget(school: school, via: nil) }
+        else { vm.toggleCompare(school.id) }
     }
 
     @State private var showCompare = false
