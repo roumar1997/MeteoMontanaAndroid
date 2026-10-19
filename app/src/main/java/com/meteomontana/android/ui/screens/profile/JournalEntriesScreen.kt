@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.profile
 
+import androidx.compose.foundation.layout.width
 import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.util.AppText
 import androidx.compose.runtime.setValue
@@ -437,6 +438,13 @@ internal fun EntryRow(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Miniatura de la piedra con el trazo de la vía, como en el buscador (Álvaro, 2026-10-19).
+        info?.photoUrl?.takeIf { it.isNotBlank() }?.let { photo ->
+            com.meteomontana.android.ui.screens.schools.MiniTopoThumbnail(photo, info.linePath, info.grade ?: e.grade,
+                Modifier.size(52.dp).clip(RoundedCornerShape(8.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp)))
+            androidx.compose.foundation.layout.Spacer(Modifier.width(12.dp))
+        }
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {

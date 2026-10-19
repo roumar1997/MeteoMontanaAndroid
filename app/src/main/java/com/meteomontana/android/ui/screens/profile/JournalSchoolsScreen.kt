@@ -1,5 +1,10 @@
 package com.meteomontana.android.ui.screens.profile
 
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.clickable
@@ -105,10 +110,12 @@ fun JournalSchoolsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    val top = (s.schools.maxOfOrNull { it.blockCount } ?: 1).coerceAtLeast(1)
+                    LazyColumn(modifier = Modifier.fillMaxSize(),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(s.schools, key = { it.schoolName }) { school ->
-                            SchoolRow(school, onClick = { onSchoolClick(school.schoolName) })
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                            SchoolRow(school, top, onClick = { onSchoolClick(school.schoolName) })
                         }
                     }
                 }
@@ -117,27 +124,41 @@ fun JournalSchoolsScreen(
     }
 }
 
+/**
+ * Una escuela del diario como tarjeta (igual que «Tus escuelas» de Estadísticas): ascensos en grande, nombre, barra
+ * proporcional a la escuela con más y el grado máximo en su color (Álvaro, 2026-10-19).
+ */
 @Composable
-private fun SchoolRow(school: SchoolStats, onClick: () -> Unit) {
+private fun SchoolRow(school: SchoolStats, top: Int, onClick: () -> Unit) {
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
     Row(modifier = Modifier.fillMaxWidth()
+        .clip(shape)
+        .background(MaterialTheme.colorScheme.surface)
+        .border(1.dp, MaterialTheme.colorScheme.outline, shape)
         .clickable(onClick = onClick)
-        .padding(horizontal = 16.dp, vertical = 14.dp),
+        .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(school.schoolName,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground)
-            val blockCountText = if (school.blockCount == 1)
-                stringResource(R.string.journal_schools_block_count_one, school.blockCount)
-            else
-                stringResource(R.string.journal_schools_block_count_other, school.blockCount)
-            Text(blockCountText,
-                style = MaterialTheme.typography.labelMedium,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.width(62.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(school.blockCount.toString(), fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 26.sp,
+                color = com.meteomontana.android.ui.theme.Terra)
+            Text(stringResource(R.string.stats_ascents_word), fontFamily = com.meteomontana.android.ui.theme.Mono,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 8.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Text(school.maxGrade ?: "—",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Text(school.schoolName, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 15.sp,
+                maxLines = 2, color = MaterialTheme.colorScheme.onBackground)
+            Box(Modifier.fillMaxWidth().height(6.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)) {
+                Box(Modifier.fillMaxWidth(school.blockCount.toFloat() / top).height(6.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape).background(com.meteomontana.android.ui.theme.Terra))
+            }
+        }
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            school.maxGrade?.takeIf { it.isNotBlank() }?.let { com.meteomontana.android.ui.screens.detail.GradePill(it) }
+            Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
+        }
     }
 }

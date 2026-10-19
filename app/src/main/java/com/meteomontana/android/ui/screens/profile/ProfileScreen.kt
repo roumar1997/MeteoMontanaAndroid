@@ -407,11 +407,16 @@ private fun Header(
             fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 24.sp,
             color = MaterialTheme.colorScheme.onBackground
         )
-        Text(
-            "@${p.username ?: p.displayName?.lowercase()?.replace(" ", "_") ?: "tu_username"}",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        // @usuario y, al lado, ADMIN/PREMIUM (antes desplazaban los seguidores a la izquierda).
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "@${p.username ?: p.displayName?.lowercase()?.replace(" ", "_") ?: "tu_username"}",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (p.isAdmin) ProfilePill("ADMIN", MaterialTheme.colorScheme.onBackground)
+            if (p.isPremium) ProfilePill("PREMIUM", MaterialTheme.colorScheme.primary)
+        }
         // Título, insignias y nivel por aportaciones (tocar = elegir título y viero/bloquero).
         com.meteomontana.android.ui.components.RewardsBlock(uid = null)
         p.email?.let {
@@ -435,13 +440,9 @@ private fun Header(
 
         // Seguidores / siguiendo y las píldoras ADMIN / PREMIUM en UNA fila (antes, dos bloques apilados).
         Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
-            Row(horizontalArrangement = Arrangement.spacedBy(20.dp), modifier = Modifier.guideTarget("profile.follows")) {
-                FollowCount(followers, stringResource(R.string.profile_followers).uppercase(), onClickFollowers)
-                FollowCount(following, stringResource(R.string.profile_following).uppercase(), onClickFollowing)
-            }
-            if (p.isAdmin) ProfilePill("ADMIN", MaterialTheme.colorScheme.onBackground)
-            if (p.isPremium) ProfilePill("PREMIUM", MaterialTheme.colorScheme.primary)
+        Row(horizontalArrangement = Arrangement.spacedBy(28.dp), modifier = Modifier.guideTarget("profile.follows")) {
+            FollowCount(followers, stringResource(R.string.profile_followers).uppercase(), onClickFollowers)
+            FollowCount(following, stringResource(R.string.profile_following).uppercase(), onClickFollowing)
         }
     }
 }
@@ -452,9 +453,9 @@ private fun ProfilePill(text: String, color: Color) {
         modifier = Modifier
             .clip(RoundedCornerShape(2.dp))
             .border(1.dp, color, RoundedCornerShape(2.dp))
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
-        Text(text, style = MaterialTheme.typography.labelLarge, color = color)
+        Text(text, style = MaterialTheme.typography.labelSmall, color = color)
     }
 }
 

@@ -10,6 +10,8 @@ final class ProjectsViewModel: ObservableObject {
     @Published var boulderCount = 0
     @Published var routeCount = 0
     @Published var projectEntries: [JournalSession] = []
+    /// Piedra, sector, grado y miniatura de cada proyecto, del catálogo.
+    @Published var viaInfo: [String: ViaCatalogInfo] = [:]
     @Published var error: String?
 
     private let getMyJournal = AppDependencies.shared.container.getMyJournal
@@ -26,6 +28,7 @@ final class ProjectsViewModel: ObservableObject {
             else { all = try await getMyJournal.invoke() }
             let projects = all.filter { $0.status == "PROJECT" }
             projectEntries = projects
+            viaInfo = (try? await AppDependencies.shared.container.getJournalViaInfo.invoke(entries: projects)) ?? [:]
             routeCount = projects.filter { $0.discipline.caseInsensitiveCompare("ROUTE") == .orderedSame }.count
             boulderCount = projects.count - routeCount
             error = nil
@@ -75,7 +78,7 @@ struct ProjectsView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(shown, id: \.id) { e in
-                            JournalRow(entry: e, schoolId: e.schoolId, info: nil)
+                            JournalRow(entry: e, schoolId: e.schoolId, info: vm.viaInfo[e.id])
                             Divider().overlay(Cumbre.rule)
                         }
                     }

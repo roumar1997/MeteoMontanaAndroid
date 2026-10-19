@@ -330,8 +330,6 @@ struct PublicProfileView: View {
                     // Diario del usuario: BLOQUES / ESCUELAS / MÁXIMO navegables
                     // (igual que tu cuenta). Solo si su perfil es visible.
                     if let st = vm.stats {
-                        Divider().overlay(Cumbre.rule).padding(.vertical, 4)
-                        Text("DIARIO").eyebrow().frame(maxWidth: .infinity, alignment: .leading)
                         // H: incluye las celdas ESTADÍSTICAS y PUBLICACIONES
                         // (pulsables, como el resto del perfil).
                         JournalStatsNav(stats: st, entries: vm.entries, viaInfo: vm.viaInfo,
@@ -410,7 +408,8 @@ struct PublicProfileView: View {
                 .padding(16)
             }
             .background(Cumbre.bg.ignoresSafeArea())
-            .presentationDetents([.medium, .large])
+            // Entera desde el principio: a media altura no se veía el TÍTULO ESPECIAL (Álvaro, 2026-10-19).
+            .presentationDetents([.large])
         }
         .sheet(isPresented: $showModeration, onDismiss: { Task { await vm.refreshModeration() } }) {
             if let u = vm.profile?.uid { UserModerationSheet(uid: u) }

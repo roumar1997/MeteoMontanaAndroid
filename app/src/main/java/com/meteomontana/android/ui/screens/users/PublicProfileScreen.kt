@@ -478,35 +478,32 @@ private fun ActivityStatsRow(
 ) {
     Column(modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // ESTADÍSTICAS arriba, como en tu perfil: que se vea sin bajar (Álvaro, 2026-10-19).
+        com.meteomontana.android.ui.components.StatsEntryButton(onClick = onStatsClick)
         Row(modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatBox(stringResource(R.string.profile_blocks), stats.boulderCount.toString(), Modifier.weight(1f), onBlocksClick)
             StatBox(stringResource(R.string.profile_routes), stats.routeCount.toString(), Modifier.weight(1f), onRoutesClick)
             StatBox(stringResource(R.string.profile_schools), stats.schoolCount.toString(), Modifier.weight(1f), onSchoolsClick)
         }
-        // Grados tope automáticos (del diario). Se oculta el que no tenga datos:
-        // quien solo hace bloque no ve "TOPE VÍA" vacío (y al revés).
-        val hasBoulder = !stats.maxBoulderGrade.isNullOrBlank()
-        val hasRoute = !stats.maxRouteGrade.isNullOrBlank()
-        if (hasBoulder || hasRoute) {
-            Row(modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (hasBoulder) StatBox(stringResource(R.string.profile_max_boulder), stats.maxBoulderGrade!!, Modifier.weight(1f), onMaxClick)
-                if (hasRoute) StatBox(stringResource(R.string.profile_max_route), stats.maxRouteGrade!!, Modifier.weight(1f), onMaxClick)
-            }
-        }
+        // Grados tope (del diario) y proyectos en UNA fila de tres, como en iOS.
         Row(modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatBox(stringResource(R.string.profile_max_boulder), stats.maxBoulderGrade ?: "—", Modifier.weight(1f), onMaxClick)
+            StatBox(stringResource(R.string.profile_max_route), stats.maxRouteGrade ?: "—", Modifier.weight(1f), onMaxClick)
             StatBox(stringResource(R.string.profile_projects), stats.projectCount.toString(), Modifier.weight(1f), onProjectsClick)
         }
-        // H: ESTADÍSTICAS y PUBLICACIONES como CELDAS (igual que el resto del
-        // perfil) — antes eran texto rojo con flecha y un feed inline enorme.
-        // El MISMO botón de estadísticas que en el perfil propio, y las publicaciones debajo.
-        com.meteomontana.android.ui.components.StatsEntryButton(onClick = onStatsClick)
-        Row(modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatBox(stringResource(R.string.feed_posts_section).uppercase(), "▸",
-                Modifier.weight(1f), onPostsClick)
+        // Publicaciones: una fila fina en vez de otra celda grande.
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
+                .clickable(onClick = onPostsClick).padding(horizontal = 14.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(stringResource(R.string.feed_posts_section).uppercase(), style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+            Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
         }
     }
 }

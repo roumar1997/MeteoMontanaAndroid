@@ -228,11 +228,8 @@ struct AccountView: View {
                             .padding(.horizontal, 24)
                     }
                     // Todo más junto para que el diario y ESTADÍSTICAS se vean sin bajar (Álvaro, 2026-10-19).
-                    HStack(spacing: 20) {
-                        followCounters
-                            .guideTarget("profile.follows")
-                        badges
-                    }
+                    followCounters
+                        .guideTarget("profile.follows")
                     diarySection
                 }
                 .frame(maxWidth: .infinity)
@@ -312,8 +309,12 @@ struct AccountView: View {
     private var names: some View {
         VStack(spacing: 2) {
             Text(displayName).font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
-            if let u = vm.profile?.username, !u.isEmpty {
-                Text("@\(u)").font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink3)
+            // @usuario y, al lado, ADMIN/PREMIUM (antes desplazaban los seguidores a la izquierda).
+            HStack(spacing: 8) {
+                if let u = vm.profile?.username, !u.isEmpty {
+                    Text("@\(u)").font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink3)
+                }
+                badges
             }
             if let e = email { Text(e).font(.system(size: 13)).foregroundStyle(Cumbre.ink2) }
             // Título, insignias y nivel por aportaciones (tocar = elegir título y viero/bloquero).
@@ -703,29 +704,19 @@ private struct AccountSchoolsList: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 0) {
+                    let top = max(schools.map { Int($0.blockCount) }.max() ?? 1, 1)
+                    LazyVStack(spacing: 8) {
                         ForEach(schools, id: \.schoolName) { s in
                             // Antes iba directo a la lista plana; ahora pasa por
                             // "sectores" para no mezclar todos los bloques/vías de
                             // la escuela de golpe (paridad con Android).
                             NavigationLink(destination: AccountSchoolSectorsList(vm: vm, schoolName: s.schoolName)) {
-                                HStack(spacing: 12) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(s.schoolName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
-                                        let blocks = "\(s.blockCount) \(s.blockCount == 1 ? "bloque" : "bloques")"
-                                        let grade = s.maxGrade.map { L(" · máx %@", $0) } ?? ""
-                                        Text(blocks + grade).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
-                                }
-                                .padding(.horizontal, 16).padding(.vertical, 12)
-                                .contentShape(Rectangle())
+                                JournalSchoolCard(name: s.schoolName, count: Int(s.blockCount), maxGrade: s.maxGrade, top: top)
                             }
                             .buttonStyle(.plain)
-                            Divider().overlay(Cumbre.rule)
                         }
                     }
+                    .padding(16)
                 }
             }
         }

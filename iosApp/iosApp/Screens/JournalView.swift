@@ -232,6 +232,14 @@ struct JournalRow: View {
 
     private var leading: some View {
         HStack(spacing: 12) {
+            // Miniatura de la piedra con el trazo de la vía, como en el buscador (Álvaro, 2026-10-19).
+            if let photo = info?.photoUrl, !photo.isEmpty {
+                MiniTopoThumbnail(photoUrl: photo, points: dedupPoints(TopoParse.points(info?.linePath)),
+                                  grade: info?.grade ?? entry.grade)
+                    .frame(width: 52, height: 52)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Cumbre.rule, lineWidth: 1))
+            }
             // Grado ACTUAL del catálogo (refleja correcciones) o el guardado.
             if let g = (info?.grade ?? entry.grade), !g.isEmpty {
                 if let split = entry.lineId.flatMap({ gradeSplits.splits[$0] }) {
@@ -704,6 +712,44 @@ struct AddBlockSheet: View {
 /// Desglose del diario por escuela — espejo de la navegación "ESCUELAS" del
 /// perfil de Android (`onOpenAllSchools`). Cada escuela es pulsable y abre la
 /// lista de bloques registrados en esa escuela.
+/// Una escuela del diario como tarjeta (igual que «Tus escuelas» de Estadísticas): ascensos en grande, nombre, barra
+/// proporcional a la escuela con más y el grado máximo en su color (Álvaro, 2026-10-19).
+struct JournalSchoolCard: View {
+    let name: String
+    let count: Int
+    let maxGrade: String?
+    let top: Int
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(spacing: 0) {
+                Text("\(count)").font(Cumbre.serif(26, .bold)).foregroundStyle(Cumbre.terra)
+                Text(L("ascensos")).font(Cumbre.mono(8, .bold)).foregroundStyle(Cumbre.ink3)
+            }
+            .frame(width: 62)
+            VStack(alignment: .leading, spacing: 7) {
+                Text(name).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                    .lineLimit(2).multilineTextAlignment(.leading)
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Cumbre.paper2)
+                        Capsule().fill(Cumbre.terra)
+                            .frame(width: max(8, geo.size.width * CGFloat(count) / CGFloat(max(top, 1))))
+                    }
+                }.frame(height: 6)
+            }
+            VStack(alignment: .trailing, spacing: 6) {
+                if let g = maxGrade, !g.isEmpty { GradePill(grade: g, small: true) }
+                Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink3)
+            }
+        }
+        .padding(12)
+        .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+        .contentShape(Rectangle())
+    }
+}
+
 struct JournalSchoolsView: View {
     let schools: [SchoolStats]
     let entries: [JournalSession]
@@ -716,7 +762,8 @@ struct JournalSchoolsView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 0) {
+                    let top = max(schools.map { Int($0.blockCount) }.max() ?? 1, 1)
+                    LazyVStack(spacing: 8) {
                         ForEach(schools, id: \.schoolName) { s in
                             // Antes iba directo a la lista plana; ahora pasa por
                             // "sectores" (paridad con Android).
@@ -725,23 +772,12 @@ struct JournalSchoolsView: View {
                                 entries: entriesFor(s.schoolName),
                                 viaInfo: viaInfo
                             )) {
-                                HStack(spacing: 12) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(s.schoolName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
-                                        let blocks = "\(s.blockCount) \(s.blockCount == 1 ? "bloque" : "bloques")"
-                                        let grade = s.maxGrade.map { L(" · máx %@", $0) } ?? ""
-                                        Text(blocks + grade).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
-                                }
-                                .padding(.horizontal, 16).padding(.vertical, 12)
-                                .contentShape(Rectangle())
+                                JournalSchoolCard(name: s.schoolName, count: Int(s.blockCount), maxGrade: s.maxGrade, top: top)
                             }
                             .buttonStyle(.plain)
-                            Divider().overlay(Cumbre.rule)
                         }
                     }
+                    .padding(16)
                 }
             }
         }
@@ -949,6 +985,12 @@ struct JournalStatsNav: View {
     var showStatsAndPosts: Bool = false
     var body: some View {
         VStack(spacing: 8) {
+            // ESTADÍSTICAS arriba, como en tu perfil: que se vea sin bajar (Álvaro, 2026-10-19).
+            if showStatsAndPosts {
+                NavigationLink(destination: StatsView(uid: projectsUid)) {
+                    StatsEntryLabel()
+                }.buttonStyle(.plain)
+            }
             HStack(spacing: 8) {
                 NavigationLink(destination: JournalBlocksListView(title: L("Bloques"), entries: entries, viaInfo: viaInfo, routeOnly: false)) {
                     cell("\(stats.boulderCount)", L("BLOQUES"))
@@ -963,30 +1005,36 @@ struct JournalStatsNav: View {
             HStack(spacing: 8) {
                 cell(stats.maxBoulderGrade ?? "—", L("MÁX BLOQUE"))
                 cell(stats.maxRouteGrade ?? "—", L("MÁX VÍA"))
-            }
-            // Proyectos: misma celda pulsable que el resto, mismo caché offline
-            // (viene en la misma llamada de stats).
-            NavigationLink(destination: ProjectsView(uid: projectsUid)) {
-                cell("\(stats.projectCount)", L("PROYECTOS"))
-            }.buttonStyle(.plain)
-            if showStatsAndPosts {
-                // El MISMO botón de estadísticas que en el perfil propio, y las publicaciones debajo.
-                NavigationLink(destination: StatsView(uid: projectsUid)) {
-                    StatsEntryLabel()
+                // Proyectos: misma celda pulsable que el resto, mismo caché offline
+                // (viene en la misma llamada de stats).
+                NavigationLink(destination: ProjectsView(uid: projectsUid)) {
+                    cell("\(stats.projectCount)", L("PROYECTOS"))
                 }.buttonStyle(.plain)
+            }
+            if showStatsAndPosts {
+                // Publicaciones: una fila fina en vez de otra celda grande.
                 NavigationLink(destination: MyPostsView(uid: projectsUid)) {
-                    cell("▸", L("PUBLICACIONES"))
+                    HStack {
+                        Text(L("PUBLICACIONES")).font(Cumbre.mono(10, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink2)
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink3)
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 11)
+                    .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 16))
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Cumbre.rule, lineWidth: 1))
                 }.buttonStyle(.plain)
             }
         }
     }
     private func cell(_ v: String, _ l: String) -> some View {
-        VStack(spacing: 3) {
-            Text(v).font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
-            Text(l).font(Cumbre.mono(9, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink3)
+        VStack(spacing: 2) {
+            Text(v).font(Cumbre.serif(20, .bold)).foregroundStyle(Cumbre.ink)
+                .lineLimit(1).minimumScaleFactor(0.6)
+            Text(l).font(Cumbre.mono(8.5, .bold)).tracking(0.6).foregroundStyle(Cumbre.ink3)
+                .lineLimit(2).multilineTextAlignment(.center).minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
+        .padding(.vertical, 9).padding(.horizontal, 4)
         .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Cumbre.rule, lineWidth: 1))
     }

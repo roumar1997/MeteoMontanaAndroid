@@ -1,6 +1,7 @@
 package com.meteomontana.android.domain.usecase.journal
 
 import com.meteomontana.android.domain.model.Block
+import com.meteomontana.android.domain.model.BlockLine
 import com.meteomontana.android.domain.model.JournalSession
 import com.meteomontana.android.domain.repository.BlockRepository
 
@@ -13,8 +14,19 @@ data class ViaCatalogInfo(
     // true = la entrada tenía un lineId estable que YA NO existe en el catálogo
     // (la vía/piedra se borró). La UI la pinta en gris como "vía eliminada", pero
     // NO se elimina del perfil (no se castiga al usuario por un borrado de catálogo).
-    val deleted: Boolean = false
+    val deleted: Boolean = false,
+    // Foto de la cara donde está la vía y su trazo (JSON de puntos), para la miniatura de las listas del diario
+    // (Álvaro, 2026-10-19). null si la piedra no tiene foto o la vía no está dibujada.
+    val photoUrl: String? = null,
+    val linePath: String? = null
 )
+
+/** La foto de la cara donde está [line] (o la de la piedra) y el trazo de esa vía. */
+internal fun thumbnailOf(block: Block, line: BlockLine?): Pair<String?, String?> {
+    val face = line?.let { l -> block.faces.firstOrNull { f -> f.lines.any { it.id == l.id } } }
+    val photo = (face?.photoPath ?: block.photoPath ?: block.faces.firstOrNull()?.photoPath)?.takeIf { it.isNotBlank() }
+    return photo to line?.linePath?.takeIf { it.isNotBlank() }
+}
 
 /**
  * Para cada entrada del diario resuelve el **número de piedra** y el **sector**
@@ -51,12 +63,15 @@ class GetJournalViaInfoUseCase(private val blockRepository: BlockRepository) {
             }
             if (byId != null) {
                 val sectorName = byId.sectorBlockId?.let { zonesById[it]?.name }
-                val liveGrade = byId.lines.firstOrNull { it.id == e.lineId }
-                    ?.grade?.takeIf { it.isNotBlank() }
+                val liveLine = byId.lines.firstOrNull { it.id == e.lineId }
+                val liveGrade = liveLine?.grade?.takeIf { it.isNotBlank() }
+                val (photo, path) = thumbnailOf(byId, liveLine)
                 result[e.id] = ViaCatalogInfo(
                     boulderNumber = byId.name.takeIf { it.isNotBlank() },
                     sector = sectorName?.takeIf { it.isNotBlank() },
-                    grade = liveGrade
+                    grade = liveGrade,
+                    photoUrl = photo,
+                    linePath = path
                 )
                 continue
             }
@@ -85,13 +100,15 @@ class GetJournalViaInfoUseCase(private val blockRepository: BlockRepository) {
                 }
             } ?: candidates.first()
             val sectorName = chosen.sectorBlockId?.let { zonesById[it]?.name }
-            val currentGrade = chosen.lines
-                .firstOrNull { it.name.trim().equals(via, ignoreCase = true) }
-                ?.grade?.takeIf { it.isNotBlank() }
+            val chosenLine = chosen.lines.firstOrNull { it.name.trim().equals(via, ignoreCase = true) }
+            val currentGrade = chosenLine?.grade?.takeIf { it.isNotBlank() }
+            val (photo, path) = thumbnailOf(chosen, chosenLine)
             result[e.id] = ViaCatalogInfo(
                 boulderNumber = chosen.name.takeIf { it.isNotBlank() },
                 sector = sectorName?.takeIf { it.isNotBlank() },
-                grade = currentGrade
+                grade = currentGrade,
+                photoUrl = photo,
+                linePath = path
             )
         }
         return result
