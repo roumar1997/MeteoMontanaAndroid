@@ -165,7 +165,7 @@ struct ScoreRing: View {
     }
 }
 
-/// Las próximas horas como barras con su altura y color; debajo la primera y última hora y la mejor marcada.
+/// Las próximas horas como barras con su altura y color, su hora debajo y la mejor hora dicha con palabras.
 struct HourBars: View {
     let scores: [Int]
 
@@ -187,16 +187,21 @@ struct HourBars: View {
                 }
             }
             .frame(height: 30, alignment: .bottom)
-            HStack {
-                Text(L("%@ h", now))
-                Spacer()
-                Text(L("Mejor: %@ h · %@", (now + best) % 24, scores[best]))
-                    .fontWeight(.bold).foregroundStyle(Cumbre.ink)
-                Spacer()
-                Text(L("%@ h", (now + scores.count - 1) % 24))
+            // La hora bajo cada barra (la de ahora en negrita): sin adivinar las de en medio (Álvaro, 2026-10-19).
+            HStack(spacing: 3) {
+                ForEach(scores.indices, id: \.self) { i in
+                    Text(String(format: "%02d", (now + i) % 24))
+                        .font(Cumbre.mono(9.5, i == 0 ? .bold : .regular))
+                        .foregroundStyle(i == 0 ? Cumbre.ink : Cumbre.ink3)
+                        .minimumScaleFactor(0.6).lineLimit(1)
+                        .frame(maxWidth: .infinity)
+                }
             }
-            .font(Cumbre.mono(10))
-            .foregroundStyle(Cumbre.ink3)
+            Text(best == 0 ? L("Mejor hora: ahora (%@)", scores[best])
+                           : L("Mejor hora: a las %@ h (%@)", (now + best) % 24, scores[best]))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Cumbre.ink2)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(L("Mejor hora: %@ h", (now + best) % 24))

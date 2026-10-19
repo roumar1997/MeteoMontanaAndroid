@@ -1669,10 +1669,14 @@
 "Buscar por nombre, escuela o sector" = "Search by name, crag or sector";
 "¿Borrar «%@» del diario?" = "Delete “%@” from your log?";
 "Se quitará de tu diario y de tus estadísticas." = "It will be removed from your log and your stats.";
-"%@ h" = "%@ h";
-"Mejor: %@ h · %@" = "Best: %@ h · %@";
 "Mejor hora: %@ h" = "Best hour: %@ h";
 "Roca seca" = "Dry rock";
 "Roca mojada" = "Wet rock";
 "Nota %@, %@" = "Score %@, %@";
 "Sin nota" = "No score";
+"Mejor hora: ahora (%@)" = "Best hour: now (%@)";
+"Mejor hora: a las %@ h (%@)" = "Best hour: %@:00 (%@)";
+"Cambiar fecha" = "Change date";
+"Borrar del diario" = "Delete from log";
+"Más opciones" = "More options";
+"Fecha" = "Date";

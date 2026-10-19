@@ -213,6 +213,10 @@ struct JournalRow: View {
     @State private var pickedDate = Date()
     /// Borrar pide confirmación: un toque sin querer en el cubo no se lleva la entrada (Álvaro, 2026-10-19).
     @State private var confirmDelete = false
+    /// Deslizar la fila a la izquierda descubre FECHA y BORRAR (Álvaro, 2026-10-19). Las listas del diario son
+    /// ScrollView, no List, así que el `swipeActions` nativo no existe aquí: gesto propio, solo en horizontal.
+    @State private var swipeOffset: CGFloat = 0
+    @State private var swipeBase: CGFloat = 0
     /// Grados partidos por altura (se piden juntos para todas las filas visibles).
     @ObservedObject private var gradeSplits = GradeSplitsStore.shared
 
@@ -222,8 +226,22 @@ struct JournalRow: View {
         if let sn = entry.schoolName, !sn.isEmpty { parts.append(sn) }
         if let n = info?.boulderNumber, !n.isEmpty { parts.append(L("Piedra %@", n)) }
         if let s = info?.sector, !s.isEmpty { parts.append(s) }
+        parts.append(shortDate)
         return parts.joined(separator: " · ")
     }
+
+    /// «12 oct» (la fecha ya no es un botón escondido: se cambia desde «⋯» o deslizando).
+    private var shortDate: String {
+        let iso = String(entry.date.prefix(10))
+        let p = DateFormatter(); p.dateFormat = "yyyy-MM-dd"; p.locale = Locale(identifier: "en_US_POSIX")
+        guard let d = p.date(from: iso) else { return iso }
+        let out = DateFormatter(); out.setLocalizedDateFormatFromTemplate("d MMM")
+        return out.string(from: d)
+    }
+
+    private var canEdit: Bool { onChangeDate != nil || onDelete != nil }
+    /// Ancho de los botones que descubre el deslizar.
+    private var actionsWidth: CGFloat { (onChangeDate != nil ? 76 : 0) + (onDelete != nil ? 76 : 0) }
 
     private func splitHalf(_ g: String) -> some View {
         Text(g).font(Cumbre.mono(9, .bold))
@@ -307,14 +325,32 @@ struct JournalRow: View {
     }
 
     var body: some View {
+        ZStack(alignment: .trailing) {
+            if canEdit && swipeOffset < 0 { swipeActions }
+            rowContent
+                .background(Cumbre.bg)
+                .offset(x: swipeOffset)
+                // Con la fila abierta, tocarla la cierra (en vez de abrir la piedra).
+                .overlay {
+                    if swipeOffset < 0 {
+                        Color.clear.contentShape(Rectangle())
+                            .onTapGesture { closeSwipe() }
+                    }
+                }
+        }
+        .clipped()
+        .simultaneousGesture(canEdit ? swipeGesture : nil)
+        .sheet(isPresented: $showDatePicker) { datePickerSheet }
+        .alert(L("¿Borrar «%@» del diario?", entry.blockName), isPresented: $confirmDelete) {
+            Button(L("Cancelar"), role: .cancel) {}
+            Button(L("Borrar"), role: .destructive) { onDelete?() }
+        } message: {
+            Text(L("Se quitará de tu diario y de tus estadísticas."))
+        }
+    }
+
+    private var rowContent: some View {
         ZStack {
-            // BUG cazado (Álvaro, 2026-09-11): el NavigationLink solo envolvía
-            // `leading` (icono+título), así que el hueco hasta la fecha/flecha
-            // de la derecha no pertenecía a ningún control y no respondía al
-            // toque — solo funcionaba tocando el grado, el título o la escuela.
-            // Fix: un NavigationLink invisible de fondo cubre TODA la fila;
-            // los controles propios (fecha, borrar, A VISTA/AL FLASH) se
-            // dibujan encima y siguen capturando su toque antes que el fondo.
             if let sid = schoolId, !sid.isEmpty {
                 // BUG del propio fix (Álvaro, 2026-09-11): EmptyView() sin frame
                 // mide 0x0 — el link "de fondo" no cubría nada y dejó de
@@ -329,53 +365,113 @@ struct JournalRow: View {
             }
             HStack(spacing: 12) {
                 leading.onAppear { gradeSplits.want(entry.lineId) }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 4) {
-                if onChangeDate != nil {
-                    Button { showDatePicker = true } label: {
-                        Text(String(entry.date.prefix(10))).font(Cumbre.mono(10, .bold))
-                            .foregroundStyle(Cumbre.terra)
-                    }
-                    .buttonStyle(.plain)
-                    .sheet(isPresented: $showDatePicker) {
-                        VStack(spacing: 12) {
-                            Text("CAMBIAR FECHA").font(Cumbre.mono(11, .bold)).tracking(1)
-                                .foregroundStyle(Cumbre.terra)
-                            DatePicker("", selection: $pickedDate, in: ...Date(),
-                                       displayedComponents: .date)
-                                .datePickerStyle(.graphical)
-                            Button("GUARDAR") {
-                                let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
-                                onChangeDate?(df.string(from: pickedDate))
-                                showDatePicker = false
-                            }
-                            .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
-                        }
-                        .padding(16)
-                        .presentationDetents([.medium])
-                    }
-                } else {
-                    Text(String(entry.date.prefix(10))).font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
-                }
-                if let onDelete {
-                    Button { confirmDelete = true } label: {
-                        Image(systemName: "trash").font(.system(size: 14)).foregroundStyle(Cumbre.bad)
-                    }.buttonStyle(.plain)
-                    .alert(L("¿Borrar «%@» del diario?", entry.blockName), isPresented: $confirmDelete) {
-                        Button(L("Cancelar"), role: .cancel) {}
-                        Button(L("Borrar"), role: .destructive, action: onDelete)
-                    } message: {
-                        Text(L("Se quitará de tu diario y de tus estadísticas."))
-                    }
-                }
-                if schoolId != nil, !(schoolId ?? "").isEmpty {
+                Spacer(minLength: 4)
+                if canEdit {
+                    moreMenu
+                } else if schoolId != nil, !(schoolId ?? "").isEmpty {
                     Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
-                }
                 }
             }
         }
         .contentShape(Rectangle())
         .padding(.horizontal, 16).padding(.vertical, 12)
+    }
+
+    /// «⋯»: todo lo que se puede hacer con la entrada, con nombre y un botón grande.
+    private var moreMenu: some View {
+        Menu {
+            if onChangeDate != nil {
+                Button { openDatePicker() } label: { Label(L("Cambiar fecha"), systemImage: "calendar") }
+            }
+            if onDelete != nil {
+                Button(role: .destructive) { confirmDelete = true } label: {
+                    Label(L("Borrar del diario"), systemImage: "trash")
+                }
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(Cumbre.ink2)
+                .frame(width: 36, height: 36)
+                .background(Cumbre.paper, in: Circle())
+                .contentShape(Circle())
+        }
+        .accessibilityLabel(L("Más opciones"))
+    }
+
+    /// Lo que descubre el deslizar: FECHA (gris) y BORRAR (rojo).
+    private var swipeActions: some View {
+        HStack(spacing: 0) {
+            if onChangeDate != nil {
+                swipeButton(L("Fecha"), icon: "calendar", color: Cumbre.ink3) { closeSwipe(); openDatePicker() }
+            }
+            if onDelete != nil {
+                swipeButton(L("Borrar"), icon: "trash", color: Cumbre.bad) { closeSwipe(); confirmDelete = true }
+            }
+        }
+        .frame(maxHeight: .infinity)
+    }
+
+    private func swipeButton(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon).font(.system(size: 17, weight: .semibold))
+                Text(title).font(.system(size: 12, weight: .semibold))
+            }
+            .foregroundStyle(.white)
+            .frame(width: 76)
+            .frame(maxHeight: .infinity)
+            .background(color)
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Solo cuenta si el gesto es claramente horizontal: el scroll vertical de la lista no se toca.
+    private var swipeGesture: some Gesture {
+        DragGesture(minimumDistance: 18)
+            .onChanged { v in
+                guard abs(v.translation.width) > abs(v.translation.height) * 1.4 else { return }
+                swipeOffset = min(0, max(-actionsWidth - 24, swipeBase + v.translation.width))
+            }
+            .onEnded { v in
+                guard abs(v.translation.width) > abs(v.translation.height) * 1.4 else {
+                    withAnimation(.spring(response: 0.3)) { swipeOffset = swipeBase }
+                    return
+                }
+                let open = swipeBase + v.translation.width < -actionsWidth / 2
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                    swipeOffset = open ? -actionsWidth : 0
+                }
+                swipeBase = swipeOffset
+            }
+    }
+
+    private func closeSwipe() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { swipeOffset = 0 }
+        swipeBase = 0
+    }
+
+    private func openDatePicker() {
+        let p = DateFormatter(); p.dateFormat = "yyyy-MM-dd"; p.locale = Locale(identifier: "en_US_POSIX")
+        pickedDate = p.date(from: String(entry.date.prefix(10))) ?? Date()
+        showDatePicker = true
+    }
+
+    private var datePickerSheet: some View {
+        VStack(spacing: 12) {
+            Text("CAMBIAR FECHA").font(Cumbre.mono(11, .bold)).tracking(1)
+                .foregroundStyle(Cumbre.terra)
+            DatePicker("", selection: $pickedDate, in: ...Date(), displayedComponents: .date)
+                .datePickerStyle(.graphical)
+            Button("GUARDAR") {
+                let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+                onChangeDate?(df.string(from: pickedDate))
+                showDatePicker = false
+            }
+            .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
+        }
+        .padding(16)
+        .presentationDetents([.medium])
     }
 }
 
