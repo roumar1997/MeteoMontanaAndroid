@@ -199,7 +199,7 @@ struct ChatListView: View {
                     Image(systemName: "person.3.fill").font(.system(size: 18)).foregroundStyle(Cumbre.terra)
                 }.frame(width: 44, height: 44)
             } else {
-                AvatarCircle(url: vm.profiles[vm.other(c)]?.photoUrl, size: 44)
+                AvatarCircle(url: vm.profiles[vm.other(c)]?.photoUrl, size: 44, uid: vm.other(c))
             }
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
@@ -256,7 +256,7 @@ private struct NewChatView: View {
                             onPick(p.uid, p.displayName ?? p.username ?? L("Usuario"))
                         } label: {
                             HStack(spacing: 12) {
-                                AvatarCircle(url: p.photoUrl, size: 40)
+                                AvatarCircle(url: p.photoUrl, size: 40, uid: p.uid)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(p.displayName ?? p.username ?? L("Usuario"))
                                         .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)

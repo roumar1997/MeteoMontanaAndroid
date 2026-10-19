@@ -170,7 +170,7 @@ private struct ContributorRow: View {
             }
             .frame(width: 32)
 
-            AvatarCircle(url: contributor.photoUrl, size: 40)
+            AvatarCircle(url: contributor.photoUrl, size: 40, uid: contributor.uid)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(contributor.displayName ?? contributor.username.map { "@" + $0 } ?? L("Usuario"))

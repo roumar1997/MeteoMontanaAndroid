@@ -35,7 +35,7 @@ struct MentionSuggestionsView: View {
                         if let uname = p.username {
                             Button { text = applyMention(text, uname) } label: {
                                 HStack(spacing: 8) {
-                                    AvatarCircle(url: p.photoUrl, size: 26)
+                                    AvatarCircle(url: p.photoUrl, size: 26, uid: p.uid)
                                     Text("@\(uname)")
                                         .font(.system(size: 14, weight: .semibold))
                                         .foregroundStyle(Cumbre.terra)

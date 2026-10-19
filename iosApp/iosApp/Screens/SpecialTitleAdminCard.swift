@@ -59,6 +59,7 @@ struct SpecialTitleAdminCard: View {
         if let r = try? await AppDependencies.shared.container.setSpecialTitle.invoke(uid: uid, title: clean, color: hexFromColor(color)) {
             hasSpecial = !(r.specialTitle ?? "").isEmpty
             if !hasSpecial { text = "" }
+            UserBadgeStore.shared.refresh(uid)
             saved = hasSpecial ? "Guardado. Ya lo ve en su perfil." : "Título especial quitado."
         } else {
             saved = "No se pudo guardar (revisa la conexión)."

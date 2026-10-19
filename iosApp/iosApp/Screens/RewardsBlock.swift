@@ -29,6 +29,7 @@ final class RewardsModel: ObservableObject {
                                                        featuredAchievement: featured,
                                                        titleHidden: titleHidden.map { KotlinBoolean(bool: $0) }) {
             rewards = r
+            UserBadgeStore.shared.refresh(r.uid)   // la aureola sigue al título elegido
         }
     }
 }
@@ -262,9 +263,6 @@ struct RewardsBlock: View {
             }
             HStack(spacing: 6) {
                 if let t = r.climberType { badge(climberTypeLabel(t), climberTypeStyle(t).color, info: nil) }
-                if r.badges.contains("COLLABORATOR") {
-                    badge(L("Colaborador"), Cumbre.terra, info: L("Colaborador: tiene al menos una aportación aprobada (una piedra, una vía o un cambio que un admin ha dado por bueno)."))
-                }
                 if r.badges.contains("TRUSTED") {
                     badge(L("De confianza"), Cumbre.ok, info: L("De confianza: lo que propone se publica sin pasar por revisión. Se consigue con 20 aportaciones aprobadas o lo da un admin."))
                 }

@@ -156,7 +156,7 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
             Button { showAllPresent = true } label: {
                 HStack(spacing: -6) {
                     ForEach(vm.people.prefix(4), id: \.uid) { person in
-                        AvatarCircle(url: person.photoUrl, size: 18)
+                        AvatarCircle(url: person.photoUrl, size: 18, uid: person.uid)
                             .overlay(Circle().stroke(Cumbre.bg, lineWidth: 1.5))
                     }
                 }
@@ -184,7 +184,7 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
                     openChatFor = ChatTarget(uid: person.uid, name: person.displayName ?? person.username ?? L("Usuario"))
                 } label: {
                     HStack(spacing: 12) {
-                        AvatarCircle(url: person.photoUrl, size: 36)
+                        AvatarCircle(url: person.photoUrl, size: 36, uid: person.uid)
                         Text(person.uid == myUid ? "Tú" : (person.displayName ?? person.username ?? L("Usuario")))
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Cumbre.ink)

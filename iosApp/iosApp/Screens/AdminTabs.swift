@@ -162,7 +162,7 @@ struct AdminStatsTab: View {
                                 // P6: la fila abre el PERFIL del usuario.
                                 NavigationLink(destination: PublicProfileView(uid: u.uid)) {
                                 HStack {
-                                    AvatarCircle(url: u.photoPath, size: 32)
+                                    AvatarCircle(url: u.photoPath, size: 32, uid: u.uid)
                                     VStack(alignment: .leading, spacing: 1) {
                                         Text(u.username.map { "@" + $0 } ?? (u.displayName ?? String(u.uid.prefix(10))))
                                             .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
@@ -491,7 +491,7 @@ struct AdminPushTab: View {
                             recipients.append(u); query = ""; results = []
                         } label: {
                             HStack(spacing: 10) {
-                                AvatarCircle(url: u.photoUrl, size: 30)
+                                AvatarCircle(url: u.photoUrl, size: 30, uid: u.uid)
                                 Text(name(u)).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
                                 Spacer()
                                 Image(systemName: "plus.circle.fill").foregroundStyle(Cumbre.terra)

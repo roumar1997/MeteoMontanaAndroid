@@ -1,4 +1,8 @@
 package com.meteomontana.android.ui.screens.users
+
+import com.meteomontana.android.ui.components.VerifiedCheck
+
+import com.meteomontana.android.ui.components.userRing
 import com.meteomontana.android.util.AppText
 import com.meteomontana.android.util.toUserMessage
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -277,7 +281,7 @@ private fun UserRow(
     ) {
         if (u.photoUrl != null) {
             AsyncImage(model = u.photoUrl, contentDescription = null,
-                modifier = Modifier.size(40.dp).clip(CircleShape)
+                modifier = Modifier.userRing(u.uid, 40.dp).size(40.dp).clip(CircleShape)
                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
         } else {
             Box(modifier = Modifier.size(40.dp).clip(CircleShape)

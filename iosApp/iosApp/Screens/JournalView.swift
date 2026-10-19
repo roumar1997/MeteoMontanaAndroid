@@ -750,6 +750,76 @@ struct JournalSchoolCard: View {
     }
 }
 
+/// Lo que enseña la tarjeta de un sector del diario: cuántos, el grado más duro y una foto de una de sus piedras.
+struct JournalSectorSummary {
+    let name: String
+    let count: Int
+    let maxGrade: String?
+    let photo: String?
+    let linePath: String?
+}
+
+/// Agrupa las entradas por sector (del catálogo). La foto sale de la vía más dura que tenga foto.
+func journalSectors(_ entries: [JournalSession], _ info: [String: ViaCatalogInfo]) -> [JournalSectorSummary] {
+    let calc = JournalStatsCalculator.shared
+    var groups: [String: [JournalSession]] = [:]
+    for e in entries {
+        if let s = info[e.id]?.sector, !s.isEmpty { groups[s, default: []].append(e) }
+    }
+    return groups.map { name, list in
+        let gradeOf: (JournalSession) -> String? = { info[$0.id]?.grade ?? $0.grade }
+        let sorted = list.sorted { calc.gradeRank(grade: gradeOf($0) ?? "") > calc.gradeRank(grade: gradeOf($1) ?? "") }
+        let withPhoto = sorted.first { !(info[$0.id]?.photoUrl ?? "").isEmpty }
+        return JournalSectorSummary(name: name, count: list.count, maxGrade: sorted.first.flatMap(gradeOf),
+                                    photo: withPhoto.flatMap { info[$0.id]?.photoUrl },
+                                    linePath: withPhoto.flatMap { info[$0.id]?.linePath })
+    }
+    .sorted { $0.name.lowercased() < $1.name.lowercased() }
+}
+
+/// Un sector del diario como tarjeta: foto de una de sus piedras, nombre, cuántos, barra y grado más duro.
+struct JournalSectorCard: View {
+    let summary: JournalSectorSummary
+    let top: Int
+
+    var body: some View {
+        HStack(spacing: 12) {
+            if let photo = summary.photo {
+                MiniTopoThumbnail(photoUrl: photo, points: dedupPoints(TopoParse.points(summary.linePath)), grade: summary.maxGrade)
+                    .frame(width: 56, height: 56)
+                    .clipShape(RoundedRectangle(cornerRadius: 9))
+            } else {
+                Image(systemName: "square.stack.3d.up.fill").font(.system(size: 20)).foregroundStyle(Cumbre.terra)
+                    .frame(width: 56, height: 56)
+                    .background(Cumbre.terra.opacity(0.10), in: RoundedRectangle(cornerRadius: 9))
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text(summary.name).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                    .lineLimit(2).multilineTextAlignment(.leading)
+                HStack(spacing: 8) {
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Cumbre.paper2)
+                            Capsule().fill(Cumbre.terra)
+                                .frame(width: max(8, geo.size.width * CGFloat(summary.count) / CGFloat(max(top, 1))))
+                        }
+                    }.frame(height: 6)
+                    Text(summary.count == 1 ? L("1 bloque") : L("%@ bloques", summary.count))
+                        .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra).fixedSize()
+                }
+            }
+            VStack(alignment: .trailing, spacing: 6) {
+                if let g = summary.maxGrade, !g.isEmpty { GradePill(grade: g, small: true) }
+                Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink3)
+            }
+        }
+        .padding(10)
+        .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+        .contentShape(Rectangle())
+    }
+}
+
 struct JournalSchoolsView: View {
     let schools: [SchoolStats]
     let entries: [JournalSession]
@@ -820,34 +890,33 @@ struct SchoolJournalSectorsView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(sectors, id: \.name) { sec in
+                    let summaries = journalSectors(entries, viaInfo)
+                    let top = max(summaries.map(\.count).max() ?? 1, 1)
+                    LazyVStack(alignment: .leading, spacing: 8) {
+                        ForEach(summaries, id: \.name) { sec in
                             NavigationLink(destination: SchoolJournalBlocksView(
                                 schoolName: sec.name,
                                 entries: entries.filter { viaInfo[$0.id]?.sector?.caseInsensitiveCompare(sec.name) == .orderedSame },
                                 viaInfo: viaInfo
                             )) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "folder").font(.system(size: 16)).foregroundStyle(Cumbre.terra)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(sec.name).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
-                                        Text(sec.count == 1 ? L("1 bloque") : L("%@ bloques", sec.count))
-                                            .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
-                                }
-                                .padding(.horizontal, 16).padding(.vertical, 12)
-                                .contentShape(Rectangle())
+                                JournalSectorCard(summary: sec, top: top)
                             }
                             .buttonStyle(.plain)
-                            Divider().overlay(Cumbre.rule)
                         }
-                        ForEach(loose, id: \.id) { e in
-                            JournalRow(entry: e, schoolId: e.schoolId, info: viaInfo[e.id])
-                            Divider().overlay(Cumbre.rule)
+                        if !loose.isEmpty {
+                            Text(L("SIN SECTOR")).font(Cumbre.mono(10, .bold)).tracking(1.4).foregroundStyle(Cumbre.ink3)
+                                .padding(.top, 8)
+                            VStack(spacing: 0) {
+                                ForEach(loose, id: \.id) { e in
+                                    JournalRow(entry: e, schoolId: e.schoolId, info: viaInfo[e.id])
+                                    Divider().overlay(Cumbre.rule)
+                                }
+                            }
+                            .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
                         }
                     }
+                    .padding(16)
                 }
             }
         }
@@ -903,6 +972,16 @@ struct SchoolJournalBlocksView: View {
 }
 
 /// Lista de bloques (solo lectura) del diario de un usuario, reutilizable.
+/// ¿Esta entrada del diario casa con lo que se busca? Nombre de la vía, escuela, sector o nº de piedra; sin tildes ni
+/// mayúsculas. Vacío = todas.
+func journalMatches(_ e: JournalSession, _ info: ViaCatalogInfo?, _ query: String) -> Bool {
+    let q = query.trimmingCharacters(in: .whitespaces).folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
+    if q.isEmpty { return true }
+    let hay = [e.blockName, e.schoolName ?? "", info?.sector ?? e.sector ?? "", info?.boulderNumber ?? ""]
+        .joined(separator: " ").folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
+    return hay.contains(q)
+}
+
 struct JournalBlocksListView: View {
     let title: String
     let entries: [JournalSession]
@@ -911,12 +990,14 @@ struct JournalBlocksListView: View {
     var routeOnly: Bool? = nil
     /// G: filtro por grado (chips con la paleta de topos).
     @State private var gradeFilters: Set<String> = []
+    /// Buscar por nombre de vía, escuela, sector o nº de piedra (Álvaro, 2026-10-19).
+    @State private var query = ""
     private var byDiscipline: [JournalSession] {
         guard let r = routeOnly else { return entries }
         return entries.filter { (($0.discipline).uppercased() == "ROUTE") == r }
     }
     private var shown: [JournalSession] {
-        byDiscipline.filter { gradeMatches($0.grade, anyOf: gradeFilters) }
+        byDiscipline.filter { gradeMatches($0.grade, anyOf: gradeFilters) && journalMatches($0, viaInfo[$0.id], query) }
     }
     private var availableGrades: [String] {
         let calc = JournalStatsCalculator.shared
@@ -967,6 +1048,7 @@ struct JournalBlocksListView: View {
         }
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle(title)
+        .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: L("Buscar por nombre, escuela o sector"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }

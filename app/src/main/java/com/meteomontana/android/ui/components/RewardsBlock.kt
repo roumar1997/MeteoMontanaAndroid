@@ -100,6 +100,7 @@ class RewardsViewModel @Inject constructor(
     private val updateMyRewards: UpdateMyRewardsUseCase,
     private val getAchievementRarity: GetAchievementRarityUseCase,
     private val getMyAchievementIds: GetMyAchievementIdsUseCase,
+    private val badgeStore: UserBadgeStore,
 ) : ViewModel() {
     private val _rewards = MutableStateFlow<UserRewards?>(null)
     val rewards: StateFlow<UserRewards?> = _rewards.asStateFlow()
@@ -126,7 +127,10 @@ class RewardsViewModel @Inject constructor(
 
     fun update(climberType: String?, titleLevel: Int?, featured: String? = null, titleHidden: Boolean? = null) {
         viewModelScope.launch {
-            runCatching { updateMyRewards(climberType, titleLevel, featured, titleHidden) }.onSuccess { _rewards.value = it }
+            runCatching { updateMyRewards(climberType, titleLevel, featured, titleHidden) }.onSuccess {
+                _rewards.value = it
+                badgeStore.refresh(it.uid)   // la aureola sigue al título elegido
+            }
         }
     }
 }
@@ -140,6 +144,9 @@ fun rewardTitle(level: Int): String = stringResource(when (level) {
 })
 
 /** Cada título tiene su color y su icono (Álvaro, 2026-10-18: «que cada título tenga su propio estilo»). */
+/** Color del título de un nivel (para la aureola de las fotos). */
+fun titleColor(level: Int): Color = rewardStyle(level).first
+
 private fun rewardStyle(level: Int): Pair<Color, ImageVector> = when (level) {
     0 -> Color(0xFF73787F) to Icons.Filled.Eco
     1 -> Color(0xFFCC5C33) to Icons.Filled.BackHand
@@ -212,7 +219,10 @@ private fun RewardTitle(level: Int) {
 }
 
 /** «#RRGGBB» → Color (null si no es válido). */
-private fun colorFromHex(hex: String?): Color? = runCatching {
+private fun colorFromHex(hex: String?): Color? = colorFromHexOrNull(hex)
+
+/** «#RRGGBB» → Color (null si no es válido). Lo usa también la aureola de las fotos. */
+fun colorFromHexOrNull(hex: String?): Color? = runCatching {
     val h = hex?.trim()?.removePrefix("#") ?: return null
     if (h.length != 6) return null
     Color(0xFF000000 or h.toLong(16))
@@ -326,7 +336,6 @@ fun RewardsBlock(uid: String?, viewModel: RewardsViewModel = hiltViewModel(key =
                 verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 // Sin elegir o «prefiero no decirlo»: no sale nada (tampoco en tu propio perfil).
                 rewards.climberType?.let { Badge(climberTypeLabel(it), climberTypeStyle(it).first) }
-                if ("COLLABORATOR" in rewards.badges) Badge(stringResource(R.string.badge_collaborator), Terra) { badgeInfo = R.string.badge_collaborator_info }
                 if ("TRUSTED" in rewards.badges) Badge(stringResource(R.string.badge_trusted), Ok) { badgeInfo = R.string.badge_trusted_info }
             }
         }

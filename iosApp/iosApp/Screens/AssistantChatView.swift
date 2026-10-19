@@ -8,6 +8,10 @@ struct AssistantBubble: View {
     /// piedra y volver a abrir el círculo no la pierde.
     @EnvironmentObject private var assistant: AssistantViewModel
     @State private var open = false
+    /// Dónde la dejaste: se puede arrastrar y se recuerda (Álvaro, 2026-10-19). Desplazamiento desde su esquina.
+    @AppStorage("assistant_bubble_dx") private var savedX: Double = 0
+    @AppStorage("assistant_bubble_dy") private var savedY: Double = 0
+    @GestureState private var drag: CGSize = .zero
 
     /// La burbuja solo existe para quien tiene el asistente (admin, abierto a todos o activado a mano por un admin).
     var body: some View {
@@ -22,6 +26,17 @@ struct AssistantBubble: View {
             .frame(width: 58, height: 58)
             .shadow(color: .black.opacity(0.28), radius: 3, x: 0, y: 2)
             .contentShape(Circle())
+            .offset(x: savedX + drag.width, y: savedY + drag.height)
+            // Arrastrar = moverla a otro sitio (sin abrir el chat); se queda dentro de la pantalla.
+            .gesture(
+                DragGesture(minimumDistance: 8)
+                    .updating($drag) { value, state, _ in state = value.translation }
+                    .onEnded { value in
+                        let bounds = UIScreen.main.bounds
+                        savedX = min(0, max(-(bounds.width - 90), savedX + value.translation.width))
+                        savedY = min(0, max(-(bounds.height - 260), savedY + value.translation.height))
+                    }
+            )
             // Toque = abrir el chat. Mantener pulsado = abrirlo YA escuchando: hablas y miras lo que te ofrece.
             .onTapGesture { open = true }
             .onLongPressGesture(minimumDuration: 0.45) {

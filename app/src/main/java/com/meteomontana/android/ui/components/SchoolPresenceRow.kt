@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.ui.components.userRing
+import com.meteomontana.android.ui.components.VerifiedCheck
 import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -180,7 +182,7 @@ fun SchoolPresenceRow(
                                 .clip(CircleShape)
                                 .border(1.5.dp, MaterialTheme.colorScheme.background, CircleShape)
                         ) {
-                            PresenceAvatar(url = person.photoUrl, size = 18.dp)
+                            PresenceAvatar(url = person.photoUrl, size = 18.dp, uid = person.uid)
                         }
                     }
                 }
@@ -262,10 +264,10 @@ fun PresenceMarkControl(
 }
 
 @Composable
-private fun PresenceAvatar(url: String?, size: androidx.compose.ui.unit.Dp) {
+private fun PresenceAvatar(url: String?, size: androidx.compose.ui.unit.Dp, uid: String? = null) {
     if (url != null) {
         AsyncImage(model = url, contentDescription = null,
-            modifier = Modifier.size(size).clip(CircleShape))
+            modifier = Modifier.userRing(uid, size).size(size).clip(CircleShape))
     } else {
         Box(
             modifier = Modifier.size(size).clip(CircleShape)
@@ -400,7 +402,7 @@ private fun PresenceAllSheet(
                                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            PresenceAvatar(url = person.photoUrl, size = 36.dp)
+                            PresenceAvatar(url = person.photoUrl, size = 36.dp, uid = person.uid)
                             Spacer(Modifier.padding(start = Spacing.sm))
                             Text(
                                 if (isMe) stringResource(R.string.school_presence_row_v3_tu) else (person.displayName ?: person.username ?: "Usuario"),

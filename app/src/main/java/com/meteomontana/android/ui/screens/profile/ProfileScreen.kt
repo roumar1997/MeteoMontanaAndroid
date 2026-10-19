@@ -1,6 +1,10 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.profile
 
+import com.meteomontana.android.ui.components.VerifiedCheck
+
+import com.meteomontana.android.ui.components.userRing
+
 import androidx.compose.material.icons.outlined.Language
 import com.meteomontana.android.util.AppText
 import android.content.Context
@@ -387,7 +391,7 @@ private fun Header(
                         .crossfade(200)
                         .build(),
                     contentDescription = null,
-                    modifier = Modifier.size(76.dp).clip(CircleShape)
+                    modifier = Modifier.userRing(p.uid, 76.dp).size(76.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                         .clickable { zoomPhoto = p.photoUrl }
                 )
@@ -402,11 +406,14 @@ private fun Header(
         }
         Spacer(Modifier.height(8.dp))
         // Nombre grande serif.
-        Text(
-            p.displayName ?: p.username ?: stringResource(R.string.school_presence_row_v3_tu),
-            fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 24.sp,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                p.displayName ?: p.username ?: stringResource(R.string.school_presence_row_v3_tu),
+                fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 24.sp,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            VerifiedCheck(p.uid, 19.dp)
+        }
         // @usuario y, al lado, ADMIN/PREMIUM (antes desplazaban los seguidores a la izquierda).
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
@@ -414,7 +421,6 @@ private fun Header(
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (p.isAdmin) ProfilePill("ADMIN", MaterialTheme.colorScheme.onBackground)
             if (p.isPremium) ProfilePill("PREMIUM", MaterialTheme.colorScheme.primary)
         }
         // Título, insignias y nivel por aportaciones (tocar = elegir título y viero/bloquero).

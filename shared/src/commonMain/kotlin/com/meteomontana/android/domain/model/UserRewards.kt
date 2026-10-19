@@ -28,3 +28,16 @@ data class UserRewards(
         val CLIMBER_TYPES = listOf("ROUTES", "BOULDER", "BOTH")
     }
 }
+
+/**
+ * Lo justo para pintar a una persona en cualquier lista: si es admin (verificado junto al nombre) y su título (la
+ * aureola alrededor de la foto). titleHidden = no quiere título (sin aureola); specialTitle/specialColor = el especial.
+ */
+data class UserBadge(
+    val uid: String,
+    val verified: Boolean,
+    val titleLevel: Int,
+    val titleHidden: Boolean = false,
+    val specialTitle: String? = null,
+    val specialColor: String? = null,
+)

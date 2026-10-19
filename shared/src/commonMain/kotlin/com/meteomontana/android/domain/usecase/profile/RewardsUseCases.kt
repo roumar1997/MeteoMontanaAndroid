@@ -1,5 +1,6 @@
 package com.meteomontana.android.domain.usecase.profile
 
+import com.meteomontana.android.domain.model.UserBadge
 import com.meteomontana.android.domain.model.UserRewards
 import com.meteomontana.android.domain.repository.RewardsRepository
 
@@ -23,6 +24,12 @@ class UpdateMyRewardsUseCase(private val repository: RewardsRepository) {
     suspend operator fun invoke(climberType: String?, titleLevel: Int?, featuredAchievement: String? = null,
                                 titleHidden: Boolean? = null): UserRewards =
         repository.update(climberType, titleLevel, featuredAchievement, titleHidden)
+}
+
+/** Verificado (admin) y título de varias personas a la vez: una llamada por pantalla, no una por persona. */
+class GetUserBadgesUseCase(private val repository: RewardsRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(uids: List<String>): List<UserBadge> = repository.badges(uids)
 }
 
 /** Solo admin: título especial de alguien (texto libre, vacío = quitarlo) con su color «#RRGGBB». */

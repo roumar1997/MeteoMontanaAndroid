@@ -1,5 +1,9 @@
 package com.meteomontana.android.ui.assistant
 
+import androidx.compose.foundation.gestures.detectDragGestures
+
+import androidx.compose.ui.input.pointer.pointerInput
+
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -131,9 +135,27 @@ fun AssistantBubble(
     var open by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
     val words = ChatWords(AppLanguage.effective(LocalContext.current))
+    // Dónde la dejaste: se puede arrastrar y se recuerda (Álvaro, 2026-10-19). Desplazamiento desde su esquina.
+    val prefs = LocalContext.current.getSharedPreferences("assistant_bubble", android.content.Context.MODE_PRIVATE)
+    var dx by remember { mutableStateOf(prefs.getFloat("dx", 0f)) }
+    var dy by remember { mutableStateOf(prefs.getFloat("dy", 0f)) }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val config = androidx.compose.ui.platform.LocalConfiguration.current
+    val maxLeft = with(density) { (config.screenWidthDp.dp - 90.dp).toPx() }
+    val maxUp = with(density) { (config.screenHeightDp.dp - 260.dp).toPx() }
 
     Box(
         modifier = modifier
+            .offset { androidx.compose.ui.unit.IntOffset(dx.toInt(), dy.toInt()) }
+            .pointerInput(Unit) {
+                detectDragGestures(
+                    onDragEnd = { prefs.edit().putFloat("dx", dx).putFloat("dy", dy).apply() }
+                ) { change, drag ->
+                    change.consume()
+                    dx = (dx + drag.x).coerceIn(-maxLeft, 0f)
+                    dy = (dy + drag.y).coerceIn(-maxUp, 0f)
+                }
+            }
             .size(58.dp)
             .semantics { contentDescription = words.bubbleCd }
             .combinedClickable(

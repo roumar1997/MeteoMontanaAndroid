@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.users
 
+import com.meteomontana.android.ui.components.userRing
+import com.meteomontana.android.ui.components.VerifiedCheck
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Schedule
@@ -350,7 +352,7 @@ private fun Body(
             horizontalAlignment = Alignment.CenterHorizontally) {
             if (p.photoUrl != null) {
                 AsyncImage(model = p.photoUrl, contentDescription = stringResource(R.string.a11y_zoom_photo),
-                    modifier = Modifier.size(76.dp).clip(CircleShape)
+                    modifier = Modifier.userRing(p.uid, 76.dp).size(76.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                         .clickable { zoomPhoto = p.photoUrl })
             } else {
@@ -359,10 +361,13 @@ private fun Body(
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
             }
             Spacer(Modifier.height(8.dp))
-            Text(p.displayName ?: p.username ?: stringResource(R.string.w_user),
-                fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp,
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(p.displayName ?: p.username ?: stringResource(R.string.w_user),
+                    fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                VerifiedCheck(p.uid, 18.dp)
+            }
             Text("@${p.username ?: p.displayName?.lowercase()?.replace(" ", "_") ?: "usuario"}",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)

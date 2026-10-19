@@ -1,6 +1,10 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.community
 
+import com.meteomontana.android.ui.components.VerifiedCheck
+
+import com.meteomontana.android.ui.components.userRing
+
 import com.meteomontana.android.util.CatalogLabels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -112,7 +116,7 @@ internal fun FeedPostCard(
             if (post.author.photoUrl != null) {
                 AsyncImage(
                     model = post.author.photoUrl, contentDescription = null,
-                    modifier = Modifier.size(36.dp).clip(CircleShape)
+                    modifier = Modifier.userRing(post.author.uid, 36.dp).size(36.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                 )
             } else {
@@ -122,14 +126,17 @@ internal fun FeedPostCard(
                 )
             }
             Column(Modifier.weight(1f)) {
-                Text(
-                    post.author.displayName
-                        ?: post.author.username?.let { "@$it" }
-                        ?: post.author.uid.take(6),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        post.author.displayName
+                            ?: post.author.username?.let { "@$it" }
+                            ?: post.author.uid.take(6),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1
+                    )
+                    VerifiedCheck(post.author.uid, 14.dp)
+                }
                 Text(
                     kindLabel(post.kind, post.discipline),
                     style = EyebrowTextStyle,

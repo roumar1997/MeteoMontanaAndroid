@@ -235,15 +235,18 @@ struct FeedCommentRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Button { if let u = authorUid { onOpenUser(u) } } label: {
-                AvatarCircle(url: comment.author?.photoUrl, size: 28)
+                AvatarCircle(url: comment.author?.photoUrl, size: 28, uid: comment.author?.uid)
             }
             .buttonStyle(.plain)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 8) {
                     Button { if let u = authorUid { onOpenUser(u) } } label: {
-                        Text(feedAuthorLabel(comment.author) ?? "")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Cumbre.ink)
+                        HStack(spacing: 3) {
+                            Text(feedAuthorLabel(comment.author) ?? "")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Cumbre.ink)
+                            VerifiedCheck(uid: comment.author?.uid, size: 12)
+                        }
                     }
                     .buttonStyle(.plain)
                     Text(feedRelativeTime(comment.createdAt))

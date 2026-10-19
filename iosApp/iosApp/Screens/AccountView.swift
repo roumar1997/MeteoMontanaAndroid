@@ -302,13 +302,16 @@ struct AccountView: View {
         // Si el backend no tiene foto, usa la de la cuenta de Google (Firebase Auth).
         // AvatarCircle cachea en disco → se ve offline (igual que el resto de avatares).
         let photo = vm.profile?.photoUrl?.isEmpty == false ? vm.profile?.photoUrl : authBridge.currentPhotoUrl()
-        return AvatarCircle(url: photo, size: 76)
+        return AvatarCircle(url: photo, size: 76, uid: vm.profile?.uid)
             .onTapGesture { if let p = photo, !p.isEmpty { zoomUrl = p } }
     }
 
     private var names: some View {
         VStack(spacing: 2) {
-            Text(displayName).font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
+            HStack(spacing: 6) {
+                Text(displayName).font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
+                VerifiedCheck(uid: vm.profile?.uid, size: 19)
+            }
             // @usuario y, al lado, ADMIN/PREMIUM (antes desplazaban los seguidores a la izquierda).
             HStack(spacing: 8) {
                 if let u = vm.profile?.username, !u.isEmpty {
@@ -325,7 +328,6 @@ struct AccountView: View {
     private var badges: some View {
         HStack(spacing: 8) {
             // El grado máx ya vive en las stats del diario (decisión de Rodrigo).
-            if vm.profile?.isAdmin == true { badge("ADMIN", Cumbre.ink) }
             if vm.profile?.isPremium == true { badge("PREMIUM", Cumbre.ok) }
         }
     }
@@ -598,8 +600,11 @@ private struct AccountBlocksList: View {
         }.buttonStyle(.plain)
     }
 
+    /// Buscar por nombre de vía, escuela, sector o nº de piedra (Álvaro, 2026-10-19).
+    @State private var query = ""
+
     private var visibles: [JournalSession] {
-        let byGrade = entries.filter { gradeMatches(gradeOf($0), anyOf: gradeFilters) }
+        let byGrade = entries.filter { gradeMatches(gradeOf($0), anyOf: gradeFilters) && journalMatches($0, vm.viaInfo[$0.id], query) }
         switch styleFilter {
         case "aVista": return byGrade.filter { $0.aVista }
         case "alFlash": return byGrade.filter { $0.alFlash }
@@ -687,6 +692,7 @@ private struct AccountBlocksList: View {
         }
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle(routeOnly == true ? L("Vías") : L("Bloques"))
+        .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: L("Buscar por nombre, escuela o sector"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -757,30 +763,29 @@ private struct AccountSchoolSectorsList: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(sectors, id: \.name) { sec in
+                    let summaries = journalSectors(schoolEntries, vm.viaInfo)
+                    let top = max(summaries.map(\.count).max() ?? 1, 1)
+                    LazyVStack(alignment: .leading, spacing: 8) {
+                        ForEach(summaries, id: \.name) { sec in
                             NavigationLink(destination: AccountSchoolBlocksList(vm: vm, schoolName: schoolName, sectorName: sec.name)) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "folder").font(.system(size: 16)).foregroundStyle(Cumbre.terra)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(sec.name).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
-                                        Text(sec.count == 1 ? L("1 bloque") : L("%@ bloques", sec.count))
-                                            .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
-                                }
-                                .padding(.horizontal, 16).padding(.vertical, 12)
-                                .contentShape(Rectangle())
+                                JournalSectorCard(summary: sec, top: top)
                             }
                             .buttonStyle(.plain)
-                            Divider().overlay(Cumbre.rule)
                         }
-                        ForEach(loose, id: \.id) { e in
-                            JournalRow(entry: e, schoolId: e.schoolId, info: vm.viaInfo[e.id])
-                            Divider().overlay(Cumbre.rule)
+                        if !loose.isEmpty {
+                            Text(L("SIN SECTOR")).font(Cumbre.mono(10, .bold)).tracking(1.4).foregroundStyle(Cumbre.ink3)
+                                .padding(.top, 8)
+                            VStack(spacing: 0) {
+                                ForEach(loose, id: \.id) { e in
+                                    JournalRow(entry: e, schoolId: e.schoolId, info: vm.viaInfo[e.id])
+                                    Divider().overlay(Cumbre.rule)
+                                }
+                            }
+                            .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
                         }
                     }
+                    .padding(16)
                 }
             }
         }

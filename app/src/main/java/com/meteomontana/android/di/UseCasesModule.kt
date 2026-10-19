@@ -379,6 +379,11 @@ object UseCasesModule {
     fun provideUpdateMyRewardsUseCase(repo: com.meteomontana.android.domain.repository.RewardsRepository) =
         com.meteomontana.android.domain.usecase.profile.UpdateMyRewardsUseCase(repo)
 
+    @Provides
+    @Singleton
+    fun provideGetUserBadgesUseCase(repo: com.meteomontana.android.domain.repository.RewardsRepository) =
+        com.meteomontana.android.domain.usecase.profile.GetUserBadgesUseCase(repo)
+
     // Logros: sincronizar los míos y cuánta gente tiene cada uno.
     @Provides @Singleton
     fun provideAchievementsRepository(client: io.ktor.client.HttpClient): com.meteomontana.android.domain.repository.AchievementsRepository =

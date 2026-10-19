@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.users
 
+import com.meteomontana.android.ui.components.userRing
+import com.meteomontana.android.ui.components.VerifiedCheck
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -127,7 +129,7 @@ private fun UserRow(user: PublicProfile, onClick: () -> Unit) {
     ) {
         if (user.photoUrl != null) {
             AsyncImage(model = user.photoUrl, contentDescription = null,
-                modifier = Modifier.size(40.dp).clip(CircleShape)
+                modifier = Modifier.userRing(user.uid, 40.dp).size(40.dp).clip(CircleShape)
                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
         } else {
             Box(modifier = Modifier.size(40.dp).clip(CircleShape)

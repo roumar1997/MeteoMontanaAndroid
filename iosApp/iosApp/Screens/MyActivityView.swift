@@ -257,7 +257,7 @@ struct FollowRequestsView: View {
                     // (para reconocerlo antes de aceptar/rechazar).
                     NavigationLink(destination: PublicProfileView(uid: u.uid)) {
                         HStack(spacing: 12) {
-                            AvatarCircle(url: u.photoUrl, size: 40)
+                            AvatarCircle(url: u.photoUrl, size: 40, uid: u.uid)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(u.displayName ?? u.username ?? L("Usuario"))
                                     .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)

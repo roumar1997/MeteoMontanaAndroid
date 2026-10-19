@@ -176,7 +176,7 @@ struct SchoolChatView: View {
                     openChatFor = SchoolChatTarget(uid: person.uid, name: person.displayName ?? person.username ?? L("Usuario"))
                 } label: {
                     HStack(spacing: 12) {
-                        AvatarCircle(url: person.photoUrl, size: 36)
+                        AvatarCircle(url: person.photoUrl, size: 36, uid: person.uid)
                         Text(person.uid == vm.me ? "Tú" : (person.displayName ?? person.username ?? L("Usuario")))
                             .font(.system(size: 15, design: .serif))
                             .foregroundStyle(Cumbre.ink)

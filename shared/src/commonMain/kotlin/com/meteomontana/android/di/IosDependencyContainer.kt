@@ -341,6 +341,7 @@ class IosDependencyContainer(
         com.meteomontana.android.data.api.KtorRewardsApi(httpClient))
     val getUserRewards = com.meteomontana.android.domain.usecase.profile.GetUserRewardsUseCase(rewardsRepository)
     val getMyRewards = com.meteomontana.android.domain.usecase.profile.GetMyRewardsUseCase(rewardsRepository)
+    val getUserBadges = com.meteomontana.android.domain.usecase.profile.GetUserBadgesUseCase(rewardsRepository)
     val setSpecialTitle = com.meteomontana.android.domain.usecase.profile.SetSpecialTitleUseCase(rewardsRepository)
     val updateMyRewards = com.meteomontana.android.domain.usecase.profile.UpdateMyRewardsUseCase(rewardsRepository)
 

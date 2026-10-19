@@ -1,5 +1,13 @@
 package com.meteomontana.android.ui.screens.profile
 
+import androidx.compose.ui.unit.sp
+
+import androidx.compose.foundation.layout.height
+
+import androidx.compose.foundation.border
+
+import androidx.compose.ui.draw.clip
+
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.clickable
@@ -53,11 +61,14 @@ import com.meteomontana.android.R
  * se muestran sueltas, directamente pulsables, sin meterlas en una carpeta
  * "sin sector" — así no se pierden ni obligan a un paso extra.
  */
+/** Lo que enseña la tarjeta de un sector del diario (espejo de JournalSectorSummary de iOS). */
+data class JournalSectorSummary(val name: String, val count: Int, val maxGrade: String?, val photo: String?, val linePath: String?)
+
 sealed interface JournalSectorsUiState {
     data object Loading : JournalSectorsUiState
     data class Success(
-        // Sectores con ≥1 entrada, orden alfabético; cada uno con su recuento.
-        val sectors: List<Pair<String, Int>>,
+        // Sectores con ≥1 entrada, orden alfabético; cada uno con su recuento, grado más duro y una foto.
+        val sectors: List<JournalSectorSummary>,
         // Entradas sin sector resuelto: se muestran directamente en esta pantalla.
         val loose: List<JournalSession>,
         val looseInfo: Map<String, com.meteomontana.android.domain.usecase.journal.ViaCatalogInfo>
@@ -103,9 +114,14 @@ class JournalSectorsViewModel @Inject constructor(
 
                 val bySector = entries.filter { !viaInfo[it.id]?.sector.isNullOrBlank() }
                     .groupBy { viaInfo[it.id]!!.sector!! }
-                val sectors = bySector.entries
-                    .map { it.key to it.value.size }
-                    .sortedBy { it.first.lowercase() }
+                val calc = com.meteomontana.android.domain.usecase.journal.JournalStatsCalculator
+                val sectors = bySector.entries.map { (name, list) ->
+                    val gradeOf = { e: JournalSession -> viaInfo[e.id]?.grade ?: e.grade }
+                    val sorted = list.sortedByDescending { calc.gradeRank(gradeOf(it) ?: "") }
+                    val withPhoto = sorted.firstOrNull { !viaInfo[it.id]?.photoUrl.isNullOrBlank() }
+                    JournalSectorSummary(name, list.size, sorted.firstOrNull()?.let(gradeOf),
+                        withPhoto?.let { viaInfo[it.id]?.photoUrl }, withPhoto?.let { viaInfo[it.id]?.linePath })
+                }.sortedBy { it.name.lowercase() }
                 val loose = entries.filter { viaInfo[it.id]?.sector.isNullOrBlank() }
 
                 JournalSectorsUiState.Success(sectors, loose, viaInfo)
@@ -150,10 +166,16 @@ fun JournalSectorsScreen(
                         Text(stringResource(R.string.journal_sectors_screen_v2_sin_entradas_en_esta_escuela), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(s.sectors, key = { it.first }) { (sectorName, count) ->
-                            SectorRow(sectorName, count, onClick = { onSectorClick(viewModel.schoolName, sectorName) })
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                    val top = (s.sectors.maxOfOrNull { it.count } ?: 1).coerceAtLeast(1)
+                    LazyColumn(modifier = Modifier.fillMaxSize(),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(s.sectors, key = { it.name }) { sec ->
+                            SectorRow(sec, top, onClick = { onSectorClick(viewModel.schoolName, sec.name) })
+                        }
+                        if (s.loose.isNotEmpty()) item {
+                            Text(stringResource(R.string.journal_no_sector), style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
                         }
                         items(s.loose, key = { it.id }) { e ->
                             EntryRow(
@@ -171,27 +193,47 @@ fun JournalSectorsScreen(
     }
 }
 
+/** Un sector del diario como tarjeta: foto de una de sus piedras, nombre, cuántos, barra y grado más duro. */
 @Composable
-private fun SectorRow(name: String, count: Int, onClick: () -> Unit) {
+private fun SectorRow(sec: JournalSectorSummary, top: Int, onClick: () -> Unit) {
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
     Row(
         modifier = Modifier.fillMaxWidth()
+            .clip(shape).background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Outlined.Folder, contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-            Column {
-                Text(name, style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground)
-                val countText = if (count == 1) stringResource(R.string.journal_sectors_screen_v3_1_bloque) else "$count bloques"
-                Text(countText, style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (sec.photo != null) {
+            com.meteomontana.android.ui.screens.schools.MiniTopoThumbnail(sec.photo, sec.linePath, sec.maxGrade,
+                Modifier.size(56.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(9.dp)))
+        } else {
+            Box(Modifier.size(56.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(9.dp))
+                .background(com.meteomontana.android.ui.theme.Terra.copy(alpha = 0.10f)), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Folder, contentDescription = null, tint = com.meteomontana.android.ui.theme.Terra, modifier = Modifier.size(22.dp))
             }
         }
-        Icon(Icons.Outlined.ChevronRight, contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(sec.name, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 15.sp, maxLines = 2,
+                color = MaterialTheme.colorScheme.onBackground)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.weight(1f).height(6.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)) {
+                    Box(Modifier.fillMaxWidth(sec.count.toFloat() / top).height(6.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape).background(com.meteomontana.android.ui.theme.Terra))
+                }
+                val countText = if (sec.count == 1) stringResource(R.string.journal_sectors_screen_v3_1_bloque) else "${sec.count} bloques"
+                Text(countText, fontFamily = com.meteomontana.android.ui.theme.Mono,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 10.sp,
+                    color = com.meteomontana.android.ui.theme.Terra)
+            }
+        }
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            sec.maxGrade?.takeIf { it.isNotBlank() }?.let { com.meteomontana.android.ui.screens.detail.GradePill(it) }
+            Icon(Icons.Outlined.ChevronRight, contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+        }
     }
 }

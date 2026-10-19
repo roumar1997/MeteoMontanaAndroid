@@ -86,7 +86,7 @@ private struct UserRow: View {
     let profile: PublicProfile
     var body: some View {
         HStack(spacing: 12) {
-            AvatarCircle(url: profile.photoUrl, size: 40)
+            AvatarCircle(url: profile.photoUrl, size: 40, uid: profile.uid)
             VStack(alignment: .leading, spacing: 2) {
                 Text(profile.displayName ?? profile.username ?? L("Usuario"))
                     .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
@@ -268,10 +268,13 @@ struct PublicProfileView: View {
                     HStack { adminButton; Spacer() }.padding(.bottom, -4)
                 }
                 // Avatar ampliable con zoom al tocarlo (si tiene foto).
-                AvatarCircle(url: vm.profile?.photoUrl, size: 76)
+                AvatarCircle(url: vm.profile?.photoUrl, size: 76, uid: vm.profile?.uid)
                     .onTapGesture { if vm.profile?.photoUrl != nil { zoomPhoto = true } }
-                Text(vm.profile?.displayName ?? vm.profile?.username ?? L("Usuario"))
-                    .font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
+                HStack(spacing: 6) {
+                    Text(vm.profile?.displayName ?? vm.profile?.username ?? L("Usuario"))
+                        .font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
+                    VerifiedCheck(uid: vm.profile?.uid, size: 18)
+                }
                 if let u = vm.profile?.username, !u.isEmpty {
                     Text("@\(u)").font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink3)
                 }
@@ -530,7 +533,10 @@ struct PublicProfileView: View {
 struct AvatarCircle: View {
     let url: String?
     let size: CGFloat
+    /// De quién es la foto: con él se pinta la aureola de su título (Álvaro, 2026-10-19). nil = sin aureola.
+    var uid: String? = nil
     @State private var image: UIImage?
+    @ObservedObject private var badges = UserBadgeStore.shared
     var body: some View {
         Group {
             if let image {
@@ -542,6 +548,8 @@ struct AvatarCircle: View {
         .frame(width: size, height: size)
         .clipShape(Circle())
         .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+        .overlay(AvatarRing(badge: uid.flatMap { badges.badges[$0] }, size: size))
+        .onAppear { badges.want(uid) }
         // Caché en disco (igual que las fotos de piedras): el avatar se ve SIN
         // conexión una vez descargado. AsyncImage no persistía en disco → offline
         // quedaba en el placeholder aunque tuviéramos la URL cacheada.

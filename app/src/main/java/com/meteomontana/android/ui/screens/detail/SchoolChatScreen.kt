@@ -1,6 +1,10 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.ui.components.VerifiedCheck
+
+import com.meteomontana.android.ui.components.userRing
+
 import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -332,7 +336,7 @@ fun SchoolChatScreen(
                             ) {
                                 if (person.photoUrl != null) {
                                     AsyncImage(model = person.photoUrl, contentDescription = null,
-                                        modifier = Modifier.size(36.dp).clip(CircleShape))
+                                        modifier = Modifier.userRing(person.uid, 36.dp).size(36.dp).clip(CircleShape))
                                 } else {
                                     Box(modifier = Modifier.size(36.dp).clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.surfaceVariant))

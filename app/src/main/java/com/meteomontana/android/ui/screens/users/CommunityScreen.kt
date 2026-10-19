@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.users
 
+import com.meteomontana.android.ui.components.userRing
+import com.meteomontana.android.ui.components.VerifiedCheck
 import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
@@ -207,7 +209,7 @@ private fun ContributorRow(rank: Int, c: TopContributor, onClick: () -> Unit) {
         if (c.photoUrl != null) {
             AsyncImage(
                 model = c.photoUrl, contentDescription = null,
-                modifier = Modifier.size(40.dp).clip(CircleShape)
+                modifier = Modifier.userRing(c.uid, 40.dp).size(40.dp).clip(CircleShape)
                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
             )
         } else {

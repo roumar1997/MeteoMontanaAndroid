@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.ui.components.userRing
+import com.meteomontana.android.ui.components.VerifiedCheck
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -115,7 +117,7 @@ fun MentionSuggestions(
             ) {
                 if (p.photoUrl != null) {
                     AsyncImage(model = p.photoUrl, contentDescription = null,
-                        modifier = Modifier.size(26.dp).clip(CircleShape))
+                        modifier = Modifier.userRing(p.uid, 26.dp).size(26.dp).clip(CircleShape))
                 } else {
                     Box(Modifier.size(26.dp).clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant))

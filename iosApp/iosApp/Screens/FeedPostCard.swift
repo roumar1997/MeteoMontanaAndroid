@@ -60,12 +60,15 @@ struct FeedPostCard: View {
     private var headerRow: some View {
         Button { onOpenUser(post.author.uid) } label: {
             HStack(spacing: 10) {
-                AvatarCircle(url: post.author.photoUrl, size: 36)
+                AvatarCircle(url: post.author.photoUrl, size: 36, uid: post.author.uid)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(authorName)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Cumbre.ink)
-                        .lineLimit(1)
+                    HStack(spacing: 4) {
+                        Text(authorName)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Cumbre.ink)
+                            .lineLimit(1)
+                        VerifiedCheck(uid: post.author.uid, size: 13)
+                    }
                     Text(feedKindLabel(post.kind, post.discipline))
                         .font(Cumbre.mono(10, .bold)).tracking(1.2)
                         .foregroundStyle(Cumbre.terra)

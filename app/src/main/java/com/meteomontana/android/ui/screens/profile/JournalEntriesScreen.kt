@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.profile
 
+import androidx.compose.material.icons.outlined.Search
+
 import androidx.compose.foundation.layout.width
 import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.util.AppText
@@ -244,6 +246,8 @@ fun JournalEntriesScreen(
     var styleFilter by androidx.compose.runtime.saveable.rememberSaveable {
         androidx.compose.runtime.mutableStateOf<String?>(null)
     }
+    // Buscar por nombre de vía, escuela, sector o nº de piedra (Álvaro, 2026-10-19).
+    var query by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
@@ -255,6 +259,13 @@ fun JournalEntriesScreen(
             Text(viewModel.title, style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground)
         }
+        androidx.compose.material3.OutlinedTextField(
+            value = query, onValueChange = { query = it }, singleLine = true,
+            placeholder = { Text(stringResource(R.string.journal_search_hint)) },
+            leadingIcon = { Icon(androidx.compose.material.icons.Icons.Outlined.Search, contentDescription = null) },
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)
+        )
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         when (val s = state) {
@@ -350,7 +361,8 @@ fun JournalEntriesScreen(
                             }
                         }
                         val visibleEntries = s.entries.filter {
-                            com.meteomontana.android.ui.components.gradeMatches(it.grade, gradeFilters)
+                            com.meteomontana.android.ui.components.gradeMatches(it.grade, gradeFilters) &&
+                                journalMatches(it, s.viaInfo[it.id], query)
                         }.let { list ->
                             when (styleFilter) {
                                 "aVista" -> list.filter { it.aVista }
@@ -562,3 +574,13 @@ private fun StyleBadge(label: String, active: Boolean, onClick: (() -> Unit)?) {
 internal fun formatMonthHeader(yyyyMm: String): String = runCatching {
     CalendarLabels.monthsLong()[yyyyMm.substringAfter('-').toInt() - 1].uppercase() + " " + yyyyMm.take(4)
 }.getOrDefault(yyyyMm)
+
+/** ¿Casa con lo buscado? Nombre de la vía, escuela, sector o nº de piedra; sin tildes ni mayúsculas. Vacío = todas. */
+internal fun journalMatches(e: JournalSession, info: com.meteomontana.android.domain.usecase.journal.ViaCatalogInfo?, query: String): Boolean {
+    fun fold(t: String) = java.text.Normalizer.normalize(t, java.text.Normalizer.Form.NFD)
+        .replace(Regex("\\p{M}+"), "").lowercase()
+    val q = fold(query.trim())
+    if (q.isEmpty()) return true
+    return fold(listOf(e.blockName, e.schoolName.orEmpty(), info?.sector ?: e.sector.orEmpty(), info?.boulderNumber.orEmpty())
+        .joinToString(" ")).contains(q)
+}

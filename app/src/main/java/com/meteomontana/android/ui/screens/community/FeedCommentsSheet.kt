@@ -1,6 +1,10 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.community
 
+import com.meteomontana.android.ui.components.VerifiedCheck
+
+import com.meteomontana.android.ui.components.userRing
+
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -329,7 +333,7 @@ internal fun FeedCommentRow(
         if (author?.photoUrl != null) {
             AsyncImage(
                 model = author.photoUrl, contentDescription = null,
-                modifier = Modifier.size(28.dp).clip(CircleShape)
+                modifier = Modifier.userRing(authorUid, 28.dp).size(28.dp).clip(CircleShape)
                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                     .clickable { authorUid?.let(onOpenUser) }
             )
@@ -348,6 +352,8 @@ internal fun FeedCommentRow(
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.clickable { authorUid?.let(onOpenUser) }
                 )
+                androidx.compose.foundation.layout.Spacer(Modifier.size(3.dp))
+                VerifiedCheck(authorUid, 13.dp)
                 androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
                 Text(
                     relativeTime(comment.createdAt),

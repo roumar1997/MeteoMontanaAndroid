@@ -2003,4 +2003,7 @@
     <string name="badge_trusted_info">De confianza: lo que propone se publica sin pasar por revisión. Se consigue con 20 aportaciones aprobadas o lo da un admin.</string>
     <string name="rewards_no_title">Sin título</string>
     <string name="rewards_special_hint">Es un título especial que te ha dado Cumbre. Se enseña en lugar del de tu nivel.</string>
+    <string name="verified">Verificado</string>
+    <string name="journal_search_hint">Buscar por nombre, escuela o sector</string>
+    <string name="journal_no_sector">SIN SECTOR</string>
 </resources>

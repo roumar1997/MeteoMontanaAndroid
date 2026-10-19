@@ -116,7 +116,7 @@ struct AdminUsersScreen: View {
 
     private func row(_ u: AdminUserRow) -> some View {
         HStack(spacing: 12) {
-            AvatarCircle(url: u.photoPath, size: 40)
+            AvatarCircle(url: u.photoPath, size: 40, uid: u.uid)
                 .onAppear { ai.want(u.uid) }
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {

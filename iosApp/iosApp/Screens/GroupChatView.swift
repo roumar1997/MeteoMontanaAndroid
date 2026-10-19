@@ -549,7 +549,7 @@ struct NewGroupView: View {
                     List(shownContacts, id: \.uid) { p in
                         Button { vm.toggle(p.uid) } label: {
                             HStack(spacing: 12) {
-                                AvatarCircle(url: p.photoUrl, size: 40)
+                                AvatarCircle(url: p.photoUrl, size: 40, uid: p.uid)
                                 Text(p.displayName ?? p.username ?? L("Usuario"))
                                     .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
                                 Spacer()

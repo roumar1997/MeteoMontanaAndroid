@@ -4,6 +4,7 @@ import com.meteomontana.android.data.api.KtorRewardsApi
 import com.meteomontana.android.data.api.RewardsDto
 import com.meteomontana.android.data.api.SpecialTitleDto
 import com.meteomontana.android.data.api.UpdateRewardsDto
+import com.meteomontana.android.domain.model.UserBadge
 import com.meteomontana.android.domain.model.UserRewards
 import com.meteomontana.android.domain.repository.RewardsRepository
 
@@ -12,6 +13,8 @@ class KtorRewardsRepository(private val api: KtorRewardsApi) : RewardsRepository
     override suspend fun mine(): UserRewards = api.mine().toDomain()
     override suspend fun update(climberType: String?, titleLevel: Int?, featuredAchievement: String?, titleHidden: Boolean?): UserRewards =
         api.update(UpdateRewardsDto(climberType, titleLevel, featuredAchievement, titleHidden)).toDomain()
+    override suspend fun badges(uids: List<String>): List<UserBadge> =
+        api.badges(uids).map { UserBadge(it.uid, it.verified, it.titleLevel, it.titleHidden, it.specialTitle, it.specialColor) }
     override suspend fun setSpecialTitle(uid: String, title: String?, color: String?): UserRewards =
         api.setSpecialTitle(uid, SpecialTitleDto(title, color)).toDomain()
 

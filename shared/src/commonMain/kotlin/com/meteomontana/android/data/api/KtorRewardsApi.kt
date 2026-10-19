@@ -3,6 +3,7 @@ package com.meteomontana.android.data.api
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import io.ktor.client.request.post
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import kotlinx.serialization.Serializable
@@ -27,6 +28,19 @@ data class RewardsDto(
 data class UpdateRewardsDto(val climberType: String? = null, val titleLevel: Int? = null, val featuredAchievement: String? = null,
                             val titleHidden: Boolean? = null)
 
+@Serializable
+data class UserBadgeDto(
+    val uid: String,
+    val verified: Boolean = false,
+    val titleLevel: Int = 0,
+    val titleHidden: Boolean = false,
+    val specialTitle: String? = null,
+    val specialColor: String? = null,
+)
+
+@Serializable
+data class BadgesRequestDto(val uids: List<String>)
+
 /** Admin: título especial (vacío = quitarlo) y su color «#RRGGBB». */
 @Serializable
 data class SpecialTitleDto(val title: String?, val color: String?)
@@ -35,6 +49,8 @@ class KtorRewardsApi(private val client: HttpClient) {
     suspend fun of(uid: String): RewardsDto = client.get("users/$uid/rewards").body()
     suspend fun mine(): RewardsDto = client.get("me/rewards").body()
     suspend fun update(req: UpdateRewardsDto): RewardsDto = client.put("me/rewards") { setBody(req) }.body()
+    suspend fun badges(uids: List<String>): List<UserBadgeDto> =
+        client.post("users/badges") { setBody(BadgesRequestDto(uids)) }.body()
     suspend fun setSpecialTitle(uid: String, req: SpecialTitleDto): RewardsDto =
         client.put("admin/users/$uid/special-title") { setBody(req) }.body()
 }
