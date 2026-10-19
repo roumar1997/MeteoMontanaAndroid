@@ -38,3 +38,9 @@ class SetSpecialTitleUseCase(private val repository: RewardsRepository) {
     suspend operator fun invoke(uid: String, title: String?, color: String?): UserRewards =
         repository.setSpecialTitle(uid, title, color)
 }
+
+/** Solo admin: hadas o dragones alrededor de la foto de alguien (también la suya); null = quitarlo. */
+class SetTitleEffectUseCase(private val repository: RewardsRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(uid: String, effect: String?): UserRewards = repository.setTitleEffect(uid, effect)
+}

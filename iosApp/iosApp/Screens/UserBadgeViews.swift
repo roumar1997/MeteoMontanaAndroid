@@ -60,7 +60,10 @@ struct AvatarRing: View {
     @State private var spin = false
 
     var body: some View {
-        if let b = badge, !b.titleHidden, let style = ringStyle(b) {
+        if let b = badge, !b.titleHidden, let effect = TitleEffectKind(b.titleEffect) {
+            // Hadas o dragones (los pone un admin): animados en el perfil (foto grande), quietos en el resto.
+            TitleEffectHalo(effect: effect, size: size, animated: size >= 60)
+        } else if let b = badge, !b.titleHidden, let style = ringStyle(b) {
             let width = max(2, size * 0.07)
             Group {
                 if style.shiny {

@@ -15,4 +15,6 @@ interface RewardsRepository {
     suspend fun badges(uids: List<String>): List<UserBadge>
     /** Solo admin: pone (o quita, con título vacío) el título especial de alguien. */
     suspend fun setSpecialTitle(uid: String, title: String?, color: String?): UserRewards
+    /** Solo admin: efecto animado («FAIRIES», «DRAGONS»; null = quitarlo). */
+    suspend fun setTitleEffect(uid: String, effect: String?): UserRewards
 }

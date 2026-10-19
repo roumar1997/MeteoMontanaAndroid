@@ -345,6 +345,7 @@ class IosDependencyContainer(
     val getMyRewards = com.meteomontana.android.domain.usecase.profile.GetMyRewardsUseCase(rewardsRepository)
     val getUserBadges = com.meteomontana.android.domain.usecase.profile.GetUserBadgesUseCase(rewardsRepository)
     val setSpecialTitle = com.meteomontana.android.domain.usecase.profile.SetSpecialTitleUseCase(rewardsRepository)
+    val setTitleEffect = com.meteomontana.android.domain.usecase.profile.SetTitleEffectUseCase(rewardsRepository)
     val updateMyRewards = com.meteomontana.android.domain.usecase.profile.UpdateMyRewardsUseCase(rewardsRepository)
 
     // Logros: sincronizar los míos y cuánta gente tiene cada uno.

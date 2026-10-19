@@ -3,6 +3,7 @@ package com.meteomontana.android.data.repository
 import com.meteomontana.android.data.api.KtorRewardsApi
 import com.meteomontana.android.data.api.RewardsDto
 import com.meteomontana.android.data.api.SpecialTitleDto
+import com.meteomontana.android.data.api.TitleEffectDto
 import com.meteomontana.android.data.api.UpdateRewardsDto
 import com.meteomontana.android.domain.model.UserBadge
 import com.meteomontana.android.domain.model.UserRewards
@@ -14,10 +15,12 @@ class KtorRewardsRepository(private val api: KtorRewardsApi) : RewardsRepository
     override suspend fun update(climberType: String?, titleLevel: Int?, featuredAchievement: String?, titleHidden: Boolean?): UserRewards =
         api.update(UpdateRewardsDto(climberType, titleLevel, featuredAchievement, titleHidden)).toDomain()
     override suspend fun badges(uids: List<String>): List<UserBadge> =
-        api.badges(uids).map { UserBadge(it.uid, it.verified, it.titleLevel, it.titleHidden, it.specialTitle, it.specialColor) }
+        api.badges(uids).map { UserBadge(it.uid, it.verified, it.titleLevel, it.titleHidden, it.specialTitle, it.specialColor, it.titleEffect) }
     override suspend fun setSpecialTitle(uid: String, title: String?, color: String?): UserRewards =
         api.setSpecialTitle(uid, SpecialTitleDto(title, color)).toDomain()
+    override suspend fun setTitleEffect(uid: String, effect: String?): UserRewards =
+        api.setTitleEffect(uid, TitleEffectDto(effect)).toDomain()
 
     private fun RewardsDto.toDomain() = UserRewards(uid, approved, level, nextLevel, titleLevel, climberType, badges,
-        featuredAchievement, titleHidden, specialTitle, specialColor)
+        featuredAchievement, titleHidden, specialTitle, specialColor, titleEffect)
 }

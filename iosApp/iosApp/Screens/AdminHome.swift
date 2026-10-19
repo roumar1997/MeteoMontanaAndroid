@@ -13,7 +13,7 @@ struct AdminHome: View {
     @State private var showDaily = false
     @State private var historyStatus: String?
 
-    enum Dest: Hashable { case users(AdminUsersMode), notes, maintenance }
+    enum Dest: Hashable { case users(AdminUsersMode), notes, maintenance, myTitle }
 
     private let columns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
 
@@ -77,6 +77,12 @@ struct AdminHome: View {
                 grid {
                     tile(symbol: "bell", label: "NOTIFICACIONES", note: "avisar a los usuarios") { openTab(.push) }
                 }
+
+                // Lo mismo que le pones a otros desde su perfil, pero para ti (Álvaro, 2026-10-19).
+                header("TÚ")
+                grid {
+                    tile(symbol: "sparkles", label: "MI TÍTULO Y EFECTO", note: "título especial, hadas o dragones") { dest = .myTitle }
+                }
             }
             .padding(.horizontal, 16).padding(.bottom, 40)
         }
@@ -87,6 +93,7 @@ struct AdminHome: View {
             case .users(let mode): AdminUsersScreen(mode: mode)
             case .notes: AdminNotesScreen()
             case .maintenance: AdminMaintenanceScreen()
+            case .myTitle: AdminMyTitleScreen()
             }
         }
         .sheet(isPresented: $showDaily) { DailyActivityView() }
@@ -141,5 +148,26 @@ struct AdminHome: View {
         }
         .buttonStyle(.plain)
         .allowsHitTesting(action != nil)
+    }
+}
+
+
+/// Tu propio título especial y efecto (hadas, dragones): la misma tarjeta que en el perfil de otra persona.
+struct AdminMyTitleScreen: View {
+    var body: some View {
+        ScrollView {
+            if let uid = AuthBridge().currentUid() {
+                SpecialTitleAdminCard(uid: uid)
+                    .padding(12)
+                    .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.rule, lineWidth: 1))
+                    .padding(16)
+            } else {
+                Text("Inicia sesión para cambiar tu título.").foregroundStyle(Cumbre.ink3).padding(24)
+            }
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .navigationTitle("Mi título y efecto")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

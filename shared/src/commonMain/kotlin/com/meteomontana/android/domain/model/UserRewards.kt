@@ -19,6 +19,8 @@ data class UserRewards(
     /** Título especial que le ha puesto un admin (se enseña en vez del de su nivel) y su color «#RRGGBB». */
     val specialTitle: String? = null,
     val specialColor: String? = null,
+    /** Efecto animado alrededor de la foto que pone un admin: «FAIRIES», «DRAGONS» o null. */
+    val titleEffect: String? = null,
 ) {
     /** Niveles cuyo título ya puede elegir (de menor a mayor). */
     val unlockedLevels: List<Int> get() = LEVELS.filter { it <= level }
@@ -40,4 +42,12 @@ data class UserBadge(
     val titleHidden: Boolean = false,
     val specialTitle: String? = null,
     val specialColor: String? = null,
+    /** «FAIRIES», «DRAGONS» o null: hadas o dragones alrededor de la foto (animados en su perfil, quietos en el resto). */
+    val titleEffect: String? = null,
 )
+
+/** Efectos animados que un admin puede poner alrededor de la foto (Álvaro, 2026-10-19). */
+object TitleEffects {
+    const val FAIRIES = "FAIRIES"
+    const val DRAGONS = "DRAGONS"
+}

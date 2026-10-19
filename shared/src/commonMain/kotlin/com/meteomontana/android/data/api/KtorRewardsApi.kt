@@ -21,6 +21,7 @@ data class RewardsDto(
     val titleHidden: Boolean = false,
     val specialTitle: String? = null,
     val specialColor: String? = null,
+    val titleEffect: String? = null,
 )
 
 /** climberType "" = quitarlo, null = no tocarlo; titleLevel -1 = quitar, null = no tocarlo; titleHidden null = no tocarlo. */
@@ -36,6 +37,7 @@ data class UserBadgeDto(
     val titleHidden: Boolean = false,
     val specialTitle: String? = null,
     val specialColor: String? = null,
+    val titleEffect: String? = null,
 )
 
 @Serializable
@@ -45,6 +47,10 @@ data class BadgesRequestDto(val uids: List<String>)
 @Serializable
 data class SpecialTitleDto(val title: String?, val color: String?)
 
+/** Admin: efecto animado («FAIRIES», «DRAGONS»; null o vacío = quitarlo). */
+@Serializable
+data class TitleEffectDto(val effect: String?)
+
 class KtorRewardsApi(private val client: HttpClient) {
     suspend fun of(uid: String): RewardsDto = client.get("users/$uid/rewards").body()
     suspend fun mine(): RewardsDto = client.get("me/rewards").body()
@@ -53,4 +59,6 @@ class KtorRewardsApi(private val client: HttpClient) {
         client.post("users/badges") { setBody(BadgesRequestDto(uids)) }.body()
     suspend fun setSpecialTitle(uid: String, req: SpecialTitleDto): RewardsDto =
         client.put("admin/users/$uid/special-title") { setBody(req) }.body()
+    suspend fun setTitleEffect(uid: String, req: TitleEffectDto): RewardsDto =
+        client.put("admin/users/$uid/title-effect") { setBody(req) }.body()
 }

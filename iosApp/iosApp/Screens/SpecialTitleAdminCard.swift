@@ -42,13 +42,57 @@ struct SpecialTitleAdminCard: View {
                 }
             }
             if let saved { Text(saved).font(.system(size: 12)).foregroundStyle(Cumbre.ok) }
+            effectPicker
         }
         .task {
             if let r = try? await AppDependencies.shared.container.getUserRewards.invoke(uid: uid) {
                 text = r.specialTitle ?? ""
                 hasSpecial = !(r.specialTitle ?? "").isEmpty
                 if let c = colorFromHex(r.specialColor) { color = c }
+                effect = r.titleEffect ?? ""
             }
+        }
+    }
+
+    // MARK: - Efecto animado (hadas / dragones)
+
+    /// "" = ninguno, "FAIRIES" o "DRAGONS".
+    @State private var effect = ""
+    @State private var effectSaved: String?
+
+    private var effectPicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Divider().overlay(Cumbre.rule).padding(.vertical, 4)
+            Text("EFECTO ALREDEDOR DE LA FOTO").font(Cumbre.mono(10, .bold)).tracking(1.4).foregroundStyle(Cumbre.terra)
+            Text("Hadas o dragones dando vueltas en su perfil (quietos en el feed y los chats). Sustituye a la aureola normal.")
+                .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+            HStack(spacing: 8) {
+                effectChip("Ninguno", value: "")
+                effectChip("Hadas", value: "FAIRIES")
+                effectChip("Dragones", value: "DRAGONS")
+            }
+            if let effectSaved { Text(effectSaved).font(.system(size: 12)).foregroundStyle(Cumbre.ok) }
+        }
+    }
+
+    private func effectChip(_ title: String, value: String) -> some View {
+        let on = effect == value
+        return Button { Task { await saveEffect(value) } } label: {
+            Text(title).font(Cumbre.mono(11, .bold))
+                .foregroundStyle(on ? Color.white : Cumbre.ink2)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(on ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
+                .overlay(Capsule().stroke(on ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
+        }.buttonStyle(.plain)
+    }
+
+    private func saveEffect(_ value: String) async {
+        if let r = try? await AppDependencies.shared.container.setTitleEffect.invoke(uid: uid, effect: value) {
+            effect = r.titleEffect ?? ""
+            UserBadgeStore.shared.refresh(uid)
+            effectSaved = effect.isEmpty ? "Efecto quitado." : "Guardado. Ya se ve en su foto."
+        } else {
+            effectSaved = "No se pudo guardar (revisa la conexión)."
         }
     }
 
