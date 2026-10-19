@@ -229,6 +229,8 @@ Reglas:
 
 ## Estado actual
 
+**🗂️ ESCUELAS EN TARJETAS + DIARIO «⋯»/DESLIZAR + HORAS ARREGLADAS (2026-10-19, 3ª vuelta) — backend en PRODUCCIÓN (main fcd0a69), iOS 302 en TestFlight y VALIDADO, Android con lo mismo y VALIDADO en el Xiaomi (sin AAB).** Lo hecho después del 302 (arreglo de «Activos hoy» del admin en iOS y «FILTROS» que no se parte) va en el próximo build de iOS. **El panel de ADMIN se queda SOLO en iOS** (Álvaro, 2026-10-19): no portarlo ni pedir capturas de admin. Detalle en `HISTORIAL.md` 2026-10-19 (3ª vuelta).
+
 **✔️ VERIFICADO + AUREOLA + DIARIO (2026-10-19, 2ª vuelta) — backend en PRODUCCIÓN (main 0985817, `POST /api/users/badges`), iOS build 299 VALIDADO y 300 (confirmar al borrar del diario) a TestFlight; Android con los mismos cambios, compila y pasa tests, SIN PROBAR en el móvil.** Siguiente: Álvaro prueba el 300, se le piden capturas CONCRETAS de iOS para Android, y checklist de Android (6.6 + esto) con el Xiaomi conectado. Pendiente suyo: quitar `TELEGRAM_BOT_TOKEN` de staging en Railway para que el bot solo avise de producción. Detalle en `HISTORIAL.md` 2026-10-19 (2ª vuelta).
 
 **📣 BOT DE TELEGRAM + TÍTULOS ESPECIALES (2026-10-19) — backend en PRODUCCIÓN (main 1b6ca5f, V95), iOS build 297 a TestFlight, Android con los mismos cambios (sin AAB).** @cumbre_salud_bot avisa al arrancar y ante ráfagas de errores, y contesta /salud /hoy /nuevos /pendientes /resumen SOLO al chat de Álvaro (variables TELEGRAM_* en producción; en staging sin `TELEGRAM_WEBHOOK_URL`). Caída total → email de UptimeRobot. Títulos especiales con texto y color (admin, iOS) y «Sin título». Detalle en `HISTORIAL.md` 2026-10-19. Siguiente: que Álvaro valide el 297 y Android 6.6; Android del panel admin solo cuando lo pida.
