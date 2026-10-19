@@ -23,10 +23,11 @@ final class RewardsModel: ObservableObject {
         if let ids = try? await c.getMyAchievementIds.invoke() { mineIds = Set(ids) }
     }
 
-    func update(climberType: String?, titleLevel: Int?, featured: String? = nil) async {
+    func update(climberType: String?, titleLevel: Int?, featured: String? = nil, titleHidden: Bool? = nil) async {
         if let r = try? await c.updateMyRewards.invoke(climberType: climberType,
                                                        titleLevel: titleLevel.map { KotlinInt(int: Int32($0)) },
-                                                       featuredAchievement: featured) {
+                                                       featuredAchievement: featured,
+                                                       titleHidden: titleHidden.map { KotlinBoolean(bool: $0) }) {
             rewards = r
         }
     }
@@ -112,6 +113,47 @@ private struct RewardTitle: View {
             .overlay(Capsule().stroke(g, lineWidth: 1.5))
             .onAppear { withAnimation(.linear(duration: 2.6).repeatForever(autoreverses: true)) { shine = true } }
         }
+    }
+}
+
+/// «#RRGGBB» → Color (nil si no es válido).
+func colorFromHex(_ hex: String?) -> Color? {
+    guard var h = hex?.trimmingCharacters(in: .whitespaces), h.hasPrefix("#"), h.count == 7 else { return nil }
+    h.removeFirst()
+    guard let v = Int(h, radix: 16) else { return nil }
+    return Color(red: Double((v >> 16) & 0xFF) / 255, green: Double((v >> 8) & 0xFF) / 255, blue: Double(v & 0xFF) / 255)
+}
+
+/// Color → «#RRGGBB» (para guardar el que se elige en el selector).
+func hexFromColor(_ color: Color) -> String {
+    var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+    UIColor(color).getRed(&r, green: &g, blue: &b, alpha: &a)
+    return String(format: "#%02X%02X%02X", Int(round(max(0, min(1, r)) * 255)), Int(round(max(0, min(1, g)) * 255)),
+                  Int(round(max(0, min(1, b)) * 255)))
+}
+
+/// Título especial puesto por un admin (p. ej. «Reina Hada»): brilla como «Señor de la Cumbre», con destellos y borde,
+/// pero en el color que eligió el admin (Álvaro, 2026-10-19).
+struct SpecialTitleView: View {
+    let text: String
+    let colorHex: String?
+    @State private var shine = false
+
+    var body: some View {
+        let base = colorFromHex(colorHex) ?? Color(red: 0.72, green: 0.53, blue: 0.04)
+        let colors = [base.opacity(0.75), base, Color.white.opacity(0.9), base, base.opacity(0.75)]
+        let g = LinearGradient(colors: colors, startPoint: shine ? .trailing : .leading,
+                               endPoint: shine ? UnitPoint(x: 2, y: 1) : UnitPoint(x: 1, y: 1))
+        HStack(spacing: 8) {
+            Text("✦").font(.system(size: 14)).foregroundStyle(g)
+            Text(text).font(.system(size: 20, weight: .bold)).foregroundStyle(g)
+                .shadow(color: base.opacity(0.55), radius: 8)
+                .lineLimit(1).minimumScaleFactor(0.6)
+            Text("✦").font(.system(size: 14)).foregroundStyle(g)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 7)
+        .overlay(Capsule().stroke(g, lineWidth: 1.5))
+        .onAppear { withAnimation(.linear(duration: 2.6).repeatForever(autoreverses: true)) { shine = true } }
     }
 }
 
@@ -201,7 +243,14 @@ struct RewardsBlock: View {
     private func summary(_ r: UserRewards) -> some View {
         VStack(spacing: 6) {
             HStack(spacing: 6) {
-                RewardTitle(level: Int(r.titleLevel))
+                // Especial (puesto por un admin) en vez del de su nivel; nada si la persona ha ocultado su título.
+                if !r.titleHidden {
+                    if let special = r.specialTitle, !special.isEmpty {
+                        SpecialTitleView(text: special, colorHex: r.specialColor)
+                    } else {
+                        RewardTitle(level: Int(r.titleLevel))
+                    }
+                }
                 // Solo en el tuyo: una flechita que dice «aquí se puede elegir».
                 if uid == nil {
                     Image(systemName: "chevron.down.circle.fill").font(.system(size: 17)).foregroundStyle(Cumbre.terra.opacity(0.8))
@@ -364,13 +413,31 @@ private struct RewardsSheet: View {
                 Text(L("TU TÍTULO")).eyebrow(Cumbre.terra)
                 Text(L("Desbloqueas títulos con tus aportaciones aprobadas (llevas %@).", r.approved))
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                if let special = r.specialTitle, !special.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        SpecialTitleView(text: special, colorHex: r.specialColor)
+                        Text(L("Es un título especial que te ha dado Cumbre. Se enseña en lugar del de tu nivel."))
+                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    }
+                }
+                // «Sin título»: no enseñar ninguno (Álvaro, 2026-10-19).
+                Button { Task { await model.update(climberType: nil, titleLevel: nil, titleHidden: !r.titleHidden) } } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: r.titleHidden ? "checkmark.circle.fill" : "eye.slash").font(.system(size: 13, weight: .bold))
+                        Text(L("Sin título")).font(.system(size: 14, weight: r.titleHidden ? .bold : .medium))
+                    }
+                    .foregroundStyle(r.titleHidden ? Color.white : Cumbre.ink2)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(r.titleHidden ? Cumbre.ink2 : Cumbre.paper, in: Capsule())
+                    .overlay(Capsule().stroke(r.titleHidden ? Cumbre.ink2 : Cumbre.rule, lineWidth: r.titleHidden ? 3 : 1))
+                }.buttonStyle(.plain)
                 let unlockedLevels = Set(r.unlockedLevels.map { Int(truncating: $0) })
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(allRewardLevels, id: \.self) { l in
                         let has = unlockedLevels.contains(l)
                         HStack(spacing: 10) {
-                            Button { if has { Task { await model.update(climberType: nil, titleLevel: l) } } } label: {
-                                TitlePill(level: l, on: Int(r.titleLevel) == l, locked: !has, showCheck: true)
+                            Button { if has { Task { await model.update(climberType: nil, titleLevel: l, titleHidden: false) } } } label: {
+                                TitlePill(level: l, on: !r.titleHidden && Int(r.titleLevel) == l, locked: !has, showCheck: true)
                             }.buttonStyle(.plain).disabled(!has)
                             if !has {
                                 Text(L("con %@ aportaciones", l)).font(.system(size: 11)).foregroundStyle(Cumbre.ink3)

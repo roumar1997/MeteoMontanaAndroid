@@ -17,14 +17,24 @@ data class RewardsDto(
     val climberType: String? = null,
     val badges: List<String> = emptyList(),
     val featuredAchievement: String? = null,
+    val titleHidden: Boolean = false,
+    val specialTitle: String? = null,
+    val specialColor: String? = null,
 )
 
-/** climberType "" = quitarlo, null = no tocarlo; titleLevel -1 = quitar, null = no tocarlo. */
+/** climberType "" = quitarlo, null = no tocarlo; titleLevel -1 = quitar, null = no tocarlo; titleHidden null = no tocarlo. */
 @Serializable
-data class UpdateRewardsDto(val climberType: String? = null, val titleLevel: Int? = null, val featuredAchievement: String? = null)
+data class UpdateRewardsDto(val climberType: String? = null, val titleLevel: Int? = null, val featuredAchievement: String? = null,
+                            val titleHidden: Boolean? = null)
+
+/** Admin: título especial (vacío = quitarlo) y su color «#RRGGBB». */
+@Serializable
+data class SpecialTitleDto(val title: String?, val color: String?)
 
 class KtorRewardsApi(private val client: HttpClient) {
     suspend fun of(uid: String): RewardsDto = client.get("users/$uid/rewards").body()
     suspend fun mine(): RewardsDto = client.get("me/rewards").body()
     suspend fun update(req: UpdateRewardsDto): RewardsDto = client.put("me/rewards") { setBody(req) }.body()
+    suspend fun setSpecialTitle(uid: String, req: SpecialTitleDto): RewardsDto =
+        client.put("admin/users/$uid/special-title") { setBody(req) }.body()
 }

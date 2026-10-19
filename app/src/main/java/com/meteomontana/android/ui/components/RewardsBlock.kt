@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.ViewInAr
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Icon
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -123,9 +124,9 @@ class RewardsViewModel @Inject constructor(
         viewModelScope.launch { _mineIds.value = runCatching { getMyAchievementIds() }.getOrNull() }
     }
 
-    fun update(climberType: String?, titleLevel: Int?, featured: String? = null) {
+    fun update(climberType: String?, titleLevel: Int?, featured: String? = null, titleHidden: Boolean? = null) {
         viewModelScope.launch {
-            runCatching { updateMyRewards(climberType, titleLevel, featured) }.onSuccess { _rewards.value = it }
+            runCatching { updateMyRewards(climberType, titleLevel, featured, titleHidden) }.onSuccess { _rewards.value = it }
         }
     }
 }
@@ -210,6 +211,44 @@ private fun RewardTitle(level: Int) {
     }
 }
 
+/** «#RRGGBB» → Color (null si no es válido). */
+private fun colorFromHex(hex: String?): Color? = runCatching {
+    val h = hex?.trim()?.removePrefix("#") ?: return null
+    if (h.length != 6) return null
+    Color(0xFF000000 or h.toLong(16))
+}.getOrNull()
+
+/**
+ * Título especial puesto por un admin (p. ej. «Reina Hada»): brilla como «Señor de la Cumbre», con destellos y borde,
+ * pero en el color que eligió el admin (Álvaro, 2026-10-19).
+ */
+@Composable
+private fun SpecialTitle(text: String, colorHex: String?) {
+    val base = colorFromHex(colorHex) ?: Color(0xFFB8860B)
+    val shine by androidx.compose.animation.core.rememberInfiniteTransition(label = "especial").animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+            androidx.compose.animation.core.tween(2600, easing = androidx.compose.animation.core.LinearEasing),
+            androidx.compose.animation.core.RepeatMode.Reverse),
+        label = "brillo")
+    val brush = androidx.compose.ui.graphics.Brush.linearGradient(
+        listOf(base.copy(alpha = 0.75f), base, Color.White.copy(alpha = 0.9f), base, base.copy(alpha = 0.75f)),
+        start = androidx.compose.ui.geometry.Offset(-300f + 700f * shine, 0f),
+        end = androidx.compose.ui.geometry.Offset(100f + 700f * shine, 90f))
+    Row(
+        Modifier.clip(CircleShape).border(androidx.compose.foundation.BorderStroke(1.5.dp, brush), CircleShape)
+            .padding(horizontal = 16.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text("✦", style = androidx.compose.ui.text.TextStyle(brush = brush, fontSize = 14.sp))
+        Text(text, textAlign = TextAlign.Center, maxLines = 1,
+            style = androidx.compose.ui.text.TextStyle(
+                brush = brush, fontWeight = FontWeight.Bold, fontSize = 20.sp,
+                shadow = androidx.compose.ui.graphics.Shadow(base.copy(alpha = 0.55f), blurRadius = 16f)))
+        Text("✦", style = androidx.compose.ui.text.TextStyle(brush = brush, fontSize = 14.sp))
+    }
+}
+
 @Composable
 private fun climberTypeLabel(type: String?): String = stringResource(when (type) {
     "ROUTES" -> R.string.climber_routes; "BOULDER" -> R.string.climber_boulder; "BOTH" -> R.string.climber_both
@@ -272,7 +311,11 @@ fun RewardsBlock(uid: String?, viewModel: RewardsViewModel = hiltViewModel(key =
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            RewardTitle(rewards.titleLevel)
+            // Especial (puesto por un admin) en vez del de su nivel; nada si la persona ha ocultado su título.
+            if (!rewards.titleHidden) {
+                val special = rewards.specialTitle
+                if (!special.isNullOrBlank()) SpecialTitle(special, rewards.specialColor) else RewardTitle(rewards.titleLevel)
+            }
             // Solo en el tuyo: una flechita que dice «aquí se puede elegir».
             if (own) Icon(Icons.Filled.ExpandCircleDown, null, tint = Terra.copy(alpha = 0.8f), modifier = Modifier.size(19.dp))
         }
@@ -301,7 +344,10 @@ fun RewardsBlock(uid: String?, viewModel: RewardsViewModel = hiltViewModel(key =
         }
     }
     if (own) ClimberTypePrompt(rewards) { viewModel.update(it, null) }
-    if (sheet) RewardsSheet(rewards, mineIds, rarity, onDismiss = { sheet = false }) { type, title, featured -> viewModel.update(type, title, featured) }
+    if (sheet) RewardsSheet(rewards, mineIds, rarity, onDismiss = { sheet = false },
+        onHide = { hidden -> viewModel.update(null, null, null, hidden) }) { type, title, featured ->
+        viewModel.update(type, title, featured, if (title != null) false else null)
+    }
 }
 
 @Composable
@@ -434,7 +480,7 @@ private fun AchievementPickRow(a: com.meteomontana.android.domain.usecase.journa
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun RewardsSheet(rewards: UserRewards, mineIds: Set<String>?, rarity: AchievementRarity?, onDismiss: () -> Unit,
-                         onSave: (String?, Int?, String?) -> Unit) {
+                         onHide: (Boolean) -> Unit, onSave: (String?, Int?, String?) -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         // Se desplaza: con todos los títulos y los logros no cabe en una pantalla (Álvaro, 2026-10-19).
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 24.dp).navigationBarsPadding(),
@@ -498,13 +544,32 @@ private fun RewardsSheet(rewards: UserRewards, mineIds: Set<String>?, rarity: Ac
                 }
             }
             Text(stringResource(R.string.rewards_title_pick), style = EyebrowTextStyle, color = Terra)
+            rewards.specialTitle?.takeIf { it.isNotBlank() }?.let { special ->
+                SpecialTitle(special, rewards.specialColor)
+                Text(stringResource(R.string.rewards_special_hint), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            }
+            // «Sin título»: no enseñar ninguno (Álvaro, 2026-10-19).
+            val hidden = rewards.titleHidden
+            Row(
+                Modifier.clip(CircleShape)
+                    .background(if (hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.surface)
+                    .border(if (hidden) 3.dp else 1.dp, if (hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline, CircleShape)
+                    .clickable { onHide(!hidden) }.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(if (hidden) Icons.Filled.CheckCircle else Icons.Filled.VisibilityOff, null,
+                    tint = if (hidden) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(15.dp))
+                Text(stringResource(R.string.rewards_no_title), fontSize = 14.sp,
+                    fontWeight = if (hidden) FontWeight.Bold else FontWeight.Medium,
+                    color = if (hidden) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             Text(stringResource(R.string.rewards_title_hint, rewards.approved), color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp)
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ALL_LEVELS.forEach { l ->
                     val has = l in rewards.unlockedLevels
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        TitlePill(l, on = rewards.titleLevel == l, locked = !has, showCheck = true,
+                        TitlePill(l, on = !rewards.titleHidden && rewards.titleLevel == l, locked = !has, showCheck = true,
                             modifier = if (has) Modifier.clickable { onSave(null, l, null) } else Modifier)
                         if (!has) Text(stringResource(R.string.rewards_needs, l), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                     }

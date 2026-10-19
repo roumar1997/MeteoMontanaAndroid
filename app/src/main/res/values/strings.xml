@@ -2001,4 +2001,6 @@
     <string name="rewards_tap_hint">TOCA TU TÍTULO PARA ELEGIR TÍTULO, VIERO/BLOQUERO Y LOGRO</string>
     <string name="badge_collaborator_info">Colaborador: tiene al menos una aportación aprobada (una piedra, una vía o un cambio que un admin ha dado por bueno).</string>
     <string name="badge_trusted_info">De confianza: lo que propone se publica sin pasar por revisión. Se consigue con 20 aportaciones aprobadas o lo da un admin.</string>
+    <string name="rewards_no_title">Sin título</string>
+    <string name="rewards_special_hint">Es un título especial que te ha dado Cumbre. Se enseña en lugar del de tu nivel.</string>
 </resources>

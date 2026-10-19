@@ -14,9 +14,20 @@ class GetMyRewardsUseCase(private val repository: RewardsRepository) {
     suspend operator fun invoke(): UserRewards = repository.mine()
 }
 
-/** climberType "" = quitarlo, null = no tocarlo; titleLevel -1 = quitar, null = no tocarlo; featuredAchievement "" = quitar. */
+/**
+ * climberType "" = quitarlo, null = no tocarlo; titleLevel -1 = quitar, null = no tocarlo; featuredAchievement "" = quitar;
+ * titleHidden true = no enseñar ningún título, false = volver a enseñarlo, null = no tocarlo.
+ */
 class UpdateMyRewardsUseCase(private val repository: RewardsRepository) {
     @Throws(Exception::class)
-    suspend operator fun invoke(climberType: String?, titleLevel: Int?, featuredAchievement: String? = null): UserRewards =
-        repository.update(climberType, titleLevel, featuredAchievement)
+    suspend operator fun invoke(climberType: String?, titleLevel: Int?, featuredAchievement: String? = null,
+                                titleHidden: Boolean? = null): UserRewards =
+        repository.update(climberType, titleLevel, featuredAchievement, titleHidden)
+}
+
+/** Solo admin: título especial de alguien (texto libre, vacío = quitarlo) con su color «#RRGGBB». */
+class SetSpecialTitleUseCase(private val repository: RewardsRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(uid: String, title: String?, color: String?): UserRewards =
+        repository.setSpecialTitle(uid, title, color)
 }

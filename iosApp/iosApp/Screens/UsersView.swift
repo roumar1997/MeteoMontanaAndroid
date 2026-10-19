@@ -400,6 +400,12 @@ struct PublicProfileView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(L("ADMIN · %@", vm.profile?.username.map { "@" + $0 } ?? vm.profile?.displayName ?? "")).eyebrow(Cumbre.terra)
                     adminAssistantCard
+                    if let u = vm.profile?.uid {
+                        SpecialTitleAdminCard(uid: u)
+                            .padding(12)
+                            .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.rule, lineWidth: 1))
+                    }
                 }
                 .padding(16)
             }

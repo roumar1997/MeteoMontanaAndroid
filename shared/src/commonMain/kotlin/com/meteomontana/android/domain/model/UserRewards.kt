@@ -14,6 +14,11 @@ data class UserRewards(
     val badges: List<String>,
     /** Id del logro que enseña bajo su nombre (uno de los desbloqueados), o null. */
     val featuredAchievement: String? = null,
+    /** La persona no quiere enseñar ningún título. */
+    val titleHidden: Boolean = false,
+    /** Título especial que le ha puesto un admin (se enseña en vez del de su nivel) y su color «#RRGGBB». */
+    val specialTitle: String? = null,
+    val specialColor: String? = null,
 ) {
     /** Niveles cuyo título ya puede elegir (de menor a mayor). */
     val unlockedLevels: List<Int> get() = LEVELS.filter { it <= level }

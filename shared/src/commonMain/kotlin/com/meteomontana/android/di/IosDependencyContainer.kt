@@ -341,6 +341,7 @@ class IosDependencyContainer(
         com.meteomontana.android.data.api.KtorRewardsApi(httpClient))
     val getUserRewards = com.meteomontana.android.domain.usecase.profile.GetUserRewardsUseCase(rewardsRepository)
     val getMyRewards = com.meteomontana.android.domain.usecase.profile.GetMyRewardsUseCase(rewardsRepository)
+    val setSpecialTitle = com.meteomontana.android.domain.usecase.profile.SetSpecialTitleUseCase(rewardsRepository)
     val updateMyRewards = com.meteomontana.android.domain.usecase.profile.UpdateMyRewardsUseCase(rewardsRepository)
 
     // Logros: sincronizar los míos y cuánta gente tiene cada uno.
