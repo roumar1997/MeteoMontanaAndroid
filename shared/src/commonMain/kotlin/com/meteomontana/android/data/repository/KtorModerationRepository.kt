@@ -25,6 +25,8 @@ class KtorModerationRepository(private val api: KtorModerationApi) : ModerationR
         api.resolveContentReport(id, action)?.toDomain()
 
     override suspend fun getAdminUsers(): List<AdminUserRow> = api.getAdminUsers().map { it.toDomain() }
+    override suspend fun getAdminActiveUsers(days: Int): List<AdminUserRow> =
+        api.getAdminActiveUsers(days).map { it.toDomain() }
 
     override suspend fun getDailyActivity(date: String?): com.meteomontana.android.domain.model.DailyActivity =
         api.getDailyActivity(date).toDomain()

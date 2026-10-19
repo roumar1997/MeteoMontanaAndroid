@@ -83,11 +83,21 @@ struct AdminUsersScreen: View {
         .navigationTitle(mode.title)
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            if users == nil { users = (try? await AppDependencies.shared.container.getAdminUsers.invoke()) ?? [] }
+            if users == nil { users = await load() ?? [] }
             let contributors = (try? await AppDependencies.shared.container.getContributors.invoke(uid: nil)) ?? []
             approved = Dictionary(contributors.map { ($0.uid, Int($0.approved)) }, uniquingKeysWith: { a, _ in a })
         }
-        .refreshable { users = (try? await AppDependencies.shared.container.getAdminUsers.invoke()) ?? users }
+        .refreshable { users = await load() ?? users }
+    }
+
+    /// «Activos N días»: el servidor da justo esas personas (la misma cuenta que el cuadradito de la portada). Antes se
+    /// filtraban aquí los 200 registrados más recientes y faltaban las cuentas antiguas: «HOY 7» y la lista daba 2.
+    private func load() async -> [AdminUserRow]? {
+        let c = AppDependencies.shared.container
+        switch mode {
+        case .active(let days): return try? await c.getAdminActiveUsers.invoke(days: Int32(days))
+        case .all: return try? await c.getAdminUsers.invoke()
+        }
     }
 
     private func date(_ iso: String?) -> Date? { iso.flatMap(parseIsoLocalDateTime) }
@@ -96,9 +106,8 @@ struct AdminUsersScreen: View {
         guard let users else { return nil }
         var list = users
         switch mode {
-        case .active(let days):
-            let cutoff = days == 1 ? Calendar.current.startOfDay(for: Date()) : Date().addingTimeInterval(-Double(days) * 86400)
-            list = list.filter { (date($0.lastSeen) ?? .distantPast) >= cutoff }
+        case .active:
+            // Ya vienen filtrados por el servidor: aquí solo se ordenan, el último en entrar primero.
             list.sort { (date($0.lastSeen) ?? .distantPast) > (date($1.lastSeen) ?? .distantPast) }
         case .all:
             if onlyNew {

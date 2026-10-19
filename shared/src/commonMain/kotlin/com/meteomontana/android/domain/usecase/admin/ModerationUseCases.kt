@@ -23,6 +23,13 @@ class GetAdminUsersUseCase(private val repo: ModerationRepository) {
     suspend operator fun invoke(): List<AdminUserRow> = repo.getAdminUsers()
 }
 
+/** Activos en los últimos [days] días (1 = hoy), con la MISMA consulta que el número del cuadradito: antes la app
+ *  filtraba los 200 registrados más recientes y se dejaba fuera a las cuentas antiguas (Álvaro, 2026-10-19). */
+class GetAdminActiveUsersUseCase(private val repo: ModerationRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(days: Int): List<AdminUserRow> = repo.getAdminActiveUsers(days)
+}
+
 /** Quién entró un día concreto (Álvaro, 2026-09-30). [date] ISO
  *  (yyyy-MM-dd), null = hoy. */
 class GetDailyActivityUseCase(private val repo: ModerationRepository) {
