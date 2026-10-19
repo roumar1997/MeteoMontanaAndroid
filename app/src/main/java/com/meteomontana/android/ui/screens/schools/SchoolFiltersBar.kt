@@ -277,7 +277,9 @@ fun FiltersToggleRow(
                 Icon(Icons.Outlined.Tune, contentDescription = null, tint = fg, modifier = Modifier.size(15.dp))
                 Text(
                     if (active) stringResource(R.string.schools_filters_with_count, activeCount) else stringResource(R.string.common_filters),
-                    style = EyebrowTextStyle, color = fg
+                    style = EyebrowTextStyle, color = fg,
+                    // Nunca se parte en varias líneas (en iOS salía «FILTR / OS / (1)» con BORRAR al lado).
+                    maxLines = 1, softWrap = false
                 )
             }
             Text(countText.orEmpty(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,

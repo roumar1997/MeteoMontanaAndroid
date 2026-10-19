@@ -1,23 +1,25 @@
 package com.meteomontana.android.ui.components
 
 import com.meteomontana.android.util.CatalogLabels
-import com.meteomontana.android.util.AppText
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
@@ -31,42 +33,49 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.School
+import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Serif
-import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.scoreColor
-import com.meteomontana.android.ui.theme.scoreTextColor
 
 /**
- * Item de lista al estilo PWA "Cumbre":
+ * Tarjeta de una escuela en la lista (Álvaro, 2026-10-19, propuesta A; espejo de SchoolListCards.swift):
  *
- *   ┌──────┐ 01  Becedas                                       ★
- *   │  78  │     GRANITO · CASTILLA Y LEÓN · 1694 KM
- *   │ MUY  │     ▰▰▰▰▰▰▰▰▰▰ heatmap horario             ● SECA
- *   │ BUEN │
- *   └──────┘
+ *   ╭──────────────────────────────────────────╮
+ *   │ ( 60 )  El Burguillo [crashpad]        ☆ │
+ *   │         [Bueno] Granito · 40 km [Roca seca]│
+ *   │ ▆▆▆▆[▆]▆▆▆▆▆                              │
+ *   │ 18 19 20 21 22 23 00 01 02 03            │
+ *   │              Mejor hora: a las 21 h (67) │
+ *   ╰──────────────────────────────────────────╯
  *
- * Badge tintado por score (fondo color suave + borde fuerte + número grande).
- * Heatmap 16dp con cuadrados saturados sin gap (como PWA).
+ * La nota en un anillo que se llena con su color; con días elegidos, el anillo es la nota del tramo y abajo van
+ * los cuadraditos de cada día. Solo cambia cómo se ve: mismos datos y mismos gestos.
  */
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun SchoolListItem(
-    rank: Int,
     school: School,
     todayScore: Int? = null,
     hourlyScores: List<Int>? = null,
     distanceKm: Double? = null,
     dry: Boolean? = null,
-    rainMm: Double? = null,
-    rainProb: Int? = null,
     range: com.meteomontana.android.domain.model.RangeScore? = null,
     isFavorite: Boolean = false,
     selectedForCompare: Boolean = false,
@@ -75,206 +84,201 @@ fun SchoolListItem(
     onToggleFavorite: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    val value = range?.combinedScore ?: todayScore
+    val shape = RoundedCornerShape(16.dp)
+    // Lo que ACABAS de tocar en la ficha manda sobre lo que trajo el catálogo (Álvaro, 2026-09-05).
+    val overrides by com.meteomontana.android.domain.util.ProcessionaryOverrideStore.observe()
+        .collectAsState(initial = com.meteomontana.android.domain.util.ProcessionaryOverrideStore.currentValue())
+    val processionaryAlertActive = overrides[school.id] ?: school.processionaryAlertActive
+
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .then(
-                if (selectedForCompare)
-                    Modifier
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
-                        .border(1.dp, MaterialTheme.colorScheme.primary)
-                else Modifier
+            .clip(shape)
+            .background(schoolCardBg())
+            .border(
+                if (selectedForCompare) 2.dp else 1.dp,
+                if (selectedForCompare) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                shape
             )
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(horizontal = Spacing.md, vertical = Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // En modo tramo (días elegidos) el badge muestra el score combinado.
-        ScoreBadge(score = range?.combinedScore ?: todayScore)
-
-        // Lo que ACABAS de tocar en la ficha manda sobre lo que trajo el
-        // catálogo — sin esto, esta fila seguiría sin marcar hasta la
-        // próxima recarga completa (Álvaro, 2026-09-05).
-        val overrides by com.meteomontana.android.domain.util.ProcessionaryOverrideStore.observe()
-            .collectAsState(initial = com.meteomontana.android.domain.util.ProcessionaryOverrideStore.currentValue())
-        val processionaryAlertActive = overrides[school.id] ?: school.processionaryAlertActive
-
-        Column(modifier = Modifier.weight(1f)) {
-            // Rank + nombre + estrella favorito
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "%02d".format(rank),
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 11.sp,
-                        letterSpacing = 1.4.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.width(24.dp)
-                )
-                // Nombre + iconos de qué se escala (mosquetón = vías, crashpad =
-                // bloques, los dos = ambos), pegados al nombre — espejo de iOS.
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ScoreRing(value)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         text = school.name,
-                        style = TextStyle(
-                            fontFamily = Serif,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 19.sp,
-                            letterSpacing = (-0.3).sp,
-                        ),
+                        style = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 18.sp),
                         color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
                     )
                     val kind = com.meteomontana.android.domain.util.SchoolKind.from(school.style)
-                    if (!kind.isEmpty) {
-                        Spacer(Modifier.width(8.dp))
-                        com.meteomontana.android.ui.components.SchoolKindIcons(kind)
-                    }
+                    if (!kind.isEmpty) SchoolKindIcons(kind)
                     Spacer(Modifier.weight(0.0001f))
+                    // Procesionaria: solo si ya se sabe Y estamos en su temporada (Álvaro, 2026-09-05).
+                    if (processionaryAlertActive) {
+                        Box(
+                            Modifier.size(20.dp).clip(CircleShape).background(MaterialTheme.colorScheme.error),
+                            contentAlignment = Alignment.Center
+                        ) { ProcessionaryIcon(tint = Color.White, modifier = Modifier.size(12.dp)) }
+                    }
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                        contentDescription = if (isFavorite) stringResource(R.string.school_list_item_quitar_de_favoritos)
+                                             else stringResource(R.string.school_list_item_anadir_a_favoritos),
+                        tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(32.dp).clip(CircleShape)
+                            .let { m -> if (onToggleFavorite != null) m.clickable(onClick = onToggleFavorite) else m }
+                            .padding(6.dp)
+                    )
                 }
-                // Procesionaria: solo se marca si YA se sabe (alguien la confirmó
-                // alguna vez aquí) Y estamos en su temporada (dic-may) — no hay
-                // forma fiable de saber dónde hay pinos, así que solo avisa lo
-                // que de verdad se sabe (Álvaro, 2026-09-05).
-                if (processionaryAlertActive) {
-                    Box(
-                        modifier = Modifier
-                            .padding(end = Spacing.xs)
-                            .size(22.dp)
-                            .clip(androidx.compose.foundation.shape.CircleShape)
-                            .background(MaterialTheme.colorScheme.error),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        com.meteomontana.android.ui.components.ProcessionaryIcon(
-                            tint = Color.White,
-                            modifier = Modifier.size(14.dp)
+                // Nota en palabras · roca y distancia · seca/mojada; se parten en dos líneas si no caben.
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                    itemVerticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (value != null) SoftPill(niceScoreLabel(value), MaterialTheme.colorScheme.onSurfaceVariant, cumbrePillBg())
+                    val meta = schoolMeta(school, distanceKm)
+                    if (meta.isNotEmpty()) {
+                        Text(meta, fontSize = 12.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                    }
+                    if (range == null && dry != null) {
+                        val c = if (dry) okColor() else MaterialTheme.colorScheme.error
+                        SoftPill(
+                            stringResource(if (dry) R.string.schools_card_dry_rock else R.string.schools_card_wet_rock),
+                            c, c.copy(alpha = 0.14f)
                         )
                     }
                 }
-                Icon(
-                    imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                    contentDescription = if (isFavorite) stringResource(R.string.school_list_item_quitar_de_favoritos) else stringResource(R.string.school_list_item_anadir_a_favoritos),
-                    tint = if (isFavorite) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .let { m -> if (onToggleFavorite != null) m.clickable(onClick = onToggleFavorite) else m }
+            }
+        }
+        if (range != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                DayRangeRow(range = range, modifier = Modifier.weight(1f))
+                RainSummaryTag(range)
+            }
+        } else if (!hourlyScores.isNullOrEmpty()) {
+            HourBars(hourlyScores.take(10))
+        }
+    }
+}
+
+/** Fondo de las tarjetas: un punto más claro que el fondo de la pantalla (espejo de iOS 0xFBFAF6 / 0x211F19). */
+@Composable
+private fun schoolCardBg(): Color =
+    if (MaterialTheme.colorScheme.background.luminance() > 0.5f) Color(0xFFFBFAF6) else Color(0xFF211F19)
+
+@Composable
+internal fun cumbrePillBg(): Color =
+    if (MaterialTheme.colorScheme.background.luminance() > 0.5f) com.meteomontana.android.ui.theme.Paper else Color(0xFF2E2C25)
+
+@Composable
+private fun okColor(): Color =
+    if (MaterialTheme.colorScheme.background.luminance() > 0.5f) com.meteomontana.android.ui.theme.Ok else Color(0xFF7DA068)
+
+/** «BUENO» → «Bueno», «MUY BUENO» → «Muy bueno». */
+private fun niceScoreLabel(score: Int): String =
+    CatalogLabels.scoreLabel(score).lowercase().replaceFirstChar { it.uppercase() }
+
+/** «Granito · 26 km» (o la comunidad si no hay distancia). */
+private fun schoolMeta(school: School, distanceKm: Double?): String = buildList {
+    school.rockType?.takeIf { it.isNotBlank() }?.let { add(CatalogLabels.rock(it)) }
+    if (distanceKm != null) add("${distanceKm.toInt()} km")
+    else school.region?.takeIf { it.isNotBlank() }?.let { add(CatalogLabels.region(it)) }
+}.joinToString(" · ")
+
+/** Pastilla suave (fondo tintado, sin borde). */
+@Composable
+private fun SoftPill(text: String, fg: Color, bg: Color) {
+    Text(
+        text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = fg, maxLines = 1,
+        modifier = Modifier.clip(CircleShape).background(bg).padding(horizontal = 8.dp, vertical = 3.dp)
+    )
+}
+
+/** La nota en un anillo que se llena con su color (sin nota: anillo vacío y «—»). */
+@Composable
+private fun ScoreRing(score: Int?) {
+    val color = score?.let { scoreColor(it) } ?: MaterialTheme.colorScheme.onSurfaceVariant
+    val track = cumbrePillBg()
+    val label = score?.let { "$it, ${CatalogLabels.scoreLabel(it)}" } ?: stringResource(R.string.schools_card_no_score)
+    Box(
+        Modifier.size(58.dp).semantics { contentDescription = label },
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(Modifier.size(52.dp)) {
+            val stroke = 6.dp.toPx()
+            val inset = stroke / 2
+            val arcSize = Size(size.width - stroke, size.height - stroke)
+            drawArc(track, 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(stroke))
+            if (score != null) {
+                val sweep = 360f * score.coerceIn(2, 100) / 100f
+                drawArc(color, -90f, sweep, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+            }
+        }
+        Text(
+            score?.toString() ?: "—",
+            style = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 21.sp),
+            color = color
+        )
+    }
+}
+
+/** Las próximas horas como barras con su color, su hora debajo y la mejor hora dicha con palabras. */
+@Composable
+private fun HourBars(scores: List<Int>) {
+    val now = java.time.LocalTime.now().hour
+    val best = scores.indices.maxByOrNull { scores[it] } ?: 0
+    val bestHour = (now + best) % 24
+    val bestText = if (best == 0) stringResource(R.string.schools_card_best_now, scores[best])
+                   else stringResource(R.string.schools_card_best_at, bestHour, scores[best])
+    Column(Modifier.semantics(mergeDescendants = true) { contentDescription = bestText }) {
+        Row(Modifier.fillMaxWidth().height(30.dp), horizontalArrangement = Arrangement.spacedBy(3.dp),
+            verticalAlignment = Alignment.Bottom) {
+            scores.forEachIndexed { i, v ->
+                val barShape = RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp, bottomStart = 2.dp, bottomEnd = 2.dp)
+                Box(
+                    Modifier.weight(1f)
+                        .height((30f * v.coerceAtLeast(12) / 100f).coerceAtLeast(4f).dp)
+                        .then(if (i == best) Modifier.border(1.5.dp, MaterialTheme.colorScheme.onBackground, barShape) else Modifier)
+                        .padding(if (i == best) 2.dp else 0.dp)
+                        .clip(barShape)
+                        .background(scoreColor(v))
                 )
             }
-            Spacer(Modifier.height(Spacing.xs))
-            Text(
-                text = buildSubtitle(school, distanceKm),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(Spacing.sm))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                if (range != null) {
-                    DayRangeRow(range = range, modifier = Modifier.weight(1f))
-                    RainSummaryTag(range)
-                } else {
-                    HourlyHeatmapBar(
-                        scores = hourlyScores,
-                        modifier = Modifier.weight(1f)
-                    )
-                    DryWetTag(dry = dry, rainProb = rainProb, rainMm = rainMm)
-                }
+        }
+        Spacer(Modifier.height(4.dp))
+        // La hora bajo cada barra (la de ahora en negrita): sin adivinar las de en medio (Álvaro, 2026-10-19).
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            scores.indices.forEach { i ->
+                Text(
+                    "%02d".format((now + i) % 24),
+                    fontFamily = Mono, fontSize = 9.5.sp,
+                    fontWeight = if (i == 0) FontWeight.Bold else FontWeight.Normal,
+                    color = if (i == 0) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center, maxLines = 1,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            bestText, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
 /**
- * Badge con fondo tintado por score (8% del color del score) + borde fuerte.
- * Número grande serif. Label mono pequeñita debajo.
+ * Fila por día del tramo elegido: una celda por día con su score (color) y la inicial del día debajo. Los días con
+ * lluvia llevan la inicial en rojo. Reutilizada también por el modo "Vías/Bloques" del buscador por grado.
  */
-@Composable
-private fun ScoreBadge(score: Int?) {
-    val color = score?.let { scoreColor(it) } ?: MaterialTheme.colorScheme.outline
-    val bg = if (score != null) color.copy(alpha = 0.12f)
-             else MaterialTheme.colorScheme.surface
-    Column(
-        modifier = Modifier
-            .size(width = 64.dp, height = 72.dp)
-            .clip(RoundedCornerShape(2.dp))
-            .background(bg)
-            .border(1.5.dp, color, RoundedCornerShape(2.dp))
-            .padding(vertical = Spacing.xs),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = score?.toString() ?: "—",
-            style = TextStyle(
-                fontFamily = Serif,
-                fontWeight = FontWeight.Bold,
-                fontSize = 28.sp,
-                letterSpacing = (-0.5).sp,
-            ),
-            color = if (score != null) color else MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = scoreLabel(score),
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontSize = 8.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.6.sp
-            ),
-            color = if (score != null) color else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun DryWetTag(dry: Boolean?, rainProb: Int?, rainMm: Double?) {
-    Column(
-        horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Text(
-            text = when (dry) {
-                true  -> "● ${stringResource(R.string.schools_rock_dry)}"
-                false -> "● ${stringResource(R.string.schools_rock_wet)}"
-                null  -> ""
-            },
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.8.sp
-            ),
-            color = if (dry == false) MaterialTheme.colorScheme.error
-                    else MaterialTheme.colorScheme.secondary
-        )
-        if (dry == false && (rainProb ?: 0) > 0) {
-            Text(
-                text = "${rainProb}%",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.error
-            )
-        }
-        if (dry == false && (rainMm ?: 0.0) > 0.0) {
-            Text(
-                text = "%.1f mm".format(rainMm),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-/**
- * Fila por día del tramo elegido: una celda por día con su score (color) y la
- * inicial del día debajo. Los días con lluvia llevan la inicial en rojo.
- */
-/** Fila de puntuaciones por día del tramo — reutilizada también por el modo
- *  "Vías/Bloques" del buscador por grado (BLOCK_SEARCH_DESIGN.md §4.1b). */
 @Composable
 fun DayRangeRow(
     range: com.meteomontana.android.domain.model.RangeScore,
@@ -331,7 +335,7 @@ private fun RainSummaryTag(range: com.meteomontana.android.domain.model.RangeSco
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp
                 ),
-                color = MaterialTheme.colorScheme.secondary
+                color = okColor()
             )
         } else {
             val rainyDays = range.days.filter { it.rainy }.joinToString(" ") { weekdayLetter(it.date) }
@@ -358,39 +362,3 @@ private fun weekdayLetter(iso: String): String = try {
     val labels = arrayOf("L", "M", "X", "J", "V", "S", "D")  // ISO 1=lunes
     labels[java.time.LocalDate.parse(iso).dayOfWeek.value - 1]
 } catch (_: Throwable) { iso.takeLast(2) }
-
-private fun scoreLabel(score: Int?): String = com.meteomontana.android.util.CatalogLabels.scoreLabel(score)
-
-/**
- * Tira horizontal de 10 celdas saturadas. Sin gap entre celdas (como la PWA).
- * Altura 16dp para que el color sea bien visible.
- */
-@Composable
-private fun HourlyHeatmapBar(scores: List<Int>?, modifier: Modifier = Modifier) {
-    val items: List<Int?> = scores?.takeIf { it.isNotEmpty() }?.take(10) ?: List(10) { null }
-    Row(
-        modifier = modifier.height(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(0.dp)
-    ) {
-        items.forEach { s ->
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .background(
-                        color = s?.let { scoreColor(it) }
-                            ?: MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
-                    )
-            )
-        }
-    }
-}
-
-private fun buildSubtitle(school: School, distanceKm: Double?): String {
-    val parts = buildList {
-        school.rockType?.let { add(CatalogLabels.rock(it).uppercase()) }
-        school.region?.let   { add(com.meteomontana.android.util.CatalogLabels.region(it)) }
-        distanceKm?.let      { add("${it.toInt()} KM") }
-    }
-    return parts.joinToString("  ·  ")
-}

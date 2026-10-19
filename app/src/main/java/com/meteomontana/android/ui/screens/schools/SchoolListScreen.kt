@@ -671,16 +671,19 @@ fun SchoolListScreen(
                         // animateItem(): cuando llegan los scores y la lista se
                         // re-ordena, las cards se deslizan a su sitio en vez de
                         // teletransportarse.
-                        Column(modifier = Modifier.animateItem().guideTarget("schools.score", enabled = index == 0)) {
+                        // Tarjetas separadas (propuesta A, Álvaro 2026-10-19): sin divisor, con hueco entre ellas.
+                        Column(
+                            modifier = Modifier.animateItem()
+                                .padding(horizontal = 12.dp)
+                                .padding(top = if (index == 0) 12.dp else 0.dp, bottom = 10.dp)
+                                .guideTarget("schools.score", enabled = index == 0)
+                        ) {
                             SchoolListItem(
-                                rank = index + 1,
                                 school = school,
                                 todayScore = score?.todayScore,
                                 hourlyScores = score?.hourlyScores,
                                 distanceKm = viewModel.distanceTo(school.lat, school.lon),
                                 dry = score?.dryRock,
-                                rainMm = score?.rainMm,
-                                rainProb = score?.rainProb,
                                 range = if (selectedDays.isNotEmpty()) rangeScores[school.id] else null,
                                 isFavorite = school.id in favoriteIds,
                                 selectedForCompare = school.id in compareSelection,
@@ -692,7 +695,6 @@ fun SchoolListScreen(
                                 onLongClick = { viewModel.toggleCompare(school.id) },
                                 onToggleFavorite = { viewModel.toggleFavorite(school.id) }
                             )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
                         }
                     }
                     if (s.schools.isEmpty()) {

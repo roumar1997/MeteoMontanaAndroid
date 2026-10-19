@@ -1,5 +1,25 @@
 package com.meteomontana.android.ui.screens.profile
 
+import androidx.compose.foundation.layout.height
+
+import androidx.compose.ui.unit.sp
+
+import kotlin.math.roundToInt
+
+import androidx.compose.material.icons.filled.MoreHoriz
+
+import androidx.compose.material.icons.outlined.CalendarMonth
+
+import androidx.compose.foundation.layout.fillMaxHeight
+
+import androidx.compose.foundation.layout.offset
+
+import androidx.compose.ui.draw.clipToBounds
+
+import androidx.compose.ui.input.pointer.pointerInput
+
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+
 import androidx.compose.material.icons.outlined.Search
 
 import androidx.compose.foundation.layout.width
@@ -446,6 +466,9 @@ internal fun EntryRow(
     }
     if (showDatePicker && onChangeDate != null) {
         val pickerState = androidx.compose.material3.rememberDatePickerState(
+            initialSelectedDateMillis = runCatching {
+                java.time.LocalDate.parse(e.date.take(10)).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+            }.getOrNull(),
             selectableDates = object : androidx.compose.material3.SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long) =
                     utcTimeMillis <= System.currentTimeMillis()
@@ -463,109 +486,185 @@ internal fun EntryRow(
             }
         ) { androidx.compose.material3.DatePicker(state = pickerState) }
     }
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .then(if (e.schoolId != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+    // Deslizar la fila a la izquierda descubre FECHA y BORRAR; el «⋯» hace lo mismo con nombre (Álvaro, 2026-10-19,
+    // espejo de JournalRow de iOS). Solo cuenta el arrastre horizontal: el scroll de la lista no se toca.
+    val canEdit = canDelete || onChangeDate != null
+    val actionsWidth = (if (onChangeDate != null) 76.dp else 0.dp) + (if (canDelete) 76.dp else 0.dp)
+    val actionsPx = with(androidx.compose.ui.platform.LocalDensity.current) { actionsWidth.toPx() }
+    val swipe = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val closeSwipe: () -> Unit = { scope.launch { swipe.animateTo(0f) } }
+    var menuOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+
+    Box(
+        Modifier.fillMaxWidth()
+            .height(androidx.compose.foundation.layout.IntrinsicSize.Min)
+            .clipToBounds()
     ) {
-        // Miniatura de la piedra con el trazo de la vía, como en el buscador (Álvaro, 2026-10-19).
-        info?.photoUrl?.takeIf { it.isNotBlank() }?.let { photo ->
-            com.meteomontana.android.ui.screens.schools.MiniTopoThumbnail(photo, info.linePath, info.grade ?: e.grade,
-                Modifier.size(52.dp).clip(RoundedCornerShape(8.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp)))
-            androidx.compose.foundation.layout.Spacer(Modifier.width(12.dp))
+        if (canEdit && swipe.value < 0f) {
+            Row(Modifier.align(Alignment.CenterEnd).fillMaxHeight()) {
+                if (onChangeDate != null) {
+                    SwipeAction(stringResource(R.string.journal_swipe_date), Icons.Outlined.CalendarMonth,
+                        com.meteomontana.android.ui.theme.Ink3) { closeSwipe(); showDatePicker = true }
+                }
+                if (canDelete) {
+                    SwipeAction(stringResource(R.string.journal_entries_screen_v2_borrar), Icons.Outlined.Delete,
+                        MaterialTheme.colorScheme.error) { closeSwipe(); confirmDelete = true }
+                }
+            }
         }
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Grado ACTUAL del catálogo (refleja correcciones) o, si no se
-                // pudo resolver, el guardado al marcar la vía.
-                val eGrade = info?.grade ?: e.grade
-                val eSplit = com.meteomontana.android.ui.components.rememberLineSplit(e.lineId)
-                if (!eGrade.isNullOrBlank() && eSplit != null) {
-                    // La altura parte la opinión: el grado va en dos colores.
-                    com.meteomontana.android.ui.screens.detail.GradePill(eGrade, lineId = e.lineId)
-                } else if (!eGrade.isNullOrBlank()) {
-                    val gs = com.meteomontana.android.ui.theme.gradeChipStyle(eGrade)
-                    Box(modifier = Modifier
-                        .background(gs.stroke, RoundedCornerShape(3.dp))
-                        .padding(horizontal = 7.dp, vertical = 3.dp)
-                    ) {
-                        Text(eGrade,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                            color = if (gs.dark) androidx.compose.ui.graphics.Color.Black
-                                    else androidx.compose.ui.graphics.Color.White)
+        Row(
+            modifier = Modifier.fillMaxWidth()
+                .offset { androidx.compose.ui.unit.IntOffset(swipe.value.roundToInt(), 0) }
+                .background(MaterialTheme.colorScheme.background)
+                .then(if (canEdit) Modifier.pointerInput(actionsPx) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            scope.launch { swipe.animateTo(if (swipe.value < -actionsPx / 2) -actionsPx else 0f) }
+                        },
+                        onHorizontalDrag = { change, dx ->
+                            change.consume()
+                            scope.launch { swipe.snapTo((swipe.value + dx).coerceIn(-actionsPx - 60f, 0f)) }
+                        }
+                    )
+                } else Modifier)
+                // Con la fila abierta, tocarla la cierra (en vez de abrir la piedra).
+                .clickable(enabled = swipe.value < 0f || e.schoolId != null) {
+                    if (swipe.value < 0f) closeSwipe() else onClick()
+                }
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Miniatura de la piedra con el trazo de la vía, como en el buscador (Álvaro, 2026-10-19).
+            info?.photoUrl?.takeIf { it.isNotBlank() }?.let { photo ->
+                com.meteomontana.android.ui.screens.schools.MiniTopoThumbnail(photo, info.linePath, info.grade ?: e.grade,
+                    Modifier.size(52.dp).clip(RoundedCornerShape(8.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp)))
+            }
+            // Grado ACTUAL del catálogo (refleja correcciones) o el guardado al marcar la vía: cuadrado de su color.
+            val eGrade = info?.grade ?: e.grade
+            val eSplit = com.meteomontana.android.ui.components.rememberLineSplit(e.lineId)
+            if (!eGrade.isNullOrBlank() && eSplit != null) {
+                // La altura parte la opinión: el grado va en dos colores.
+                com.meteomontana.android.ui.screens.detail.GradePill(eGrade, lineId = e.lineId)
+            } else if (!eGrade.isNullOrBlank()) {
+                val gs = com.meteomontana.android.ui.theme.gradeChipStyle(eGrade)
+                Box(
+                    Modifier.size(width = 44.dp, height = 32.dp).background(gs.stroke)
+                        .then(if (gs.dark) Modifier.border(1.dp, MaterialTheme.colorScheme.outline) else Modifier),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(eGrade.uppercase(), fontFamily = com.meteomontana.android.ui.theme.Mono,
+                        fontSize = 12.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, maxLines = 1,
+                        color = if (gs.dark) androidx.compose.ui.graphics.Color.Black else androidx.compose.ui.graphics.Color.White)
+                }
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                val deleted = info?.deleted == true
+                Text(e.blockName,
+                    fontFamily = com.meteomontana.android.ui.theme.Serif,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 16.sp,
+                    color = if (deleted) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onBackground)
+                if (deleted) {
+                    Text(stringResource(R.string.journal_entries_screen_via_eliminada),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                // Estilo de ascensión: solo se ve si hay algo que enseñar (ajeno) o si es editable (propio).
+                if (e.aVista || e.alFlash || onChangeStyle != null) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (e.aVista || onChangeStyle != null) {
+                            StyleBadge(stringResource(R.string.journal_entries_screen_v4_a_vista), active = e.aVista,
+                                onClick = onChangeStyle?.let { { it(!e.aVista, e.alFlash) } })
+                        }
+                        if (e.alFlash || onChangeStyle != null) {
+                            StyleBadge(stringResource(R.string.journal_entries_screen_v4_al_flash), active = e.alFlash,
+                                onClick = onChangeStyle?.let { { it(e.aVista, !e.alFlash) } })
+                        }
                     }
                 }
-                // Estilo de ascensión: solo se ve si hay algo que enseñar
-                // (ajeno) o si es editable (propio, para poder añadirlo
-                // aunque no se marcara al principio).
-                if (e.aVista || onChangeStyle != null) {
-                    StyleBadge(stringResource(R.string.journal_entries_screen_v4_a_vista), active = e.aVista,
-                        onClick = onChangeStyle?.let { { it(!e.aVista, e.alFlash) } })
-                }
-                if (e.alFlash || onChangeStyle != null) {
-                    StyleBadge(stringResource(R.string.journal_entries_screen_v4_al_flash), active = e.alFlash,
-                        onClick = onChangeStyle?.let { { it(e.aVista, !e.alFlash) } })
-                }
-            }
-            val deleted = info?.deleted == true
-            Text(e.blockName,
-                style = MaterialTheme.typography.titleMedium,
-                color = if (deleted) MaterialTheme.colorScheme.onSurfaceVariant
-                        else MaterialTheme.colorScheme.onBackground)
-            if (deleted) {
-                Text(stringResource(R.string.journal_entries_screen_via_eliminada),
-                    style = MaterialTheme.typography.labelMedium,
+                // Escuela · Piedra N · sector · fecha («12 oct»): la fecha ya no es un botón escondido.
+                val subtitle = listOfNotNull(
+                    e.schoolName?.takeIf { it.isNotBlank() },
+                    info?.boulderNumber?.takeIf { it.isNotBlank() }?.let { "Piedra $it" },
+                    info?.sector?.takeIf { it.isNotBlank() },
+                    shortJournalDate(e.date)
+                ).joinToString(" · ")
+                Text(subtitle, fontFamily = com.meteomontana.android.ui.theme.Mono, fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                val eNotes = e.notes
+                // Ocultamos la nota auto "Piedra: N" (obsoleta: el número se recicla).
+                if (!eNotes.isNullOrBlank() && !eNotes.startsWith("Piedra: ")) {
+                    Text(eNotes,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface)
+                }
             }
-            // Escuela + (nº de piedra · sector) resueltos del catálogo en vivo.
-            // Si no se pudo resolver (sin red / vía no catalogada) solo va la escuela.
-            val subtitle = buildString {
-                append(e.schoolName.orEmpty())
-                info?.boulderNumber?.let { if (isNotEmpty()) append(" · "); append("Piedra $it") }
-                info?.sector?.let { if (isNotEmpty()) append(" · "); append(it) }
-            }
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            val eNotes = e.notes
-            // Ocultamos la nota auto "Piedra: N" (obsoleta: el número se recicla).
-            if (!eNotes.isNullOrBlank() && !eNotes.startsWith("Piedra: ")) {
-                Text(eNotes,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface)
-            }
-        }
-        // Fecha a la DERECHA (como iOS — feedback R2), pulsable si es editable.
-        Text(e.date,
-            style = MaterialTheme.typography.labelMedium,
-            color = if (onChangeDate != null) com.meteomontana.android.ui.theme.Terra
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = (if (onChangeDate != null)
-                Modifier.clickable { showDatePicker = true } else Modifier)
-                .padding(horizontal = 4.dp))
-        // Flecha que indica que la fila es pulsable → abre la piedra
-        if (e.schoolId != null) {
-            Icon(
-                Icons.Outlined.ChevronRight,
-                contentDescription = stringResource(R.string.journal_entries_screen_v2_ver_piedra),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        if (canDelete) {
-            IconButton(onClick = { confirmDelete = true }) {
-                Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.journal_entries_screen_v2_borrar),
-                    tint = MaterialTheme.colorScheme.error)
+            if (canEdit) {
+                // «⋯»: todo lo que se puede hacer con la entrada, con nombre y un botón grande.
+                Box {
+                    Box(
+                        Modifier.size(36.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(com.meteomontana.android.ui.components.cumbrePillBg())
+                            .clickable { menuOpen = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Filled.MoreHoriz, contentDescription = stringResource(R.string.journal_more_options),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                    }
+                    androidx.compose.material3.DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        if (onChangeDate != null) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(stringResource(R.string.journal_change_date)) },
+                                leadingIcon = { Icon(Icons.Outlined.CalendarMonth, contentDescription = null,
+                                    tint = com.meteomontana.android.ui.theme.Terra) },
+                                onClick = { menuOpen = false; showDatePicker = true })
+                        }
+                        if (canDelete) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(stringResource(R.string.journal_delete_from_log), color = MaterialTheme.colorScheme.error) },
+                                leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error) },
+                                onClick = { menuOpen = false; confirmDelete = true })
+                        }
+                    }
+                }
+            } else if (e.schoolId != null) {
+                // Flecha que indica que la fila es pulsable → abre la piedra.
+                Icon(
+                    Icons.Outlined.ChevronRight,
+                    contentDescription = stringResource(R.string.journal_entries_screen_v2_ver_piedra),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
 }
+
+/** Botón que descubre el deslizar (FECHA gris / BORRAR rojo). */
+@Composable
+private fun SwipeAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
+                        color: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
+    Column(
+        Modifier.width(76.dp).fillMaxHeight().background(color).clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(icon, contentDescription = null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(20.dp))
+        Text(label, color = androidx.compose.ui.graphics.Color.White, fontSize = 12.sp,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+    }
+}
+
+/** «2026-10-12» → «12 oct» (en el idioma del móvil, sin el punto de la abreviatura). */
+internal fun shortJournalDate(iso: String): String = runCatching {
+    java.time.LocalDate.parse(iso.take(10))
+        .format(java.time.format.DateTimeFormatter.ofPattern("d MMM", java.util.Locale.getDefault()))
+        .replace(".", "")
+}.getOrDefault(iso.take(10))
 
 
 /** Chip pequeño de estilo (A VISTA / AL FLASH) — pulsable si onClick != null,

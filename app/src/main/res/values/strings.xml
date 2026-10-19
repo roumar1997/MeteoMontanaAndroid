@@ -2008,4 +2008,13 @@
     <string name="journal_no_sector">SIN SECTOR</string>
     <string name="journal_delete_confirm_title">¿Borrar «%1$s» del diario?</string>
     <string name="journal_delete_confirm_body">Se quitará de tu diario y de tus estadísticas.</string>
+    <string name="schools_card_dry_rock">Roca seca</string>
+    <string name="schools_card_wet_rock">Roca mojada</string>
+    <string name="schools_card_no_score">Sin nota</string>
+    <string name="schools_card_best_now">Mejor hora: ahora (%1$d)</string>
+    <string name="schools_card_best_at">Mejor hora: a las %1$d h (%2$d)</string>
+    <string name="journal_swipe_date">Fecha</string>
+    <string name="journal_more_options">Más opciones</string>
+    <string name="journal_change_date">Cambiar fecha</string>
+    <string name="journal_delete_from_log">Borrar del diario</string>
 </resources>

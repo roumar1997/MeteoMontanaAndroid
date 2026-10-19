@@ -90,6 +90,7 @@ struct SchoolBlocksExplorerView: View {
                 .padding(.horizontal, 12).padding(.vertical, 7)
                 .background(activeCount > 0 ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
                 .overlay(Capsule().stroke(activeCount > 0 ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
+                .lineLimit(1).fixedSize()   // nunca se parte en varias líneas; cede el resumen
                 Text(summary).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(1)
                 Spacer(minLength: 0)
                 Image(systemName: model.filtersOpen ? "chevron.up" : "chevron.down")

@@ -1949,4 +1949,13 @@
     <string name="journal_no_sector">NO SECTOR</string>
     <string name="journal_delete_confirm_title">Delete “%1$s” from your log?</string>
     <string name="journal_delete_confirm_body">It will be removed from your log and your stats.</string>
+    <string name="schools_card_dry_rock">Dry rock</string>
+    <string name="schools_card_wet_rock">Wet rock</string>
+    <string name="schools_card_no_score">No score</string>
+    <string name="schools_card_best_now">Best hour: now (%1$d)</string>
+    <string name="schools_card_best_at">Best hour: %1$d:00 (%2$d)</string>
+    <string name="journal_swipe_date">Date</string>
+    <string name="journal_more_options">More options</string>
+    <string name="journal_change_date">Change date</string>
+    <string name="journal_delete_from_log">Delete from log</string>
 </resources>

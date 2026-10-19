@@ -620,6 +620,8 @@ struct FilterChips: View {
                     .padding(.horizontal, 12).padding(.vertical, 7)
                     .background(activeCount > 0 ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
                     .overlay(Capsule().stroke(activeCount > 0 ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
+                    // Nunca se parte («FILTR / OS / (1)» con BORRAR al lado, captura del 302): cede «N escuelas».
+                    .lineLimit(1).fixedSize()
                     if !vm.loading {
                         Text(L("%@ escuelas", vm.filtered.count)).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(1)
                             .minimumScaleFactor(0.8)
