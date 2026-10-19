@@ -1,5 +1,11 @@
 package com.meteomontana.android.ui.screens.users
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.HowToReg
 import com.meteomontana.android.ui.theme.inkButtonColor
 import com.meteomontana.android.util.toUserMessage
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -338,23 +344,23 @@ private fun Body(
     }
     Column(modifier = Modifier.fillMaxSize()
         .verticalScroll(rememberScrollState())
-        .padding(16.dp)) {
+        .padding(horizontal = 16.dp, vertical = 8.dp)) {
         // Cabecera centrada, igual que el perfil propio.
         Column(modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally) {
             if (p.photoUrl != null) {
                 AsyncImage(model = p.photoUrl, contentDescription = stringResource(R.string.a11y_zoom_photo),
-                    modifier = Modifier.size(96.dp).clip(CircleShape)
+                    modifier = Modifier.size(76.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                         .clickable { zoomPhoto = p.photoUrl })
             } else {
                 Image(painter = painterResource(R.drawable.logo_cumbre), contentDescription = null,
-                    modifier = Modifier.size(96.dp).clip(CircleShape)
+                    modifier = Modifier.size(76.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
             Text(p.displayName ?: p.username ?: stringResource(R.string.w_user),
-                fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 28.sp,
+                fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             Text("@${p.username ?: p.displayName?.lowercase()?.replace(" ", "_") ?: "usuario"}",
@@ -372,15 +378,30 @@ private fun Body(
             }
             // El grado tope ya NO es manual: se muestra automático desde el
             // diario en la fila de stats (TOPE BLOQUE / TOPE VÍA más abajo).
-            Spacer(Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
                 FollowCount(s.status.followers, stringResource(R.string.profile_followers).uppercase(),
                     if (locked) ({}) else onFollowersClick)
                 FollowCount(s.status.following, stringResource(R.string.profile_following).uppercase(),
                     if (locked) ({}) else onFollowingClick)
+                // «Te sigue»: una etiqueta clara, no un texto suelto debajo de los botones.
+                if (s.status.theyFollowMe && !locked) {
+                    Row(
+                        Modifier.clip(CircleShape).background(com.meteomontana.android.ui.theme.Ok.copy(alpha = 0.10f))
+                            .border(1.dp, com.meteomontana.android.ui.theme.Ok.copy(alpha = 0.5f), CircleShape)
+                            .padding(horizontal = 9.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Filled.HowToReg, null,
+                            tint = com.meteomontana.android.ui.theme.Ok, modifier = Modifier.size(14.dp))
+                        Text(stringResource(R.string.public_profile_screen_v2_te_sigue).uppercase(),
+                            fontFamily = com.meteomontana.android.ui.theme.Mono, fontWeight = FontWeight.Bold,
+                            fontSize = 9.5.sp, color = com.meteomontana.android.ui.theme.Ok)
+                    }
+                }
             }
         }
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(modifier = Modifier.weight(1f)) {
                 FollowButton(
@@ -390,30 +411,27 @@ private fun Body(
                 )
             }
             if (!locked) {
-                Box(modifier = Modifier
+                Row(modifier = Modifier
                     .weight(1f)
-                    .height(48.dp)
-                    .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
-                    .background(MaterialTheme.colorScheme.surface, com.meteomontana.android.ui.theme.CumbrePillShape)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, com.meteomontana.android.ui.theme.CumbrePillShape)
+                    .height(44.dp)
+                    .clip(CircleShape)
+                    .background(com.meteomontana.android.ui.theme.Terra.copy(alpha = 0.08f), CircleShape)
+                    .border(1.dp, com.meteomontana.android.ui.theme.Terra, CircleShape)
                     .clickable(onClick = onMessage),
-                    contentAlignment = Alignment.Center
+                    horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
                 ) {
+                    androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Filled.ChatBubble, null,
+                        tint = com.meteomontana.android.ui.theme.Terra, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.chat_message), style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onBackground)
+                        color = com.meteomontana.android.ui.theme.Terra)
                 }
             }
         }
-        if (s.status.theyFollowMe && !locked) {
-            Spacer(Modifier.height(8.dp))
-            Text(stringResource(R.string.public_profile_screen_v2_te_sigue), style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp))
-        }
         if (!locked && s.stats != null) {
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(12.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(10.dp))
             ActivityStatsRow(
                 stats = s.stats,
                 onBlocksClick = onOpenBoulders,
@@ -502,12 +520,13 @@ private fun StatBox(label: String, value: String, modifier: Modifier = Modifier,
             .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .padding(12.dp),
+            .padding(horizontal = 4.dp, vertical = 9.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(value, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
-            fontSize = 28.sp, color = MaterialTheme.colorScheme.onBackground)
-        Text(label, style = MaterialTheme.typography.labelMedium,
+            fontSize = 20.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
+        Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 2,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -559,21 +578,27 @@ private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
 @Composable
 private fun FollowButton(iFollow: Boolean, requestPending: Boolean, onClick: () -> Unit) {
     val text = when {
-        iFollow         -> stringResource(R.string.profile_unfollow)
+        iFollow         -> stringResource(R.string.profile_following).uppercase()
         requestPending  -> stringResource(R.string.profile_requested)
         else            -> stringResource(R.string.profile_follow)
     }
+    val icon = when {
+        iFollow -> androidx.compose.material.icons.Icons.Filled.Check
+        requestPending -> androidx.compose.material.icons.Icons.Filled.Schedule
+        else -> androidx.compose.material.icons.Icons.Filled.PersonAdd
+    }
     val filled = !iFollow && !requestPending
-    val bg = if (filled) inkButtonColor() else MaterialTheme.colorScheme.surface
-    val fg = if (filled) Color.White else MaterialTheme.colorScheme.onBackground
-    val borderColor = if (filled) inkButtonColor() else MaterialTheme.colorScheme.outline
-    Box(modifier = Modifier.fillMaxWidth().height(48.dp)
-        .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
-        .background(bg, com.meteomontana.android.ui.theme.CumbrePillShape)
-        .border(1.dp, borderColor, com.meteomontana.android.ui.theme.CumbrePillShape)
+    val bg = if (filled) com.meteomontana.android.ui.theme.terraFillColor() else MaterialTheme.colorScheme.surface
+    val fg = if (filled) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+    Row(modifier = Modifier.fillMaxWidth().height(44.dp)
+        .clip(CircleShape)
+        .background(bg, CircleShape)
+        .then(if (filled) Modifier else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
         .clickable(enabled = !requestPending, onClick = onClick),
-        contentAlignment = Alignment.Center
+        horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
     ) {
+        androidx.compose.material3.Icon(icon, null, tint = fg, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
         Text(text, style = MaterialTheme.typography.labelLarge, color = fg)
     }
 }

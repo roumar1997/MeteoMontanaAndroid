@@ -567,17 +567,32 @@ fun BlockDetailDialog(
                                         color = if (style.dark) MaterialTheme.colorScheme.onSurface else style.stroke
                                     )
                                 }
+                                // Nombre junto a la pastilla y, debajo, la variante en pequeño (como iOS): ocupa el
+                                // hueco que queda, así las acciones de la derecha nunca se salen ni se mueven.
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        line.name.ifBlank { stringResource(R.string.school_map_v3_via_2, "${idx + 1}") },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 2
+                                    )
+                                    if (!line.variant.isNullOrBlank()) {
+                                        Text(
+                                            line.variant!!,
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 2
+                                        )
+                                    }
+                                }
                                 if (line.startType != null) {
                                     Text(
-                                        "· ${line.startType}",
-                                        style = MaterialTheme.typography.labelSmall,
+                                        line.startType!!,
+                                        fontFamily = com.meteomontana.android.ui.theme.Mono,
+                                        fontSize = 10.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                                // El NOMBRE ya no vive en esta fila: va debajo, a todo
-                                // ancho (ver más abajo). Aquí solo quedan los chips y las
-                                // acciones, que así nunca se mueven ni se salen.
-                                Spacer(Modifier.weight(1f))
                                 // Compartir esta vía/bloque (WhatsApp etc.): enlace que
                                 // abre la app directamente en esta piedra con la línea.
                                 if (!isProposal) {
@@ -666,28 +681,6 @@ fun BlockDetailDialog(
                                                 onTickLine(line, idx, !done)
                                             }
                                             .padding(horizontal = 6.dp)
-                                    )
-                                }
-                            }
-                            // NOMBRE (+ variante) a todo ancho, alineado con la
-                            // descripción y los comentarios: se lee entero por largo que
-                            // sea y las acciones de arriba quedan siempre accesibles.
-                            if (line.name.isNotBlank()) {
-                                Text(
-                                    line.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.padding(start = 28.dp, bottom = 2.dp)
-                                )
-                                // La variante/descripción, debajo y en pequeño (la fila no cambia de alto).
-                                if (!line.variant.isNullOrBlank()) {
-                                    Text(
-                                        line.variant!!,
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 2,
-                                        modifier = Modifier.padding(start = 28.dp, bottom = 2.dp)
                                     )
                                 }
                             }

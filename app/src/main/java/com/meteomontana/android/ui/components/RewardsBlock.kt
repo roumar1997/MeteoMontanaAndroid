@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -277,11 +278,11 @@ fun RewardsBlock(uid: String?, viewModel: RewardsViewModel = hiltViewModel(key =
         }
         // El logro que la persona ha elegido enseñar (con su dificultad y el % de gente que lo tiene).
         FeaturedAchievement(rewards.featuredAchievement, rarity)
-        if (rewards.badges.isNotEmpty() || rewards.climberType != null || own) {
+        if (rewards.badges.isNotEmpty() || rewards.climberType != null) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
                 verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Sin elegir o «prefiero no decirlo»: no sale nada (tampoco en tu propio perfil).
                 rewards.climberType?.let { Badge(climberTypeLabel(it), climberTypeStyle(it).first) }
-                    ?: if (own) Badge(stringResource(R.string.rewards_pick_type), MaterialTheme.colorScheme.onSurfaceVariant) else Unit
                 if ("COLLABORATOR" in rewards.badges) Badge(stringResource(R.string.badge_collaborator), Terra) { badgeInfo = R.string.badge_collaborator_info }
                 if ("TRUSTED" in rewards.badges) Badge(stringResource(R.string.badge_trusted), Ok) { badgeInfo = R.string.badge_trusted_info }
             }
@@ -435,7 +436,8 @@ private fun AchievementPickRow(a: com.meteomontana.android.domain.usecase.journa
 private fun RewardsSheet(rewards: UserRewards, mineIds: Set<String>?, rarity: AchievementRarity?, onDismiss: () -> Unit,
                          onSave: (String?, Int?, String?) -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp).navigationBarsPadding(),
+        // Se desplaza: con todos los títulos y los logros no cabe en una pantalla (Álvaro, 2026-10-19).
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 24.dp).navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.climber_prompt_title), style = EyebrowTextStyle, color = Terra)
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -446,19 +448,6 @@ private fun RewardsSheet(rewards: UserRewards, mineIds: Set<String>?, rarity: Ac
                             Box(Modifier.weight(1f)) { ClimberChip(t.ifEmpty { null }, on) { onSave(t, null, null) } }
                         }
                         if (pair.size == 1) Box(Modifier.weight(1f)) {}
-                    }
-                }
-            }
-            Text(stringResource(R.string.rewards_title_pick), style = EyebrowTextStyle, color = Terra)
-            Text(stringResource(R.string.rewards_title_hint, rewards.approved), color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 12.sp)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ALL_LEVELS.forEach { l ->
-                    val has = l in rewards.unlockedLevels
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        TitlePill(l, on = rewards.titleLevel == l, locked = !has, showCheck = true,
-                            modifier = if (has) Modifier.clickable { onSave(null, l, null) } else Modifier)
-                        if (!has) Text(stringResource(R.string.rewards_needs, l), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                     }
                 }
             }
@@ -505,6 +494,19 @@ private fun RewardsSheet(rewards: UserRewards, mineIds: Set<String>?, rarity: Ac
                     }
                     (unlocked ?: emptyList()).forEach { a ->
                         AchievementPickRow(a, rarity, rewards.featuredAchievement == a.id) { onSave(null, null, a.id) }
+                    }
+                }
+            }
+            Text(stringResource(R.string.rewards_title_pick), style = EyebrowTextStyle, color = Terra)
+            Text(stringResource(R.string.rewards_title_hint, rewards.approved), color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ALL_LEVELS.forEach { l ->
+                    val has = l in rewards.unlockedLevels
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        TitlePill(l, on = rewards.titleLevel == l, locked = !has, showCheck = true,
+                            modifier = if (has) Modifier.clickable { onSave(null, l, null) } else Modifier)
+                        if (!has) Text(stringResource(R.string.rewards_needs, l), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                     }
                 }
             }

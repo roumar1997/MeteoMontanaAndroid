@@ -201,7 +201,6 @@ struct AccountView: View {
     var showClose: Bool = true
     @StateObject private var vm = AccountViewModel()
     @Environment(\.dismiss) private var dismiss
-    @State private var showAddBlock = false
     @State private var showGear = false
     @State private var zoomUrl: String? = nil   // foto de perfil a pantalla completa
 
@@ -210,7 +209,7 @@ struct AccountView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 10) {
                     if vm.offline {
                         Text(NSLocalizedString("common_offline_data", comment: ""))
                             .font(Cumbre.mono(10, .bold)).tracking(0.8)
@@ -228,14 +227,17 @@ struct AccountView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
                     }
-                    badges
-                    followCounters
-                        .guideTarget("profile.follows")
+                    // Todo más junto para que el diario y ESTADÍSTICAS se vean sin bajar (Álvaro, 2026-10-19).
+                    HStack(spacing: 20) {
+                        followCounters
+                            .guideTarget("profile.follows")
+                        badges
+                    }
                     diarySection
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.top, 24)
-                .padding(.horizontal, 24)
+                .padding(.top, 8)
+                .padding(.horizontal, 20)
             }
             .background(Cumbre.bg.ignoresSafeArea())
             .guideHost("profile")
@@ -279,13 +281,6 @@ struct AccountView: View {
                 }
             }
             .sheet(isPresented: $showGear) { MyGearSheet() }
-            .sheet(isPresented: $showAddBlock) {
-                AddBlockSheet { block, grade, schoolId, school, sector, notes, discipline in
-                    Task { await vm.addBlock(blockName: block, grade: grade, schoolId: schoolId,
-                                             schoolName: school, sector: sector, notes: notes,
-                                             discipline: discipline) }
-                }
-            }
             .task { await vm.load() }
             .fullScreenCover(isPresented: Binding(
                 get: { zoomUrl != nil },
@@ -301,22 +296,16 @@ struct AccountView: View {
     /// El listado completo ya no se vuelca aquí: se ve entrando en BLOQUES o
     /// ESCUELAS, y desde dentro se puede borrar.
     @ViewBuilder private var diarySection: some View {
+        // Sin «AÑADIR BLOQUE/VÍA»: se apunta con el ✓ desde la piedra (Álvaro, 2026-10-19).
         AccountJournalStatsNav(vm: vm)
             .guideTarget("profile.diary")
-        Button { showAddBlock = true } label: {
-            // Terracota: Cumbre.ink se invierte a crema en oscuro (deslumbraba).
-            Text(NSLocalizedString("profile_add_block", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8)
-                .foregroundStyle(.white).padding(.vertical, 14).frame(maxWidth: .infinity)
-                .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
-        }.buttonStyle(.plain).padding(.top, 4)
-            .guideTarget("profile.add")
     }
 
     private var avatar: some View {
         // Si el backend no tiene foto, usa la de la cuenta de Google (Firebase Auth).
         // AvatarCircle cachea en disco → se ve offline (igual que el resto de avatares).
         let photo = vm.profile?.photoUrl?.isEmpty == false ? vm.profile?.photoUrl : authBridge.currentPhotoUrl()
-        return AvatarCircle(url: photo, size: 88)
+        return AvatarCircle(url: photo, size: 76)
             .onTapGesture { if let p = photo, !p.isEmpty { zoomUrl = p } }
     }
 
@@ -512,6 +501,11 @@ private struct AccountJournalStatsNav: View {
     var body: some View {
         if let s = vm.stats {
             VStack(spacing: 8) {
+                // C4: MIS ESTADISTICAS arriba del todo, que se vea sin bajar.
+                NavigationLink(destination: StatsView()) {
+                    StatsEntryLabel()
+                }.buttonStyle(.plain)
+                    .guideTarget("profile.stats")
                 HStack(spacing: 8) {
                     NavigationLink(destination: AccountBlocksList(vm: vm, routeOnly: false)) {
                         cell("\(s.boulderCount)", L("BLOQUES"))
@@ -526,31 +520,33 @@ private struct AccountJournalStatsNav: View {
                 HStack(spacing: 8) {
                     cell(s.maxBoulderGrade ?? "—", L("MÁX BLOQUE"))
                     cell(s.maxRouteGrade ?? "—", L("MÁX VÍA"))
-                }
-                // Proyectos + Mis publicaciones: mismas celdas pulsables que el
-                // resto (decisión de Rodrigo: publicaciones con estilo de stats).
-                HStack(spacing: 8) {
                     NavigationLink(destination: ProjectsView()) {
                         cell("\(s.projectCount)", L("PROYECTOS"))
                     }.buttonStyle(.plain)
-                    NavigationLink(destination: MyPostsView()) {
-                        cell("›", L("MIS PUBLICACIONES"))
-                    }.buttonStyle(.plain)
                 }
-                // C4: MIS ESTADISTICAS (piramide, racha, progresion).
-                NavigationLink(destination: StatsView()) {
-                    StatsEntryLabel()
+                // Mis publicaciones: una fila fina en vez de otra celda grande.
+                NavigationLink(destination: MyPostsView()) {
+                    HStack {
+                        Text(L("MIS PUBLICACIONES")).font(Cumbre.mono(10, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink2)
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink3)
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 11)
+                    .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: Cumbre.statCardRadius))
+                    .overlay(RoundedRectangle(cornerRadius: Cumbre.statCardRadius).stroke(Cumbre.rule, lineWidth: 1))
                 }.buttonStyle(.plain)
             }
         }
     }
     private func cell(_ v: String, _ l: String) -> some View {
-        VStack(spacing: 3) {
-            Text(v).font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
-            Text(l).font(Cumbre.mono(9, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink3)
+        VStack(spacing: 2) {
+            Text(v).font(Cumbre.serif(20, .bold)).foregroundStyle(Cumbre.ink)
+                .lineLimit(1).minimumScaleFactor(0.6)
+            Text(l).font(Cumbre.mono(8.5, .bold)).tracking(0.6).foregroundStyle(Cumbre.ink3)
+                .lineLimit(2).multilineTextAlignment(.center).minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
+        .padding(.vertical, 9).padding(.horizontal, 4)
         .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: Cumbre.statCardRadius))
         .overlay(RoundedRectangle(cornerRadius: Cumbre.statCardRadius).stroke(Cumbre.rule, lineWidth: 1))
     }

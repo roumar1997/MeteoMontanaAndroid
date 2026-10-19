@@ -213,7 +213,6 @@ struct RewardsBlock: View {
             }
             HStack(spacing: 6) {
                 if let t = r.climberType { badge(climberTypeLabel(t), climberTypeStyle(t).color, info: nil) }
-                else if uid == nil { badge(L("¿Viero o bloquero?"), Cumbre.ink3, info: nil) }
                 if r.badges.contains("COLLABORATOR") {
                     badge(L("Colaborador"), Cumbre.terra, info: L("Colaborador: tiene al menos una aportación aprobada (una piedra, una vía o un cambio que un admin ha dado por bueno)."))
                 }

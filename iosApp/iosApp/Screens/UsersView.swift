@@ -262,16 +262,16 @@ struct PublicProfileView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 14) {
+            VStack(spacing: 10) {
                 // Solo admins: botón arriba a la izquierda que abre todo lo de gestión de esta persona.
                 if vm.adminAssistant != nil {
                     HStack { adminButton; Spacer() }.padding(.bottom, -4)
                 }
                 // Avatar ampliable con zoom al tocarlo (si tiene foto).
-                AvatarCircle(url: vm.profile?.photoUrl, size: 88)
+                AvatarCircle(url: vm.profile?.photoUrl, size: 76)
                     .onTapGesture { if vm.profile?.photoUrl != nil { zoomPhoto = true } }
                 Text(vm.profile?.displayName ?? vm.profile?.username ?? L("Usuario"))
-                    .font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
+                    .font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
                 if let u = vm.profile?.username, !u.isEmpty {
                     Text("@\(u)").font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink3)
                 }
@@ -297,23 +297,35 @@ struct PublicProfileView: View {
                     // El grado tope ya NO es manual: se ve automático (MÁX BLOQUE /
                     // MÁX VÍA del diario) en la sección DIARIO de abajo.
                     if let s = vm.status {
-                        HStack(spacing: 24) {
+                        HStack(spacing: 20) {
                             NavigationLink(destination: FollowListView(uid: realUid, mode: .followers)) {
                                 stat("\(s.followers)", L("SEGUIDORES"))
                             }.buttonStyle(.plain)
                             NavigationLink(destination: FollowListView(uid: realUid, mode: .following)) {
                                 stat("\(s.following)", L("SIGUIENDO"))
                             }.buttonStyle(.plain)
+                            // «Te sigue»: una etiqueta clara, no un texto suelto.
+                            if s.theyFollowMe {
+                                Label(L("TE SIGUE"), systemImage: "person.fill.checkmark")
+                                    .font(Cumbre.mono(9.5, .bold)).foregroundStyle(Cumbre.ok)
+                                    .padding(.horizontal, 9).padding(.vertical, 5)
+                                    .background(Cumbre.ok.opacity(0.10), in: Capsule())
+                                    .overlay(Capsule().stroke(Cumbre.ok.opacity(0.5), lineWidth: 1))
+                            }
                         }
-                        followButton(s)
-                        // Chat 1-a-1 con este usuario (Firestore).
-                        NavigationLink(destination: ChatView(
-                            otherUid: realUid,
-                            otherName: vm.profile?.displayName ?? vm.profile?.username ?? L("Usuario"))) {
-                            Text(NSLocalizedString("chat_message", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8).foregroundStyle(Cumbre.terra)
-                                .frame(maxWidth: .infinity).padding(.vertical, 12)
-                                .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1))
-                        }.buttonStyle(.plain)
+                        // Seguir y mensaje, uno al lado del otro (antes, dos botones grandes apilados).
+                        HStack(spacing: 10) {
+                            followButton(s)
+                            NavigationLink(destination: ChatView(
+                                otherUid: realUid,
+                                otherName: vm.profile?.displayName ?? vm.profile?.username ?? L("Usuario"))) {
+                                Label(NSLocalizedString("chat_message", comment: ""), systemImage: "bubble.left.fill")
+                                    .font(Cumbre.mono(11.5, .bold)).foregroundStyle(Cumbre.terra)
+                                    .frame(maxWidth: .infinity).padding(.vertical, 11)
+                                    .background(Cumbre.terra.opacity(0.08), in: Capsule())
+                                    .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1))
+                            }.buttonStyle(.plain)
+                        }
                     }
                     // Diario del usuario: BLOQUES / ESCUELAS / MÁXIMO navegables
                     // (igual que tu cuenta). Solo si su perfil es visible.
@@ -330,7 +342,7 @@ struct PublicProfileView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.top, 24).padding(.horizontal, 24)
+            .padding(.top, 8).padding(.horizontal, 20)
         }
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle("Perfil")
@@ -495,16 +507,16 @@ struct PublicProfileView: View {
         let following = s.iFollowThem
         let pending = s.requestPending
         Button { vm.toggleFollow(uid: realUid) } label: {
-            Text(pending ? NSLocalizedString("profile_requested", comment: "") : (following ? NSLocalizedString("profile_unfollow", comment: "") : NSLocalizedString("profile_follow", comment: "")))
-                .font(Cumbre.mono(12, .bold)).tracking(0.8)
-                .foregroundStyle(following || pending ? Cumbre.ink : .white)
-                .padding(.vertical, 12).padding(.horizontal, 28)
-                .background(following || pending ? Color.clear : Cumbre.terra, in: Capsule())
-                .overlay(Capsule().stroke(following || pending ? Cumbre.rule : Cumbre.terra, lineWidth: 1))
+            Label(pending ? NSLocalizedString("profile_requested", comment: "") : (following ? L("SIGUIENDO") : NSLocalizedString("profile_follow", comment: "")),
+                  systemImage: pending ? "clock" : (following ? "checkmark" : "person.badge.plus"))
+                .font(Cumbre.mono(11.5, .bold))
+                .foregroundStyle(following || pending ? Cumbre.ink2 : .white)
+                .frame(maxWidth: .infinity).padding(.vertical, 11)
+                .background(following || pending ? Cumbre.paper : Cumbre.terraFill, in: Capsule())
+                .overlay(Capsule().stroke(following || pending ? Cumbre.rule : Color.clear, lineWidth: 1))
         }
         .buttonStyle(.plain)
         .disabled(pending)
-        .padding(.top, 4)
     }
 }
 

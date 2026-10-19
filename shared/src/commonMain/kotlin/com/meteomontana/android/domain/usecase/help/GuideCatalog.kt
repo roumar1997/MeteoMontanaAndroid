@@ -107,8 +107,8 @@ object GuideCatalog {
         "profile" to listOf(
             GuideStep("profile.diary", "Tu diario",
                 "Toca BLOQUES, VÍAS o ESCUELAS para ver lo que has hecho. El grado máximo se calcula solo."),
-            GuideStep("profile.add", "Añadir a mano",
-                "Registra una vía o un bloque sin pasar por el mapa."),
+            GuideStep("profile.stats", "Tus estadísticas",
+                "Tu pirámide de grados, tu objetivo del año, tus logros y cuánto has escalado cada mes."),
             GuideStep("profile.follows", "Seguidores",
                 "Toca Seguidores o Siguiendo para ver y gestionar a la gente que sigues.")
         )
@@ -188,8 +188,8 @@ object GuideCatalog {
         "profile" to listOf(
             GuideStep("profile.diary", "Your logbook",
                 "Tap BOULDERS, ROUTES or CRAGS to see what you've done. Your max grade is worked out for you."),
-            GuideStep("profile.add", "Add by hand",
-                "Log a route or boulder without going through the map."),
+            GuideStep("profile.stats", "Your statistics",
+                "Your grade pyramid, your yearly goal, your achievements and how much you climbed each month."),
             GuideStep("profile.follows", "Followers",
                 "Tap Followers or Following to see and manage the people you follow.")
         )

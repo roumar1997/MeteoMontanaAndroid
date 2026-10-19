@@ -354,7 +354,6 @@ private fun Content(
         item { Header(profile, followers = followers, following = following,
             onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing) }
         item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects, onOpenMyPosts, onOpenStats) }
-        item { AddBlockButton(onClick = onAddBlock) }
         // Admin ya no va aquí: es un botón arriba a la izquierda (junto al "?").
         // La lista de escuelas tampoco (ya vive en la pestaña Diario).
         item { Spacer(Modifier.height(24.dp)) }
@@ -375,10 +374,10 @@ private fun Header(
         com.meteomontana.android.ui.components.FullScreenPhotoDialog(url) { zoomPhoto = null }
     }
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Avatar centrado y grande.
+        // Avatar centrado (algo más pequeño: que el diario y ESTADÍSTICAS se vean sin bajar).
         if (p.photoUrl != null) {
             androidx.compose.runtime.key(p.photoUrl) {
                 AsyncImage(
@@ -388,7 +387,7 @@ private fun Header(
                         .crossfade(200)
                         .build(),
                     contentDescription = null,
-                    modifier = Modifier.size(96.dp).clip(CircleShape)
+                    modifier = Modifier.size(76.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                         .clickable { zoomPhoto = p.photoUrl }
                 )
@@ -397,15 +396,15 @@ private fun Header(
             Image(
                 painter = painterResource(R.drawable.logo_cumbre),
                 contentDescription = null,
-                modifier = Modifier.size(96.dp).clip(CircleShape)
+                modifier = Modifier.size(76.dp).clip(CircleShape)
                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
             )
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(8.dp))
         // Nombre grande serif.
         Text(
             p.displayName ?: p.username ?: stringResource(R.string.school_presence_row_v3_tu),
-            fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 28.sp,
+            fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 24.sp,
             color = MaterialTheme.colorScheme.onBackground
         )
         Text(
@@ -434,20 +433,15 @@ private fun Header(
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
 
-        // Píldoras ADMIN / PREMIUM (el grado máx ya está en las stats).
-        if (p.isAdmin || p.isPremium) {
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (p.isAdmin) ProfilePill("ADMIN", MaterialTheme.colorScheme.onBackground)
-                if (p.isPremium) ProfilePill("PREMIUM", MaterialTheme.colorScheme.primary)
+        // Seguidores / siguiendo y las píldoras ADMIN / PREMIUM en UNA fila (antes, dos bloques apilados).
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(horizontalArrangement = Arrangement.spacedBy(20.dp), modifier = Modifier.guideTarget("profile.follows")) {
+                FollowCount(followers, stringResource(R.string.profile_followers).uppercase(), onClickFollowers)
+                FollowCount(following, stringResource(R.string.profile_following).uppercase(), onClickFollowing)
             }
-        }
-
-        // Seguidores / siguiendo centrados.
-        Spacer(Modifier.height(16.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(32.dp), modifier = Modifier.guideTarget("profile.follows")) {
-            FollowCount(followers, stringResource(R.string.profile_followers).uppercase(), onClickFollowers)
-            FollowCount(following, stringResource(R.string.profile_following).uppercase(), onClickFollowing)
+            if (p.isAdmin) ProfilePill("ADMIN", MaterialTheme.colorScheme.onBackground)
+            if (p.isPremium) ProfilePill("PREMIUM", MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -763,9 +757,11 @@ private fun StatsRow(
     onOpenStats: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(16.dp).guideTarget("profile.diary"),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).guideTarget("profile.diary"),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // ESTADÍSTICAS arriba del todo, que se vea sin bajar (Álvaro, 2026-10-19).
+        Box(Modifier.guideTarget("profile.stats")) { com.meteomontana.android.ui.components.StatsEntryButton(onClick = onOpenStats) }
         // Fila 1: contadores BLOQUES / VÍAS / ESCUELAS.
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCell(stringResource(R.string.profile_blocks), stats.boulderCount.toString(), Modifier.weight(1f).clickable(onClick = onBoulders))
@@ -776,21 +772,20 @@ private fun StatsRow(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCell(stringResource(R.string.profile_max_boulder), stats.maxBoulderGrade ?: "—", Modifier.weight(1f).clickable(onClick = onMax))
             StatCell(stringResource(R.string.profile_max_route), stats.maxRouteGrade ?: "—", Modifier.weight(1f).clickable(onClick = onMax))
-        }
-        // Fila 3: PROYECTOS + MIS PUBLICACIONES — mismas celdas pulsables que
-        // el resto (decisión de Rodrigo: publicaciones con el estilo de stats,
-        // no como fila de menú). Publicaciones no tiene contador barato → "›".
-        //
-        // DOS por fila, no tres: es lo que hace `AccountView.swift` en iOS.
-        // Metidas las tres, "Mis publicaciones" se partía en dos líneas y
-        // ESTADÍSTICAS quedaba diminuta — se vio comparando capturas de las dos
-        // apps a la vez.
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCell(stringResource(R.string.profile_projects), stats.projectCount.toString(), Modifier.weight(1f).clickable(onClick = onProjects))
-            StatCell(stringResource(R.string.feed_my_posts_section).uppercase(), "›", Modifier.weight(1f).clickable(onClick = onMyPosts))
         }
-        // Fila 4: ESTADÍSTICAS a todo el ancho, como en iOS.
-        com.meteomontana.android.ui.components.StatsEntryButton(onClick = onOpenStats)
+        // Mis publicaciones: una fila fina en vez de otra celda grande (como iOS).
+        Row(
+            Modifier.fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface, com.meteomontana.android.ui.theme.CumbreStatCardShape)
+                .border(1.dp, MaterialTheme.colorScheme.outline, com.meteomontana.android.ui.theme.CumbreStatCardShape)
+                .clickable(onClick = onMyPosts).padding(horizontal = 14.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(stringResource(R.string.feed_my_posts_section).uppercase(), style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+            Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
+        }
     }
 }
 
@@ -800,30 +795,14 @@ private fun StatCell(label: String, value: String, modifier: Modifier = Modifier
         modifier = modifier
             .background(MaterialTheme.colorScheme.surface, com.meteomontana.android.ui.theme.CumbreStatCardShape)
             .border(1.dp, MaterialTheme.colorScheme.outline, com.meteomontana.android.ui.theme.CumbreStatCardShape)
-            .padding(12.dp),
+            .padding(horizontal = 4.dp, vertical = 9.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(value, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
-            fontSize = 28.sp, color = MaterialTheme.colorScheme.onBackground)
-        Text(label, style = MaterialTheme.typography.labelMedium,
+            fontSize = 20.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
+        Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 2,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun AddBlockButton(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .guideTarget("profile.add")
-            .height(48.dp)
-            .background(MaterialTheme.colorScheme.primary, com.meteomontana.android.ui.theme.CumbrePillShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(stringResource(R.string.profile_add_block), color = Color.White,
-            style = MaterialTheme.typography.labelLarge)
     }
 }
 
