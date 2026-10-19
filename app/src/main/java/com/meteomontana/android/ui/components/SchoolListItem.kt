@@ -109,16 +109,19 @@ fun SchoolListItem(
             ScoreRing(value)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = school.name,
-                        style = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 18.sp),
-                        color = MaterialTheme.colorScheme.onBackground,
-                        maxLines = 2, overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    val kind = com.meteomontana.android.domain.util.SchoolKind.from(school.style)
-                    if (!kind.isEmpty) SchoolKindIcons(kind)
-                    Spacer(Modifier.weight(0.0001f))
+                    // Nombre + iconos ocupan todo lo que sobra: la estrella queda pegada a la derecha (como iOS).
+                    Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = school.name,
+                            style = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 18.sp),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            maxLines = 2, overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        val kind = com.meteomontana.android.domain.util.SchoolKind.from(school.style)
+                        if (!kind.isEmpty) SchoolKindIcons(kind)
+                    }
                     // Procesionaria: solo si ya se sabe Y estamos en su temporada (Álvaro, 2026-09-05).
                     if (processionaryAlertActive) {
                         Box(
