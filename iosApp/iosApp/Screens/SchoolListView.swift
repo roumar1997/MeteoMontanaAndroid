@@ -671,48 +671,18 @@ struct SchoolListView: View {
             }
     }
 
-    /// La lista moderna (Álvaro, 2026-10-19): ordenadas por nota y sin búsqueda, la primera va destacada como
-    /// LA MEJOR DE HOY y el resto en filas compactas dentro de un bloque. Ordenadas por distancia o buscando, todas
-    /// compactas (decir «la mejor» de una lista que no va por nota sería mentir).
+    /// La lista moderna (Álvaro, 2026-10-19, propuesta A): cada escuela en su tarjeta con el anillo de la nota.
     @ViewBuilder private func schoolsSection(_ items: [School]) -> some View {
-        let showHero = vm.sortBy == .score && vm.query.trimmingCharacters(in: .whitespaces).isEmpty
-            && (vm.rangeMode ? vm.rangeScores[items[0].id] != nil : vm.scores[items[0].id] != nil)
-        if showHero {
-            schoolHero(items[0])
-        }
-        let rest = showHero ? Array(items.dropFirst()) : items
-        if !rest.isEmpty {
-            if showHero {
-                SchoolListSectionLabel(text: L("EL RESTO · POR NOTA"))
-            } else {
-                Color.clear.frame(height: 12)
+        VStack(spacing: 10) {
+            ForEach(Array(items.enumerated()), id: .element.id) { idx, school in
+                schoolCard(school, isFirst: idx == 0)
             }
-            SchoolRowsBlock {
-                ForEach(Array(rest.enumerated()), id: \.element.id) { idx, school in
-                    if idx > 0 { Divider().overlay(Cumbre.rule) }
-                    schoolRow(school, guideTarget: !showHero && idx == 0)
-                }
-            }
-            Color.clear.frame(height: 12)
         }
+        .padding(12)
     }
 
-    private func schoolHero(_ school: School) -> some View {
-        SchoolHeroCard(
-            school: school,
-            score: vm.scores[school.id],
-            range: vm.rangeMode ? vm.rangeScores[school.id] : nil,
-            distanceKm: vm.distanceKm(school),
-            isFavorite: vm.favoriteIds.contains(school.id),
-            isSelected: vm.compareSelection.contains(school.id),
-            processionaryAlertActive: vm.processionaryAlertActive(for: school),
-            onToggleFavorite: { vm.toggleFavorite(school.id) }
-        )
-        .modifier(SchoolTapGestures(open: { openSchool(school) }, compare: { vm.toggleCompare(school.id) }))
-    }
-
-    private func schoolRow(_ school: School, guideTarget: Bool) -> some View {
-        SchoolCompactRow(
+    private func schoolCard(_ school: School, isFirst: Bool) -> some View {
+        SchoolCardView(
             school: school,
             score: vm.scores[school.id],
             range: vm.rangeMode ? vm.rangeScores[school.id] : nil,
@@ -721,7 +691,7 @@ struct SchoolListView: View {
             isSelected: vm.compareSelection.contains(school.id),
             processionaryAlertActive: vm.processionaryAlertActive(for: school),
             onToggleFavorite: { vm.toggleFavorite(school.id) },
-            isGuideTarget: guideTarget
+            isFirst: isFirst
         )
         .modifier(SchoolTapGestures(open: { openSchool(school) }, compare: { vm.toggleCompare(school.id) }))
     }
