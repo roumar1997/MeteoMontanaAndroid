@@ -400,6 +400,7 @@ private fun tierNameRes(t: com.meteomontana.android.domain.usecase.journal.Achie
 }
 
 /** Una vez: «¿Escalas sobre todo vías o bloque?». Opcional; se cierra con «Ahora no» y se cambia luego en la hoja. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun ClimberTypePrompt(rewards: UserRewards, onChoose: (String) -> Unit) {
     val prefs = LocalContext.current.getSharedPreferences("rewards", android.content.Context.MODE_PRIVATE)

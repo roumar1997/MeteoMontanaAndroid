@@ -142,8 +142,7 @@ fun SchoolListItem(
                 // Nota en palabras · roca y distancia · seca/mojada; se parten en dos líneas si no caben.
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
-                    itemVerticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     if (value != null) SoftPill(niceScoreLabel(value), MaterialTheme.colorScheme.onSurfaceVariant, cumbrePillBg())
                     val meta = schoolMeta(school, distanceKm)
