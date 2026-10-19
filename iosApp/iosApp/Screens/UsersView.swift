@@ -537,6 +537,11 @@ struct AvatarCircle: View {
     var uid: String? = nil
     @State private var image: UIImage?
     @ObservedObject private var badges = UserBadgeStore.shared
+    /// Lleva hadas o dragones animados (foto grande con efecto y título visible).
+    private var effectRoom: Bool {
+        guard size >= 60, let b = uid.flatMap({ badges.badges[$0] }), !b.titleHidden else { return false }
+        return TitleEffectKind(b.titleEffect) != nil
+    }
     var body: some View {
         Group {
             if let image {
@@ -549,6 +554,9 @@ struct AvatarCircle: View {
         .clipShape(Circle())
         .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
         .overlay(AvatarRing(badge: uid.flatMap { badges.badges[$0] }, size: size))
+        // Con hadas o dragones animados (perfil): hueco encima y debajo para que no se corten ni tapen el nombre.
+        .padding(.top, effectRoom ? size * 0.66 : 0)
+        .padding(.bottom, effectRoom ? size * 0.45 : 0)
         .onAppear { badges.want(uid) }
         // Caché en disco (igual que las fotos de piedras): el avatar se ve SIN
         // conexión una vez descargado. AsyncImage no persistía en disco → offline

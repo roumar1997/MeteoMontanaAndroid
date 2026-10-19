@@ -2017,4 +2017,9 @@
     <string name="journal_more_options">Más opciones</string>
     <string name="journal_change_date">Cambiar fecha</string>
     <string name="journal_delete_from_log">Borrar del diario</string>
+    <string name="title_info_special">«%1$s» es un título especial que le ha dado el equipo de Cumbre.</string>
+    <string name="title_info_fairies">Lleva una aureola de hadas.</string>
+    <string name="title_info_dragons">Lleva una aureola de dragones.</string>
+    <string name="title_info_starter">«%1$s» es el título con el que empieza todo el mundo. Se suben de nivel aportando piedras, vías y correcciones que aprueba el equipo.</string>
+    <string name="title_info_level">«%1$s» se consigue con %2$d aportaciones aprobadas (piedras, vías y correcciones que revisa el equipo). Lleva %3$d.</string>
 </resources>

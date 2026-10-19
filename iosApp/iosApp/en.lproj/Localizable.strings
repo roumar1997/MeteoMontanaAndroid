@@ -1680,3 +1680,10 @@
 "Borrar del diario" = "Delete from log";
 "Más opciones" = "More options";
 "Fecha" = "Date";
+"«%@» es un título especial que le ha dado el equipo de Cumbre." = "“%@” is a special title given by the Cumbre team.";
+"Lleva una aureola de hadas." = "It comes with a fairy halo.";
+"Lleva una aureola de dragones." = "It comes with a dragon halo.";
+"«%@» es el título con el que empieza todo el mundo. Se suben de nivel aportando piedras, vías y correcciones que aprueba el equipo." = "“%@” is the title everyone starts with. You level up by adding boulders, routes and corrections approved by the team.";
+"«%@» se consigue con %@ aportaciones aprobadas (piedras, vías y correcciones que revisa el equipo). Lleva %@." = "“%@” is earned with %@ approved contributions (boulders, routes and corrections reviewed by the team). They have %@.";
+"EFECTO ALREDEDOR DE LA FOTO" = "EFFECT AROUND THE PHOTO";
+"Mi título y efecto" = "My title and effect";

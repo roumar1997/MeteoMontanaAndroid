@@ -226,8 +226,9 @@ struct RewardsBlock: View {
     var body: some View {
         VStack(spacing: 6) {
             if let r = model.rewards {
-                Button { if uid == nil { sheet = true } } label: { summary(r) }
-                    .buttonStyle(.plain).disabled(uid != nil)
+                // En el tuyo abre la hoja para elegir; en el de otra persona cuenta cómo consiguió su título.
+                Button { if uid == nil { sheet = true } else { badgeInfo = titleInfo(r) } } label: { summary(r) }
+                    .buttonStyle(.plain)
                 if uid == nil && !promptDone && r.climberType == nil { prompt }
             }
         }
@@ -276,6 +277,26 @@ struct RewardsBlock: View {
                     .tint(Cumbre.terraFill).frame(maxWidth: 220)
             }
         }
+    }
+
+    /// Qué es su título y cómo se consigue (Álvaro, 2026-10-19: «que le cuente lo que es»). nil = nada que contar.
+    private func titleInfo(_ r: UserRewards) -> String? {
+        if r.titleHidden { return nil }
+        if let special = r.specialTitle, !special.isEmpty {
+            var text = L("«%@» es un título especial que le ha dado el equipo de Cumbre.", special)
+            switch TitleEffectKind(r.titleEffect) {
+            case .fairies: text += " " + L("Lleva una aureola de hadas.")
+            case .dragons: text += " " + L("Lleva una aureola de dragones.")
+            case nil: break
+            }
+            return text
+        }
+        let level = Int(r.titleLevel)
+        if level <= 0 {
+            return L("«%@» es el título con el que empieza todo el mundo. Se suben de nivel aportando piedras, vías y correcciones que aprueba el equipo.", rewardTitle(0))
+        }
+        return L("«%@» se consigue con %@ aportaciones aprobadas (piedras, vías y correcciones que revisa el equipo). Lleva %@.",
+                 rewardTitle(level), level, Int(r.approved))
     }
 
     @ViewBuilder

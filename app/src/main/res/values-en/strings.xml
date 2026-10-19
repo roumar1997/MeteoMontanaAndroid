@@ -1958,4 +1958,9 @@
     <string name="journal_more_options">More options</string>
     <string name="journal_change_date">Change date</string>
     <string name="journal_delete_from_log">Delete from log</string>
+    <string name="title_info_special">“%1$s” is a special title given by the Cumbre team.</string>
+    <string name="title_info_fairies">It comes with a fairy halo.</string>
+    <string name="title_info_dragons">It comes with a dragon halo.</string>
+    <string name="title_info_starter">“%1$s” is the title everyone starts with. You level up by adding boulders, routes and corrections approved by the team.</string>
+    <string name="title_info_level">“%1$s” is earned with %2$d approved contributions (boulders, routes and corrections reviewed by the team). They have %3$d.</string>
 </resources>

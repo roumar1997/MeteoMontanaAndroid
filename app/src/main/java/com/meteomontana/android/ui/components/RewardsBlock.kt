@@ -314,9 +314,18 @@ fun RewardsBlock(uid: String?, viewModel: RewardsViewModel = hiltViewModel(key =
             confirmButton = { androidx.compose.material3.TextButton(onClick = { badgeInfo = null }) { Text("OK") } },
             text = { Text(stringResource(res)) })
     }
+    // En el perfil de otra persona, tocar su título cuenta qué es y cómo se consigue (Álvaro, 2026-10-19).
+    var titleInfoOpen by remember { mutableStateOf(false) }
+    if (titleInfoOpen) {
+        androidx.compose.material3.AlertDialog(onDismissRequest = { titleInfoOpen = false },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { titleInfoOpen = false }) { Text("OK") } },
+            text = { Text(titleInfoText(rewards)) })
+    }
 
     Column(
-        Modifier.widthIn(max = 420.dp).fillMaxWidth().then(if (own) Modifier.clickable { sheet = true } else Modifier)
+        Modifier.widthIn(max = 420.dp).fillMaxWidth()
+            .then(if (own) Modifier.clickable { sheet = true }
+                  else if (!rewards.titleHidden) Modifier.clickable { titleInfoOpen = true } else Modifier)
             .padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
@@ -587,4 +596,20 @@ private fun RewardsSheet(rewards: UserRewards, mineIds: Set<String>?, rarity: Ac
             }
         }
     }
+}
+
+/** Qué es su título y cómo se consigue (espejo de titleInfo de iOS). */
+@Composable
+private fun titleInfoText(r: com.meteomontana.android.domain.model.UserRewards): String {
+    val special = r.specialTitle
+    if (!special.isNullOrBlank()) {
+        val base = stringResource(R.string.title_info_special, special)
+        return when (TitleEffectKind.from(r.titleEffect)) {
+            TitleEffectKind.FAIRIES -> base + " " + stringResource(R.string.title_info_fairies)
+            TitleEffectKind.DRAGONS -> base + " " + stringResource(R.string.title_info_dragons)
+            null -> base
+        }
+    }
+    if (r.titleLevel <= 0) return stringResource(R.string.title_info_starter, rewardTitle(0))
+    return stringResource(R.string.title_info_level, rewardTitle(r.titleLevel), r.titleLevel, r.approved)
 }
