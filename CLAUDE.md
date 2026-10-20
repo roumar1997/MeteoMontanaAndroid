@@ -229,6 +229,8 @@ Reglas:
 
 ## Estado actual
 
+**✨ HADAS Y DRAGONES (2026-10-20) — backend en PRODUCCIÓN (main f91fbab, V96), iOS 304 en TestFlight y VALIDADO, Android con lo mismo; AAB firmado `Desktop\AABs Play\cumbre-6.7-vc122.aab` (el vc121 de esa carpeta es anterior: NO subirlo).** Efecto animado alrededor de la foto que SOLO pone un admin (también a sí mismo, desde «MI TÍTULO Y EFECTO»); la persona se lo quita eligiendo otro título. Antes del AAB: `:app:compileReleaseKotlin` (el debug usa una Compose más nueva). Detalle en `HISTORIAL.md` 2026-10-19/20 (4ª vuelta).
+
 **🗂️ ESCUELAS EN TARJETAS + DIARIO «⋯»/DESLIZAR + HORAS ARREGLADAS (2026-10-19, 3ª vuelta) — backend en PRODUCCIÓN (main fcd0a69), iOS 302 en TestFlight y VALIDADO, Android con lo mismo y VALIDADO en el Xiaomi (sin AAB).** Lo hecho después del 302 (arreglo de «Activos hoy» del admin en iOS y «FILTROS» que no se parte) va en el próximo build de iOS. **El panel de ADMIN se queda SOLO en iOS** (Álvaro, 2026-10-19): no portarlo ni pedir capturas de admin. Detalle en `HISTORIAL.md` 2026-10-19 (3ª vuelta).
 
 **✔️ VERIFICADO + AUREOLA + DIARIO (2026-10-19, 2ª vuelta) — backend en PRODUCCIÓN (main 0985817, `POST /api/users/badges`), iOS build 299 VALIDADO y 300 (confirmar al borrar del diario) a TestFlight; Android con los mismos cambios, compila y pasa tests, SIN PROBAR en el móvil.** Siguiente: Álvaro prueba el 300, se le piden capturas CONCRETAS de iOS para Android, y checklist de Android (6.6 + esto) con el Xiaomi conectado. Pendiente suyo: quitar `TELEGRAM_BOT_TOKEN` de staging en Railway para que el bot solo avise de producción. Detalle en `HISTORIAL.md` 2026-10-19 (2ª vuelta).
