@@ -57,7 +57,6 @@ struct ForecastBodyView: View {
                 .guideTarget("detail_weather.days")
             ForEach(Array(f.days.prefix(7).enumerated()), id: \.offset) { _, d in
                 Button { onSelectDay?(d) } label: { DayRow(day: d) }.buttonStyle(.plain)
-                Divider().overlay(Cumbre.rule)
             }
         }
     }
@@ -83,7 +82,6 @@ struct ForecastBodyView: View {
             SectionTitle(L("PRÓXIMOS 7 DÍAS"))
             ForEach(Array(f.days.prefix(7).enumerated()), id: \.offset) { _, d in
                 Button { onSelectDay?(d) } label: { DayRow(day: d) }.buttonStyle(.plain)
-                rule
             }
             // "MEJOR DÍA" quitado a petición.
         }
@@ -124,6 +122,10 @@ private struct HeroSection: View {
             }
         }
         .padding(16)
+        // Tarjeta redondeada, como las de Escuelas.
+        .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Cumbre.rule, lineWidth: 1))
+        .padding(.horizontal, 12).padding(.vertical, 6)
     }
 }
 
@@ -201,8 +203,8 @@ private struct RockStatusBand: View {
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
         .background(accent.opacity(0.12))
-        .overlay(RoundedRectangle(cornerRadius: 8).stroke(accent.opacity(0.45), lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(accent.opacity(0.45), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }
 
@@ -217,7 +219,7 @@ private struct HeatmapStrip: View {
             }
         }
         .frame(height: 18)
-        .clipShape(RoundedRectangle(cornerRadius: 2))
+        .clipShape(Capsule())
     }
 }
 
@@ -299,7 +301,7 @@ private struct HoursGrid: View {
                     VStack(spacing: compact ? 2 : 6) {
                         Text(short(h.time)).font(Cumbre.mono(compact ? 10 : 11)).foregroundStyle(Cumbre.ink3)
                         WmoIcon(code: Int(h.weatherCode), size: compact ? 16 : 22, tint: Cumbre.ink2)
-                        RoundedRectangle(cornerRadius: 2).fill(Cumbre.score(Int(h.score)))
+                        RoundedRectangle(cornerRadius: 6).fill(Cumbre.score(Int(h.score)))
                             .frame(width: compact ? 28 : 30, height: compact ? 20 : 30)
                             .overlay(Text("\(Int(h.score))").font(Cumbre.mono(11, .bold)).foregroundStyle(.white))
                         Text("\(Int(h.temperature))°").font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink2)
@@ -355,28 +357,36 @@ private struct ConditionsGrid: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(8)
-        .background(Cumbre.paper)
-        .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+        .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
     }
 }
 
 // MARK: - Día y mejor día
 
+/// Un día de la previsión como tarjeta: la nota en un anillo del color de su nota, igual que en la lista de Escuelas.
 private struct DayRow: View {
     let day: DayForecast
     var body: some View {
+        let score = Int(day.avgScore)
         HStack(spacing: 12) {
-            Text("\(Int(day.avgScore))")
-                .font(Cumbre.serif(20, .bold)).foregroundStyle(Cumbre.score(Int(day.avgScore)))
-                .frame(width: 40, alignment: .leading)
+            ZStack {
+                Circle().stroke(Cumbre.score(score), lineWidth: 3)
+                Text("\(score)").font(Cumbre.serif(15, .bold)).foregroundStyle(Cumbre.ink)
+            }
+            .frame(width: 42, height: 42)
             VStack(alignment: .leading, spacing: 2) {
                 Text(dayLabel(day.date)).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
                 Text(L("MÁX %@°  ·  MÍN %@°  ·  %@ mm", Int(day.tempMax), Int(day.tempMin), trim(day.precipitationTotal)))
                     .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
             }
             Spacer()
+            Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(Cumbre.ink3)
         }
-        .padding(.horizontal, 16).padding(.vertical, 12)
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Cumbre.rule, lineWidth: 1))
+        .padding(.horizontal, 12).padding(.vertical, 4)
     }
 }
 

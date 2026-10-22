@@ -152,6 +152,68 @@ final class ChatVM: ObservableObject {
     func stop() { task?.cancel(); task = nil; convTask?.cancel(); convTask = nil }
 }
 
+// MARK: - Estilo compartido de las conversaciones (1 a 1 y grupos)
+
+/// Hora de un mensaje (HH:mm), siempre; el día va aparte en un separador.
+func chatClock(_ millis: Int64) -> String {
+    guard millis > 0 else { return "" }
+    let f = DateFormatter()
+    f.dateFormat = "HH:mm"
+    return f.string(from: Date(timeIntervalSince1970: Double(millis) / 1000))
+}
+
+/// «Hoy», «Ayer» o «06 sep» para el separador de día.
+func chatDayLabel(_ millis: Int64) -> String {
+    let date = Date(timeIntervalSince1970: Double(millis) / 1000)
+    if Calendar.current.isDateInToday(date) { return L("Hoy") }
+    if Calendar.current.isDateInYesterday(date) { return L("Ayer") }
+    let f = DateFormatter()
+    f.locale = LanguageManager.shared.locale
+    f.dateFormat = "d MMM"
+    return f.string(from: date).replacingOccurrences(of: ".", with: "")
+}
+
+/// Mensajes que abren un día nuevo (id → su fecha), para pintar el separador una sola vez por día.
+func chatDayStarts(_ messages: [ChatServiceChatMessage]) -> [String: Int64] {
+    var out: [String: Int64] = [:]
+    var lastDay: DateComponents?
+    for m in messages {
+        guard let ms = m.createdAtMillis?.int64Value, ms > 0 else { continue }
+        let day = Calendar.current.dateComponents([.year, .month, .day], from: Date(timeIntervalSince1970: Double(ms) / 1000))
+        if day != lastDay { out[m.id] = ms; lastDay = day }
+    }
+    return out
+}
+
+struct ChatDayDivider: View {
+    let millis: Int64
+    var body: some View {
+        Text(chatDayLabel(millis).uppercased())
+            .font(Cumbre.mono(9, .bold)).tracking(1.0)
+            .foregroundStyle(Cumbre.ink3)
+            .padding(.horizontal, 10).padding(.vertical, 3)
+            .background(Cumbre.paper, in: Capsule())
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 4)
+    }
+}
+
+extension View {
+    /// Burbuja redondeada: terracota si es mía, papel con borde si es de otra persona.
+    func chatBubble(mine: Bool) -> some View {
+        self.padding(.horizontal, 12).padding(.vertical, 8)
+            .background(mine ? Cumbre.terra : Cumbre.paper, in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(mine ? Color.clear : Cumbre.rule, lineWidth: 1))
+    }
+
+    /// Campo de escribir de las conversaciones: redondeado, en vez del rectángulo con borde.
+    func chatInputField() -> some View {
+        self.padding(.horizontal, 14).padding(.vertical, 9)
+            .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 20))
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(Cumbre.rule, lineWidth: 1))
+    }
+}
+
 struct ChatView: View {
     @StateObject private var vm: ChatVM
     @FocusState private var inputFocused: Bool
@@ -176,9 +238,13 @@ struct ChatView: View {
                                 }
                                 .padding(.vertical, 6)
                             }
+                            let dayStarts = chatDayStarts(vm.messages)
                             ForEach(vm.messages, id: \.id) { m in
-                                MessageRow(m: m, me: vm.me, otherName: vm.otherName,
-                                           onReply: { vm.startReply(m) }).id(m.id)
+                                VStack(spacing: 8) {
+                                    if let ms = dayStarts[m.id] { ChatDayDivider(millis: ms) }
+                                    MessageRow(m: m, me: vm.me, otherName: vm.otherName,
+                                               onReply: { vm.startReply(m) })
+                                }.id(m.id)
                             }
                         }
                         .padding(16)
@@ -252,7 +318,7 @@ struct ChatView: View {
             TextField("Mensaje…", text: $vm.draft, axis: .vertical)
                 .lineLimit(1...4).font(.system(size: 15))
                 .focused($inputFocused)
-                .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                .chatInputField()
             Button { vm.send() } label: {
                 Image(systemName: "arrow.up.circle.fill").font(.system(size: 30)).foregroundStyle(Cumbre.terra)
             }
@@ -277,7 +343,7 @@ private struct MessageRow: View {
 
     var body: some View {
         let mine = m.fromUid == me
-        let time = chatTime(m.createdAtMillis?.int64Value ?? -1)
+        let time = chatClock(m.createdAtMillis?.int64Value ?? -1)
         return ZStack(alignment: .leading) {
             Image(systemName: "arrowshape.turn.up.left.fill")
                 .font(.system(size: 14)).foregroundStyle(Cumbre.terra)
@@ -299,15 +365,16 @@ private struct MessageRow: View {
                         .overlay(Rectangle().frame(width: 2)
                             .foregroundStyle(mine ? Color.white.opacity(0.6) : Cumbre.terra), alignment: .leading)
                     }
-                    Text(m.text)
-                        .font(.system(size: 15))
-                        .foregroundStyle(mine ? .white : Cumbre.ink)
-                        .padding(.horizontal, 12).padding(.vertical, 8)
-                        .background(mine ? Cumbre.terra : Cumbre.paper)
-                        .overlay(Rectangle().stroke(mine ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-                    if !time.isEmpty {
-                        Text(time).font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(m.text)
+                            .font(.system(size: 15))
+                            .foregroundStyle(mine ? .white : Cumbre.ink)
+                        if !time.isEmpty {
+                            Text(time).font(Cumbre.mono(9))
+                                .foregroundStyle(mine ? Color.white.opacity(0.7) : Cumbre.ink3)
+                        }
                     }
+                    .chatBubble(mine: mine)
                 }
                 if !mine { Spacer(minLength: 40) }
             }

@@ -93,6 +93,27 @@ func chatTime(_ millis: Int64) -> String {
     return f.string(from: date)
 }
 
+/// Fecha para la lista de conversaciones: HH:mm si es hoy, si no «06 sep» (el mes escrito no se confunde con día/mes).
+func chatListDate(_ millis: Int64) -> String {
+    guard millis > 0 else { return "" }
+    let date = Date(timeIntervalSince1970: Double(millis) / 1000)
+    let f = DateFormatter()
+    f.locale = LanguageManager.shared.locale
+    f.dateFormat = Calendar.current.isDateInToday(date) ? "HH:mm" : "dd MMM"
+    return f.string(from: date).replacingOccurrences(of: ".", with: "")
+}
+
+private enum ChatFilter: CaseIterable {
+    case all, unread, groups
+    var title: String {
+        switch self {
+        case .all: return L("Todos")
+        case .unread: return L("No leídos")
+        case .groups: return L("Grupos")
+        }
+    }
+}
+
 /// Destino de navegación al iniciar un chat nuevo desde el picker.
 private struct ChatTarget: Identifiable, Hashable { let uid: String; let name: String; var id: String { uid } }
 /// Destino de navegación a un grupo (recién creado o existente).
@@ -104,6 +125,71 @@ struct ChatListView: View {
     @State private var newChatTarget: ChatTarget?
     @State private var showNewGroup = false
     @State private var groupTarget: GroupTarget?
+    @State private var query = ""
+    @State private var filter: ChatFilter = .all
+
+    private func title(_ c: ChatServiceConversation) -> String {
+        c.isGroup ? (c.name ?? L("Grupo")) : vm.name(vm.other(c))
+    }
+
+    /// Conversaciones tras aplicar el filtro y la búsqueda por nombre o último mensaje.
+    private var shown: [ChatServiceConversation] {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        return vm.conversations.filter { c in
+            switch filter {
+            case .all: break
+            case .unread: if c.unreadCount <= 0 { return false }
+            case .groups: if !c.isGroup { return false }
+            }
+            guard !q.isEmpty else { return true }
+            return title(c).lowercased().contains(q) || (c.lastMessage ?? "").lowercased().contains(q)
+        }
+    }
+
+    private func count(_ f: ChatFilter) -> Int {
+        switch f {
+        case .all: return vm.conversations.count
+        case .unread: return vm.conversations.filter { $0.unreadCount > 0 }.count
+        case .groups: return vm.conversations.filter { $0.isGroup }.count
+        }
+    }
+
+    /// Buscador en píldora + filtros, igual que el de Escuelas.
+    private var searchBar: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass").foregroundStyle(Cumbre.ink3)
+                TextField(L("Buscar en tus conversaciones"), text: $query)
+                    .foregroundStyle(Cumbre.ink)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                if !query.isEmpty {
+                    Button { query = "" } label: {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(Cumbre.ink3)
+                    }
+                }
+            }
+            .padding(.horizontal, 14).padding(.vertical, 9)
+            .background(Cumbre.paper, in: Capsule())
+            .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
+            HStack(spacing: 8) {
+                ForEach(ChatFilter.allCases, id: \.self) { f in
+                    Button { filter = f } label: {
+                        HStack(spacing: 4) {
+                            Text(f.title).font(.system(size: 13, weight: .semibold))
+                            Text("\(count(f))").font(Cumbre.mono(10))
+                                .opacity(0.8)
+                        }
+                        .foregroundStyle(filter == f ? Color.white : Cumbre.ink)
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(filter == f ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+                Spacer()
+            }
+        }
+        .padding(.horizontal, 16).padding(.vertical, 8)
+    }
 
     var body: some View {
         Group {
@@ -123,7 +209,15 @@ struct ChatListView: View {
                         text: L("Desliza una conversación: a la izquierda para borrarla, a la derecha para marcarla como no leída.")
                     )
                     .listRowInsets(EdgeInsets()).listRowSeparator(.hidden).listRowBackground(Color.clear)
-                    ForEach(vm.conversations, id: \.id) { c in
+                    searchBar
+                        .listRowInsets(EdgeInsets()).listRowSeparator(.hidden).listRowBackground(Color.clear)
+                    if shown.isEmpty {
+                        Text(L("Ninguna conversación coincide."))
+                            .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
+                            .frame(maxWidth: .infinity).padding(.top, 24)
+                            .listRowSeparator(.hidden).listRowBackground(Color.clear)
+                    }
+                    ForEach(shown, id: \.id) { c in
                         NavigationLink(destination: convDestination(c)) {
                             convRow(c)
                         }
@@ -206,7 +300,7 @@ struct ChatListView: View {
                     Text(c.isGroup ? (c.name ?? L("Grupo")) : vm.name(vm.other(c)))
                         .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
                     Spacer()
-                    Text(chatTime(c.lastAtMillis?.int64Value ?? -1))
+                    Text(chatListDate(c.lastAtMillis?.int64Value ?? -1))
                         .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                 }
                 HStack {

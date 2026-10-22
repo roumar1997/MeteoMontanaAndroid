@@ -9,6 +9,18 @@ data class SchoolScore(
     val rainProb: Int = 0
 )
 
+/**
+ * Lluvia y nota hora a hora de una escuela para las próximas 48 h (modo «Previsión» del Radar). [startTime] es la hora
+ * local ISO de la primera posición ("2026-10-22T18:00"); las tres listas van alineadas, una posición por hora.
+ */
+data class SchoolRainOutlook(
+    val id: String,
+    val startTime: String?,
+    val rainMm: List<Double>,
+    val rainProb: List<Int>,
+    val scores: List<Int>
+)
+
 /** Score de un tramo de días elegidos (selector de días de la lista). */
 data class RangeScore(
     val id: String,

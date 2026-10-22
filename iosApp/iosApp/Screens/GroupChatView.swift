@@ -273,11 +273,15 @@ struct GroupChatView: View {
                                 }
                                 .padding(.vertical, 6)
                             }
+                            let dayStarts = chatDayStarts(vm.messages)
                             ForEach(vm.messages, id: \.id) { m in
-                                GroupMessageRow(m: m, me: vm.me,
-                                                senderName: vm.nameFor(m.fromUid),
-                                                nameFor: { vm.nameFor($0) },
-                                                onReply: { vm.startReply(m) }).id(m.id)
+                                VStack(spacing: 8) {
+                                    if let ms = dayStarts[m.id] { ChatDayDivider(millis: ms) }
+                                    GroupMessageRow(m: m, me: vm.me,
+                                                    senderName: vm.nameFor(m.fromUid),
+                                                    nameFor: { vm.nameFor($0) },
+                                                    onReply: { vm.startReply(m) })
+                                }.id(m.id)
                             }
                         }
                         .padding(16)
@@ -390,7 +394,7 @@ struct GroupChatView: View {
             TextField("Mensaje…", text: $vm.draft, axis: .vertical)
                 .lineLimit(1...4).font(.system(size: 15))
                 .focused($inputFocused)
-                .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                .chatInputField()
             Button { vm.send() } label: {
                 Image(systemName: "arrow.up.circle.fill").font(.system(size: 30)).foregroundStyle(Cumbre.terra)
             }
@@ -416,7 +420,7 @@ private struct GroupMessageRow: View {
 
     var body: some View {
         let mine = m.fromUid == me
-        let time = chatTime(m.createdAtMillis?.int64Value ?? -1)
+        let time = chatClock(m.createdAtMillis?.int64Value ?? -1)
         return ZStack(alignment: .leading) {
             Image(systemName: "arrowshape.turn.up.left.fill")
                 .font(.system(size: 14)).foregroundStyle(Cumbre.terra)
@@ -442,15 +446,16 @@ private struct GroupMessageRow: View {
                         .overlay(Rectangle().frame(width: 2)
                             .foregroundStyle(mine ? Color.white.opacity(0.6) : Cumbre.terra), alignment: .leading)
                     }
-                    Text(m.text)
-                        .font(.system(size: 15))
-                        .foregroundStyle(mine ? .white : Cumbre.ink)
-                        .padding(.horizontal, 12).padding(.vertical, 8)
-                        .background(mine ? Cumbre.terra : Cumbre.paper)
-                        .overlay(Rectangle().stroke(mine ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-                    if !time.isEmpty {
-                        Text(time).font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(m.text)
+                            .font(.system(size: 15))
+                            .foregroundStyle(mine ? .white : Cumbre.ink)
+                        if !time.isEmpty {
+                            Text(time).font(Cumbre.mono(9))
+                                .foregroundStyle(mine ? Color.white.opacity(0.7) : Cumbre.ink3)
+                        }
                     }
+                    .chatBubble(mine: mine)
                 }
                 if !mine { Spacer(minLength: 40) }
             }

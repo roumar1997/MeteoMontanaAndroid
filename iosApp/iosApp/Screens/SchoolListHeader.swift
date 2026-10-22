@@ -265,6 +265,7 @@ struct SearchField: View {
             Image(systemName: "magnifyingglass").foregroundStyle(Cumbre.ink3)
             TextField("Busca escuelas, vías y bloques…", text: $text)
                 .foregroundStyle(Cumbre.ink)
+                .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
             if !text.isEmpty {
                 Button { text = "" } label: {

@@ -168,6 +168,10 @@ object UseCasesModule {
         com.meteomontana.android.domain.usecase.admin.UnbanUserUseCase(r)
 
     @Provides @Singleton
+    fun provideGetRainOutlookUseCase(repo: ForecastRepository) =
+        com.meteomontana.android.domain.usecase.schools.GetRainOutlookUseCase(repo)
+
+    @Provides @Singleton
     fun provideGetRangeScoresUseCase(repo: ForecastRepository) =
         com.meteomontana.android.domain.usecase.schools.GetRangeScoresUseCase(repo)
 

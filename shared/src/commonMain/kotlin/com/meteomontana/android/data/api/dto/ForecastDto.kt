@@ -101,6 +101,15 @@ data class SchoolScoreDto(
 )
 
 @Serializable
+data class SchoolRainOutlookDto(
+    val id: String,
+    val startTime: String? = null,
+    val rainMm: List<Double> = emptyList(),
+    val rainProb: List<Int> = emptyList(),
+    val scores: List<Int> = emptyList()
+)
+
+@Serializable
 data class RangeScoreDto(
     val id: String,
     val combinedScore: Int = 0,

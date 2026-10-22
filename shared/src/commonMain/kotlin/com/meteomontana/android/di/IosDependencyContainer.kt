@@ -281,6 +281,7 @@ class IosDependencyContainer(
     val respondToSuggestion =
         com.meteomontana.android.domain.usecase.admin.RespondToSuggestionUseCase(moderationRepository)
     val getRangeScores = GetRangeScoresUseCase(forecastRepository)
+    val getRainOutlook = com.meteomontana.android.domain.usecase.schools.GetRainOutlookUseCase(forecastRepository)
 
     // Favoritas (requieren sesión; el token lo aporta el authService del
     // httpClient). Estrella en lista/detalle + grid en el tab Tiempo.

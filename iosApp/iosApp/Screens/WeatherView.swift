@@ -117,9 +117,9 @@ struct WeatherView: View {
         Button(action: action) {
             Text(t).font(Cumbre.mono(11, .bold)).tracking(0.6)
                 .foregroundStyle(selected ? .white : Cumbre.ink2)
-                .padding(.horizontal, 12).padding(.vertical, 7)
-                .background(selected ? Cumbre.terra : Cumbre.paper)
-                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                .padding(.horizontal, 13).padding(.vertical, 7)
+                .background(selected ? Cumbre.terra : Cumbre.paper, in: Capsule())
+                .overlay(Capsule().stroke(selected ? Color.clear : Cumbre.rule, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
@@ -165,7 +165,7 @@ struct WeatherView: View {
                 Text(NSLocalizedString("weather_enable_location", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8)
                     .foregroundStyle(.white)
                     .padding(.vertical, 12).padding(.horizontal, 20)
-                    .background(Cumbre.terraFill)
+                    .background(Cumbre.terraFill, in: Capsule())
             }
             .buttonStyle(.plain)
             .padding(.top, 8)
@@ -228,8 +228,8 @@ private struct FavoritesGridView: View {
             .font(Cumbre.mono(12, .bold))
             .foregroundStyle(color)
             .frame(width: cellWidth, height: 30)
-            .background(color.opacity(0.14))
-            .overlay(Rectangle().stroke(color, lineWidth: 1))
+            .background(color.opacity(0.16), in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(color.opacity(0.7), lineWidth: 1))
     }
 
     // "2026-06-16" -> "LUN"/"MAR"/… (día de la semana, como Android). Si no

@@ -8,7 +8,8 @@ import Shared
 // sobre nuestro MapLibre; player flotante con hora grande y chips HOY/AYER;
 // botonera lateral (capas, escuelas, opacidad, ubicación). Autoplay al abrir.
 
-enum RadarDay { case hoy, ayer }
+/// Hoy y ayer son el radar de AEMET (lo ya llovido); la previsión pinta la lluvia esperada en cada escuela hora a hora.
+enum RadarDay { case hoy, ayer, prevision }
 
 struct RadarFrameUi: Identifiable {
     let ts: String
@@ -35,6 +36,12 @@ struct RadarView: View {
     private let radarApi = AppDependencies.shared.container.radarApi
     private let getSchools = AppDependencies.shared.container.getSchools
     private let getTodayScores = AppDependencies.shared.container.getTodayScores
+    private let getRainOutlook = AppDependencies.shared.container.getRainOutlook
+
+    /// Modo Previsión: lluvia y nota de cada escuela hora a hora (48 h) y la hora elegida en el deslizador.
+    @State private var outlook: [String: SchoolRainOutlook] = [:]
+    @State private var outlookLoading = false
+    @State private var hourIndex = 0
 
     @State private var frames: [RadarFrameUi] = []
     @State private var bounds: RadarOverlayBounds? = nil
@@ -90,7 +97,7 @@ struct RadarView: View {
                 focusCoordinate: focusCoord,
                 focusZoom: 9,
                 focusToken: focusToken,
-                radarImage: readyFrames.isEmpty ? nil
+                radarImage: readyFrames.isEmpty || day == .prevision ? nil
                     : readyFrames[min(max(frameIndex, 0), readyFrames.count - 1)].image,
                 radarBounds: bounds,
                 radarOpacity: opacity
@@ -101,27 +108,22 @@ struct RadarView: View {
             // funcional queda tapado.
             .ignoresSafeArea()
 
-            // Título flotante + crédito AEMET (licencia)
+            // Indicador compacto de qué se está viendo (el crédito de la fuente va en la hoja de abajo).
             VStack {
                 HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("RADAR").font(Cumbre.mono(10, .bold)).tracking(1.8)
-                            .foregroundStyle(Cumbre.terra)
-                        Text("Lluvia en directo").font(Cumbre.serif(17, .semibold))
+                    HStack(spacing: 7) {
+                        Circle()
+                            .fill(day == .prevision ? Cumbre.terra : Color(red: 0.23, green: 0.51, blue: 0.96))
+                            .frame(width: 8, height: 8)
+                        Text(day == .prevision ? L("Previsión de lluvia") : L("Lluvia en directo"))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Cumbre.ink)
                     }
-                    .padding(.horizontal, 12).padding(.vertical, 8)
-                    .background(Cumbre.bg.opacity(0.92))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+                    .padding(.horizontal, 12).padding(.vertical, 7)
+                    .background(Cumbre.bg.opacity(0.94), in: Capsule())
+                    .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
 
                     Spacer()
-
-                    Text("AEMET").font(Cumbre.mono(9, .bold)).tracking(1.2)
-                        .foregroundStyle(Cumbre.ink3)
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(Cumbre.bg.opacity(0.85))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
                 .padding(10)
                 // Hueco para el conmutador TIEMPO ⇄ RADAR flotante (embebido).
@@ -180,20 +182,6 @@ struct RadarView: View {
             VStack(spacing: 8) {
                 Spacer()
 
-                HStack {
-                    HStack(spacing: 5) {
-                        legendDot(Color(red: 0.40, green: 0.66, blue: 0.96)); legendText(L("DÉBIL"))
-                        legendDot(Color(red: 0.17, green: 0.43, blue: 0.89)); legendText(L("MEDIA"))
-                        legendDot(Color(red: 0.05, green: 0.23, blue: 0.61)); legendText(L("FUERTE"))
-                    }
-                    .padding(.horizontal, 8).padding(.vertical, 5)
-                    .background(Cumbre.bg.opacity(0.9))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Cumbre.rule, lineWidth: 1))
-                    Spacer()
-                }
-                .padding(.horizontal, 10)
-
                 if let school = selectedSchool {
                     schoolCard(school)
                         .padding(.horizontal, 10)
@@ -220,18 +208,147 @@ struct RadarView: View {
 
     // MARK: - Player flotante
 
+    /// Hoja única de abajo: modo (Hoy · Ayer · Previsión), hora grande, controles del modo, leyenda y fuente.
     private var player: some View {
-        VStack(spacing: 6) {
-            HStack {
+        VStack(spacing: 8) {
+            HStack(spacing: 6) {
                 dayChip(L("HOY"), selected: day == .hoy) { switchDay(.hoy) }
                 dayChip(L("AYER"), selected: day == .ayer) { switchDay(.ayer) }
+                dayChip(L("PREVISIÓN"), selected: day == .prevision) { switchDay(.prevision) }
                 Spacer()
-                Text(currentLabel).font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
-                if isNow {
-                    Text("AHORA").font(Cumbre.mono(9, .bold)).tracking(1.4)
-                        .foregroundStyle(Cumbre.terra)
+                if day == .prevision {
+                    VStack(alignment: .trailing, spacing: 0) {
+                        Text(forecastClock).font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
+                        Text(forecastDayName).font(Cumbre.mono(9, .bold)).tracking(1.2)
+                            .foregroundStyle(Cumbre.terra)
+                    }
+                } else {
+                    Text(currentLabel).font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
+                    if isNow {
+                        Text("AHORA").font(Cumbre.mono(9, .bold)).tracking(1.4)
+                            .foregroundStyle(Cumbre.terra)
+                    }
                 }
             }
+            if day == .prevision {
+                forecastControls
+            } else {
+                radarControls
+            }
+            HStack(spacing: 8) {
+                HStack(spacing: 5) {
+                    legendDot(Color(red: 0.40, green: 0.66, blue: 0.96)); legendText(L("DÉBIL"))
+                    legendDot(Color(red: 0.17, green: 0.43, blue: 0.89)); legendText(L("MEDIA"))
+                    legendDot(Color(red: 0.05, green: 0.23, blue: 0.61)); legendText(L("FUERTE"))
+                }
+                Spacer()
+                Text(day == .prevision ? "OPEN-METEO" : "AEMET")
+                    .font(Cumbre.mono(9, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
+            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .background(Cumbre.bg.opacity(0.97))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Cumbre.rule, lineWidth: 1))
+        .shadow(color: .black.opacity(0.18), radius: 8, y: 3)
+    }
+
+    // MARK: - Previsión (lluvia esperada por escuela, hora a hora)
+
+    private static let outlookHours = 48
+
+    /// Hora de la primera posición de la previsión (la hora en curso), leída de cualquier escuela que la traiga.
+    private var outlookStart: Date? {
+        guard let s = outlook.values.compactMap({ $0.startTime }).first else { return nil }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd'T'HH:mm"
+        return f.date(from: s)
+    }
+
+    private var selectedDate: Date? {
+        outlookStart.flatMap { Calendar.current.date(byAdding: .hour, value: hourIndex, to: $0) }
+    }
+
+    private var forecastClock: String {
+        guard let d = selectedDate else { return "--:--" }
+        let f = DateFormatter(); f.dateFormat = "HH:mm"
+        return f.string(from: d)
+    }
+
+    private var forecastDayName: String {
+        guard let d = selectedDate else { return "" }
+        if Calendar.current.isDateInToday(d) { return L("HOY") }
+        if Calendar.current.isDateInTomorrow(d) { return L("MAÑANA") }
+        let f = DateFormatter()
+        f.locale = LanguageManager.shared.locale
+        f.dateFormat = "EEE d"
+        return f.string(from: d).replacingOccurrences(of: ".", with: "").uppercased()
+    }
+
+    /// Posición del deslizador para «hoy/mañana/pasado a tal hora»; si esa hora de hoy ya pasó, la de mañana.
+    private func sliderIndex(dayOffset: Int, hour: Int) -> Int? {
+        guard let start = outlookStart else { return nil }
+        let cal = Calendar.current
+        guard var target = cal.date(bySettingHour: hour, minute: 0, second: 0,
+                                    of: cal.date(byAdding: .day, value: dayOffset, to: start) ?? start) else { return nil }
+        if dayOffset == 0 && target < start { target = cal.date(byAdding: .day, value: 1, to: target) ?? target }
+        let h = Int(target.timeIntervalSince(start) / 3600)
+        return min(max(h, 0), Self.outlookHours - 1)
+    }
+
+    private var forecastControls: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 6) {
+                quickChip(L("Ahora"), index: 0)
+                quickChip(L("Tarde"), index: sliderIndex(dayOffset: 0, hour: 18))
+                quickChip(L("Mañana"), index: sliderIndex(dayOffset: 1, hour: 9))
+                quickChip(L("Pasado"), index: sliderIndex(dayOffset: 2, hour: 9))
+                Spacer()
+                if outlookLoading { ProgressView().scaleEffect(0.8) }
+            }
+            Slider(value: Binding(get: { Double(hourIndex) },
+                                  set: { hourIndex = min(max(Int($0.rounded()), 0), Self.outlookHours - 1) }),
+                   in: 0...Double(Self.outlookHours - 1))
+                .tint(Cumbre.terra)
+                .disabled(outlook.isEmpty)
+            if outlook.isEmpty && !outlookLoading {
+                Text(L("No se pudo cargar la previsión."))
+                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+            }
+        }
+    }
+
+    private func quickChip(_ label: String, index: Int?) -> some View {
+        let selected = index == hourIndex
+        return Button { if let index { hourIndex = index } } label: {
+            Text(label).font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(selected ? Color.white : Cumbre.ink)
+                .padding(.horizontal, 11).padding(.vertical, 5)
+                .background(selected ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .disabled(index == nil)
+    }
+
+    /// Azul según la intensidad de lluvia prevista (mm/h), los mismos tres tonos de la leyenda.
+    private func rainColor(_ mm: Double) -> Color {
+        if mm >= 4 { return Color(red: 0.05, green: 0.23, blue: 0.61) }
+        if mm >= 1 { return Color(red: 0.17, green: 0.43, blue: 0.89) }
+        return Color(red: 0.40, green: 0.66, blue: 0.96)
+    }
+
+    /// Lluvia y probabilidad previstas en la hora elegida para una escuela, para su ficha del mapa.
+    private func outlookLine(_ id: String) -> String? {
+        guard day == .prevision, let o = outlook[id], hourIndex < o.rainMm.count, hourIndex < o.rainProb.count else { return nil }
+        let mm = o.rainMm[hourIndex].doubleValue
+        let prob = o.rainProb[hourIndex].intValue
+        if mm < 0.1 { return L("Sin lluvia prevista · %@%", prob) }
+        return L("%@ mm previstos · %@%", String(format: "%.1f", mm), prob)
+    }
+
+    private var radarControls: some View {
+        VStack(spacing: 6) {
             HStack(spacing: 10) {
                 Button {
                     if playing { stopAnim() } else { startAnim() }
@@ -268,10 +385,6 @@ struct RadarView: View {
                 }
             }
         }
-        .padding(.horizontal, 14).padding(.vertical, 10)
-        .background(Cumbre.bg.opacity(0.97))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Cumbre.rule, lineWidth: 1))
     }
 
     // MARK: - Marcadores (puntito de lejos, diamante con score de cerca)
@@ -285,13 +398,21 @@ struct RadarView: View {
         let tiny = zoomLevel < 6.5
         let labels = zoomLevel >= 8.5
         for s in schools {
-            let score = scores[s.id]
+            var score = scores[s.id]
+            var tint = score.map { Cumbre.score($0) } ?? Cumbre.rule
+            // Previsión: la nota y el color son los de la hora elegida; azul si se espera lluvia.
+            if day == .prevision, let o = outlook[s.id], hourIndex < o.scores.count, hourIndex < o.rainMm.count {
+                let sc = o.scores[hourIndex].intValue
+                score = sc
+                let mm = o.rainMm[hourIndex].doubleValue
+                tint = mm >= 0.1 ? rainColor(mm) : Cumbre.score(sc)
+            }
             ms.append(CumbreMarker(
                 id: s.id,
                 coordinate: CLLocationCoordinate2D(latitude: s.lat, longitude: s.lon),
                 title: s.name,
                 kind: tiny ? .dot : .score,
-                color: UIColor(score.map { Cumbre.score($0) } ?? Cumbre.rule),
+                color: UIColor(tint),
                 score: score,
                 name: s.name,
                 showName: labels))
@@ -309,9 +430,37 @@ struct RadarView: View {
 
     private func switchDay(_ d: RadarDay) {
         stopAnim()
+        let leavingForecast = day == .prevision
         day = d
+        if d == .prevision {
+            hourIndex = 0
+            Task { await loadOutlook() }
+            return
+        }
         frameIndex = 0
+        // Al volver de la previsión se fuerza la recarga (los fotogramas salen de la caché en disco, es rápido).
+        if leavingForecast { loadKey = "" }
         Task { await loadFrames() }
+    }
+
+    /// Lluvia y nota hora a hora de todas las escuelas (lotes de 50, la nube va llegando en el mapa a medida que cargan).
+    private func loadOutlook() async {
+        guard !outlookLoading, outlook.isEmpty else { return }
+        // Las escuelas llegan en loadAll; si aún no están, loadSchools volverá a llamar aquí.
+        guard !schools.isEmpty else { return }
+        outlookLoading = true
+        let ids = schools.map { $0.id }
+        var start = 0
+        while start < ids.count {
+            let slice = Array(ids[start..<min(start + 50, ids.count)])
+            if let batch = try? await getRainOutlook.invoke(ids: slice) {
+                var acc = outlook
+                for o in batch { acc[o.id] = o }
+                outlook = acc
+            }
+            start += 50
+        }
+        outlookLoading = false
     }
 
     private func loadFrames() async {
@@ -411,6 +560,7 @@ struct RadarView: View {
             start += 60
         }
         scores = acc
+        if day == .prevision { await loadOutlook() }
     }
 
     private func loadLocation() async {
@@ -459,11 +609,8 @@ struct RadarView: View {
         Button(action: action) {
             Text(label).font(Cumbre.mono(10, .bold)).tracking(1.2)
                 .foregroundStyle(selected ? Cumbre.bg : Cumbre.ink2)
-                .padding(.horizontal, 10).padding(.vertical, 5)
-                .background(selected ? Cumbre.ink : Color.clear)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(RoundedRectangle(cornerRadius: 8)
-                    .stroke(selected ? Cumbre.ink : Cumbre.rule, lineWidth: 1))
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(selected ? Cumbre.ink : Cumbre.paper, in: Capsule())
         }
         .buttonStyle(.plain)
     }
@@ -481,7 +628,9 @@ struct RadarView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(school.name).font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Cumbre.ink)
-                if let region = school.region {
+                if let line = outlookLine(school.id) {
+                    Text(line).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
+                } else if let region = school.region {
                     Text(regionLabel(region)).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
                 }
             }

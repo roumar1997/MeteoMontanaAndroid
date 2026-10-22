@@ -93,6 +93,10 @@ fun ScoreFactor.toDto() = ScoreFactorDto(name, display, passes)
 
 fun SchoolScoreDto.toDomain() = SchoolScore(id, todayScore, hourlyScores, dryRock, rainMm, rainProb)
 
+fun SchoolRainOutlookDto.toDomain() = com.meteomontana.android.domain.model.SchoolRainOutlook(
+    id = id, startTime = startTime, rainMm = rainMm, rainProb = rainProb, scores = scores
+)
+
 fun RangeScoreDto.toDomain() = com.meteomontana.android.domain.model.RangeScore(
     id = id, combinedScore = combinedScore, avgScore = avgScore,
     days = days.map { it.toDomain() }, rainDays = rainDays, maxRainMm = maxRainMm
