@@ -5,6 +5,18 @@ import Shared
 // feed, comentarios, chats). Álvaro, 2026-10-19: «que lo de admin sea un verificado como en Instagram» y «el título
 // alrededor de la foto». Las filas dicen «voy a enseñar a esta persona» y la tienda los pide juntos al servidor.
 
+/// Copia en disco de lo último que se supo de una persona (su check y su anillo). Se guarda aparte del tipo de Kotlin
+/// para poder serializarlo.
+private struct CachedBadge: Codable {
+    let uid: String
+    let verified: Bool
+    let titleLevel: Int
+    let titleHidden: Bool
+    let specialTitle: String?
+    let specialColor: String?
+    let titleEffect: String?
+}
+
 @MainActor
 final class UserBadgeStore: ObservableObject {
     static let shared = UserBadgeStore()
@@ -14,6 +26,41 @@ final class UserBadgeStore: ObservableObject {
     private var pending: Set<String> = []
     private var flushing = false
 
+    /// Lo último que se supo de cada persona se guarda en el móvil: al abrir la app el check y el anillo salen AL
+    /// INSTANTE (como la foto) y se refrescan en segundo plano (Álvaro, 2026-10-22: «¿por qué tarda tanto?»).
+    private static let cacheKey = "user_badges_cache_v1"
+    private static let cacheLimit = 400
+    /// Uids de más antiguo a más reciente, para recortar la copia cuando crece.
+    private var order: [String] = []
+
+    private init() { loadCache() }
+
+    private func loadCache() {
+        guard let data = UserDefaults.standard.data(forKey: Self.cacheKey),
+              let list = try? JSONDecoder().decode([CachedBadge].self, from: data) else { return }
+        var map: [String: UserBadge] = [:]
+        for c in list {
+            map[c.uid] = UserBadge(uid: c.uid, verified: c.verified, titleLevel: Int32(c.titleLevel),
+                                   titleHidden: c.titleHidden, specialTitle: c.specialTitle,
+                                   specialColor: c.specialColor, titleEffect: c.titleEffect)
+            order.append(c.uid)
+        }
+        badges = map
+    }
+
+    private func saveCache() {
+        var list: [CachedBadge] = []
+        for uid in order {
+            guard let b = badges[uid] else { continue }
+            list.append(CachedBadge(uid: b.uid, verified: b.verified, titleLevel: Int(b.titleLevel),
+                                    titleHidden: b.titleHidden, specialTitle: b.specialTitle,
+                                    specialColor: b.specialColor, titleEffect: b.titleEffect))
+        }
+        if let data = try? JSONEncoder().encode(list) {
+            UserDefaults.standard.set(data, forKey: Self.cacheKey)
+        }
+    }
+
     /// Una vista avisa de que va a enseñar a esta persona: se junta con las demás y se pide todo de golpe.
     func want(_ uid: String?) {
         guard let uid, !uid.isEmpty, !asked.contains(uid) else { return }
@@ -21,7 +68,7 @@ final class UserBadgeStore: ObservableObject {
         guard !flushing else { return }
         flushing = true
         Task {
-            try? await Task.sleep(nanoseconds: 200_000_000)
+            try? await Task.sleep(nanoseconds: 50_000_000)
             let ids = Array(pending)
             pending.removeAll()
             flushing = false
@@ -44,10 +91,24 @@ final class UserBadgeStore: ObservableObject {
             start += 150
             asked.formUnion(chunk)
             if let list = try? await AppDependencies.shared.container.getUserBadges.invoke(uids: chunk) {
-                for b in list { badges[b.uid] = b }
+                for b in list {
+                    badges[b.uid] = b
+                    order.removeAll { $0 == b.uid }
+                    order.append(b.uid)
+                }
+                trimCache()
+                saveCache()
             } else {
                 asked.subtract(chunk)   // sin red: se volverá a pedir cuando reaparezca la vista
             }
+        }
+    }
+
+    /// La copia no crece sin límite: se quedan las personas vistas más recientemente.
+    private func trimCache() {
+        while order.count > Self.cacheLimit {
+            let oldest = order.removeFirst()
+            badges.removeValue(forKey: oldest)
         }
     }
 }

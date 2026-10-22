@@ -1,5 +1,13 @@
 package com.meteomontana.android.ui.components
 
+import org.json.JSONObject
+
+import org.json.JSONArray
+
+import dagger.hilt.android.qualifiers.ApplicationContext
+
+import android.content.Context
+
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -50,13 +58,53 @@ import javax.inject.Singleton
  * Espejo de UserBadgeViews.swift.
  */
 @Singleton
-class UserBadgeStore @Inject constructor(private val getUserBadges: GetUserBadgesUseCase) {
+class UserBadgeStore @Inject constructor(
+    private val getUserBadges: GetUserBadgesUseCase,
+    @ApplicationContext context: Context
+) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private val _badges = MutableStateFlow<Map<String, UserBadge>>(emptyMap())
+
+    // Lo último que se supo de cada persona se guarda en el móvil: al abrir la app el check y el anillo salen AL INSTANTE
+    // (como la foto) y se refrescan en segundo plano (Álvaro, 2026-10-22: «¿por qué tarda tanto?»). Espejo de iOS.
+    private val prefs = context.getSharedPreferences(CACHE_PREFS, Context.MODE_PRIVATE)
+    /** Uids de más antiguo a más reciente, para recortar la copia cuando crece. */
+    private val order = ArrayDeque<String>()
+    private val _badges = MutableStateFlow(loadCache())
     val badges: StateFlow<Map<String, UserBadge>> = _badges.asStateFlow()
     private val asked = mutableSetOf<String>()
     private val pending = mutableSetOf<String>()
     private var flushing = false
+
+    private fun loadCache(): Map<String, UserBadge> = runCatching {
+        val arr = JSONArray(prefs.getString(CACHE_KEY, "[]"))
+        val map = LinkedHashMap<String, UserBadge>()
+        for (i in 0 until arr.length()) {
+            val o = arr.getJSONObject(i)
+            // isNull + getString, NO optString: con un null del JSON optString devuelve la CADENA «null».
+            val uid = o.getString("uid")
+            map[uid] = UserBadge(
+                uid, o.getBoolean("verified"), o.getInt("level"), o.getBoolean("hidden"),
+                if (o.isNull("title")) null else o.getString("title"),
+                if (o.isNull("color")) null else o.getString("color"),
+                if (o.isNull("effect")) null else o.getString("effect")
+            )
+            order.addLast(uid)
+        }
+        map as Map<String, UserBadge>
+    }.getOrDefault(emptyMap())
+
+    private fun saveCache() {
+        val arr = JSONArray()
+        for (uid in order) {
+            val b = _badges.value[uid] ?: continue
+            arr.put(JSONObject()
+                .put("uid", b.uid).put("verified", b.verified).put("level", b.titleLevel).put("hidden", b.titleHidden)
+                .put("title", b.specialTitle ?: JSONObject.NULL)
+                .put("color", b.specialColor ?: JSONObject.NULL)
+                .put("effect", b.titleEffect ?: JSONObject.NULL))
+        }
+        prefs.edit().putString(CACHE_KEY, arr.toString()).apply()
+    }
 
     fun want(uid: String?) {
         if (uid.isNullOrBlank() || uid in asked) return
@@ -64,7 +112,7 @@ class UserBadgeStore @Inject constructor(private val getUserBadges: GetUserBadge
         if (flushing) return
         flushing = true
         scope.launch {
-            delay(200)
+            delay(50)
             val ids = pending.toList()
             pending.clear()
             flushing = false
@@ -83,9 +131,22 @@ class UserBadgeStore @Inject constructor(private val getUserBadges: GetUserBadge
         uids.filter { it !in asked }.chunked(150).forEach { chunk ->
             asked += chunk
             runCatching { getUserBadges(chunk) }
-                .onSuccess { list -> _badges.value = _badges.value + list.associateBy { it.uid } }
+                .onSuccess { list ->
+                    var map = _badges.value + list.associateBy { it.uid }
+                    list.forEach { order.remove(it.uid); order.addLast(it.uid) }
+                    // La copia no crece sin límite: se quedan las personas vistas más recientemente.
+                    while (order.size > CACHE_LIMIT) map = map - order.removeFirst()
+                    _badges.value = map
+                    saveCache()
+                }
                 .onFailure { asked -= chunk.toSet() }
         }
+    }
+
+    private companion object {
+        const val CACHE_PREFS = "user_badges"
+        const val CACHE_KEY = "cache_v1"
+        const val CACHE_LIMIT = 400
     }
 }
 
