@@ -1695,12 +1695,9 @@
 "Seguir" = "Follow";
 "RECIENTES" = "RECENT";
 "%@ PERSONAS" = "%@ PEOPLE";
-"Previsión de lluvia" = "Rain forecast";
-"PREVISIÓN" = "FORECAST";
-"Ahora" = "Now";
-"Pasado" = "Day after";
-"MAÑANA" = "TOMORROW";
-"No se pudo cargar la previsión." = "Couldn't load the forecast.";
-"Sin lluvia prevista · %@%" = "No rain expected · %@%";
-"%@ mm previstos · %@%" = "%@ mm expected · %@%";
 "TE SIGUEN Y NO LES SIGUES" = "THEY FOLLOW YOU, YOU DON'T";
+"Foto de perfil" = "Profile photo";
+"Ver foto" = "View photo";
+"No se pudo cambiar la foto." = "Couldn't change the photo.";
+"Comprueba la conexión e inténtalo de nuevo." = "Check your connection and try again.";
+"piedras" = "boulders";

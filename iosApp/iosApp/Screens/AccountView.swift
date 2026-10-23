@@ -1,5 +1,9 @@
 import SwiftUI
 import Shared
+import PhotosUI
+
+/// Foto elegida desde el perfil, pendiente de recortar.
+private struct AvatarCrop: Identifiable { let id = UUID(); let image: UIImage }
 
 @MainActor
 final class AccountViewModel: ObservableObject {
@@ -154,6 +158,21 @@ final class AccountViewModel: ObservableObject {
         }
     }
 
+    /// Cambiar la foto tocándola en el perfil (Álvaro, 2026-10-23), sin pasar por Editar perfil: se sube y se guarda
+    /// SOLO la foto (el servidor deja igual los campos que no se mandan).
+    @Published var uploadingPhoto = false
+
+    func changePhoto(_ image: UIImage) async -> Bool {
+        uploadingPhoto = true
+        defer { uploadingPhoto = false }
+        guard let url = try? await StorageUploader.uploadProfilePhoto(image) else { return false }
+        let req = UpdateProfileRequest(username: nil, displayName: nil, bio: nil, topGrade: nil, isPublic: nil,
+                                       photoUrl: url, gender: nil, gearJson: nil)
+        guard (try? await AppDependencies.shared.container.updateMyProfile.invoke(req: req)) != nil else { return false }
+        await load()
+        return true
+    }
+
     func load() async {
         loading = true
         if let p = try? await getMyProfile.invoke() {   // JIT provisioning en el backend
@@ -203,6 +222,12 @@ struct AccountView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showGear = false
     @State private var zoomUrl: String? = nil   // foto de perfil a pantalla completa
+    // Tocar la foto: menú «Cambiar foto / Ver foto» → selector → recortador → se sube.
+    @State private var avatarMenu = false
+    @State private var showPhotoPicker = false
+    @State private var photoItem: PhotosPickerItem?
+    @State private var avatarCrop: AvatarCrop?
+    @State private var photoError = false
 
     private let authBridge = AppDependencies.shared.authBridge
 
@@ -302,8 +327,66 @@ struct AccountView: View {
         // Si el backend no tiene foto, usa la de la cuenta de Google (Firebase Auth).
         // AvatarCircle cachea en disco → se ve offline (igual que el resto de avatares).
         let photo = vm.profile?.photoUrl?.isEmpty == false ? vm.profile?.photoUrl : authBridge.currentPhotoUrl()
+        let hasPhoto = photo?.isEmpty == false
+        // Sin conexión o sin perfil cargado no se puede subir: el toque solo amplía la foto, como antes.
+        let canChange = vm.profile != nil && !vm.offline
         return AvatarCircle(url: photo, size: 76, uid: vm.profile?.uid)
-            .onTapGesture { if let p = photo, !p.isEmpty { zoomUrl = p } }
+            .overlay {
+                if vm.uploadingPhoto {
+                    ZStack {
+                        Circle().fill(Color.black.opacity(0.35))
+                        ProgressView().tint(.white)
+                    }
+                    .frame(width: 76, height: 76)
+                }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                if canChange {
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
+                        .frame(width: 24, height: 24)
+                        .background(Cumbre.terraFill, in: Circle())
+                        .overlay(Circle().stroke(Cumbre.bg, lineWidth: 2))
+                        .accessibilityHidden(true)
+                }
+            }
+            .onTapGesture {
+                if canChange { avatarMenu = true } else if hasPhoto { zoomUrl = photo }
+            }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel(L("Foto de perfil"))
+            .confirmationDialog(L("Foto de perfil"), isPresented: $avatarMenu, titleVisibility: .visible) {
+                Button(L("Cambiar foto")) { showPhotoPicker = true }
+                if hasPhoto, let p = photo {
+                    Button(L("Ver foto")) { zoomUrl = p }
+                }
+                Button(L("Cancelar"), role: .cancel) {}
+            }
+            .photosPicker(isPresented: $showPhotoPicker, selection: $photoItem, matching: .images)
+            .onChange(of: photoItem) { _, item in
+                guard let item else { return }
+                Task { @MainActor in
+                    if let data = try? await item.loadTransferable(type: Data.self), let img = UIImage(data: data) {
+                        avatarCrop = AvatarCrop(image: img)   // → abre el recortador, igual que en Editar perfil
+                    }
+                    photoItem = nil   // para poder volver a elegir la misma foto
+                }
+            }
+            .fullScreenCover(item: $avatarCrop) { c in
+                ImageCropView(
+                    image: c.image,
+                    onCancel: { avatarCrop = nil },
+                    onDone: { cropped in
+                        avatarCrop = nil
+                        Task { if !(await vm.changePhoto(cropped)) { photoError = true } }
+                    }
+                )
+            }
+            .alert(L("No se pudo cambiar la foto."), isPresented: $photoError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(L("Comprueba la conexión e inténtalo de nuevo."))
+            }
     }
 
     private var names: some View {
