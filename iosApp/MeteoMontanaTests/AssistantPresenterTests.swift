@@ -375,4 +375,51 @@ final class AssistantPresenterTests: XCTestCase {
         XCTAssertNotNil(AssistantPresenter.message(for: .userLimit))
         XCTAssertNotNil(AssistantPresenter.message(for: .unavailable))
     }
+
+    // MARK: Chat
+
+    func testElSaludoUsaSoloElNombreDePila() {
+        let hello = AssistantPresenter.greeting(displayName: "Álvaro Fanjul")
+        XCTAssertTrue(hello.contains("Álvaro"))
+        XCTAssertFalse(hello.contains("Fanjul"))
+        XCTAssertFalse(AssistantPresenter.greeting(displayName: nil).contains(","))
+        XCTAssertFalse(AssistantPresenter.greeting(displayName: "  ").contains(","))
+    }
+
+    private func breakdownMessage() -> AssistantMessage {
+        var m = AssistantMessage(isUser: false, text: "")
+        m.breakdown = AssistantBreakdown(
+            school: AssistantOption(id: "alba", name: "Albarracín"), sectorFilter: nil, sun: "SHADE",
+            dayPart: nil, day: "2026-10-24", sectors: [], totalMatching: 0, totalStones: 0,
+            stonesWithOrientation: 0)
+        return m
+    }
+
+    func testTrasUnDesgloseSeOfreceAbrirLaEscuela() {
+        let items = AssistantPresenter.followUps(for: breakdownMessage())
+        XCTAssertEqual(items.count, 3)
+        XCTAssertEqual(items.last?.action, .open(schoolId: "alba"))
+        XCTAssertTrue(items.last?.title.contains("Albarracín") == true)
+    }
+
+    func testNoSeSugiereNadaSiLaRespuestaEsperaAlUsuario() {
+        var retry = breakdownMessage()
+        retry.retryText = "hola"
+        XCTAssertTrue(AssistantPresenter.followUps(for: retry).isEmpty)
+
+        var pending = breakdownMessage()
+        pending.pendingActions = [PendingAction(kind: "OPEN_SCHOOL", schoolId: "alba", schoolName: "Albarracín")]
+        XCTAssertTrue(AssistantPresenter.followUps(for: pending).isEmpty)
+
+        XCTAssertTrue(AssistantPresenter.followUps(for: AssistantMessage(isUser: true, text: "x")).isEmpty)
+        XCTAssertTrue(AssistantPresenter.followUps(for: AssistantMessage(isUser: false, text: "x")).isEmpty)
+    }
+
+    func testLasEtiquetasDeGradoYDistanciaNoLlevanIcono() {
+        XCTAssertNil(AssistantPresenter.chipIcon("6a – 7a"))
+        XCTAssertNil(AssistantPresenter.chipIcon("< 50 km"))
+        XCTAssertNil(AssistantPresenter.chipIcon("★ ≥ 4"))
+        XCTAssertEqual(AssistantPresenter.chipIcon("48 h"), "calendar")
+        XCTAssertEqual(AssistantPresenter.chipIcon("Albarracín"), "mappin")
+    }
 }

@@ -71,8 +71,8 @@ struct AssistantHitGroupView: View {
             }
         }
         .background(Cumbre.paper)
-        .clipShape(RoundedRectangle(cornerRadius: 2))
-        .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Cumbre.rule, lineWidth: 1))
     }
 
     /// Escuela: tocar la cabecera pliega o despliega; el botón de la derecha abre la escuela.
@@ -143,8 +143,8 @@ struct AssistantHitRow: View {
                     MiniTopoThumbnail(photoUrl: photo, points: dedupPoints(TopoParse.points(hit.linePath)),
                                       grade: hit.grade)
                         .frame(width: 44, height: 44)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.rule, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Cumbre.rule, lineWidth: 1))
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {

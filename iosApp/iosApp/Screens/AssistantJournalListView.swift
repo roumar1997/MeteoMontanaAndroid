@@ -16,8 +16,8 @@ struct AssistantJournalListView: View {
                 ForEach(entries, id: \.id) { row($0) }
             }
             .background(Cumbre.paper)
-            .clipShape(RoundedRectangle(cornerRadius: 2))
-            .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Cumbre.rule, lineWidth: 1))
             if let note = AssistantPresenter.moreNote(total: total, shown: entries.count) {
                 Text(note).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
             }

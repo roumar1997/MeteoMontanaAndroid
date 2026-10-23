@@ -19,8 +19,8 @@ struct AssistantWeatherCard: View {
         }
         .padding(12)
         .background(Cumbre.paper)
-        .clipShape(RoundedRectangle(cornerRadius: 2))
-        .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Cumbre.rule, lineWidth: 1))
     }
 
     // MARK: Cabecera: sitio + temperatura + viento y humedad
@@ -66,8 +66,8 @@ struct AssistantWeatherCard: View {
         }
         .foregroundStyle(highlight ? .white : Cumbre.ink2)
         .padding(.horizontal, 8).padding(.vertical, 4)
-        .background(highlight ? Cumbre.terra : Cumbre.bg)
-        .overlay(RoundedRectangle(cornerRadius: 2).stroke(highlight ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+        .background(highlight ? Cumbre.terra : Cumbre.bg, in: Capsule())
+        .overlay(Capsule().stroke(highlight ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
     }
 
     // MARK: Lluvia próxima
@@ -85,8 +85,8 @@ struct AssistantWeatherCard: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background((wet ? Cumbre.rain : Cumbre.ok).opacity(0.10))
-        .overlay(RoundedRectangle(cornerRadius: 2).stroke((wet ? Cumbre.rain : Cumbre.ok).opacity(0.35), lineWidth: 1))
+        .background((wet ? Cumbre.rain : Cumbre.ok).opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke((wet ? Cumbre.rain : Cumbre.ok).opacity(0.35), lineWidth: 1))
     }
 
     // MARK: Por días (mínima y máxima de cada día pedido)

@@ -524,4 +524,71 @@ enum AssistantPresenter {
         default: return aspectLabel(aspect)
         }
     }
+
+    // MARK: Chat
+
+    /// Saludo de la pantalla vacía con el nombre de pila ("Hola, Álvaro"); sin nombre, solo "Hola".
+    static func greeting(displayName: String?) -> String {
+        let first = displayName?
+            .trimmingCharacters(in: .whitespaces)
+            .split(separator: " ").first.map(String.init)
+        guard let first, !first.isEmpty else { return L("Hola") }
+        return L("Hola, %@", first)
+    }
+
+    /// Icono (SF Symbol) de una etiqueta de lo entendido. Las etiquetas se guardan como texto en el
+    /// móvil, así que el icono se deduce al pintar: lo conocido por su texto, los grados y números sin
+    /// icono, y el resto (nombre de escuela o sector) con la chincheta de sitio.
+    static func chipIcon(_ chip: String) -> String? {
+        let known: [String: String] = [
+            L("Sombra"): "circle.lefthalf.filled", L("Sol"): "sun.max",
+            L("Mañana"): "sunrise", L("Tarde"): "sunset",
+            L("Bloque"): "square.stack.3d.up", L("Vía"): "arrow.up.to.line",
+            L("Mi ubicación"): "location", L("Mejor valoradas"): "star",
+            L("Sin lluvia"): "cloud.sun", L("Con topo"): "photo",
+            L("Sin hacer"): "circle.dashed", L("Con más vías"): "list.number",
+            L("Con beta"): "figure.climbing", L("Beta +1,70"): "figure.climbing",
+            L("Beta -1,70"): "figure.climbing"
+        ]
+        if let icon = known[chip] { return icon }
+        if chip.hasPrefix(L("Cara %@", "")) { return "safari" }
+        let rocks = ["granito", "caliza", "arenisca", "basalto", "conglomerado", "pizarra",
+                     "Cuarcita", "Volcánica", "Caliza / calcoarenita", "Otra / muro barrenado"].map(rockLabel)
+        if rocks.contains(chip) { return "mountain.2" }
+        let starts = ["SIT", "STAND", "SEMI", "JUMP", "TRAV"].map(startLabel)
+        if starts.contains(chip) { return nil }
+        // Fechas ("24 oct", "24 – 26 oct") y horas ("48 h"): calendario. Grados, km y estrellas: sin icono.
+        let months = CalendarLabels.monthsShort()
+        if chip.first?.isNumber == true,
+           months.contains(where: { !$0.isEmpty && chip.hasSuffix($0) }) || chip.hasSuffix(" h") { return "calendar" }
+        if chip.contains(where: \.isNumber) || chip.hasPrefix("★") { return nil }
+        return "mappin"
+    }
+
+    /// Una sugerencia para seguir la conversación: o una pregunta que se envía tal cual (el servidor
+    /// la entiende con el contexto de la anterior), o abrir una escuela.
+    struct FollowUp: Identifiable, Equatable {
+        enum Action: Equatable { case ask(String), open(schoolId: String) }
+        let title: String
+        let action: Action
+        var id: String { title }
+    }
+
+    /// Qué ofrecer debajo de una respuesta del asistente, según lo que enseñó. Vacío si no hay nada
+    /// natural que proponer (o si la respuesta espera algo del usuario: confirmar, elegir, reintentar).
+    static func followUps(for m: AssistantMessage) -> [FollowUp] {
+        guard !m.isUser, m.retryText == nil, m.options.isEmpty,
+              !m.pendingActions.contains(where: { $0.state == .waiting }) else { return [] }
+        func ask(_ text: String) -> FollowUp { FollowUp(title: text, action: .ask(text)) }
+        if let b = m.breakdown {
+            var out = [ask(b.sun == "SUN" ? L("¿Y a la sombra?") : L("¿Y al sol?")), ask(L("¿Y mañana a las 17?"))]
+            out.append(FollowUp(title: L("Abrir %@", b.school.name), action: .open(schoolId: b.school.id)))
+            return out
+        }
+        if m.recommendation != nil { return [ask(L("¿Y el finde?")), ask(L("Solo bloques")), ask(L("Más cerca de mí"))] }
+        if m.weather != nil { return [ask(L("¿Y mañana?")), ask(L("¿Mejor hora para ir?")), ask(L("¿Está la roca seca?"))] }
+        if !m.hits.isEmpty { return [ask(L("Que no haya hecho")), ask(L("Solo con topo")), ask(L("Un grado más"))] }
+        if !m.journalEntries.isEmpty { return [ask(L("¿Y el mes pasado?")), ask(L("Solo bloques")), ask(L("Mis proyectos"))] }
+        return []
+    }
 }
