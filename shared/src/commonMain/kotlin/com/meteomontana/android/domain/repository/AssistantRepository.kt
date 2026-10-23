@@ -7,6 +7,7 @@ interface AssistantRepository {
     /**
      * @param previous lo entendido en el mensaje anterior, para refinar sin repetir.
      * @param schoolId escuela que el usuario tiene abierta, si la hay.
+     * @param homeLat casa guardada en el móvil (o null); el servidor solo la usa si la frase dice "cerca de casa".
      */
     @Throws(Exception::class)
     suspend fun ask(
@@ -14,7 +15,9 @@ interface AssistantRepository {
         previous: AssistantUnderstood?,
         lat: Double?,
         lon: Double?,
-        schoolId: String?
+        schoolId: String?,
+        homeLat: Double?,
+        homeLon: Double?
     ): AssistantAnswer
 
     /** ¿Puede esta cuenta usar el asistente? (ya combinado por el servidor: admin, global o activado a mano). */

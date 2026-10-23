@@ -12,6 +12,9 @@ struct AssistantBubble: View {
     @AppStorage("assistant_bubble_dx") private var savedX: Double = 0
     @AppStorage("assistant_bubble_dy") private var savedY: Double = 0
     @GestureState private var drag: CGSize = .zero
+    /// Quedada que el asistente dejó preparada: se abre "Nueva quedada" ya rellena al cerrarse el chat.
+    @State private var meetupPrefill: AssistantViewModel.MeetupRequest?
+    @State private var showMeetup = false
 
     /// La burbuja solo existe para quien tiene el asistente (admin, abierto a todos o activado a mano por un admin).
     var body: some View {
@@ -56,6 +59,14 @@ struct AssistantBubble: View {
         .onChange(of: assistant.openRequest) { _, request in
             if request != nil { open = false }
         }
+        .onChange(of: assistant.meetupRequest) { _, request in
+            if request != nil { open = false }
+        }
+        .background(
+            EmptyView().sheet(isPresented: $showMeetup) {
+                CreateMeetupView(onCreated: { _ in showMeetup = false }, prefill: meetupPrefill)
+            }
+        )
         .sheet(isPresented: $open, onDismiss: openPendingTarget) {
             AssistantChatView()
                 .presentationDragIndicator(.visible)
@@ -65,6 +76,12 @@ struct AssistantBubble: View {
 
 extension AssistantBubble {
     private func openPendingTarget() {
+        if let meetup = assistant.meetupRequest {
+            assistant.meetupRequest = nil
+            meetupPrefill = meetup
+            showMeetup = true
+            return
+        }
         guard let request = assistant.openRequest else { return }
         assistant.openRequest = nil
         Task { await ShareLinkRouter.shared.openSchoolInTabs(id: request.schoolId, viaId: request.viaId) }
@@ -79,6 +96,9 @@ struct AssistantChatView: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focused: Bool
     @State private var showVoiceDenied = false
+    @ObservedObject private var speaker = AssistantSpeaker.shared
+    @AppStorage(AssistantSpeechMode.storageKey) private var speechMode = AssistantSpeechMode.whenSpoken.rawValue
+    @State private var homeSaved = false
 
     /// Icono de cada frase de ejemplo, en el mismo orden que `vm.suggestions` (cerca de mí, sábado, sombra).
     private static let suggestionIcons = ["location.fill", "sun.max.fill", "circle.lefthalf.filled"]
@@ -96,11 +116,12 @@ struct AssistantChatView: View {
                 ToolbarItem(placement: .principal) { header }
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 6) {
+                        settingsMenu
                         if !vm.messages.isEmpty {
                             Button { voice.stop(); vm.reset() } label: { toolbarIcon("square.and.pencil") }
                                 .accessibilityLabel(L("Nueva conversación"))
                         }
-                        Button { voice.stop(); dismiss() } label: { toolbarIcon("xmark") }
+                        Button { voice.stop(); speaker.stop(); dismiss() } label: { toolbarIcon("xmark") }
                             .accessibilityLabel(NSLocalizedString("common_close", comment: ""))
                     }
                     .buttonStyle(.plain)
@@ -110,7 +131,7 @@ struct AssistantChatView: View {
         .onAppear {
             voice.onText = { vm.input = String($0.prefix(AssistantViewModel.maxText)) }
             // Al callar, la pregunta se envía sola.
-            voice.onFinished = { spoken in Task { await vm.send(spoken) } }
+            voice.onFinished = { spoken in Task { await vm.send(spoken, spoken: true) } }
             if vm.listenOnOpen {
                 vm.listenOnOpen = false
                 voice.start()
@@ -142,6 +163,30 @@ struct AssistantChatView: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    /// Ajustes del chat: cuándo contesta hablando y la casa para "cerca de casa".
+    private var settingsMenu: some View {
+        Menu {
+            Picker(L("Respuestas habladas"), selection: $speechMode) {
+                ForEach(AssistantSpeechMode.allCases) { mode in
+                    Text(mode.title).tag(mode.rawValue)
+                }
+            }
+            .pickerStyle(.menu)
+            Section(L("Mi casa")) {
+                if vm.hasHome || homeSaved {
+                    Button(role: .destructive) { vm.forgetHome(); homeSaved = false } label: {
+                        Label(L("Olvidar mi casa"), systemImage: "house.slash")
+                    }
+                } else {
+                    Button { Task { await vm.send(L("guarda aquí como mi casa")) } } label: {
+                        Label(L("Guardar aquí como mi casa"), systemImage: "house")
+                    }
+                }
+            }
+        } label: { toolbarIcon("ellipsis") }
+        .accessibilityLabel(L("Ajustes del asistente"))
     }
 
     private func toolbarIcon(_ name: String) -> some View {
@@ -290,12 +335,18 @@ struct AssistantChatView: View {
             }
         } else {
             botRow {
-                Text(m.text)
-                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
-                    .padding(.horizontal, 14).padding(.vertical, 10)
-                    .background(Cumbre.paper, in: Self.botShape)
-                    .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
+                HStack(alignment: .bottom, spacing: 6) {
+                    Text(m.text)
+                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                        .padding(.horizontal, 14).padding(.vertical, 10)
+                        .background(Cumbre.paper, in: Self.botShape)
+                        .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
+                    speakerButton(m)
+                }
                 if !m.chips.isEmpty { chipsRow(m.chips) }
+                if let r = m.restrictions { AssistantRestrictionsView(restrictions: r) }
+                if !m.trip.isEmpty { AssistantTripView(plan: m.trip) }
+                if !m.photoMatches.isEmpty { AssistantPhotoMatchesView(candidates: m.photoMatches) }
                 if let r = m.recommendation { AssistantRecommendationView(recommendation: r) }
                 if let b = m.breakdown { AssistantBreakdownView(breakdown: b) }
                 if let w = m.weather { AssistantWeatherCard(weather: w) }
@@ -316,11 +367,51 @@ struct AssistantChatView: View {
         }
     }
 
+    /// Leer (o parar) esta respuesta en voz alta.
+    private func speakerButton(_ m: AssistantMessage) -> some View {
+        let active = speaker.speakingId == m.id
+        return Button { speaker.toggle(AssistantPresenter.speech(for: m), id: m.id) } label: {
+            Image(systemName: active ? "stop.fill" : "speaker.wave.2.fill")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(active ? .white : Cumbre.ink3)
+                .frame(width: 26, height: 26)
+                .background(active ? Cumbre.terra : Cumbre.paper, in: Circle())
+                .overlay(Circle().stroke(Cumbre.rule, lineWidth: active ? 0 : 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(active ? L("Parar de leer") : L("Leer en voz alta"))
+    }
+
     /// CONFIRMAR / CANCELAR para una acción propuesta: la app nunca hace nada por su cuenta.
     private func confirmButtons(_ m: AssistantMessage) -> some View {
         let waiting = m.pendingActions.filter { $0.state == .waiting }
         return VStack(alignment: .leading, spacing: 8) {
-            if waiting.count > 1 {
+            if m.confirmAll {
+                // Varias vías del día: se enseñan todas y se apuntan con un solo toque.
+                ForEach(waiting) { action in
+                    HStack(spacing: 8) {
+                        Image(systemName: action.kind == "LOG_PROJECT" ? "circle.dashed" : "checkmark.circle.fill")
+                            .foregroundStyle(Cumbre.terra)
+                        Text(logLine(action)).font(.system(size: 14)).foregroundStyle(Cumbre.ink)
+                            .multilineTextAlignment(.leading)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 9)
+                    .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 12))
+                }
+                HStack(spacing: 8) {
+                    Button { Task { await vm.confirmAll(m.id) } } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark").font(.system(size: 12, weight: .bold))
+                            Text(L("Apuntar las %@", waiting.count)).font(.system(size: 14, weight: .semibold))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 16).padding(.vertical, 9)
+                        .background(Cumbre.terra, in: Capsule())
+                    }
+                    cancelButton(m)
+                }
+            } else if waiting.count > 1 {
                 // Varias candidatas: una tarjeta por cada una para elegir, y CANCELAR debajo.
                 ForEach(waiting) { action in
                     Button { Task { await vm.confirm(m.id, action.id) } } label: {
@@ -356,6 +447,14 @@ struct AssistantChatView: View {
                 .padding(.horizontal, 16).padding(.vertical, 9)
                 .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1.5))
         }
+    }
+
+    /// "Zarzamora · 7a · Albarracín — hecha" / "— proyecto".
+    private func logLine(_ action: PendingAction) -> String {
+        guard let hit = action.hit else { return action.schoolName }
+        let grade = hit.grade.map { " · \($0)" } ?? ""
+        let what = action.kind == "LOG_PROJECT" ? L("proyecto") : L("hecha")
+        return "\(hit.lineName ?? hit.blockName)\(grade) · \(hit.schoolName) — \(what)"
     }
 
     /// "Confirmar", o con varias candidatas el nombre de cada una para poder elegir.
@@ -453,6 +552,24 @@ struct AssistantChatView: View {
 
     private var inputBar: some View {
         HStack(alignment: .bottom, spacing: 8) {
+            // "¿Qué piedra es esta?": una foto y busco cuál es entre las de alrededor.
+            Button {
+                focused = false
+                presentPhotoPickerResult { result in
+                    guard let result else { return }
+                    Task { await vm.identifyPhoto(result) }
+                }
+            } label: {
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink2)
+                    .frame(width: 42, height: 42)
+                    .background(Cumbre.paper, in: Circle())
+                    .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .disabled(vm.isLoading)
+            .accessibilityLabel(L("¿Qué piedra es esta? Elegir una foto"))
+
             TextField(L("Pregunta sobre escuelas, tiempo o bloques…"), text: $vm.input, axis: .vertical)
                 .lineLimit(1...4)
                 .focused($focused)

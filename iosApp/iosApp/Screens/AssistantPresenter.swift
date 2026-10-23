@@ -39,6 +39,8 @@ enum AssistantPresenter {
         case "NEEDS_TWO_SCHOOLS": return L("¿Con qué otra escuela quieres compararla?")
         case "NEEDS_LOCATION":
             return L("Necesito saber dónde estás. Activa la ubicación o dime el nombre del sitio.")
+        case "NEEDS_HOME":
+            return L("Aún no sé dónde vives. Cuando estés en casa, dime «guarda aquí como mi casa».")
         case "SECTOR_NOT_FOUND":
             return c.options.isEmpty
                 ? L("Esa escuela no tiene sectores.")
@@ -83,6 +85,11 @@ enum AssistantPresenter {
         if u.noRain { out.append(L("Sin lluvia")) }
         if u.notDone { out.append(L("Sin hacer")) }
         if u.mostLines { out.append(L("Con más vías")) }
+        if u.mostRepeated { out.append(L("Clásicas")) }
+        if u.heightGrade { out.append(L("Grado por altura")) }
+        if u.trip { out.append(L("Viaje")) }
+        if u.useHome { out.append(L("Cerca de casa")) }
+        if let time = u.time { out.append(time) }
         if let y = u.year { out.append("\(y.intValue)") }
         return out
     }
@@ -93,6 +100,9 @@ enum AssistantPresenter {
         case "ADD_FAVORITE": return L("¿Añado %@ a tus favoritas?", school)
         case "REMOVE_FAVORITE": return L("¿Quito %@ de tus favoritas?", school)
         case "ENABLE_WEEKEND_ALERT": return L("¿Activo el aviso de fin de semana para %@?", school)
+        case "ENABLE_MORNING_ALERT":
+            return L("¿Activo el aviso de cada mañana? Entre las 7 y las 11 te aviso si alguna de tus favoritas tiene buenas condiciones ese día.")
+        case "SET_HOME": return L("¿Guardo donde estás ahora como tu casa? Solo se guarda en este móvil.")
         default: return L("¿Abro %@?", school)
         }
     }
@@ -590,5 +600,204 @@ enum AssistantPresenter {
         if !m.hits.isEmpty { return [ask(L("Que no haya hecho")), ask(L("Solo con topo")), ask(L("Un grado más"))] }
         if !m.journalEntries.isEmpty { return [ask(L("¿Y el mes pasado?")), ask(L("Solo bloques")), ask(L("Mis proyectos"))] }
         return []
+    }
+
+    // MARK: Restricciones
+
+    static func restrictionsIntro(_ r: AssistantRestrictions, school: String?) -> String {
+        let period = r.from == r.to ? dayLabel(r.from) : dateRange(r.from, r.to)
+        let active = r.items.filter { $0.active }.count
+        if let school {
+            if r.items.isEmpty {
+                return L("No tengo ninguna restricción apuntada en %@. Aun así, mira los carteles al llegar.", school)
+            }
+            if active == 0 {
+                return L("En %@ no hay restricciones en vigor para %@. Estas son las que tiene en otras fechas:", school, period)
+            }
+            return active == 1
+                ? L("En %@ hay 1 restricción en vigor para %@:", school, period)
+                : L("En %@ hay %@ restricciones en vigor para %@:", school, active, period)
+        }
+        if active == 0 {
+            return L("No tengo restricciones en vigor para %@ en las %@ escuelas de la zona. Mira los carteles al llegar.",
+                     period, Int(r.schoolsChecked))
+        }
+        return active == 1
+            ? L("Hay 1 restricción en vigor en la zona para %@:", period)
+            : L("Hay %@ restricciones en vigor en la zona para %@:", active, period)
+    }
+
+    static func restrictionKind(_ kind: String) -> String {
+        switch kind {
+        case "CLOSED": return L("Cerrado")
+        case "REGULATED": return L("Regulado")
+        default: return L("Aviso")
+        }
+    }
+
+    /// Qué afecta: el sector, o cuántas piedras sueltas.
+    static func restrictionPlace(_ i: AssistantRestriction) -> String {
+        if let sector = i.sectorName, !sector.isEmpty { return sector }
+        let n = Int(i.blockCount)
+        return n == 1 ? L("1 piedra") : L("%@ piedras", n)
+    }
+
+    /// Cuándo: "Todo el año", "Cada año, 1 feb – 30 jun" o "1 feb – 30 jun".
+    static func restrictionWhen(_ i: AssistantRestriction) -> String {
+        if i.permanent { return L("Todo el año") }
+        guard let from = i.startsOn, let to = i.endsOn else { return "" }
+        return i.yearly ? L("Cada año, %@", dateRange(from, to)) : dateRange(from, to)
+    }
+
+    // MARK: Viaje de varios días
+
+    /// Un día del plan: la mejor escuela de ese día (sin lluvia si alguna se libra).
+    struct TripDay: Identifiable, Equatable {
+        let date: String
+        let schoolId: String
+        let schoolName: String
+        let score: Int
+        let rainy: Bool
+        var id: String { date }
+    }
+
+    static func tripPlan(_ r: AssistantRecommendation) -> [TripDay] {
+        guard r.forecastAvailable else { return [] }
+        return r.dates.compactMap { date in
+            let options = r.schools.compactMap { s -> (AssistantSchoolCard, AssistantDay)? in
+                s.days.first { $0.date == date }.map { (s, $0) }
+            }
+            let dry = options.filter { !$0.1.rainy }
+            guard let best = (dry.isEmpty ? options : dry).max(by: { $0.1.score < $1.1.score }) else { return nil }
+            return TripDay(date: date, schoolId: best.0.schoolId, schoolName: best.0.name,
+                           score: Int(best.1.score), rainy: best.1.rainy)
+        }
+    }
+
+    static func tripIntro(_ plan: [TripDay]) -> String {
+        guard let first = plan.first else {
+            return L("Aún no hay previsión para esos días. Estas son las escuelas que mejor encajan:")
+        }
+        if Set(plan.map(\.schoolId)).count == 1 {
+            return L("Para esos %@ días, lo mejor es quedarte en %@:", plan.count, first.schoolName)
+        }
+        return L("Tu plan para %@ días, con el mejor sitio de cada día:", plan.count)
+    }
+
+    // MARK: Grado según la altura
+
+    /// "Zarzamora: los altos la votan 7a y los bajos 7a+." a partir de los votos separados por altura.
+    static func heightGradeLine(name: String, summary: GradeSummary) -> String {
+        if let split = summary.heightSplit {
+            return L("%@: los de más de 1,70 la votan %@ y los de menos %@.", name, split.tallGrade, split.shortGrade)
+        }
+        let tall = topVote(summary.votesByHeight["TALL"])
+        let short = topVote(summary.votesByHeight["SHORT"])
+        switch (tall, short) {
+        case (nil, nil):
+            return L("%@: aún no hay votos de grado por altura.", name)
+        case let (t?, s?) where t.grade == s.grade:
+            return L("%@: altos y bajos coinciden en %@.", name, t.grade)
+        default:
+            var parts: [String] = []
+            if let t = tall { parts.append(L("+1,70: %@ (%@ votos)", t.grade, t.count)) }
+            if let s = short { parts.append(L("−1,70: %@ (%@ votos)", s.grade, s.count)) }
+            return "\(name): " + parts.joined(separator: " · ")
+        }
+    }
+
+    private static func topVote(_ votes: [String: KotlinInt]?) -> (grade: String, count: Int)? {
+        guard let best = votes?.max(by: { $0.value.intValue < $1.value.intValue }), best.value.intValue > 0 else { return nil }
+        return (best.key, best.value.intValue)
+    }
+
+    // MARK: Objetivo y logros
+
+    static func goalText(_ p: GoalProgress) -> String {
+        let g = p.goal
+        var parts: [String] = []
+        if let grade = g.grade {
+            parts.append(p.gradeReached
+                ? L("el %@ ya lo tienes", grade)
+                : L("el %@ aún no (tu máximo este año: %@)", grade, p.maxGradeThisYear ?? "—"))
+        }
+        if let a = g.ascents?.intValue {
+            let done = Int(p.ascentsDone)
+            parts.append(done >= a ? L("%@ ascensiones: ¡hecho!", a) : L("%@ de %@ ascensiones (te faltan %@)", done, a, a - done))
+        }
+        if let d = g.days?.intValue {
+            let done = Int(p.daysDone)
+            parts.append(done >= d ? L("%@ días de roca: ¡hecho!", d) : L("%@ de %@ días de roca (te faltan %@)", done, d, d - done))
+        }
+        guard !parts.isEmpty else { return L("Tu objetivo de %@ no tiene metas todavía.", Int(g.year)) }
+        return L("Tu objetivo de %@: %@.", Int(g.year), parts.joined(separator: "; "))
+    }
+
+    static func noGoalText(year: Int) -> String {
+        L("Aún no tienes objetivo para %@. Puedes ponerlo en tu perfil, en Estadísticas.", year)
+    }
+
+    /// Cuántos logros tiene y el siguiente de cada familia (el catálogo va de fácil a difícil dentro de cada una).
+    static func achievementsText(_ all: [Achievement]) -> String {
+        let unlocked = all.filter { $0.unlocked }.count
+        var next: [String] = []
+        var groups = Set<String>()
+        for a in all where !a.unlocked && groups.insert(String(describing: a.group)).inserted {
+            next.append(achievementText(a))
+            if next.count == 3 { break }
+        }
+        if next.isEmpty { return L("Tienes los %@ logros. ¡Todos!", all.count) }
+        return L("Tienes %@ de %@ logros. Los siguientes más a mano: %@.", unlocked, all.count, next.joined(separator: " · "))
+    }
+
+    // MARK: Acciones nuevas
+
+    static func meetupPrompt(school: String, date: String?, time: String?) -> String {
+        switch (date.map { dayLabel($0) }, time) {
+        case let (day?, time?): return L("¿Preparo una quedada en %@ el %@ a las %@?", school, day, time)
+        case let (day?, nil): return L("¿Preparo una quedada en %@ el %@?", school, day)
+        default: return L("¿Preparo una quedada en %@?", school)
+        }
+    }
+
+    /// Nombre propuesto para la quedada: "Albarracín · sáb 25 oct · 09:00".
+    static func meetupName(school: String, date: String?, time: String?) -> String {
+        [school, date.map { dayLabel($0) }, time].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    static func multiLogPrompt(count: Int, date: String, missing: [String]) -> String {
+        let head = L("¿Apunto estas %@ en tu diario el %@?", count, dateRange(date, nil))
+        guard !missing.isEmpty else { return head }
+        return head + " " + L("No encuentro: %@.", missing.joined(separator: ", "))
+    }
+
+    static func photoIntro(sure: Bool, approximate: Bool, school: String) -> String {
+        let base = sure ? L("Creo que es esta, en %@:", school) : L("Puede ser una de estas de %@:", school)
+        return approximate ? base + " " + L("(la foto no guardaba dónde se hizo: uso dónde estás ahora)") : base
+    }
+
+    // MARK: Voz
+
+    /// Lo que se lee en voz alta: el texto de la burbuja y un resumen corto de la tarjeta, nunca listas largas.
+    static func speech(for m: AssistantMessage) -> String {
+        var parts = [m.text]
+        if !m.trip.isEmpty {
+            parts += m.trip.prefix(4).map { L("%@: %@, %@ sobre 100.", dayLabel($0.date), $0.schoolName, $0.score) }
+        } else if let first = m.recommendation?.schools.first {
+            if let score = first.combinedScore?.intValue {
+                parts.append(L("La mejor es %@, %@ sobre 100.", first.name, score))
+            } else {
+                parts.append(L("La primera es %@.", first.name))
+            }
+        }
+        if let r = m.restrictions {
+            parts += r.items.filter { $0.active }.prefix(2)
+                .map { "\(restrictionKind($0.kind)): \(restrictionPlace($0)), \(restrictionWhen($0))." }
+        }
+        if !m.hits.isEmpty {
+            parts.append(m.hits.prefix(3).map { $0.lineName ?? $0.blockName }.joined(separator: ", ") + ".")
+        }
+        if let first = m.photoMatches.first { parts.append(first.blockName + ".") }
+        return parts.joined(separator: " ")
     }
 }

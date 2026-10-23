@@ -16,9 +16,11 @@ class AskAssistantUseCase(private val repository: AssistantRepository) {
         previous: AssistantUnderstood? = null,
         lat: Double? = null,
         lon: Double? = null,
-        schoolId: String? = null
+        schoolId: String? = null,
+        homeLat: Double? = null,
+        homeLon: Double? = null
     ): AssistantAnswer =
-        repository.ask(text.trim().take(MAX_TEXT), previous, lat, lon, schoolId)
+        repository.ask(text.trim().take(MAX_TEXT), previous, lat, lon, schoolId, homeLat, homeLon)
 
     companion object {
         const val MAX_TEXT = 200

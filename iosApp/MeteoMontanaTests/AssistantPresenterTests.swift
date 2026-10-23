@@ -23,7 +23,8 @@ final class AssistantPresenterTests: XCTestCase {
             weatherTopic: nil, useMyLocation: false, beta: beta,
             startType: startType, withTopo: withTopo, noRain: noRain,
             mineTopic: nil, year: nil, notDone: notDone, action: nil,
-            mostLines: mostLines)
+            mostLines: mostLines,
+            mostRepeated: false, heightGrade: false, trip: false, useHome: false, logItems: [], time: nil)
     }
 
     func testSalidaTopoYSinLluviaSalenComoChips() {
@@ -413,6 +414,34 @@ final class AssistantPresenterTests: XCTestCase {
 
         XCTAssertTrue(AssistantPresenter.followUps(for: AssistantMessage(isUser: true, text: "x")).isEmpty)
         XCTAssertTrue(AssistantPresenter.followUps(for: AssistantMessage(isUser: false, text: "x")).isEmpty)
+    }
+
+    func testElPlanDeViajeEligeElMejorSitioSecoDeCadaDia() {
+        func day(_ d: String, _ score: Int32, rainy: Bool) -> AssistantDay {
+            AssistantDay(date: d, score: score, rainMm: rainy ? 5 : 0, rainProb: rainy ? 80 : 0, rainy: rainy)
+        }
+        let a = AssistantSchoolCard(schoolId: "a", name: "A", rockType: nil, distanceKm: nil, lineCount: 10,
+                                    combinedScore: nil, days: [day("2026-10-24", 90, rainy: true), day("2026-10-25", 60, rainy: false)],
+                                    rainDays: 1)
+        let b = AssistantSchoolCard(schoolId: "b", name: "B", rockType: nil, distanceKm: nil, lineCount: 10,
+                                    combinedScore: nil, days: [day("2026-10-24", 70, rainy: false), day("2026-10-25", 80, rainy: false)],
+                                    rainDays: 0)
+        let rec = AssistantRecommendation(forecastAvailable: true, dates: ["2026-10-24", "2026-10-25"],
+                                          schools: [a, b], byCount: false, filtered: false)
+
+        let plan = AssistantPresenter.tripPlan(rec)
+
+        XCTAssertEqual(plan.map(\.schoolId), ["b", "b"])      // el 24 A llueve aunque puntúe más
+        XCTAssertEqual(plan.map(\.score), [70, 80])
+    }
+
+    func testElGradoPorAlturaDiceLosDosGradosSiSeParten() {
+        let split = GradeSummary(lineId: "l1", votes: [:], setterGrade: nil, displayedGrade: "7a", myVote: nil,
+                                 votesByHeight: [:], heightSplit: HeightSplit(tallGrade: "7a", shortGrade: "7a+"),
+                                 myHeight: nil)
+        let text = AssistantPresenter.heightGradeLine(name: "Zarzamora", summary: split)
+        XCTAssertTrue(text.contains("Zarzamora"))
+        XCTAssertTrue(text.contains("7a+"))
     }
 
     func testLasEtiquetasDeGradoYDistanciaNoLlevanIcono() {

@@ -74,7 +74,53 @@ data class AssistantUnderstood(
     /** Solo en ACTION: ADD_FAVORITE | REMOVE_FAVORITE | OPEN_SCHOOL. La app siempre pide confirmación. */
     val action: String? = null,
     /** Pidió las escuelas con MÁS vías/bloques de un grado: se ordenan por cantidad, no por el tiempo. */
-    val mostLines: Boolean = false
+    val mostLines: Boolean = false,
+    /** SEARCH: "las clásicas", "las más repetidas" → ordenar por cuánta gente las ha hecho. */
+    val mostRepeated: Boolean = false,
+    /** SEARCH: "¿es más dura para bajos?" → enseñar el grado votado por altura de cada vía. */
+    val heightGrade: Boolean = false,
+    /** RECOMMEND: plan de varios días (la mejor escuela de cada día). */
+    val trip: Boolean = false,
+    /** "Cerca de casa": se midió desde la casa guardada en el móvil. */
+    val useHome: Boolean = false,
+    /** ACTION LOG_*: varias vías de una vez ("hice X, Y y probé Z"). Vacío = la de [q]. */
+    val logItems: List<AssistantLogItem> = emptyList(),
+    /** ACTION CREATE_MEETUP: hora "HH:mm" de la quedada, o null. */
+    val time: String? = null
+)
+
+/** Una vía a apuntar en el diario desde el chat: el nombre tal como se dijo y si es proyecto (si no, hecha). */
+data class AssistantLogItem(val name: String, val project: Boolean)
+
+/**
+ * Restricciones de escalada que contestan "¿se puede escalar en X?" o "¿hay zonas cerradas cerca?".
+ * [schoolsChecked] = cuántas escuelas se miraron (1 si nombró una).
+ */
+data class AssistantRestrictions(
+    val from: String,
+    val to: String,
+    val schoolsChecked: Int,
+    val items: List<AssistantRestriction>
+)
+
+/**
+ * Una restricción. [kind] = CLOSED | REGULATED | NOTICE. [sectorName] null si afecta a piedras sueltas
+ * ([blockCount] de ellas). [active] = en vigor algún día del periodo preguntado.
+ */
+data class AssistantRestriction(
+    val schoolId: String,
+    val schoolName: String,
+    val sectorName: String?,
+    val blockCount: Int,
+    val kind: String,
+    val reason: String?,
+    val startsOn: String?,
+    val endsOn: String?,
+    val yearly: Boolean,
+    val permanent: Boolean,
+    val active: Boolean,
+    val sourceName: String?,
+    val sourceUrl: String?
 )
 
 /** El tiempo de ahora en un sitio. */
@@ -232,7 +278,9 @@ data class AssistantAnswer(
     val weather: AssistantWeather?,
     val summary: AssistantSummary? = null,
     /** Las escuelas de una búsqueda en VARIAS ("los 7a de Albarracín y Zarzalejo"); vacío si fue una sola. */
-    val resolvedSchools: List<AssistantOption> = emptyList()
+    val resolvedSchools: List<AssistantOption> = emptyList(),
+    /** Respuesta a "¿se puede escalar en X?" / "¿hay zonas cerradas cerca?". */
+    val restrictions: AssistantRestrictions? = null
 )
 
 /** Cuántas líneas hay de un grupo de grado ("≤5", "6", "7", "8+"). */

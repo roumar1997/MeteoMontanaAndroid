@@ -4,6 +4,10 @@ import PhotosUI
 
 struct CreateMeetupView: View {
     let onCreated: (String) -> Void   // meetupId
+    /// Datos que trae el asistente ("crea una quedada en Albarracín el sábado a las 9"): el formulario se abre ya
+    /// relleno y el usuario lo revisa y la crea con su botón.
+    var prefill: AssistantViewModel.MeetupRequest? = nil
+    @State private var prefillApplied = false
 
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
@@ -182,7 +186,7 @@ struct CreateMeetupView: View {
                     let req = CreateMeetupRequest(
                         schoolId: schoolId.trimmingCharacters(in: .whitespaces),
                         name: name.trimmingCharacters(in: .whitespaces),
-                        description: nil,
+                        description: prefill?.description,
                         discipline: discipline,
                         privacy: privacy,
                         memberLimit: {
@@ -221,6 +225,14 @@ struct CreateMeetupView: View {
                 .background(Cumbre.bg)
             }
             .navigationBarHidden(true)
+            .onAppear {
+                guard let p = prefill, !prefillApplied else { return }
+                prefillApplied = true
+                if name.isEmpty { name = p.name }
+                schoolId = p.schoolId
+                schoolName = p.schoolName
+                if let day = p.day { selectedDays.insert(day) }
+            }
             .alert("Quedadas «No Mixto»", isPresented: $showGenderGate) {
                 Button("Entendido", role: .cancel) {}
             } message: {

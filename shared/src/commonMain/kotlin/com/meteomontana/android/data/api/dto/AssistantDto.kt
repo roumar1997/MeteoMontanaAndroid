@@ -19,6 +19,9 @@ import com.meteomontana.android.domain.model.AssistantDayWeather
 import com.meteomontana.android.domain.model.AssistantGradeBand
 import com.meteomontana.android.domain.model.AssistantSummary
 import com.meteomontana.android.domain.model.AssistantWeather
+import com.meteomontana.android.domain.model.AssistantLogItem
+import com.meteomontana.android.domain.model.AssistantRestriction
+import com.meteomontana.android.domain.model.AssistantRestrictions
 import kotlinx.serialization.Serializable
 
 /**
@@ -34,7 +37,10 @@ data class AssistantAskRequest(
     val lat: Double? = null,
     val lon: Double? = null,
     /** Escuela que el usuario tiene abierta, si la hay. */
-    val schoolId: String? = null
+    val schoolId: String? = null,
+    /** Casa guardada en el móvil; el servidor solo la usa si la frase dice "cerca de casa". */
+    val homeLat: Double? = null,
+    val homeLon: Double? = null
 )
 
 @Serializable
@@ -67,7 +73,41 @@ data class AssistantUnderstoodDto(
     val year: Int? = null,
     val notDone: Boolean = false,
     val action: String? = null,
-    val mostLines: Boolean = false
+    val mostLines: Boolean = false,
+    val mostRepeated: Boolean = false,
+    val heightGrade: Boolean = false,
+    val trip: Boolean = false,
+    val useHome: Boolean = false,
+    val logItems: List<AssistantLogItemDto> = emptyList(),
+    val time: String? = null
+)
+
+@Serializable
+data class AssistantLogItemDto(val name: String, val project: Boolean = false)
+
+@Serializable
+data class AssistantRestrictionDto(
+    val schoolId: String,
+    val schoolName: String,
+    val sectorName: String? = null,
+    val blockCount: Int = 0,
+    val kind: String,
+    val reason: String? = null,
+    val startsOn: String? = null,
+    val endsOn: String? = null,
+    val yearly: Boolean = false,
+    val permanent: Boolean = false,
+    val active: Boolean = false,
+    val sourceName: String? = null,
+    val sourceUrl: String? = null
+)
+
+@Serializable
+data class AssistantRestrictionsDto(
+    val from: String,
+    val to: String,
+    val schoolsChecked: Int = 0,
+    val items: List<AssistantRestrictionDto> = emptyList()
 )
 
 @Serializable
@@ -226,7 +266,8 @@ data class AssistantAnswerDto(
     val breakdown: AssistantBreakdownDto? = null,
     val clarification: AssistantClarificationDto? = null,
     val weather: AssistantWeatherDto? = null,
-    val summary: AssistantSummaryDto? = null
+    val summary: AssistantSummaryDto? = null,
+    val restrictions: AssistantRestrictionsDto? = null
 )
 
 @Serializable
@@ -252,13 +293,25 @@ data class AssistantSummaryDto(
 fun AssistantUnderstood.toDto() = AssistantUnderstoodDto(
     intent, dateFrom, dateTo, gradeMin, gradeMax, discipline, rockTypes, orientations,
     maxDistanceKm, q, schoolMention, sectorMention, sun, dayPart,
-    schoolMentions, topRated, minStars, hoursAhead, weatherTopic, useMyLocation, beta, startType, withTopo, noRain, mineTopic, year, notDone, action, mostLines
+    schoolMentions, topRated, minStars, hoursAhead, weatherTopic, useMyLocation, beta, startType, withTopo, noRain, mineTopic, year, notDone, action, mostLines,
+    mostRepeated, heightGrade, trip, useHome, logItems.map { AssistantLogItemDto(it.name, it.project) }, time
 )
 
 private fun AssistantUnderstoodDto.toDomain() = AssistantUnderstood(
     intent, dateFrom, dateTo, gradeMin, gradeMax, discipline, rockTypes, orientations,
     maxDistanceKm, q, schoolMention, sectorMention, sun, dayPart,
-    schoolMentions, topRated, minStars, hoursAhead, weatherTopic, useMyLocation, beta, startType, withTopo, noRain, mineTopic, year, notDone, action, mostLines
+    schoolMentions, topRated, minStars, hoursAhead, weatherTopic, useMyLocation, beta, startType, withTopo, noRain, mineTopic, year, notDone, action, mostLines,
+    mostRepeated, heightGrade, trip, useHome, logItems.map { AssistantLogItem(it.name, it.project) }, time
+)
+
+private fun AssistantRestrictionsDto.toDomain() = AssistantRestrictions(
+    from, to, schoolsChecked,
+    items.map {
+        AssistantRestriction(
+            it.schoolId, it.schoolName, it.sectorName, it.blockCount, it.kind, it.reason, it.startsOn, it.endsOn,
+            it.yearly, it.permanent, it.active, it.sourceName, it.sourceUrl
+        )
+    }
 )
 
 internal fun AssistantWeatherDto.toDomain() = AssistantWeather(
@@ -337,6 +390,7 @@ fun AssistantAnswerDto.toDomain() = AssistantAnswer(
         AssistantClarification(c.kind, c.options.map { it.toDomain() })
     },
     weather = weather?.toDomain(),
+    restrictions = restrictions?.toDomain(),
     summary = summary?.let { s ->
         AssistantSummary(
             AssistantOption(s.school.id, s.school.name), s.rockType, s.region, s.stones, s.sectors, s.lines,

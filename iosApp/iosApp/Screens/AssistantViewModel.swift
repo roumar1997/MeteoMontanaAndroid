@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 import Shared
 
 /// Un mensaje del chat: del usuario o del asistente (con datos opcionales).
@@ -29,19 +30,30 @@ struct AssistantMessage: Identifiable {
     /// Lo que la app hará por el usuario SOLO si lo confirma (favoritas, abrir una escuela, apuntar en el
     /// diario, aviso de fin de semana). Varias cuando el nombre de una vía es ambiguo: elige una.
     var pendingActions: [PendingAction] = []
+    /// Varias vías del día a la vez: un solo botón "Confirmar todas" en vez de elegir una.
+    var confirmAll = false
+    /// "¿Se puede escalar en X?": restricciones con datos reales.
+    var restrictions: AssistantRestrictions? = nil
+    /// Viaje de varios días: la mejor escuela de cada día.
+    var trip: [AssistantPresenter.TripDay] = []
+    /// "¿Qué piedra es esta?": las más probables, con su foto.
+    var photoMatches: [AssistantPhotoMatcher.Candidate] = []
 }
 
 /// Una acción propuesta en el chat. Nunca se ejecuta sin que el usuario la confirme con un toque.
 struct PendingAction: Identifiable, Equatable {
     enum State { case waiting, done, cancelled }
     let id = UUID()
-    /// ADD_FAVORITE | REMOVE_FAVORITE | OPEN_SCHOOL | ENABLE_WEEKEND_ALERT | LOG_DONE | LOG_PROJECT
+    /// ADD_FAVORITE | REMOVE_FAVORITE | OPEN_SCHOOL | ENABLE_WEEKEND_ALERT | LOG_DONE | LOG_PROJECT |
+    /// CREATE_MEETUP | ENABLE_MORNING_ALERT | SET_HOME
     let kind: String
     let schoolId: String
     let schoolName: String
     /// Para apuntar en el diario: la vía encontrada y el día ("yyyy-MM-dd").
     var hit: LineSearchHit? = nil
     var date: String? = nil
+    /// Quedada: hora "HH:mm" dicha.
+    var time: String? = nil
     var state: State = .waiting
 }
 
@@ -59,6 +71,7 @@ final class AssistantViewModel: ObservableObject {
     private let container: IosDependencyContainer
     private let locationBridge: LocationBridge
     private let store: AssistantTranscriptStore
+    private let homeStore: AssistantHomeStore
     /// Cuenta a la que pertenece la conversación; nil = sin sesión.
     private var uid: String?
 
@@ -70,11 +83,18 @@ final class AssistantViewModel: ObservableObject {
 
     init(container: IosDependencyContainer = AppDependencies.shared.container,
          locationBridge: LocationBridge = AppDependencies.shared.locationBridge,
-         store: AssistantTranscriptStore = AssistantTranscriptStore()) {
+         store: AssistantTranscriptStore = AssistantTranscriptStore(),
+         homeStore: AssistantHomeStore = AssistantHomeStore()) {
         self.container = container
         self.locationBridge = locationBridge
         self.store = store
+        self.homeStore = homeStore
     }
+
+    /// ¿Hay casa guardada? (para el menú del chat).
+    var hasHome: Bool { homeStore.home != nil }
+
+    func forgetHome() { homeStore.clear() }
 
     // MARK: - Conversación guardada en el móvil
 
@@ -166,6 +186,16 @@ final class AssistantViewModel: ObservableObject {
         openRequest = OpenRequest(schoolId: schoolId, viaId: viaId)
     }
 
+    /// Quedada preparada desde el chat: la burbuja cierra el chat y abre "Nueva quedada" ya rellena.
+    struct MeetupRequest: Equatable {
+        let schoolId: String
+        let schoolName: String
+        let day: String?
+        let name: String
+        let description: String?
+    }
+    @Published var meetupRequest: MeetupRequest?
+
     /// La última pregunta enviada (para "REINTENTAR" si falla por algo pasajero).
     private var lastQuestion = ""
 
@@ -192,7 +222,8 @@ final class AssistantViewModel: ObservableObject {
         !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && queued.count < Self.maxQueued
     }
 
-    func send(_ text: String? = nil) async {
+    /// @param spoken la pregunta se dictó: según el ajuste, la respuesta se lee en voz alta.
+    func send(_ text: String? = nil, spoken: Bool = false) async {
         let raw = (text ?? input).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !raw.isEmpty else { return }
         input = ""
@@ -201,7 +232,7 @@ final class AssistantViewModel: ObservableObject {
             if queued.count < Self.maxQueued { queued.append(raw) }
             return
         }
-        await respond(raw)
+        await respond(raw, spoken: spoken)
         // Sin ningún punto de espera entre una respuesta y la siguiente: isLoading no llega a quedar en
         // false entre medias, así que una pregunta nueva no puede colarse en paralelo.
         while !queued.isEmpty {
@@ -210,21 +241,32 @@ final class AssistantViewModel: ObservableObject {
     }
 
     /// Contesta UNA pregunta (la envía al servidor y pinta la respuesta).
-    private func respond(_ raw: String) async {
+    private func respond(_ raw: String, spoken: Bool = false) async {
         lastQuestion = raw
         messages.append(AssistantMessage(isUser: true, text: raw))
         isLoading = true
-        defer { isLoading = false; persist() }
+        let before = messages.count
+        defer {
+            isLoading = false
+            persist()
+            speakNewAnswer(after: before, spoken: spoken)
+        }
 
         let location = await currentLocation()
+        let home = homeStore.home
         do {
             let answer = try await container.askAssistant.invoke(
                 text: raw,
                 previous: previous,
                 lat: location.map { KotlinDouble(double: $0.lat) },
                 lon: location.map { KotlinDouble(double: $0.lon) },
-                schoolId: contextSchoolId)
-            try await handle(answer, location: location)
+                schoolId: contextSchoolId,
+                homeLat: home.map { KotlinDouble(double: $0.lat) },
+                homeLon: home.map { KotlinDouble(double: $0.lon) })
+            // "Cerca de casa": las búsquedas que hace la app también miden desde casa.
+            let place = answer.understood?.useHome == true
+                ? home.map { UserLocation(lat: $0.lat, lon: $0.lon) } ?? location : location
+            try await handle(answer, location: place)
         } catch {
             messages.append(AssistantMessage(
                 isUser: false,
@@ -243,7 +285,15 @@ final class AssistantViewModel: ObservableObject {
         await send(text)
     }
 
+    /// Lee en voz alta la primera respuesta nueva si toca (ajuste del chat + si se preguntó hablando).
+    private func speakNewAnswer(after index: Int, spoken: Bool) {
+        guard AssistantSpeechMode.current.shouldSpeak(spokenQuestion: spoken),
+              let m = messages.dropFirst(index).first(where: { !$0.isUser }) else { return }
+        AssistantSpeaker.shared.speak(AssistantPresenter.speech(for: m), id: m.id)
+    }
+
     func reset() {
+        AssistantSpeaker.shared.stop()
         queued = []
         messages = []
         previous = nil
@@ -261,6 +311,19 @@ final class AssistantViewModel: ObservableObject {
         switch answer.status {
         case .ok:
             previous = answer.understood ?? previous
+            if let r = answer.restrictions {
+                messages.append(AssistantMessage(
+                    isUser: false, text: AssistantPresenter.restrictionsIntro(r, school: answer.resolvedSchool?.name),
+                    chips: chips, restrictions: r))
+                return
+            }
+            if let rec = answer.recommendation, answer.understood?.trip == true {
+                let plan = AssistantPresenter.tripPlan(rec)
+                messages.append(AssistantMessage(
+                    isUser: false, text: AssistantPresenter.tripIntro(plan), chips: chips,
+                    recommendation: plan.isEmpty ? rec : nil, trip: plan))
+                return
+            }
             if let w = answer.weather {
                 messages.append(AssistantMessage(
                     isUser: false, text: AssistantPresenter.weatherHeadline(w),
@@ -282,6 +345,10 @@ final class AssistantViewModel: ObservableObject {
             } else if let summary = answer.summary {
                 messages.append(AssistantMessage(
                     isUser: false, text: AssistantPresenter.summaryText(summary), chips: chips))
+            } else if answer.understood?.intent == "MINE",
+                      let topic = answer.understood?.mineTopic, topic == "GOAL" || topic == "ACHIEVEMENTS" {
+                messages.append(AssistantMessage(
+                    isUser: false, text: try await goalOrAchievements(topic), chips: chips))
             } else if answer.understood?.intent == "MINE" {
                 // Lo suyo se contesta AQUÍ, con lo que la app ya tiene: el diario nunca sale del móvil.
                 let mine = try await mineAnswer(answer)
@@ -299,6 +366,13 @@ final class AssistantViewModel: ObservableObject {
                 // Búsqueda simple: primero se ENSEÑAN las vías o bloques que cumplen, y cada
                 // una se puede tocar para abrirla.
                 let hits = try await loadHits(answer, location: location)
+                if answer.understood?.heightGrade == true, !hits.isEmpty {
+                    // "¿Es más dura para bajos?": el grado votado por cada altura, de las vías encontradas.
+                    messages.append(AssistantMessage(
+                        isUser: false, text: await heightGradeText(hits), chips: chips,
+                        hits: hits, hitsTotal: hits.count))
+                    return
+                }
                 let needsLocation = answer.understood?.maxDistanceKm != nil && location == nil
                 let rated = answer.understood?.topRated == true || answer.understood?.minStars != nil
                 messages.append(AssistantMessage(
@@ -330,6 +404,28 @@ final class AssistantViewModel: ObservableObject {
     /// Prepara la tarjeta de confirmación de una acción. NO hace nada todavía: solo propone.
     private func proposeAction(_ kind: String, _ answer: AssistantAnswer, chips: [String]) async throws {
         let u = answer.understood
+        switch kind {
+        case "SET_HOME", "ENABLE_MORNING_ALERT":
+            messages.append(AssistantMessage(
+                isUser: false, text: AssistantPresenter.actionPrompt(kind: kind, school: ""), chips: chips,
+                pendingActions: [PendingAction(kind: kind, schoolId: "", schoolName: "")]))
+            return
+        case "CREATE_MEETUP":
+            guard let school = answer.resolvedSchool else { return }
+            messages.append(AssistantMessage(
+                isUser: false,
+                text: AssistantPresenter.meetupPrompt(school: school.name, date: u?.dateFrom, time: u?.time),
+                chips: chips,
+                pendingActions: [PendingAction(kind: kind, schoolId: school.id, schoolName: school.name,
+                                               date: u?.dateFrom, time: u?.time)]))
+            return
+        default:
+            break
+        }
+        if (kind == "LOG_DONE" || kind == "LOG_PROJECT"), let items = u?.logItems, items.count > 1 {
+            try await proposeSeveralLogs(items, answer, chips: chips)
+            return
+        }
         guard kind == "LOG_DONE" || kind == "LOG_PROJECT" else {
             guard let school = answer.resolvedSchool else { return }
             messages.append(AssistantMessage(
@@ -363,6 +459,50 @@ final class AssistantViewModel: ObservableObject {
             ? AssistantPresenter.logPrompt(kind: kind, hit: fresh[0], date: date)
             : L("¿Cuál de estas quieres apuntar?")
         messages.append(AssistantMessage(isUser: false, text: text, chips: chips, pendingActions: actions))
+    }
+
+    /// "Hoy hice Zarzamora, la Ola y probé el Techo": se busca cada una y se propone apuntarlas TODAS de una vez
+    /// (la mejor coincidencia de cada nombre, en la escuela dicha si la hay). Las que no aparecen se dicen.
+    private func proposeSeveralLogs(_ items: [AssistantLogItem], _ answer: AssistantAnswer, chips: [String]) async throws {
+        let date = answer.understood?.dateFrom ?? Self.todayISO()
+        let journal = (try? await container.getMyJournal.invoke()) ?? []
+        var actions: [PendingAction] = []
+        var missing: [String] = []
+        for item in items {
+            let status = item.project ? "PROJECT" : "DONE"
+            let found = (try? await container.searchLines.invoke(query: item.name)) ?? []
+            let matches = AssistantActions.shared.matchLines(hits: found, name: item.name, schoolId: answer.resolvedSchool?.id)
+            guard let hit = matches.first(where: { !AssistantActions.shared.isLogged(journal: journal, hit: $0, status: status) })
+            else { missing.append(item.name); continue }
+            actions.append(PendingAction(kind: item.project ? "LOG_PROJECT" : "LOG_DONE",
+                                         schoolId: hit.schoolId, schoolName: hit.schoolName, hit: hit, date: date))
+        }
+        guard !actions.isEmpty else {
+            messages.append(AssistantMessage(
+                isUser: false, text: L("No encuentro ninguna de esas vías: %@.", missing.joined(separator: ", ")), chips: chips))
+            return
+        }
+        messages.append(AssistantMessage(
+            isUser: false, text: AssistantPresenter.multiLogPrompt(count: actions.count, date: date, missing: missing),
+            chips: chips, pendingActions: actions, confirmAll: true))
+    }
+
+    /// "Confirmar todas": apunta cada una de las propuestas del mensaje. Las que fallen se dicen al final.
+    func confirmAll(_ messageId: UUID) async {
+        guard let mi = messages.firstIndex(where: { $0.id == messageId }) else { return }
+        var lines: [String] = []
+        for ai in messages[mi].pendingActions.indices where messages[mi].pendingActions[ai].state == .waiting {
+            let action = messages[mi].pendingActions[ai]
+            if let text = try? await perform(action) {
+                messages[mi].pendingActions[ai].state = .done
+                lines.append(text)
+            } else {
+                let name = action.hit.map { $0.lineName ?? $0.blockName } ?? action.schoolName
+                lines.append(L("No se pudo apuntar «%@».", name))
+            }
+        }
+        messages.append(AssistantMessage(isUser: false, text: lines.joined(separator: "\n")))
+        persist()
     }
 
     /// El usuario tocó CONFIRMAR en una de las acciones: se hace y se avisa. Si falla, se dice y el botón
@@ -400,6 +540,26 @@ final class AssistantViewModel: ObservableObject {
             }
             _ = try await container.updateWeekendAlert.invoke(alert: alert)
             return L("Hecho: te avisaré del fin de semana en %@.", action.schoolName)
+        case "ENABLE_MORNING_ALERT":
+            let current = try await container.getWeekendAlert.invoke()
+            let change = AssistantActions.shared.withMorningAlert(current: current)
+            if change.already { return L("El aviso de cada mañana ya estaba activado.") }
+            guard let alert = change.alert else { throw CancellationError() }
+            _ = try await container.updateWeekendAlert.invoke(alert: alert)
+            return L("Hecho: cada mañana, entre las 7 y las 11, te aviso si alguna favorita tiene buen día. Necesitas tener escuelas en favoritas.")
+        case "SET_HOME":
+            guard let here = await currentLocation() else {
+                return L("No sé dónde estás: activa la ubicación y vuelve a decírmelo.")
+            }
+            homeStore.save(lat: here.lat, lon: here.lon)
+            return L("Hecho: guardada tu casa. Ya puedes preguntarme «cerca de casa».")
+        case "CREATE_MEETUP":
+            let time = action.time.map { L("Quedamos a las %@.", $0) }
+            meetupRequest = MeetupRequest(
+                schoolId: action.schoolId, schoolName: action.schoolName, day: action.date,
+                name: AssistantPresenter.meetupName(school: action.schoolName, date: action.date, time: action.time),
+                description: time)
+            return L("Abriendo la quedada para que la revises y la crees.")
         case "LOG_DONE", "LOG_PROJECT":
             guard let hit = action.hit, let date = action.date else { throw CancellationError() }
             let status = action.kind == "LOG_PROJECT" ? "PROJECT" : "DONE"
@@ -438,13 +598,85 @@ final class AssistantViewModel: ObservableObject {
             return MineAnswerer.shared.lastVisit(
                 journal: try await container.getMyJournal.invoke(), schoolId: schoolId, schoolName: schoolName)
         case "MEETUPS":
-            let all = try await container.getMeetups?.execute(schoolId: schoolId, date: nil, relation: nil) ?? []
+            var all = try await container.getMeetups?.execute(schoolId: schoolId, date: nil, relation: nil) ?? []
+            // "¿Quién va este finde?": solo las quedadas con algún día dentro del periodo.
+            if let from = u?.dateFrom {
+                let to = u?.dateTo ?? from
+                all = all.filter { m in m.days.contains { $0 >= from && $0 <= to } }
+            }
             return MineAnswerer.shared.meetups(all: all, today: Self.todayISO(), schoolId: schoolId, joinedOnly: false)
         default:
             return MineAnswerer.shared.stats(
                 journal: try await container.getMyJournal.invoke(),
                 discipline: u?.discipline, gradeMin: u?.gradeMin, gradeMax: u?.gradeMax, year: u?.year,
                 from: u?.dateFrom, to: u?.dateTo, schoolId: schoolId, schoolName: schoolName)
+        }
+    }
+
+    /// Objetivo del año o logros, calculados en el móvil con su diario (como en Estadísticas).
+    private func goalOrAchievements(_ topic: String) async throws -> String {
+        let journal = try await container.getMyJournal.invoke()
+        let today = Self.todayISO()
+        if topic == "GOAL" {
+            let year = Int(today.prefix(4)) ?? Calendar.current.component(.year, from: Date())
+            guard let goal = try await container.getYearGoal.invoke(year: Int32(year)) else {
+                return AssistantPresenter.noGoalText(year: year)
+            }
+            return AssistantPresenter.goalText(GoalCalculator.shared.progress(goal: goal, all: journal))
+        }
+        let schools = (try? await container.getSchools.invoke(region: nil, style: nil, rockType: nil,
+                                                             lat: nil, lon: nil, radioKm: nil)) ?? []
+        let places = Dictionary(schools.map { ($0.id, SchoolPlace(region: $0.region, country: $0.country)) },
+                                uniquingKeysWith: { a, _ in a })
+        return AssistantPresenter.achievementsText(
+            AchievementsCalculator.shared.compute(all: journal, places: places, today: today))
+    }
+
+    /// Grado votado por altura de las vías encontradas (las 4 primeras con vía concreta).
+    private func heightGradeText(_ hits: [LineSearchHit]) async -> String {
+        var lines: [String] = []
+        for hit in hits.filter({ $0.lineId != nil }).prefix(4) {
+            guard let id = hit.lineId, let summary = try? await container.getGradeVotes.invoke(lineId: id) else { continue }
+            lines.append(AssistantPresenter.heightGradeLine(name: hit.lineName ?? hit.blockName, summary: summary))
+        }
+        return lines.isEmpty ? L("No he encontrado votos de grado para esas vías.") : lines.joined(separator: "\n")
+    }
+
+    // MARK: - Foto de una piedra
+
+    /// "¿Qué piedra es esta?": dónde se hizo la foto (o dónde está él) y, entre las piedras de alrededor, a cuál se
+    /// parece más. Todo en el móvil: la foto no se sube a ningún sitio.
+    func identifyPhoto(_ result: PHPickerResult) async {
+        messages.append(AssistantMessage(isUser: true, text: L("¿Qué piedra es esta? (foto)")))
+        isLoading = true
+        defer { isLoading = false; persist() }
+        var image: UIImage?
+        var lat: Double?, lon: Double?
+        var approximate = false
+        if let found = await PhotoExifReader.read(result) {
+            image = found.image; lat = found.lat; lon = found.lon
+        } else if let only = await PhotoExifReader.readImagen(result) {
+            image = only.image
+            if let here = await currentLocation() { lat = here.lat; lon = here.lon; approximate = true }
+        }
+        guard let image else {
+            messages.append(AssistantMessage(isUser: false, text: L("No he podido abrir esa foto.")))
+            return
+        }
+        switch await AssistantPhotoMatcher.match(image: image, lat: lat, lon: lon, approximate: approximate,
+                                                 container: container) {
+        case .noLocation:
+            messages.append(AssistantMessage(isUser: false, text: L("La foto no guarda dónde se hizo y no tengo tu ubicación. Activa la ubicación o hazla desde la escuela.")))
+        case .noSchoolNear:
+            messages.append(AssistantMessage(isUser: false, text: L("No hay ninguna escuela de Cumbre cerca de donde se hizo la foto.")))
+        case .noStones(let school):
+            messages.append(AssistantMessage(isUser: false, text: L("En %@ aún no hay piedras colocadas cerca de ese punto.", school)))
+        case let .found(candidates, sure, approximate):
+            guard let first = candidates.first else { return }
+            messages.append(AssistantMessage(
+                isUser: false,
+                text: AssistantPresenter.photoIntro(sure: sure, approximate: approximate, school: first.schoolName),
+                photoMatches: candidates))
         }
     }
 
@@ -476,7 +708,7 @@ final class AssistantViewModel: ObservableObject {
         let hasFilter = u.gradeMin != nil || u.gradeMax != nil || u.discipline != nil
             || !u.rockTypes.isEmpty || !u.orientations.isEmpty || u.maxDistanceKm != nil
             || schoolId != nil || rated || (u.useMyLocation && location != nil) || u.beta != nil
-            || u.startType != nil || u.withTopo || u.notDone
+            || u.startType != nil || u.withTopo || u.notDone || u.mostRepeated
 
         var hits: [LineSearchHit] = []
         if hasFilter {
@@ -490,8 +722,9 @@ final class AssistantViewModel: ObservableObject {
                 // "cerca de mí" sin cifra = 50 km, como en el servidor.
                 maxDistanceKm: schoolIds != nil ? nil
                     : (u.maxDistanceKm ?? (u.useMyLocation && location != nil ? KotlinDouble(double: 50) : nil)),
-                sort: "DISTANCE", offset: 0, withRatings: rated, beta: u.beta,
-                startType: u.startType, withTopo: u.withTopo, withRepetitions: false)
+                // "Las clásicas": por cuánta gente la ha hecho (el servidor ya ordena y cuenta las repeticiones).
+                sort: u.mostRepeated ? "MOST_REPEATED" : "DISTANCE", offset: 0, withRatings: rated, beta: u.beta,
+                startType: u.startType, withTopo: u.withTopo, withRepetitions: u.mostRepeated)
             hits = try await container.exploreLines.invoke(criteria: criteria)
         } else if let q = u.q, !q.isEmpty {
             hits = try await container.searchLines.invoke(query: q)

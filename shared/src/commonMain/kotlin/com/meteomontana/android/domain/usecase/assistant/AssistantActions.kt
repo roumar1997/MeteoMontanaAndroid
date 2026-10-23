@@ -69,6 +69,19 @@ object AssistantActions {
         return AlertChange(current.copy(enabled = true, mode = "SCHOOLS", schoolIds = schools))
     }
 
+    /** Umbral por defecto del aviso de cada mañana: el mismo que propone la pantalla de alertas. */
+    const val DEFAULT_MORNING_THRESHOLD = 70
+
+    /**
+     * Enciende el aviso de cada mañana ("ventana óptima hoy" en sus favoritas): entre las 7 y las 11 avisa si alguna
+     * favorita pasa del umbral. Se conserva el umbral que ya eligiera; si nunca eligió, [DEFAULT_MORNING_THRESHOLD].
+     * El aviso de fin de semana no se toca.
+     */
+    fun withMorningAlert(current: WeekendAlert): AlertChange =
+        if (current.optimalEnabled == true) AlertChange(null, already = true)
+        else AlertChange(current.copy(optimalEnabled = true,
+            optimalThreshold = current.optimalThreshold ?: DEFAULT_MORNING_THRESHOLD))
+
     private fun fold(s: String): String = s.trim().lowercase()
         .replace('á', 'a').replace('é', 'e').replace('í', 'i').replace('ó', 'o').replace('ú', 'u').replace('ü', 'u')
 }

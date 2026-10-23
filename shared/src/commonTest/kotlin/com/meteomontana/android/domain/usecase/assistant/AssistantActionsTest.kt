@@ -88,4 +88,22 @@ class AssistantActionsTest {
         assertEquals("SCHOOLS", a.mode)
         assertEquals(listOf("a"), a.schoolIds)
     }
+
+    @Test fun elAvisoDeLaMananaSeEnciendeConElUmbralDeSiempreSinTocarElDelFinde() {
+        val before = alert(true, ids = listOf("a"))
+        val a = assertNotNull(AssistantActions.withMorningAlert(before).alert)
+        assertEquals(true, a.optimalEnabled)
+        assertEquals(AssistantActions.DEFAULT_MORNING_THRESHOLD, a.optimalThreshold)
+        assertEquals(listOf("a"), a.schoolIds)
+        assertTrue(a.enabled)
+    }
+
+    @Test fun elAvisoDeLaMananaConservaSuUmbralYSiYaEstabaNoCambia() {
+        val custom = alert(false).copy(optimalThreshold = 85)
+        assertEquals(85, AssistantActions.withMorningAlert(custom).alert?.optimalThreshold)
+        val on = alert(false).copy(optimalEnabled = true)
+        val c = AssistantActions.withMorningAlert(on)
+        assertTrue(c.already)
+        assertNull(c.alert)
+    }
 }
