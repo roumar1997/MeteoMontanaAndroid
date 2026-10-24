@@ -102,8 +102,8 @@ extension StoredAssistantConversation.Understood {
             action: action, mostLines: mostLines ?? false,
             mostRepeated: mostRepeated ?? false, heightGrade: heightGrade ?? false, trip: trip ?? false,
             useHome: useHome ?? false, logItems: [], time: nil,
-            placeName: placeName, placeLat: placeLat.map { KotlinDouble(double: /c/Users/rouma/AppData/Local/Temp/claude/C--Users-rouma-MeteoMontanaAndroid--claude-worktrees-sweet-engelbart-4912dc/f72dbbcd-be5c-49d4-ace3-6c3069cfc317/scratchpad/iosplace.pl) },
-            placeLon: placeLon.map { KotlinDouble(double: /c/Users/rouma/AppData/Local/Temp/claude/C--Users-rouma-MeteoMontanaAndroid--claude-worktrees-sweet-engelbart-4912dc/f72dbbcd-be5c-49d4-ace3-6c3069cfc317/scratchpad/iosplace.pl) })
+            placeName: placeName, placeLat: placeLat.map { KotlinDouble(double: $0) },
+            placeLon: placeLon.map { KotlinDouble(double: $0) })
     }
 }
 
