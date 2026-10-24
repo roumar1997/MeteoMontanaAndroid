@@ -39,6 +39,8 @@ enum AssistantPresenter {
         case "NEEDS_TWO_SCHOOLS": return L("¿Con qué otra escuela quieres compararla?")
         case "NEEDS_LOCATION":
             return L("Necesito saber dónde estás. Activa la ubicación o dime el nombre del sitio.")
+        case "PLACE_NOT_FOUND":
+            return L("No encuentro ese sitio en el mapa. ¿Puedes decirlo de otra forma (pueblo, ciudad o provincia)?")
         case "NEEDS_HOME":
             return L("Aún no sé dónde vives. Cuando estés en casa, dime «guarda aquí como mi casa».")
         case "SECTOR_NOT_FOUND":
@@ -55,6 +57,7 @@ enum AssistantPresenter {
     static func chips(_ u: AssistantUnderstood, school: String?, sector: String?) -> [String] {
         var out: [String] = []
         if let school { out.append(school) }
+        if let place = u.placeName { out.append(place) }
         if let sector { out.append(sector) }
         if u.discipline == "BOULDER" { out.append(L("Bloque")) }
         if u.discipline == "ROUTE" { out.append(L("Vía")) }
@@ -771,8 +774,10 @@ enum AssistantPresenter {
         return head + " " + L("No encuentro: %@.", missing.joined(separator: ", "))
     }
 
-    static func photoIntro(sure: Bool, approximate: Bool, school: String) -> String {
-        let base = sure ? L("Creo que es esta, en %@:", school) : L("Puede ser una de estas de %@:", school)
+    static func photoIntro(sure: Bool, approximate: Bool, school: String, weak: Bool = false) -> String {
+        let base = weak
+            ? L("No se parece mucho a ninguna de las piedras de %@ que hay cerca: puede que aún no esté en Cumbre. Las más cercanas:", school)
+            : (sure ? L("Creo que es esta, en %@:", school) : L("Puede ser una de estas de %@:", school))
         return approximate ? base + " " + L("(la foto no guardaba dónde se hizo: uso dónde estás ahora)") : base
     }
 

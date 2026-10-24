@@ -1808,3 +1808,8 @@
 "Para hacer la foto necesito permiso de cámara. Puedes dárselo en Ajustes." = "To take the photo I need camera access. You can grant it in Settings.";
 "¿Qué piedra es esta? Hacer o elegir una foto" = "Which boulder is this? Take or choose a photo";
 "Esa foto no guarda dónde se hizo, y donde estás ahora no hay ninguna escuela cerca. Hazla con la cámara desde la escuela, o elige una foto con ubicación (en Ajustes → Cumbre → Fotos, dale acceso completo)." = "That photo doesn't store where it was taken, and there's no crag near where you are now. Take it with the camera at the crag, or choose a photo with location (in Settings → Cumbre → Photos, allow full access).";
+"No he podido cargar las escuelas. Comprueba la conexión e inténtalo de nuevo." = "I couldn't load the crags. Check your connection and try again.";
+"No hay ninguna piedra de Cumbre cerca de donde se hizo la foto." = "There's no Cumbre boulder near where the photo was taken.";
+"La escuela más cercana es %@, a %@ km." = "The closest crag is %@, %@ km away.";
+"No se parece mucho a ninguna de las piedras de %@ que hay cerca: puede que aún no esté en Cumbre. Las más cercanas:" = "It doesn't look much like any boulder near %@: it may not be in Cumbre yet. The closest ones:";
+"No encuentro ese sitio en el mapa. ¿Puedes decirlo de otra forma (pueblo, ciudad o provincia)?" = "I can't find that place on the map. Can you say it another way (town, city or province)?";

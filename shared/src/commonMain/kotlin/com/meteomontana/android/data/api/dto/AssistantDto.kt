@@ -79,7 +79,10 @@ data class AssistantUnderstoodDto(
     val trip: Boolean = false,
     val useHome: Boolean = false,
     val logItems: List<AssistantLogItemDto> = emptyList(),
-    val time: String? = null
+    val time: String? = null,
+    val placeName: String? = null,
+    val placeLat: Double? = null,
+    val placeLon: Double? = null
 )
 
 @Serializable
@@ -294,14 +297,16 @@ fun AssistantUnderstood.toDto() = AssistantUnderstoodDto(
     intent, dateFrom, dateTo, gradeMin, gradeMax, discipline, rockTypes, orientations,
     maxDistanceKm, q, schoolMention, sectorMention, sun, dayPart,
     schoolMentions, topRated, minStars, hoursAhead, weatherTopic, useMyLocation, beta, startType, withTopo, noRain, mineTopic, year, notDone, action, mostLines,
-    mostRepeated, heightGrade, trip, useHome, logItems.map { AssistantLogItemDto(it.name, it.project) }, time
+    mostRepeated, heightGrade, trip, useHome, logItems.map { AssistantLogItemDto(it.name, it.project) }, time,
+    placeName, placeLat, placeLon
 )
 
 private fun AssistantUnderstoodDto.toDomain() = AssistantUnderstood(
     intent, dateFrom, dateTo, gradeMin, gradeMax, discipline, rockTypes, orientations,
     maxDistanceKm, q, schoolMention, sectorMention, sun, dayPart,
     schoolMentions, topRated, minStars, hoursAhead, weatherTopic, useMyLocation, beta, startType, withTopo, noRain, mineTopic, year, notDone, action, mostLines,
-    mostRepeated, heightGrade, trip, useHome, logItems.map { AssistantLogItem(it.name, it.project) }, time
+    mostRepeated, heightGrade, trip, useHome, logItems.map { AssistantLogItem(it.name, it.project) }, time,
+    placeName, placeLat, placeLon
 )
 
 private fun AssistantRestrictionsDto.toDomain() = AssistantRestrictions(

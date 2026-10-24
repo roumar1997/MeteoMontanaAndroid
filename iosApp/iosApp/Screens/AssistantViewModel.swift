@@ -265,9 +265,16 @@ final class AssistantViewModel: ObservableObject {
                 schoolId: contextSchoolId,
                 homeLat: home.map { KotlinDouble(double: $0.lat) },
                 homeLon: home.map { KotlinDouble(double: $0.lon) })
-            // "Cerca de casa": las búsquedas que hace la app también miden desde casa.
-            let place = answer.understood?.useHome == true
-                ? home.map { UserLocation(lat: $0.lat, lon: $0.lon) } ?? location : location
+            // "Cerca de casa" o "por Teruel": las búsquedas que hace la app también miden desde ahí.
+            let u = answer.understood
+            let place: UserLocation?
+            if let lat = u?.placeLat?.doubleValue, let lon = u?.placeLon?.doubleValue {
+                place = UserLocation(lat: lat, lon: lon)
+            } else if u?.useHome == true {
+                place = home.map { UserLocation(lat: $0.lat, lon: $0.lon) } ?? location
+            } else {
+                place = location
+            }
             try await handle(answer, location: place)
         } catch {
             messages.append(AssistantMessage(
@@ -689,17 +696,26 @@ final class AssistantViewModel: ObservableObject {
                                                  container: container) {
         case .noLocation:
             messages.append(AssistantMessage(isUser: false, text: L("La foto no guarda dónde se hizo y no tengo tu ubicación. Activa la ubicación o hazla desde la escuela.")))
-        case .noSchoolNear:
-            messages.append(AssistantMessage(isUser: false, text: approximate
+        case .noData:
+            messages.append(AssistantMessage(isUser: false, text: L("No he podido cargar las escuelas. Comprueba la conexión e inténtalo de nuevo.")))
+        case let .noSchoolNear(closestName, closestKm):
+            var text = approximate
                 ? L("Esa foto no guarda dónde se hizo, y donde estás ahora no hay ninguna escuela cerca. Hazla con la cámara desde la escuela, o elige una foto con ubicación (en Ajustes → Cumbre → Fotos, dale acceso completo).")
-                : L("No hay ninguna escuela de Cumbre cerca de donde se hizo la foto.")))
+                : L("No hay ninguna piedra de Cumbre cerca de donde se hizo la foto.")
+            if let closestName, let closestKm {
+                text += " " + L("La escuela más cercana es %@, a %@ km.", closestName, Int(closestKm.rounded()))
+            }
+            messages.append(AssistantMessage(isUser: false, text: text))
         case .noStones(let school):
             messages.append(AssistantMessage(isUser: false, text: L("En %@ aún no hay piedras colocadas cerca de ese punto.", school)))
         case let .found(candidates, sure, approximate):
             guard let first = candidates.first else { return }
+            // Si ni la más parecida se parece de verdad, puede que esa piedra aún no esté en Cumbre: se dice.
+            let weak = (first.similarity ?? 0) < 0.35
             messages.append(AssistantMessage(
                 isUser: false,
-                text: AssistantPresenter.photoIntro(sure: sure, approximate: approximate, school: first.schoolName),
+                text: AssistantPresenter.photoIntro(sure: sure && !weak, approximate: approximate,
+                                                    school: first.schoolName, weak: weak),
                 photoMatches: candidates))
         }
     }

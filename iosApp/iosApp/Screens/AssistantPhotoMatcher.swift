@@ -9,8 +9,15 @@ import Shared
 ///    que trae iOS). No es infalible: por eso se enseñan las 3 más probables con su foto y elige el usuario.
 enum AssistantPhotoMatcher {
 
-    /// Hasta dónde se considera "esta escuela" desde el punto de la foto.
-    static let schoolRadiusKm = 3.0
+    /// Escuelas que se miran alrededor de la foto (por su punto central). Las zonas grandes tienen piedras a varios
+    /// km de ese punto (La Pedriza, hasta 3,6 km; La Hermida, 5,5 km), así que se mira con margen.
+    static let searchRadiusKm = 25.0
+    /// Cuántas de esas escuelas (las más cercanas) se cargan para buscar su piedra más próxima.
+    static let maxSchoolsChecked = 6
+    /// La foto es "de esa escuela" si alguna de sus piedras está a menos de esto.
+    static let nearestStoneKm = 2.0
+    /// Sin piedras cerca, una escuela cuyo punto esté a menos de esto sigue contando (para decir "no hay piedras").
+    static let schoolPointKm = 3.0
     /// Radio de piedras candidatas alrededor del punto (el GPS falla 10-30 m entre piedras).
     static let stoneRadiusM = 120.0
     /// Máximo de piedras a comparar (cada una es una descarga de su foto).
@@ -36,8 +43,11 @@ enum AssistantPhotoMatcher {
         case found([Candidate], sure: Bool, approximate: Bool)
         /// Ni la foto ni el móvil dicen dónde: hay que preguntar la escuela.
         case noLocation
-        /// No hay ninguna escuela de Cumbre cerca de ese punto.
-        case noSchoolNear
+        /// No hay ninguna escuela de Cumbre cerca de ese punto. Se dice cuál es la más cercana y a cuántos km, para
+        /// poder ver si la ubicación de la foto se leyó bien.
+        case noSchoolNear(closestName: String?, closestKm: Double?)
+        /// No se pudo cargar la lista de escuelas (sin red).
+        case noData
         /// La escuela no tiene piedras con posición cerca de ese punto.
         case noStones(schoolName: String)
     }
@@ -48,13 +58,24 @@ enum AssistantPhotoMatcher {
         guard let lat, let lon else { return .noLocation }
         guard let schools = try? await container.getSchools.invoke(region: nil, style: nil, rockType: nil,
                                                                   lat: nil, lon: nil, radioKm: nil),
-              let school = schools.map({ ($0, km(lat, lon, $0.lat, $0.lon)) })
-                  .filter({ $0.1 <= schoolRadiusKm }).min(by: { $0.1 < $1.1 })?.0
-        else { return .noSchoolNear }
+              !schools.isEmpty else { return .noData }
+        let byDistance = schools.map { ($0, km(lat, lon, $0.lat, $0.lon)) }.sorted { $0.1 < $1.1 }
+        let around = byDistance.filter { $0.1 <= searchRadiusKm }.prefix(maxSchoolsChecked)
 
-        let blocks = ((try? await container.getBlocks.invoke(schoolId: school.id)) ?? [])
-            .filter { $0.type == "BLOCK" }
-        let near = blocks.map { ($0, km(lat, lon, $0.lat, $0.lon) * 1000) }.sorted { $0.1 < $1.1 }
+        // La escuela es la que tiene la PIEDRA más cercana a la foto, no la de punto central más cercano.
+        var best: (school: School, blocks: [(Block, Double)])? = nil
+        for (school, _) in around {
+            let blocks = ((try? await container.getBlocks.invoke(schoolId: school.id)) ?? []).filter { $0.type == "BLOCK" }
+            let near = blocks.map { ($0, km(lat, lon, $0.lat, $0.lon) * 1000) }.sorted { $0.1 < $1.1 }
+            guard let first = near.first, first.1 <= nearestStoneKm * 1000 else { continue }
+            if best == nil || first.1 < (best?.blocks.first?.1 ?? .infinity) { best = (school, near) }
+        }
+        guard let best else {
+            if let point = byDistance.first, point.1 <= schoolPointKm { return .noStones(schoolName: point.0.name) }
+            return .noSchoolNear(closestName: byDistance.first?.0.name, closestKm: byDistance.first?.1)
+        }
+        let school = best.school
+        let near = best.blocks
         var pool = near.filter { $0.1 <= stoneRadiusM }
         if pool.isEmpty { pool = Array(near.prefix(5)) }        // GPS muy desviado: las más cercanas igualmente
         pool = Array(pool.prefix(maxCompared))

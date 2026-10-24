@@ -86,7 +86,11 @@ data class AssistantUnderstood(
     /** ACTION LOG_*: varias vías de una vez ("hice X, Y y probé Z"). Vacío = la de [q]. */
     val logItems: List<AssistantLogItem> = emptyList(),
     /** ACTION CREATE_MEETUP: hora "HH:mm" de la quedada, o null. */
-    val time: String? = null
+    val time: String? = null,
+    /** Un sitio que no es escuela ("Teruel"): se buscó alrededor de su punto. */
+    val placeName: String? = null,
+    val placeLat: Double? = null,
+    val placeLon: Double? = null
 )
 
 /** Una vía a apuntar en el diario desde el chat: el nombre tal como se dijo y si es proyecto (si no, hecha). */

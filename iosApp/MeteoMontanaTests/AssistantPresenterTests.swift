@@ -24,7 +24,8 @@ final class AssistantPresenterTests: XCTestCase {
             startType: startType, withTopo: withTopo, noRain: noRain,
             mineTopic: nil, year: nil, notDone: notDone, action: nil,
             mostLines: mostLines,
-            mostRepeated: false, heightGrade: false, trip: false, useHome: false, logItems: [], time: nil)
+            mostRepeated: false, heightGrade: false, trip: false, useHome: false, logItems: [], time: nil,
+            placeName: nil, placeLat: nil, placeLon: nil)
     }
 
     func testSalidaTopoYSinLluviaSalenComoChips() {

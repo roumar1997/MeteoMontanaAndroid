@@ -56,6 +56,9 @@ struct StoredAssistantConversation: Codable, Equatable {
         var heightGrade: Bool?
         var trip: Bool?
         var useHome: Bool?
+        var placeName: String?
+        var placeLat: Double?
+        var placeLon: Double?
     }
 
     var uid: String
@@ -78,7 +81,8 @@ extension StoredAssistantConversation.Understood {
                   startType: u.startType, withTopo: u.withTopo, noRain: u.noRain,
                   mineTopic: u.mineTopic, year: u.year.map { Int($0.intValue) }, notDone: u.notDone,
                   action: u.action, mostLines: u.mostLines,
-                  mostRepeated: u.mostRepeated, heightGrade: u.heightGrade, trip: u.trip, useHome: u.useHome)
+                  mostRepeated: u.mostRepeated, heightGrade: u.heightGrade, trip: u.trip, useHome: u.useHome,
+                  placeName: u.placeName, placeLat: u.placeLat?.doubleValue, placeLon: u.placeLon?.doubleValue)
     }
 
     func toKotlin() -> AssistantUnderstood {
@@ -97,7 +101,9 @@ extension StoredAssistantConversation.Understood {
             mineTopic: mineTopic, year: year.map { KotlinInt(int: Int32($0)) }, notDone: notDone ?? false,
             action: action, mostLines: mostLines ?? false,
             mostRepeated: mostRepeated ?? false, heightGrade: heightGrade ?? false, trip: trip ?? false,
-            useHome: useHome ?? false, logItems: [], time: nil)
+            useHome: useHome ?? false, logItems: [], time: nil,
+            placeName: placeName, placeLat: placeLat.map { KotlinDouble(double: /c/Users/rouma/AppData/Local/Temp/claude/C--Users-rouma-MeteoMontanaAndroid--claude-worktrees-sweet-engelbart-4912dc/f72dbbcd-be5c-49d4-ace3-6c3069cfc317/scratchpad/iosplace.pl) },
+            placeLon: placeLon.map { KotlinDouble(double: /c/Users/rouma/AppData/Local/Temp/claude/C--Users-rouma-MeteoMontanaAndroid--claude-worktrees-sweet-engelbart-4912dc/f72dbbcd-be5c-49d4-ace3-6c3069cfc317/scratchpad/iosplace.pl) })
     }
 }
 
