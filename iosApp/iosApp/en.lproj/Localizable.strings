@@ -1803,3 +1803,8 @@
 "¿Preparo una quedada en %@?" = "Shall I set up a meetup at %@?";
 "¿Qué piedra es esta? (foto)" = "Which boulder is this? (photo)";
 "¿Qué piedra es esta? Elegir una foto" = "Which boulder is this? Choose a photo";
+"Hacer una foto" = "Take a photo";
+"Elegir de la galería" = "Choose from library";
+"Para hacer la foto necesito permiso de cámara. Puedes dárselo en Ajustes." = "To take the photo I need camera access. You can grant it in Settings.";
+"¿Qué piedra es esta? Hacer o elegir una foto" = "Which boulder is this? Take or choose a photo";
+"Esa foto no guarda dónde se hizo, y donde estás ahora no hay ninguna escuela cerca. Hazla con la cámara desde la escuela, o elige una foto con ubicación (en Ajustes → Cumbre → Fotos, dale acceso completo)." = "That photo doesn't store where it was taken, and there's no crag near where you are now. Take it with the camera at the crag, or choose a photo with location (in Settings → Cumbre → Photos, allow full access).";

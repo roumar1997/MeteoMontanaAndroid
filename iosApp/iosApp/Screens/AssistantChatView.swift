@@ -553,12 +553,23 @@ struct AssistantChatView: View {
     private var inputBar: some View {
         HStack(alignment: .bottom, spacing: 8) {
             // "¿Qué piedra es esta?": una foto y busco cuál es entre las de alrededor.
-            Button {
-                focused = false
-                presentPhotoPickerResult { result in
-                    guard let result else { return }
-                    Task { await vm.identifyPhoto(result) }
-                }
+            Menu {
+                Button {
+                    focused = false
+                    CameraAccess.request { granted in
+                        guard granted else { vm.cameraDenied(); return }
+                        presentSystemCamera(context: "assistant") { image in
+                            Task { await vm.identifyCameraPhoto(image) }
+                        }
+                    }
+                } label: { Label(L("Hacer una foto"), systemImage: "camera") }
+                Button {
+                    focused = false
+                    presentPhotoPickerResult { result in
+                        guard let result else { return }
+                        Task { await vm.identifyPhoto(result) }
+                    }
+                } label: { Label(L("Elegir de la galería"), systemImage: "photo.on.rectangle") }
             } label: {
                 Image(systemName: "camera.fill")
                     .font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink2)
@@ -568,7 +579,7 @@ struct AssistantChatView: View {
             }
             .buttonStyle(.plain)
             .disabled(vm.isLoading)
-            .accessibilityLabel(L("¿Qué piedra es esta? Elegir una foto"))
+            .accessibilityLabel(L("¿Qué piedra es esta? Hacer o elegir una foto"))
 
             TextField(L("Pregunta sobre escuelas, tiempo o bloques…"), text: $vm.input, axis: .vertical)
                 .lineLimit(1...4)

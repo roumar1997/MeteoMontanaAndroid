@@ -1,5 +1,7 @@
 import SwiftUI
 import PhotosUI
+import ImageIO
+import UniformTypeIdentifiers
 import Shared
 
 /// Un mensaje del chat: del usuario o del asistente (con datos opcionales).
@@ -652,23 +654,45 @@ final class AssistantViewModel: ObservableObject {
         defer { isLoading = false; persist() }
         var image: UIImage?
         var lat: Double?, lon: Double?
-        var approximate = false
         if let found = await PhotoExifReader.read(result) {
             image = found.image; lat = found.lat; lon = found.lon
         } else if let only = await PhotoExifReader.readImagen(result) {
             image = only.image
-            if let here = await currentLocation() { lat = here.lat; lon = here.lon; approximate = true }
+            // Sin permiso de Fotos la fototeca no da la posición, pero el ARCHIVO de la foto suele llevarla.
+            if let gps = await Self.gpsFromFile(result) { lat = gps.lat; lon = gps.lon }
         }
         guard let image else {
             messages.append(AssistantMessage(isUser: false, text: L("No he podido abrir esa foto.")))
             return
         }
+        var approximate = false
+        if lat == nil, let here = await currentLocation() { lat = here.lat; lon = here.lon; approximate = true }
+        await identify(image: image, lat: lat, lon: lon, approximate: approximate)
+    }
+
+    /// Foto hecha ahora con la cámara: está delante de la piedra, así que su ubicación de este momento es la buena.
+    func identifyCameraPhoto(_ image: UIImage) async {
+        messages.append(AssistantMessage(isUser: true, text: L("¿Qué piedra es esta? (foto)")))
+        isLoading = true
+        defer { isLoading = false; persist() }
+        let here = await currentLocation()
+        await identify(image: image, lat: here?.lat, lon: here?.lon, approximate: false)
+    }
+
+    /// Sin permiso de cámara: se dice en el chat cómo darlo.
+    func cameraDenied() {
+        messages.append(AssistantMessage(isUser: false, text: L("Para hacer la foto necesito permiso de cámara. Puedes dárselo en Ajustes.")))
+    }
+
+    private func identify(image: UIImage, lat: Double?, lon: Double?, approximate: Bool) async {
         switch await AssistantPhotoMatcher.match(image: image, lat: lat, lon: lon, approximate: approximate,
                                                  container: container) {
         case .noLocation:
             messages.append(AssistantMessage(isUser: false, text: L("La foto no guarda dónde se hizo y no tengo tu ubicación. Activa la ubicación o hazla desde la escuela.")))
         case .noSchoolNear:
-            messages.append(AssistantMessage(isUser: false, text: L("No hay ninguna escuela de Cumbre cerca de donde se hizo la foto.")))
+            messages.append(AssistantMessage(isUser: false, text: approximate
+                ? L("Esa foto no guarda dónde se hizo, y donde estás ahora no hay ninguna escuela cerca. Hazla con la cámara desde la escuela, o elige una foto con ubicación (en Ajustes → Cumbre → Fotos, dale acceso completo).")
+                : L("No hay ninguna escuela de Cumbre cerca de donde se hizo la foto.")))
         case .noStones(let school):
             messages.append(AssistantMessage(isUser: false, text: L("En %@ aún no hay piedras colocadas cerca de ese punto.", school)))
         case let .found(candidates, sure, approximate):
@@ -677,6 +701,26 @@ final class AssistantViewModel: ObservableObject {
                 isUser: false,
                 text: AssistantPresenter.photoIntro(sure: sure, approximate: approximate, school: first.schoolName),
                 photoMatches: candidates))
+        }
+    }
+
+    /// Lee la posición GPS del EXIF del propio archivo elegido (cuando la fototeca no la da por falta de permiso).
+    private static func gpsFromFile(_ result: PHPickerResult) async -> (lat: Double, lon: Double)? {
+        let provider = result.itemProvider
+        guard provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) else { return nil }
+        return await withCheckedContinuation { cont in
+            provider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { data, _ in
+                guard let data,
+                      let src = CGImageSourceCreateWithData(data as CFData, nil),
+                      let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any],
+                      let gps = props[kCGImagePropertyGPSDictionary] as? [CFString: Any],
+                      let lat = (gps[kCGImagePropertyGPSLatitude] as? NSNumber)?.doubleValue,
+                      let lon = (gps[kCGImagePropertyGPSLongitude] as? NSNumber)?.doubleValue
+                else { cont.resume(returning: nil); return }
+                let south = (gps[kCGImagePropertyGPSLatitudeRef] as? String) == "S"
+                let west = (gps[kCGImagePropertyGPSLongitudeRef] as? String) == "W"
+                cont.resume(returning: (south ? -lat : lat, west ? -lon : lon))
+            }
         }
     }
 
