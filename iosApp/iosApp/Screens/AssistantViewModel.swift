@@ -173,6 +173,22 @@ final class AssistantViewModel: ObservableObject {
     @Published var messages: [AssistantMessage] = []
     @Published var input = ""
     @Published private(set) var isLoading = false
+    /// Qué está haciendo mientras piensa, si tarda (la foto de una piedra): se enseña bajo los puntos.
+    @Published private(set) var loadingNote: String?
+    /// Sube cada vez que el usuario toca "Parar": lo que estaba en marcha ve que ya no es lo actual y no pinta nada.
+    private var generation = 0
+
+    /// "Parar" mientras piensa: se deja de esperar (lo que llegue después se descarta) y se puede preguntar otra cosa.
+    func stopThinking() {
+        guard isLoading else { return }
+        generation += 1
+        queued = []
+        isLoading = false
+        loadingNote = nil
+        AssistantSpeaker.shared.stop()
+        messages.append(AssistantMessage(isUser: false, text: L("Vale, lo dejo. Pregúntame otra cosa cuando quieras.")))
+        persist()
+    }
 
     /// Algo que el usuario ha tocado en el chat y hay que abrir en la app. Lo atiende la
     /// burbuja: cierra el chat, abre el destino y deja el círculo visible para volver.
@@ -248,10 +264,13 @@ final class AssistantViewModel: ObservableObject {
         messages.append(AssistantMessage(isUser: true, text: raw))
         isLoading = true
         let before = messages.count
+        let gen = generation
         defer {
-            isLoading = false
-            persist()
-            speakNewAnswer(after: before, spoken: spoken)
+            if gen == generation {
+                isLoading = false
+                persist()
+                speakNewAnswer(after: before, spoken: spoken)
+            }
         }
 
         let location = await currentLocation()
@@ -275,8 +294,15 @@ final class AssistantViewModel: ObservableObject {
             } else {
                 place = location
             }
+            guard gen == generation else { return }
+            let beforeHandle = messages.count
             try await handle(answer, location: place)
+            // Si se paró mientras se preparaban las tarjetas, lo que se haya añadido se quita.
+            if gen != generation, messages.count > beforeHandle {
+                messages.removeSubrange(beforeHandle..<messages.count)
+            }
         } catch {
+            guard gen == generation else { return }
             messages.append(AssistantMessage(
                 isUser: false,
                 text: L("No se pudo conectar. Inténtalo otra vez."),
@@ -302,6 +328,9 @@ final class AssistantViewModel: ObservableObject {
     }
 
     func reset() {
+        generation += 1
+        isLoading = false
+        loadingNote = nil
         AssistantSpeaker.shared.stop()
         queued = []
         messages = []
@@ -658,32 +687,41 @@ final class AssistantViewModel: ObservableObject {
     func identifyPhoto(_ result: PHPickerResult) async {
         messages.append(AssistantMessage(isUser: true, text: L("¿Qué piedra es esta? (foto)")))
         isLoading = true
-        defer { isLoading = false; persist() }
+        loadingNote = L("Leyendo dónde se hizo la foto…")
+        let gen = generation
+        defer { if gen == generation { isLoading = false; loadingNote = nil; persist() } }
         var image: UIImage?
         var lat: Double?, lon: Double?
-        if let found = await PhotoExifReader.read(result) {
+        // Cada lectura con tiempo máximo: una foto en iCloud o un permiso a medias no pueden dejar el chat colgado.
+        if let found = await AsyncTimeout.run(20, { await PhotoExifReader.read(result) }) {
             image = found.image; lat = found.lat; lon = found.lon
-        } else if let only = await PhotoExifReader.readImagen(result) {
+        } else if let only = await AsyncTimeout.run(20, { await PhotoExifReader.readImagen(result) }) {
             image = only.image
             // Sin permiso de Fotos la fototeca no da la posición, pero el ARCHIVO de la foto suele llevarla.
-            if let gps = await Self.gpsFromFile(result) { lat = gps.lat; lon = gps.lon }
+            if let gps = await AsyncTimeout.run(10, { await Self.gpsFromFile(result) }) { lat = gps.lat; lon = gps.lon }
         }
         guard let image else {
-            messages.append(AssistantMessage(isUser: false, text: L("No he podido abrir esa foto.")))
+            messages.append(AssistantMessage(isUser: false, text: L("No he podido abrir esa foto (si está en iCloud, puede que no se haya descargado). Prueba con otra o hazla con la cámara.")))
             return
         }
         var approximate = false
-        if lat == nil, let here = await currentLocation() { lat = here.lat; lon = here.lon; approximate = true }
-        await identify(image: image, lat: lat, lon: lon, approximate: approximate)
+        if lat == nil, let here = await AsyncTimeout.run(10, { await self.currentLocation() }) {
+            lat = here.lat; lon = here.lon; approximate = true
+        }
+        guard gen == generation else { return }
+        await identify(image: image, lat: lat, lon: lon, approximate: approximate, gen: gen)
     }
 
     /// Foto hecha ahora con la cámara: está delante de la piedra, así que su ubicación de este momento es la buena.
     func identifyCameraPhoto(_ image: UIImage) async {
         messages.append(AssistantMessage(isUser: true, text: L("¿Qué piedra es esta? (foto)")))
         isLoading = true
-        defer { isLoading = false; persist() }
-        let here = await currentLocation()
-        await identify(image: image, lat: here?.lat, lon: here?.lon, approximate: false)
+        loadingNote = L("Mirando dónde estás…")
+        let gen = generation
+        defer { if gen == generation { isLoading = false; loadingNote = nil; persist() } }
+        let here = await AsyncTimeout.run(10, { await self.currentLocation() })
+        guard gen == generation else { return }
+        await identify(image: image, lat: here?.lat, lon: here?.lon, approximate: false, gen: gen)
     }
 
     /// Sin permiso de cámara: se dice en el chat cómo darlo.
@@ -691,9 +729,20 @@ final class AssistantViewModel: ObservableObject {
         messages.append(AssistantMessage(isUser: false, text: L("Para hacer la foto necesito permiso de cámara. Puedes dárselo en Ajustes.")))
     }
 
-    private func identify(image: UIImage, lat: Double?, lon: Double?, approximate: Bool) async {
-        switch await AssistantPhotoMatcher.match(image: image, lat: lat, lon: lon, approximate: approximate,
-                                                 container: container) {
+    private func identify(image: UIImage, lat: Double?, lon: Double?, approximate: Bool, gen: Int) async {
+        let outcome = await AsyncTimeout.run(45, {
+            await AssistantPhotoMatcher.match(image: image, lat: lat, lon: lon, approximate: approximate,
+                                              container: self.container,
+                                              onStage: { s in if gen == self.generation { self.loadingNote = s.text } })
+        })
+        guard gen == generation else { return }
+        guard let outcome else {
+            // Se dice en qué paso se atascó: así se sabe qué arreglar.
+            let stage = loadingNote ?? L("Buscando escuelas cerca de la foto…")
+            messages.append(AssistantMessage(isUser: false, text: L("Ha tardado demasiado (se quedó en: %@). Inténtalo otra vez con buena cobertura.", stage)))
+            return
+        }
+        switch outcome {
         case .noLocation:
             messages.append(AssistantMessage(isUser: false, text: L("La foto no guarda dónde se hizo y no tengo tu ubicación. Activa la ubicación o hazla desde la escuela.")))
         case .noData:

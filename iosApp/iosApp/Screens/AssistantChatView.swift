@@ -113,6 +113,7 @@ struct AssistantChatView: View {
             .background(Cumbre.bg.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) { voiceToggle }
                 ToolbarItem(placement: .principal) { header }
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 6) {
@@ -165,6 +166,22 @@ struct AssistantChatView: View {
         .accessibilityElement(children: .combine)
     }
 
+    /// Altavoz arriba a la izquierda: un toque y deja de hablar (tachado), otro y vuelve a hablar. El detalle (si
+    /// pregunto hablando / siempre) está en el menú "⋯".
+    private var voiceToggle: some View {
+        let on = speechMode != AssistantSpeechMode.never.rawValue
+        return Button {
+            if on {
+                speechMode = AssistantSpeechMode.never.rawValue
+                speaker.stop()
+            } else {
+                speechMode = AssistantSpeechMode.whenSpoken.rawValue
+            }
+        } label: { toolbarIcon(on ? "speaker.wave.2.fill" : "speaker.slash.fill") }
+        .buttonStyle(.plain)
+        .accessibilityLabel(on ? L("Quitar la voz") : L("Activar la voz"))
+    }
+
     /// Ajustes del chat: cuándo contesta hablando y la casa para "cerca de casa".
     private var settingsMenu: some View {
         Menu {
@@ -213,6 +230,24 @@ struct AssistantChatView: View {
                                 .padding(.horizontal, 14).padding(.vertical, 13)
                                 .background(Cumbre.paper, in: Self.botShape)
                                 .shadow(color: .black.opacity(0.06), radius: 3, y: 1)
+                            HStack(spacing: 10) {
+                                if let note = vm.loadingNote {
+                                    Text(note)
+                                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                Button { vm.stopThinking() } label: {
+                                    HStack(spacing: 5) {
+                                        Image(systemName: "stop.fill").font(.system(size: 10, weight: .bold))
+                                        Text(L("Parar")).font(.system(size: 13, weight: .semibold))
+                                    }
+                                    .foregroundStyle(Cumbre.ink)
+                                    .padding(.horizontal, 12).padding(.vertical, 6)
+                                    .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1.5))
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(L("Parar la respuesta"))
+                            }
                         }
                         .id("loading")
                     }

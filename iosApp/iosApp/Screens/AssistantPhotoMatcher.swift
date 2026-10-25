@@ -52,43 +52,79 @@ enum AssistantPhotoMatcher {
         case noStones(schoolName: String)
     }
 
+    /// Por qué paso va la búsqueda (se enseña bajo los puntos de "escribiendo" y, si algo se atasca, en el aviso).
+    enum Stage {
+        case schools, stones, comparing(Int)
+
+        var text: String {
+            switch self {
+            case .schools: return L("Buscando escuelas cerca de la foto…")
+            case .stones: return L("Buscando piedras cerca…")
+            case .comparing(let n): return L("Comparando con %@ piedras…", n)
+            }
+        }
+    }
+
+    /// Tiempo máximo para cargar escuelas o piedras (red) y para cada foto de piedra.
+    static let loadTimeout: Double = 15
+    static let photoTimeout: Double = 8
+
     /// @param approximate true si la posición NO es de la foto sino de donde está el usuario ahora.
+    /// @param onStage aviso de por qué paso va (en el hilo principal).
     static func match(image: UIImage, lat: Double?, lon: Double?, approximate: Bool,
-                      container: IosDependencyContainer) async -> Outcome {
+                      container: IosDependencyContainer,
+                      onStage: @escaping @MainActor (Stage) -> Void = { _ in }) async -> Outcome {
         guard let lat, let lon else { return .noLocation }
-        guard let schools = try? await container.getSchools.invoke(region: nil, style: nil, rockType: nil,
-                                                                  lat: nil, lon: nil, radioKm: nil),
-              !schools.isEmpty else { return .noData }
+        await onStage(.schools)
+        guard let schools = await AsyncTimeout.run(loadTimeout, {
+                  try? await container.getSchools.invoke(region: nil, style: nil, rockType: nil,
+                                                         lat: nil, lon: nil, radioKm: nil)
+              }), !schools.isEmpty else { return .noData }
         let byDistance = schools.map { ($0, km(lat, lon, $0.lat, $0.lon)) }.sorted { $0.1 < $1.1 }
-        let around = byDistance.filter { $0.1 <= searchRadiusKm }.prefix(maxSchoolsChecked)
+        let around = Array(byDistance.filter { $0.1 <= searchRadiusKm }.prefix(maxSchoolsChecked))
 
         // La escuela es la que tiene la PIEDRA más cercana a la foto, no la de punto central más cercano.
-        var best: (school: School, blocks: [(Block, Double)])? = nil
-        for (school, _) in around {
-            let blocks = ((try? await container.getBlocks.invoke(schoolId: school.id)) ?? []).filter { $0.type == "BLOCK" }
-            let near = blocks.map { ($0, km(lat, lon, $0.lat, $0.lon) * 1000) }.sorted { $0.1 < $1.1 }
-            guard let first = near.first, first.1 <= nearestStoneKm * 1000 else { continue }
-            if best == nil || first.1 < (best?.blocks.first?.1 ?? .infinity) { best = (school, near) }
+        // Las piedras de las escuelas de alrededor se cargan a la vez, cada una con su tiempo máximo.
+        await onStage(.stones)
+        var loaded: [(School, [(Block, Double)])] = []
+        await withTaskGroup(of: (School, [(Block, Double)]).self) { group in
+            for (school, _) in around {
+                group.addTask {
+                    let blocks = await AsyncTimeout.run(loadTimeout, {
+                        try? await container.getBlocks.invoke(schoolId: school.id)
+                    }) ?? []
+                    let near = blocks.filter { $0.type == "BLOCK" }
+                        .map { ($0, km(lat, lon, $0.lat, $0.lon) * 1000) }.sorted { $0.1 < $1.1 }
+                    return (school, near)
+                }
+            }
+            for await r in group { loaded.append(r) }
         }
+        let best = loaded
+            .filter { ($0.1.first?.1 ?? .infinity) <= nearestStoneKm * 1000 }
+            .min { ($0.1.first?.1 ?? .infinity) < ($1.1.first?.1 ?? .infinity) }
         guard let best else {
             if let point = byDistance.first, point.1 <= schoolPointKm { return .noStones(schoolName: point.0.name) }
             return .noSchoolNear(closestName: byDistance.first?.0.name, closestKm: byDistance.first?.1)
         }
-        let school = best.school
-        let near = best.blocks
+        let school = best.0
+        let near = best.1
         var pool = near.filter { $0.1 <= stoneRadiusM }
         if pool.isEmpty { pool = Array(near.prefix(5)) }        // GPS muy desviado: las más cercanas igualmente
         pool = Array(pool.prefix(maxCompared))
         guard !pool.isEmpty else { return .noStones(schoolName: school.name) }
 
-        let mine = featurePrint(image)
+        await onStage(.comparing(pool.count))
+        let mine = featurePrint(downscaled(image))
         var out: [Candidate] = []
         await withTaskGroup(of: Candidate.self) { group in
             for (block, meters) in pool {
                 group.addTask {
                     let url = block.photoPath ?? block.faces.first?.photoPath
                     var similarity: Double? = nil
-                    if let mine, let url, let photo = await ImageCache.image(url), let theirs = featurePrint(photo) {
+                    if let mine, let url,
+                       let photo = await AsyncTimeout.run(photoTimeout, { await ImageCache.image(url) }),
+                       let theirs = featurePrint(downscaled(photo)) {
                         similarity = similarityOf(mine, theirs)
                     }
                     return Candidate(blockId: block.id, blockName: block.name, schoolId: school.id,
@@ -102,6 +138,19 @@ enum AssistantPhotoMatcher {
         let top = Array(ranked.prefix(3))
         let sure = top.count == 1 || (top.count >= 2 && score(top[0]) - score(top[1]) >= 0.15)
         return .found(top, sure: sure, approximate: approximate)
+    }
+
+    /// La foto en pequeño (lado mayor 640 px): Vision la reduce igualmente y así va mucho más rápido y gasta menos.
+    static func downscaled(_ image: UIImage, maxSide: CGFloat = 640) -> UIImage {
+        let side = max(image.size.width, image.size.height)
+        guard side > maxSide else { return image }
+        let scale = maxSide / side
+        let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
     }
 
     /// Mezcla del parecido de la foto (manda) y la cercanía (desempata). Sin foto, solo cuenta la cercanía.
@@ -149,5 +198,36 @@ enum AssistantPhotoMatcher {
         let a = sin(dLat / 2) * sin(dLat / 2)
             + cos(lat1 * .pi / 180) * cos(lat2 * .pi / 180) * sin(dLon / 2) * sin(dLon / 2)
         return 2 * r * atan2(sqrt(a), sqrt(1 - a))
+    }
+}
+
+/// Espera algo como mucho `seconds` segundos; si no ha llegado, devuelve nil y sigue (lo que tardaba se abandona).
+/// No usa un grupo de tareas a propósito: un grupo espera a que acaben TODAS, así que algo colgado lo colgaría igual.
+enum AsyncTimeout {
+    static func run<T>(_ seconds: Double, _ operation: @escaping () async -> T?) async -> T? {
+        await withCheckedContinuation { (cont: CheckedContinuation<T?, Never>) in
+            let once = OnceFlag()
+            Task {
+                let value = await operation()
+                if once.claim() { cont.resume(returning: value) }
+            }
+            Task {
+                try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                if once.claim() { cont.resume(returning: nil) }
+            }
+        }
+    }
+}
+
+/// Se puede reclamar una sola vez (para reanudar una continuación solo una vez entre dos tareas que compiten).
+final class OnceFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var claimed = false
+
+    func claim() -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        if claimed { return false }
+        claimed = true
+        return true
     }
 }

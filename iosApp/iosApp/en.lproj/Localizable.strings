@@ -1813,3 +1813,15 @@
 "La escuela más cercana es %@, a %@ km." = "The closest crag is %@, %@ km away.";
 "No se parece mucho a ninguna de las piedras de %@ que hay cerca: puede que aún no esté en Cumbre. Las más cercanas:" = "It doesn't look much like any boulder near %@: it may not be in Cumbre yet. The closest ones:";
 "No encuentro ese sitio en el mapa. ¿Puedes decirlo de otra forma (pueblo, ciudad o provincia)?" = "I can't find that place on the map. Can you say it another way (town, city or province)?";
+"Buscando escuelas cerca de la foto…" = "Looking for crags near the photo…";
+"Buscando piedras cerca…" = "Looking for nearby boulders…";
+"Comparando con %@ piedras…" = "Comparing with %@ boulders…";
+"Leyendo dónde se hizo la foto…" = "Reading where the photo was taken…";
+"Mirando dónde estás…" = "Checking where you are…";
+"No he podido abrir esa foto (si está en iCloud, puede que no se haya descargado). Prueba con otra o hazla con la cámara." = "I couldn't open that photo (if it's in iCloud it may not have downloaded). Try another one or take it with the camera.";
+"Ha tardado demasiado (se quedó en: %@). Inténtalo otra vez con buena cobertura." = "It took too long (it got stuck at: %@). Try again with good coverage.";
+"Vale, lo dejo. Pregúntame otra cosa cuando quieras." = "OK, stopped. Ask me something else whenever you like.";
+"Parar" = "Stop";
+"Parar la respuesta" = "Stop the answer";
+"Quitar la voz" = "Turn voice off";
+"Activar la voz" = "Turn voice on";
