@@ -34,7 +34,9 @@ object HelpCatalog {
                 HelpItem("Favoritas", "Toca la estrella de una escuela para guardarla como favorita. Funciona sin conexión.", icon = "star"),
                 HelpItem("Comparar escuelas", "Mantén pulsada una escuela para entrar en modo comparar (hasta 3); abajo aparece COMPARAR.", icon = "compare"),
                 HelpItem("Mapa", "Pulsa VER MAPA para ver las escuelas en el mapa, coloreadas por su índice.", icon = "map"),
-                HelpItem("Proponer una escuela", "Con + Enviar escuela puedes proponer una escuela que falte.", icon = "plus")
+                HelpItem("Proponer una escuela", "Con + Enviar escuela puedes proponer una escuela que falte.", icon = "plus"),
+                HelpItem("Buscar vías y bloques por grado", "Arriba, cambia de «Escuelas» a «Vías/Bloques»: elige el grado mínimo y máximo y te salen las vías de ese rango dentro de la DISTANCIA que marques, agrupadas por escuela. Ordénalas por cercanía o por mejores condiciones.", icon = "filter"),
+                HelpItem("El asistente (Cumbri)", "Si lo tienes activado, verás su burbuja. Pregúntale escribiendo o hablando: vías por grado y escuela, dónde ir sin lluvia, el tiempo, tu diario… Contesta con datos reales y, si te propone guardar algo (favorita, apuntar en el diario), siempre te pide confirmar. El altavoz de arriba elige si te lee las respuestas, y con la cámara le preguntas qué piedra es.", icon = "chat")
             )
         ),
         HelpTopic(
@@ -49,7 +51,10 @@ object HelpCatalog {
                 HelpItem("Marcar una vía hecha", "Dentro de una piedra, toca el círculo (○ → ✓) de una vía para apuntarla en tu diario. Funciona sin conexión.", icon = "tick"),
                 HelpItem("Proponer / corregir", "Con + PROPONER añades parking, piedra, sector o corriges una posición; un admin lo revisa.", icon = "plus"),
                 HelpItem("¿Qué piedra es esta?", "El icono de cámara junto a AYUDA: haz una foto a una piedra o elige una de la galería y te enseña las 3 piedras de esta escuela que más se parecen. Si la foto tiene ubicación, mira las que hay cerca; si no (capturas, fotos reenviadas), compara solo por cómo se ven. Todo se hace en el móvil: la foto no se envía a ningún sitio.", icon = "camera", id = "detail.photo"),
-                HelpItem("Cuando estés en la roca", "Pulsa «Aquí» para que otros sepan que estás, y usa el símbolo del chat para hablar con quien vaya a esa escuela.", icon = "chat")
+                HelpItem("Cuando estés en la roca", "Pulsa «Aquí» para que otros sepan que estás, y usa el símbolo del chat para hablar con quien vaya a esa escuela.", icon = "chat"),
+                HelpItem("Mejor hora por sector", "Bajo la tarjeta de hoy: la mejor franja de hoy en cada sector según hacia dónde mira (sol o sombra). Despliégala para ver cada sector con una tira de 8 a 20 h coloreada por nota. Si la roca está mojada, solo cuenta cuando haya secado, y las horas con lluvia no cuentan.", icon = "clock"),
+                HelpItem("Pestaña BLOQUES", "Arriba, los 3 más repetidos (cuántas personas los tienen hechos en su diario). Filtra por uno o varios grados, por beta de gente de más o menos de 1,70 o por nombre; el resto sale agrupado por sector.", icon = "book"),
+                HelpItem("Restricciones", "Si una zona de la escuela está cerrada o regulada (por ejemplo, por nidificación), junto al nombre sale una pastilla con «!». Tócala para ver qué sectores, desde cuándo y la fuente. Ante la duda, manda la señalización en el lugar.", icon = "info")
             )
         ),
         HelpTopic(
@@ -73,7 +78,10 @@ object HelpCatalog {
                 HelpItem("Seguidores", "Toca Seguidores o Siguiendo para ver y gestionar a quién sigues.", icon = "person"),
                 HelpItem("Escuelas guardadas", "Tus escuelas descargadas para usar sin conexión.", icon = "download"),
                 HelpItem("Alerta de tiempo", "Configura un aviso que compara tus escuelas (o por cercanía) los días que elijas.", icon = "bell"),
-                HelpItem("Editar perfil", "Cambia tu foto, @usuario, bio y si tu perfil es público.", icon = "edit")
+                HelpItem("Editar perfil", "Cambia tu foto, @usuario, bio y si tu perfil es público.", icon = "edit"),
+                HelpItem("Tu altura y los votos de grado", "En tu mochila puedes decir una vez si mides más o menos de 1,70 (es privado). Tus votos de grado cuentan en tu grupo: si los dos grupos votan un grado muy distinto, el grado de esa vía sale partido en dos colores.", icon = "person"),
+                HelpItem("Objetivo del año y logros", "En Mis estadísticas tienes tu pirámide, un objetivo para el año (un grado, un número de ascensiones o de días de roca; opcional y solo lo ves tú) y los logros que vas desbloqueando.", icon = "tick"),
+                HelpItem("Títulos e insignias", "Tu título sale de tu nivel; tocándolo eliges tu Cumbri (vías o bloque) o «Sin título». A veces Cumbre te da un título especial o un efecto alrededor de tu foto, que se quita eligiendo otro título.", icon = "star")
             )
         ),
         HelpTopic(
@@ -162,7 +170,9 @@ object HelpCatalog {
                 HelpItem("Favorites", "Tap a school's star to save it as a favorite. Works offline.", icon = "star"),
                 HelpItem("Compare schools", "Long-press a school to enter compare mode (up to 3); COMPARE appears at the bottom.", icon = "compare"),
                 HelpItem("Map", "Tap VIEW MAP to see the schools on the map, colored by their index.", icon = "map"),
-                HelpItem("Suggest a school", "With + Submit school you can suggest a school that's missing.", icon = "plus")
+                HelpItem("Suggest a school", "With + Submit school you can suggest a school that's missing.", icon = "plus"),
+                HelpItem("Search routes and boulders by grade", "At the top, switch from \"Schools\" to \"Routes/Boulders\": pick the lowest and highest grade and you get the lines in that range within the DISTANCE you set, grouped by crag. Sort them by proximity or by best conditions.", icon = "filter"),
+                HelpItem("The assistant (Cumbri)", "If it's enabled for you, you'll see its bubble. Ask by typing or speaking: lines by grade and crag, where to go without rain, the weather, your journal… It answers with real data and, if it offers to save something (favourite, log in your journal), it always asks you to confirm. The speaker at the top chooses whether it reads answers aloud, and with the camera you ask which boulder it is.", icon = "chat")
             )
         ),
         HelpTopic(
@@ -177,7 +187,10 @@ object HelpCatalog {
                 HelpItem("Mark a route done", "Inside a boulder, tap the circle (○ → ✓) of a route to log it in your journal. Works offline.", icon = "tick"),
                 HelpItem("Propose / correct", "With + PROPOSE you can add parking, boulder, sector or correct a position; an admin reviews it.", icon = "plus"),
                 HelpItem("Which boulder is this?", "The camera icon next to HELP: take a photo of a boulder or pick one from your gallery and it shows the 3 boulders of this crag that look most alike. If the photo has a location it checks the ones nearby; if not (screenshots, forwarded photos), it compares by looks only. Everything happens on your phone: the photo isn't sent anywhere.", icon = "camera", id = "detail.photo"),
-                HelpItem("When you're at the crag", "Tap \"Here\" so others know you're there, and use the chat symbol to talk to whoever is heading to that crag.", icon = "chat")
+                HelpItem("When you're at the crag", "Tap \"Here\" so others know you're there, and use the chat symbol to talk to whoever is heading to that crag.", icon = "chat"),
+                HelpItem("Best time per sector", "Under today's card: today's best time window for each sector, based on the way it faces (sun or shade). Expand it to see each sector with an 8 am–8 pm strip coloured by score. If the rock is wet it only counts once it has dried, and rainy hours don't count.", icon = "clock"),
+                HelpItem("BOULDERS tab", "At the top, the 3 most repeated (how many people have them done in their journal). Filter by one or more grades, by beta from people taller or shorter than 1.70 m, or by name; the rest is grouped by sector.", icon = "book"),
+                HelpItem("Restrictions", "If part of the crag is closed or regulated (for example, for nesting birds), a pill with \"!\" appears next to its name. Tap it to see which sectors, since when and the source. When in doubt, the signs on site rule.", icon = "info")
             )
         ),
         HelpTopic(
@@ -201,7 +214,10 @@ object HelpCatalog {
                 HelpItem("Followers", "Tap Followers or Following to see and manage who you follow.", icon = "person"),
                 HelpItem("Saved schools", "Your schools downloaded to use offline.", icon = "download"),
                 HelpItem("Weather alert", "Set up a notification that compares your schools (or by proximity) on the days you choose.", icon = "bell"),
-                HelpItem("Edit profile", "Change your photo, @username, bio and whether your profile is public.", icon = "edit")
+                HelpItem("Edit profile", "Change your photo, @username, bio and whether your profile is public.", icon = "edit"),
+                HelpItem("Your height and grade votes", "In your backpack you can say once whether you're taller or shorter than 1.70 m (it's private). Your grade votes count in your group: if both groups vote a very different grade, that line's grade is split into two colours.", icon = "person"),
+                HelpItem("Yearly goal and achievements", "In My stats you have your pyramid, a goal for the year (a grade, a number of ascents or of rock days; optional and only you see it) and the achievements you unlock.", icon = "tick"),
+                HelpItem("Titles and badges", "Your title comes from your level; tap it to choose your Cumbri (routes or boulder) or \"No title\". Sometimes Cumbre gives you a special title or an effect around your photo, which goes away when you pick another title.", icon = "star")
             )
         ),
         HelpTopic(
