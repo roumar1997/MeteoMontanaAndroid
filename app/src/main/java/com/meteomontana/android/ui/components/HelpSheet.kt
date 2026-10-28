@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.Reply
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -120,6 +121,7 @@ private fun helpIcon(name: String): ImageVector = when (name) {
     "chat" -> Icons.Outlined.ChatBubbleOutline
     "reply" -> Icons.AutoMirrored.Outlined.Reply
     "wifioff" -> Icons.Outlined.CloudOff
+    "camera" -> Icons.Outlined.PhotoCamera
     else -> Icons.Outlined.Info
 }
 
@@ -127,7 +129,8 @@ private fun helpIcon(name: String): ImageVector = when (name) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HelpSheet(topicKey: String, onDismiss: () -> Unit) {
-    val topic: HelpTopic = HelpCatalog.byKey(topicKey, androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language) ?: return
+    val topic: HelpTopic = HelpCatalog.byKey(topicKey, androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language,
+        com.meteomontana.android.ui.guide.NOT_YET_ON_ANDROID) ?: return
     // ARRASTRAR PARA CERRAR, solo desde arriba (mismo arreglo que
     // BlockDetailDialog.kt/AddLinesFlow.kt): hojas largas competían el gesto
     // de cierre con el scroll.

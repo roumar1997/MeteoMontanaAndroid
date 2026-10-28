@@ -1,6 +1,7 @@
 package com.meteomontana.android.help
 
-data class HelpItem(val title: String, val body: String, val icon: String = "info")
+/** `id`: solo en los puntos de funciones que aún no están en las dos apps (ver [HelpCatalog.byKey] con `hidden`). */
+data class HelpItem(val title: String, val body: String, val icon: String = "info", val id: String? = null)
 
 data class HelpTopic(
     val key: String,
@@ -15,6 +16,10 @@ object HelpCatalog {
         val catalog = if (lang.startsWith("en")) EN else ES
         return catalog.firstOrNull { it.key == key }
     }
+
+    /** Igual, sin los puntos cuyo `id` está en [hidden] (funciones que esa app todavía no tiene). */
+    fun byKey(key: String, lang: String, hidden: Set<String>): HelpTopic? =
+        byKey(key, lang)?.let { t -> t.copy(items = t.items.filterNot { it.id != null && it.id in hidden }) }
 
     // ── Spanish (default) ─────────────────────────────────────────────────
 
@@ -42,7 +47,9 @@ object HelpCatalog {
                 HelpItem("Guardar offline", "El icono de descarga guarda la escuela (previsión + mapa + piedras) para verla sin conexión.", icon = "download"),
                 HelpItem("Mapa de la escuela", "Markers: P = parking, Z = sector, piedra y muros. Toca un sector (Z) para mostrar/ocultar sus piedras. Toca una piedra para ver sus vías.", icon = "map"),
                 HelpItem("Marcar una vía hecha", "Dentro de una piedra, toca el círculo (○ → ✓) de una vía para apuntarla en tu diario. Funciona sin conexión.", icon = "tick"),
-                HelpItem("Proponer / corregir", "Con + PROPONER añades parking, piedra, sector o corriges una posición; un admin lo revisa.", icon = "plus")
+                HelpItem("Proponer / corregir", "Con + PROPONER añades parking, piedra, sector o corriges una posición; un admin lo revisa.", icon = "plus"),
+                HelpItem("¿Qué piedra es esta?", "El icono de cámara junto a AYUDA: haz una foto a una piedra o elige una de la galería y te enseña las 3 piedras de esta escuela que más se parecen. Si la foto tiene ubicación, mira las que hay cerca; si no (capturas, fotos reenviadas), compara solo por cómo se ven. Todo se hace en el móvil: la foto no se envía a ningún sitio.", icon = "camera", id = "detail.photo"),
+                HelpItem("Cuando estés en la roca", "Pulsa «Aquí» para que otros sepan que estás, y usa el símbolo del chat para hablar con quien vaya a esa escuela.", icon = "chat")
             )
         ),
         HelpTopic(
@@ -168,7 +175,9 @@ object HelpCatalog {
                 HelpItem("Save offline", "The download icon saves the school (forecast + map + boulders) to use without internet.", icon = "download"),
                 HelpItem("School map", "Markers: P = parking, Z = sector, boulder and walls. Tap a sector (Z) to show/hide its boulders. Tap a boulder to see its routes.", icon = "map"),
                 HelpItem("Mark a route done", "Inside a boulder, tap the circle (○ → ✓) of a route to log it in your journal. Works offline.", icon = "tick"),
-                HelpItem("Propose / correct", "With + PROPOSE you can add parking, boulder, sector or correct a position; an admin reviews it.", icon = "plus")
+                HelpItem("Propose / correct", "With + PROPOSE you can add parking, boulder, sector or correct a position; an admin reviews it.", icon = "plus"),
+                HelpItem("Which boulder is this?", "The camera icon next to HELP: take a photo of a boulder or pick one from your gallery and it shows the 3 boulders of this crag that look most alike. If the photo has a location it checks the ones nearby; if not (screenshots, forwarded photos), it compares by looks only. Everything happens on your phone: the photo isn't sent anywhere.", icon = "camera", id = "detail.photo"),
+                HelpItem("When you're at the crag", "Tap \"Here\" so others know you're there, and use the chat symbol to talk to whoever is heading to that crag.", icon = "chat")
             )
         ),
         HelpTopic(

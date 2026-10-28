@@ -128,6 +128,7 @@ struct SchoolPhotoButton: View {
                 .overlay(Circle().stroke(Cumbre.terra, lineWidth: 1.2))
         }
         .accessibilityLabel(L("¿Qué piedra es esta?"))
+        .guideTarget("detail.photo")
     }
 
     private func takePhoto() {

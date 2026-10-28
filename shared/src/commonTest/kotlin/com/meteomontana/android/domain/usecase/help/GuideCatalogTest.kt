@@ -37,6 +37,14 @@ class GuideCatalogTest {
         }
     }
 
+    @Test fun `los puntos ocultos se quitan y una guia que se queda vacia no se ofrece`() {
+        val full = GuideCatalog.byKey("detail", "es")!!
+        val hidden = GuideCatalog.byKey("detail", "es", setOf("detail.photo"))!!
+        assertTrue(full.steps.any { it.target == "detail.photo" })
+        assertEquals(full.steps.size - 1, hidden.steps.size)
+        assertNull(GuideCatalog.byKey("detail", "es", full.steps.map { it.target }.toSet()))
+    }
+
     @Test fun `un idioma desconocido cae a español y una pantalla sin guia devuelve null`() {
         assertEquals(GuideCatalog.byKey("schools", "es"), GuideCatalog.byKey("schools", "fr"))
         assertNull(GuideCatalog.byKey("radar", "es"))

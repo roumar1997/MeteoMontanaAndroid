@@ -119,6 +119,7 @@ struct HelpSheet: View {
         case "chat": return "bubble.left"
         case "reply": return "arrowshape.turn.up.left"
         case "wifioff": return "wifi.slash"
+        case "camera": return "camera.viewfinder"
         default: return "info.circle"
         }
     }

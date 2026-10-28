@@ -85,7 +85,7 @@ val LocalGuideController = compositionLocalOf<GuideController> {
 fun ProvideGuides(content: @Composable () -> Unit) {
     val context = LocalContext.current
     val controller = remember {
-        GuideController(SharedGuidePrefs(context)) { key -> GuideCatalog.byKey(key, AppLanguage.effective(context)) }
+        GuideController(SharedGuidePrefs(context)) { key -> GuideCatalog.byKey(key, AppLanguage.effective(context), NOT_YET_ON_ANDROID) }
     }
     CompositionLocalProvider(LocalGuideController provides controller, content = content)
 }

@@ -28,9 +28,16 @@ object GuideCatalog {
     )
 
     /** `lang`: "es" o "en" (cualquier otro valor cae a español). `null` si esa pantalla no tiene guía. */
-    fun byKey(key: String, lang: String): Guide? {
-        val steps = (if (lang.lowercase().startsWith("en")) EN else ES)[key] ?: return null
-        return Guide(key, steps)
+    fun byKey(key: String, lang: String): Guide? = byKey(key, lang, emptySet())
+
+    /**
+     * Igual, quitando los puntos cuyo `target` está en [hidden]: lo usa la app que todavía NO tiene esa función (p. ej.
+     * la cámara de «¿qué piedra es esta?» llega antes a iOS), para no señalar un botón que no existe.
+     */
+    fun byKey(key: String, lang: String, hidden: Set<String>): Guide? {
+        val steps = ((if (lang.lowercase().startsWith("en")) EN else ES)[key] ?: return null)
+            .filterNot { it.target in hidden }
+        return if (steps.isEmpty()) null else Guide(key, steps)
     }
 
     private val ES: Map<String, List<GuideStep>> = mapOf(
@@ -47,8 +54,8 @@ object GuideCatalog {
                 "SÍ o NO, la nota y el estado de la roca. Tócala para ver las próximas 16 horas y por qué sale esa nota."),
             GuideStep("detail.tabs", "Cuatro pestañas",
                 "MAPA: sectores, parkings y piedras. BLOQUES: busca vías por grado, sector o beta. TIEMPO: los próximos días. NOTAS: lo que cuenta la comunidad."),
-            GuideStep("detail.here", "Cuando estés en la roca",
-                "Pulsa «Aquí» para que otros sepan que estás, y usa el símbolo del chat para hablar con quien vaya a esa escuela.")
+            GuideStep("detail.photo", "¿Qué piedra es esta?",
+                "Haz una foto a una piedra (o elige una de la galería) y te digo cuál de esta escuela es. También desde casa, con fotos sin ubicación.")
         ),
         "detail_map" to listOf(
             GuideStep("detail_map.places", "Sectores y parkings",
@@ -128,8 +135,8 @@ object GuideCatalog {
                 "YES or NO, the score and the rock's condition. Tap it to see the next 16 hours and why the score is what it is."),
             GuideStep("detail.tabs", "Four tabs",
                 "MAP: sectors, car parks and boulders. BOULDERS: find routes by grade, sector or beta. WEATHER: the next days. NOTES: what the community says."),
-            GuideStep("detail.here", "When you're at the crag",
-                "Tap \"Here\" so others know you're there, and use the chat symbol to talk to whoever is heading to that crag.")
+            GuideStep("detail.photo", "Which boulder is this?",
+                "Take a photo of a boulder (or pick one from your gallery) and I'll tell you which one of this crag it is. Works from home too, with photos without location.")
         ),
         "detail_map" to listOf(
             GuideStep("detail_map.places", "Sectors and car parks",
