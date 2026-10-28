@@ -261,7 +261,7 @@ private struct NotePhotoSheet: View {
                     if let url = note.photoUrl, let u = URL(string: url) {
                         AsyncImage(url: u) { img in
                             img.resizable().scaledToFit()
-                        } placeholder: { ProgressView() }
+                        } placeholder: { Bone(height: 220).shimmer() }
                     }
                     Text(note.text).font(.system(size: 16)).foregroundStyle(Cumbre.ink)
                         .padding(.horizontal, 16)

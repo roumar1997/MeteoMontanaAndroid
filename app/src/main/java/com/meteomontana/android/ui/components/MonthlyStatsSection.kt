@@ -42,9 +42,12 @@ fun MonthlyStatsSection(stats: MonthlyStats?, isLoading: Boolean) {
         )
         androidx.compose.foundation.layout.Spacer(Modifier.height(Spacing.sm))
         if (isLoading) {
-            Box(Modifier.fillMaxWidth().padding(Spacing.lg), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.height(24.dp))
+            SkeletonList(count = 3, dividers = false) {
+                Row(Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Bone(60.dp, 12.dp)
+                    androidx.compose.foundation.layout.Spacer(Modifier.width(10.dp))
+                    Box(Modifier.weight(1f)) { Bone(null, 12.dp) }
+                }
             }
             return
         }

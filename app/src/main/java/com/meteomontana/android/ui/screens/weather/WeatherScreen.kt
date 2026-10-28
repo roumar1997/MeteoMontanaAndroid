@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.weather
 
+import com.meteomontana.android.ui.components.SkeletonWeather
 import com.meteomontana.android.ui.theme.inkButtonColor
 
 import android.Manifest
@@ -73,9 +74,7 @@ fun WeatherScreen(
         when (val s = state) {
             WeatherUiState.Loading -> {
                 TopBar(title = stringResource(R.string.weather_title), subtitle = "")
-                Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
+                SkeletonWeather()
             }
             is WeatherUiState.NeedPermission -> {
                 TopBar(title = stringResource(R.string.weather_title), subtitle = "")

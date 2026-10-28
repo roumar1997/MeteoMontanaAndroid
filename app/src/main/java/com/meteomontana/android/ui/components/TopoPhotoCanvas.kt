@@ -96,6 +96,7 @@ fun TopoPhotoCanvas(
     modifier: Modifier = Modifier
 ) {
     var ratio by remember(photoUrl) { mutableStateOf(4f / 3f) }
+    var loaded by remember(photoUrl) { mutableStateOf(false) }
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -103,12 +104,14 @@ fun TopoPhotoCanvas(
             .clip(RoundedCornerShape(2.dp))
             .background(Color.Black)
     ) {
+        if (!loaded) PhotoPlaceholder(Modifier.fillMaxSize())
         AsyncImage(
             model = photoUrl,
             contentDescription = stringResource(R.string.topo_photo_canvas_v2_foto),
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
             onSuccess = { state ->
+                loaded = true
                 ratio = topoAspectRatio(
                     state.result.drawable.intrinsicWidth,
                     state.result.drawable.intrinsicHeight

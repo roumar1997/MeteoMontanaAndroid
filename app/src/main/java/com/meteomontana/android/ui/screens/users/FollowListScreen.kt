@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.users
 
+import com.meteomontana.android.ui.components.SkeletonList
+import com.meteomontana.android.ui.components.SkeletonPersonRow
 import com.meteomontana.android.ui.components.VerifiedCheck
 
 import com.meteomontana.android.ui.components.userRing
@@ -223,9 +225,7 @@ fun FollowListScreen(
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         when (val s = state) {
-            FollowListUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
+            FollowListUiState.Loading -> SkeletonList(count = 8) { SkeletonPersonRow(trailing = true) }
             is FollowListUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                 Text(s.message, color = MaterialTheme.colorScheme.error)
             }

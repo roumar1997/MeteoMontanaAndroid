@@ -200,7 +200,10 @@ struct MeetupDetailView: View {
 
             Group {
                 if vm.loading && vm.meetup == nil {
-                    ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                    VStack(spacing: 0) {
+                        SkeletonList(count: 1, dividers: false) { SkeletonCard() }
+                        SkeletonList(count: 5) { SkeletonPersonRow(avatar: 36) }
+                    }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 } else if vm.meetup == nil {
                     VStack(spacing: 12) {
                         Text("No se pudo cargar").foregroundColor(Cumbre.ink.opacity(0.6))

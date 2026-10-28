@@ -35,7 +35,7 @@ struct SubmissionsHistoryView: View {
         NavigationStack {
             Group {
                 if submissions == nil || contributions == nil {
-                    ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                    SkeletonList(count: 6) { SkeletonGradeRow() }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 } else if rows.isEmpty {
                     VStack(spacing: 8) {
                         Image(systemName: "tray").font(.system(size: 32)).foregroundStyle(Cumbre.ink3)

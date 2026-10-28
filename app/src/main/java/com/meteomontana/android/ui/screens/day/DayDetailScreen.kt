@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.day
 
 
+import com.meteomontana.android.ui.components.SkeletonWeather
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -50,9 +51,7 @@ fun DayDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         when (val s = state) {
-            DayDetailUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
+            DayDetailUiState.Loading -> SkeletonWeather()
             is DayDetailUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                 Text(s.message, color = MaterialTheme.colorScheme.error)
             }

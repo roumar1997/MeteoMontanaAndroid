@@ -1,6 +1,8 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.community
 
+import com.meteomontana.android.ui.components.SkeletonList
+import com.meteomontana.android.ui.components.SkeletonFeedCard
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -284,9 +286,7 @@ private fun FeedList(
         modifier = Modifier.fillMaxSize()
     ) {
         when {
-            state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
+            state.loading -> SkeletonList(count = 3, dividers = false) { SkeletonFeedCard() }
             state.offline -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                 // Estado sin conexión estándar (icono nube + reintentar).
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {

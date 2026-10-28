@@ -261,7 +261,7 @@ struct GroupChatView: View {
             }
 
             if vm.loading {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                SkeletonChat()
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {

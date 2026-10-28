@@ -1,6 +1,8 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.community
 
+import com.meteomontana.android.ui.components.SkeletonList
+import com.meteomontana.android.ui.components.SkeletonPersonRow
 import com.meteomontana.android.ui.components.VerifiedCheck
 
 import com.meteomontana.android.ui.components.userRing
@@ -148,9 +150,7 @@ internal fun FeedCommentsSheet(
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             when (val list = comments) {
-                null -> Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
+                null -> SkeletonList(count = 4, dividers = false) { SkeletonPersonRow(avatar = 32.dp) }
                 else -> LazyColumn(
                     Modifier.fillMaxWidth().weight(1f, fill = false)
                 ) {

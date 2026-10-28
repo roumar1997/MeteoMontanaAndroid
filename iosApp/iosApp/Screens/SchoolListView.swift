@@ -654,7 +654,7 @@ struct SchoolListView: View {
                     )
 
                     if vm.loading {
-                        ForEach(0..<6, id: \.self) { _ in SkeletonRow(); Divider().overlay(Cumbre.rule) }
+                        SkeletonList(count: 6) { SkeletonRow() }
                     } else if let err = vm.errorText {
                         ErrorRow(message: err) { Task { await vm.refresh() } }
                     } else if vm.exploreActive {
@@ -870,7 +870,7 @@ struct SchoolListView: View {
             .padding(.horizontal, 16).padding(.vertical, 8)
 
             if vm.exploreLoading && vm.exploreHits.isEmpty {
-                ForEach(0..<4, id: \.self) { _ in SkeletonRow(); Divider().overlay(Cumbre.rule) }
+                SkeletonList(count: 4) { SkeletonRow() }
             } else if vm.exploreHits.isEmpty {
                 EmptyRow(canClear: true) { vm.clearExplore() }
             } else if vm.exploreGrouped {

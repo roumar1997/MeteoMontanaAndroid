@@ -332,14 +332,18 @@ struct FeedCelebrationThumb: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
+                    .transition(.opacity)
             } else {
-                ProgressView().tint(Cumbre.ink3)
+                PhotoPlaceholder()
             }
         }
         .frame(width: 88, height: 110)
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Cumbre.bg, lineWidth: borderWidth))
-        .task(id: photoUrl) { image = await ImageCache.image(photoUrl) }
+        .task(id: photoUrl) {
+            let img = await ImageCache.image(photoUrl)
+            withAnimation(.easeOut(duration: 0.3)) { image = img }
+        }
     }
 }
 
@@ -356,17 +360,18 @@ struct FeedMainCelebrationImage: View {
             Color.black
             if let image {
                 Image(uiImage: image).resizable().scaledToFill()
+                    .transition(.opacity)
             } else {
-                ProgressView().tint(.white)
+                PhotoPlaceholder()
             }
         }
         .aspectRatio(ratio, contentMode: .fit)
         .clipped()
         .task(id: photoUrl) {
             if let img = await ImageCache.image(photoUrl) {
-                image = img
                 let w = img.size.width, h = img.size.height
                 if w > 0, h > 0 { ratio = min(max(w / h, 0.55), 2.2) }
+                withAnimation(.easeOut(duration: 0.3)) { image = img }
             }
         }
     }

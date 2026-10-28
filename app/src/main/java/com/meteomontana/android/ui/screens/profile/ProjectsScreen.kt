@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.profile
 
+import com.meteomontana.android.ui.components.SkeletonList
+import com.meteomontana.android.ui.components.SkeletonGradeRow
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.clickable
@@ -99,9 +101,7 @@ fun ProjectsScreen(
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         when (val s = state) {
-            ProjectsUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
+            ProjectsUiState.Loading -> SkeletonList(count = 6) { SkeletonGradeRow() }
             is ProjectsUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                 Text(s.message, color = MaterialTheme.colorScheme.error)
             }

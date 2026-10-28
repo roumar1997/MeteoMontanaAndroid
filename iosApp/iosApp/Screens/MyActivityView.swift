@@ -302,7 +302,7 @@ private func listScaffold<Content: View>(
 ) -> some View {
     Group {
         if loading {
-            ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            SkeletonList(count: 6) { SkeletonGradeRow() }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         } else if empty {
             EmptyStateView(icon: emptyIcon, title: emptyText,
                            message: emptyHint.isEmpty ? " " : emptyHint)

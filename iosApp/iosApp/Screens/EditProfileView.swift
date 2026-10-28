@@ -93,7 +93,7 @@ struct EditProfileView: View {
                 // anterior por los lados: la "raya" al entrar que reporto
                 // Rodrigo. Pasa igual en las pantallas de admin con este mismo
                 // patron de carga.
-                ProgressView().padding(.top, 60)
+                SkeletonForm()
                     .frame(maxWidth: .infinity, minHeight: 320)
             } else {
                 VStack(alignment: .leading, spacing: 16) {

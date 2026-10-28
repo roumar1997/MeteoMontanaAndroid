@@ -324,6 +324,7 @@ struct FeedView: View {
                         .navigationTitle("")
                 } else {
                     feedList
+                        .animatesLoading(vm.loading)
                 }
             }
             .background(Cumbre.bg.ignoresSafeArea())
@@ -474,9 +475,8 @@ struct FeedView: View {
             .filter { !moderation.hiddenIds.contains("FEED_POST:\($0.id)") }
             .filter { feedMatchesFilter($0, vm.filter) }
         if vm.loading {
-            Spacer()
-            ProgressView()
-            Spacer()
+            SkeletonList(count: 3, dividers: false) { SkeletonFeedCard() }
+            Spacer(minLength: 0)
         } else if vm.failed {
             // Sin conexión / error sin contenido previo: estado estándar.
             Spacer()

@@ -1,4 +1,6 @@
 package com.meteomontana.android.ui.screens.notifications
+import com.meteomontana.android.ui.components.SkeletonList
+import com.meteomontana.android.ui.components.SkeletonPersonRow
 import com.meteomontana.android.util.toUserMessage
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -201,9 +203,7 @@ fun NotificationsScreen(
         }
 
         when (val s = state) {
-            NotificationsUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
+            NotificationsUiState.Loading -> SkeletonList(count = 8) { SkeletonPersonRow(avatar = 36.dp) }
             is NotificationsUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                 Text(s.message, color = MaterialTheme.colorScheme.error)
             }

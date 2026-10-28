@@ -159,7 +159,7 @@ struct FeedCommentsSheet: View {
                 }
             }
         } else {
-            ProgressView().frame(maxWidth: .infinity).padding(32)
+            SkeletonList(count: 4, dividers: false) { SkeletonPersonRow(avatar: 32) }
             Spacer()
         }
     }

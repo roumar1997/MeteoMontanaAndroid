@@ -194,7 +194,7 @@ struct ChatListView: View {
     var body: some View {
         Group {
             if vm.loading {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                SkeletonList(count: 8) { SkeletonPersonRow(avatar: 48) }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else if vm.conversations.isEmpty {
                 EmptyStateView(
                     icon: "bubble.left.and.bubble.right",

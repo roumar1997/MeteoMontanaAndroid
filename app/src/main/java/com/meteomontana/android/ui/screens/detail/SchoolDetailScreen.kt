@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.ui.components.SkeletonSchoolDetail
 import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -151,7 +152,7 @@ fun SchoolDetailScreen(
             modifier = Modifier.weight(1f)
         ) {
             when (val s = state) {
-                is SchoolDetailUiState.Loading -> Center { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
+                is SchoolDetailUiState.Loading -> SkeletonSchoolDetail()
                 is SchoolDetailUiState.Error -> Center {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(stringResource(R.string.school_detail_screen_v2_error_1_s, s.message), color = MaterialTheme.colorScheme.error)

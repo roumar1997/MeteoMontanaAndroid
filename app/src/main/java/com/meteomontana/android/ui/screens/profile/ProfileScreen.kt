@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.profile
 
+import com.meteomontana.android.ui.components.SkeletonProfile
 import com.meteomontana.android.ui.components.VerifiedCheck
 
 import com.meteomontana.android.ui.components.userRing
@@ -192,7 +193,7 @@ fun ProfileScreen(
                 pendingReview = successState?.pendingReview ?: 0
             )
             when (val s = state) {
-                ProfileUiState.Loading -> CenterBox { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
+                ProfileUiState.Loading -> SkeletonProfile()
                 is ProfileUiState.Error -> CenterBox { Text(stringResource(R.string.profile_screen_v2_error_1_s, s.message), color = MaterialTheme.colorScheme.error) }
                 is ProfileUiState.Success -> Content(
                     profile = s.profile,

@@ -26,7 +26,7 @@ struct SchoolSectorReorderSheet: View {
                 sectorPicker
                 Divider().overlay(Cumbre.rule)
                 if !loaded {
-                    ProgressView().frame(maxWidth: .infinity).padding(.top, 30)
+                    SkeletonList(count: 6) { HStack { Bone(width: 180, height: 15); Spacer(); Bone(width: 20, height: 15) }.padding(16) }
                     Spacer()
                 } else if ordered.isEmpty {
                     Text("Este sector todavía no tiene piedras.")

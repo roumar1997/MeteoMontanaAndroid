@@ -225,7 +225,7 @@ struct ChatView: View {
     var body: some View {
         VStack(spacing: 0) {
             if vm.loading {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                SkeletonChat()
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {

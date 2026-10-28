@@ -73,7 +73,7 @@ struct CompareView: View {
         NavigationStack {
             Group {
                 if vm.loading {
-                    ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                    SkeletonWeather()
                 } else {
                     ScrollView { table }
                 }

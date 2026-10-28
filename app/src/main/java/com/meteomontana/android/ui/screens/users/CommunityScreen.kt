@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.users
 
+import com.meteomontana.android.ui.components.SkeletonList
+import com.meteomontana.android.ui.components.SkeletonPersonRow
 import com.meteomontana.android.ui.components.userRing
 import com.meteomontana.android.ui.components.VerifiedCheck
 import com.meteomontana.android.util.CalendarLabels
@@ -152,9 +154,7 @@ fun CommunityScreen(
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         when (val s = state) {
-            is CommunityUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
+            is CommunityUiState.Loading -> SkeletonList(count = 8) { SkeletonPersonRow(trailing = true) }
             is CommunityUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(s.message, color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -153,9 +153,8 @@ struct FeedPostDetailView: View {
 
     @ViewBuilder private var content: some View {
         if vm.loading {
-            Spacer()
-            ProgressView()
-            Spacer()
+            SkeletonList(count: 1, dividers: false) { SkeletonFeedCard() }
+            Spacer(minLength: 0)
         } else if vm.notFound || vm.post == nil {
             Spacer()
             VStack(spacing: 12) {

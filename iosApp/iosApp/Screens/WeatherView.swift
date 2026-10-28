@@ -127,7 +127,7 @@ struct WeatherView: View {
     @ViewBuilder private var content: some View {
         switch vm.state {
         case .loading:
-            Spacer(); ProgressView(); Spacer()
+            SkeletonWeather()
         case .needPermission:
             permissionPrompt
         case .error(let message):

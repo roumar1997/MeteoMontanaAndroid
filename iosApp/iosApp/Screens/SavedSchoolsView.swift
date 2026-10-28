@@ -72,8 +72,8 @@ struct OfflineSchoolView: View {
     var body: some View {
         ScrollView {
             if loading {
-                ProgressView().padding(.top, 60)
-                    .frame(maxWidth: .infinity, minHeight: 320)
+                SkeletonList(count: 6) { SkeletonRow() }
+                    .frame(maxWidth: .infinity, minHeight: 320, alignment: .top)
             } else if let s = snapshot {
                 if let f = s.forecast {
                     ForecastBodyView(

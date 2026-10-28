@@ -481,7 +481,7 @@ struct SchoolDetailView: View {
             VStack(spacing: 0) {
             schoolTitle
             if vm.loading {
-                ProgressView().padding(.top, 60)
+                SkeletonSchoolDetail()
                     .frame(maxWidth: .infinity, minHeight: 320)
             } else if let err = vm.errorText {
                 ContentUnavailableView(L("Sin previsión"), systemImage: "cloud.slash", description: Text(err))
@@ -582,7 +582,7 @@ struct SchoolDetailLoaderView: View {
             } else if failed {
                 ContentUnavailableView(L("Escuela no encontrada"), systemImage: "mappin.slash")
             } else {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                SkeletonSchoolDetail()
             }
         }
         .task {

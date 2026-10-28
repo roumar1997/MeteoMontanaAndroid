@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.profile
 
+import com.meteomontana.android.ui.components.SkeletonList
+import com.meteomontana.android.ui.components.SkeletonSchoolRow
 import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
@@ -229,9 +231,7 @@ fun WeekendAlertScreen(
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         if (s.loading) {
-            Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
+            SkeletonList(count = 6) { SkeletonSchoolRow() }
             return
         }
 

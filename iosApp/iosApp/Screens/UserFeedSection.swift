@@ -154,8 +154,8 @@ struct UserFeedSection: View {
         // (sin spinner ni "sin publicaciones"). El spinner mantiene la vista viva.
         Group {
             if vm.loading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, minHeight: 320)
+                SkeletonList(count: 2, dividers: false) { SkeletonFeedCard() }
+                    .frame(maxWidth: .infinity, minHeight: 320, alignment: .top)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 24)
             } else {

@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.ui.components.SkeletonList
+import com.meteomontana.android.ui.components.SkeletonGradeRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -75,9 +77,7 @@ fun SchoolBlocksTab(viewModel: SchoolBlocksViewModel, onOpen: (blockId: String) 
 
     Column(Modifier.fillMaxWidth()) {
         when {
-            state.loading -> Box(Modifier.fillMaxWidth().heightIn(min = 160.dp), Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
+            state.loading -> SkeletonList(count = 6) { SkeletonGradeRow() }
             state.failed -> Column(
                 Modifier.fillMaxWidth().heightIn(min = 160.dp),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
@@ -234,9 +234,7 @@ private fun TextChip(text: String, on: Boolean, onClick: () -> Unit) {
 private fun BlocksResults(state: SchoolBlocksViewModel.UiState, vm: SchoolBlocksViewModel, onOpen: (String) -> Unit) {
     val view = remember(state) { state.view }
     if (view == null) {
-        Box(Modifier.fillMaxWidth().heightIn(min = 100.dp), Alignment.Center) {
-            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-        }
+        SkeletonList(count = 3) { SkeletonGradeRow() }
         return
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outline)

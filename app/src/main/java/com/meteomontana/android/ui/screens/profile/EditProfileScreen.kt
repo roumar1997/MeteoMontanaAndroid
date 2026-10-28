@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.profile
 
 import com.meteomontana.android.util.AppText
+import com.meteomontana.android.ui.components.SkeletonForm
 import com.meteomontana.android.ui.theme.inkButtonColor
 
 import androidx.compose.foundation.background
@@ -87,7 +88,9 @@ fun EditProfileScreen(
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         when (val s = state) {
-            EditState.Loading, EditState.Saving ->
+            // Cargar = contenido (esqueleto); guardar = acción (spinner).
+            EditState.Loading -> SkeletonForm()
+            EditState.Saving ->
                 Box(Modifier.fillMaxSize(), Alignment.Center) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }

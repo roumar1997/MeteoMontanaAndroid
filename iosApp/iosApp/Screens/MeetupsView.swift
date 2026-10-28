@@ -450,7 +450,7 @@ struct MeetupsView: View {
 
                 // ── Content ──
                 if vm.loading && vm.meetups.isEmpty {
-                    ProgressView().frame(maxWidth: .infinity).padding(.vertical, 60)
+                    SkeletonList(count: 3, dividers: false) { SkeletonCard() }.padding(.vertical, 6)
                 } else if vm.error != nil && vm.meetups.isEmpty {
                     VStack(spacing: 12) {
                         Text("No se pudo cargar").foregroundColor(Cumbre.ink.opacity(0.6))

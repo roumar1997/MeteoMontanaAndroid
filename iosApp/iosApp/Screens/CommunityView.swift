@@ -87,9 +87,8 @@ struct CommunityView: View {
             Divider().overlay(Cumbre.rule)
 
             if vm.loading {
-                Spacer()
-                ProgressView()
-                Spacer()
+                SkeletonList(count: 8) { SkeletonPersonRow(trailing: true) }
+                Spacer(minLength: 0)
             } else if let err = vm.error {
                 Spacer()
                 VStack(spacing: 12) {

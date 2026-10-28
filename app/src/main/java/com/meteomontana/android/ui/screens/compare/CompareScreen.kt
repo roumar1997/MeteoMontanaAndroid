@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.compare
 
+import com.meteomontana.android.ui.components.SkeletonWeather
 import com.meteomontana.android.util.CatalogLabels
 import android.content.Intent
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -150,9 +151,7 @@ fun CompareScreen(
         com.meteomontana.android.ui.components.CumbreSheetHeader(stringResource(R.string.w_compare), onBack)
 
         when (val s = state) {
-            CompareUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
+            CompareUiState.Loading -> SkeletonWeather()
             is CompareUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                 Text(stringResource(R.string.compare_screen_v2_error_1_s, s.message), color = MaterialTheme.colorScheme.error)
             }

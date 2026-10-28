@@ -96,7 +96,7 @@ struct JournalView: View {
     var body: some View {
         Group {
             if vm.loading {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                SkeletonList(count: 8) { SkeletonGradeRow() }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -491,7 +491,7 @@ struct SchoolLoaderView: View {
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                SkeletonSchoolDetail()
             }
         }
         .task {

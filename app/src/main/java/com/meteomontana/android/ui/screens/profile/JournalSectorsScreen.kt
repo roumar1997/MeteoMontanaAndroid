@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.profile
 
+import com.meteomontana.android.ui.components.SkeletonList
+import com.meteomontana.android.ui.components.SkeletonSchoolRow
 import androidx.compose.ui.unit.sp
 
 import androidx.compose.foundation.layout.height
@@ -154,9 +156,7 @@ fun JournalSectorsScreen(
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         when (val s = state) {
-            JournalSectorsUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
+            JournalSectorsUiState.Loading -> SkeletonList(count = 8) { SkeletonSchoolRow() }
             is JournalSectorsUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                 Text(s.message, color = MaterialTheme.colorScheme.error)
             }

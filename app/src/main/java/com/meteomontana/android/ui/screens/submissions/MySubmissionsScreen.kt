@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.submissions
 
+import com.meteomontana.android.ui.components.SkeletonList
+import com.meteomontana.android.ui.components.SkeletonGradeRow
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -69,9 +71,7 @@ fun MySubmissionsScreen(
         )
 
         when (val s = state) {
-            MySubmissionsUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
+            MySubmissionsUiState.Loading -> SkeletonList(count = 6) { SkeletonGradeRow() }
             is MySubmissionsUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                 Text(s.message, color = MaterialTheme.colorScheme.error)
             }

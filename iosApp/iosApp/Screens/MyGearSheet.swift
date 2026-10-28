@@ -81,7 +81,7 @@ struct MyGearSheet: View {
                 // —la "raya" que reportó Rodrigo—. Ocupar el ancho lo evita.
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .opacity(vm.loading ? 0 : 1)
-                .overlay { if vm.loading { ProgressView().padding(.top, 40) } }
+                .overlay(alignment: .top) { if vm.loading { SkeletonList(count: 5) { SkeletonPersonRow(avatar: 32) } } }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Cumbre.bg.ignoresSafeArea())

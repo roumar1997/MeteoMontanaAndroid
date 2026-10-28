@@ -136,7 +136,7 @@ struct SearchUsersView: View {
             VStack(spacing: 0) {
                 searchField
                 if vm.loading {
-                    ProgressView().frame(maxWidth: .infinity).padding(.top, 24)
+                    SkeletonList(count: 6) { SkeletonPersonRow(trailing: true) }
                     Spacer()
                 } else if vm.results.isEmpty {
                     if vm.query.trimmingCharacters(in: .whitespaces).count < 2 {
@@ -915,7 +915,7 @@ struct FollowListView: View {
 
             Group {
             if vm.loading {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                SkeletonList(count: 8) { SkeletonPersonRow(trailing: true) }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else if filtered.isEmpty {
                 Text(vm.items.isEmpty
                      ? (mode == .followers ? L("Sin seguidores") : L("No sigue a nadie"))

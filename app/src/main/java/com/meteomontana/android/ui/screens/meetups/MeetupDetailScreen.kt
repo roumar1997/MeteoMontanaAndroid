@@ -1,5 +1,8 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.ui.components.SkeletonList
+import com.meteomontana.android.ui.components.SkeletonCard
+import com.meteomontana.android.ui.components.SkeletonPersonRow
 import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -220,7 +223,7 @@ fun MeetupDetailScreen(
 
         when {
             state.isLoading && state.meetup == null -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                Column { SkeletonList(count = 1, dividers = false) { SkeletonCard() }; SkeletonList(count = 5) { SkeletonPersonRow(avatar = 36.dp) } }
             }
             state.meetup == null -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

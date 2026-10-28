@@ -20,7 +20,8 @@ struct SchoolBlocksExplorerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if model.loading {
-                ProgressView().frame(maxWidth: .infinity, minHeight: 160)
+                SkeletonList(count: 6) { SkeletonGradeRow() }
+                    .frame(maxWidth: .infinity, minHeight: 160, alignment: .top)
             } else if model.failed {
                 VStack(spacing: 10) {
                     Text(L("No se han podido cargar los bloques")).font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
@@ -193,7 +194,8 @@ struct SchoolBlocksExplorerView: View {
                 }
             }
         } else {
-            ProgressView().frame(maxWidth: .infinity, minHeight: 100)
+            SkeletonList(count: 3) { SkeletonGradeRow() }
+                .frame(maxWidth: .infinity, minHeight: 100, alignment: .top)
         }
     }
 

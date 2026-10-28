@@ -56,5 +56,7 @@ class MeteoMontanaApp : Application(), ImageLoaderFactory {
                     }
                 }
             }
+            // Las fotos entran con un fundido (esqueletos de carga, 2026-10): nada aparece de golpe.
+            .crossfade(250)
             .build()
 }

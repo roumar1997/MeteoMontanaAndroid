@@ -1,6 +1,8 @@
 package com.meteomontana.android.ui.screens.users
 
 
+import com.meteomontana.android.ui.components.SkeletonList
+import com.meteomontana.android.ui.components.SkeletonPersonRow
 import com.meteomontana.android.ui.theme.inkButtonColor
 
 import androidx.compose.foundation.background
@@ -132,9 +134,7 @@ fun FollowRequestsScreen(
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         when (val s = state) {
-            FollowRequestsUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
+            FollowRequestsUiState.Loading -> SkeletonList(count = 6) { SkeletonPersonRow(trailing = true) }
             is FollowRequestsUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                 Text(stringResource(R.string.follow_requests_screen_v2_error_1_s, s.message), color = MaterialTheme.colorScheme.error)
             }

@@ -229,8 +229,13 @@ fun GradeVoteContent(
         )
         val s = summary
         if (s == null) {
-            androidx.compose.material3.CircularProgressIndicator(color = Terra,
-                modifier = Modifier.padding(24.dp).align(Alignment.CenterHorizontally))
+            SkeletonList(count = 4, dividers = false) {
+                androidx.compose.foundation.layout.Row(Modifier.padding(vertical = 6.dp)) {
+                    Bone(44.dp, 14.dp)
+                    androidx.compose.foundation.layout.Spacer(Modifier.width(10.dp))
+                    Box(Modifier.weight(1f)) { Bone(null, 14.dp) }
+                }
+            }
             return@Column
         }
         if (s.heightSplit != null) {

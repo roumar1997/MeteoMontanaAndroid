@@ -116,7 +116,7 @@ struct WeekendAlertView: View {
     var body: some View {
         Group {
             if vm.loading {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                SkeletonList(count: 6) { SkeletonRow() }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {
                 form
             }

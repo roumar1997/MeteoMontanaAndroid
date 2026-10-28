@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.ui.components.SkeletonList
+import com.meteomontana.android.ui.components.SkeletonCard
 import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.util.AppText
 import androidx.compose.animation.AnimatedVisibility
@@ -202,9 +204,7 @@ fun MeetupsScreen(
         // ── Todo en LazyColumn scrollable (mapa scrollea con el resto) ──
         when {
             state.isLoading && displayedMeetups.isEmpty() -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                SkeletonList(count = 3, dividers = false) { SkeletonCard() }
             }
             state.error != null && displayedMeetups.isEmpty() -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

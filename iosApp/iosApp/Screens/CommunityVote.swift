@@ -428,7 +428,9 @@ struct GradeVoteSheet: View {
                     }
                 }
             } else {
-                ProgressView().frame(maxWidth: .infinity)
+                SkeletonList(count: 4, dividers: false) {
+                    HStack(spacing: 10) { Bone(width: 44, height: 14); Bone(height: 14); Bone(width: 28, height: 14) }.padding(.vertical, 6)
+                }
             }
             Button("CERRAR") { dismiss() }
                 .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)

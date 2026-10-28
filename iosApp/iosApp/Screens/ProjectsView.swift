@@ -52,7 +52,7 @@ struct ProjectsView: View {
     var body: some View {
         Group {
             if vm.loading {
-                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                SkeletonList(count: 6) { SkeletonGradeRow() }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else if let err = vm.error {
                 Text(err).foregroundStyle(Cumbre.bad)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

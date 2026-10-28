@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.schools
 
+import com.meteomontana.android.ui.components.SkeletonList
+import com.meteomontana.android.ui.components.SkeletonSchoolRow
 import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.ui.theme.terraFillColor
 
@@ -611,7 +613,7 @@ fun SchoolListScreen(
                     }
                 }
                 if (exploreLoading && exploreHits.isEmpty()) {
-                    items(4) { SkeletonRow() }
+                    item { SkeletonList(count = 4) { SkeletonSchoolRow() } }
                 } else if (exploreHits.isEmpty()) {
                     item {
                         Column(
@@ -663,7 +665,7 @@ fun SchoolListScreen(
                 }
             } else
             when (val s = state) {
-                is SchoolListUiState.Loading -> items(6) { SkeletonRow() }
+                is SchoolListUiState.Loading -> item { SkeletonList(count = 6) { SkeletonSchoolRow() } }
                 is SchoolListUiState.Error   -> item { ErrorRow(s.message, onRetry = viewModel::refresh) }
                 is SchoolListUiState.Success -> {
                     itemsIndexed(s.schools, key = { _, it -> it.id }) { index, school ->
@@ -1376,32 +1378,6 @@ internal fun MiniTopoThumbnail(photoUrl: String, linePath: String?, grade: Strin
             }
         }
     }
-}
-
-/**
- * Silueta gris de una fila de escuela mientras carga el catálogo. Se percibe
- * más rápido que un spinner porque ya enseña la estructura de la pantalla.
- */
-@Composable
-private fun SkeletonRow() {
-    val tone = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f)
-    Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.md)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(40.dp).clip(MaterialTheme.shapes.small).background(tone))
-            Spacer(Modifier.size(Spacing.md))
-            Column {
-                Box(Modifier.height(16.dp).fillMaxWidth(0.55f)
-                    .clip(MaterialTheme.shapes.small).background(tone))
-                Spacer(Modifier.height(Spacing.xs))
-                Box(Modifier.height(12.dp).fillMaxWidth(0.35f)
-                    .clip(MaterialTheme.shapes.small).background(tone))
-            }
-        }
-        Spacer(Modifier.height(Spacing.sm))
-        Box(Modifier.height(12.dp).fillMaxWidth()
-            .clip(MaterialTheme.shapes.small).background(tone))
-    }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
 }
 
 @Composable

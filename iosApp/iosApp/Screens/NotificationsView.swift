@@ -118,7 +118,7 @@ struct NotificationsView: View {
         NavigationStack {
             Group {
                 if vm.loading {
-                    ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                    SkeletonList(count: 8) { SkeletonPersonRow(avatar: 36) }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 } else if vm.items.isEmpty {
                     EmptyStateView(
                         icon: "bell",

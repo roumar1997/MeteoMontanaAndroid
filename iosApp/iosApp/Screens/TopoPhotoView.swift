@@ -136,8 +136,9 @@ struct TopoPhotoView: View {
             Color.black
             if let image {
                 Image(uiImage: image).resizable().scaledToFill()
+                    .transition(.opacity)
             } else {
-                ProgressView().tint(.white)
+                PhotoPlaceholder()
             }
             GeometryReader { geo in
                 Canvas { ctx, size in draw(ctx, size, zoom: zoom) }
@@ -150,7 +151,7 @@ struct TopoPhotoView: View {
         // Caché en disco: se ve sin conexión si la escuela se guardó offline.
         if let img = await ImageCache.image(photoUrl) {
             await MainActor.run {
-                image = img
+                withAnimation(.easeOut(duration: 0.3)) { image = img }
                 let w = img.size.width, h = img.size.height
                 ratio = (w > 0 && h > 0) ? min(max(w / h, 0.55), 2.2) : 4.0 / 3.0
             }
