@@ -445,6 +445,16 @@ final class AssistantPresenterTests: XCTestCase {
         XCTAssertTrue(text.contains("7a+"))
     }
 
+    func testUnaFotoSinUbicacionSoloCuentaElParecidoYNoDiceMetros() {
+        let c = AssistantPhotoMatcher.Candidate(blockId: "b", blockName: "N", schoolId: "s", schoolName: "S",
+                                                photoUrl: nil, lineId: nil, meters: -1, similarity: 0.5)
+        XCTAssertEqual(AssistantPhotoMatcher.score(c), 0.5, accuracy: 0.001)
+        XCTAssertFalse(AssistantPresenter.photoDetail(c).contains(" m"))
+        let near = AssistantPhotoMatcher.Candidate(blockId: "b", blockName: "N", schoolId: "s", schoolName: "S",
+                                                   photoUrl: nil, lineId: nil, meters: 0, similarity: 1)
+        XCTAssertEqual(AssistantPhotoMatcher.score(near), 1.0, accuracy: 0.001)
+    }
+
     func testLasEtiquetasDeGradoYDistanciaNoLlevanIcono() {
         XCTAssertNil(AssistantPresenter.chipIcon("6a – 7a"))
         XCTAssertNil(AssistantPresenter.chipIcon("< 50 km"))

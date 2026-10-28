@@ -54,6 +54,7 @@ final class AssistantSpeaker: NSObject, ObservableObject, AVSpeechSynthesizerDel
         let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty else { return }
         // Tras dictar, la sesión de audio queda en modo grabación: se pasa a reproducir (bajando otra música).
+        guard !AssistantVoiceInput.isRecording else { return }
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: .duckOthers)
         try? AVAudioSession.sharedInstance().setActive(true)
         let utterance = AVSpeechUtterance(string: clean)
@@ -92,7 +93,9 @@ final class AssistantSpeaker: NSObject, ObservableObject, AVSpeechSynthesizerDel
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         Task { @MainActor in
             self.speakingId = nil
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            if !AssistantVoiceInput.isRecording {
+                try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            }
         }
     }
 

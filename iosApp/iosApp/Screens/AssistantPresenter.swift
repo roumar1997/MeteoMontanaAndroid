@@ -774,6 +774,13 @@ enum AssistantPresenter {
         return head + " " + L("No encuentro: %@.", missing.joined(separator: ", "))
     }
 
+    /// "a 12 m · se parece un 74 %" (sin metros cuando no se sabe dónde se hizo la foto).
+    static func photoDetail(_ c: AssistantPhotoMatcher.Candidate) -> String {
+        let similarity = c.similarity.map { L("se parece un %@ %", Int(($0 * 100).rounded())) } ?? L("sin foto para comparar")
+        guard c.meters >= 0 else { return similarity }
+        return L("a %@ m", Int(c.meters.rounded())) + " · " + similarity
+    }
+
     static func photoIntro(sure: Bool, approximate: Bool, school: String, weak: Bool = false) -> String {
         let base = weak
             ? L("No se parece mucho a ninguna de las piedras de %@ que hay cerca: puede que aún no esté en Cumbre. Las más cercanas:", school)

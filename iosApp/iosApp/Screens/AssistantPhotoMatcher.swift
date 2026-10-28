@@ -1,5 +1,8 @@
 import UIKit
 import Vision
+import PhotosUI
+import ImageIO
+import UniformTypeIdentifiers
 import Shared
 
 /// "¿Qué piedra es esta?" a partir de una foto. Dos pasos, y ninguno sale del móvil:
@@ -31,7 +34,7 @@ enum AssistantPhotoMatcher {
         let photoUrl: String?
         /// Primera vía de la piedra: abrir la escuela con ella abre la piedra.
         let lineId: String?
-        /// Metros desde el punto de la foto.
+        /// Metros desde el punto de la foto. Negativo = no se sabe dónde se hizo (se comparó solo por cómo se ve).
         let meters: Double
         /// 0 (nada que ver) a 1 (idéntica). nil si la piedra no tiene foto con que comparar.
         let similarity: Double?
@@ -114,6 +117,49 @@ enum AssistantPhotoMatcher {
         pool = Array(pool.prefix(maxCompared))
         guard !pool.isEmpty else { return .noStones(schoolName: school.name) }
 
+        return await rank(image: image, pool: pool, school: school, approximate: approximate, onStage: onStage)
+    }
+
+    /// Máximo de piedras a comparar cuando no se sabe dónde se hizo la foto (se comparan solo por cómo se ven).
+    static let maxComparedWithoutLocation = 30
+
+    /// Ya se sabe la escuela (se pide desde su pantalla): solo se comparan SUS piedras. Con ubicación útil se mira lo
+    /// que hay cerca del punto; sin ella (foto reenviada, capturas, estar en casa) se comparan las de la escuela por
+    /// cómo se ven, hasta [maxComparedWithoutLocation].
+    static func matchInSchool(image: UIImage, lat: Double?, lon: Double?, approximate: Bool, school: School,
+                              container: IosDependencyContainer,
+                              onStage: @escaping @MainActor (Stage) -> Void = { _ in }) async -> Outcome {
+        await onStage(.stones)
+        guard let blocks = await AsyncTimeout.run(loadTimeout, {
+            try? await container.getBlocks.invoke(schoolId: school.id)
+        }) else { return .noData }
+        let stones = blocks.filter { $0.type == "BLOCK" }
+        guard !stones.isEmpty else { return .noStones(schoolName: school.name) }
+
+        if let lat, let lon {
+            let near = stones.map { ($0, km(lat, lon, $0.lat, $0.lon) * 1000) }.sorted { $0.1 < $1.1 }
+            if let first = near.first, first.1 <= nearestStoneKm * 1000 {
+                var pool = near.filter { $0.1 <= stoneRadiusM }
+                if pool.isEmpty { pool = Array(near.prefix(5)) }
+                return await rank(image: image, pool: Array(pool.prefix(maxCompared)), school: school,
+                                  approximate: approximate, onStage: onStage)
+            }
+        }
+        // Sin ubicación útil: las piedras de la escuela que tienen foto, las más cercanas a su centro.
+        let withPhoto = stones.filter { ($0.photoPath ?? $0.faces.first?.photoPath) != nil }
+        guard !withPhoto.isEmpty else { return .noStones(schoolName: school.name) }
+        let pool: [(Block, Double)] = withPhoto
+            .map { ($0, km(school.lat, school.lon, $0.lat, $0.lon)) }
+            .sorted { $0.1 < $1.1 }
+            .prefix(maxComparedWithoutLocation)
+            .map { ($0.0, -1.0) }
+        return await rank(image: image, pool: pool, school: school, approximate: false, onStage: onStage)
+    }
+
+    /// Compara la foto con la de cada piedra del grupo (todas a la vez, cada una con su tiempo máximo) y devuelve las
+    /// 3 más probables.
+    private static func rank(image: UIImage, pool: [(Block, Double)], school: School, approximate: Bool,
+                             onStage: @escaping @MainActor (Stage) -> Void) async -> Outcome {
         await onStage(.comparing(pool.count))
         let mine = featurePrint(downscaled(image))
         var out: [Candidate] = []
@@ -155,6 +201,8 @@ enum AssistantPhotoMatcher {
 
     /// Mezcla del parecido de la foto (manda) y la cercanía (desempata). Sin foto, solo cuenta la cercanía.
     static func score(_ c: Candidate) -> Double {
+        // Sin ubicación (metros negativos) solo cuenta el parecido.
+        guard c.meters >= 0 else { return c.similarity ?? 0 }
         let closeness = max(0, 1 - c.meters / (stoneRadiusM * 2))
         guard let s = c.similarity else { return 0.35 * closeness }
         return 0.75 * s + 0.25 * closeness
@@ -229,5 +277,27 @@ final class OnceFlag: @unchecked Sendable {
         if claimed { return false }
         claimed = true
         return true
+    }
+}
+
+extension PhotoExifReader {
+    /// Posición GPS del EXIF del propio archivo elegido: sirve cuando la fototeca no la da por falta de permiso.
+    static func gpsFromFile(_ result: PHPickerResult) async -> (lat: Double, lon: Double)? {
+        let provider = result.itemProvider
+        guard provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) else { return nil }
+        return await withCheckedContinuation { cont in
+            provider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { data, _ in
+                guard let data,
+                      let src = CGImageSourceCreateWithData(data as CFData, nil),
+                      let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any],
+                      let gps = props[kCGImagePropertyGPSDictionary] as? [CFString: Any],
+                      let lat = (gps[kCGImagePropertyGPSLatitude] as? NSNumber)?.doubleValue,
+                      let lon = (gps[kCGImagePropertyGPSLongitude] as? NSNumber)?.doubleValue
+                else { cont.resume(returning: nil); return }
+                let south = (gps[kCGImagePropertyGPSLatitudeRef] as? String) == "S"
+                let west = (gps[kCGImagePropertyGPSLongitudeRef] as? String) == "W"
+                cont.resume(returning: (south ? -lat : lat, west ? -lon : lon))
+            }
+        }
     }
 }

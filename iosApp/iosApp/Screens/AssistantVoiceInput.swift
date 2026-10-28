@@ -26,7 +26,9 @@ final class AssistantVoiceInput: ObservableObject {
 
     private let policy = AssistantSpeechPolicy()
     private let recognizer = SFSpeechRecognizer(locale: LanguageManager.shared.locale)
-    private let engine = AVAudioEngine()
+    private var engine = AVAudioEngine()
+    /// true mientras se está dictando: el altavoz no debe apagar la sesión de audio en ese momento.
+    static private(set) var isRecording = false
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
     private var timer: Timer?
@@ -42,6 +44,8 @@ final class AssistantVoiceInput: ObservableObject {
     func start() {
         guard !isListening else { return }
         heardNothing = false
+        // Si el asistente está leyendo una respuesta, se calla antes de abrir el micrófono.
+        AssistantSpeaker.shared.stop()
         SFSpeechRecognizer.requestAuthorization { [weak self] status in
             Task { @MainActor in
                 guard let self else { return }
@@ -69,6 +73,7 @@ final class AssistantVoiceInput: ObservableObject {
         request = nil
         task = nil
         isListening = false
+        Self.isRecording = false
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
@@ -127,14 +132,25 @@ final class AssistantVoiceInput: ObservableObject {
                 }
             }
 
+            // Motor nuevo y formato COMPROBADO antes de engancharse: con un formato de 0 Hz (micrófono ocupado, sesión
+            // cambiando de categoría, llamada en curso) installTap lanza una excepción que Swift no puede atrapar y la
+            // app se cierra (Crashlytics 2026-10-26 y 28, AssistantVoiceInput.swift:132).
+            engine = AVAudioEngine()
             let node = engine.inputNode
+            let format = node.outputFormat(forBus: 0)
+            guard format.sampleRate > 0, format.channelCount > 0 else {
+                stop()
+                heardNothing = true
+                return
+            }
             node.removeTap(onBus: 0)
-            node.installTap(onBus: 0, bufferSize: 1024, format: node.outputFormat(forBus: 0)) { buffer, _ in
+            node.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
                 req.append(buffer)
             }
             engine.prepare()
             try engine.start()
             isListening = true
+            Self.isRecording = true
 
             timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
                 Task { @MainActor in self?.tick() }

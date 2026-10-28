@@ -152,9 +152,7 @@ struct AssistantPhotoMatchesView: View {
     }
 
     private func detail(_ c: AssistantPhotoMatcher.Candidate, first: Bool) -> String {
-        let meters = L("a %@ m", Int(c.meters.rounded()))
-        guard let s = c.similarity else { return meters + " · " + L("sin foto para comparar") }
-        return meters + " · " + L("se parece un %@ %", Int((s * 100).rounded()))
+        AssistantPresenter.photoDetail(c)
     }
 
     @ViewBuilder private func thumbnail(_ url: String?) -> some View {

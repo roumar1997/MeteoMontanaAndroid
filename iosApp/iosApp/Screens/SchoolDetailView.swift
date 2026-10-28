@@ -318,6 +318,8 @@ struct SchoolDetailView: View {
     @State private var showRestrictions = false
     /// Tarjeta HOY abierta a mano. En la pestaña TIEMPO se muestra abierta sola (es justo el tiempo).
     @State private var hoyManual = false
+    /// "¿Qué piedra es esta?": foto de una piedra de ESTA escuela (botón de cámara junto a AYUDA).
+    @StateObject private var photoFinder = SchoolPhotoFinder()
     private var hoyOpen: Binding<Bool> {
         Binding(get: { hoyManual || tab == .weather }, set: { hoyManual = $0 })
     }
@@ -351,6 +353,15 @@ struct SchoolDetailView: View {
             DayDetailView(day: d, allHours: vm.forecast?.hours ?? [])
         }
         .sheet(isPresented: $showHelp) { HelpSheet(topicKey: "detail") }
+        .sheet(isPresented: $photoFinder.showSheet) {
+            SchoolPhotoSheet(finder: photoFinder, schoolName: school.name) { lineId in
+                // Se abre la piedra en el mapa de la escuela, como al tocarla en la lista de bloques.
+                photoFinder.cancel()
+                mapOpenVia = lineId
+                returnToBlocks = false
+                tab = .map
+            }
+        }
         // El mapa se recrea al volver a él: sin esto reabriría otra vez la piedra del deep-link o de BLOQUES.
         .onChange(of: tab) { newTab in
             if newTab != .map { mapOpenVia = nil }
@@ -460,6 +471,7 @@ struct SchoolDetailView: View {
             GuidePill(topicKey: "detail") {
                 if !GuideStore.shared.startScreenAndTab(screen: "detail", tab: tab.guideKey) { showHelp = true }
             }
+            SchoolPhotoButton(finder: photoFinder, school: school)
         }
         .padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 2)
     }

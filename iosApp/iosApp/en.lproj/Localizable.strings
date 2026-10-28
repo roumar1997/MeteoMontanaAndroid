@@ -1825,3 +1825,10 @@
 "Parar la respuesta" = "Stop the answer";
 "Quitar la voz" = "Turn voice off";
 "Activar la voz" = "Turn voice on";
+"¿Qué piedra es esta?" = "Which boulder is this?";
+"La foto no dice dónde se hizo: la he comparado con las piedras de la escuela, solo por cómo se ven." = "The photo doesn't say where it was taken: I compared it with this crag's boulders, by looks only.";
+"En %@ aún no hay piedras con foto para comparar." = "In %@ there are no boulders with a photo to compare yet.";
+"No he podido cargar las piedras de esta escuela. Comprueba la conexión e inténtalo de nuevo." = "I couldn't load this crag's boulders. Check your connection and try again.";
+"Ha tardado demasiado. Inténtalo otra vez con buena cobertura." = "It took too long. Try again with good coverage.";
+"Esta piedra aún no tiene vías para abrir." = "This boulder has no climbs to open yet.";
+"No he podido situar la foto." = "I couldn't place the photo.";

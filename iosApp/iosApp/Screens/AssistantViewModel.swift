@@ -698,7 +698,7 @@ final class AssistantViewModel: ObservableObject {
         } else if let only = await AsyncTimeout.run(20, { await PhotoExifReader.readImagen(result) }) {
             image = only.image
             // Sin permiso de Fotos la fototeca no da la posición, pero el ARCHIVO de la foto suele llevarla.
-            if let gps = await AsyncTimeout.run(10, { await Self.gpsFromFile(result) }) { lat = gps.lat; lon = gps.lon }
+            if let gps = await AsyncTimeout.run(10, { await PhotoExifReader.gpsFromFile(result) }) { lat = gps.lat; lon = gps.lon }
         }
         guard let image else {
             messages.append(AssistantMessage(isUser: false, text: L("No he podido abrir esa foto (si está en iCloud, puede que no se haya descargado). Prueba con otra o hazla con la cámara.")))
@@ -766,26 +766,6 @@ final class AssistantViewModel: ObservableObject {
                 text: AssistantPresenter.photoIntro(sure: sure && !weak, approximate: approximate,
                                                     school: first.schoolName, weak: weak),
                 photoMatches: candidates))
-        }
-    }
-
-    /// Lee la posición GPS del EXIF del propio archivo elegido (cuando la fototeca no la da por falta de permiso).
-    private static func gpsFromFile(_ result: PHPickerResult) async -> (lat: Double, lon: Double)? {
-        let provider = result.itemProvider
-        guard provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) else { return nil }
-        return await withCheckedContinuation { cont in
-            provider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { data, _ in
-                guard let data,
-                      let src = CGImageSourceCreateWithData(data as CFData, nil),
-                      let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any],
-                      let gps = props[kCGImagePropertyGPSDictionary] as? [CFString: Any],
-                      let lat = (gps[kCGImagePropertyGPSLatitude] as? NSNumber)?.doubleValue,
-                      let lon = (gps[kCGImagePropertyGPSLongitude] as? NSNumber)?.doubleValue
-                else { cont.resume(returning: nil); return }
-                let south = (gps[kCGImagePropertyGPSLatitudeRef] as? String) == "S"
-                let west = (gps[kCGImagePropertyGPSLongitudeRef] as? String) == "W"
-                cont.resume(returning: (south ? -lat : lat, west ? -lon : lon))
-            }
         }
     }
 
