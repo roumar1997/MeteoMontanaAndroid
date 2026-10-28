@@ -338,13 +338,17 @@ struct ContributionSuccessSheet: View {
     // Admin publica directo (auto-aprobado) → el mensaje lo refleja en vez de
     // decir "la revisaremos en 24-48 h".
     var isAdmin: Bool = false
+    // Persona de confianza: el servidor ya la publicó, así que no hay revisión que esperar.
+    var trusted: Bool = false
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "checkmark.seal.fill").font(.system(size: 56)).foregroundStyle(Cumbre.ok)
-            Text(isAdmin ? L("¡Publicado!") : L("¡Propuesta enviada!")).font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
+            Text(isAdmin || trusted ? L("¡Publicado!") : L("¡Propuesta enviada!")).font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
             Text(isAdmin
                  ? L("Ya está en el mapa para toda la comunidad.")
+                 : trusted
+                 ? L("Eres de confianza: tu aportación se publica directamente y aparecerá al recargar la página.")
                  : L("La revisaremos en 24-48 h. Gracias por mejorar el mapa de la comunidad."))
                 .font(.system(size: 15)).foregroundStyle(Cumbre.ink2)
                 .multilineTextAlignment(.center).padding(.horizontal, 24)

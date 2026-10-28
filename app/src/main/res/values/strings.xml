@@ -1303,6 +1303,8 @@
     <string name="school_map_v3_via">Vía</string>
     <string name="school_map_v3_propuesta_enviada_un_admin_la">Propuesta enviada. Un admin la revisará en 24-48h.</string>
     <string name="school_map_v3_publicado_en_el_mapa">Publicado en el mapa.</string>
+    <string name="school_map_v3_publicado_de_confianza">Eres de confianza: se publica directamente y aparecerá al recargar la página.</string>
+    <string name="propose_success_trusted_body">Eres de confianza: tu aportación se publica directamente y aparecerá al recargar la página.</string>
     <string name="school_map_v3_no_se_pudo_publicar_el">No se pudo publicar el ascenso (queda en tu diario)</string>
     <string name="school_map_v3_via_2">Vía %1$s</string>
     <string name="school_map_v3_no_se_pudo_enviar_la">No se pudo enviar la propuesta: %1$s</string>
@@ -2022,4 +2024,22 @@
     <string name="title_info_dragons">Lleva una aureola de dragones.</string>
     <string name="title_info_starter">«%1$s» es el título con el que empieza todo el mundo. Se suben de nivel aportando piedras, vías y correcciones que aprueba el equipo.</string>
     <string name="title_info_level">«%1$s» se consigue con %2$d aportaciones aprobadas (piedras, vías y correcciones que revisa el equipo). Lleva %3$d.</string>
+    <string name="profile_photo_title">Foto de perfil</string>
+    <string name="profile_photo_change">Cambiar foto</string>
+    <string name="profile_photo_view">Ver foto</string>
+    <string name="profile_photo_error_title">No se pudo cambiar la foto</string>
+    <string name="profile_photo_error_body">Comprueba la conexión e inténtalo de nuevo.</string>
+    <string name="chat_search_hint">Buscar en tus conversaciones</string>
+    <string name="chat_filter_all">Todos</string>
+    <string name="chat_filter_unread">No leídos</string>
+    <string name="chat_filter_groups">Grupos</string>
+    <string name="chat_no_match">Ninguna conversación coincide.</string>
+    <string name="chat_day_today">Hoy</string>
+    <string name="chat_day_yesterday">Ayer</string>
+    <string name="search_users_suggested">Te siguen y no les sigues</string>
+    <string name="search_users_recent">Recientes</string>
+    <string name="search_users_count">%1$d personas</string>
+    <string name="search_users_follow">Seguir</string>
+    <string name="search_users_following">Siguiendo</string>
+    <string name="search_users_requested">Solicitado</string>
 </resources>

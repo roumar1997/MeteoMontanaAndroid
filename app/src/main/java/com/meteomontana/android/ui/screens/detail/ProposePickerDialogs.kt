@@ -211,6 +211,8 @@ private fun TypeOption(
 @Composable
 internal fun SuccessDialog(
     isAdmin: Boolean = false,
+    /** Persona de confianza: el servidor ya la publicó, sin esperar revisión. */
+    trusted: Boolean = false,
     queued: Boolean = false,
     onClose: () -> Unit,
     onMyProposals: () -> Unit
@@ -241,6 +243,13 @@ internal fun SuccessDialog(
                     color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(Spacing.sm))
                 Text(stringResource(R.string.propose_picker_dialogs_v2_se_ha_publicado_directamente_en),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else if (trusted) {
+                Text(stringResource(R.string.propose_success_admin), style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.height(Spacing.sm))
+                Text(stringResource(R.string.propose_success_trusted_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {

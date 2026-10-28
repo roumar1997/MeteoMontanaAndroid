@@ -536,7 +536,8 @@ struct SchoolMapSection: View {
                         if ok { afterSubmit() }
                     }
                 }
-                .sheet(isPresented: $flow.showSuccess) { ContributionSuccessSheet(isAdmin: vm.isAdmin) }
+                .sheet(isPresented: $flow.showSuccess) { ContributionSuccessSheet(isAdmin: vm.isAdmin,
+                                                                     trusted: !vm.isAdmin && ContributionOutcome.shared.publishedDirectly) }
                 .sheet(isPresented: $correctingSchoolName) {
                     SchoolNameCorrectionSheet(schoolId: school.id, currentName: school.name,
                                               coord: CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon)) { ok in

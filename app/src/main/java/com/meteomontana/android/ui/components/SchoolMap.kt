@@ -428,7 +428,7 @@ fun SchoolMap(
                         sectorBlockId = sectorId
                     )
                     successMessage = if (r.isSuccess)
-                        if (fichaIsAdmin) AppText.get(R.string.school_map_v3_publicado_en_el_mapa) else AppText.get(R.string.school_map_v3_propuesta_enviada_un_admin_la)
+                        submitSuccessText(fichaIsAdmin)
                     else
                         AppText.get(R.string.school_map_v3_no_se_pudo_enviar_la, r.exceptionOrNull()?.message ?: "error")
                 }
@@ -564,7 +564,7 @@ fun SchoolMap(
                     com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.clear(fichaCtx, block.id)
                     wallEdit.target = null
                     selectedBlock = null
-                    successMessage = if (fichaIsAdmin) AppText.get(R.string.school_map_v3_publicado_en_el_mapa) else AppText.get(R.string.school_map_v3_propuesta_enviada_un_admin_la)
+                    successMessage = submitSuccessText(fichaIsAdmin)
                 }
             )
         }
@@ -603,7 +603,7 @@ fun SchoolMap(
             onSuccess = {
                 wallEdit.editingLine = null
                 selectedBlock = null
-                successMessage = if (fichaIsAdmin) AppText.get(R.string.school_map_v3_publicado_en_el_mapa) else AppText.get(R.string.school_map_v3_propuesta_enviada_un_admin_la)
+                successMessage = submitSuccessText(fichaIsAdmin)
             }
         )
     }
@@ -672,4 +672,12 @@ private fun matchesStyleFilter(b: Block, styleFilter: Set<String>): Boolean {
         }
         else -> true
     }
+}
+
+/** Texto tras enviar desde el mapa: admin y personas de confianza publican directo; el resto espera revisión. */
+private fun submitSuccessText(isAdmin: Boolean): String = when {
+    isAdmin -> AppText.get(R.string.school_map_v3_publicado_en_el_mapa)
+    com.meteomontana.android.domain.usecase.contributions.ContributionOutcome.publishedDirectly ->
+        AppText.get(R.string.school_map_v3_publicado_de_confianza)
+    else -> AppText.get(R.string.school_map_v3_propuesta_enviada_un_admin_la)
 }

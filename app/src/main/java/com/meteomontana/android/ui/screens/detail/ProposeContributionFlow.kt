@@ -644,6 +644,8 @@ fun ProposeContributionFlow(
 
         is ProposeStep.Success -> SuccessDialog(
             isAdmin = isAdmin,
+            trusted = !isAdmin && !s.queued &&
+                com.meteomontana.android.domain.usecase.contributions.ContributionOutcome.publishedDirectly,
             queued = s.queued,
             onClose = onDismiss,
             onMyProposals = { onDismiss(); onMyProposals() }

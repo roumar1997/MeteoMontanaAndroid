@@ -1244,6 +1244,8 @@
     <string name="school_map_v3_via">Route</string>
     <string name="school_map_v3_propuesta_enviada_un_admin_la">Proposal sent. An admin will review it within 24-48h.</string>
     <string name="school_map_v3_publicado_en_el_mapa">Published on the map.</string>
+    <string name="school_map_v3_publicado_de_confianza">You are a trusted contributor: it is published right away and will show up when you reload the page.</string>
+    <string name="propose_success_trusted_body">You are a trusted contributor: your contribution is published right away and will show up when you reload the page.</string>
     <string name="school_map_v3_no_se_pudo_publicar_el">Could not publish the ascent (it stays in your logbook)</string>
     <string name="school_map_v3_via_2">Route %1$s</string>
     <string name="school_map_v3_no_se_pudo_enviar_la">Could not send the proposal: %1$s</string>
@@ -1963,4 +1965,22 @@
     <string name="title_info_dragons">It comes with a dragon halo.</string>
     <string name="title_info_starter">“%1$s” is the title everyone starts with. You level up by adding boulders, routes and corrections approved by the team.</string>
     <string name="title_info_level">“%1$s” is earned with %2$d approved contributions (boulders, routes and corrections reviewed by the team). They have %3$d.</string>
+    <string name="profile_photo_title">Profile photo</string>
+    <string name="profile_photo_change">Change photo</string>
+    <string name="profile_photo_view">View photo</string>
+    <string name="profile_photo_error_title">Couldn\'t change the photo</string>
+    <string name="profile_photo_error_body">Check your connection and try again.</string>
+    <string name="chat_search_hint">Search your conversations</string>
+    <string name="chat_filter_all">All</string>
+    <string name="chat_filter_unread">Unread</string>
+    <string name="chat_filter_groups">Groups</string>
+    <string name="chat_no_match">No conversation matches.</string>
+    <string name="chat_day_today">Today</string>
+    <string name="chat_day_yesterday">Yesterday</string>
+    <string name="search_users_suggested">They follow you, you don\'t</string>
+    <string name="search_users_recent">Recent</string>
+    <string name="search_users_count">%1$d people</string>
+    <string name="search_users_follow">Follow</string>
+    <string name="search_users_following">Following</string>
+    <string name="search_users_requested">Requested</string>
 </resources>
