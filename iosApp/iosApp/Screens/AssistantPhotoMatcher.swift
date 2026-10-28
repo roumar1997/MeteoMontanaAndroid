@@ -161,16 +161,14 @@ enum AssistantPhotoMatcher {
     private static func rank(image: UIImage, pool: [(Block, Double)], school: School, approximate: Bool,
                              onStage: @escaping @MainActor (Stage) -> Void) async -> Outcome {
         await onStage(.comparing(pool.count))
-        let mine = featurePrint(downscaled(image))
+        let mine = await featurePrintOffPool(image)
         var out: [Candidate] = []
         await withTaskGroup(of: Candidate.self) { group in
             for (block, meters) in pool {
                 group.addTask {
                     let url = block.photoPath ?? block.faces.first?.photoPath
                     var similarity: Double? = nil
-                    if let mine, let url,
-                       let photo = await AsyncTimeout.run(photoTimeout, { await ImageCache.image(url) }),
-                       let theirs = featurePrint(downscaled(photo)) {
+                    if let mine, let url, let theirs = await featurePrint(url: url) {
                         similarity = similarityOf(mine, theirs)
                     }
                     return Candidate(blockId: block.id, blockName: block.name, schoolId: school.id,
@@ -209,6 +207,35 @@ enum AssistantPhotoMatcher {
     }
 
     // MARK: - Vision
+
+    /// Vision trabaja de forma BLOQUEANTE. Antes cada piedra lo hacía en el grupo de hilos de Swift, y con 18 a la vez
+    /// los ocupaba todos: se quedaba en «Comparando…» para siempre, el tiempo máximo no podía saltar (también necesita
+    /// un hilo) y hasta el selector de fotos se quedaba en «Cargando…». Ahora va a una cola propia con 2 a la vez.
+    private static let visionQueue: OperationQueue = {
+        let q = OperationQueue()
+        q.name = "cumbre.photo-matcher"
+        q.maxConcurrentOperationCount = 2
+        q.qualityOfService = .userInitiated
+        return q
+    }()
+
+    /// Huella de cada foto de piedra ya calculada: repetir la búsqueda en la misma escuela es instantáneo.
+    private static let printCache = NSCache<NSString, VNFeaturePrintObservation>()
+
+    private static func featurePrintOffPool(_ image: UIImage) async -> VNFeaturePrintObservation? {
+        await withCheckedContinuation { cont in
+            visionQueue.addOperation { cont.resume(returning: featurePrint(downscaled(image))) }
+        }
+    }
+
+    /// Huella de la foto de una piedra (descarga con tiempo máximo + Vision fuera del grupo de hilos), con caché.
+    private static func featurePrint(url: String) async -> VNFeaturePrintObservation? {
+        if let hit = printCache.object(forKey: url as NSString) { return hit }
+        guard let photo = await AsyncTimeout.run(photoTimeout, { await ImageCache.image(url) }),
+              let fp = await featurePrintOffPool(photo) else { return nil }
+        printCache.setObject(fp, forKey: url as NSString)
+        return fp
+    }
 
     private static func featurePrint(_ image: UIImage) -> VNFeaturePrintObservation? {
         guard let cg = image.cgImage else { return nil }
