@@ -17,7 +17,6 @@ final class WeatherViewModel: ObservableObject {
     }
 
     @Published var state: State = .loading
-    @Published var favoritesGrid: FavoritesGrid?
     @Published var favorites: [FavoriteSchool] = []
     @Published var selectedFavoriteId: String?   // nil = ubicación
 
@@ -31,7 +30,6 @@ final class WeatherViewModel: ObservableObject {
 
     func load() async {
         state = .loading
-        await loadFavoritesGrid()
         favorites = (try? await container.getMyFavorites.invoke()) ?? []
 
         // Si hay una favorita seleccionada, su forecast (no la ubicación).
@@ -58,10 +56,6 @@ final class WeatherViewModel: ObservableObject {
     func selectFavorite(_ id: String?) {
         selectedFavoriteId = id
         Task { await load() }
-    }
-
-    private func loadFavoritesGrid() async {
-        favoritesGrid = try? await container.getFavoritesGrid.invoke()
     }
 
     func requestPermission() {
@@ -136,10 +130,6 @@ struct WeatherView: View {
             Spacer()
         case .success(let forecast):
             ScrollView {
-                if let grid = vm.favoritesGrid, !grid.rows.isEmpty {
-                    FavoritesGridView(grid: grid)
-                    Divider().overlay(Cumbre.rule)
-                }
                 ForecastBodyView(forecast: forecast, factorsExpanded: $factorsExpanded,
                                  onSelectDay: { selectedDay = $0 })
             }
@@ -175,75 +165,3 @@ struct WeatherView: View {
     }
 }
 
-// MARK: - Grid de favoritas (réplica del grid de WeatherScreen.kt)
-
-/// Tabla compacta de tus escuelas favoritas por día, con score medio coloreado.
-/// Filas = escuela, columnas = día. Scroll horizontal si hay muchos días.
-private struct FavoritesGridView: View {
-    let grid: FavoritesGrid
-
-    private let nameWidth: CGFloat = 120
-    private let cellWidth: CGFloat = 40
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("TUS FAVORITAS").eyebrow().padding(.horizontal, 16).padding(.top, 12)
-                .guideTarget("weather.compare")
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 4) {
-                    // Cabecera de días
-                    HStack(spacing: 2) {
-                        Color.clear.frame(width: nameWidth, height: 1)
-                        ForEach(Array(grid.days.enumerated()), id: \.offset) { _, day in
-                            Text(dayLabel(day))
-                                .font(Cumbre.mono(10))
-                                .foregroundStyle(Cumbre.ink3)
-                                .frame(width: cellWidth)
-                        }
-                    }
-                    // Filas
-                    ForEach(grid.rows, id: \.schoolId) { row in
-                        HStack(spacing: 2) {
-                            Text(row.schoolName)
-                                .font(Cumbre.serif(14, .semibold))
-                                .foregroundStyle(Cumbre.ink)
-                                .lineLimit(1)
-                                .frame(width: nameWidth, alignment: .leading)
-                            ForEach(Array(row.cells.enumerated()), id: \.offset) { _, cell in
-                                cellBox(Int(cell.avgScore))
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal, 16)
-            }
-            .padding(.bottom, 8)
-        }
-    }
-
-    private func cellBox(_ score: Int) -> some View {
-        let color = Cumbre.score(score)
-        return Text("\(score)")
-            .font(Cumbre.mono(12, .bold))
-            .foregroundStyle(color)
-            .frame(width: cellWidth, height: 30)
-            .background(color.opacity(0.16), in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(color.opacity(0.7), lineWidth: 1))
-    }
-
-    // "2026-06-16" -> "LUN"/"MAR"/… (día de la semana, como Android). Si no
-    // parsea, cae a los últimos 5 caracteres ("06-16").
-    private func dayLabel(_ day: String) -> String {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy-MM-dd"
-        fmt.locale = Locale(identifier: "en_US_POSIX")
-        guard let date = fmt.date(from: day) else {
-            return day.count >= 5 ? String(day.suffix(5)) : day
-        }
-        // weekday: 1=domingo … 7=sábado
-        let weekday = Calendar(identifier: .gregorian).component(.weekday, from: date)
-        let labels = CalendarLabels.weekdaysShortSunFirst().map { $0.uppercased() }
-        return labels[(weekday - 1) % 7]
-    }
-}

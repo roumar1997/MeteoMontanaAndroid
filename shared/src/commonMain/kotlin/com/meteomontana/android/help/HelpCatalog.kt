@@ -32,6 +32,7 @@ object HelpCatalog {
                 HelpItem("Filtra", "Por distancia, estilo (bloque/vía), tipo de roca, y ordena por mejor score o más cercanas.", icon = "filter"),
                 HelpItem("Compara varios días", "Toca los chips de día (hasta 5) para ver un tramo: el número pasa a ser la media y se marcan los días de lluvia.", icon = "calendar"),
                 HelpItem("Favoritas", "Toca la estrella de una escuela para guardarla como favorita. Funciona sin conexión.", icon = "star"),
+                HelpItem("Comparar tus favoritas", "Enciende «FAVS» (junto a HOY) y arriba de la lista verás tus favoritas: la nota de hoy y una tira con los próximos días, con su mejor día marcado. Toca una para abrirla. Se queda encendida hasta que la apagues.", icon = "compare", id = "schools.favs"),
                 HelpItem("Comparar escuelas", "Mantén pulsada una escuela para entrar en modo comparar (hasta 3); abajo aparece COMPARAR.", icon = "compare"),
                 HelpItem("Mapa", "Pulsa VER MAPA para ver las escuelas en el mapa, coloreadas por su índice.", icon = "map"),
                 HelpItem("Proponer una escuela", "Con + Enviar escuela puedes proponer una escuela que falte.", icon = "plus"),
@@ -112,7 +113,7 @@ object HelpCatalog {
             intro = "La previsión de tu ubicación y la comparación de tus escuelas favoritas.",
             items = listOf(
                 HelpItem("Tu ubicación o una favorita", "Con los chips de arriba cambias entre tu ubicación y cada escuela favorita.", icon = "star"),
-                HelpItem("Comparar favoritas", "La tabla compara el índice medio por día de tus favoritas.", icon = "compare"),
+                HelpItem("Comparar favoritas", "La tabla compara el índice medio por día de tus favoritas.", icon = "compare", id = "weather.compare"),
                 HelpItem("Ver un día", "Toca un día para ver su detalle por horas.", icon = "calendar")
             )
         ),
@@ -168,6 +169,7 @@ object HelpCatalog {
                 HelpItem("Filter", "By distance, style (boulder/route), rock type, and sort by best score or nearest.", icon = "filter"),
                 HelpItem("Compare days", "Tap the day chips (up to 5) to see a range: the number becomes the average and rainy days are marked.", icon = "calendar"),
                 HelpItem("Favorites", "Tap a school's star to save it as a favorite. Works offline.", icon = "star"),
+                HelpItem("Compare your favorites", "Turn on \"FAVS\" (next to TODAY) and above the list you'll see your favorites: today's score and a strip with the next days, with their best day marked. Tap one to open it. It stays on until you turn it off.", icon = "compare", id = "schools.favs"),
                 HelpItem("Compare schools", "Long-press a school to enter compare mode (up to 3); COMPARE appears at the bottom.", icon = "compare"),
                 HelpItem("Map", "Tap VIEW MAP to see the schools on the map, colored by their index.", icon = "map"),
                 HelpItem("Suggest a school", "With + Submit school you can suggest a school that's missing.", icon = "plus"),
@@ -248,7 +250,7 @@ object HelpCatalog {
             intro = "The forecast for your location and the comparison of your favorite schools.",
             items = listOf(
                 HelpItem("Your location or a favorite", "Use the chips at the top to switch between your location and each favorite school.", icon = "star"),
-                HelpItem("Compare favorites", "The table compares the average index by day of your favorites.", icon = "compare"),
+                HelpItem("Compare favorites", "The table compares the average index by day of your favorites.", icon = "compare", id = "weather.compare"),
                 HelpItem("View a day", "Tap a day to see its hourly detail.", icon = "calendar")
             )
         ),

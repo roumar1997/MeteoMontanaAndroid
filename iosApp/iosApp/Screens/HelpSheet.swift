@@ -20,7 +20,7 @@ struct HelpButton: View {
 struct HelpSheet: View {
     let topicKey: String
     @Environment(\.dismiss) private var dismiss
-    private var topic: HelpTopic? { HelpCatalog.shared.byKey(key: topicKey, lang: LanguageManager.shared.effectiveCode) }
+    private var topic: HelpTopic? { HelpCatalog.shared.byKey(key: topicKey, lang: LanguageManager.shared.effectiveCode, hidden: notOnIOS) }
 
     var body: some View {
         NavigationStack {

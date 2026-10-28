@@ -6,4 +6,5 @@ package com.meteomontana.android.ui.guide
  */
 val NOT_YET_ON_ANDROID: Set<String> = setOf(
     "detail.photo", // «¿Qué piedra es esta?» desde la ficha de escuela (iOS, build 312)
+    "schools.favs", // comparar favoritas con la estrella FAVS de Escuelas (iOS, build 315)
 )

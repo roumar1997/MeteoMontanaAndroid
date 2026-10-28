@@ -27,13 +27,13 @@ final class GuideStore: ObservableObject {
     nonisolated static func setEnabled(_ on: Bool) { UserDefaults.standard.set(on, forKey: "guides_enabled") }
 
     var guide: Guide? {
-        activeKey.flatMap { GuideCatalog.shared.byKey(key: $0, lang: LanguageManager.shared.effectiveCode) }
+        activeKey.flatMap { GuideCatalog.shared.byKey(key: $0, lang: LanguageManager.shared.effectiveCode, hidden: notOnIOS) }
     }
 
     /// Abre la guía de esa pantalla. Si no existe, no hace nada (el llamante cae a la ayuda de texto).
     @discardableResult
     func start(_ key: String, then followUp: String? = nil) -> Bool {
-        guard GuideCatalog.shared.byKey(key: key, lang: LanguageManager.shared.effectiveCode) != nil else { return false }
+        guard GuideCatalog.shared.byKey(key: key, lang: LanguageManager.shared.effectiveCode, hidden: notOnIOS) != nil else { return false }
         activeKey = key
         index = 0
         chained = followUp

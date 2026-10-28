@@ -648,6 +648,14 @@ struct SchoolListView: View {
                     Divider().overlay(Cumbre.rule)
 
                     // Hint de comparar — justo antes de la lista
+                    if favoritesCompare && vm.exploreTab == .schools && !vm.exploreActive {
+                        FavoritesCompareCard { id in
+                            if let s = vm.schools.first(where: { $0.id == id }) { navTarget = SchoolNavTarget(school: s, via: nil) }
+                        }
+                        .padding(.horizontal, 12).padding(.top, 8)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+
                     FirstTimeHint(
                         hintKey: "schools_compare",
                         text: L("Mantén pulsada una escuela para compararla con otras (hasta 3). También puedes abrir HOY para ver un tramo de varios días.")
@@ -719,6 +727,7 @@ struct SchoolListView: View {
         func hash(into hasher: inout Hasher) { hasher.combine(id) }
     }
     @State private var navTarget: SchoolNavTarget?
+    @AppStorage(favoritesCompareKey) private var favoritesCompare = false
     /// "Enviar piedra": el selector de fotos está abierto.
     @State private var eligiendoFoto = false
     /// Grupos de escuela DESPLEGADOS en el modo "explorar" (§8.3) — empiezan

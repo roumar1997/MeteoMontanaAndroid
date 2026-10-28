@@ -1834,3 +1834,11 @@
 "No he podido situar la foto." = "I couldn't place the photo.";
 "Eres de confianza: tu aportación se publica directamente y aparecerá al recargar la página." = "You are a trusted contributor: your contribution is published right away and will show up when you reload the page.";
 "Cargando…" = "Loading…";
+"TUS FAVORITAS · %@ DÍAS" = "YOUR FAVORITES · %@ DAYS";
+"Marca escuelas con la estrella ☆ para compararlas aquí día a día." = "Mark crags with the ☆ star to compare them here day by day.";
+"Mejor día: hoy (%@)" = "Best day: today (%@)";
+"Mejor día: %@ (%@)" = "Best day: %@ (%@)";
+"FAVS" = "FAVS";
+"Comparar tus favoritas" = "Compare your favorites";
+"Aún no tienes vías como proyecto" = "You don't have any routes as projects yet";
+"Aún no tienes bloques como proyecto" = "You don't have any boulders as projects yet";

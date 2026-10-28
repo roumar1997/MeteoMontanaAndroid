@@ -39,10 +39,14 @@ final class ProjectsViewModel: ObservableObject {
     }
 }
 
+/// Una sola pantalla (Álvaro, 2026-10-28): selector «Bloques N | Vías N» con el estilo del de Escuelas/Vías-Bloques y
+/// la lista justo debajo. Antes eran dos cuadrados que llevaban a otra pantalla con un segundo botón de volver.
 struct ProjectsView: View {
     let uid: String?
     @StateObject private var vm: ProjectsViewModel
-    @State private var filterDiscipline: String?   // nil=todos · "BOULDER" · "ROUTE"
+    /// Última pestaña usada ("BOULDER" / "ROUTE"). Si esa está vacía y la otra no, se abre la otra.
+    @AppStorage("projects.discipline") private var lastDiscipline = "BOULDER"
+    @State private var discipline = "BOULDER"
 
     init(uid: String? = nil) {
         self.uid = uid
@@ -63,55 +67,81 @@ struct ProjectsView: View {
                     message: L("Marca la P de una vía dentro de su piedra para probarla como proyecto.")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if filterDiscipline == nil {
-                // Vista de stats: pulsar BLOQUES/VÍAS entra al listado filtrado.
-                HStack(spacing: 12) {
-                    statCell(L("BLOQUES"), vm.boulderCount) { filterDiscipline = "BOULDER" }
-                    statCell(L("VÍAS"), vm.routeCount) { filterDiscipline = "ROUTE" }
-                }
-                .padding(16)
-                Spacer()
             } else {
-                let shown = vm.projectEntries.filter {
-                    ($0.discipline.caseInsensitiveCompare("ROUTE") == .orderedSame) == (filterDiscipline == "ROUTE")
-                }
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(shown, id: \.id) { e in
-                            JournalRow(entry: e, schoolId: e.schoolId, info: vm.viaInfo[e.id])
-                            Divider().overlay(Cumbre.rule)
-                        }
-                    }
+                VStack(spacing: 0) {
+                    switcher.padding(.vertical, 10)
+                    list
                 }
             }
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .navigationTitle(filterDiscipline == "BOULDER" ? L("Proyectos · bloques")
-                          : filterDiscipline == "ROUTE" ? L("Proyectos · vías") : L("Proyectos"))
+        .navigationTitle(L("Proyectos"))
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if filterDiscipline != nil {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button { filterDiscipline = nil } label: {
-                        Image(systemName: "chevron.left")
+        .task {
+            await vm.load()
+            discipline = startingTab
+        }
+    }
+
+    /// La última usada, salvo que esté vacía y la otra no.
+    private var startingTab: String {
+        let count = lastDiscipline == "ROUTE" ? vm.routeCount : vm.boulderCount
+        if count > 0 { return lastDiscipline }
+        return vm.boulderCount > 0 ? "BOULDER" : "ROUTE"
+    }
+
+    private var switcher: some View {
+        HStack(spacing: 2) {
+            tab(L("Bloques"), count: vm.boulderCount, value: "BOULDER")
+            tab(L("Vías"), count: vm.routeCount, value: "ROUTE")
+        }
+        .padding(3)
+        .background(Cumbre.rule.opacity(0.18), in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+        .padding(.horizontal, 12)
+    }
+
+    private func tab(_ title: String, count: Int, value: String) -> some View {
+        let active = discipline == value
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) { discipline = value }
+            lastDiscipline = value
+        } label: {
+            HStack(spacing: 6) {
+                Text(title).font(Cumbre.mono(12, .bold))
+                Text("\(count)").font(Cumbre.mono(12, .bold)).opacity(0.7)
+            }
+            .foregroundStyle(active ? .white : Cumbre.ink2)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 9)
+            .background(active ? Cumbre.terra : Color.clear, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius - 2))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(active ? .isSelected : [])
+    }
+
+    @ViewBuilder private var list: some View {
+        let shown = vm.projectEntries.filter {
+            ($0.discipline.caseInsensitiveCompare("ROUTE") == .orderedSame) == (discipline == "ROUTE")
+        }
+        if shown.isEmpty {
+            VStack(spacing: 10) {
+                Image(systemName: "flag").font(.system(size: 30)).foregroundStyle(Cumbre.ink3)
+                Text(discipline == "ROUTE" ? L("Aún no tienes vías como proyecto") : L("Aún no tienes bloques como proyecto"))
+                    .font(Cumbre.serif(17, .bold)).foregroundStyle(Cumbre.ink)
+                Text(L("Marca la P de una vía dentro de su piedra para probarla como proyecto."))
+                    .font(.system(size: 13)).foregroundStyle(Cumbre.ink2).multilineTextAlignment(.center)
+            }
+            .padding(32)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        } else {
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(shown, id: \.id) { e in
+                        JournalRow(entry: e, schoolId: e.schoolId, info: vm.viaInfo[e.id])
+                        Divider().overlay(Cumbre.rule)
                     }
                 }
             }
         }
-        .task { await vm.load() }
-    }
-
-    private func statCell(_ label: String, _ count: Int, onTap: @escaping () -> Void) -> some View {
-        Button(action: onTap) {
-            VStack(spacing: 3) {
-                Text("\(count)").font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
-                Text(label).font(Cumbre.mono(9, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink3)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(Cumbre.paper)
-            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
     }
 }

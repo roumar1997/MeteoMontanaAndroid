@@ -561,6 +561,8 @@ struct FilterChips: View {
     @ObservedObject var vm: SchoolListViewModel
     /// Plegados por defecto (2026-10-14: "demasiadas cosas" a la vista). Lo activo se resume en una línea.
     @State private var open = false
+    /// Estrella «FAVS»: enseña la comparación de tus favoritas encima de la lista (se recuerda).
+    @AppStorage(favoritesCompareKey) private var favoritesCompare = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -635,6 +637,7 @@ struct FilterChips: View {
             }
             .buttonStyle(.plain)
             clearButton
+            if vm.exploreTab == .schools { favoritesChip }
             dayChip
         }
         .padding(.horizontal, 12)
@@ -667,6 +670,26 @@ struct FilterChips: View {
         vm.gradeMax = nil
         vm.orientations = []
         vm.exploreSort = .distance
+    }
+
+    /// «★ FAVS»: enciende/apaga la comparación de tus favoritas. No filtra la lista (para eso, Mostrar → Favoritos).
+    private var favoritesChip: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) { favoritesCompare.toggle() }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: favoritesCompare ? "star.fill" : "star").font(.system(size: 10, weight: .bold))
+                Text(L("FAVS")).font(Cumbre.mono(10.5, .bold)).tracking(0.6)
+            }
+            .foregroundStyle(favoritesCompare ? Color.white : Cumbre.ink2)
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .background(favoritesCompare ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
+            .overlay(Capsule().stroke(favoritesCompare ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
+            .lineLimit(1).fixedSize()
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(L("Comparar tus favoritas"))
+        .accessibilityAddTraits(favoritesCompare ? .isSelected : [])
     }
 
     /// "HOY ⌄" (o el tramo elegido: "VIE–DOM ⌄"): abre los días para comparar un tramo de hasta 5.
