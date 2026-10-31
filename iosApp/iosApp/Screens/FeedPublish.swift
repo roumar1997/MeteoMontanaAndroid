@@ -129,8 +129,8 @@ struct AscentSheet: View {
                 dateSegment
                 sectionLabel(L("ESTILO · OPCIONAL"))
                 HStack(spacing: 8) {
-                    styleTile(icon: "eye", title: L("A vista"), subtitle: L("Primer intento, sin ver la beta"), isOn: $aVista)
-                    styleTile(icon: "bolt", title: L("Al flash"), subtitle: L("Primer intento, con beta"), isOn: $alFlash)
+                    styleTile(icon: "eye", title: L("A vista"), subtitle: L("Primer intento, sin ver la beta"), isOn: Binding(get: { aVista }, set: { aVista = $0; if $0 { alFlash = false } }))
+                    styleTile(icon: "bolt", title: L("Al flash"), subtitle: L("Primer intento, con beta"), isOn: Binding(get: { alFlash }, set: { alFlash = $0; if $0 { aVista = false } }))
                 }
                 .fixedSize(horizontal: false, vertical: true)
                 sectionLabel(L("¿QUÉ GRADO LE DAS? · OPCIONAL"))
