@@ -734,8 +734,8 @@
 "Primer intento, sin ver la beta" = "First try, no beta";
 "Primer intento, con beta" = "First try, with beta";
 "¿QUÉ GRADO LE DAS? · OPCIONAL" = "WHAT GRADE DO YOU GIVE IT? · OPTIONAL";
-"Toca solo si quieres votar un grado." = "Tap only if you want to vote a grade.";
-"Está en %@. Toca solo si te parece otro grado." = "It's rated %@. Tap only if you think it's a different grade.";
+"Toca solo si quieres votar un grado. Si dudas entre dos, pulsa también el de al lado." = "Tap only if you want to vote a grade. If you're torn between two, tap the one next to it too.";
+"Está en %@. Toca solo si te parece otro grado. Si dudas entre dos, pulsa también el de al lado." = "It's rated %@. Tap only if you think it's a different grade. If you're torn between two, tap the one next to it too.";
 "MENOS" = "LESS";
 "OTRO GRADO…" = "OTHER GRADE…";
 "Compartir en Comunidad" = "Share to Community";

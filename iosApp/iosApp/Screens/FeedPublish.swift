@@ -282,8 +282,8 @@ struct AscentSheet: View {
             }
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(quickGrades.isEmpty
-                     ? L("Toca solo si quieres votar un grado.")
-                     : L("Está en %@. Toca solo si te parece otro grado.", setterGrade ?? ""))
+                     ? L("Toca solo si quieres votar un grado. Si dudas entre dos, pulsa también el de al lado.")
+                     : L("Está en %@. Toca solo si te parece otro grado. Si dudas entre dos, pulsa también el de al lado.", setterGrade ?? ""))
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                     .fixedSize(horizontal: false, vertical: true)
                 if !quickGrades.isEmpty {
