@@ -484,23 +484,26 @@ struct BlockInfoSheet: View {
             // Hoja de publicar el tick en el feed Comunidad (estilo Cumbre).
             // Cerrar la hoja = no marcar nada.
             .sheet(item: $pendingTick) { pt in
-                FeedPublishSheet(
+                AscentSheet(
                     lineLabel: feedTickLabel(pt.line, index: pt.index),
+                    lineName: pt.line.name.isEmpty ? L("Vía %@", pt.index + 1) : pt.line.name,
+                    setterGrade: pt.line.grade,
                     wasProject: pt.wasProject,
-                    onPublish: { always, caption, photo, sessionDate, aVista, alFlash in
-                        if always { FeedPublishPrefs.mode = .always }
+                    votes: community,
+                    onSave: { choice in
                         pendingTick = nil
                         Task {
-                            await toggle(pt.line, index: pt.index, sessionDate: sessionDate,
-                                         aVista: aVista, alFlash: alFlash)
-                            publishTickToFeed(pt.line, wasProject: pt.wasProject,
-                                              caption: caption, photo: photo)
+                            // Primero el diario: el voto de grado solo lo acepta el servidor de quien ya la tiene en él.
+                            await toggle(pt.line, index: pt.index, sessionDate: choice.sessionDate,
+                                         aVista: choice.aVista, alFlash: choice.alFlash)
+                            if choice.publish {
+                                publishTickToFeed(pt.line, wasProject: pt.wasProject,
+                                                  caption: choice.caption, photo: choice.photo)
+                            }
+                            if let grade = choice.gradeVote, !pt.line.id.isEmpty {
+                                _ = await community.voteGrade(lineId: pt.line.id, grade: grade)
+                            }
                         }
-                    },
-                    onDiaryOnly: { sessionDate, aVista, alFlash in
-                        pendingTick = nil
-                        Task { await toggle(pt.line, index: pt.index, sessionDate: sessionDate,
-                                            aVista: aVista, alFlash: alFlash) }
                     })
             }
             // Deep-link del diario: hace scroll a la cara que contiene la vía
@@ -591,8 +594,8 @@ struct BlockInfoSheet: View {
     }
 
 
-    /// Toque en el tic: desmarcar va directo; marcar pasa por la preferencia
-    /// "Publicar ascensos en el feed" (ASK/ALWAYS/NEVER) — espejo de Android.
+    /// Toque en el tic: desmarcar va directo; marcar abre la hoja de ascenso
+    /// (fecha, estilo, grado y el interruptor de Comunidad). Cerrarla = no marcar nada.
     private func onTickTapped(_ line: BlockLine, index: Int) {
         if tickedLines.contains(line.id) {
             Task { await toggle(line, index: index) }
@@ -600,17 +603,7 @@ struct BlockInfoSheet: View {
         }
         // wasProject ANTES del toggle (marcar la quita de proyectos).
         let wasProject = projectLines.contains(line.id)
-        switch FeedPublishPrefs.mode {
-        case .ask:
-            pendingTick = PendingFeedTick(line: line, index: index, wasProject: wasProject)
-        case .always:
-            Task {
-                await toggle(line, index: index)
-                publishTickToFeed(line, wasProject: wasProject)
-            }
-        case .never:
-            Task { await toggle(line, index: index) }
-        }
+        pendingTick = PendingFeedTick(line: line, index: index, wasProject: wasProject)
     }
 
     /// Etiqueta "vía · grado" de la hoja de publicar.

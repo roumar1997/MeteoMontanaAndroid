@@ -494,7 +494,6 @@ struct AccountSettingsView: View {
 
                 sectionLabel(NSLocalizedString("profile_section_prefs", comment: ""))
                 menuRow(NSLocalizedString("profile_weather_alert", comment: ""), "bell.badge", WeekendAlertView())
-                FeedPublishSettingRow()
                 LanguageSettingRow()
                 GuidesToggleRow().padding(.vertical, 8)
                 Button {

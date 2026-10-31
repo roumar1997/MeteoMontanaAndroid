@@ -229,6 +229,8 @@ Reglas:
 
 ## Estado actual
 
+**✅ HOJA DE ASCENSO NUEVA (2026-10-31) — iOS build 317 a TestFlight (2.25.8), Android SIN PORTAR.** Marcar una vía abre una hoja corta con CUÁNDO, ESTILO, ¿QUÉ GRADO LE DAS? y un interruptor «Compartir en Comunidad» (apagado por defecto, recuerda lo último); un solo botón GUARDAR EN MI DIARIO / GUARDAR Y PUBLICAR. Se acabó el ajuste Preguntar/Siempre/Nunca. Pendiente: que Álvaro lo valide en el 317, y luego portar a Android pidiéndole capturas concretas. Detalle en `HISTORIAL.md` 2026-10-31.
+
 **✨ HADAS Y DRAGONES (2026-10-20) — backend en PRODUCCIÓN (main f91fbab, V96), iOS 304 en TestFlight y VALIDADO, Android con lo mismo; AAB firmado `Desktop\AABs Play\cumbre-6.7-vc122.aab` (el vc121 de esa carpeta es anterior: NO subirlo).** Efecto animado alrededor de la foto que SOLO pone un admin (también a sí mismo, desde «MI TÍTULO Y EFECTO»); la persona se lo quita eligiendo otro título. Antes del AAB: `:app:compileReleaseKotlin` (el debug usa una Compose más nueva). Detalle en `HISTORIAL.md` 2026-10-19/20 (4ª vuelta).
 
 **🗂️ ESCUELAS EN TARJETAS + DIARIO «⋯»/DESLIZAR + HORAS ARREGLADAS (2026-10-19, 3ª vuelta) — backend en PRODUCCIÓN (main fcd0a69), iOS 302 en TestFlight y VALIDADO, Android con lo mismo y VALIDADO en el Xiaomi (sin AAB).** Lo hecho después del 302 (arreglo de «Activos hoy» del admin en iOS y «FILTROS» que no se parte) va en el próximo build de iOS. **El panel de ADMIN se queda SOLO en iOS** (Álvaro, 2026-10-19): no portarlo ni pedir capturas de admin. Detalle en `HISTORIAL.md` 2026-10-19 (3ª vuelta).
