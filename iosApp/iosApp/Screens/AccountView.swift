@@ -668,7 +668,7 @@ private struct AccountBlocksList: View {
 
     // Filtro por ESTILO: "aVista" | "alFlash" | nil (todos). Cliente, como
     // el de grado — no necesita ruta nueva (Rodrigo, 2026-08-21).
-    @State private var styleFilter: String? = nil
+    @State private var styleFilters: Set<String> = []
 
     private func styleFilterChip(_ label: String, active: Bool, onTap: @escaping () -> Void) -> some View {
         Button(action: onTap) {
@@ -687,11 +687,9 @@ private struct AccountBlocksList: View {
 
     private var visibles: [JournalSession] {
         let byGrade = entries.filter { gradeMatches(gradeOf($0), anyOf: gradeFilters) && journalMatches($0, vm.viaInfo[$0.id], query) }
-        switch styleFilter {
-        case "aVista": return byGrade.filter { $0.aVista }
-        case "alFlash": return byGrade.filter { $0.alFlash }
-        default: return byGrade
-        }
+        // Sin chips encendidos, todo; con uno o los dos, las de ese estilo (o de cualquiera de los dos).
+        if styleFilters.isEmpty { return byGrade }
+        return byGrade.filter { (styleFilters.contains("aVista") && $0.aVista) || (styleFilters.contains("alFlash") && $0.alFlash) }
     }
 
     var body: some View {
@@ -737,11 +735,11 @@ private struct AccountBlocksList: View {
                         // Filtro por ESTILO: solo si hay al menos una entrada marcada.
                         if entries.contains(where: { $0.aVista || $0.alFlash }) {
                             HStack(spacing: 6) {
-                                styleFilterChip(L("A VISTA"), active: styleFilter == "aVista") {
-                                    styleFilter = styleFilter == "aVista" ? nil : "aVista"
+                                styleFilterChip(L("A VISTA"), active: styleFilters.contains("aVista")) {
+                                    if !styleFilters.insert("aVista").inserted { styleFilters.remove("aVista") }
                                 }
-                                styleFilterChip(L("AL FLASH"), active: styleFilter == "alFlash") {
-                                    styleFilter = styleFilter == "alFlash" ? nil : "alFlash"
+                                styleFilterChip(L("AL FLASH"), active: styleFilters.contains("alFlash")) {
+                                    if !styleFilters.insert("alFlash").inserted { styleFilters.remove("alFlash") }
                                 }
                                 Spacer()
                             }
