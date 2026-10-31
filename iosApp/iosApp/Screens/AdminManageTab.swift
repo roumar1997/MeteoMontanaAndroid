@@ -199,18 +199,7 @@ struct SchoolBlocksManageSheet: View {
     /// (mismo cuidado que BlockManageSheet.save: si no se mandan, se borrarían).
     private func move(to coord: CLLocationCoordinate2D) async {
         guard let b = moving else { return }
-        let lines = b.lines.map {
-            // Se manda el id de la via existente: sin el, el servidor tiene que
-            // adivinar cual era cual y puede mover el ✓ del diario de alguien.
-            CreateBlockLineRequest(id: $0.id, name: $0.name, grade: $0.grade, startType: $0.startType, linePath: $0.linePath, photoPath: $0.photoPath, faceOrder: $0.faceOrder, description: $0.lineDescription, variant: $0.variant)
-        }
-        let req = CreateBlockRequest(type: b.type, name: b.name,
-                                     lat: coord.latitude, lon: coord.longitude,
-                                     photoPath: b.photoPath, description: b.descriptionText,
-                                     lines: lines, sectorBlockId: b.sectorBlockId,
-                                     discipline: b.discipline,
-                                     geometry: b.geometry, path: b.path, direction: b.direction)
-        _ = try? await AppDependencies.shared.container.updateBlock.invoke(blockId: b.id, req: req)
+        _ = try? await AppDependencies.shared.container.updateBlock.invoke(blockId: b.id, req: blockMoveRequest(b, to: coord))
         moving = nil
         await reload()
     }
@@ -236,6 +225,22 @@ struct SchoolBlocksManageSheet: View {
         default: return UIColor(red: 0.78, green: 0.40, blue: 0.13, alpha: 1)
         }
     }
+}
+
+/// Petición para MOVER un bloque a otra coordenada sin perder nada: tipo, foto, sector y sus VÍAS (si no se
+/// mandan, el servidor las borraría). La usan Gestionar bloques (admin) y «Mover» de la ficha de sector/parking.
+func blockMoveRequest(_ b: Block, to coord: CLLocationCoordinate2D) -> CreateBlockRequest {
+    let lines = b.lines.map {
+        // Se manda el id de la via existente: sin el, el servidor tiene que
+        // adivinar cual era cual y puede mover el ✓ del diario de alguien.
+        CreateBlockLineRequest(id: $0.id, name: $0.name, grade: $0.grade, startType: $0.startType, linePath: $0.linePath, photoPath: $0.photoPath, faceOrder: $0.faceOrder, description: $0.lineDescription, variant: $0.variant)
+    }
+    return CreateBlockRequest(type: b.type, name: b.name,
+                              lat: coord.latitude, lon: coord.longitude,
+                              photoPath: b.photoPath, description: b.descriptionText,
+                              lines: lines, sectorBlockId: b.sectorBlockId,
+                              discipline: b.discipline,
+                              geometry: b.geometry, path: b.path, direction: b.direction)
 }
 
 /// Etiqueta corta del tipo de un bloque (PARKING / ZONA / PIEDRA).

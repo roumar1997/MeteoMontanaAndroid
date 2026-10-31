@@ -164,6 +164,9 @@ struct MapLibreView: UIViewRepresentable {
     /// (~450 m) está pensado para encuadrar ESCUELAS; al ir a un SECTOR, cuyas
     /// piedras ocupan 30-55 m, ese margen lo dejaba casi sin acercar.
     var focusMargenMinimo: Double = 0.004
+    /// Alto (pt) tapado ARRIBA del mapa por algo flotante (la tarjeta de sector/parking). El foco deja lo enfocado
+    /// en el hueco libre de debajo en vez de en el centro, donde quedaría detrás de la tarjeta.
+    var focusTopInset: CGFloat = 0
     /// Capa de radar (lluvia AEMET cocinada por el backend): imagen
     /// georreferenciada que se estira entre las esquinas dadas.
     var radarImage: UIImage? = nil
@@ -238,7 +241,7 @@ struct MapLibreView: UIViewRepresentable {
                     context.coordinator.inflated(minLat: minLat, maxLat: maxLat,
                                                  minLon: minLon, maxLon: maxLon,
                                                  margenMinimo: focusMargenMinimo),
-                    edgePadding: UIEdgeInsets(top: 60, left: 50, bottom: 60, right: 50),
+                    edgePadding: UIEdgeInsets(top: 60 + focusTopInset, left: 50, bottom: 60, right: 50),
                     animated: true)
             } else if let coord = focusCoordinate {
                 // Con nuncaAlejar, focusZoom es un MÍNIMO y no un valor exacto:
@@ -247,11 +250,22 @@ struct MapLibreView: UIViewRepresentable {
                 // rehacer el zoom cada vez — Rodrigo, 2026-08-16). El radar NO
                 // lo usa: allí enfocar sí significa alejarse a ver toda España.
                 let zoom = nuncaAlejar ? max(map.zoomLevel, focusZoom) : focusZoom
-                map.setCenter(coord, zoomLevel: zoom, animated: true)
+                map.setCenter(Self.shiftedNorth(coord, byPoints: focusTopInset / 2, atZoom: zoom),
+                              zoomLevel: zoom, animated: true)
             }
         }
 
         context.coordinator.applyRadar(to: map)
+    }
+
+    /// Centro que deja `coord` `points` puntos POR DEBAJO del centro de la pantalla a ese zoom (MapLibre usa
+    /// teselas de 512 pt: a zoom z cada punto mide 40 075 km·cos(lat) / (512·2^z)).
+    static func shiftedNorth(_ coord: CLLocationCoordinate2D, byPoints points: CGFloat,
+                             atZoom zoom: Double) -> CLLocationCoordinate2D {
+        guard points > 0 else { return coord }
+        let metersPerPoint = 40_075_016.686 * cos(coord.latitude * .pi / 180) / (512 * pow(2, zoom))
+        let dLat = Double(points) * metersPerPoint / 111_320
+        return CLLocationCoordinate2D(latitude: coord.latitude + dLat, longitude: coord.longitude)
     }
 
     final class Coordinator: NSObject, MLNMapViewDelegate {

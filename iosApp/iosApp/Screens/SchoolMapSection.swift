@@ -83,6 +83,11 @@ struct SchoolMapSection: View {
     /// Restricciones en vigor de la escuela (las da la ficha): "!" en el chip del sector.
     @Environment(\.schoolRestrictions) private var restrictionsUI
     @State private var confirmDeleteMini = false
+    /// «Mover» de la tarjeta de sector/parking (solo admin): el bloque que se mueve y el sitio tocado, aún sin
+    /// guardar. Va directo al servidor (sin propuesta), igual que Gestionar bloques.
+    @State private var movingBlock: Block?
+    @State private var movePending: CLLocationCoordinate2D?
+    @State private var savingMove = false
     @State private var editLinesBlock: Block?
     @State private var assignSectorBlock: Block?
     @State private var mapZoom: Double = 14   // para mostrar el nombre del sector al acercar
@@ -259,6 +264,7 @@ struct SchoolMapSection: View {
                         onZoomChange: { mapZoom = $0 },
                         onCameraChange: { c, z in savedCenter = c; savedZoom = z },
                         onTapMarker: { id in
+                            if movingBlock != nil { return }   // moviendo: los toques fijan el sitio
                             if flow.correctionMode && !flow.corrActive {
                                 selectCorrectionTarget(id)
                             } else if !flow.waitingTap && !flow.correctionMode {
@@ -294,8 +300,10 @@ struct SchoolMapSection: View {
                                 }
                             }
                         },
-                        onMapTap: (flow.waitingTap || (flow.correctionMode && flow.corrActive)) ? { coord in
-                            if flow.waitingTap {
+                        onMapTap: (movingBlock != nil || flow.waitingTap || (flow.correctionMode && flow.corrActive)) ? { coord in
+                            if movingBlock != nil {
+                                movePending = coord
+                            } else if flow.waitingTap {
                                 flow.waitingTap = false
                                 if flow.proposeType == "BOULDER" { flow.boulderCoord = coord } else { flow.formCoord = coord }
                             } else {
@@ -316,12 +324,17 @@ struct SchoolMapSection: View {
                         nuncaAlejar: true,
                         focusToken: focusToken,
                         focusFitCoordinates: focusFit,
-                        focusMargenMinimo: focusMargenMinimo
+                        focusMargenMinimo: focusMargenMinimo,
+                        // La tarjeta de sector/parking flota ARRIBA del mapa: lo enfocado se coloca debajo de ella.
+                        focusTopInset: miniBlock == nil ? 0 : (vm.isAdmin ? 176 : 124)
                     )
                     .frame(height: height)
 
 
-                    if let punto = confirmandoFoto {
+                    if let mb = movingBlock {
+                        VStack { moveBanner(mb); Spacer() }.padding(.top, fullscreenMap ? 54 : 0)
+                            .frame(height: height)
+                    } else if let punto = confirmandoFoto {
                         // La foto ya está colocada: aceptar o moverla. El GPS se
                         // equivoca entre 10 y 30 metros y las piedras están a
                         // metros, así que la última palabra es del usuario.
@@ -378,7 +391,7 @@ struct SchoolMapSection: View {
 
                     // Ampliar / salir de pantalla completa — ARRIBA a la izquierda
                     // (debajo de los chips de estilo) + botonera lateral en fullscreen.
-                    if !flow.waitingTap && !flow.correctionMode {
+                    if movingBlock == nil && !flow.waitingTap && !flow.correctionMode {
                         VStack {
                             HStack(alignment: .top) {
                                 // A la IZQUIERDA: ampliar arriba y, debajo, la
@@ -454,10 +467,11 @@ struct SchoolMapSection: View {
                         .frame(height: height)
                     }
 
-                    // Mini-ficha flotante de parking/sector: informa y da CÓMO
-                    // LLEGAR sin tapar el mapa.
-                    if let mb = miniBlock, !flow.waitingTap, !flow.correctionMode {
-                        VStack { Spacer(); miniBlockCard(mb) }
+                    // Tarjeta flotante de parking/sector, ARRIBA del mapa: pegada a
+                    // los chips que la abren. Abajo quedaba fuera de pantalla
+                    // desde que el mapa crece con el móvil (Álvaro, 2026-10-31).
+                    if let mb = miniBlock, movingBlock == nil, !flow.waitingTap, !flow.correctionMode {
+                        VStack { miniBlockCard(mb); Spacer() }.padding(.top, fullscreenMap ? 54 : 0)
                             .frame(height: height)
                             .frame(maxWidth: .infinity)
                     }
@@ -1072,6 +1086,12 @@ struct SchoolMapSection: View {
                 id: "__FOTO__", coordinate: f, title: L("Aquí se hizo la foto"),
                 kind: .block, color: UIColor(hex: 0xF59E0B), name: "★"))
         }
+        // Sitio nuevo elegido con «Mover» (admin), aún sin guardar.
+        if let p = movePending {
+            ms.append(CumbreMarker(
+                id: "__MOVE__", coordinate: p, title: L("Nueva posición"),
+                kind: .block, color: UIColor(hex: 0xF59E0B), name: "★"))
+        }
         // Fantasma de la nueva posición al corregir.
         if let nw = flow.corrNew {
             ms.append(CumbreMarker(
@@ -1151,82 +1171,180 @@ struct SchoolMapSection: View {
         focusToken += 1
     }
 
-    /// Mini-ficha flotante de parking/sector: una línea de alto, el mapa se
-    /// sigue viendo. Admin: ✎ (abre la ficha completa) y 🗑 a la izquierda de
-    /// CÓMO LLEGAR. Sectores con piedras: toggle VER/OCULTAR explícito.
+    /// Tarjeta flotante de parking/sector, de CRISTAL como la barra de pestañas (Álvaro eligió la maqueta A,
+    /// 2026-10-31). Arriba lo de todos: CÓMO LLEGAR y OCULTAR/VER PIEDRAS (o SEGUIR CAMINO en un parking con
+    /// camino grabado). Debajo, solo admin y a la vista: MOVER, EDITAR y BORRAR.
     private func miniBlockCard(_ mb: Block) -> some View {
         let isParking = mb.type.uppercased() == "PARKING"
         let stoneCount = vm.blocks.filter { $0.sectorBlockId == mb.id }.count
         let collapsed = vm.collapsedSectors.contains(mb.id)
-        var subtitle = isParking ? L("Parking") : L("Sector")
-        if !isParking && stoneCount > 0 { subtitle += L(" · %@ piedra%@", stoneCount, stoneCount == 1 ? "" : "s") }
-        if let u = userCoord {
+        let approach = approachesLoader.approach(to: mb.id)
+        var kindText = isParking ? L("Parking") : L("Sector")
+        if !isParking && stoneCount > 0 { kindText += L(" · %@ piedra%@", stoneCount, stoneCount == 1 ? "" : "s") }
+        let distance: String? = userCoord.map { u in
             let km = Geo.shared.haversineKm(lat1: u.latitude, lon1: u.longitude, lat2: mb.lat, lon2: mb.lon)
-            subtitle += km < 1 ? " · \(Int(km * 1000)) m" : String(format: " · %.1f km", km)
+            return km < 1 ? "\(Int(km * 1000)) m" : String(format: "%.1f km", km)
         }
-        return VStack(spacing: 6) {
-            HStack(spacing: 8) {
+        let accent = Color(isParking ? parkingColor : zoneColor)
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
                 Text(isParking ? "P" : "S")
-                    .font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
-                    .frame(width: 24, height: 24)
-                    .background(isParking ? Color(parkingColor) : Color(zoneColor))
-                    .clipShape(RoundedRectangle(cornerRadius: isParking ? 6 : 12))
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(mb.name.isEmpty ? (isParking ? L("Parking") : L("Sector")) : mb.name)
-                        .font(.system(size: 14, weight: .medium)).foregroundStyle(Cumbre.ink).lineLimit(1)
-                    Text(subtitle).font(.system(size: 11)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                    .font(.system(size: 16, weight: .bold)).foregroundStyle(.white)
+                    .frame(width: 38, height: 38)
+                    .background(accent)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(mb.name.isEmpty ? kindText : mb.name)
+                        .font(Cumbre.serif(19, .bold)).foregroundStyle(Cumbre.ink).lineLimit(1)
+                    HStack(spacing: 6) {
+                        cardTag(kindText, tint: accent)
+                        if let d = distance { cardTag(d, tint: Cumbre.ink2) }
+                    }
                 }
                 Spacer(minLength: 4)
-                if vm.isAdmin {
-                    Button { miniBlock = nil; openBlockSheet(mb) } label: {
-                        Image(systemName: "pencil").font(.system(size: 15)).foregroundStyle(Cumbre.ink2).padding(4)
-                    }.buttonStyle(.plain)
-                    Button { confirmDeleteMini = true } label: {
-                        Image(systemName: "trash").font(.system(size: 14)).foregroundStyle(Cumbre.bad).padding(4)
-                    }.buttonStyle(.plain)
+                Button { miniBlock = nil } label: {
+                    Image(systemName: "xmark").font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Cumbre.ink2)
+                        .frame(width: 32, height: 32)
+                        .background(Cumbre.ink.opacity(0.07), in: Circle())
                 }
-                // Si hay un camino grabado que llega hasta este sector/parking,
-                // ofrecer seguirlo directo desde aquí — no hace falta ir a la
-                // sección APROXIMACIONES a buscarlo.
-                if let approach = approachesLoader.approach(to: mb.id) {
-                    Button {
-                        miniBlock = nil
-                        followingApproach = approach
-                    } label: {
-                        Text("SEGUIR").font(Cumbre.mono(10, .bold)).tracking(0.8)
-                            .foregroundStyle(Cumbre.terra).padding(.horizontal, 10).padding(.vertical, 8)
-                            .overlay(RoundedRectangle(cornerRadius: 9).stroke(Cumbre.terra, lineWidth: 1))
-                    }.buttonStyle(.plain)
-                }
-                Button {
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(NSLocalizedString("common_close", comment: "")))
+            }
+            HStack(spacing: 8) {
+                cardPill(L("Cómo llegar"), icon: "location.north.fill", primary: true) {
                     let g = URL(string: "comgooglemaps://?daddr=\(mb.lat),\(mb.lon)&directionsmode=driving")!
                     let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(mb.lat),\(mb.lon)")!
                     UIApplication.shared.open(UIApplication.shared.canOpenURL(g) ? g : web)
-                } label: {
-                    Text("CÓMO LLEGAR").font(Cumbre.mono(10, .bold)).tracking(0.8)
-                        .foregroundStyle(.white).padding(.horizontal, 10).padding(.vertical, 8)
-                        .background(Cumbre.terraFill).clipShape(RoundedRectangle(cornerRadius: 9))
-                }.buttonStyle(.plain)
-                Button { miniBlock = nil } label: {
-                    Image(systemName: "xmark").font(.system(size: 13)).foregroundStyle(Cumbre.ink3).padding(4)
-                }.buttonStyle(.plain)
+                }
+                if !isParking && stoneCount > 0 {
+                    cardPill(collapsed ? L("Ver piedras") : L("Ocultar piedras"),
+                             icon: collapsed ? "eye" : "eye.slash") {
+                        if collapsed { vm.collapsedSectors.remove(mb.id) } else { vm.collapsedSectors.insert(mb.id) }
+                    }
+                } else if let ap = approach {
+                    // Hay un camino grabado hasta aquí: seguirlo sin ir a buscarlo a APROXIMACIONES.
+                    cardPill(L("Seguir camino"), icon: "figure.walk") {
+                        miniBlock = nil
+                        followingApproach = ap
+                    }
+                }
             }
-            if !isParking && stoneCount > 0 {
-                Button {
-                    if collapsed { vm.collapsedSectors.remove(mb.id) } else { vm.collapsedSectors.insert(mb.id) }
-                } label: {
-                    Text(collapsed ? L("VER PIEDRAS") : L("OCULTAR PIEDRAS"))
-                        .font(Cumbre.mono(10, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink)
-                        .frame(maxWidth: .infinity).padding(.vertical, 7)
-                        .overlay(RoundedRectangle(cornerRadius: 9).stroke(Cumbre.rule, lineWidth: 1))
-                }.buttonStyle(.plain)
+            if vm.isAdmin {
+                HStack(spacing: 6) {
+                    Text("ADMIN").font(Cumbre.mono(9, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
+                        .frame(width: 44, alignment: .leading)
+                    adminChip(L("Mover"), icon: "arrow.up.and.down.and.arrow.left.and.right", tint: Cumbre.ink) {
+                        movePending = nil
+                        movingBlock = mb
+                    }
+                    adminChip(L("Editar"), icon: "pencil", tint: Cumbre.ink) {
+                        miniBlock = nil
+                        openBlockSheet(mb)
+                    }
+                    adminChip(L("Borrar"), icon: "trash", tint: Cumbre.bad) { confirmDeleteMini = true }
+                }
+                .padding(.top, 10)
+                .overlay(alignment: .top) { Rectangle().fill(Cumbre.ink.opacity(0.08)).frame(height: 1) }
             }
         }
-        .padding(.horizontal, 10).padding(.vertical, 8)
-        .background(Cumbre.bg)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
-        .padding(.horizontal, 8).padding(.bottom, 8)
+        .padding(14)
+        .background(Cumbre.bg.opacity(0.55), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(.white.opacity(0.55), lineWidth: 1))
+        .shadow(color: .black.opacity(0.22), radius: 16, y: 8)
+        .padding(.horizontal, 10).padding(.top, 10)
+    }
+
+    private func cardTag(_ text: String, tint: Color) -> some View {
+        Text(text).font(.system(size: 12, weight: .semibold)).foregroundStyle(tint).lineLimit(1)
+            .padding(.horizontal, 8).padding(.vertical, 3)
+            .background(tint.opacity(0.13), in: Capsule())
+    }
+
+    private func cardPill(_ title: String, icon: String, primary: Bool = false,
+                          action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                Image(systemName: icon).font(.system(size: 14, weight: .semibold))
+                Text(title).font(.system(size: 15, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
+            }
+            .foregroundStyle(primary ? Color.white : Cumbre.ink)
+            .frame(maxWidth: .infinity).padding(.vertical, 12)
+            .background(primary ? AnyShapeStyle(Cumbre.terraFill) : AnyShapeStyle(Cumbre.bg.opacity(0.85)), in: Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func adminChip(_ title: String, icon: String, tint: Color,
+                           action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: icon).font(.system(size: 12, weight: .semibold))
+                Text(title).font(.system(size: 13, weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
+            }
+            .foregroundStyle(tint)
+            .frame(maxWidth: .infinity).padding(.vertical, 8)
+            .background(Cumbre.bg.opacity(0.7), in: Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Aviso del modo MOVER (admin): toca el sitio nuevo y GUARDAR AQUÍ lo deja puesto al momento.
+    private func moveBanner(_ b: Block) -> some View {
+        let name = b.name.isEmpty ? typeLabel(b.type) : b.name
+        return HStack(spacing: 12) {
+            Image(systemName: "mappin.and.ellipse").font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 34, height: 34)
+                .background(Cumbre.terraFill, in: Circle())
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L("Mover «%@»", name)).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                    .lineLimit(1)
+                Text(movePending == nil ? L("Toca en el mapa el sitio nuevo") : L("Toca otra vez para cambiarlo"))
+                    .font(.system(size: 13)).foregroundStyle(Cumbre.ink2).lineLimit(2)
+            }
+            Spacer(minLength: 4)
+            Button(NSLocalizedString("common_cancel", comment: "")) {
+                movingBlock = nil
+                movePending = nil
+            }
+            .font(.system(size: 14, weight: .medium)).foregroundStyle(Cumbre.ink2)
+            .buttonStyle(.plain)
+            if movePending != nil {
+                Button { Task { await saveMove() } } label: {
+                    Text(savingMove ? L("Guardando…") : L("Guardar aquí"))
+                        .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+                        .padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(Cumbre.terraFill, in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(savingMove)
+            }
+        }
+        .padding(12)
+        .background(Cumbre.bg.opacity(0.55), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(.white.opacity(0.55), lineWidth: 1))
+        .shadow(color: .black.opacity(0.22), radius: 16, y: 8)
+        .padding(.horizontal, 10).padding(.top, 10)
+    }
+
+    /// Guarda el sitio nuevo directamente (admin): mismo pedido que Gestionar bloques, que conserva las vías.
+    private func saveMove() async {
+        guard let b = movingBlock, let p = movePending else { return }
+        savingMove = true
+        defer { savingMove = false }
+        do {
+            _ = try await AppDependencies.shared.container.updateBlock.invoke(blockId: b.id, req: blockMoveRequest(b, to: p))
+        } catch {
+            ErrorPresenter.shared.show(L("No se pudo mover. Revisa la conexión e inténtalo otra vez."))
+            return
+        }
+        movingBlock = nil
+        movePending = nil
+        if let fresh = await vm.reloadBlocks(school: school, selectedId: selectedBlock?.id) { selectedBlock = fresh }
+        if let moved = vm.blocks.first(where: { $0.id == b.id }) { miniBlock = moved }
     }
 
     /// Sectores y parkings arriba, cada uno en SU fila y SIN rótulos: el símbolo ya lo dice (S = sector, P = parking).

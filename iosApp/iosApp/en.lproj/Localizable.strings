@@ -1842,3 +1842,14 @@
 "Comparar tus favoritas" = "Compare your favorites";
 "Aún no tienes vías como proyecto" = "You don't have any routes as projects yet";
 "Aún no tienes bloques como proyecto" = "You don't have any boulders as projects yet";
+"Ver piedras" = "Show boulders";
+"Ocultar piedras" = "Hide boulders";
+"Seguir camino" = "Follow path";
+"Mover" = "Move";
+"Editar" = "Edit";
+"Mover «%@»" = "Move «%@»";
+"Toca en el mapa el sitio nuevo" = "Tap the new spot on the map";
+"Toca otra vez para cambiarlo" = "Tap again to change it";
+"Guardando…" = "Saving…";
+"Guardar aquí" = "Save here";
+"No se pudo mover. Revisa la conexión e inténtalo otra vez." = "Couldn't move it. Check your connection and try again.";
