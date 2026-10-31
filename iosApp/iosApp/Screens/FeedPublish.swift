@@ -81,12 +81,12 @@ struct AscentSheet: View {
     /// Todos los grados en orden (4a, 4a+, ... 8c+).
     private static let allGrades = ["4", "5", "6", "7", "8"].flatMap { n in AscentSheet.suffixes.map { n + $0 } }
 
-    /// El de al lado por abajo, el del equipador y el de al lado por arriba: lo que se vota casi siempre.
+    /// Dos por abajo, el del equipador y dos por arriba: lo que se vota casi siempre.
     /// Vacío si el grado de la vía no es uno de la lista (doble, fuera de rango…).
     private var quickGrades: [String] {
         guard let g = setterGrade?.trimmingCharacters(in: .whitespaces).lowercased(),
               let i = Self.allGrades.firstIndex(of: g) else { return [] }
-        return [i - 1, i, i + 1].compactMap { Self.allGrades.indices.contains($0) ? Self.allGrades[$0] : nil }
+        return [i - 2, i - 1, i, i + 1, i + 2].compactMap { Self.allGrades.indices.contains($0) ? Self.allGrades[$0] : nil }
     }
 
     private func requestCamera() {
@@ -273,7 +273,7 @@ struct AscentSheet: View {
                 }
             }
             if !quickGrades.isEmpty {
-                HStack(spacing: 6) { ForEach(quickGrades, id: \.self) { gradeButton($0) } }
+                HStack(spacing: 5) { ForEach(quickGrades, id: \.self) { gradeButton($0) } }
             }
             if showAllGrades || quickGrades.isEmpty {
                 ForEach(["4", "5", "6", "7", "8"], id: \.self) { n in
