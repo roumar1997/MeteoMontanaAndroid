@@ -301,13 +301,7 @@ struct GradeVoteSheet: View {
     /// Qué voto queda al pulsar [g]: si ya está elegido, se quita de un voto doble (queda el otro); si es el contiguo
     /// del grado elegido, el voto pasa a ser el PAR (6b/6b+, de menor a mayor); si no, es el nuevo voto.
     private func nextVote(tapping g: String, current: String?) -> String {
-        let parts = gradeParts(current)
-        guard let gi = allGrades.firstIndex(of: g) else { return g }
-        if parts.contains(g) { return parts.count == 2 ? (parts[0] == g ? parts[1] : parts[0]) : g }
-        if parts.count == 1, let pi = allGrades.firstIndex(of: parts[0]), abs(pi - gi) == 1 {
-            return pi < gi ? parts[0] + "/" + g : g + "/" + parts[0]
-        }
-        return g
+        nextGradeVote(tapping: g, current: current) ?? g
     }
 
     var body: some View {

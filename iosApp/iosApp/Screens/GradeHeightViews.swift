@@ -11,6 +11,23 @@ func gradeParts(_ grade: String?) -> [String] {
     return g.split(separator: "/").map { String($0).trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
 }
 
+/// Todos los grados en orden (4a, 4a+, ... 8c+): sirve para saber cuáles son contiguos.
+let voteGradesInOrder: [String] =
+    ["4", "5", "6", "7", "8"].flatMap { n in ["a", "a+", "b", "b+", "c", "c+"].map { n + $0 } }
+
+/// Qué voto queda al pulsar [g] teniendo ya [current]: si ya está elegido, se quita de un voto doble (queda el otro)
+/// o, si era el único, se deselecciona (nil); si es el contiguo del grado elegido, el voto pasa a ser el PAR
+/// (6b/6b+, de menor a mayor); si no, es el nuevo voto.
+func nextGradeVote(tapping g: String, current: String?) -> String? {
+    let parts = gradeParts(current)
+    guard let gi = voteGradesInOrder.firstIndex(of: g) else { return g }
+    if parts.contains(g) { return parts.count == 2 ? (parts[0] == g ? parts[1] : parts[0]) : nil }
+    if parts.count == 1, let pi = voteGradesInOrder.firstIndex(of: parts[0]), abs(pi - gi) == 1 {
+        return pi < gi ? parts[0] + "/" + g : g + "/" + parts[0]
+    }
+    return g
+}
+
 /// ¿Cuadra este grado con los filtros elegidos? Sin filtros, todo. Un grado doble cuadra si CUALQUIERA de sus dos
 /// grados está elegido (así "6b+/6c" sale al filtrar por 6b+ y también al filtrar por 6c).
 func gradeMatches(_ grade: String?, anyOf filters: Set<String>) -> Bool {

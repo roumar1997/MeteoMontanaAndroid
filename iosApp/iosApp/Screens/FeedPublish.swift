@@ -107,8 +107,8 @@ struct AscentSheet: View {
 
     /// Pulsar un grado: si aún no se ha dicho la altura se pide primero (una sola vez en la vida); pulsar el mismo otra vez lo quita.
     private func tapGrade(_ g: String) {
-        if votes.myHeight == nil { pendingVote = g; return }
-        vote = (vote == g) ? nil : g
+        if votes.myHeight == nil { pendingVote = nextGradeVote(tapping: g, current: pendingVote); return }
+        vote = nextGradeVote(tapping: g, current: vote)
     }
 
     private func save() {
@@ -299,7 +299,7 @@ struct AscentSheet: View {
 
     /// Cada grado con SU color; el elegido va relleno.
     private func gradeButton(_ g: String) -> some View {
-        let selected = vote == g || pendingVote == g
+        let selected = gradeParts(vote ?? pendingVote).contains(g)
         let style = GradeColor.chipStyle(g)
         let accent = style.dark ? Cumbre.ink : style.stroke
         return Button { tapGrade(g) } label: {
