@@ -204,7 +204,7 @@ struct JournalRow: View {
     var info: ViaCatalogInfo? = nil
     /// C3: cambiar la fecha de la entrada (nil = no editable, diario ajeno).
     var onChangeDate: ((String) -> Void)? = nil
-    /// Cambiar el estilo (a vista / al flash), independientes entre sí.
+    /// Cambiar el estilo (a vista / al flash), excluyentes: encender uno apaga el otro.
     /// nil = no editable (diario ajeno).
     var onChangeStyle: ((_ aVista: Bool, _ alFlash: Bool) -> Void)? = nil
     /// nil → fila de solo lectura (diario de otro usuario, no se puede borrar).
@@ -286,12 +286,12 @@ struct JournalRow: View {
                     HStack(spacing: 4) {
                         if entry.aVista || onChangeStyle != nil {
                             styleBadge(L("A VISTA"), active: entry.aVista) {
-                                onChangeStyle?(!entry.aVista, entry.alFlash)
+                                onChangeStyle?(!entry.aVista, false)
                             }
                         }
                         if entry.alFlash || onChangeStyle != nil {
                             styleBadge(L("AL FLASH"), active: entry.alFlash) {
-                                onChangeStyle?(entry.aVista, !entry.alFlash)
+                                onChangeStyle?(false, !entry.alFlash)
                             }
                         }
                     }

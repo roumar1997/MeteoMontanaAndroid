@@ -130,7 +130,7 @@ final class AccountViewModel: ObservableObject {
         await load()
     }
 
-    /** Cambiar el estilo (a vista / al flash) de una entrada. Independientes. */
+    /** Cambiar el estilo (a vista / al flash) de una entrada. Excluyentes (uno u otro). */
     func changeStyle(_ id: String, _ aVista: Bool, _ alFlash: Bool) async {
         _ = await reporting(L("No se pudo cambiar el estilo"), {
             try await AppDependencies.shared.container.updateJournalStyle.invoke(
