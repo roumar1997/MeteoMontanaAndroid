@@ -347,3 +347,4 @@ topos (líneas sobre foto), tema visual Cumbre, autenticación Firebase.
 - 2026-11-03 · iOS build 338: tocar la foto de una piedra en la guía abre la piedra (y al cerrar vuelve al mismo sitio), mapa de la escuela plegado, foto aérea de cada sector (satélite con sus piedras) al inicio del sector en la guía y en el PDF, y los saltos del PDF ya no dejan la foto de la piedra fuera.
 - 2026-11-03 · iOS build 339: los saltos del PDF dejan 170 pt por encima de la piedra (la barra de Archivos tapaba la foto); si no cabe, apuntan al final de la página anterior.
 - 2026-11-03 · iOS build 340: el PDF de la guía ya no lleva casillas de marcar en las vías.
+- 2026-11-03 · iOS build 340 (cont.): fotos y mapas del PDF reducidos a JPEG (pesaba 104 MB).

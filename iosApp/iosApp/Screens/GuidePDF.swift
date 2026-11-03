@@ -47,7 +47,7 @@ enum GuidePDF {
         // Las fotos primero (async); luego se dibuja todo de una vez.
         var photos: [String: UIImage] = [:]
         for s in sectors { for b in s.blocks { for f in b.faces {
-            if let p = f.photo, photos[p] == nil, let img = await ImageCache.image(p) { photos[p] = img }
+            if let p = f.photo, photos[p] == nil, let img = await ImageCache.image(p) { photos[p] = compact(img) }
         } } }
 
         let safeName = schoolName.replacingOccurrences(of: "/", with: "-")
@@ -55,8 +55,9 @@ enum GuidePDF {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent(L("Guía %@%@", safeName, suffix) + ".pdf")
 
+        let maps = sectorMaps.mapValues { compact($0, maxSide: 1100) }
         let input = Writer.Input(school: schoolName, sectors: sectors, overview: overview, photos: photos,
-                                 sectorMaps: sectorMaps)
+                                 sectorMaps: maps)
         // 1ª pasada en vacío: en qué página empieza cada sector y cuántas hay (el índice y el pie las necesitan).
         var plan = Writer.Plan()
         _ = UIGraphicsPDFRenderer(bounds: page).pdfData { ctx in
@@ -269,7 +270,7 @@ private final class Writer {
             let h = min(P.page.width * ov.image.size.height / max(ov.image.size.width, 1), 470)
             let w = h * ov.image.size.width / max(ov.image.size.height, 1)
             let r = CGRect(x: (P.page.width - w) / 2, y: 0, width: w, height: h)
-            ov.image.draw(in: r)
+            GuidePDF.compact(ov.image, maxSide: 1400).draw(in: r)
             for s in ov.sectors {
                 let t = s.name.uppercased()
                 let size = P.pillSize(t, P.mono(6.5), padH: 5, padV: 2.5)
@@ -635,5 +636,19 @@ private final class Writer {
             sep.move(to: CGPoint(x: innerX, y: ry + height - 0.5)); sep.addLine(to: CGPoint(x: innerX + innerW, y: ry + height - 0.5))
             sep.lineWidth = 1; sep.stroke()
         }
+    }
+}
+
+extension GuidePDF {
+    /// Foto reducida y pasada a JPEG antes de meterla en el PDF: las fotos tal cual (y los mapas en PNG) hacían
+    /// un PDF de más de 100 MB. Con 1000 px de lado y calidad 0,7 se ve igual de bien en el móvil y al imprimir.
+    static func compact(_ img: UIImage, maxSide: CGFloat = 1000) -> UIImage {
+        let side = max(img.size.width, img.size.height)
+        let scale = min(1, maxSide / max(side, 1))
+        let size = CGSize(width: floor(img.size.width * scale), height: floor(img.size.height * scale))
+        let format = UIGraphicsImageRendererFormat(); format.scale = 1
+        let small = UIGraphicsImageRenderer(size: size, format: format).image { _ in img.draw(in: CGRect(origin: .zero, size: size)) }
+        guard let data = small.jpegData(compressionQuality: 0.7), let jpeg = UIImage(data: data) else { return small }
+        return jpeg
     }
 }
