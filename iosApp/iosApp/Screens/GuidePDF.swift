@@ -331,12 +331,119 @@ private final class Writer {
         }
         y += P.text(currentSector, P.serif(40), P.dark, x: P.margin, y: y, width: cx - P.margin - 10) + 18
 
+        sectorHero(s)
+        sectorIndex(s)
+
+        // Las piedras empiezan en página nueva, después del resumen del sector.
+        lightPage(continuing: true)
         for b in s.blocks {
             let faces = b.faces
             for (fi, face) in faces.enumerated() {
                 faceCard(block: b, face: face, faceIndex: fi, faceCount: faces.count)
             }
         }
+    }
+
+    // MARK: Inicio de sector: foto + todas sus vías por grado
+
+    /// Una foto del sector (la de su primera piedra con foto), ancha y recortada, sin líneas.
+    private func sectorHero(_ s: GuideSector) {
+        guard let path = s.blocks.lazy.flatMap({ $0.faces }).compactMap({ $0.photo }).first(where: { input.photos[$0] != nil }),
+              let img = input.photos[path] else { return }
+        let r = CGRect(x: P.margin, y: y, width: P.contentW, height: 190)
+        cg.saveGState()
+        UIBezierPath(roundedRect: r, cornerRadius: 16).addClip()
+        // Rellena el marco (como "cover"): escala por el lado que más falte y centra.
+        let scale = max(r.width / img.size.width, r.height / img.size.height)
+        let w = img.size.width * scale, h = img.size.height * scale
+        img.draw(in: CGRect(x: r.midX - w / 2, y: r.midY - h / 2, width: w, height: h))
+        cg.restoreGState()
+        y += r.height + 20
+    }
+
+    /// TODAS las vías del sector agrupadas por grado (de fácil a difícil), cada grupo con su color. Cada vía es
+    /// una etiqueta que SALTA a la tarjeta de su piedra.
+    private func sectorIndex(_ s: GuideSector) {
+        P.text(L("TODAS LAS VÍAS · TOCA UNA PARA IR A SU PIEDRA"), P.mono(8), P.terra, x: P.margin, y: y, width: P.contentW)
+        y += 18
+        var byGrade: [String: [(GuideBlock, LineSearchHit)]] = [:]
+        for b in s.blocks { for h in b.lines { byGrade[h.grade ?? "?", default: []].append((b, h)) } }
+        let grades = byGrade.keys.sorted { Writer.gradeScore($0) < Writer.gradeScore($1) }
+
+        let labelW: CGFloat = 50
+        let chipFont = UIFont.systemFont(ofSize: 9, weight: .semibold)
+        let stoneFont = P.mono(7.5, bold: false)
+        for g in grades {
+            let style = GradeColor.style(g)
+            let color = UIColor(style.stroke)
+            // Altura que ocupará el grupo (para no partirlo entre páginas si cabe entero en la siguiente).
+            var x = P.margin + labelW, rows = 1
+            for (b, h) in byGrade[g] ?? [] {
+                let w = chipWidth(h.lineName ?? b.blockName, stone: b.blockName, chipFont, stoneFont)
+                if x + w > P.page.width - P.margin { x = P.margin + labelW; rows += 1 }
+                x += w + 5
+            }
+            let groupH = CGFloat(rows) * 25 + 8
+            if y + min(groupH, 120) > P.bottomLimit { lightPage(continuing: true) }
+
+            // Grado: pastilla de su color a la izquierda.
+            let gp = CGRect(x: P.margin, y: y + 1, width: 40, height: 20)
+            let gpath = UIBezierPath(roundedRect: gp, cornerRadius: 8)
+            (style.dark ? UIColor.white : color).setFill(); gpath.fill()
+            if style.dark { P.box.setStroke(); gpath.lineWidth = 1.2; gpath.stroke() }
+            let ga = NSAttributedString(string: g, attributes: [
+                .font: UIFont.systemFont(ofSize: 10, weight: .bold), .foregroundColor: style.dark ? P.dark : UIColor.white
+            ])
+            ga.draw(at: CGPoint(x: gp.midX - ga.size().width / 2, y: gp.midY - ga.size().height / 2))
+
+            // Sus vías: etiquetas blancas con un punto del color del grado y la piedra en gris.
+            x = P.margin + labelW
+            for (b, h) in byGrade[g] ?? [] {
+                let name = h.lineName ?? b.blockName
+                let w = chipWidth(name, stone: b.blockName, chipFont, stoneFont)
+                if x + w > P.page.width - P.margin {
+                    x = P.margin + labelW; y += 25
+                    if y + 22 > P.bottomLimit { lightPage(continuing: true); x = P.margin + labelW }
+                }
+                let r = CGRect(x: x, y: y, width: w, height: 22)
+                let path = UIBezierPath(roundedRect: r, cornerRadius: 11)
+                UIColor.white.setFill(); path.fill()
+                P.line.setStroke(); path.lineWidth = 1; path.stroke()
+                let dot = CGRect(x: r.minX + 8, y: r.midY - 3.5, width: 7, height: 7)
+                color.setFill(); UIBezierPath(ovalIn: dot).fill()
+                if style.dark { P.box.setStroke(); let d = UIBezierPath(ovalIn: dot); d.lineWidth = 0.8; d.stroke() }
+                let na = NSAttributedString(string: name, attributes: [.font: chipFont, .foregroundColor: P.dark])
+                na.draw(at: CGPoint(x: dot.maxX + 5, y: r.midY - na.size().height / 2))
+                let sa = NSAttributedString(string: b.blockName, attributes: [.font: stoneFont, .foregroundColor: P.muted])
+                sa.draw(at: CGPoint(x: dot.maxX + 5 + na.size().width + 5, y: r.midY - sa.size().height / 2))
+                ctx.setLinkWithDestinationName(Writer.blockDest(b.blockId), for: r)
+                x += w + 5
+            }
+            y += 25 + 8
+        }
+    }
+
+    private func chipWidth(_ name: String, stone: String, _ f: UIFont, _ sf: UIFont) -> CGFloat {
+        let n = NSAttributedString(string: name, attributes: [.font: f]).size().width
+        let s = NSAttributedString(string: stone, attributes: [.font: sf]).size().width
+        return ceil(8 + 7 + 5 + n + 5 + s + 10)
+    }
+
+    /// Nombre de destino del PDF para la tarjeta de una piedra.
+    static func blockDest(_ blockId: String) -> String {
+        "b" + blockId.filter { $0.isLetter || $0.isNumber }
+    }
+
+    /// Orden de dificultad de un grado francés (3 … 9c+); lo que no se entiende, al final.
+    static func gradeScore(_ g: String) -> Int {
+        let chars = Array((GradeRangeUI.base(g) ?? g).uppercased())
+        guard let first = chars.first, let num = first.wholeNumberValue else { return 10_000 }
+        var score = num * 100
+        if chars.count > 1, let l = "ABCD".firstIndex(of: chars[1]) {
+            score += "ABCD".distance(from: "ABCD".startIndex, to: l) * 10
+        }
+        if chars.last == "+" { score += 1 }
+        return score
     }
 
     /// Página nueva a mitad de sector, recordando de qué piedra viene.
@@ -375,6 +482,8 @@ private final class Writer {
 
         // Cabe la foto y al menos una vía; si no, página nueva.
         if y + photoH + 12 + (rows.first ?? 0) > P.bottomLimit { continuePage(from: b, startedAt: startPage) }
+        // Aquí llegan los enlaces del listado del inicio del sector.
+        if faceIndex == 0 { ctx.setDestinationWithName(Writer.blockDest(b.blockId), for: CGPoint(x: 0, y: y)) }
 
         var idx = 0
         var withPhoto = true
