@@ -39,7 +39,7 @@ enum GuidePDF {
     // MARK: - Entrada
 
     /// Genera el PDF y devuelve el fichero. `onlySector` = solo ese sector (su `key`); nil = toda la guía.
-    static func make(schoolName: String, guide: GuideView, overview: GuideOverview?,
+    static func make(schoolName: String, guide: GuideView, overview: GuideOverview?, sectorMaps: [String: UIImage] = [:],
                      onlySector: String?) async -> URL? {
         let sectors = guide.sectors.filter { onlySector == nil || $0.key == onlySector }
         guard !sectors.isEmpty else { return nil }
@@ -55,7 +55,8 @@ enum GuidePDF {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent(L("Guía %@%@", safeName, suffix) + ".pdf")
 
-        let input = Writer.Input(school: schoolName, sectors: sectors, overview: overview, photos: photos)
+        let input = Writer.Input(school: schoolName, sectors: sectors, overview: overview, photos: photos,
+                                 sectorMaps: sectorMaps)
         // 1ª pasada en vacío: en qué página empieza cada sector y cuántas hay (el índice y el pie las necesitan).
         var plan = Writer.Plan()
         _ = UIGraphicsPDFRenderer(bounds: page).pdfData { ctx in
@@ -81,7 +82,10 @@ enum GuidePDF {
             // PDF cuenta la altura desde ABAJO; al dibujar la contamos desde arriba.
             let bounds = CGRect(x: l.rect.minX, y: page.height - l.rect.maxY, width: l.rect.width, height: l.rect.height)
             let a = PDFAnnotation(bounds: bounds, forType: .link, withProperties: nil)
-            a.action = PDFActionGoTo(destination: PDFDestination(page: to, at: CGPoint(x: 0, y: page.height - target.y)))
+            // Archivos deja el destino bastante por debajo del borde de arriba (se perdía la foto de la piedra):
+            // si la tarjeta está en la mitad de arriba se salta al principio de la página; si no, con margen.
+            let topY: CGFloat = target.y < page.height / 2 ? page.height : page.height - target.y + 60
+            a.action = PDFActionGoTo(destination: PDFDestination(page: to, at: CGPoint(x: 0, y: topY)))
             a.border = PDFBorder()
             a.border?.lineWidth = 0
             from.addAnnotation(a)
@@ -199,6 +203,8 @@ private final class Writer {
         let sectors: [GuideSector]
         let overview: GuideOverview?
         let photos: [String: UIImage]
+        /// Foto aérea de cada sector (clave → imagen): la portada del sector. Sin ella, la foto de una piedra.
+        let sectorMaps: [String: UIImage]
     }
     /// Lo que la 1ª pasada averigua para la 2ª.
     struct Plan {
@@ -394,6 +400,16 @@ private final class Writer {
 
     /// Una foto del sector (la de su primera piedra con foto), ancha y recortada, sin líneas.
     private func sectorHero(_ s: GuideSector) {
+        // Primero la foto aérea del sector (satélite acercado con sus piedras); si no hay, la de una piedra.
+        if let map = input.sectorMaps[s.key] {
+            let r = CGRect(x: P.margin, y: y, width: P.contentW, height: P.contentW * map.size.height / max(map.size.width, 1))
+            cg.saveGState()
+            UIBezierPath(roundedRect: r, cornerRadius: 16).addClip()
+            map.draw(in: r)
+            cg.restoreGState()
+            y += r.height + 20
+            return
+        }
         guard let path = s.blocks.lazy.flatMap({ $0.faces }).compactMap({ $0.photo }).first(where: { input.photos[$0] != nil }),
               let img = input.photos[path] else { return }
         let r = CGRect(x: P.margin, y: y, width: P.contentW, height: 190)

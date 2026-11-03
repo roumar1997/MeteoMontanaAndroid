@@ -19,6 +19,8 @@ struct SchoolBlocksExplorerView: View {
     /// Restricciones en vigor (las da la ficha): "!" en el sector y en cada vía afectada.
     @Environment(\.schoolRestrictions) private var restrictionsUI
     @State private var overviewOpen = false
+    /// Mapa de la escuela desplegado en la guía (plegado al entrar).
+    @State private var mapExpanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -239,7 +241,25 @@ struct SchoolBlocksExplorerView: View {
     /// botón de descargar la guía en PDF (toda o un sector).
     private var overviewCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if model.isOnline && !model.overviewBlocks.isEmpty {
+            // El mapa sale PLEGADO: una barra que lo despliega (ocupa mucho y casi siempre se va a la lista).
+            if (model.isOnline && !model.overviewBlocks.isEmpty) || model.overview != nil {
+                Button { withAnimation(.snappy(duration: 0.25)) { mapExpanded.toggle() } } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "map").font(.system(size: 14, weight: .semibold))
+                        Text(L("Mapa de la escuela")).font(.system(size: 14, weight: .semibold))
+                        Spacer()
+                        Image(systemName: mapExpanded ? "chevron.up" : "chevron.down").font(.system(size: 12, weight: .bold))
+                    }
+                    .foregroundStyle(Cumbre.ink)
+                    .padding(.horizontal, 14).padding(.vertical, 11)
+                    .background(Color.white, in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+            if !mapExpanded {
+                EmptyView()
+            } else if model.isOnline && !model.overviewBlocks.isEmpty {
                 // Con red: el mapa real AQUÍ MISMO (pellizcar para acercar, sin tener que ampliar).
                 GuideLiveMap(blocks: model.overviewBlocks, onSector: { model.jumpToSector($0) }, embedded: true)
                     .frame(height: 300)
@@ -293,14 +313,14 @@ struct SchoolBlocksExplorerView: View {
                 }
             }
             Menu {
-                Button { Task { await model.exportPDF(schoolName: school.name, sectorKey: nil) } } label: {
+                Button { Task { await model.exportPDF(schoolId: school.id, schoolName: school.name, sectorKey: nil) } } label: {
                     Label(L("Toda la escuela"), systemImage: "book")
                 }
                 if let g = model.guideView, g.sectors.count > 1 {
                     Section(L("Solo un sector")) {
                         ForEach(g.sectors, id: \.key) { s in
                             Button(s.unknownFace ? L("Sin orientación votada") : (s.sector ?? L("Sin sector"))) {
-                                Task { await model.exportPDF(schoolName: school.name, sectorKey: s.key) }
+                                Task { await model.exportPDF(schoolId: school.id, schoolName: school.name, sectorKey: s.key) }
                             }
                         }
                     }

@@ -112,8 +112,14 @@ struct SchoolGuideView: View {
     /// Foto grande del sector y TODAS sus vías agrupadas por grado, de fácil a difícil, con su color.
     /// Tocar una vía = la guía baja hasta la tarjeta de su piedra.
     @ViewBuilder private func sectorIntro(_ s: GuideSector) -> some View {
-        if let photo = s.blocks.lazy.flatMap({ $0.faces }).compactMap({ $0.photo }).first {
+        if let map = model.sectorMaps[s.key] {
+            // Foto aérea del sector con sus piedras (como en el PDF).
+            Image(uiImage: map).resizable().aspectRatio(contentMode: .fit)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+        } else if let photo = s.blocks.lazy.flatMap({ $0.faces }).compactMap({ $0.photo }).first {
             GuideHeroPhoto(path: photo)
+                .task(id: model.overviewBlocks.count) { await model.loadSectorMap(schoolId: schoolId, sector: s) }
                 .frame(height: 160).frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
         }
@@ -159,6 +165,12 @@ struct SchoolGuideView: View {
             ForEach(Array(b.faces.enumerated()), id: \.element.id) { fi, face in
                 ZStack(alignment: .top) {
                     GuideTopo(face: face, maxHeight: 240)
+                        // Tocar la foto = abrir la piedra de verdad; al cerrarla se vuelve aquí (marcapáginas).
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            mark(b.blockId)
+                            onOpen(face.lines.first?.lineId ?? b.blockId)
+                        }
                     HStack {
                         Text(L("PIEDRA %@", b.blockName.uppercased()))
                             .font(Cumbre.mono(10.5, .bold)).foregroundStyle(.white)

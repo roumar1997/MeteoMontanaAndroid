@@ -36,6 +36,57 @@ enum GuideOverviewStore {
         return GuideOverview(image: img, sectors: places)
     }
 
+    // MARK: Mapa de UN sector (portada del sector en la guía y en el PDF)
+
+    private static func sectorURL(_ schoolId: String, _ key: String) -> URL {
+        let safe = String(key.unicodeScalars.map { CharacterSet.alphanumerics.contains($0) ? Character($0) : "_" })
+        return dir.appendingPathComponent("\(schoolId)-sector-\(safe).png")
+    }
+
+    /// La foto aérea del sector: satélite acercado a SUS piedras, cada una con su icono y su nombre. Con red se
+    /// genera y se guarda; sin red, la última copia. nil si no hay piedras con posición.
+    static func sectorMap(schoolId: String, key: String, stones: [Block]) async -> UIImage? {
+        let url = sectorURL(schoolId, key)
+        let spots = stones.filter { $0.lat != 0 || $0.lon != 0 }
+        guard !spots.isEmpty else { return UIImage(contentsOfFile: url.path) }
+        let lats = spots.map(\.lat), lons = spots.map(\.lon)
+        let center = CLLocationCoordinate2D(latitude: (lats.min()! + lats.max()!) / 2,
+                                            longitude: (lons.min()! + lons.max()!) / 2)
+        let options = MKMapSnapshotter.Options()
+        options.region = MKCoordinateRegion(center: center, span: MKCoordinateSpan(
+            latitudeDelta: max((lats.max()! - lats.min()!) * 1.6, 0.0009),
+            longitudeDelta: max((lons.max()! - lons.min()!) * 1.6, 0.0013)))
+        options.size = CGSize(width: 1100, height: 520)
+        options.mapType = .satellite
+        options.pointOfInterestFilter = .excludingAll
+        guard let snap = try? await MKMapSnapshotter(options: options).start() else {
+            return UIImage(contentsOfFile: url.path)
+        }
+        let image = UIGraphicsImageRenderer(size: snap.image.size).image { ctx in
+            snap.image.draw(at: .zero)
+            let cg = ctx.cgContext
+            let nameAttrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 17, weight: .bold), .foregroundColor: UIColor.white,
+                .strokeColor: UIColor.black, .strokeWidth: -3.5
+            ]
+            for b in spots {
+                let p = snap.point(for: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon))
+                let r = CGRect(x: p.x - 19, y: p.y - 19, width: 38, height: 38)
+                cg.setFillColor(UIColor.white.cgColor); cg.fillEllipse(in: r)
+                cg.setStrokeColor(UIColor(Cumbre.terraFill).cgColor); cg.setLineWidth(2.5); cg.strokeEllipse(in: r)
+                UIImage(named: stoneIconName(b))?
+                    .withTintColor(UIColor(Cumbre.terraFill), renderingMode: .alwaysOriginal)
+                    .draw(in: r.insetBy(dx: 7, dy: 7))
+                if !b.name.isEmpty {
+                    let s = NSAttributedString(string: b.name, attributes: nameAttrs)
+                    s.draw(at: CGPoint(x: p.x + 22, y: p.y - s.size().height / 2))
+                }
+            }
+        }
+        try? image.pngData()?.write(to: url)
+        return image
+    }
+
     /// Genera el mapa (hace falta conexión para el fondo) y lo guarda. nil si no hay nada que pintar o no hay red.
     static func generate(schoolId: String, blocks: [Block]) async -> GuideOverview? {
         let stones = blocks.filter { !["ZONE", "PARKING"].contains($0.type.uppercased()) }

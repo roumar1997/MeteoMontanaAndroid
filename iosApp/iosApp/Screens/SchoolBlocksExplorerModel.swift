@@ -136,11 +136,28 @@ final class SchoolBlocksExplorerModel: ObservableObject {
         scrollToSector = key
     }
 
+    /// Foto aérea de cada sector (clave del sector → imagen), para el inicio del sector en la guía y en el PDF.
+    @Published private(set) var sectorMaps: [String: UIImage] = [:]
+
+    /// Genera (o lee de disco) la foto aérea de un sector con SUS piedras.
+    func loadSectorMap(schoolId: String, sector s: GuideSector) async {
+        guard sectorMaps[s.key] == nil else { return }
+        let ids = Set(s.blocks.map(\.blockId))
+        let stones = overviewBlocks.filter { ids.contains($0.id) }
+        if let img = await GuideOverviewStore.sectorMap(schoolId: schoolId, key: s.key, stones: stones) {
+            sectorMaps[s.key] = img
+        }
+    }
+
     /// Genera el PDF (con los filtros de ahora) y abre la hoja de compartir. `sectorKey` nil = toda la guía.
-    func exportPDF(schoolName: String, sectorKey: String?) async {
+    func exportPDF(schoolId: String, schoolName: String, sectorKey: String?) async {
         guard !makingPDF, let g = guideView else { return }
         makingPDF = true
-        let url = await GuidePDF.make(schoolName: schoolName, guide: g, overview: overview, onlySector: sectorKey)
+        for s in g.sectors where sectorKey == nil || s.key == sectorKey {
+            await loadSectorMap(schoolId: schoolId, sector: s)
+        }
+        let url = await GuidePDF.make(schoolName: schoolName, guide: g, overview: overview, sectorMaps: sectorMaps,
+                                      onlySector: sectorKey)
         makingPDF = false
         if let url { GuidePDF.share(url) }
     }
