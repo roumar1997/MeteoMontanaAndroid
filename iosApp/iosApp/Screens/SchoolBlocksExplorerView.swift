@@ -35,12 +35,40 @@ struct SchoolBlocksExplorerView: View {
                     .frame(maxWidth: .infinity, minHeight: 120)
                     .padding(.horizontal, 16)
             } else {
-                filters
-                results
+                modeSwitch
+                if model.guideMode {
+                    SchoolGuideView(sectors: model.guideSectors, splits: model.splits, onOpen: onOpen)
+                } else {
+                    filters
+                    results
+                }
             }
         }
         .task { await model.loadIfNeeded(schoolId: school.id) }
         .task(id: model.betas) { await model.loadBetaIfNeeded(schoolId: school.id) }
+    }
+
+    // MARK: - LISTA / GUÍA
+
+    /// Cambia entre la lista para BUSCAR (filtros, podio) y la guía para RECORRER (fotos, en orden de paso).
+    private var modeSwitch: some View {
+        HStack(spacing: 0) {
+            modeButton(L("LISTA"), on: !model.guideMode) { model.guideMode = false }
+            modeButton(L("GUÍA"), on: model.guideMode) { model.guideMode = true }
+        }
+        .overlay(Rectangle().stroke(Cumbre.ink, lineWidth: 1))
+        .fixedSize()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16).padding(.top, 12)
+    }
+
+    private func modeButton(_ t: String, on: Bool, action: @escaping () -> Void) -> some View {
+        Button { withAnimation(.easeInOut(duration: 0.2)) { action() } } label: {
+            Text(t).font(Cumbre.mono(11, .bold)).tracking(1.2)
+                .foregroundStyle(on ? Cumbre.bg : Cumbre.ink)
+                .padding(.horizontal, 14).padding(.vertical, 7)
+                .background(on ? Cumbre.ink : Color.clear)
+        }.buttonStyle(.plain)
     }
 
     // MARK: - Filtros

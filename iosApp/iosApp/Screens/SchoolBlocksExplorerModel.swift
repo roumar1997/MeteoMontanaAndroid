@@ -20,7 +20,15 @@ final class SchoolBlocksExplorerModel: ObservableObject {
         height == BetaHeights.shared.TALL ? "▶ +1,70" : "▶ −1,70"
     }
 
-    @Published private(set) var all: [LineSearchHit] = []
+    @Published private(set) var all: [LineSearchHit] = [] {
+        didSet { guideSectors = SchoolGuide.shared.sectors(lines: all) }
+    }
+    /// Modo GUÍA (la escuela como guía de papel). Se recuerda entre escuelas y sesiones.
+    @Published var guideMode = UserDefaults.standard.bool(forKey: "blocks_guide_mode") {
+        didSet { UserDefaults.standard.set(guideMode, forKey: "blocks_guide_mode") }
+    }
+    /// Sectores de la guía ya ordenados (se calculan una vez al bajar las vías, no en cada repintado).
+    @Published private(set) var guideSectors: [GuideSector] = []
     @Published private(set) var loading = true
     @Published private(set) var failed = false
     /// Vías de la escuela cuyo grado parte la altura (lineId → los dos grados): se pintan en dos colores en las listas.

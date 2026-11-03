@@ -1866,3 +1866,9 @@
 "Guardando…" = "Saving…";
 "Guardar aquí" = "Save here";
 "No se pudo mover. Revisa la conexión e inténtalo otra vez." = "Couldn't move it. Check your connection and try again.";
+
+/* Modo guía de BLOQUES */
+"LISTA" = "LIST";
+"GUÍA" = "GUIDE";
+"1 PIEDRA" = "1 BOULDER";
+"%@ PIEDRAS" = "%@ BOULDERS";
