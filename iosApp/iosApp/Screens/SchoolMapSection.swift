@@ -14,6 +14,8 @@ import FirebaseAuth
 struct SchoolMapSection: View {
     let school: School
     var openVia: String? = nil
+    /// "Ver en mapa" desde la guía: centra el mapa en ESTA piedra (id) SIN abrir su ficha.
+    var focusBlockId: String? = nil
     /// El buscador de vías/bloques por nombre. La ficha de escuela con pestañas lo quita del mapa (vive en BLOQUES/VÍAS);
     /// los chips de orientación se quedan.
     var showsSearch: Bool = true
@@ -159,6 +161,7 @@ struct SchoolMapSection: View {
                 _ = await vm.reloadBlocks(school: school, selectedId: nil)
             }
             maybeAutoOpen()
+            maybeFocusBlock()
             approachesLoader.load(schoolId: school.id)
             headingProvider.start()
             // Mi ubicación en CONTINUO mientras el mapa está abierto: el GPS se
@@ -180,6 +183,7 @@ struct SchoolMapSection: View {
         // Deep-link desde el diario: despliega el mapa al entrar.
         .onAppear {
             if let v = openVia, !v.isEmpty, !didAutoOpen, !expanded { expanded = true }
+            if let b = focusBlockId, !b.isEmpty, !didAutoOpen, !expanded { expanded = true }
             // "Enviar piedra": la foto ya dijo qué se propone y dónde se hizo.
             // Se abre el mapa y se espera un toque para el sitio exacto: el GPS
             // se equivoca entre 10 y 30 metros y las piedras están a metros.
@@ -204,7 +208,7 @@ struct SchoolMapSection: View {
         // caché puede traer los mismos N bloques SIN sus vías: el auto-abrir
         // fallaba (abría la escuela a secas) y como el count no cambiaba al
         // llegar los datos reales, no se reintentaba (a la 2ª vez ya iba).
-        .onChange(of: vm.blocks.reduce(0) { $0 + 1 + $1.lines.count }) { _ in maybeAutoOpen() }
+        .onChange(of: vm.blocks.reduce(0) { $0 + 1 + $1.lines.count }) { _ in maybeAutoOpen(); maybeFocusBlock() }
         // Pull-to-refresh de la ficha: vuelve a pedir las piedras (el `.task(id:
         // expanded)` de arriba solo carga si `vm.blocks` está vacío).
         .task(id: refreshTrigger) {
@@ -917,6 +921,18 @@ struct SchoolMapSection: View {
     private var coordItem: Binding<CoordItem?> {
         Binding(get: { flow.formCoord.map { CoordItem(coord: $0) } },
                 set: { if $0 == nil { flow.formCoord = nil } })
+    }
+
+    /// "Ver en mapa" (guía de BLOQUES): centra y acerca el mapa a la piedra, desplegando su sector, sin abrir la ficha.
+    private func maybeFocusBlock() {
+        guard !didAutoOpen, let id = focusBlockId, !id.isEmpty,
+              let b = vm.blocks.first(where: { $0.id == id }) else { return }
+        didAutoOpen = true
+        if let sid = b.sectorBlockId { vm.collapsedSectors.remove(sid) }
+        focusFit = []
+        focusCoord = blockMarkerCoord(b)
+        focusZoom = 18.5
+        focusToken += 1
     }
 
     /// Abre la piedra que contiene la vía indicada (deep-link del diario): busca

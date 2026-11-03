@@ -12,6 +12,8 @@ import Shared
 struct SchoolBlocksExplorerView: View {
     let school: School
     @ObservedObject var model: SchoolBlocksExplorerModel
+    /// "Ver en mapa": la ficha pasa al mapa centrado en esa piedra (id), sin abrirla.
+    let onShowOnMap: (String) -> Void
     /// Toca una vía: la ficha pasa al mapa y abre su piedra.
     let onOpen: (String) -> Void
     /// Restricciones en vigor (las da la ficha): "!" en el sector y en cada vía afectada.
@@ -38,7 +40,7 @@ struct SchoolBlocksExplorerView: View {
                 header
                 highlights
                 if let g = model.guideView {
-                    SchoolGuideView(schoolId: school.id, guide: g, model: model, onOpen: onOpen)
+                    SchoolGuideView(schoolId: school.id, guide: g, model: model, onShowOnMap: onShowOnMap, onOpen: onOpen)
                 } else {
                     SkeletonList(count: 3) { SkeletonGradeRow() }
                             .frame(maxWidth: .infinity, minHeight: 100, alignment: .top)

@@ -11,10 +11,16 @@ struct SchoolGuideView: View {
     let schoolId: String
     let guide: GuideView
     @ObservedObject var model: SchoolBlocksExplorerModel
+    /// "Ver en mapa": el mapa de la ficha centrado en la piedra (id), sin abrirla.
+    let onShowOnMap: (String) -> Void
     /// Abre la vía en el mapa de la ficha (con su piedra).
     let onOpen: (String) -> Void
     @Environment(\.schoolRestrictions) private var restrictionsUI
     @State private var zoomed: GuideBlock?
+    /// Vía a la que se le está apuntando el ascenso (hoja de ascenso abierta aquí mismo).
+    @State private var ticking: LineSearchHit?
+    /// Vía hecha que se quiere quitar del diario (se pide confirmación).
+    @State private var unmarking: LineSearchHit?
 
     var body: some View {
         LazyVStack(alignment: .leading, spacing: 10) {
@@ -28,6 +34,20 @@ struct SchoolGuideView: View {
         .padding(.horizontal, 14).padding(.bottom, 16)
         .sheet(item: Binding(get: { zoomed.map(ZoomItem.init) }, set: { if $0 == nil { zoomed = nil } })) { item in
             GuideZoomSheet(block: item.block)
+        }
+        .sheet(item: Binding(get: { ticking.map(TickItem.init) }, set: { if $0 == nil { ticking = nil } })) { item in
+            GuideAscentSheet(hit: item.hit, wasProject: model.projectIds.contains(item.id)) { choice in
+                ticking = nil
+                Task { await saveAscent(item.hit, choice: choice) }
+            }
+        }
+        .confirmationDialog(L("¿Quitar esta vía de tu diario?"),
+                            isPresented: Binding(get: { unmarking != nil }, set: { if !$0 { unmarking = nil } }),
+                            titleVisibility: .visible) {
+            Button(L("Quitar del diario"), role: .destructive) {
+                if let h = unmarking { Task { await JournalTicker.unmarkDone(ref(h)); model.refreshJournal(schoolId: schoolId) } }
+            }
+            Button(L("Cancelar"), role: .cancel) {}
         }
     }
 
@@ -112,7 +132,7 @@ struct SchoolGuideView: View {
 
             HStack(spacing: 8) {
                 actionButton(L("Ver en mapa"), icon: "map", filled: false) {
-                    if let id = b.lines.first?.lineId { onOpen(id) }
+                    onShowOnMap(b.blockId)
                 }
                 if let lat = b.lat?.doubleValue, let lon = b.lon?.doubleValue {
                     actionButton(L("Cómo llegar"), icon: "arrow.triangle.turn.up.right.diamond", filled: true) {
@@ -131,8 +151,7 @@ struct SchoolGuideView: View {
         return HStack(spacing: 9) {
             Button { onOpen(id) } label: {
                 HStack(spacing: 9) {
-                    Text("\(number)").font(Cumbre.mono(10.5, .bold)).foregroundStyle(.white)
-                        .frame(width: 20, height: 20).background(GradeColor.color(h.grade), in: Circle())
+                    NumberBadge(number: number, grade: h.grade, size: 20)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(h.lineName ?? h.blockName).font(.system(size: 14.5, weight: .semibold))
                             .foregroundStyle(Cumbre.ink).lineLimit(2).multilineTextAlignment(.leading)
@@ -145,35 +164,68 @@ struct SchoolGuideView: View {
                 }
                 .contentShape(Rectangle())
             }.buttonStyle(.plain)
-            tickButton(id)
+            tickButton(h)
         }
         .padding(.horizontal, 12).padding(.vertical, 9)
         .overlay(alignment: .top) { Divider().overlay(Cumbre.rule.opacity(0.6)) }
     }
 
-    /// ✓ verde = hecha · ◐ naranja = proyecto · vacío = sin hacer. Tocar abre la piedra con la hoja de ascenso de esa
-    /// vía ya lanzada (se guarda en tu diario con la lógica de siempre). Si ya está hecha, solo abre la piedra.
-    private func tickButton(_ id: String) -> some View {
+    /// ✓ verde = hecha · ◐ naranja = proyecto · vacío = sin hacer.
+    /// Tocar (sin hacer o proyecto) = la hoja de ascenso AQUÍ MISMO; tocar una hecha = quitarla (con confirmación).
+    /// Mantener pulsado = marcar / quitar como proyecto.
+    private func tickButton(_ h: LineSearchHit) -> some View {
+        let id = h.lineId ?? ""
         let done = model.doneIds.contains(id)
         let project = model.projectIds.contains(id)
-        return Button {
-            if !done { GuideTickRequest.shared.request(id) }
-            onOpen(id)
-        } label: {
-            ZStack {
-                Circle().fill(done ? Cumbre.ok : Color.clear)
-                Circle().stroke(done ? Cumbre.ok : (project ? Cumbre.warn : Cumbre.rule), lineWidth: 1.5)
-                if done {
-                    Image(systemName: "checkmark").font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
-                } else if project {
-                    Image(systemName: "circle.lefthalf.filled").font(.system(size: 13)).foregroundStyle(Cumbre.warn)
-                }
+        return ZStack {
+            Circle().fill(done ? Cumbre.ok : Color.clear)
+            Circle().stroke(done ? Cumbre.ok : (project ? Cumbre.warn : Cumbre.rule), lineWidth: 1.5)
+            if done {
+                Image(systemName: "checkmark").font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
+            } else if project {
+                Image(systemName: "circle.lefthalf.filled").font(.system(size: 13)).foregroundStyle(Cumbre.warn)
             }
-            .frame(width: 28, height: 28)
-            .contentShape(Circle())
         }
-        .buttonStyle(.plain)
+        .frame(width: 30, height: 30)
+        .contentShape(Circle())
+        .onTapGesture {
+            if done { unmarking = h } else { ticking = h }
+        }
+        .onLongPressGesture(minimumDuration: 0.4) {
+            guard !done else { return }
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            Task {
+                if project { await JournalTicker.removeProject(ref(h)) } else { await JournalTicker.markProject(ref(h)) }
+                model.refreshJournal(schoolId: schoolId)
+            }
+        }
+        .accessibilityElement()
         .accessibilityLabel(done ? L("Hecha") : project ? L("Proyecto") : L("Marcar como hecha"))
+        .accessibilityAddTraits(.isButton)
+    }
+
+    /// La vía tal como la necesita el diario.
+    private func ref(_ h: LineSearchHit) -> JournalLineRef {
+        JournalLineRef(
+            schoolId: h.schoolId, schoolName: h.schoolName, sectorName: h.sectorName,
+            discipline: h.discipline ?? "BOULDER", blockId: h.blockId, lineId: h.lineId ?? "",
+            viaName: h.lineName ?? h.blockName, grade: h.grade)
+    }
+
+    /// Lo mismo que hace la ficha de la piedra al guardar la hoja de ascenso: diario primero (el voto de grado solo lo
+    /// acepta el servidor de quien ya la tiene en él), luego Comunidad y el voto.
+    private func saveAscent(_ h: LineSearchHit, choice: AscentChoice) async {
+        let r = ref(h)
+        let wasProject = model.projectIds.contains(r.lineId)
+        await JournalTicker.markDone(r, wasProject: wasProject, sessionDate: choice.sessionDate,
+                                     aVista: choice.aVista, alFlash: choice.alFlash)
+        model.refreshJournal(schoolId: schoolId)
+        if choice.publish {
+            JournalTicker.publish(r, wasProject: wasProject, caption: choice.caption, photo: choice.photo)
+        }
+        if let g = choice.gradeVote, !r.lineId.isEmpty {
+            _ = await CommunityVoteStore().voteGrade(lineId: r.lineId, grade: g)
+        }
     }
 
     private func actionButton(_ t: String, icon: String, filled: Bool, action: @escaping () -> Void) -> some View {
@@ -201,16 +253,51 @@ struct SchoolGuideView: View {
         let block: GuideBlock
         var id: String { block.blockId }
     }
+
+    private struct TickItem: Identifiable {
+        let hit: LineSearchHit
+        var id: String { hit.lineId ?? hit.blockId }
+    }
 }
 
-/// Pide a la hoja de la piedra que, al abrirse, lance la hoja de ascenso de una vía (marcar desde la guía).
-/// Un solo uso: quien lo recoge lo borra, así que abrir la piedra otra vez por otro camino no marca nada.
-@MainActor
-final class GuideTickRequest {
-    static let shared = GuideTickRequest()
-    private var lineId: String?
-    func request(_ id: String) { lineId = id }
-    func take() -> String? { defer { lineId = nil }; return lineId }
+/// Número de la vía en el color de su grado. Los grados BLANCOS (≤5c+) llevan el número en tinta y un borde: en
+/// blanco sobre blanco no se veía (Álvaro, 2026-11-03).
+struct NumberBadge: View {
+    let number: Int
+    let grade: String?
+    var size: CGFloat = 20
+
+    var body: some View {
+        let light = GradeColor.style(grade).dark
+        Text("\(number)").font(Cumbre.mono(size * 0.52, .bold))
+            .foregroundStyle(light ? Color(hex: 0x111111) : .white)
+            .frame(width: size, height: size)
+            .background(GradeColor.color(grade), in: Circle())
+            .overlay(Circle().stroke(light ? Color(hex: 0x111111).opacity(0.45) : .white.opacity(0.9), lineWidth: 1))
+    }
+}
+
+/// La hoja de ascenso de siempre, abierta desde la guía con su propia votación de grado (necesita saber tu altura).
+private struct GuideAscentSheet: View {
+    let hit: LineSearchHit
+    let wasProject: Bool
+    let onSave: (AscentChoice) -> Void
+    @StateObject private var votes = CommunityVoteStore()
+
+    var body: some View {
+        let name = hit.lineName ?? hit.blockName
+        AscentSheet(
+            lineLabel: hit.grade.map { "\(name) · \($0)" } ?? name,
+            lineName: name,
+            setterGrade: hit.grade,
+            wasProject: wasProject,
+            votes: votes,
+            onSave: onSave)
+        .task {
+            await votes.loadMyHeight()
+            if let id = hit.lineId { await votes.loadGrade(lineId: id) }
+        }
+    }
 }
 
 private struct ProgressBar: View {
@@ -264,10 +351,7 @@ struct GuideTopo: View {
                             .shadow(color: .black.opacity(0.45), radius: 1)
                         // El pie de la vía es el punto más bajo del trazo.
                         let foot = pts.max(by: { $0.y < $1.y }) ?? pts[0]
-                        Text("\(n + 1)").font(Cumbre.mono(10, .bold)).foregroundStyle(.white)
-                            .frame(width: 18, height: 18)
-                            .background(GradeColor.color(h.grade), in: Circle())
-                            .overlay(Circle().stroke(.white, lineWidth: 1))
+                        NumberBadge(number: n + 1, grade: h.grade, size: 18)
                             .position(x: foot.x, y: min(foot.y, geo.size.height - 10))
                     }
                 }

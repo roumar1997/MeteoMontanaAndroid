@@ -480,18 +480,7 @@ struct BlockInfoSheet: View {
             } message: {
                 Text("Se borrará del mapa para todos. No se puede deshacer.")
             }
-            .task {
-                await loadDone()
-                // Marcar desde la GUÍA: la piedra se abre con la hoja de ascenso ya lanzada para esa vía (misma
-                // lógica de diario de siempre, sin duplicarla). Breve espera: no se puede presentar una hoja
-                // mientras esta aún está subiendo.
-                if let id = GuideTickRequest.shared.take(),
-                   let idx = block.lines.firstIndex(where: { $0.id == id }),
-                   !tickedLines.contains(id) {
-                    try? await Task.sleep(nanoseconds: 600_000_000)
-                    onTickTapped(block.lines[idx], index: idx)
-                }
-            }
+            .task { await loadDone() }
             // Hoja de publicar el tick en el feed Comunidad (estilo Cumbre).
             // Cerrar la hoja = no marcar nada.
             .sheet(item: $pendingTick) { pt in
@@ -624,175 +613,52 @@ struct BlockInfoSheet: View {
         return label
     }
 
-    /// Publica el tick en el feed Comunidad (fire-and-forget: si falla no
-    /// bloquea ni deshace el diario). kind = PROJECT_DONE si la vía estaba en
-    /// proyectos; TICK en el resto. Ids del backend = String (UUID) tal cual.
-    private func publishTickToFeed(_ line: BlockLine, wasProject: Bool,
-                                   caption: String? = nil, photo: UIImage? = nil) {
-        let kind = wasProject ? "PROJECT_DONE" : "TICK"
-        let discipline = block.discipline.uppercased() == "ROUTE" ? "ROUTE" : "BOULDER"
-        let lineId: String? = line.id.isEmpty ? nil : line.id
-        Task {
-            let container = AppDependencies.shared.container
-            guard let postId = await reporting(L("No se pudo publicar el ascenso"), {
-                try await container.publishFeedPost.invoke(
-                    blockId: block.id, lineId: lineId, kind: kind, discipline: discipline,
-                    caption: caption)
-            }) else { return }
-            // Foto de celebración (opcional): comprimir (máx 1024 px, JPEG 0.8,
-            // mismo pipeline que StorageUploader) y subirla como multipart. Si
-            // falla, el post queda publicado sin foto (aviso discreto).
-            guard let photo else { return }
-            guard let data = feedPhotoJPEGData(photo) else {
-                await showFeedPhotoUploadFailedAlert()
-                return
-            }
-            do {
-                _ = try await container.uploadFeedPhoto.invoke(
-                    postId: postId.int64Value, bytes: data.toKotlinByteArray(),
-                    contentType: "image/jpeg")
-            } catch {
-                await showFeedPhotoUploadFailedAlert()
-            }
-        }
+    /// La vía tal como la necesita el diario ("Vía N" si no tiene nombre).
+    private func journalRef(_ line: BlockLine, index: Int) -> JournalLineRef {
+        JournalLineRef(
+            schoolId: block.schoolId, schoolName: schoolName, sectorName: sectorName,
+            discipline: block.discipline, blockId: block.id, lineId: line.id,
+            viaName: line.name.isEmpty ? L("Vía %@", index + 1) : line.name, grade: line.grade)
     }
 
-    /// Marca/DESMARCA la vía en tu diario (toggle). Si no estaba hecha la añade
-    /// (POST, o cola sin red); si ya estaba, la quita (borra la subida y/o la
-    /// pendiente). No se puede añadir dos veces. Espejo del toggle de Android.
+    /// Publica el tick en el feed Comunidad (fire-and-forget). Lógica en `JournalTicker` (compartida con la guía).
+    private func publishTickToFeed(_ line: BlockLine, wasProject: Bool,
+                                   caption: String? = nil, photo: UIImage? = nil) {
+        JournalTicker.publish(journalRef(line, index: 0), wasProject: wasProject, caption: caption, photo: photo)
+    }
+
+    /// Marca/DESMARCA la vía en tu diario (toggle). La lógica (cola sin red, legado por nombre…) vive en
+    /// `JournalTicker`; aquí solo se actualiza el estado de la hoja. Espejo del toggle de Android.
     private func toggle(_ line: BlockLine, index: Int, sessionDate: String? = nil,
                         aVista: Bool = false, alFlash: Bool = false) async {
         tickingLine = line.id
-        let container = AppDependencies.shared.container
-        let viaName = line.name.isEmpty ? L("Vía %@", index + 1) : line.name
-        // Clave por lineId (fix homónimas "La ola") + legado por nombre.
-        let key = "\(block.schoolId)|#\(line.id)"
-        let legacyKey = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
-
+        let ref = journalRef(line, index: index)
         if tickedLines.contains(line.id) {
-            // DESMARCAR (quita también la clave legado, por si el ✓ venía de
-            // una entrada antigua sin lineId).
             tickedLines.remove(line.id)
-            JournalDoneStore.shared.remove(key)
-            JournalDoneStore.shared.remove(legacyKey)
-            // 1) Si solo estaba ENCOLADA (sin subir) → cancela la creación y listo.
-            let hadPending = ((try? await container.dequeueJournal(key: key))?.boolValue) ?? false
-            if !hadPending {
-                // 2) Está (o estará) en el servidor: borra ya si hay red; si no,
-                //    ENCOLA el borrado. La entrada se localiza POR lineId; solo
-                //    si no hay ninguna con ese id, por nombre entre las SIN
-                //    lineId — nunca borra la entrada de una homónima distinta.
-                var deleted = false
-                let journal = (try? await container.getMyJournal.invoke()) ?? []
-                let j = journal.first(where: { $0.lineId == line.id })
-                    ?? journal.first(where: {
-                        $0.lineId == nil && $0.schoolId == block.schoolId &&
-                        $0.blockName.caseInsensitiveCompare(viaName) == .orderedSame
-                    })
-                if let j {
-                    deleted = ((try? await container.deleteJournalEntry.invoke(id: j.id)) != nil)
-                }
-                if !deleted {
-                    // Payload del borrado = la clave de LA ENTRADA encontrada
-                    // (id o legado) para que el filtrado offline case.
-                    let delKey: String
-                    if let j, j.lineId == nil, let sid = j.schoolId {
-                        delKey = "\(sid)|\(j.blockName.trimmingCharacters(in: .whitespaces).lowercased())"
-                    } else { delKey = key }
-                    try? await container.enqueueJournalDelete(key: delKey)
-                }
-            }
+            await JournalTicker.unmarkDone(ref)
         } else {
-            // Si era un PROYECTO, primero lo quitamos (local + servidor/cola): al
-            // conseguirla, desaparece de Proyectos y pasa a Vías/Bloques.
-            if projectLines.contains(line.id) {
-                await removeProjectEntry(key: key, legacyKey: legacyKey, line: line, viaName: viaName)
-                projectLines.remove(line.id)
-            }
-            // MARCAR HECHA (dedup: no estaba hecha)
+            let wasProject = projectLines.contains(line.id)
+            projectLines.remove(line.id)
             tickedLines.insert(line.id)
-            JournalDoneStore.shared.add(key)
-            try? await container.dequeueJournalDelete(key: key)   // cancela borrado pendiente
-            let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
-            // No guardamos "Piedra: N" (el número se recicla/borra → quedaría obsoleto).
-            let req = CreateJournalRequest(
-                schoolId: block.schoolId, schoolName: schoolName, sector: sectorName,
-                blockName: viaName, grade: line.grade,
-                notes: nil, date: sessionDate ?? df.string(from: Date()),
-                discipline: block.discipline,   // la vía hereda la modalidad de su piedra
-                lineId: line.id,                // id estable → enganche del diario por muro
-                status: "DONE",
-                aVista: aVista, alFlash: alFlash)
-            let ok = (try? await container.createJournalEntry.invoke(req: req)) != nil
-            if !ok { try? await container.enqueueJournal(req: req) }   // sin red → cola
+            await JournalTicker.markDone(ref, wasProject: wasProject, sessionDate: sessionDate,
+                                         aVista: aVista, alFlash: alFlash)
         }
         tickingLine = nil
     }
 
-    /// Marca/DESMARCA la vía como PROYECTO (la estás probando, aún no te ha
-    /// salido). Espejo de [toggle], pero con status="PROJECT". No hace nada si
-    /// la vía ya está HECHA (la UI ya oculta el botón en ese caso).
+    /// Marca/DESMARCA la vía como PROYECTO. No hace nada si ya está HECHA (la UI ya oculta el botón).
     private func toggleProject(_ line: BlockLine, index: Int) async {
         guard !tickedLines.contains(line.id) else { return }
         togglingProject = line.id
-        let container = AppDependencies.shared.container
-        let viaName = line.name.isEmpty ? L("Vía %@", index + 1) : line.name
-        // Clave por lineId + legado por nombre (ver toggle).
-        let key = "\(block.schoolId)|#\(line.id)"
-        let legacyKey = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
-
+        let ref = journalRef(line, index: index)
         if projectLines.contains(line.id) {
-            // DESMARCAR proyecto
             projectLines.remove(line.id)
-            await removeProjectEntry(key: key, legacyKey: legacyKey, line: line, viaName: viaName)
+            await JournalTicker.removeProject(ref)
         } else {
-            // MARCAR proyecto
             projectLines.insert(line.id)
-            JournalProjectStore.shared.add(key)
-            try? await container.dequeueJournalDelete(key: key)
-            let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
-            let req = CreateJournalRequest(
-                schoolId: block.schoolId, schoolName: schoolName, sector: sectorName,
-                blockName: viaName, grade: line.grade,
-                notes: nil, date: df.string(from: Date()),
-                discipline: block.discipline, lineId: line.id, status: "PROJECT",
-                aVista: false, alFlash: false)
-            let ok = (try? await container.createJournalEntry.invoke(req: req)) != nil
-            if !ok { try? await container.enqueueJournal(req: req) }
+            await JournalTicker.markProject(ref)
         }
         togglingProject = nil
-    }
-
-    /// Cancela/borra la entrada PROYECTO de [key] (cola pendiente o ya subida al
-    /// servidor). Compartido por toggleProject (desmarcar) y toggle (promoción
-    /// proyecto→hecha).
-    private func removeProjectEntry(key: String, legacyKey: String,
-                                    line: BlockLine, viaName: String) async {
-        let container = AppDependencies.shared.container
-        JournalProjectStore.shared.remove(key)
-        JournalProjectStore.shared.remove(legacyKey)
-        let hadPending = ((try? await container.dequeueJournal(key: key))?.boolValue) ?? false
-        if !hadPending {
-            var deleted = false
-            let journal = (try? await container.getMyJournal.invoke()) ?? []
-            // Por lineId; fallback por nombre SOLO entre entradas sin lineId.
-            let j = journal.first(where: { $0.status == "PROJECT" && $0.lineId == line.id })
-                ?? journal.first(where: {
-                    $0.status == "PROJECT" && $0.lineId == nil &&
-                    $0.schoolId == block.schoolId &&
-                    $0.blockName.caseInsensitiveCompare(viaName) == .orderedSame
-                })
-            if let j {
-                deleted = ((try? await container.deleteJournalEntry.invoke(id: j.id)) != nil)
-            }
-            if !deleted {
-                let delKey: String
-                if let j, j.lineId == nil, let sid = j.schoolId {
-                    delKey = "\(sid)|\(j.blockName.trimmingCharacters(in: .whitespaces).lowercased())"
-                } else { delKey = key }
-                try? await container.enqueueJournalDelete(key: delKey)
-            }
-        }
     }
 }
 

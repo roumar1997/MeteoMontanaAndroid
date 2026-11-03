@@ -309,6 +309,8 @@ struct SchoolDetailView: View {
     @State private var tab: SchoolTab = .map
     /// Vía que debe abrir el mapa al mostrarse: la del deep-link, o la que se toca en la pestaña BLOQUES.
     @State private var mapOpenVia: String?
+    /// "Ver en mapa" desde la guía: piedra a centrar (sin abrirla).
+    @State private var mapFocusBlock: String?
     /// Se abrió una vía DESDE la lista de BLOQUES: al cerrar su ficha se vuelve a la lista, no se queda en el mapa.
     @State private var returnToBlocks = false
     /// Estado de la pestaña BLOQUES: aquí para que sobreviva al cambiar de pestaña.
@@ -364,7 +366,7 @@ struct SchoolDetailView: View {
         }
         // El mapa se recrea al volver a él: sin esto reabriría otra vez la piedra del deep-link o de BLOQUES.
         .onChange(of: tab) { newTab in
-            if newTab != .map { mapOpenVia = nil }
+            if newTab != .map { mapOpenVia = nil; mapFocusBlock = nil }
             // Si el usuario cambia de pestaña a mano, ya no hay "vuelta a la lista" pendiente.
             if newTab != .map { returnToBlocks = false }
         }
@@ -419,7 +421,7 @@ struct SchoolDetailView: View {
             case .map:
                 // Boletín de montaña ENCIMA del mapa (paridad con Android).
                 MountainBulletinSection(lat: school.lat, lon: school.lon, country: school.country)
-                SchoolMapSection(school: school, openVia: mapOpenVia, showsSearch: false,
+                SchoolMapSection(school: school, openVia: mapOpenVia, focusBlockId: mapFocusBlock, showsSearch: false,
                                  onBlockSheetClosed: {
                                      // Una sola vuelta: la lista conserva sus filtros (viven en blocksModel).
                                      guard returnToBlocks else { return }
@@ -427,9 +429,13 @@ struct SchoolDetailView: View {
                                      tab = .blocks
                                  },
                                  refreshTrigger: presenceRefreshTrigger)
-                    .id(mapOpenVia ?? "")
+                    .id(mapOpenVia ?? mapFocusBlock ?? "")
             case .blocks:
-                SchoolBlocksExplorerView(school: school, model: blocksModel) { lineId in
+                SchoolBlocksExplorerView(school: school, model: blocksModel, onShowOnMap: { blockId in
+                    mapFocusBlock = blockId
+                    returnToBlocks = false
+                    tab = .map
+                }) { lineId in
                     mapOpenVia = lineId
                     returnToBlocks = true
                     tab = .map
