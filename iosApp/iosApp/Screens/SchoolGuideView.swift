@@ -72,6 +72,7 @@ struct SchoolGuideView: View {
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14)
             .stroke(Cumbre.rule, style: StrokeStyle(lineWidth: 1, dash: s.unknownFace ? [4, 3] : [])))
+        .id(GuideAnchor.sector(s.key))
     }
 
     private func sectorHeader(_ s: GuideSector, open: Bool) -> some View {
@@ -382,4 +383,5 @@ private struct GuideZoomSheet: View {
 /// Id de scroll de cada piedra de la guía (para saltar al marcapáginas).
 enum GuideAnchor {
     static func id(_ blockId: String) -> String { "guide-\(blockId)" }
+    static func sector(_ key: String) -> String { "guide-sector-\(key)" }
 }

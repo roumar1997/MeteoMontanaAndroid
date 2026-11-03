@@ -1,0 +1,185 @@
+import SwiftUI
+import MapKit
+import Shared
+
+/// Mapa general de la escuela como IMAGEN (satélite + piedras, parkings y sectores), para la GUÍA y su PDF.
+/// Se genera con conexión y se guarda en disco: sin conexión se ve la última copia (al descargar la escuela se
+/// genera también). Los nombres de los sectores NO van pintados en la imagen: van encima como botones, en
+/// coordenadas 0–1 de la imagen, para poder tocarlos y saltar a ese sector de la guía.
+struct GuideOverview {
+    struct Place: Codable, Hashable {
+        let name: String
+        /// Posición en la imagen, de 0 a 1.
+        let x: Double
+        let y: Double
+    }
+    let image: UIImage
+    let sectors: [Place]
+}
+
+enum GuideOverviewStore {
+    private static let dir: URL = {
+        let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        let d = base.appendingPathComponent("guide-overview", isDirectory: true)
+        try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
+        return d
+    }()
+
+    private static func imageURL(_ schoolId: String) -> URL { dir.appendingPathComponent("\(schoolId).png") }
+    private static func placesURL(_ schoolId: String) -> URL { dir.appendingPathComponent("\(schoolId).json") }
+
+    /// La última copia guardada, o nil si nunca se generó.
+    static func cached(schoolId: String) -> GuideOverview? {
+        guard let img = UIImage(contentsOfFile: imageURL(schoolId).path) else { return nil }
+        let places = (try? Data(contentsOf: placesURL(schoolId)))
+            .flatMap { try? JSONDecoder().decode([GuideOverview.Place].self, from: $0) } ?? []
+        return GuideOverview(image: img, sectors: places)
+    }
+
+    /// Genera el mapa (hace falta conexión para el fondo) y lo guarda. nil si no hay nada que pintar o no hay red.
+    static func generate(schoolId: String, blocks: [Block]) async -> GuideOverview? {
+        let stones = blocks.filter { !["ZONE", "PARKING"].contains($0.type.uppercased()) }
+        let zones = blocks.filter { $0.type.uppercased() == "ZONE" }
+        let parkings = blocks.filter { $0.type.uppercased() == "PARKING" }
+        let all = stones + zones + parkings
+        guard !all.isEmpty else { return nil }
+
+        // Encuadre: todo lo que hay, con margen; un mínimo para que una escuela de 3 piedras no salga a ras de roca.
+        let lats = all.map(\.lat), lons = all.map(\.lon)
+        let center = CLLocationCoordinate2D(latitude: (lats.min()! + lats.max()!) / 2,
+                                            longitude: (lons.min()! + lons.max()!) / 2)
+        let span = MKCoordinateSpan(latitudeDelta: max((lats.max()! - lats.min()!) * 1.35, 0.0025),
+                                    longitudeDelta: max((lons.max()! - lons.min()!) * 1.35, 0.0025))
+        let options = MKMapSnapshotter.Options()
+        options.region = MKCoordinateRegion(center: center, span: span)
+        options.size = CGSize(width: 1100, height: 800)
+        options.mapType = .satellite
+        options.pointOfInterestFilter = .excludingAll
+
+        guard let snap = try? await MKMapSnapshotter(options: options).start() else { return nil }
+        let size = snap.image.size
+
+        let image = UIGraphicsImageRenderer(size: size).image { ctx in
+            snap.image.draw(at: .zero)
+            let cg = ctx.cgContext
+            // Piedras: puntos terracota con borde blanco.
+            for b in stones {
+                let p = snap.point(for: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon))
+                let r = CGRect(x: p.x - 4.5, y: p.y - 4.5, width: 9, height: 9)
+                cg.setFillColor(UIColor(Cumbre.terraFill).cgColor)
+                cg.fillEllipse(in: r)
+                cg.setStrokeColor(UIColor.white.cgColor)
+                cg.setLineWidth(1.5)
+                cg.strokeEllipse(in: r)
+            }
+            // Parkings: cuadrado azul con "P".
+            for b in parkings {
+                let p = snap.point(for: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon))
+                let r = CGRect(x: p.x - 11, y: p.y - 11, width: 22, height: 22)
+                UIColor(red: 0.11, green: 0.40, blue: 0.84, alpha: 1).setFill()
+                UIBezierPath(roundedRect: r, cornerRadius: 5).fill()
+                let attrs: [NSAttributedString.Key: Any] = [
+                    .font: UIFont.systemFont(ofSize: 14, weight: .bold), .foregroundColor: UIColor.white
+                ]
+                let s = NSAttributedString(string: "P", attributes: attrs)
+                let t = s.size()
+                s.draw(at: CGPoint(x: p.x - t.width / 2, y: p.y - t.height / 2))
+            }
+        }
+
+        // Cada sector, donde está su marca; si no tiene, en el centro de sus piedras.
+        var places: [GuideOverview.Place] = []
+        for z in zones where !z.name.isEmpty {
+            let inside = stones.filter { $0.sectorBlockId == z.id }
+            let coord = inside.isEmpty
+                ? CLLocationCoordinate2D(latitude: z.lat, longitude: z.lon)
+                : CLLocationCoordinate2D(latitude: inside.map(\.lat).reduce(0, +) / Double(inside.count),
+                                         longitude: inside.map(\.lon).reduce(0, +) / Double(inside.count))
+            let p = snap.point(for: coord)
+            places.append(.init(name: z.name, x: Double(p.x / size.width), y: Double(p.y / size.height)))
+        }
+
+        try? image.pngData()?.write(to: imageURL(schoolId))
+        try? JSONEncoder().encode(places).write(to: placesURL(schoolId))
+        return GuideOverview(image: image, sectors: places)
+    }
+}
+
+/// La imagen del mapa con los sectores encima como botones. Se usa en la tarjeta de la guía y a pantalla completa.
+struct GuideOverviewCanvas: View {
+    let overview: GuideOverview
+    var labelScale: CGFloat = 1
+    let onSector: (String) -> Void
+
+    var body: some View {
+        Image(uiImage: overview.image).resizable()
+            .aspectRatio(overview.image.size.width / max(overview.image.size.height, 1), contentMode: .fit)
+            .overlay {
+                GeometryReader { geo in
+                    ForEach(overview.sectors, id: \.self) { s in
+                        Button { onSector(s.name) } label: {
+                            Text(s.name.uppercased())
+                                .font(Cumbre.mono(10 * labelScale, .bold)).tracking(0.6)
+                                .foregroundStyle(Cumbre.ink).lineLimit(1)
+                                .padding(.horizontal, 7 * labelScale).padding(.vertical, 4 * labelScale)
+                                .background(Color.white.opacity(0.92), in: Capsule())
+                                .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
+                        }
+                        .buttonStyle(.plain)
+                        .position(x: s.x * geo.size.width, y: s.y * geo.size.height)
+                    }
+                }
+            }
+    }
+}
+
+/// El mapa general a pantalla completa: pellizcar para acercar, arrastrar para moverse, doble toque para volver.
+struct GuideOverviewFullScreen: View {
+    let overview: GuideOverview
+    let onSector: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var scale: CGFloat = 1
+    @State private var baseScale: CGFloat = 1
+    @State private var offset: CGSize = .zero
+    @State private var baseOffset: CGSize = .zero
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Color.black.ignoresSafeArea()
+            GuideOverviewCanvas(overview: overview, labelScale: 1 / scale) { name in
+                dismiss()
+                onSector(name)
+            }
+            .scaleEffect(scale)
+            .offset(offset)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .gesture(
+                MagnifyGesture()
+                    .onChanged { scale = min(max(baseScale * $0.magnification, 1), 6) }
+                    .onEnded { _ in baseScale = scale; if scale == 1 { offset = .zero; baseOffset = .zero } }
+                    .simultaneously(with: DragGesture()
+                        .onChanged { v in
+                            guard scale > 1 else { return }
+                            offset = CGSize(width: baseOffset.width + v.translation.width,
+                                            height: baseOffset.height + v.translation.height)
+                        }
+                        .onEnded { _ in baseOffset = offset })
+            )
+            .onTapGesture(count: 2) {
+                withAnimation(.snappy) { scale = 1; baseScale = 1; offset = .zero; baseOffset = .zero }
+            }
+            VStack(alignment: .trailing, spacing: 8) {
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark").font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
+                        .frame(width: 34, height: 34).background(Color.white.opacity(0.2), in: Circle())
+                }
+                .accessibilityLabel(L("Cerrar"))
+                Text(L("Toca un sector para ir a él"))
+                    .font(.system(size: 11.5, weight: .semibold)).foregroundStyle(.white)
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Color.black.opacity(0.5), in: Capsule())
+            }
+            .padding(16)
+        }
+    }
+}

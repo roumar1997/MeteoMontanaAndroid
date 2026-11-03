@@ -18,6 +18,7 @@ struct SchoolBlocksExplorerView: View {
     let onOpen: (String) -> Void
     /// Restricciones en vigor (las da la ficha): "!" en el sector y en cada vía afectada.
     @Environment(\.schoolRestrictions) private var restrictionsUI
+    @State private var overviewOpen = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -37,6 +38,7 @@ struct SchoolBlocksExplorerView: View {
                     .frame(maxWidth: .infinity, minHeight: 120)
                     .padding(.horizontal, 16)
             } else {
+                overviewCard
                 header
                 highlights
                 if let g = model.guideView {
@@ -49,6 +51,12 @@ struct SchoolBlocksExplorerView: View {
         }
         .task { await model.loadIfNeeded(schoolId: school.id, schoolName: school.name) }
         .task(id: model.betas) { await model.loadBetaIfNeeded(schoolId: school.id) }
+        .task { await model.loadOverview(schoolId: school.id) }
+        .fullScreenCover(isPresented: $overviewOpen) {
+            if let ov = model.overview {
+                GuideOverviewFullScreen(overview: ov) { model.jumpToSector($0) }
+            }
+        }
         // Al volver de la piedra (donde se marca en el diario), los ✓ de la guía y "Sin hacer" se ponen al día.
         .onAppear { model.refreshJournal(schoolId: school.id) }
     }
@@ -221,6 +229,58 @@ struct SchoolBlocksExplorerView: View {
                 .background(on ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
                 .overlay(Capsule().stroke(on ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
         }.buttonStyle(.plain)
+    }
+
+    // MARK: - Mapa general + PDF
+
+    /// El mapa de toda la escuela como imagen (tocar = pantalla completa con zoom; tocar un sector = ir a él) y el
+    /// botón de descargar la guía en PDF (toda o un sector).
+    private var overviewCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let ov = model.overview {
+                GuideOverviewCanvas(overview: ov) { model.jumpToSector($0) }
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(alignment: .bottomTrailing) {
+                        Button { overviewOpen = true } label: {
+                            Label(L("Ampliar"), systemImage: "arrow.up.left.and.arrow.down.right")
+                                .font(.system(size: 12, weight: .semibold)).foregroundStyle(.white)
+                                .padding(.horizontal, 10).padding(.vertical, 6)
+                                .background(Color.black.opacity(0.6), in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .padding(8)
+                    }
+                    .onTapGesture { overviewOpen = true }
+            }
+            Menu {
+                Button { Task { await model.exportPDF(schoolName: school.name, sectorKey: nil) } } label: {
+                    Label(L("Toda la escuela"), systemImage: "book")
+                }
+                if let g = model.guideView, g.sectors.count > 1 {
+                    Section(L("Solo un sector")) {
+                        ForEach(g.sectors, id: \.key) { s in
+                            Button(s.unknownFace ? L("Sin orientación votada") : (s.sector ?? L("Sin sector"))) {
+                                Task { await model.exportPDF(schoolName: school.name, sectorKey: s.key) }
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 7) {
+                    if model.makingPDF { ProgressView().controlSize(.small) } else {
+                        Image(systemName: "arrow.down.doc").font(.system(size: 13, weight: .semibold))
+                    }
+                    Text(model.makingPDF ? L("Preparando el PDF…") : L("Descargar guía en PDF"))
+                        .font(.system(size: 13.5, weight: .semibold))
+                }
+                .foregroundStyle(Cumbre.ink)
+                .frame(maxWidth: .infinity).padding(.vertical, 10)
+                .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
+            }
+            .disabled(model.makingPDF)
+        }
+        .padding(.horizontal, 16).padding(.top, 12)
     }
 
     // MARK: - Destacadas (más repetidas / mejor valoradas), con los mismos filtros

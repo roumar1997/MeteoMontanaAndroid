@@ -97,6 +97,40 @@ final class SchoolBlocksExplorerModel: ObservableObject {
         return id
     }
 
+    // MARK: - Mapa general, salto a sector y PDF
+
+    /// Mapa general de la escuela (imagen). Sale primero la copia guardada y luego, con red, se regenera.
+    @Published private(set) var overview: GuideOverview?
+    /// Sector al que la ficha debe desplazarse (tocado en el mapa general). La ficha lo consume y lo pone a nil.
+    @Published var scrollToSector: String?
+    /// Generando el PDF (ruedecita en el botón).
+    @Published private(set) var makingPDF = false
+
+    func loadOverview(schoolId: String) async {
+        if overview == nil { overview = GuideOverviewStore.cached(schoolId: schoolId) }
+        // Sin red, `getBlocks` devuelve las piedras guardadas, pero el fondo del mapa no se puede pedir:
+        // en ese caso se queda la copia de disco.
+        guard let blocks = try? await AppDependencies.shared.container.getBlocks.invoke(schoolId: schoolId),
+              let fresh = await GuideOverviewStore.generate(schoolId: schoolId, blocks: blocks) else { return }
+        overview = fresh
+    }
+
+    /// Toca un sector en el mapa general: se despliega y la ficha baja hasta él.
+    func jumpToSector(_ name: String) {
+        guard let s = guideView?.sectors.first(where: { $0.sector == name }) else { return }
+        guideOpen.insert(s.key)
+        scrollToSector = s.key
+    }
+
+    /// Genera el PDF (con los filtros de ahora) y abre la hoja de compartir. `sectorKey` nil = toda la guía.
+    func exportPDF(schoolName: String, sectorKey: String?) async {
+        guard !makingPDF, let g = guideView else { return }
+        makingPDF = true
+        let url = await GuidePDF.make(schoolName: schoolName, guide: g, overview: overview, onlySector: sectorKey)
+        makingPDF = false
+        if let url { GuidePDF.share(url) }
+    }
+
     /// Relee el diario del móvil: qué vías de esta escuela tienes hechas o en proyecto.
     func refreshJournal(schoolId: String) {
         let done = JournalDoneStore.shared.all

@@ -156,6 +156,8 @@ final class SchoolDetailViewModel: ObservableObject {
         // mapa solo mostraba los marcadores, no el mapa de fondo, si no se había
         // visitado antes esa zona con red.
         OfflineTileManager.downloadFor(schoolId: school.id, lat: school.lat, lon: school.lon)
+        // El mapa general de la GUÍA (imagen), para verla entera sin conexión.
+        _ = await GuideOverviewStore.generate(schoolId: school.id, blocks: blocks)
         isSaved = true; savingOffline = false
         // Las fotos se PREGUNTAN (paridad con Android; petición de Rodrigo
         // 2026-08-16: "que avise, así sienten que tienen el control"). Los datos
@@ -540,6 +542,14 @@ struct SchoolDetailView: View {
         // Marcapáginas de la guía: al volver a BLOQUES (o cuando acaba de cargar) salta a la última piedra tocada.
         .onChange(of: tab) { t in if t == .blocks { jumpToBookmark(proxy) } }
         .onChange(of: blocksModel.loading) { l in if !l && tab == .blocks { jumpToBookmark(proxy) } }
+        // Sector tocado en el mapa general de la guía.
+        .onChange(of: blocksModel.scrollToSector) { key in
+            guard let key else { return }
+            blocksModel.scrollToSector = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo(GuideAnchor.sector(key), anchor: .top) }
+            }
+        }
         }
     }
 

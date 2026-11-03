@@ -1900,3 +1900,13 @@
 "Abrir piedra" = "Open boulder";
 "Piedra · 1 vía" = "Boulder · 1 line";
 "Piedra · %@ vías" = "Boulder · %@ lines";
+"Ampliar" = "Expand";
+"Toda la escuela" = "Whole crag";
+"Solo un sector" = "Just one sector";
+"Preparando el PDF…" = "Preparing the PDF…";
+"Descargar guía en PDF" = "Download guide as PDF";
+"Toca un sector para ir a él" = "Tap a sector to jump to it";
+"Guía %@%@" = "Guide %@%@";
+"Guía de escalada · %@ vías · %@ piedras · %@ sectores" = "Climbing guide · %@ lines · %@ boulders · %@ sectors";
+"%@ piedras · %@ vías" = "%@ boulders · %@ lines";
+"Guía generada con Cumbre · climbingteams.com" = "Guide made with Cumbre · climbingteams.com";
