@@ -2,6 +2,10 @@ package com.meteomontana.android.domain.usecase.schools
 
 import com.meteomontana.android.domain.model.LineExploreCriteria
 import com.meteomontana.android.domain.model.LineSearchHit
+import com.meteomontana.android.domain.repository.BlockRepository
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 /** Tope de páginas por consulta (el servidor corta por páginas): muy por encima de cualquier escuela real. */
 internal const val MAX_LINE_PAGES = 8
@@ -28,18 +32,36 @@ internal suspend fun fetchAllLinePages(
  * Todas las vías de una escuela, ya con sus estrellas y sus repeticiones (personas distintas que las tienen
  * hechas en su diario). Una sola descarga: los filtros se aplican en local con [SchoolLinesExplorer].
  */
-class LoadSchoolLinesUseCase(private val explore: ExploreLinesUseCase) {
+class LoadSchoolLinesUseCase(
+    private val explore: ExploreLinesUseCase,
+    /** Piedras de la escuela (con caché en disco). Sin él, la guía no tiene comentarios ni funciona sin conexión. */
+    private val blocks: BlockRepository? = null
+) {
     @Throws(Exception::class)
-    suspend operator fun invoke(schoolId: String): List<LineSearchHit> =
-        fetchAllLinePages(
-            LineExploreCriteria(
-                schoolIds = listOf(schoolId),
-                sort = "MOST_REPEATED",
-                withRatings = true,
-                withRepetitions = true
-            ),
-            fetch = { explore(it) }
-        )
+    suspend operator fun invoke(schoolId: String, schoolName: String = ""): List<LineSearchHit> = coroutineScope {
+        // Las piedras se piden a la vez: sin red, `getBlocks` devuelve lo último guardado (escuela descargada).
+        val stones = async { blocks?.let { repo -> runCatching { repo.getBlocks(schoolId) }.getOrNull() } }
+        val hits = try {
+            fetchAllLinePages(
+                LineExploreCriteria(
+                    schoolIds = listOf(schoolId),
+                    sort = "MOST_REPEATED",
+                    withRatings = true,
+                    withRepetitions = true
+                ),
+                fetch = { explore(it) }
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Sin conexión: la guía sale de las piedras guardadas (sin estrellas ni repeticiones).
+            val saved = stones.await()
+            if (saved.isNullOrEmpty()) throw e
+            return@coroutineScope GuideLines.fromBlocks(schoolId, schoolName, saved)
+        }
+        val saved = stones.await()
+        if (saved == null) hits else GuideLines.withDescriptions(hits, saved)
+    }
 }
 
 /** Ids de las vías de una escuela que tienen beta de esa altura ([BetaHeights]). */

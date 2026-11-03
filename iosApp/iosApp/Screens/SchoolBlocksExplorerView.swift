@@ -27,7 +27,7 @@ struct SchoolBlocksExplorerView: View {
             } else if model.failed {
                 VStack(spacing: 10) {
                     Text(L("No se han podido cargar los bloques")).font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
-                    Button(L("REINTENTAR")) { Task { await model.loadIfNeeded(schoolId: school.id, force: true) } }
+                    Button(L("REINTENTAR")) { Task { await model.loadIfNeeded(schoolId: school.id, schoolName: school.name, force: true) } }
                         .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
                 }
                 .frame(maxWidth: .infinity, minHeight: 160)
@@ -47,7 +47,7 @@ struct SchoolBlocksExplorerView: View {
                 }
             }
         }
-        .task { await model.loadIfNeeded(schoolId: school.id) }
+        .task { await model.loadIfNeeded(schoolId: school.id, schoolName: school.name) }
         .task(id: model.betas) { await model.loadBetaIfNeeded(schoolId: school.id) }
         // Al volver de la piedra (donde se marca en el diario), los ✓ de la guía y "Sin hacer" se ponen al día.
         .onAppear { model.refreshJournal(schoolId: school.id) }

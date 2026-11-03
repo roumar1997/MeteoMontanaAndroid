@@ -113,11 +113,11 @@ final class SchoolBlocksExplorerModel: ObservableObject {
     // MARK: - Datos
 
     /// Baja las vías de la escuela UNA vez (los filtros se aplican en local). `force` para reintentar.
-    func loadIfNeeded(schoolId: String, force: Bool = false) async {
+    func loadIfNeeded(schoolId: String, schoolName: String = "", force: Bool = false) async {
         if loadedSchool == schoolId && !force && !failed { return }
         loading = true; failed = false
         do {
-            all = try await loadSchoolLines.invoke(schoolId: schoolId)
+            all = try await loadSchoolLines.invoke(schoolId: schoolId, schoolName: schoolName)
             loadedSchool = schoolId
             refreshJournal(schoolId: schoolId)
             if let first = SchoolGuide.shared.sectors(lines: all).first { guideOpen = [first.key] }

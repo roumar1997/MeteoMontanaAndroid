@@ -35,7 +35,9 @@ data class LineSearchHit(
     /** Sector (ZONE) de la piedra, o null si va suelta. */
     val sectorBlockId: String? = null,
     /** Restricción en vigor hoy sobre la piedra o su sector: null, "NOTICE", "REGULATED" o "CLOSED". */
-    val restrictionLevel: String? = null
+    val restrictionLevel: String? = null,
+    /** Comentario / beta de la vía (lo escribe quien la sube). Lo rellena la app con los datos de la piedra. */
+    val lineDescription: String? = null
 ) {
     /** El tipo de restricción para pintar el "!", o null si no hay. */
     val restrictionKind: RestrictionKind? get() = restrictionLevel?.let { RestrictionKind.parse(it) }

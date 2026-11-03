@@ -126,8 +126,8 @@ struct SchoolGuideView: View {
             .frame(maxWidth: .infinity)
             .background(Cumbre.rule.opacity(0.18))
 
-            ForEach(Array(b.lines.enumerated()), id: \.element.lineId) { n, h in
-                lineRow(h, number: n + 1)
+            ForEach(b.lines, id: \.lineId) { h in
+                lineRow(h)
             }
 
             HStack(spacing: 8) {
@@ -149,17 +149,22 @@ struct SchoolGuideView: View {
         .id(GuideAnchor.id(b.blockId))
     }
 
-    private func lineRow(_ h: LineSearchHit, number: Int) -> some View {
+    private func lineRow(_ h: LineSearchHit) -> some View {
         let id = h.lineId ?? ""
         return HStack(spacing: 9) {
             Button { mark(h.blockId); onOpen(id) } label: {
                 HStack(spacing: 9) {
-                    NumberBadge(number: number, grade: h.grade, size: 20)
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text(h.lineName ?? h.blockName).font(.system(size: 14.5, weight: .semibold))
                             .foregroundStyle(Cumbre.ink).lineLimit(2).multilineTextAlignment(.leading)
                         if let extra = meta(h) {
                             Text(extra).font(.system(size: 11.5)).foregroundStyle(Cumbre.ink3)
+                        }
+                        // El comentario de quien la subió (beta, salida, avisos), como en las guías de papel.
+                        if let d = h.lineDescription, !d.isEmpty {
+                            Text(d).font(.system(size: 12.5)).italic().foregroundStyle(Cumbre.ink2)
+                                .lineLimit(4).multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                     Spacer(minLength: 4)
@@ -248,9 +253,10 @@ struct SchoolGuideView: View {
         }.buttonStyle(.plain)
     }
 
-    /// "★ 4.6 · ✓ 12" solo si hay algo que contar.
+    /// "Sentado · ★ 4.6 · ✓ 12" solo si hay algo que contar.
     private func meta(_ h: LineSearchHit) -> String? {
         var parts: [String] = []
+        if let start = feedStartTypeLabel(h.startType) { parts.append(start) }
         if let avg = h.rating?.doubleValue, (h.ratingCount?.intValue ?? 0) > 0 { parts.append("★ \(String(format: "%.1f", avg))") }
         if let r = h.repetitions?.intValue, r > 0 { parts.append("✓ \(r)") }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
@@ -264,23 +270,6 @@ struct SchoolGuideView: View {
     private struct TickItem: Identifiable {
         let hit: LineSearchHit
         var id: String { hit.lineId ?? hit.blockId }
-    }
-}
-
-/// Número de la vía en el color de su grado. Los grados BLANCOS (≤5c+) llevan el número en tinta y un borde: en
-/// blanco sobre blanco no se veía (Álvaro, 2026-11-03).
-struct NumberBadge: View {
-    let number: Int
-    let grade: String?
-    var size: CGFloat = 20
-
-    var body: some View {
-        let light = GradeColor.style(grade).dark
-        Text("\(number)").font(Cumbre.mono(size * 0.52, .bold))
-            .foregroundStyle(light ? Color(hex: 0x111111) : .white)
-            .frame(width: size, height: size)
-            .background(GradeColor.color(grade), in: Circle())
-            .overlay(Circle().stroke(light ? Color(hex: 0x111111).opacity(0.45) : .white.opacity(0.9), lineWidth: 1))
     }
 }
 
@@ -319,7 +308,7 @@ private struct ProgressBar: View {
     }
 }
 
-/// Foto de la piedra con TODAS sus líneas de esa cara, cada una con su número en el pie (como un topo impreso).
+/// Foto de la piedra con TODAS sus líneas de esa cara, cada una en el color de su grado (como un topo impreso).
 /// El marco toma la proporción de la foto para que los trazos (normalizados 0–1 sobre la foto) caigan en su sitio.
 struct GuideTopo: View {
     let block: GuideBlock
@@ -347,7 +336,7 @@ struct GuideTopo: View {
 
     private var lines: some View {
         GeometryReader { geo in
-            ForEach(Array(block.lines.enumerated()), id: \.element.lineId) { n, h in
+            ForEach(block.lines, id: \.lineId) { h in
                 if h.photoPath == block.photoPath {
                     let pts = dedupPoints(TopoParse.points(h.linePath))
                         .map { CGPoint(x: $0.x * geo.size.width, y: $0.y * geo.size.height) }
@@ -356,10 +345,6 @@ struct GuideTopo: View {
                             .stroke(GradeColor.color(h.grade),
                                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
                             .shadow(color: .black.opacity(0.45), radius: 1)
-                        // El pie de la vía es el punto más bajo del trazo.
-                        let foot = pts.max(by: { $0.y < $1.y }) ?? pts[0]
-                        NumberBadge(number: n + 1, grade: h.grade, size: 18)
-                            .position(x: foot.x, y: min(foot.y, geo.size.height - 10))
                     }
                 }
             }
