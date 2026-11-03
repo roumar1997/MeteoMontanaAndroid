@@ -345,3 +345,4 @@ topos (líneas sobre foto), tema visual Cumbre, autenticación Firebase.
 - 2026-11-03 · iOS build 336 (incluye el 335, que se canceló): índice de sectores bajo el mapa de la guía; tocar uno baja hasta él y lo despliega.
 - 2026-11-03 · iOS build 337: la guía se vuelve a pedir al deslizar para recargar (el sector cambiado ya se ve), crashpads teñidos en el mapa del PDF (eran plantilla, salían blancos) y botones «← ÍNDICE» / «↑ INICIO DEL SECTOR» en el pie de cada página del PDF.
 - 2026-11-03 · iOS build 338: tocar la foto de una piedra en la guía abre la piedra (y al cerrar vuelve al mismo sitio), mapa de la escuela plegado, foto aérea de cada sector (satélite con sus piedras) al inicio del sector en la guía y en el PDF, y los saltos del PDF ya no dejan la foto de la piedra fuera.
+- 2026-11-03 · iOS build 339: los saltos del PDF dejan 170 pt por encima de la piedra (la barra de Archivos tapaba la foto); si no cabe, apuntan al final de la página anterior.

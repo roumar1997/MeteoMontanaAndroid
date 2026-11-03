@@ -82,10 +82,18 @@ enum GuidePDF {
             // PDF cuenta la altura desde ABAJO; al dibujar la contamos desde arriba.
             let bounds = CGRect(x: l.rect.minX, y: page.height - l.rect.maxY, width: l.rect.width, height: l.rect.height)
             let a = PDFAnnotation(bounds: bounds, forType: .link, withProperties: nil)
-            // Archivos deja el destino bastante por debajo del borde de arriba (se perdía la foto de la piedra):
-            // si la tarjeta está en la mitad de arriba se salta al principio de la página; si no, con margen.
-            let topY: CGFloat = target.y < page.height / 2 ? page.height : page.height - target.y + 60
-            a.action = PDFActionGoTo(destination: PDFDestination(page: to, at: CGPoint(x: 0, y: topY)))
+            // La barra de arriba de Archivos/Vista previa TAPA lo que cae debajo: se salta 170 pt por encima de la
+            // tarjeta. Si eso cae antes del principio de la página, el punto va al final de la página anterior.
+            let want = target.y - 170
+            let dest: PDFDestination
+            if want >= 0 || target.page < 2 {
+                dest = PDFDestination(page: to, at: CGPoint(x: 0, y: page.height - max(want, 0)))
+            } else if let prev = doc.page(at: target.page - 2) {
+                dest = PDFDestination(page: prev, at: CGPoint(x: 0, y: -want))
+            } else {
+                dest = PDFDestination(page: to, at: CGPoint(x: 0, y: page.height))
+            }
+            a.action = PDFActionGoTo(destination: dest)
             a.border = PDFBorder()
             a.border?.lineWidth = 0
             from.addAnnotation(a)
