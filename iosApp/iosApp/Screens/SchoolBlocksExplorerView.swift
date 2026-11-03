@@ -53,7 +53,9 @@ struct SchoolBlocksExplorerView: View {
         .task(id: model.betas) { await model.loadBetaIfNeeded(schoolId: school.id) }
         .task { await model.loadOverview(schoolId: school.id) }
         .fullScreenCover(isPresented: $overviewOpen) {
-            if let ov = model.overview {
+            if model.isOnline && !model.overviewBlocks.isEmpty {
+                GuideLiveMap(blocks: model.overviewBlocks) { model.jumpToSector($0) }
+            } else if let ov = model.overview {
                 GuideOverviewFullScreen(overview: ov) { model.jumpToSector($0) }
             }
         }

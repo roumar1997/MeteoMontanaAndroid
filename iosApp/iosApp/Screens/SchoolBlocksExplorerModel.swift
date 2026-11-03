@@ -110,10 +110,17 @@ final class SchoolBlocksExplorerModel: ObservableObject {
         if overview == nil { overview = GuideOverviewStore.cached(schoolId: schoolId) }
         // Sin red, `getBlocks` devuelve las piedras guardadas, pero el fondo del mapa no se puede pedir:
         // en ese caso se queda la copia de disco.
-        guard let blocks = try? await AppDependencies.shared.container.getBlocks.invoke(schoolId: schoolId),
-              let fresh = await GuideOverviewStore.generate(schoolId: schoolId, blocks: blocks) else { return }
+        guard let blocks = try? await AppDependencies.shared.container.getBlocks.invoke(schoolId: schoolId) else { return }
+        overviewBlocks = blocks
+        guard let fresh = await GuideOverviewStore.generate(schoolId: schoolId, blocks: blocks) else { return }
         overview = fresh
     }
+
+    /// Piedras, parkings y sectores de la escuela, para el mapa general EN VIVO (pantalla completa con red).
+    @Published private(set) var overviewBlocks: [Block] = []
+
+    /// Con red, el mapa general a pantalla completa es un mapa real (se acerca de verdad); sin red, la imagen.
+    var isOnline: Bool { AppDependencies.shared.container.networkMonitor?.isOnlineNow() ?? true }
 
     /// Toca un sector en el mapa general: se despliega y la ficha baja hasta él.
     func jumpToSector(_ name: String) {

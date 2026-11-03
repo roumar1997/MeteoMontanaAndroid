@@ -70,25 +70,29 @@ enum GuideOverviewStore {
             ]
             for b in stones {
                 let p = snap.point(for: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon))
-                let r = CGRect(x: p.x - 8, y: p.y - 8, width: 16, height: 16)
-                cg.setFillColor(UIColor(Cumbre.terraFill).cgColor)
+                // Crashpad (bloque) o mosquetón (vía) en un círculo blanco con borde terracota.
+                let r = CGRect(x: p.x - 13, y: p.y - 13, width: 26, height: 26)
+                cg.setFillColor(UIColor.white.cgColor)
                 cg.fillEllipse(in: r)
-                cg.setStrokeColor(UIColor.white.cgColor)
-                cg.setLineWidth(2.5)
+                cg.setStrokeColor(UIColor(Cumbre.terraFill).cgColor)
+                cg.setLineWidth(2)
                 cg.strokeEllipse(in: r)
+                UIImage(named: stoneIconName(b))?.draw(in: r.insetBy(dx: 4.5, dy: 4.5))
                 if !b.name.isEmpty {
                     let s = NSAttributedString(string: b.name, attributes: nameAttrs)
-                    s.draw(at: CGPoint(x: p.x + 11, y: p.y - s.size().height / 2))
+                    s.draw(at: CGPoint(x: p.x + 16, y: p.y - s.size().height / 2))
                 }
             }
             // Parkings: cuadrado azul con "P".
             for b in parkings {
                 let p = snap.point(for: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon))
-                let r = CGRect(x: p.x - 11, y: p.y - 11, width: 22, height: 22)
+                let r = CGRect(x: p.x - 16, y: p.y - 16, width: 32, height: 32)
                 UIColor(red: 0.11, green: 0.40, blue: 0.84, alpha: 1).setFill()
-                UIBezierPath(roundedRect: r, cornerRadius: 5).fill()
+                UIBezierPath(roundedRect: r, cornerRadius: 7).fill()
+                UIColor.white.setStroke()
+                let border = UIBezierPath(roundedRect: r, cornerRadius: 7); border.lineWidth = 2.5; border.stroke()
                 let attrs: [NSAttributedString.Key: Any] = [
-                    .font: UIFont.systemFont(ofSize: 14, weight: .bold), .foregroundColor: UIColor.white
+                    .font: UIFont.systemFont(ofSize: 19, weight: .heavy), .foregroundColor: UIColor.white
                 ]
                 let s = NSAttributedString(string: "P", attributes: attrs)
                 let t = s.size()
@@ -149,11 +153,10 @@ struct GuideOverviewCanvas: View {
                     ForEach(overview.sectors, id: \.self) { s in
                         Button { onSector(s.name) } label: {
                             Text(s.name.uppercased())
-                                .font(Cumbre.mono(10 * labelScale, .bold)).tracking(0.6)
+                                .font(Cumbre.mono(8.5 * labelScale, .bold)).tracking(0.4)
                                 .foregroundStyle(Cumbre.ink).lineLimit(1)
-                                .padding(.horizontal, 7 * labelScale).padding(.vertical, 4 * labelScale)
-                                .background(Color.white.opacity(0.92), in: Capsule())
-                                .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
+                                .padding(.horizontal, 5 * labelScale).padding(.vertical, 2.5 * labelScale)
+                                .background(Color.white.opacity(0.85), in: Capsule())
                         }
                         .buttonStyle(.plain)
                         .position(x: s.x * geo.size.width, y: s.y * geo.size.height)
@@ -163,7 +166,92 @@ struct GuideOverviewCanvas: View {
     }
 }
 
-/// El mapa general a pantalla completa: pellizcar para acercar, arrastrar para moverse, doble toque para volver.
+/// Icono de la piedra: crashpad (bloque) o mosquetón (vía), en un círculo blanco para que se lea sobre el satélite.
+private func stoneIconName(_ b: Block) -> String { b.discipline.uppercased() == "ROUTE" ? "kind_route" : "kind_boulder" }
+
+/// El mapa general a pantalla completa como MAPA REAL (con conexión): al acercarte el satélite gana detalle, los
+/// iconos crecen y aparecen los nombres de las piedras. Tocar un sector = ir a él en la guía.
+struct GuideLiveMap: View {
+    let blocks: [Block]
+    let onSector: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var position: MapCameraPosition = .automatic
+    /// Distancia de la cámara (m): decide el tamaño de los iconos y si se ven los nombres.
+    @State private var distance: Double = 2000
+
+    private var stones: [Block] { blocks.filter { !["ZONE", "PARKING"].contains($0.type.uppercased()) } }
+    private var parkings: [Block] { blocks.filter { $0.type.uppercased() == "PARKING" } }
+    private var zones: [Block] { blocks.filter { $0.type.uppercased() == "ZONE" && !$0.name.isEmpty } }
+
+    private var iconSize: CGFloat { distance < 250 ? 30 : distance < 700 ? 22 : distance < 1600 ? 16 : 12 }
+    private var showNames: Bool { distance < 450 }
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Map(position: $position) {
+                ForEach(stones, id: \.id) { b in
+                    Annotation("", coordinate: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon), anchor: .center) {
+                        VStack(spacing: 2) {
+                            Image(stoneIconName(b)).resizable().scaledToFit()
+                                .frame(width: iconSize, height: iconSize)
+                                .padding(iconSize * 0.18)
+                                .background(Circle().fill(.white))
+                                .overlay(Circle().stroke(Cumbre.terraFill, lineWidth: 1.5))
+                                .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
+                            if showNames && !b.name.isEmpty {
+                                Text(b.name).font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
+                                    .shadow(color: .black, radius: 2).lineLimit(1)
+                            }
+                        }
+                        .animation(.snappy(duration: 0.2), value: iconSize)
+                    }
+                }
+                ForEach(parkings, id: \.id) { b in
+                    Annotation("", coordinate: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon), anchor: .center) {
+                        Text("P").font(.system(size: 15, weight: .heavy)).foregroundStyle(.white)
+                            .frame(width: 28, height: 28)
+                            .background(Color(red: 0.11, green: 0.40, blue: 0.84), in: RoundedRectangle(cornerRadius: 7))
+                            .overlay(RoundedRectangle(cornerRadius: 7).stroke(.white, lineWidth: 2))
+                            .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
+                    }
+                }
+                ForEach(zones, id: \.id) { z in
+                    Annotation("", coordinate: sectorCoord(z), anchor: .bottom) {
+                        Button { dismiss(); onSector(z.name) } label: {
+                            Text(z.name.uppercased()).font(Cumbre.mono(9, .bold)).tracking(0.5)
+                                .foregroundStyle(Cumbre.ink).lineLimit(1)
+                                .padding(.horizontal, 6).padding(.vertical, 3)
+                                .background(Color.white.opacity(0.88), in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.bottom, iconSize + 10)   // encima de sus piedras, sin taparlas
+                    }
+                }
+            }
+            .mapStyle(.imagery(elevation: .flat))
+            .onMapCameraChange(frequency: .continuous) { ctx in distance = ctx.camera.distance }
+            .ignoresSafeArea()
+
+            Button { dismiss() } label: {
+                Image(systemName: "xmark").font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
+                    .frame(width: 36, height: 36).background(Color.black.opacity(0.55), in: Circle())
+            }
+            .padding(16)
+            .accessibilityLabel(L("Cerrar"))
+        }
+    }
+
+    /// El sector, en el centro de sus piedras (su marca puede estar lejos de ellas).
+    private func sectorCoord(_ z: Block) -> CLLocationCoordinate2D {
+        let inside = stones.filter { $0.sectorBlockId == z.id }
+        guard !inside.isEmpty else { return CLLocationCoordinate2D(latitude: z.lat, longitude: z.lon) }
+        return CLLocationCoordinate2D(latitude: inside.map(\.lat).reduce(0, +) / Double(inside.count),
+                                      longitude: inside.map(\.lon).reduce(0, +) / Double(inside.count))
+    }
+}
+
+/// El mapa general a pantalla completa (SIN conexión, con la imagen guardada): pellizcar para acercar, arrastrar
+/// para moverse, doble toque para volver.
 struct GuideOverviewFullScreen: View {
     let overview: GuideOverview
     let onSector: (String) -> Void
