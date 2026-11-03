@@ -16,7 +16,7 @@ struct SchoolGuideView: View {
     /// Abre la vía en el mapa de la ficha (con su piedra).
     let onOpen: (String) -> Void
     @Environment(\.schoolRestrictions) private var restrictionsUI
-    @State private var zoomed: GuideBlock?
+    @State private var zoomed: GuideFace?
     /// Vía a la que se le está apuntando el ascenso (hoja de ascenso abierta aquí mismo).
     @State private var ticking: LineSearchHit?
     /// Vía hecha que se quiere quitar del diario (se pide confirmación).
@@ -33,7 +33,7 @@ struct SchoolGuideView: View {
         }
         .padding(.horizontal, 14).padding(.bottom, 16)
         .sheet(item: Binding(get: { zoomed.map(ZoomItem.init) }, set: { if $0 == nil { zoomed = nil } })) { item in
-            GuideZoomSheet(block: item.block)
+            GuideZoomSheet(face: item.face)
         }
         .sheet(item: Binding(get: { ticking.map(TickItem.init) }, set: { if $0 == nil { ticking = nil } })) { item in
             GuideAscentSheet(hit: item.hit, wasProject: model.projectIds.contains(item.id)) { choice in
@@ -103,32 +103,37 @@ struct SchoolGuideView: View {
 
     private func blockView(_ b: GuideBlock, index: Int) -> some View {
         VStack(spacing: 0) {
-            ZStack(alignment: .top) {
-                GuideTopo(block: b, maxHeight: 240)
-                HStack {
-                    Text("\(index) · \(b.blockName.uppercased())")
-                        .font(Cumbre.mono(10.5, .bold)).foregroundStyle(.white)
-                        .padding(.horizontal, 8).padding(.vertical, 4)
-                        .background(Color.black.opacity(0.6), in: Capsule())
-                    RestrictionMarkButton(items: restrictionsUI?.forBlockId(b.blockId) ?? [])
-                    Spacer()
-                    if b.photoPath != nil {
-                        Button { mark(b.blockId); zoomed = b } label: {
-                            Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                .font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
-                                .frame(width: 30, height: 30).background(Color.black.opacity(0.6), in: Circle())
+            // Una foto por cara, cada una con SUS vías debajo (numeradas como en la foto, igual que la ficha).
+            ForEach(Array(b.faces.enumerated()), id: \.element.id) { fi, face in
+                ZStack(alignment: .top) {
+                    GuideTopo(face: face, maxHeight: 240)
+                    HStack {
+                        if fi == 0 {
+                            Text("\(index) · \(b.blockName.uppercased())")
+                                .font(Cumbre.mono(10.5, .bold)).foregroundStyle(.white)
+                                .padding(.horizontal, 8).padding(.vertical, 4)
+                                .background(Color.black.opacity(0.6), in: Capsule())
+                            RestrictionMarkButton(items: restrictionsUI?.forBlockId(b.blockId) ?? [])
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(L("Ver foto en grande"))
+                        Spacer()
+                        if face.photo != nil {
+                            Button { mark(b.blockId); zoomed = face } label: {
+                                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                    .font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
+                                    .frame(width: 30, height: 30).background(Color.black.opacity(0.6), in: Circle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(L("Ver foto en grande"))
+                        }
                     }
+                    .padding(10)
                 }
-                .padding(10)
-            }
-            .frame(maxWidth: .infinity)
-            .background(Cumbre.rule.opacity(0.18))
+                .frame(maxWidth: .infinity)
+                .background(Cumbre.rule.opacity(0.18))
 
-            ForEach(b.lines, id: \.lineId) { h in
-                lineRow(h)
+                ForEach(Array(face.lines.enumerated()), id: \.element.lineId) { i, h in
+                    lineRow(h, number: i + 1)
+                }
             }
 
             HStack(spacing: 8) {
@@ -150,11 +155,12 @@ struct SchoolGuideView: View {
         .id(GuideAnchor.id(b.blockId))
     }
 
-    private func lineRow(_ h: LineSearchHit) -> some View {
+    private func lineRow(_ h: LineSearchHit, number: Int) -> some View {
         let id = h.lineId ?? ""
         return HStack(spacing: 9) {
             Button { mark(h.blockId); onOpen(id) } label: {
                 HStack(spacing: 9) {
+                    GuideLineNumber(number: number, grade: h.grade)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(h.lineName ?? h.blockName).font(.system(size: 14.5, weight: .semibold))
                             .foregroundStyle(Cumbre.ink).lineLimit(2).multilineTextAlignment(.leading)
@@ -264,8 +270,8 @@ struct SchoolGuideView: View {
     }
 
     private struct ZoomItem: Identifiable {
-        let block: GuideBlock
-        var id: String { block.blockId }
+        let face: GuideFace
+        var id: String { face.id }
     }
 
     private struct TickItem: Identifiable {
@@ -309,24 +315,57 @@ private struct ProgressBar: View {
     }
 }
 
-/// Foto de la piedra con TODAS sus líneas de esa cara, cada una en el color de su grado (como un topo impreso).
-/// El marco toma la proporción de la foto para que los trazos (normalizados 0–1 sobre la foto) caigan en su sitio.
+/// Una cara de la piedra: una foto y las vías dibujadas sobre ELLA (numeradas 1, 2, 3… como en la ficha).
+struct GuideFace: Identifiable {
+    let blockId: String
+    let photo: String?
+    let lines: [LineSearchHit]
+    var id: String { "\(blockId)|\(photo ?? "")" }
+}
+
+extension GuideBlock {
+    /// Las vías agrupadas por la foto en la que están dibujadas, en el orden en que aparecen.
+    var faces: [GuideFace] {
+        var order: [String] = []
+        var byPhoto: [String: [LineSearchHit]] = [:]
+        for h in lines {
+            let k = h.photoPath ?? ""
+            if byPhoto[k] == nil { order.append(k) }
+            byPhoto[k, default: []].append(h)
+        }
+        return order.map { GuideFace(blockId: blockId, photo: $0.isEmpty ? nil : $0, lines: byPhoto[$0] ?? []) }
+    }
+}
+
+extension GuideFace {
+    /// Las líneas como las pinta la ficha de la piedra: número al inicio y tipo de salida al final.
+    var topoVias: [TopoVia] {
+        lines.enumerated().map { i, h in
+            TopoVia(number: i + 1, grade: h.grade, startType: h.startType, points: TopoParse.points(h.linePath))
+        }
+    }
+}
+
+/// Foto de una cara con sus líneas, pintadas por el MISMO pintor que la ficha de la piedra (`TopoPainter`).
+/// El marco toma la proporción de la foto para que los trazos (0–1 sobre la foto) caigan en su sitio.
 struct GuideTopo: View {
-    let block: GuideBlock
+    let face: GuideFace
     var maxHeight: CGFloat = 240
-    var lineWidth: CGFloat = 3
     @State private var image: UIImage?
 
     var body: some View {
-        let photo = block.photoPath ?? ""
+        let photo = face.photo ?? ""
         Group {
             if let image {
-                ZStack {
-                    Image(uiImage: image).resizable()
-                    lines
-                }
-                .aspectRatio(image.size.width / max(image.size.height, 1), contentMode: .fit)
-                .frame(maxHeight: maxHeight)
+                Image(uiImage: image).resizable()
+                    .overlay {
+                        Canvas { ctx, size in
+                            TopoPainter.paint(GraphicsContextTarget(ctx: ctx), vias: face.topoVias, size: size,
+                                              style: .photo)
+                        }
+                    }
+                    .aspectRatio(image.size.width / max(image.size.height, 1), contentMode: .fit)
+                    .frame(maxHeight: maxHeight)
             } else {
                 Cumbre.rule.opacity(0.25).frame(height: min(180, maxHeight))
             }
@@ -334,36 +373,31 @@ struct GuideTopo: View {
         .frame(maxWidth: .infinity)
         .task(id: photo) { if !photo.isEmpty { image = await ImageCache.image(photo) } }
     }
+}
 
-    private var lines: some View {
-        GeometryReader { geo in
-            ForEach(block.lines, id: \.lineId) { h in
-                if h.photoPath == block.photoPath {
-                    let pts = dedupPoints(TopoParse.points(h.linePath))
-                        .map { CGPoint(x: $0.x * geo.size.width, y: $0.y * geo.size.height) }
-                    if pts.count >= 2 {
-                        Path { p in p.move(to: pts[0]); for q in pts.dropFirst() { p.addLine(to: q) } }
-                            .stroke(GradeColor.color(h.grade),
-                                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
-                            .shadow(color: .black.opacity(0.45), radius: 1)
-                    }
-                }
-            }
-        }
+/// Número de la vía en su cara, como en la ficha de la piedra (el mismo que lleva la línea en la foto).
+struct GuideLineNumber: View {
+    let number: Int
+    let grade: String?
+    var body: some View {
+        Text("\(number)").font(Cumbre.mono(11, .bold))
+            .foregroundStyle(GradeColor.chipStyle(grade).dark ? .black : .white)
+            .frame(width: 22, height: 22)
+            .background(Circle().fill(GradeColor.chip(grade)))
     }
 }
 
 /// La foto de la piedra en grande, con zoom de pellizco.
 private struct GuideZoomSheet: View {
-    let block: GuideBlock
-    @Environment(\.dismiss) private var dismiss
+    let face: GuideFace
+    @Environment(.dismiss) private var dismiss
     @State private var scale: CGFloat = 1
     @State private var base: CGFloat = 1
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
             Color.black.ignoresSafeArea()
-            GuideTopo(block: block, maxHeight: .infinity, lineWidth: 3.5)
+            GuideTopo(face: face, maxHeight: .infinity)
                 .scaleEffect(scale)
                 .gesture(MagnifyGesture()
                     .onChanged { scale = min(max(base * $0.magnification, 1), 5) }

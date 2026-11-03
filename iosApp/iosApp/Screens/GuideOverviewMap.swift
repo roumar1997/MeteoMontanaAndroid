@@ -62,15 +62,24 @@ enum GuideOverviewStore {
         let image = UIGraphicsImageRenderer(size: size).image { ctx in
             snap.image.draw(at: .zero)
             let cg = ctx.cgContext
-            // Piedras: puntos terracota con borde blanco.
+            // Piedras: punto terracota con borde blanco y su nombre al lado (en pequeño, con sombra para leerse
+            // sobre el satélite). Tienen que verse también en el PDF, que reduce la imagen a la mitad.
+            let nameAttrs: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 15, weight: .bold), .foregroundColor: UIColor.white,
+                .strokeColor: UIColor.black, .strokeWidth: -3.5
+            ]
             for b in stones {
                 let p = snap.point(for: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon))
-                let r = CGRect(x: p.x - 4.5, y: p.y - 4.5, width: 9, height: 9)
+                let r = CGRect(x: p.x - 8, y: p.y - 8, width: 16, height: 16)
                 cg.setFillColor(UIColor(Cumbre.terraFill).cgColor)
                 cg.fillEllipse(in: r)
                 cg.setStrokeColor(UIColor.white.cgColor)
-                cg.setLineWidth(1.5)
+                cg.setLineWidth(2.5)
                 cg.strokeEllipse(in: r)
+                if !b.name.isEmpty {
+                    let s = NSAttributedString(string: b.name, attributes: nameAttrs)
+                    s.draw(at: CGPoint(x: p.x + 11, y: p.y - s.size().height / 2))
+                }
             }
             // Parkings: cuadrado azul con "P".
             for b in parkings {
@@ -96,12 +105,33 @@ enum GuideOverviewStore {
                 : CLLocationCoordinate2D(latitude: inside.map(\.lat).reduce(0, +) / Double(inside.count),
                                          longitude: inside.map(\.lon).reduce(0, +) / Double(inside.count))
             let p = snap.point(for: coord)
-            places.append(.init(name: z.name, x: Double(p.x / size.width), y: Double(p.y / size.height)))
+            // El nombre va ENCIMA de sus piedras (no tapándolas).
+            places.append(.init(name: z.name, x: Double(p.x / size.width), y: Double((p.y - 34) / size.height)))
         }
+        places = separated(places, imageSize: size)
 
         try? image.pngData()?.write(to: imageURL(schoolId))
         try? JSONEncoder().encode(places).write(to: placesURL(schoolId))
         return GuideOverview(image: image, sectors: places)
+    }
+
+    /// Separa los nombres de sector que se pisarían (dos sectores juntos, p. ej. «Pradera» y «Pradera inferior»):
+    /// el que choca con uno ya colocado baja lo justo para quedar debajo.
+    private static func separated(_ places: [GuideOverview.Place], imageSize: CGSize) -> [GuideOverview.Place] {
+        func rect(_ p: GuideOverview.Place) -> CGRect {
+            let w = CGFloat(p.name.count) * 10 + 22, h: CGFloat = 30   // ancho aproximado de la etiqueta, en px
+            return CGRect(x: p.x * imageSize.width - w / 2, y: p.y * imageSize.height - h / 2, width: w, height: h)
+        }
+        var out: [GuideOverview.Place] = []
+        for p in places.sorted(by: { $0.y < $1.y }) {
+            var q = p
+            while let hit = out.first(where: { rect($0).intersects(rect(q)) }) {
+                let y = (rect(hit).maxY + 16) / imageSize.height
+                q = .init(name: q.name, x: q.x, y: Double(y))
+            }
+            out.append(q)
+        }
+        return out
     }
 }
 

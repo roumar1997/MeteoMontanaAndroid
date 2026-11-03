@@ -22,7 +22,9 @@ enum GuidePDF {
         // Las fotos primero (async); luego se dibuja todo de una vez.
         var photos: [String: UIImage] = [:]
         for s in sectors { for b in s.blocks {
-            if let p = b.photoPath, photos[p] == nil, let img = await ImageCache.image(p) { photos[p] = img }
+            for f in b.faces {
+                if let p = f.photo, photos[p] == nil, let img = await ImageCache.image(p) { photos[p] = img }
+            }
         } }
 
         let safeName = schoolName.replacingOccurrences(of: "/", with: "-")
@@ -66,25 +68,31 @@ enum GuidePDF {
                     y += draw(L("%@ piedras · %@ vías", s.blocks.count, Int(s.lineCount)),
                               font: .systemFont(ofSize: 11), color: ink3, at: y + 2) + 14
                     for b in s.blocks {
-                        let photo = b.photoPath.flatMap { photos[$0] }
-                        let photoH: CGFloat = photo.map { min(contentWidth * $0.size.height / max($0.size.width, 1), 300) } ?? 0
-                        let firstRow = b.lines.first.map { rowHeight($0) } ?? 0
-                        ensure(22 + photoH + 8 + firstRow)
-                        y += draw(b.blockName, font: .systemFont(ofSize: 14, weight: .semibold), color: ink, at: y) + 4
-                        if let photo {
-                            let w = photoH * photo.size.width / max(photo.size.height, 1)
-                            let r = CGRect(x: margin + (contentWidth - w) / 2, y: y, width: w, height: photoH)
-                            photo.draw(in: r)
-                            drawLines(b, in: r, cg: ctx.cgContext)
-                            y += photoH + 8
+                        // Una foto por cara, con SUS vías debajo y numeradas como en la foto (igual que la ficha).
+                        for (fi, face) in b.faces.enumerated() {
+                            let photo = face.photo.flatMap { photos[$0] }
+                            let photoH: CGFloat = photo.map { min(contentWidth * $0.size.height / max($0.size.width, 1), 300) } ?? 0
+                            let firstRow = face.lines.first.map { rowHeight($0) } ?? 0
+                            ensure((fi == 0 ? 22 : 0) + photoH + 8 + firstRow)
+                            if fi == 0 {
+                                y += draw(b.blockName, font: .systemFont(ofSize: 14, weight: .semibold), color: ink, at: y) + 4
+                            }
+                            if let photo {
+                                let w = photoH * photo.size.width / max(photo.size.height, 1)
+                                let r = CGRect(x: margin + (contentWidth - w) / 2, y: y, width: w, height: photoH)
+                                photo.draw(in: r)
+                                drawLines(face, in: r, cg: ctx.cgContext)
+                                y += photoH + 8
+                            }
+                            for (i, h) in face.lines.enumerated() {
+                                let rh = rowHeight(h)
+                                ensure(rh)
+                                drawRow(h, number: i + 1, at: y)
+                                y += rh
+                            }
+                            y += 8
                         }
-                        for h in b.lines {
-                            let rh = rowHeight(h)
-                            ensure(rh)
-                            drawRow(h, at: y)
-                            y += rh
-                        }
-                        y += 14
+                        y += 8
                     }
                 }
             }
@@ -126,22 +134,20 @@ enum GuidePDF {
         s.draw(at: CGPoint(x: r.minX + 5, y: r.minY + 3))
     }
 
-    private static func drawLines(_ b: GuideBlock, in r: CGRect, cg: CGContext) {
-        for h in b.lines where h.photoPath == b.photoPath {
-            let pts = dedupPoints(TopoParse.points(h.linePath))
-                .map { CGPoint(x: r.minX + $0.x * r.width, y: r.minY + $0.y * r.height) }
-            guard pts.count >= 2 else { continue }
-            let path = UIBezierPath()
-            path.move(to: pts[0]); pts.dropFirst().forEach { path.addLine(to: $0) }
-            path.lineCapStyle = .round; path.lineJoinStyle = .round
-            UIColor.black.withAlphaComponent(0.5).setStroke(); path.lineWidth = 4.5; path.stroke()
-            UIColor(GradeColor.color(h.grade)).setStroke(); path.lineWidth = 2.5; path.stroke()
-        }
+    /// Las líneas de una cara con el MISMO pintor que la ficha (número al inicio, tipo de salida al final).
+    private static func drawLines(_ face: GuideFace, in r: CGRect, cg: CGContext) {
+        cg.saveGState()
+        cg.translateBy(x: r.minX, y: r.minY)
+        TopoPainter.paint(CGContextTarget(cg: cg), vias: face.topoVias, size: r.size,
+                          style: .share(scale: r.width / 360.0, badgeOuter: 9, badgeInner: 7.2,
+                                        badgeText: 9.5, startText: 7, fanStart: 9 * 2 + 4, fanEnd: 10.5 * 2 + 4))
+        cg.restoreGState()
     }
 
     private static let pillW: CGFloat = 40
-    private static var textX: CGFloat { margin + pillW + 10 }
-    private static var textW: CGFloat { contentWidth - pillW - 10 }
+    private static let numW: CGFloat = 20
+    private static var textX: CGFloat { margin + numW + pillW + 10 }
+    private static var textW: CGFloat { contentWidth - numW - pillW - 10 }
 
     private static func meta(_ h: LineSearchHit) -> String? {
         var parts: [String] = []
@@ -164,10 +170,15 @@ enum GuidePDF {
         return max(total, 18) + 9
     }
 
-    private static func drawRow(_ h: LineSearchHit, at y0: CGFloat) {
+    private static func drawRow(_ h: LineSearchHit, number: Int, at y0: CGFloat) {
+        // El número de la vía en su cara (el mismo que lleva la línea en la foto).
+        let n = NSAttributedString(string: "\(number)", attributes: [
+            .font: UIFont.monospacedDigitSystemFont(ofSize: 10, weight: .bold), .foregroundColor: ink
+        ])
+        n.draw(at: CGPoint(x: margin, y: y0 + 2))
         // Grado en una pastilla de su color (los blancos con borde y texto oscuro).
         let style = GradeColor.style(h.grade)
-        let pill = CGRect(x: margin, y: y0 + 1, width: pillW, height: 16)
+        let pill = CGRect(x: margin + numW, y: y0 + 1, width: pillW, height: 16)
         let pillPath = UIBezierPath(roundedRect: pill, cornerRadius: 8)
         UIColor(style.stroke).setFill(); pillPath.fill()
         if style.dark { rule.setStroke(); pillPath.lineWidth = 1; pillPath.stroke() }
