@@ -390,7 +390,7 @@ struct GuideLineNumber: View {
 /// La foto de la piedra en grande, con zoom de pellizco.
 private struct GuideZoomSheet: View {
     let face: GuideFace
-    @Environment(.dismiss) private var dismiss
+    @Environment(\.dismiss) private var dismiss
     @State private var scale: CGFloat = 1
     @State private var base: CGFloat = 1
 
