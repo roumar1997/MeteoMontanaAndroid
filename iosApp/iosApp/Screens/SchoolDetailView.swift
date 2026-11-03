@@ -483,6 +483,7 @@ struct SchoolDetailView: View {
     }
 
     private var scrollContent: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             VStack(spacing: 0) {
             schoolTitle
@@ -535,6 +536,17 @@ struct SchoolDetailView: View {
         .refreshable {
             await vm.load(school: school)
             presenceRefreshTrigger += 1
+        }
+        // Marcapáginas de la guía: al volver a BLOQUES (o cuando acaba de cargar) salta a la última piedra tocada.
+        .onChange(of: tab) { t in if t == .blocks { jumpToBookmark(proxy) } }
+        .onChange(of: blocksModel.loading) { l in if !l && tab == .blocks { jumpToBookmark(proxy) } }
+        }
+    }
+
+    private func jumpToBookmark(_ proxy: ScrollViewProxy) {
+        guard let id = blocksModel.openBookmarkedSector() else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation(.easeInOut(duration: 0.3)) { proxy.scrollTo(GuideAnchor.id(id), anchor: .top) }
         }
     }
 }

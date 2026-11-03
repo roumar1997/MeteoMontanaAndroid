@@ -1897,3 +1897,6 @@
 "Nadie ha valorado todavía ninguna de estas vías." = "Nobody has rated any of these routes yet.";
 "¿Quitar esta vía de tu diario?" = "Remove this route from your logbook?";
 "Quitar del diario" = "Remove from logbook";
+"Abrir piedra" = "Open boulder";
+"Piedra · 1 vía" = "Boulder · 1 line";
+"Piedra · %@ vías" = "Boulder · %@ lines";

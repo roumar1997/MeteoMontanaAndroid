@@ -112,7 +112,7 @@ struct SchoolGuideView: View {
                     RestrictionMarkButton(items: restrictionsUI?.forBlockId(b.blockId) ?? [])
                     Spacer()
                     if b.photoPath != nil {
-                        Button { zoomed = b } label: {
+                        Button { mark(b.blockId); zoomed = b } label: {
                             Image(systemName: "arrow.up.left.and.arrow.down.right")
                                 .font(.system(size: 12, weight: .bold)).foregroundStyle(.white)
                                 .frame(width: 30, height: 30).background(Color.black.opacity(0.6), in: Circle())
@@ -132,10 +132,12 @@ struct SchoolGuideView: View {
 
             HStack(spacing: 8) {
                 actionButton(L("Ver en mapa"), icon: "map", filled: false) {
+                    mark(b.blockId)
                     onShowOnMap(b.blockId)
                 }
                 if let lat = b.lat?.doubleValue, let lon = b.lon?.doubleValue {
                     actionButton(L("Cómo llegar"), icon: "arrow.triangle.turn.up.right.diamond", filled: true) {
+                        mark(b.blockId)
                         openDirections(lat: lat, lon: lon)
                     }
                 }
@@ -144,12 +146,13 @@ struct SchoolGuideView: View {
             .overlay(alignment: .top) { Divider().overlay(Cumbre.rule) }
         }
         .overlay(alignment: .top) { Divider().overlay(Cumbre.rule) }
+        .id(GuideAnchor.id(b.blockId))
     }
 
     private func lineRow(_ h: LineSearchHit, number: Int) -> some View {
         let id = h.lineId ?? ""
         return HStack(spacing: 9) {
-            Button { onOpen(id) } label: {
+            Button { mark(h.blockId); onOpen(id) } label: {
                 HStack(spacing: 9) {
                     NumberBadge(number: number, grade: h.grade, size: 20)
                     VStack(alignment: .leading, spacing: 2) {
@@ -189,6 +192,7 @@ struct SchoolGuideView: View {
         .frame(width: 30, height: 30)
         .contentShape(Circle())
         .onTapGesture {
+            mark(h.blockId)
             if done { unmarking = h } else { ticking = h }
         }
         .onLongPressGesture(minimumDuration: 0.4) {
@@ -203,6 +207,9 @@ struct SchoolGuideView: View {
         .accessibilityLabel(done ? L("Hecha") : project ? L("Proyecto") : L("Marcar como hecha"))
         .accessibilityAddTraits(.isButton)
     }
+
+    /// Apunta la piedra como marcapáginas de la guía.
+    private func mark(_ blockId: String) { model.setBookmark(schoolId: schoolId, blockId: blockId) }
 
     /// La vía tal como la necesita el diario.
     private func ref(_ h: LineSearchHit) -> JournalLineRef {
@@ -385,4 +392,9 @@ private struct GuideZoomSheet: View {
             .accessibilityLabel(L("Cerrar"))
         }
     }
+}
+
+/// Id de scroll de cada piedra de la guía (para saltar al marcapáginas).
+enum GuideAnchor {
+    static func id(_ blockId: String) -> String { "guide-\(blockId)" }
 }

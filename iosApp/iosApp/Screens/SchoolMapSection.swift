@@ -933,6 +933,8 @@ struct SchoolMapSection: View {
         focusCoord = blockMarkerCoord(b)
         focusZoom = 18.5
         focusToken += 1
+        // La misma tarjeta que un parking o un sector: ABRIR la piedra o CÓMO LLEGAR.
+        miniBlock = b
     }
 
     /// Abre la piedra que contiene la vía indicada (deep-link del diario): busca
@@ -1192,19 +1194,23 @@ struct SchoolMapSection: View {
     /// camino grabado). Debajo, solo admin y a la vista: MOVER, EDITAR y BORRAR.
     private func miniBlockCard(_ mb: Block) -> some View {
         let isParking = mb.type.uppercased() == "PARKING"
+        let isStone = !isParking && mb.type.uppercased() != "ZONE"
         let stoneCount = vm.blocks.filter { $0.sectorBlockId == mb.id }.count
         let collapsed = vm.collapsedSectors.contains(mb.id)
         let approach = approachesLoader.approach(to: mb.id)
         var kindText = isParking ? L("Parking") : L("Sector")
         if !isParking && stoneCount > 0 { kindText += L(" · %@ piedra%@", stoneCount, stoneCount == 1 ? "" : "s") }
+        if isStone {
+            kindText = mb.lines.count == 1 ? L("Piedra · 1 vía") : L("Piedra · %@ vías", mb.lines.count)
+        }
         let distance: String? = userCoord.map { u in
             let km = Geo.shared.haversineKm(lat1: u.latitude, lon1: u.longitude, lat2: mb.lat, lon2: mb.lon)
             return km < 1 ? "\(Int(km * 1000)) m" : String(format: "%.1f km", km)
         }
-        let accent = Color(isParking ? parkingColor : zoneColor)
+        let accent = isStone ? Cumbre.terraFill : Color(isParking ? parkingColor : zoneColor)
         return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
-                Text(isParking ? "P" : "S")
+                Text(isParking ? "P" : isStone ? "\u{25C6}" : "S")
                     .font(.system(size: 16, weight: .bold)).foregroundStyle(.white)
                     .frame(width: 38, height: 38)
                     .background(accent)
@@ -1233,7 +1239,12 @@ struct SchoolMapSection: View {
                     let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(mb.lat),\(mb.lon)")!
                     UIApplication.shared.open(UIApplication.shared.canOpenURL(g) ? g : web)
                 }
-                if !isParking && stoneCount > 0 {
+                if isStone {
+                    cardPill(L("Abrir piedra"), icon: "square.stack.3d.up") {
+                        miniBlock = nil
+                        openBlockSheet(mb)
+                    }
+                } else if !isParking && stoneCount > 0 {
                     cardPill(collapsed ? L("Ver piedras") : L("Ocultar piedras"),
                              icon: collapsed ? "eye" : "eye.slash") {
                         if collapsed { vm.collapsedSectors.remove(mb.id) } else { vm.collapsedSectors.insert(mb.id) }
@@ -1246,7 +1257,7 @@ struct SchoolMapSection: View {
                     }
                 }
             }
-            if vm.isAdmin {
+            if vm.isAdmin && !isStone {
                 HStack(spacing: 6) {
                     Text("ADMIN").font(Cumbre.mono(9, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
                         .frame(width: 44, alignment: .leading)

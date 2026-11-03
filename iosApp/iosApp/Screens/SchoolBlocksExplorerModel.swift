@@ -76,6 +76,27 @@ final class SchoolBlocksExplorerModel: ObservableObject {
         SchoolGuide.shared.view(lines: all, filter: filter, betaLineIds: betaLineIds)
     }
 
+    // MARK: - Marcapáginas
+
+    /// Última piedra con la que hiciste algo en la guía (mapa, vía, marcar, foto). Al volver a BLOQUES se salta a
+    /// ella, como un marcapáginas. Se guarda por escuela, así que sigue ahí aunque salgas y vuelvas a entrar.
+    private(set) var bookmarkBlockId: String?
+
+    private static func bookmarkKey(_ schoolId: String) -> String { "guide.bookmark.\(schoolId)" }
+
+    func setBookmark(schoolId: String, blockId: String) {
+        bookmarkBlockId = blockId
+        UserDefaults.standard.set(blockId, forKey: Self.bookmarkKey(schoolId))
+    }
+
+    /// Despliega el sector de la piedra marcada (si con los filtros actuales sale en la guía) y dice si está.
+    func openBookmarkedSector() -> String? {
+        guard let id = bookmarkBlockId, let view = guideView,
+              let s = view.sectors.first(where: { $0.blocks.contains { $0.blockId == id } }) else { return nil }
+        guideOpen.insert(s.key)
+        return id
+    }
+
     /// Relee el diario del móvil: qué vías de esta escuela tienes hechas o en proyecto.
     func refreshJournal(schoolId: String) {
         let done = JournalDoneStore.shared.all
@@ -100,6 +121,7 @@ final class SchoolBlocksExplorerModel: ObservableObject {
             loadedSchool = schoolId
             refreshJournal(schoolId: schoolId)
             if let first = SchoolGuide.shared.sectors(lines: all).first { guideOpen = [first.key] }
+            bookmarkBlockId = UserDefaults.standard.string(forKey: Self.bookmarkKey(schoolId))
             // Los grados partidos por altura son un extra: si falla, las listas salen con el grado de siempre.
             if let map = try? await AppDependencies.shared.container.getSchoolGradeSplits.invoke(schoolId: schoolId) {
                 splits = map.mapValues { GradeSplitInfo(tall: $0.tallGrade, short: $0.shortGrade) }
