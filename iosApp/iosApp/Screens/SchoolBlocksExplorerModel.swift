@@ -13,6 +13,8 @@ final class SchoolBlocksExplorerModel: ObservableObject {
         case repeated, rated
         var label: String { self == .repeated ? L("MÁS REPETIDOS") : L("MEJOR VALORADOS") }
         var shared: LinesOrder { self == .repeated ? .mostRepeated : .bestRated }
+        /// Pestaña de las destacadas de la guía.
+        var tab: String { self == .repeated ? L("Más repetidas") : L("Mejor valoradas") }
     }
 
     /// "▶ +1,70" / "▶ −1,70" para cada altura de beta que entiende el servidor.
@@ -21,10 +23,6 @@ final class SchoolBlocksExplorerModel: ObservableObject {
     }
 
     @Published private(set) var all: [LineSearchHit] = []
-    /// Modo GUÍA (la escuela como guía de papel). Se recuerda entre escuelas y sesiones.
-    @Published var guideMode = UserDefaults.standard.bool(forKey: "blocks_guide_mode") {
-        didSet { UserDefaults.standard.set(guideMode, forKey: "blocks_guide_mode") }
-    }
     /// Caras marcadas (N/E/S/O). Vale para la lista y la guía.
     @Published var faces: Set<String> = []
     /// Solo lo que NO tienes hecho en tu diario. Vale para la lista y la guía.
@@ -44,8 +42,6 @@ final class SchoolBlocksExplorerModel: ObservableObject {
     @Published var betas: Set<String> = []
     @Published private(set) var betaLineIds: [String: Set<String>] = [:]
     @Published var order: Order = .repeated
-    /// Sectores DESPLEGADOS (empiezan todos plegados, como los grupos de la búsqueda de Escuelas).
-    @Published var openSectors: Set<String> = []
     /// Panel de filtros (grado, beta, orden): plegado por defecto para que se vea antes la lista.
     @Published var filtersOpen = false
 
@@ -64,15 +60,15 @@ final class SchoolBlocksExplorerModel: ObservableObject {
 
     var gradeOptions: [String] { SchoolLinesExplorer.shared.gradeOptions(lines: all) }
 
-    /// Los filtros de arriba, UNO solo para la lista y la guía.
+    /// Los filtros de arriba: valen para las destacadas y para la guía.
     private var filter: LinesFilter {
         LinesFilter(query: query, grades: grades, betaHeights: betas, order: order.shared,
                     faces: faces, excludeLineIds: onlyNotDone ? doneIds : [])
     }
 
-    /// nil = todavía bajando los ids de beta de alguna altura marcada.
-    var linesView: LinesView? {
-        SchoolLinesExplorer.shared.view(lines: all, filter: filter, betaLineIds: betaLineIds)
+    /// Destacadas (más repetidas / mejor valoradas, según `order`) con los mismos filtros; nil = bajando beta.
+    var highlights: [LineSearchHit]? {
+        SchoolLinesExplorer.shared.highlights(lines: all, filter: filter, betaLineIds: betaLineIds, limit: 10)
     }
 
     /// La guía con los mismos filtros; nil = bajando beta.

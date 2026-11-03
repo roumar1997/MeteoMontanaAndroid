@@ -75,6 +75,25 @@ object SchoolLinesExplorer {
         return LinesView(sorted.size, podium, sectorGroups(sorted.drop(podium.size)))
     }
 
+    /**
+     * Las vías DESTACADAS de la guía con los mismos filtros: las más repetidas (alguien la ha hecho) o las mejor
+     * valoradas (alguien la ha valorado), según `filter.order`. Las que no tienen nada que contar no entran.
+     * `null` mientras falte algún dato de beta.
+     */
+    fun highlights(
+        lines: List<LineSearchHit>,
+        filter: LinesFilter,
+        betaLineIds: Map<String, Set<String>>,
+        limit: Int = HIGHLIGHTS_SIZE
+    ): List<LineSearchHit>? {
+        val hits = filtered(lines, filter, betaLineIds)?.matched ?: return null
+        val worth = if (filter.order == LinesOrder.MOST_REPEATED) hits.filter { repetitions(it) > 0 }
+        else hits.filter { (it.ratingCount ?: 0) > 0 }
+        return worth.sortedWith(comparator(filter.order)).take(limit)
+    }
+
+    private const val HIGHLIGHTS_SIZE = 10
+
     /** Las 4 caras que se pueden marcar, en el orden en que se enseñan. */
     val FACES: List<String> = listOf("N", "E", "S", "O")
 

@@ -56,6 +56,18 @@ class SchoolGuideFilterTest {
         assertEquals(2, g.sectorCount)
     }
 
+    @Test fun `destacadas siguen los filtros y solo entran las que tienen algo que contar`() {
+        val reps = listOf(
+            hit("1", "A", "X", "N").copy(repetitions = 5),
+            hit("2", "B", "X", "N").copy(repetitions = 9),
+            hit("3", "C", "X", "N").copy(repetitions = 0, rating = 4.5, ratingCount = 2),
+            hit("4", "D", "X", "S").copy(repetitions = 20)
+        )
+        assertEquals(listOf("2", "1"), SchoolLinesExplorer.highlights(reps, f(setOf("N")), emptyMap())!!.map { it.lineId })
+        val rated = LinesFilter("", emptySet(), emptySet(), LinesOrder.BEST_RATED)
+        assertEquals(listOf("3"), SchoolLinesExplorer.highlights(reps, rated, emptyMap())!!.map { it.lineId })
+    }
+
     @Test fun `sin hacer quita las hechas y la lista usa el mismo filtro`() {
         val g = SchoolGuide.view(lines, f(exclude = setOf("1", "2")), emptyMap())!!
         assertEquals(listOf("Y"), g.sectors.map { it.sector })

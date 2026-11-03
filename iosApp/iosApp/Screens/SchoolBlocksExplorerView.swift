@@ -1,14 +1,14 @@
 import SwiftUI
 import Shared
 
-/// Pestaña BLOQUES/VÍAS de la ficha de una escuela: las vías más repetidas de la escuela, filtrables por uno o
-/// varios grados y por "tiene beta" (+1,70 / −1,70), con buscador por nombre y el resto agrupado por sector.
+/// Pestaña BLOQUES/VÍAS de la ficha de una escuela, en forma de GUÍA: arriba los filtros (buscador, cara, sin hacer,
+/// y en "Más" grados —varios— y beta por altura), luego las DESTACADAS (más repetidas / mejor valoradas) y debajo la
+/// guía sector a sector. Los filtros valen para las dos.
 ///
-/// "Repetida" = personas distintas que la tienen como HECHA en su diario. El servidor devuelve solo el total,
-/// nunca quién la ha hecho, y lo cuenta en cada consulta (no hay contador guardado que se desfase).
+/// "Repetida" = personas distintas que la tienen como HECHA en su diario. El servidor devuelve solo el total.
 ///
-/// Esta vista SOLO pinta: el estado vive en `SchoolBlocksExplorerModel` y los filtros, el orden, el podio y los
-/// sectores los calcula `SchoolLinesExplorer` (shared).
+/// Esta vista SOLO pinta: el estado vive en `SchoolBlocksExplorerModel`; filtrar, ordenar y agrupar lo calculan
+/// `SchoolLinesExplorer` y `SchoolGuide` (shared).
 struct SchoolBlocksExplorerView: View {
     let school: School
     @ObservedObject var model: SchoolBlocksExplorerModel
@@ -36,15 +36,12 @@ struct SchoolBlocksExplorerView: View {
                     .padding(.horizontal, 16)
             } else {
                 header
-                if model.guideMode {
-                    if let g = model.guideView {
-                        SchoolGuideView(schoolId: school.id, guide: g, model: model, onOpen: onOpen)
-                    } else {
-                        SkeletonList(count: 3) { SkeletonGradeRow() }
-                            .frame(maxWidth: .infinity, minHeight: 100, alignment: .top)
-                    }
+                highlights
+                if let g = model.guideView {
+                    SchoolGuideView(schoolId: school.id, guide: g, model: model, onOpen: onOpen)
                 } else {
-                    results
+                    SkeletonList(count: 3) { SkeletonGradeRow() }
+                            .frame(maxWidth: .infinity, minHeight: 100, alignment: .top)
                 }
             }
         }
@@ -74,7 +71,6 @@ struct SchoolBlocksExplorerView: View {
                 .background(Cumbre.paper, in: Capsule())
                 .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
                 .guideTarget("detail_blocks.search")
-                viewSwitch
             }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
@@ -101,37 +97,15 @@ struct SchoolBlocksExplorerView: View {
         .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 8)
     }
 
-    /// "14 VÍAS · 6 PIEDRAS · 2 SECTORES" en la guía; "14 VÍAS" en la lista.
+    /// "14 VÍAS · 6 PIEDRAS · 2 SECTORES" (lo que queda tras los filtros).
     private var countLine: String {
-        if model.guideMode, let g = model.guideView {
+        if let g = model.guideView {
             let lines = g.lineCount == 1 ? L("1 VÍA") : L("%@ VÍAS", g.lineCount)
             let blocks = g.blockCount == 1 ? L("1 PIEDRA") : L("%@ PIEDRAS", g.blockCount)
             let sectors = g.sectorCount == 1 ? L("1 SECTOR") : L("%@ SECTORES", g.sectorCount)
             return "\(lines) · \(blocks) · \(sectors)"
         }
-        return ""   // la lista ya enseña su total encima de los resultados
-    }
-
-    /// Cambio de vista: los filtros no cambian, solo cómo se enseña el resultado.
-    private var viewSwitch: some View {
-        HStack(spacing: 2) {
-            switchIcon("list.bullet", on: !model.guideMode, label: L("Lista")) { model.guideMode = false }
-            switchIcon("book", on: model.guideMode, label: L("Guía")) { model.guideMode = true }
-        }
-        .padding(3)
-        .background(Cumbre.rule.opacity(0.45), in: Capsule())
-    }
-
-    private func switchIcon(_ name: String, on: Bool, label: String, action: @escaping () -> Void) -> some View {
-        Button { withAnimation(.snappy(duration: 0.25)) { action() } } label: {
-            Image(systemName: name).font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(on ? Cumbre.ink : Cumbre.ink3)
-                .frame(width: 34, height: 28)
-                .background(on ? Cumbre.paper : Color.clear, in: Capsule())
-                .overlay(Capsule().stroke(on ? Cumbre.rule : Color.clear, lineWidth: 0.5))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(label)
+        return ""
     }
 
     /// Cara de la piedra (N/E/S/O, varias). Menú que no se cierra en cada toque.
@@ -222,15 +196,6 @@ struct SchoolBlocksExplorerView: View {
                     }
                 }
             }
-            // La guía va siempre en el orden en que te encuentras las piedras: ordenar solo tiene sentido en la lista.
-            if !model.guideMode {
-                label(L("ORDENAR"))
-                wrapChips {
-                    ForEach(SchoolBlocksExplorerModel.Order.allCases, id: \.self) { o in
-                        chip(o.label, on: model.order == o) { model.order = o }
-                    }
-                }
-            }
         }
     }
 
@@ -256,77 +221,75 @@ struct SchoolBlocksExplorerView: View {
         }.buttonStyle(.plain)
     }
 
-    // MARK: - Resultados
+    // MARK: - Destacadas (más repetidas / mejor valoradas), con los mismos filtros
 
-    @ViewBuilder private var results: some View {
-        if let view = model.linesView {
-            Divider().overlay(Cumbre.rule)
-            HStack {
-                Text(view.total == 1 ? L("1 VÍA") : L("%@ VÍAS", view.total))
-                    .font(Cumbre.mono(10, .bold)).tracking(1.8).foregroundStyle(Cumbre.ink3)
-                Spacer()
-                Text(L("✓ = personas que la han hecho")).font(.system(size: 10.5)).foregroundStyle(Cumbre.ink3)
-            }
-            .padding(.horizontal, 16).padding(.vertical, 8)
-
-            if view.total == 0 {
-                Text(L("Ninguna vía cumple esos filtros."))
-                    .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
-                    .frame(maxWidth: .infinity).padding(.vertical, 24)
-            }
-            if !view.podium.isEmpty {
-                HStack(alignment: .top, spacing: 8) {
-                    ForEach(view.podium, id: \.lineId) { podiumCard($0) }
-                    // Si hay menos de 3, se rellenan los huecos para que las tarjetas no se estiren.
-                    ForEach(0..<max(0, 3 - view.podium.count), id: \.self) { _ in Color.clear.frame(maxWidth: .infinity) }
+    @ViewBuilder private var highlights: some View {
+        let items = model.highlights ?? []
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 2) {
+                ForEach(SchoolBlocksExplorerModel.Order.allCases, id: \.self) { o in
+                    let on = model.order == o
+                    Button { withAnimation(.snappy(duration: 0.25)) { model.order = o } } label: {
+                        Text(o.tab).font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(on ? Cumbre.ink : Cumbre.ink3)
+                            .padding(.horizontal, 12).padding(.vertical, 6)
+                            .background(on ? Cumbre.paper : Color.clear, in: Capsule())
+                            .overlay(Capsule().stroke(on ? Cumbre.rule : Color.clear, lineWidth: 0.5))
+                    }.buttonStyle(.plain)
                 }
-                .padding(.horizontal, 16).padding(.bottom, 8)
-                .guideTarget("detail_blocks.podium")
             }
-            // Por sectores, plegables. Perezoso: un sector abierto con muchas vías no monta todas las miniaturas de golpe.
-            LazyVStack(spacing: 0) {
-                ForEach(view.groups, id: \.sector) { g in
-                    sectorHeader(g)
-                    if model.openSectors.contains(g.sector ?? "") {
-                        ForEach(g.hits, id: \.lineId) { row($0) }
+            .padding(3)
+            .background(Cumbre.rule.opacity(0.45), in: Capsule())
+            .padding(.horizontal, 16)
+
+            if items.isEmpty {
+                Text(model.order == .repeated ? L("Nadie ha apuntado todavía ninguna de estas vías.")
+                                              : L("Nadie ha valorado todavía ninguna de estas vías."))
+                    .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                    .padding(.horizontal, 16)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: 10) {
+                        ForEach(Array(items.enumerated()), id: \.element.lineId) { i, h in highlightCard(h, rank: i + 1) }
+                    }
+                    .padding(.horizontal, 16)
+                }
+            }
+        }
+        .padding(.bottom, 14)
+        .guideTarget("detail_blocks.podium")
+    }
+
+    private func highlightCard(_ h: LineSearchHit, rank: Int) -> some View {
+        Button { if let id = h.lineId { onOpen(id) } } label: {
+            VStack(alignment: .leading, spacing: 0) {
+                ZStack(alignment: .topLeading) {
+                    thumbnail(h).frame(width: 156, height: 104).clipped()
+                    Text("\(rank)").font(Cumbre.mono(11, .bold)).foregroundStyle(.white)
+                        .frame(width: 22, height: 22).background(Color.black.opacity(0.6), in: Circle())
+                        .padding(6)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(h.lineName ?? h.blockName).font(.system(size: 13.5, weight: .semibold))
+                        .foregroundStyle(Cumbre.ink).lineLimit(1)
+                    Text(h.sectorName ?? h.blockName).font(.system(size: 11.5)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                    HStack(spacing: 6) {
+                        GradePill(grade: h.grade, small: true, split: h.lineId.flatMap { model.splits[$0] })
+                        Spacer(minLength: 0)
+                        if model.order == .repeated {
+                            Text("✓ \(h.repetitions?.intValue ?? 0)").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ok)
+                        } else if let avg = h.rating?.doubleValue {
+                            Text("★ \(String(format: "%.1f", avg))").font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink2)
+                        }
                     }
                 }
+                .padding(9)
             }
-        } else {
-            SkeletonList(count: 3) { SkeletonGradeRow() }
-                .frame(maxWidth: .infinity, minHeight: 100, alignment: .top)
-        }
-    }
-
-    private func sectorHeader(_ g: SectorGroup) -> some View {
-        let key = g.sector ?? ""
-        let open = model.openSectors.contains(key)
-        return Button {
-            if open { model.openSectors.remove(key) } else { model.openSectors.insert(key) }
-        } label: {
-            HStack {
-                Text(g.sector ?? L("Sin sector")).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
-                Spacer()
-                RestrictionMarkButton(items: restrictionsUI?.allInSectorNamed(g.sector) ?? [])
-                Text("\(g.hits.count)").font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.ink2)
-                Image(systemName: open ? "chevron.up" : "chevron.down").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
-            }
-            .padding(.horizontal, 16).padding(.vertical, 11)
+            .frame(width: 156)
             .background(Cumbre.paper)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .overlay(alignment: .top) { Divider().overlay(Cumbre.rule) }
-    }
-
-    // MARK: - Filas
-
-    /// Repeticiones y estrellas SOLO para mostrar (el orden lo decide shared).
-    private func repetitions(_ h: LineSearchHit) -> Int { h.repetitions?.intValue ?? 0 }
-
-    private func stars(_ h: LineSearchHit) -> Double? {
-        guard let avg = h.rating?.doubleValue, (h.ratingCount?.intValue ?? 0) > 0 else { return nil }
-        return avg
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+        }.buttonStyle(.plain)
     }
 
     private func thumbnail(_ h: LineSearchHit) -> some View {
@@ -337,63 +300,5 @@ struct SchoolBlocksExplorerView: View {
                 Cumbre.rule.opacity(0.25)
             }
         }
-    }
-
-    private func open(_ h: LineSearchHit) {
-        if let id = h.lineId { onOpen(id) }
-    }
-
-    private func podiumCard(_ h: LineSearchHit) -> some View {
-        Button { open(h) } label: {
-            VStack(alignment: .leading, spacing: 5) {
-                thumbnail(h).frame(maxWidth: .infinity).frame(height: 66)
-                    .clipped().clipShape(RoundedRectangle(cornerRadius: 3))
-                Text(h.lineName ?? h.blockName).font(.system(size: 12.5, weight: .semibold))
-                    .foregroundStyle(Cumbre.ink).lineLimit(2).multilineTextAlignment(.leading)
-                if let s = h.sectorName, !s.isEmpty {
-                    Text(s).font(.system(size: 11)).foregroundStyle(Cumbre.ink3).lineLimit(1)
-                }
-                HStack(spacing: 4) {
-                    Text("✓ \(repetitions(h))").foregroundStyle(Cumbre.ok)
-                    GradePill(grade: h.grade, small: true, split: h.lineId.flatMap { model.splits[$0] })
-                }.font(Cumbre.mono(10, .bold))
-            }
-            .padding(8).frame(maxWidth: .infinity, alignment: .topLeading)
-            .background(Cumbre.paper)
-            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-        }.buttonStyle(.plain)
-    }
-
-    private func row(_ h: LineSearchHit) -> some View {
-        Button { open(h) } label: {
-            HStack(spacing: 10) {
-                thumbnail(h).frame(width: 46, height: 46)
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 3))
-                    .overlay(RoundedRectangle(cornerRadius: 3).stroke(Cumbre.rule, lineWidth: 1))
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text(h.lineName ?? h.blockName).font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(Cumbre.ink).lineLimit(1)
-                        GradePill(grade: h.grade, split: h.lineId.flatMap { model.splits[$0] })
-                        RestrictionMarkButton(items: restrictionsUI?.forBlockId(h.blockId) ?? [])
-                    }
-                    HStack(spacing: 8) {
-                        if repetitions(h) > 0 {
-                            Text("✓ \(repetitions(h))").font(Cumbre.mono(10.5, .bold)).foregroundStyle(Cumbre.ok)
-                        }
-                        if let avg = stars(h) {
-                            Text("★ \(String(format: "%.1f", avg))").font(.system(size: 11.5)).foregroundStyle(Cumbre.ink2)
-                        }
-                    }
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right").font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
-            }
-            .padding(.horizontal, 16).padding(.vertical, 8)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .overlay(alignment: .top) { Divider().overlay(Cumbre.rule) }
     }
 }
