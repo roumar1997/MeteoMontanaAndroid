@@ -217,6 +217,8 @@ private final class Writer {
     var y: CGFloat = 0
     /// Sector de la página actual (para la cabecera y el pie).
     var currentSector = ""
+    /// Índice del sector de la página actual: la píldora del sector y «INICIO DEL SECTOR» saltan a su primera página.
+    var currentSectorIndex = 0
     /// Enlaces internos: se apuntan aquí y se añaden al final con PDFKit (página → página), que es lo que
     /// entienden todos los visores. Los enlaces "con nombre" de UIKit no funcionaban en Archivos.
     struct Link { let page: Int; let rect: CGRect; let dest: String }
@@ -327,12 +329,23 @@ private final class Writer {
         let px = P.page.width - P.margin - sectorPill.width
         P.pill(currentSector, .systemFont(ofSize: 9.5, weight: .bold), fg: .white, bg: P.terra,
                at: CGPoint(x: px, y: 18), padH: 11, padV: 5)
+        link("s\(currentSectorIndex)", CGRect(origin: CGPoint(x: px, y: 18), size: sectorPill))
         let label = continuing ? L("SIGUES EN") : L("SECTOR")
         let lw = NSAttributedString(string: label, attributes: [.font: P.mono(7.5, bold: false)]).size().width
         P.text(label, P.mono(7.5, bold: false), P.muted, x: px - lw - 8, y: 18 + (sectorPill.height - 10) / 2, width: lw + 2)
 
         // Pie
-        P.text("CUMBRE · CLIMBINGTEAMS.COM", P.mono(7, bold: false), P.muted, x: P.margin, y: P.page.height - 28, width: 260)
+        // Botones de volver (en todas las páginas): al índice de la portada y al inicio del sector.
+        let backY = P.page.height - 34
+        let toIndex = L("← ÍNDICE")
+        let ti = P.pillSize(toIndex, P.mono(7.5), padH: 10, padV: 5)
+        P.pill(toIndex, P.mono(7.5), fg: .white, bg: P.dark, at: CGPoint(x: P.margin, y: backY), padH: 10, padV: 5)
+        link("indice", CGRect(origin: CGPoint(x: P.margin, y: backY), size: ti))
+        let toSector = L("↑ INICIO DEL SECTOR")
+        let tsz = P.pillSize(toSector, P.mono(7.5), padH: 10, padV: 5)
+        let sx = P.margin + ti.width + 6
+        P.pill(toSector, P.mono(7.5), fg: .white, bg: P.terra, at: CGPoint(x: sx, y: backY), padH: 10, padV: 5)
+        link("s\(currentSectorIndex)", CGRect(origin: CGPoint(x: sx, y: backY), size: tsz))
         let total = known.map { "\($0.total)" } ?? "00"
         let foot = "\(currentSector.uppercased()) · \(pageNo) / \(total)"
         let fs = P.pillSize(foot, P.mono(7), padH: 9, padV: 4)
@@ -343,6 +356,7 @@ private final class Writer {
 
     private func sector(_ s: GuideSector, index: Int) {
         currentSector = P.sectorTitle(s)
+        currentSectorIndex = index
         lightPage(continuing: false)
         plan.sectorPage[index] = pageNo
         dest("s\(index)", y: 0)

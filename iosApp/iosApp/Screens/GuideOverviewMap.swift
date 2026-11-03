@@ -87,7 +87,10 @@ enum GuideOverviewStore {
                 cg.setStrokeColor(UIColor(Cumbre.terraFill).cgColor)
                 cg.setLineWidth(2.5)
                 cg.strokeEllipse(in: r)
-                UIImage(named: stoneIconName(b))?.draw(in: r.insetBy(dx: 6, dy: 6))
+                // El icono es de tipo «plantilla» (sin color propio): se tiñe o sale blanco sobre blanco.
+                UIImage(named: stoneIconName(b))?
+                    .withTintColor(UIColor(Cumbre.terraFill), renderingMode: .alwaysOriginal)
+                    .draw(in: r.insetBy(dx: 6, dy: 6))
                 if g.stones.count > 1 {
                     // Globo terracota con el número de piedras.
                     let badge = CGRect(x: r.maxX - 12, y: r.minY - 6, width: 20, height: 20)

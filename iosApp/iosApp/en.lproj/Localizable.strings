@@ -1921,3 +1921,5 @@
 "Cara %@ de %@" = "Side %@ of %@";
 "Cara %@ de %@ · sigue" = "Side %@ of %@ · continued";
 "TODAS LAS VÍAS · TOCA UNA PARA IR A SU PIEDRA" = "ALL LINES · TAP ONE TO JUMP TO ITS BOULDER";
+"← ÍNDICE" = "← INDEX";
+"↑ INICIO DEL SECTOR" = "↑ SECTOR START";

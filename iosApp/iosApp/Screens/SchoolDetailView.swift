@@ -538,6 +538,9 @@ struct SchoolDetailView: View {
         .refreshable {
             await vm.load(school: school)
             presenceRefreshTrigger += 1
+            // La guía también: si has cambiado el sector de una piedra, al recargar tiene que verse.
+            await blocksModel.loadIfNeeded(schoolId: school.id, schoolName: school.name, force: true)
+            await blocksModel.loadOverview(schoolId: school.id)
         }
         // Marcapáginas de la guía: al volver a BLOQUES (o cuando acaba de cargar) salta a la última piedra tocada.
         .onChange(of: tab) { t in if t == .blocks { jumpToBookmark(proxy) } }
