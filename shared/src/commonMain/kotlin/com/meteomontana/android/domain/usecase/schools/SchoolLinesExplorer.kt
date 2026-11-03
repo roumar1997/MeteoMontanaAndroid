@@ -22,8 +22,18 @@ data class LinesFilter(
     val query: String,
     val grades: Set<String>,
     val betaHeights: Set<String>,
-    val order: LinesOrder
+    val order: LinesOrder,
+    /** Caras marcadas ("N", "E", "S", "O"). Vacío = sin filtrar. "N" casa con N, NE y NO. */
+    val faces: Set<String> = emptySet(),
+    /** Vías que NO deben salir (las que ya tienes hechas, para "Sin hacer"). Lo calcula la app con su diario. */
+    val excludeLineIds: Set<String> = emptySet()
 )
+
+/**
+ * Resultado de aplicar los filtros. Con filtro de cara, las piedras que nadie ha orientado todavía no se pueden
+ * descartar ni dar por buenas: van aparte en [unknownFace] para que la UI las enseñe al final.
+ */
+data class FilteredLines(val matched: List<LineSearchHit>, val unknownFace: List<LineSearchHit>)
 
 /** Vías de un mismo sector. `sector == null` = sin sector (la UI pone el texto traducido). */
 data class SectorGroup(val sector: String?, val hits: List<LineSearchHit>)
@@ -57,7 +67,27 @@ object SchoolLinesExplorer {
         filter: LinesFilter,
         betaLineIds: Map<String, Set<String>>
     ): LinesView? {
-        var hits = lines.filter { it.lineId != null }
+        val hits = filtered(lines, filter, betaLineIds)?.matched ?: return null
+        val sorted = hits.sortedWith(comparator(filter.order))
+        val podium = if (filter.order == LinesOrder.MOST_REPEATED) {
+            sorted.take(PODIUM_SIZE).filter { repetitions(it) > 0 }
+        } else emptyList()
+        return LinesView(sorted.size, podium, sectorGroups(sorted.drop(podium.size)))
+    }
+
+    /** Las 4 caras que se pueden marcar, en el orden en que se enseñan. */
+    val FACES: List<String> = listOf("N", "E", "S", "O")
+
+    /**
+     * Aplica TODOS los filtros (los comparten la lista y la guía). `null` si falta el conjunto de ids de alguna
+     * altura de beta marcada (se está descargando).
+     */
+    fun filtered(
+        lines: List<LineSearchHit>,
+        filter: LinesFilter,
+        betaLineIds: Map<String, Set<String>>
+    ): FilteredLines? {
+        var hits = lines.filter { it.lineId != null && it.lineId !in filter.excludeLineIds }
 
         val q = fold(filter.query)
         if (q.isNotEmpty()) {
@@ -71,12 +101,15 @@ object SchoolLinesExplorer {
             for (height in filter.betaHeights) ids += betaLineIds[height] ?: return null
             hits = hits.filter { it.lineId in ids }
         }
+        if (filter.faces.isEmpty()) return FilteredLines(hits, emptyList())
+        val (known, unknown) = hits.partition { !it.orientation.isNullOrBlank() }
+        return FilteredLines(known.filter { faceMatches(it.orientation!!, filter.faces) }, unknown)
+    }
 
-        val sorted = hits.sortedWith(comparator(filter.order))
-        val podium = if (filter.order == LinesOrder.MOST_REPEATED) {
-            sorted.take(PODIUM_SIZE).filter { repetitions(it) > 0 }
-        } else emptyList()
-        return LinesView(sorted.size, podium, sectorGroups(sorted.drop(podium.size)))
+    /** "NE" es cara N y cara E; "NO" es N y O. Acepta también "W"/"NW" por si llegan en inglés. */
+    fun faceMatches(orientation: String, faces: Set<String>): Boolean {
+        val o = orientation.trim().uppercase().replace('W', 'O')
+        return faces.any { f -> o.contains(f) }
     }
 
     /** Agrupa por sector conservando el orden recibido; los grupos salen por su mejor vía. */

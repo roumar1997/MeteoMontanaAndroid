@@ -36,3 +36,29 @@ class SchoolGuideTest {
         assertEquals(listOf("Norte", "Sur", "Suelta"), s[0].blocks.map { it.blockName })
     }
 }
+
+class SchoolGuideFilterTest {
+    private fun hit(id: String, block: String, sector: String?, face: String?) = LineSearchHit(
+        schoolId = "s", schoolName = "S", blockId = "b-$block", blockName = block,
+        lineId = id, lineName = "v$id", grade = "6A", sectorName = sector,
+        photoPath = null, linePath = null, startType = null, orientation = face
+    )
+    private val lines = listOf(hit("1", "A", "X", "NE"), hit("2", "B", "X", "S"), hit("3", "C", "Y", null), hit("4", "D", "Y", "NO"))
+    private fun f(faces: Set<String> = emptySet(), exclude: Set<String> = emptySet()) =
+        LinesFilter("", emptySet(), emptySet(), LinesOrder.MOST_REPEATED, faces, exclude)
+
+    @Test fun `cara N casa con NE y NO y las sin votar van al final aparte`() {
+        val g = SchoolGuide.view(lines, f(setOf("N")), emptyMap())!!
+        assertEquals(listOf("X", "Y", null), g.sectors.map { it.sector })
+        assertEquals(listOf("A"), g.sectors[0].blocks.map { it.blockName })
+        assertEquals(true, g.sectors.last().unknownFace)
+        assertEquals(listOf("C"), g.sectors.last().blocks.map { it.blockName })
+        assertEquals(2, g.sectorCount)
+    }
+
+    @Test fun `sin hacer quita las hechas y la lista usa el mismo filtro`() {
+        val g = SchoolGuide.view(lines, f(exclude = setOf("1", "2")), emptyMap())!!
+        assertEquals(listOf("Y"), g.sectors.map { it.sector })
+        assertEquals(2, SchoolLinesExplorer.view(lines, f(exclude = setOf("1", "2")), emptyMap())!!.total)
+    }
+}

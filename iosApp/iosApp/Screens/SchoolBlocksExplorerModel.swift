@@ -20,15 +20,20 @@ final class SchoolBlocksExplorerModel: ObservableObject {
         height == BetaHeights.shared.TALL ? "▶ +1,70" : "▶ −1,70"
     }
 
-    @Published private(set) var all: [LineSearchHit] = [] {
-        didSet { guideSectors = SchoolGuide.shared.sectors(lines: all) }
-    }
+    @Published private(set) var all: [LineSearchHit] = []
     /// Modo GUÍA (la escuela como guía de papel). Se recuerda entre escuelas y sesiones.
     @Published var guideMode = UserDefaults.standard.bool(forKey: "blocks_guide_mode") {
         didSet { UserDefaults.standard.set(guideMode, forKey: "blocks_guide_mode") }
     }
-    /// Sectores de la guía ya ordenados (se calculan una vez al bajar las vías, no en cada repintado).
-    @Published private(set) var guideSectors: [GuideSector] = []
+    /// Caras marcadas (N/E/S/O). Vale para la lista y la guía.
+    @Published var faces: Set<String> = []
+    /// Solo lo que NO tienes hecho en tu diario. Vale para la lista y la guía.
+    @Published var onlyNotDone = false
+    /// Vías hechas / en proyecto según TU diario (local del móvil). Se releen al volver a la pestaña.
+    @Published private(set) var doneIds: Set<String> = []
+    @Published private(set) var projectIds: Set<String> = []
+    /// Sectores DESPLEGADOS de la guía (al cargar, solo el primero).
+    @Published var guideOpen: Set<String> = []
     @Published private(set) var loading = true
     @Published private(set) var failed = false
     /// Vías de la escuela cuyo grado parte la altura (lineId → los dos grados): se pintan en dos colores en las listas.
@@ -59,12 +64,33 @@ final class SchoolBlocksExplorerModel: ObservableObject {
 
     var gradeOptions: [String] { SchoolLinesExplorer.shared.gradeOptions(lines: all) }
 
+    /// Los filtros de arriba, UNO solo para la lista y la guía.
+    private var filter: LinesFilter {
+        LinesFilter(query: query, grades: grades, betaHeights: betas, order: order.shared,
+                    faces: faces, excludeLineIds: onlyNotDone ? doneIds : [])
+    }
+
     /// nil = todavía bajando los ids de beta de alguna altura marcada.
     var linesView: LinesView? {
-        SchoolLinesExplorer.shared.view(
-            lines: all,
-            filter: LinesFilter(query: query, grades: grades, betaHeights: betas, order: order.shared),
-            betaLineIds: betaLineIds)
+        SchoolLinesExplorer.shared.view(lines: all, filter: filter, betaLineIds: betaLineIds)
+    }
+
+    /// La guía con los mismos filtros; nil = bajando beta.
+    var guideView: GuideView? {
+        SchoolGuide.shared.view(lines: all, filter: filter, betaLineIds: betaLineIds)
+    }
+
+    /// Relee el diario del móvil: qué vías de esta escuela tienes hechas o en proyecto.
+    func refreshJournal(schoolId: String) {
+        let done = JournalDoneStore.shared.all
+        let projects = JournalProjectStore.shared.all
+        var d = Set<String>(), p = Set<String>()
+        for h in all {
+            guard let id = h.lineId else { continue }
+            let key = "\(schoolId)|#\(id)"
+            if done.contains(key) { d.insert(id) } else if projects.contains(key) { p.insert(id) }
+        }
+        doneIds = d; projectIds = p
     }
 
     // MARK: - Datos
@@ -76,6 +102,8 @@ final class SchoolBlocksExplorerModel: ObservableObject {
         do {
             all = try await loadSchoolLines.invoke(schoolId: schoolId)
             loadedSchool = schoolId
+            refreshJournal(schoolId: schoolId)
+            if let first = SchoolGuide.shared.sectors(lines: all).first { guideOpen = [first.key] }
             // Los grados partidos por altura son un extra: si falla, las listas salen con el grado de siempre.
             if let map = try? await AppDependencies.shared.container.getSchoolGradeSplits.invoke(schoolId: schoolId) {
                 splits = map.mapValues { GradeSplitInfo(tall: $0.tallGrade, short: $0.shortGrade) }

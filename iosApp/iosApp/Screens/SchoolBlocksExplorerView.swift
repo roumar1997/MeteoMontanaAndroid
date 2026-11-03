@@ -35,99 +35,167 @@ struct SchoolBlocksExplorerView: View {
                     .frame(maxWidth: .infinity, minHeight: 120)
                     .padding(.horizontal, 16)
             } else {
-                modeSwitch
+                header
                 if model.guideMode {
-                    SchoolGuideView(sectors: model.guideSectors, splits: model.splits, onOpen: onOpen)
+                    if let g = model.guideView {
+                        SchoolGuideView(schoolId: school.id, guide: g, model: model, onOpen: onOpen)
+                    } else {
+                        SkeletonList(count: 3) { SkeletonGradeRow() }
+                            .frame(maxWidth: .infinity, minHeight: 100, alignment: .top)
+                    }
                 } else {
-                    filters
                     results
                 }
             }
         }
         .task { await model.loadIfNeeded(schoolId: school.id) }
         .task(id: model.betas) { await model.loadBetaIfNeeded(schoolId: school.id) }
+        // Al volver de la piedra (donde se marca en el diario), los ✓ de la guía y "Sin hacer" se ponen al día.
+        .onAppear { model.refreshJournal(schoolId: school.id) }
     }
 
-    // MARK: - LISTA / GUÍA
+    // MARK: - Cabecera única: los filtros valen para la LISTA y la GUÍA
 
-    /// Cambia entre la lista para BUSCAR (filtros, podio) y la guía para RECORRER (fotos, en orden de paso).
-    private var modeSwitch: some View {
-        HStack(spacing: 0) {
-            modeButton(L("LISTA"), on: !model.guideMode) { model.guideMode = false }
-            modeButton(L("GUÍA"), on: model.guideMode) { model.guideMode = true }
-        }
-        .overlay(Rectangle().stroke(Cumbre.ink, lineWidth: 1))
-        .fixedSize()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 16).padding(.top, 12)
-    }
-
-    private func modeButton(_ t: String, on: Bool, action: @escaping () -> Void) -> some View {
-        Button { withAnimation(.easeInOut(duration: 0.2)) { action() } } label: {
-            Text(t).font(Cumbre.mono(11, .bold)).tracking(1.2)
-                .foregroundStyle(on ? Cumbre.bg : Cumbre.ink)
-                .padding(.horizontal, 14).padding(.vertical, 7)
-                .background(on ? Cumbre.ink : Color.clear)
-        }.buttonStyle(.plain)
-    }
-
-    // MARK: - Filtros
-
-    private var filters: some View {
+    private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
-            TextField(L("Buscar por nombre…"), text: $model.query)
-                .textFieldStyle(.plain)
-                .font(.system(size: 14))
-                .padding(.horizontal, 12).padding(.vertical, 9)
-                .background(Cumbre.paper)
-                .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                .dismissKeyboardOnSubmit()
-                .guideTarget("detail_blocks.search")
-            filterToggle
-            if model.filtersOpen { filterPanel }
-        }
-        .padding(.horizontal, 16).padding(.vertical, 12)
-    }
-
-    /// Cuántos filtros se han tocado (grado, beta, orden distinto del de siempre).
-    private var activeCount: Int {
-        (model.grades.isEmpty ? 0 : 1) + (model.betas.isEmpty ? 0 : 1) + (model.order == .repeated ? 0 : 1)
-    }
-
-    private var summary: String {
-        var parts: [String] = []
-        if !model.grades.isEmpty {
-            // gradeOptions ya viene de más fácil a más difícil.
-            parts.append(model.gradeOptions.filter { model.grades.contains($0) }.joined(separator: " "))
-        }
-        if !model.betas.isEmpty {
-            parts.append(BetaHeights.shared.ALL.filter { model.betas.contains($0) }
-                .map(SchoolBlocksExplorerModel.betaLabel).joined(separator: " "))
-        }
-        parts.append(model.order.label.capitalized)
-        return parts.joined(separator: " · ")
-    }
-
-    private var filterToggle: some View {
-        Button { withAnimation(.easeInOut(duration: 0.2)) { model.filtersOpen.toggle() } } label: {
             HStack(spacing: 8) {
                 HStack(spacing: 6) {
-                    Image(systemName: "slider.horizontal.3").font(.system(size: 12, weight: .semibold))
-                    Text(activeCount > 0 ? L("FILTROS (%@)", activeCount) : L("FILTROS")).font(Cumbre.mono(11, .bold)).tracking(1)
+                    Image(systemName: "magnifyingglass").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+                    TextField(L("Buscar vía o piedra"), text: $model.query)
+                        .textFieldStyle(.plain).font(.system(size: 14))
+                        .dismissKeyboardOnSubmit()
+                    if !model.query.isEmpty {
+                        Button { model.query = "" } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(Cumbre.ink3)
+                        }.buttonStyle(.plain)
+                    }
                 }
-                .foregroundStyle(activeCount > 0 ? Color.white : Cumbre.ink2)
-                .padding(.horizontal, 12).padding(.vertical, 7)
-                .background(activeCount > 0 ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
-                .overlay(Capsule().stroke(activeCount > 0 ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
-                .lineLimit(1).fixedSize()   // nunca se parte en varias líneas; cede el resumen
-                Text(summary).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(1)
-                Spacer(minLength: 0)
-                Image(systemName: model.filtersOpen ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink3)
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(Cumbre.paper, in: Capsule())
+                .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
+                .guideTarget("detail_blocks.search")
+                viewSwitch
             }
-            .contentShape(Rectangle())
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    faceMenu
+                    if !model.grades.isEmpty {
+                        activeChip(model.gradeOptions.filter { model.grades.contains($0) }.joined(separator: " ")) {
+                            model.grades = []
+                        }
+                    }
+                    if !model.betas.isEmpty {
+                        activeChip(BetaHeights.shared.ALL.filter { model.betas.contains($0) }
+                            .map(SchoolBlocksExplorerModel.betaLabel).joined(separator: " ")) { model.betas = [] }
+                    }
+                    pill(L("Sin hacer"), icon: "circle.dashed", on: model.onlyNotDone) { model.onlyNotDone.toggle() }
+                    pill(L("Más"), icon: "slider.horizontal.3", on: model.filtersOpen) {
+                        withAnimation(.easeInOut(duration: 0.2)) { model.filtersOpen.toggle() }
+                    }
+                    .guideTarget("detail_blocks.filters")
+                }
+            }
+            if model.filtersOpen { filterPanel }
+            if !countLine.isEmpty { Text(countLine).font(Cumbre.mono(10, .bold)).tracking(1.4).foregroundStyle(Cumbre.ink3) }
+        }
+        .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 8)
+    }
+
+    /// "14 VÍAS · 6 PIEDRAS · 2 SECTORES" en la guía; "14 VÍAS" en la lista.
+    private var countLine: String {
+        if model.guideMode, let g = model.guideView {
+            let lines = g.lineCount == 1 ? L("1 VÍA") : L("%@ VÍAS", g.lineCount)
+            let blocks = g.blockCount == 1 ? L("1 PIEDRA") : L("%@ PIEDRAS", g.blockCount)
+            let sectors = g.sectorCount == 1 ? L("1 SECTOR") : L("%@ SECTORES", g.sectorCount)
+            return "\(lines) · \(blocks) · \(sectors)"
+        }
+        return ""   // la lista ya enseña su total encima de los resultados
+    }
+
+    /// Cambio de vista: los filtros no cambian, solo cómo se enseña el resultado.
+    private var viewSwitch: some View {
+        HStack(spacing: 2) {
+            switchIcon("list.bullet", on: !model.guideMode, label: L("Lista")) { model.guideMode = false }
+            switchIcon("book", on: model.guideMode, label: L("Guía")) { model.guideMode = true }
+        }
+        .padding(3)
+        .background(Cumbre.rule.opacity(0.45), in: Capsule())
+    }
+
+    private func switchIcon(_ name: String, on: Bool, label: String, action: @escaping () -> Void) -> some View {
+        Button { withAnimation(.snappy(duration: 0.25)) { action() } } label: {
+            Image(systemName: name).font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(on ? Cumbre.ink : Cumbre.ink3)
+                .frame(width: 34, height: 28)
+                .background(on ? Cumbre.paper : Color.clear, in: Capsule())
+                .overlay(Capsule().stroke(on ? Cumbre.rule : Color.clear, lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+    }
+
+    /// Cara de la piedra (N/E/S/O, varias). Menú que no se cierra en cada toque.
+    private var faceMenu: some View {
+        Menu {
+            ForEach(SchoolLinesExplorer.shared.FACES, id: \.self) { f in
+                Button {
+                    if model.faces.contains(f) { model.faces.remove(f) } else { model.faces.insert(f) }
+                } label: {
+                    if model.faces.contains(f) {
+                        Label(Self.faceName(f), systemImage: "checkmark")
+                    } else {
+                        Text(Self.faceName(f))
+                    }
+                }
+            }
+            if !model.faces.isEmpty {
+                Button(L("Quitar"), role: .destructive) { model.faces = [] }
+            }
+        } label: {
+            pillLabel(model.faces.isEmpty ? L("Cara")
+                      : L("Cara %@", SchoolLinesExplorer.shared.FACES.filter { model.faces.contains($0) }.joined(separator: " ")),
+                      icon: "safari", on: !model.faces.isEmpty)
+        }
+        .menuActionDismissBehavior(.disabled)
+    }
+
+    static func faceName(_ f: String) -> String {
+        switch f {
+        case "N": return L("Norte")
+        case "E": return L("Este")
+        case "S": return L("Sur")
+        default: return L("Oeste")
+        }
+    }
+
+    private func pill(_ t: String, icon: String, on: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) { pillLabel(t, icon: icon, on: on) }.buttonStyle(.plain)
+    }
+
+    private func pillLabel(_ t: String, icon: String, on: Bool) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon).font(.system(size: 11, weight: .semibold))
+            Text(t).font(.system(size: 13, weight: .medium))
+        }
+        .foregroundStyle(on ? Cumbre.bg : Cumbre.ink)
+        .padding(.horizontal, 11).padding(.vertical, 6)
+        .background(on ? Cumbre.ink : Cumbre.paper, in: Capsule())
+        .overlay(Capsule().stroke(on ? Cumbre.ink : Cumbre.rule, lineWidth: 1))
+        .fixedSize()
+    }
+
+    /// Filtro puesto desde "Más" que se quita con un toque.
+    private func activeChip(_ t: String, clear: @escaping () -> Void) -> some View {
+        Button(action: clear) {
+            HStack(spacing: 5) {
+                Text(t).font(.system(size: 13, weight: .medium))
+                Image(systemName: "xmark").font(.system(size: 9, weight: .bold))
+            }
+            .foregroundStyle(Cumbre.bg)
+            .padding(.horizontal, 11).padding(.vertical, 6)
+            .background(Cumbre.ink, in: Capsule())
+            .fixedSize()
         }.buttonStyle(.plain)
-        .guideTarget("detail_blocks.filters")
     }
 
     private var filterPanel: some View {
@@ -154,10 +222,13 @@ struct SchoolBlocksExplorerView: View {
                     }
                 }
             }
-            label(L("ORDENAR"))
-            wrapChips {
-                ForEach(SchoolBlocksExplorerModel.Order.allCases, id: \.self) { o in
-                    chip(o.label, on: model.order == o) { model.order = o }
+            // La guía va siempre en el orden en que te encuentras las piedras: ordenar solo tiene sentido en la lista.
+            if !model.guideMode {
+                label(L("ORDENAR"))
+                wrapChips {
+                    ForEach(SchoolBlocksExplorerModel.Order.allCases, id: \.self) { o in
+                        chip(o.label, on: model.order == o) { model.order = o }
+                    }
                 }
             }
         }

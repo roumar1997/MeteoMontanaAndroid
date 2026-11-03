@@ -480,7 +480,18 @@ struct BlockInfoSheet: View {
             } message: {
                 Text("Se borrará del mapa para todos. No se puede deshacer.")
             }
-            .task { await loadDone() }
+            .task {
+                await loadDone()
+                // Marcar desde la GUÍA: la piedra se abre con la hoja de ascenso ya lanzada para esa vía (misma
+                // lógica de diario de siempre, sin duplicarla). Breve espera: no se puede presentar una hoja
+                // mientras esta aún está subiendo.
+                if let id = GuideTickRequest.shared.take(),
+                   let idx = block.lines.firstIndex(where: { $0.id == id }),
+                   !tickedLines.contains(id) {
+                    try? await Task.sleep(nanoseconds: 600_000_000)
+                    onTickTapped(block.lines[idx], index: idx)
+                }
+            }
             // Hoja de publicar el tick en el feed Comunidad (estilo Cumbre).
             // Cerrar la hoja = no marcar nada.
             .sheet(item: $pendingTick) { pt in
