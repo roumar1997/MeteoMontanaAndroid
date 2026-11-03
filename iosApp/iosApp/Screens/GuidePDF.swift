@@ -6,7 +6,7 @@ import PDFKit
 /// portada OSCURA con el satélite entero, el nombre en grande, las cifras y un ÍNDICE de sectores que se puede
 /// tocar (salta a su página); páginas CLARAS con la marca Cumbre y el sector en el que estás arriba ("SIGUES EN"
 /// si viene de la página anterior), y cada cara de cada piedra en una tarjeta: foto con sus líneas (el mismo
-/// pintor que la ficha) y sus vías numeradas, con casilla para marcarlas a mano.
+/// pintor que la ficha) y sus vías numeradas (sin casillas de marcar: Álvaro, 2026-11-03).
 /// Sale con los MISMOS filtros que la guía en pantalla y funciona sin conexión con la escuela descargada.
 enum GuidePDF {
 
@@ -531,7 +531,7 @@ private final class Writer {
     private var innerX: CGFloat { P.margin + 16 }
     private var innerW: CGFloat { P.contentW - 32 }
     private var rowTextX: CGFloat { innerX + 84 }
-    private var rowTextW: CGFloat { innerW - 84 - 26 }
+    private var rowTextW: CGFloat { innerW - 84 }
 
     private func faceCard(block b: GuideBlock, face: GuideFace, faceIndex: Int, faceCount: Int) {
         let photo = face.photo.flatMap { input.photos[$0] }
@@ -629,10 +629,6 @@ private final class Writer {
             P.text(d, .italicSystemFont(ofSize: 9.5), UIColor(red: 0.29, green: 0.26, blue: 0.23, alpha: 1),
                    x: rowTextX, y: ty + 2, width: rowTextW)
         }
-        // Casilla para marcarla a mano.
-        let box = CGRect(x: innerX + innerW - 14, y: ry + 12, width: 14, height: 14)
-        let bp = UIBezierPath(roundedRect: box, cornerRadius: 4)
-        P.box.setStroke(); bp.lineWidth = 1.5; bp.stroke()
         if !last {
             P.line.setStroke()
             let sep = UIBezierPath()
