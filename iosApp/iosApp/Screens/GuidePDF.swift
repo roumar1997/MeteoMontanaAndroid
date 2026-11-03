@@ -1,5 +1,6 @@
 import SwiftUI
 import Shared
+import PDFKit
 
 /// La GUÍA de una escuela en PDF (A4), generada en el móvil, con el diseño que eligió Álvaro (2026-11-03):
 /// portada OSCURA con el satélite entero, el nombre en grande, las cifras y un ÍNDICE de sectores que se puede
@@ -60,12 +61,32 @@ enum GuidePDF {
         _ = UIGraphicsPDFRenderer(bounds: page).pdfData { ctx in
             plan = Writer(ctx: ctx, input: input, plan: nil).run()
         }
+        var written = Writer.Plan()
         do {
             try UIGraphicsPDFRenderer(bounds: page).writePDF(to: url) { ctx in
-                _ = Writer(ctx: ctx, input: input, plan: plan).run()
+                written = Writer(ctx: ctx, input: input, plan: plan).run()
             }
         } catch { return nil }
+        addLinks(written, to: url)
         return url
+    }
+
+    /// Los enlaces internos (índice → sector, vía → su piedra, marca → índice) como enlaces de página a página
+    /// (PDFKit): los abre bien Archivos, la vista previa de iOS, Libros o Acrobat.
+    private static func addLinks(_ plan: Writer.Plan, to url: URL) {
+        guard let doc = PDFDocument(url: url) else { return }
+        for l in plan.links {
+            guard let target = plan.dests[l.dest],
+                  let from = doc.page(at: l.page - 1), let to = doc.page(at: target.page - 1) else { continue }
+            // PDF cuenta la altura desde ABAJO; al dibujar la contamos desde arriba.
+            let bounds = CGRect(x: l.rect.minX, y: page.height - l.rect.maxY, width: l.rect.width, height: l.rect.height)
+            let a = PDFAnnotation(bounds: bounds, forType: .link, withProperties: nil)
+            a.action = PDFActionGoTo(destination: PDFDestination(page: to, at: CGPoint(x: 0, y: page.height - target.y)))
+            a.border = PDFBorder()
+            a.border?.lineWidth = 0
+            from.addAnnotation(a)
+        }
+        doc.write(to: url)
     }
 
     /// Abre la hoja de compartir del sistema (Guardar en Archivos, WhatsApp, imprimir…).
@@ -183,6 +204,8 @@ private final class Writer {
     struct Plan {
         var sectorPage: [Int: Int] = [:]
         var total = 0
+        var links: [Link] = []
+        var dests: [String: (page: Int, y: CGFloat)] = [:]
     }
 
     typealias P = GuidePDF
@@ -194,6 +217,13 @@ private final class Writer {
     var y: CGFloat = 0
     /// Sector de la página actual (para la cabecera y el pie).
     var currentSector = ""
+    /// Enlaces internos: se apuntan aquí y se añaden al final con PDFKit (página → página), que es lo que
+    /// entienden todos los visores. Los enlaces "con nombre" de UIKit no funcionaban en Archivos.
+    struct Link { let page: Int; let rect: CGRect; let dest: String }
+    var links: [Link] = []
+    var dests: [String: (page: Int, y: CGFloat)] = [:]
+    private func link(_ dest: String, _ rect: CGRect) { links.append(Link(page: pageNo, rect: rect, dest: dest)) }
+    private func dest(_ name: String, y: CGFloat) { dests[name] = (pageNo, y) }
 
     init(ctx: UIGraphicsPDFRendererContext, input: Input, plan: Plan?) {
         self.ctx = ctx; self.input = input; self.known = plan
@@ -205,6 +235,8 @@ private final class Writer {
         cover()
         for (i, s) in input.sectors.enumerated() { sector(s, index: i) }
         plan.total = pageNo
+        plan.links = links
+        plan.dests = dests
         return plan
     }
 
@@ -212,7 +244,7 @@ private final class Writer {
 
     private func cover() {
         ctx.beginPage(); pageNo += 1
-        ctx.addDestination(withName: "indice", at: .zero)
+        dest("indice", y: 0)
         P.dark.setFill(); UIRectFill(P.page)
 
         // El satélite ENTERO, a todo lo ancho (sin recortar: se ven todos los parkings aunque estén lejos).
@@ -269,7 +301,7 @@ private final class Writer {
             let r = CGRect(origin: CGPoint(x: x, y: y), size: size)
             P.paper.setFill(); UIBezierPath(roundedRect: r, cornerRadius: r.height / 2).fill()
             a.draw(at: CGPoint(x: r.minX + 10, y: r.minY + 5))
-            ctx.setDestinationWithName("s\(i)", for: r)
+            link("s\(i)", r)
             x += size.width + 6
         }
 
@@ -289,7 +321,7 @@ private final class Writer {
         ctx.beginPage(); pageNo += 1
         P.paper.setFill(); UIRectFill(P.page)
         let brand = P.brandPill(at: CGPoint(x: P.margin, y: 18), school: input.school, bg: P.dark)
-        ctx.setDestinationWithName("indice", for: brand)   // la marca vuelve al índice
+        link("indice", brand)   // la marca vuelve al índice
 
         let sectorPill = P.pillSize(currentSector, .systemFont(ofSize: 9.5, weight: .bold), padH: 11, padV: 5)
         let px = P.page.width - P.margin - sectorPill.width
@@ -313,7 +345,7 @@ private final class Writer {
         currentSector = P.sectorTitle(s)
         lightPage(continuing: false)
         plan.sectorPage[index] = pageNo
-        ctx.addDestination(withName: "s\(index)", at: .zero)
+        dest("s\(index)", y: 0)
 
         y += 8
         let eyebrow = String(format: "%02d / %02d", index + 1, input.sectors.count)
@@ -368,7 +400,7 @@ private final class Writer {
         y += 18
         var byGrade: [String: [(GuideBlock, LineSearchHit)]] = [:]
         for b in s.blocks { for h in b.lines { byGrade[h.grade ?? "?", default: []].append((b, h)) } }
-        let grades = byGrade.keys.sorted { Writer.gradeScore($0) < Writer.gradeScore($1) }
+        let grades = byGrade.keys.sorted { GradeOrder.score($0) < GradeOrder.score($1) }
 
         let labelW: CGFloat = 50
         let chipFont = UIFont.systemFont(ofSize: 9, weight: .semibold)
@@ -416,7 +448,7 @@ private final class Writer {
                 na.draw(at: CGPoint(x: dot.maxX + 5, y: r.midY - na.size().height / 2))
                 let sa = NSAttributedString(string: b.blockName, attributes: [.font: stoneFont, .foregroundColor: P.muted])
                 sa.draw(at: CGPoint(x: dot.maxX + 5 + na.size().width + 5, y: r.midY - sa.size().height / 2))
-                ctx.setDestinationWithName(Writer.blockDest(b.blockId), for: r)
+                link(Writer.blockDest(b.blockId), r)
                 x += w + 5
             }
             y += 25 + 8
@@ -434,17 +466,6 @@ private final class Writer {
         "b" + blockId.filter { $0.isLetter || $0.isNumber }
     }
 
-    /// Orden de dificultad de un grado francés (3 … 9c+); lo que no se entiende, al final.
-    static func gradeScore(_ g: String) -> Int {
-        let chars = Array((GradeRangeUI.base(g) ?? g).uppercased())
-        guard let first = chars.first, let num = first.wholeNumberValue else { return 10_000 }
-        var score = num * 100
-        if chars.count > 1, let l = "ABCD".firstIndex(of: chars[1]) {
-            score += "ABCD".distance(from: "ABCD".startIndex, to: l) * 10
-        }
-        if chars.last == "+" { score += 1 }
-        return score
-    }
 
     /// Página nueva a mitad de sector, recordando de qué piedra viene.
     private func continuePage(from block: GuideBlock, startedAt page: Int) {
@@ -483,7 +504,7 @@ private final class Writer {
         // Cabe la foto y al menos una vía; si no, página nueva.
         if y + photoH + 12 + (rows.first ?? 0) > P.bottomLimit { continuePage(from: b, startedAt: startPage) }
         // Aquí llegan los enlaces del listado del inicio del sector.
-        if faceIndex == 0 { ctx.addDestination(withName: Writer.blockDest(b.blockId), at: CGPoint(x: 0, y: y)) }
+        if faceIndex == 0 { dest(Writer.blockDest(b.blockId), y: y) }
 
         var idx = 0
         var withPhoto = true

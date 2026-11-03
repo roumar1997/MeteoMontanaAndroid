@@ -63,9 +63,17 @@ struct SchoolGuideView: View {
             } label: { sectorHeader(s, open: open) }
             .buttonStyle(.plain)
             if open {
-                ForEach(Array(s.blocks.enumerated()), id: \.element.blockId) { i, b in
-                    blockView(b, index: i + 1)
+                // Como el PDF: foto del sector, todas sus vías por grado (tocar = ir a su piedra) y una tarjeta por piedra.
+                VStack(alignment: .leading, spacing: 12) {
+                    sectorIntro(s)
+                    ForEach(Array(s.blocks.enumerated()), id: \.element.blockId) { i, b in
+                        blockView(b, index: i + 1)
+                            .background(Color.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Cumbre.rule, lineWidth: 1))
+                    }
                 }
+                .padding(.horizontal, 10).padding(.bottom, 12)
             }
         }
         .background(Cumbre.paper)
@@ -99,6 +107,50 @@ struct SchoolGuideView: View {
         .contentShape(Rectangle())
     }
 
+    // MARK: - Inicio del sector (como el PDF)
+
+    /// Foto grande del sector y TODAS sus vías agrupadas por grado, de fácil a difícil, con su color.
+    /// Tocar una vía = la guía baja hasta la tarjeta de su piedra.
+    @ViewBuilder private func sectorIntro(_ s: GuideSector) -> some View {
+        if let photo = s.blocks.lazy.flatMap({ $0.faces }).compactMap({ $0.photo }).first {
+            GuideHeroPhoto(path: photo)
+                .frame(height: 160).frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        let pairs = s.blocks.flatMap { b in b.lines.map { GuideChip(block: b, hit: $0) } }
+        let grades = Array(Set(pairs.map { $0.hit.grade ?? "?" })).sorted { GradeOrder.score($0) < GradeOrder.score($1) }
+        VStack(alignment: .leading, spacing: 8) {
+            Text(L("TODAS LAS VÍAS · TOCA UNA PARA IR A SU PIEDRA")).eyebrow()
+            ForEach(grades, id: \.self) { g in
+                HStack(alignment: .top, spacing: 8) {
+                    GradePill(grade: g, split: nil).frame(width: 46, alignment: .leading)
+                    GuideFlowLayout(spacing: 5) {
+                        ForEach(pairs.filter { ($0.hit.grade ?? "?") == g }) { c in
+                            let b = c.block, h = c.hit
+                            Button {
+                                mark(b.blockId)
+                                model.guideOpen.insert(s.key)
+                                model.scrollToBlock = b.blockId
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Circle().fill(GradeColor.chip(h.grade)).frame(width: 7, height: 7)
+                                        .overlay(Circle().stroke(Cumbre.rule, lineWidth: GradeColor.chipStyle(h.grade).dark ? 0.8 : 0))
+                                    Text(h.lineName ?? b.blockName).font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(Cumbre.ink).lineLimit(1)
+                                    Text(b.blockName).font(Cumbre.mono(9.5)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                                }
+                                .padding(.horizontal, 9).padding(.vertical, 5)
+                                .background(Color.white, in: Capsule())
+                                .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: - Piedra
 
     private func blockView(_ b: GuideBlock, index: Int) -> some View {
@@ -108,13 +160,17 @@ struct SchoolGuideView: View {
                 ZStack(alignment: .top) {
                     GuideTopo(face: face, maxHeight: 240)
                     HStack {
-                        if fi == 0 {
-                            Text("\(index) · \(b.blockName.uppercased())")
-                                .font(Cumbre.mono(10.5, .bold)).foregroundStyle(.white)
-                                .padding(.horizontal, 8).padding(.vertical, 4)
-                                .background(Color.black.opacity(0.6), in: Capsule())
-                            RestrictionMarkButton(items: restrictionsUI?.forBlockId(b.blockId) ?? [])
+                        Text(L("PIEDRA %@", b.blockName.uppercased()))
+                            .font(Cumbre.mono(10.5, .bold)).foregroundStyle(.white)
+                            .padding(.horizontal, 9).padding(.vertical, 5)
+                            .background(Color.black.opacity(0.75), in: Capsule())
+                        if b.faces.count > 1 {
+                            Text(L("Cara %@ de %@", fi + 1, b.faces.count))
+                                .font(.system(size: 11, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                                .padding(.horizontal, 9).padding(.vertical, 5)
+                                .background(Color.white.opacity(0.9), in: Capsule())
                         }
+                        if fi == 0 { RestrictionMarkButton(items: restrictionsUI?.forBlockId(b.blockId) ?? []) }
                         Spacer()
                         if face.photo != nil {
                             Button { mark(b.blockId); zoomed = face } label: {
@@ -418,4 +474,68 @@ private struct GuideZoomSheet: View {
 enum GuideAnchor {
     static func id(_ blockId: String) -> String { "guide-\(blockId)" }
     static func sector(_ key: String) -> String { "guide-sector-\(key)" }
+}
+
+/// Una vía en el listado del inicio de sector (con su piedra, para saltar a ella).
+struct GuideChip: Identifiable {
+    let block: GuideBlock
+    let hit: LineSearchHit
+    var id: String { hit.lineId ?? "\(block.blockId)|\(hit.lineName ?? "")" }
+}
+
+/// Orden de dificultad de un grado francés (3 … 9c+); lo que no se entiende ("?", proyecto), al final.
+enum GradeOrder {
+    static func score(_ g: String) -> Int {
+        let chars = Array((GradeRangeUI.base(g) ?? g).uppercased())
+        guard let first = chars.first, let num = first.wholeNumberValue else { return 10_000 }
+        var score = num * 100
+        if chars.count > 1, let l = "ABCD".firstIndex(of: chars[1]) {
+            score += "ABCD".distance(from: "ABCD".startIndex, to: l) * 10
+        }
+        if chars.last == "+" { score += 1 }
+        return score
+    }
+}
+
+/// Foto del sector, sin líneas, rellenando su marco.
+struct GuideHeroPhoto: View {
+    let path: String
+    @State private var image: UIImage?
+    var body: some View {
+        Cumbre.rule.opacity(0.25)
+            .overlay {
+                if let image { Image(uiImage: image).resizable().scaledToFill() }
+            }
+            .clipped()
+            .task(id: path) { image = await ImageCache.image(path) }
+    }
+}
+
+/// Coloca las etiquetas en filas, pasando a la siguiente cuando no caben (como un texto).
+struct GuideFlowLayout: Layout {
+    var spacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxW = proposal.width ?? .infinity
+        var x: CGFloat = 0, y: CGFloat = 0, rowH: CGFloat = 0, widest: CGFloat = 0
+        for v in subviews {
+            let s = v.sizeThatFits(.unspecified)
+            if x > 0 && x + s.width > maxW { x = 0; y += rowH + spacing; rowH = 0 }
+            x += s.width + spacing
+            rowH = max(rowH, s.height)
+            widest = max(widest, x - spacing)
+        }
+        return CGSize(width: min(widest, maxW), height: y + rowH)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX, y = bounds.minY, rowH: CGFloat = 0
+        for v in subviews {
+            let s = v.sizeThatFits(.unspecified)
+            if x > bounds.minX && x + s.width > bounds.maxX { x = bounds.minX; y += rowH + spacing; rowH = 0 }
+            v.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(width: min(s.width, bounds.width), height: s.height))
+            x += s.width + spacing
+            rowH = max(rowH, s.height)
+        }
+    }
 }

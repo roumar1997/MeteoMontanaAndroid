@@ -550,6 +550,12 @@ struct SchoolDetailView: View {
                 withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo(GuideAnchor.sector(key), anchor: .top) }
             }
         }
+        // Vía tocada en el listado del inicio de sector: baja a la tarjeta de su piedra.
+        .onChange(of: blocksModel.scrollToBlock) { id in
+            guard let id else { return }
+            blocksModel.scrollToBlock = nil
+            withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo(GuideAnchor.id(id), anchor: .top) }
+        }
         }
     }
 

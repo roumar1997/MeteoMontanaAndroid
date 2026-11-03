@@ -103,6 +103,8 @@ final class SchoolBlocksExplorerModel: ObservableObject {
     @Published private(set) var overview: GuideOverview?
     /// Sector al que la ficha debe desplazarse (tocado en el mapa general). La ficha lo consume y lo pone a nil.
     @Published var scrollToSector: String?
+    /// Piedra a la que la ficha debe bajar (tocada en el listado del inicio de sector). Se consume y vuelve a nil.
+    @Published var scrollToBlock: String?
     /// Generando el PDF (ruedecita en el botón).
     @Published private(set) var makingPDF = false
 
