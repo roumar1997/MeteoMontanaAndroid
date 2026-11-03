@@ -127,8 +127,13 @@ final class SchoolBlocksExplorerModel: ObservableObject {
     /// Toca un sector en el mapa general: se despliega y la ficha baja hasta él.
     func jumpToSector(_ name: String) {
         guard let s = guideView?.sectors.first(where: { $0.sector == name }) else { return }
-        guideOpen.insert(s.key)
-        scrollToSector = s.key
+        jumpToSector(key: s.key)
+    }
+
+    /// Lo mismo desde el índice de la guía (por su clave: también vale para «Sin sector»).
+    func jumpToSector(key: String) {
+        guideOpen.insert(key)
+        scrollToSector = key
     }
 
     /// Genera el PDF (con los filtros de ahora) y abre la hoja de compartir. `sectorKey` nil = toda la guía.

@@ -270,6 +270,28 @@ struct SchoolBlocksExplorerView: View {
                     }
                     .onTapGesture { overviewOpen = true }
             }
+            // Índice, como la portada del PDF: tocar un sector = bajar hasta él (y desplegarlo).
+            if let g = model.guideView, g.sectors.count > 1 {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(L("ÍNDICE · TOCA UN SECTOR")).eyebrow()
+                    GuideFlowLayout(spacing: 6) {
+                        ForEach(g.sectors, id: \.key) { s in
+                            Button { model.jumpToSector(key: s.key) } label: {
+                                HStack(spacing: 6) {
+                                    Text(s.unknownFace ? L("Sin orientación votada") : (s.sector ?? L("Sin sector")))
+                                        .font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                                        .lineLimit(1)
+                                    Text("\(s.lineCount)").font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
+                                }
+                                .padding(.horizontal, 11).padding(.vertical, 7)
+                                .background(Color.white, in: Capsule())
+                                .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
             Menu {
                 Button { Task { await model.exportPDF(schoolName: school.name, sectorKey: nil) } } label: {
                     Label(L("Toda la escuela"), systemImage: "book")
