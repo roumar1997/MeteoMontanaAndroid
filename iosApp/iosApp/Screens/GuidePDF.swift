@@ -212,7 +212,7 @@ private final class Writer {
 
     private func cover() {
         ctx.beginPage(); pageNo += 1
-        ctx.setDestinationWithName("indice", for: .zero)
+        ctx.addDestination(withName: "indice", at: .zero)
         P.dark.setFill(); UIRectFill(P.page)
 
         // El satélite ENTERO, a todo lo ancho (sin recortar: se ven todos los parkings aunque estén lejos).
@@ -269,7 +269,7 @@ private final class Writer {
             let r = CGRect(origin: CGPoint(x: x, y: y), size: size)
             P.paper.setFill(); UIBezierPath(roundedRect: r, cornerRadius: r.height / 2).fill()
             a.draw(at: CGPoint(x: r.minX + 10, y: r.minY + 5))
-            ctx.setLinkWithDestinationName("s\(i)", for: r)
+            ctx.setDestinationWithName("s\(i)", for: r)
             x += size.width + 6
         }
 
@@ -289,7 +289,7 @@ private final class Writer {
         ctx.beginPage(); pageNo += 1
         P.paper.setFill(); UIRectFill(P.page)
         let brand = P.brandPill(at: CGPoint(x: P.margin, y: 18), school: input.school, bg: P.dark)
-        ctx.setLinkWithDestinationName("indice", for: brand)   // la marca vuelve al índice
+        ctx.setDestinationWithName("indice", for: brand)   // la marca vuelve al índice
 
         let sectorPill = P.pillSize(currentSector, .systemFont(ofSize: 9.5, weight: .bold), padH: 11, padV: 5)
         let px = P.page.width - P.margin - sectorPill.width
@@ -313,7 +313,7 @@ private final class Writer {
         currentSector = P.sectorTitle(s)
         lightPage(continuing: false)
         plan.sectorPage[index] = pageNo
-        ctx.setDestinationWithName("s\(index)", for: .zero)
+        ctx.addDestination(withName: "s\(index)", at: .zero)
 
         y += 8
         let eyebrow = String(format: "%02d / %02d", index + 1, input.sectors.count)
@@ -416,7 +416,7 @@ private final class Writer {
                 na.draw(at: CGPoint(x: dot.maxX + 5, y: r.midY - na.size().height / 2))
                 let sa = NSAttributedString(string: b.blockName, attributes: [.font: stoneFont, .foregroundColor: P.muted])
                 sa.draw(at: CGPoint(x: dot.maxX + 5 + na.size().width + 5, y: r.midY - sa.size().height / 2))
-                ctx.setLinkWithDestinationName(Writer.blockDest(b.blockId), for: r)
+                ctx.setDestinationWithName(Writer.blockDest(b.blockId), for: r)
                 x += w + 5
             }
             y += 25 + 8
@@ -483,7 +483,7 @@ private final class Writer {
         // Cabe la foto y al menos una vía; si no, página nueva.
         if y + photoH + 12 + (rows.first ?? 0) > P.bottomLimit { continuePage(from: b, startedAt: startPage) }
         // Aquí llegan los enlaces del listado del inicio del sector.
-        if faceIndex == 0 { ctx.setDestinationWithName(Writer.blockDest(b.blockId), for: CGPoint(x: 0, y: y)) }
+        if faceIndex == 0 { ctx.addDestination(withName: Writer.blockDest(b.blockId), at: CGPoint(x: 0, y: y)) }
 
         var idx = 0
         var withPhoto = true
