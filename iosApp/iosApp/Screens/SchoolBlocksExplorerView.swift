@@ -239,7 +239,22 @@ struct SchoolBlocksExplorerView: View {
     /// botón de descargar la guía en PDF (toda o un sector).
     private var overviewCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let ov = model.overview {
+            if model.isOnline && !model.overviewBlocks.isEmpty {
+                // Con red: el mapa real AQUÍ MISMO (pellizcar para acercar, sin tener que ampliar).
+                GuideLiveMap(blocks: model.overviewBlocks, onSector: { model.jumpToSector($0) }, embedded: true)
+                    .frame(height: 300)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(alignment: .bottomTrailing) {
+                        Button { overviewOpen = true } label: {
+                            Label(L("Ampliar"), systemImage: "arrow.up.left.and.arrow.down.right")
+                                .font(.system(size: 12, weight: .semibold)).foregroundStyle(.white)
+                                .padding(.horizontal, 10).padding(.vertical, 6)
+                                .background(Color.black.opacity(0.6), in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .padding(8)
+                    }
+            } else if let ov = model.overview {
                 GuideOverviewCanvas(overview: ov) { model.jumpToSector($0) }
                     .frame(maxWidth: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: 14))

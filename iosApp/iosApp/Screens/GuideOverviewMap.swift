@@ -68,19 +68,41 @@ enum GuideOverviewStore {
                 .font: UIFont.systemFont(ofSize: 15, weight: .bold), .foregroundColor: UIColor.white,
                 .strokeColor: UIColor.black, .strokeWidth: -3.5
             ]
+            // Piedras muy juntas (se pisarían) van en UN icono con cuántas son, en vez de un montón de puntos.
+            var groups: [(center: CGPoint, stones: [Block])] = []
             for b in stones {
                 let p = snap.point(for: CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon))
+                if let i = groups.firstIndex(where: { hypot($0.center.x - p.x, $0.center.y - p.y) < 34 }) {
+                    groups[i].stones.append(b)
+                } else {
+                    groups.append((p, [b]))
+                }
+            }
+            for g in groups {
+                let p = g.center, b = g.stones[0]
                 // Crashpad (bloque) o mosquetón (vía) en un círculo blanco con borde terracota.
-                let r = CGRect(x: p.x - 13, y: p.y - 13, width: 26, height: 26)
+                let r = CGRect(x: p.x - 17, y: p.y - 17, width: 34, height: 34)
                 cg.setFillColor(UIColor.white.cgColor)
                 cg.fillEllipse(in: r)
                 cg.setStrokeColor(UIColor(Cumbre.terraFill).cgColor)
-                cg.setLineWidth(2)
+                cg.setLineWidth(2.5)
                 cg.strokeEllipse(in: r)
-                UIImage(named: stoneIconName(b))?.draw(in: r.insetBy(dx: 4.5, dy: 4.5))
-                if !b.name.isEmpty {
+                UIImage(named: stoneIconName(b))?.draw(in: r.insetBy(dx: 6, dy: 6))
+                if g.stones.count > 1 {
+                    // Globo terracota con el número de piedras.
+                    let badge = CGRect(x: r.maxX - 12, y: r.minY - 6, width: 20, height: 20)
+                    cg.setFillColor(UIColor(Cumbre.terraFill).cgColor)
+                    cg.fillEllipse(in: badge)
+                    cg.setStrokeColor(UIColor.white.cgColor)
+                    cg.setLineWidth(1.5)
+                    cg.strokeEllipse(in: badge)
+                    let n = NSAttributedString(string: "\(g.stones.count)", attributes: [
+                        .font: UIFont.systemFont(ofSize: 11, weight: .bold), .foregroundColor: UIColor.white
+                    ])
+                    n.draw(at: CGPoint(x: badge.midX - n.size().width / 2, y: badge.midY - n.size().height / 2))
+                } else if !b.name.isEmpty {
                     let s = NSAttributedString(string: b.name, attributes: nameAttrs)
-                    s.draw(at: CGPoint(x: p.x + 16, y: p.y - s.size().height / 2))
+                    s.draw(at: CGPoint(x: p.x + 20, y: p.y - s.size().height / 2))
                 }
             }
             // Parkings: cuadrado azul con "P".
@@ -174,6 +196,8 @@ private func stoneIconName(_ b: Block) -> String { b.discipline.uppercased() == 
 struct GuideLiveMap: View {
     let blocks: [Block]
     let onSector: (String) -> Void
+    /// Dentro de la tarjeta de la guía (sin botón de cerrar). false = a pantalla completa.
+    var embedded = false
     @Environment(\.dismiss) private var dismiss
     @State private var position: MapCameraPosition = .automatic
     /// Distancia de la cámara (m): decide el tamaño de los iconos y si se ven los nombres.
@@ -217,7 +241,7 @@ struct GuideLiveMap: View {
                 }
                 ForEach(zones, id: \.id) { z in
                     Annotation("", coordinate: sectorCoord(z), anchor: .bottom) {
-                        Button { dismiss(); onSector(z.name) } label: {
+                        Button { if !embedded { dismiss() }; onSector(z.name) } label: {
                             Text(z.name.uppercased()).font(Cumbre.mono(9, .bold)).tracking(0.5)
                                 .foregroundStyle(Cumbre.ink).lineLimit(1)
                                 .padding(.horizontal, 6).padding(.vertical, 3)
@@ -230,14 +254,16 @@ struct GuideLiveMap: View {
             }
             .mapStyle(.imagery(elevation: .flat))
             .onMapCameraChange(frequency: .continuous) { ctx in distance = ctx.camera.distance }
-            .ignoresSafeArea()
+            .ignoresSafeArea(edges: embedded ? [] : .all)
 
+            if !embedded {
             Button { dismiss() } label: {
                 Image(systemName: "xmark").font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
                     .frame(width: 36, height: 36).background(Color.black.opacity(0.55), in: Circle())
             }
             .padding(16)
             .accessibilityLabel(L("Cerrar"))
+            }
         }
     }
 

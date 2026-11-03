@@ -1910,3 +1910,13 @@
 "Guía de escalada · %@ vías · %@ piedras · %@ sectores" = "Climbing guide · %@ lines · %@ boulders · %@ sectors";
 "%@ piedras · %@ vías" = "%@ boulders · %@ lines";
 "Guía generada con Cumbre · climbingteams.com" = "Guide made with Cumbre · climbingteams.com";
+"GUÍA DE ESCALADA" = "CLIMBING GUIDE";
+"PIEDRAS" = "BOULDERS";
+"ÍNDICE · TOCA UN SECTOR" = "INDEX · TAP A SECTOR";
+"DESCARGADA DESDE LA APP CUMBRE" = "DOWNLOADED FROM THE CUMBRE APP";
+"SIGUES EN" = "STILL IN";
+"SECTOR" = "SECTOR";
+"Piedra %@ · viene de la página %@" = "Boulder %@ · continued from page %@";
+"PIEDRA %@" = "BOULDER %@";
+"Cara %@ de %@" = "Side %@ of %@";
+"Cara %@ de %@ · sigue" = "Side %@ of %@ · continued";
