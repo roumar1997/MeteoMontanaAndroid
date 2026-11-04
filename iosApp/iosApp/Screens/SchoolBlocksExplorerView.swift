@@ -202,7 +202,7 @@ struct SchoolBlocksExplorerView: View {
                     }.buttonStyle(.plain)
                 }
             }
-            label(L("BETA EN VÍDEO (SIN MARCAR = TODAS)"))
+            label(L("ALTURA · VÍDEO O ENCADENES (SIN MARCAR = TODAS)"))
             wrapChips {
                 ForEach(BetaHeights.shared.ALL, id: \.self) { h in
                     chip(SchoolBlocksExplorerModel.betaLabel(h), on: model.betas.contains(h)) {

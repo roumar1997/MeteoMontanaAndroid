@@ -117,6 +117,13 @@ struct SchoolGuideView: View {
             Image(uiImage: map).resizable().aspectRatio(contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
+        } else if !model.sectorMapsTried.contains(s.key) && !model.overviewBlocks.isEmpty {
+            // Mientras se hace la foto aérea, un hueco con brillo (antes salía una foto de piedra y de golpe el mapa).
+            Bone(height: 160).shimmer()
+                .aspectRatio(1100.0 / 520.0, contentMode: .fit)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .task(id: model.overviewBlocks.count) { await model.loadSectorMap(schoolId: schoolId, sector: s) }
         } else if let photo = s.blocks.lazy.flatMap({ $0.faces }).compactMap({ $0.photo }).first {
             GuideHeroPhoto(path: photo)
                 .task(id: model.overviewBlocks.count) { await model.loadSectorMap(schoolId: schoolId, sector: s) }

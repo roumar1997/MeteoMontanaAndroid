@@ -138,6 +138,8 @@ final class SchoolBlocksExplorerModel: ObservableObject {
 
     /// Foto aérea de cada sector (clave del sector → imagen), para el inicio del sector en la guía y en el PDF.
     @Published private(set) var sectorMaps: [String: UIImage] = [:]
+    /// Sectores cuya foto aérea ya se intentó (con o sin éxito): hasta entonces se enseña un hueco, no otra foto.
+    @Published private(set) var sectorMapsTried: Set<String> = []
 
     /// Genera (o lee de disco) la foto aérea de un sector con SUS piedras.
     func loadSectorMap(schoolId: String, sector s: GuideSector) async {
@@ -147,6 +149,7 @@ final class SchoolBlocksExplorerModel: ObservableObject {
         if let img = await GuideOverviewStore.sectorMap(schoolId: schoolId, key: s.key, stones: stones) {
             sectorMaps[s.key] = img
         }
+        sectorMapsTried.insert(s.key)
     }
 
     /// Genera el PDF (con los filtros de ahora) y abre la hoja de compartir. `sectorKey` nil = toda la guía.
