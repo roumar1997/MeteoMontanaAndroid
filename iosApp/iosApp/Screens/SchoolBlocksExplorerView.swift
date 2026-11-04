@@ -52,7 +52,7 @@ struct SchoolBlocksExplorerView: View {
             }
         }
         .task { await model.loadIfNeeded(schoolId: school.id, schoolName: school.name) }
-        .task(id: model.betas) { await model.loadBetaIfNeeded(schoolId: school.id) }
+        .task(id: model.betaTaskKey) { await model.loadBetaIfNeeded(schoolId: school.id) }
         .task { await model.loadOverview(schoolId: school.id) }
         .fullScreenCover(isPresented: $overviewOpen) {
             if model.isOnline && !model.overviewBlocks.isEmpty {
@@ -202,11 +202,19 @@ struct SchoolBlocksExplorerView: View {
                     }.buttonStyle(.plain)
                 }
             }
-            label(L("ALTURA · VÍDEO O ENCADENES (SIN MARCAR = TODAS)"))
+            label(L("ALTURA (SIN MARCAR = TODAS)"))
             wrapChips {
                 ForEach(BetaHeights.shared.ALL, id: \.self) { h in
                     chip(SchoolBlocksExplorerModel.betaLabel(h), on: model.betas.contains(h)) {
                         if model.betas.contains(h) { model.betas.remove(h) } else { model.betas.insert(h) }
+                    }
+                }
+            }
+            if !model.betas.isEmpty {
+                label(L("QUÉ BUSCAS"))
+                wrapChips {
+                    ForEach(["", "_VIDEO", "_SENDS"], id: \.self) { s in
+                        chip(SchoolBlocksExplorerModel.sourceLabel(s), on: model.betaSource == s) { model.betaSource = s }
                     }
                 }
             }

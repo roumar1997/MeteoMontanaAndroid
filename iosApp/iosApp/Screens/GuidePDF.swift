@@ -199,7 +199,6 @@ enum GuidePDF {
         var parts: [String] = []
         if let st = feedStartTypeLabel(h.startType) { parts.append(st) }
         if let avg = h.rating?.doubleValue, (h.ratingCount?.intValue ?? 0) > 0 { parts.append("★ \(String(format: "%.1f", avg))") }
-        if let r = CommunityBadgesRow.text(h) { parts.append(r) }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 }

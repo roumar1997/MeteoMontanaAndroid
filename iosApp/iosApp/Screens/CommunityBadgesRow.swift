@@ -72,19 +72,4 @@ struct CommunityBadgesRow: View {
     /// "1 persona" / "5 personas".
     static func peopleText(_ n: Int) -> String { n == 1 ? L("1 persona") : L("%@ personas", n) }
 
-    /// Las mismas pastillas en texto, para el PDF: "▶ Vídeo +1,70 · ✓ 5 personas · 1 de +1,70".
-    static func text(_ hit: LineSearchHit) -> String? {
-        let parts: [String] = hit.communityBadges.map { b in
-            switch onEnum(of: b) {
-            case .video(let v):
-                return "▶ " + [v.videos.count == 1 ? L("Vídeo") : L("%@ vídeos", v.videos.count),
-                               Self.heightText(v.height)].compactMap { $0 }.joined(separator: " ")
-            case .done(let d):
-                return "✓ " + peopleText(Int(d.people))
-            case .doneByHeight(let d):
-                return L("%@ de %@", Int(d.people), Self.heightText(d.height) ?? "")
-            }
-        }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
-    }
 }

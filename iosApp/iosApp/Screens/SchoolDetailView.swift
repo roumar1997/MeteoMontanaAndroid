@@ -429,6 +429,11 @@ struct SchoolDetailView: View {
                                      guard returnToBlocks else { return }
                                      returnToBlocks = false
                                      tab = .blocks
+                                     // Vuelve a la piedra que se abrió (antes quedaba arriba del todo y había que
+                                     // bajar otra vez). Espera a que la guía esté pintada para poder desplazarse.
+                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                         blocksModel.scrollToBlock = blocksModel.openBookmarkedSector()
+                                     }
                                  },
                                  refreshTrigger: presenceRefreshTrigger)
                     .id(mapOpenVia ?? mapFocusBlock ?? "")

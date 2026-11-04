@@ -17,9 +17,18 @@ final class SchoolBlocksExplorerModel: ObservableObject {
         var tab: String { self == .repeated ? L("Más repetidas") : L("Mejor valoradas") }
     }
 
+    /// "Vídeo o encadenes" / "Solo vídeo" / "Solo encadenes" (el sufijo que se añade a la altura para el servidor).
+    static func sourceLabel(_ source: String) -> String {
+        switch source {
+        case "_VIDEO": return L("Solo vídeo")
+        case "_SENDS": return L("Solo encadenes")
+        default: return L("Vídeo o encadenes")
+        }
+    }
+
     /// "▶ +1,70" / "▶ −1,70" para cada altura de beta que entiende el servidor.
     static func betaLabel(_ height: String) -> String {
-        height == BetaHeights.shared.TALL ? "▶ +1,70" : "▶ −1,70"
+        height == BetaHeights.shared.TALL ? "+1,70" : "−1,70"
     }
 
     @Published private(set) var all: [LineSearchHit] = []
@@ -41,6 +50,10 @@ final class SchoolBlocksExplorerModel: ObservableObject {
     /// Alturas de beta marcadas. Vacío = sin filtrar; las dos = cualquier vía con beta.
     @Published var betas: Set<String> = []
     @Published private(set) var betaLineIds: [String: Set<String>] = [:]
+    /// Qué cuenta en la altura: "" = vídeo o encadenes, "_VIDEO" = solo vídeo, "_SENDS" = solo encadenes (el servidor).
+    @Published var betaSource: String = "" { didSet { if betaSource != oldValue { betaLineIds = [:] } } }
+    /// Cambia al tocar una altura o lo que se busca: la vista vuelve a pedir las vías.
+    var betaTaskKey: String { betas.sorted().joined() + betaSource }
     @Published var order: Order = .repeated
     /// Panel de filtros (grado, beta, orden): plegado por defecto para que se vea antes la lista.
     @Published var filtersOpen = false
@@ -206,7 +219,7 @@ final class SchoolBlocksExplorerModel: ObservableObject {
     func loadBetaIfNeeded(schoolId: String) async {
         for height in betas.sorted() where betaLineIds[height] == nil {
             do {
-                betaLineIds[height] = try await loadBetaLineIds.invoke(schoolId: schoolId, height: height)
+                betaLineIds[height] = try await loadBetaLineIds.invoke(schoolId: schoolId, height: height + betaSource)
             } catch is CancellationError {
                 // Cambió de chip mientras bajaba: la tarea nueva se encarga; NO se toca su selección.
             } catch {

@@ -97,6 +97,8 @@ final class SchoolListViewModel: ObservableObject {
     @Published var exploreSort: ExploreSort = .distance { didSet { dispatchExplore() } }
     /// ALTURA: nil = todas; "TALL" / "SHORT" = con vídeo de beta o hechas por gente de esa altura (el servidor, `beta=`).
     @Published var exploreHeight: String? = nil { didSet { dispatchExplore() } }
+    /// Con altura elegida: "" = vídeo o encadenes, "_VIDEO" = solo vídeo, "_SENDS" = solo encadenes.
+    @Published var exploreHeightSource: String = "" { didSet { if exploreHeight != nil { dispatchExplore() } } }
     @Published var exploreGrouped = true
     @Published var exploreHits: [LineSearchHit] = []
     @Published var exploreLoading = false
@@ -133,7 +135,8 @@ final class SchoolListViewModel: ObservableObject {
                 // por distancia y se reordena aquí (ver exploreGroups). "Más
                 // repetidos" SÍ lo ordena el servidor (cuenta los diarios).
                 sort: self.exploreSort == .mostRepeated ? "MOST_REPEATED" : "DISTANCE",
-                offset: 0, withRatings: false, beta: self.exploreHeight, startType: nil, withTopo: false,
+                offset: 0, withRatings: false, beta: self.exploreHeight.map { $0 + self.exploreHeightSource },
+                startType: nil, withTopo: false,
                 // Siempre: cada resultado enseña quién la ha hecho (por altura) y sus vídeos de beta.
                 withRepetitions: true)
             let hits = (try? await AppDependencies.shared.container.exploreLines.invoke(criteria: criteria)) ?? []

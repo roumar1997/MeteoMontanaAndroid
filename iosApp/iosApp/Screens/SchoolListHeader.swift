@@ -607,7 +607,10 @@ struct FilterChips: View {
                 parts.append("\(vm.gradeMin ?? "…")–\(vm.gradeMax ?? "…")")
             }
             if !vm.orientations.isEmpty { parts.append(vm.orientations.sorted().joined(separator: "/")) }
-            if let h = vm.exploreHeight { parts.append(h == "TALL" ? "+1,70" : "−1,70") }
+            if let h = vm.exploreHeight {
+                parts.append((h == "TALL" ? "+1,70" : "−1,70")
+                             + (vm.exploreHeightSource.isEmpty ? "" : " " + SchoolBlocksExplorerModel.sourceLabel(vm.exploreHeightSource).lowercased()))
+            }
             if vm.exploreSort != .distance { parts.append(vm.exploreSort.label) }
         }
         return parts.joined(separator: " · ")
@@ -672,6 +675,7 @@ struct FilterChips: View {
         vm.gradeMax = nil
         vm.orientations = []
         vm.exploreHeight = nil
+        vm.exploreHeightSource = ""
         vm.exploreSort = .distance
     }
 
@@ -791,10 +795,25 @@ struct FilterChips: View {
     /// para que Swift no tarde demasiado en comprobar los tipos de todo el bloque de filtros.
     private var heightSection: some View {
         let options: [String?] = [nil, "TALL", "SHORT"]
-        return section(L("ALTURA · VÍDEO O ENCADENES")) {
-            chipRow(options, id: { (h: String?) -> String in h ?? "all" },
-                    isSel: { (h: String?) -> Bool in h == vm.exploreHeight },
-                    label: { (h: String?) -> String in Self.heightLabel(h) }) { (h: String?) in vm.exploreHeight = h }
+        return VStack(alignment: .leading, spacing: 12) {
+            section(L("ALTURA")) {
+                chipRow(options, id: { (h: String?) -> String in h ?? "all" },
+                        isSel: { (h: String?) -> Bool in h == vm.exploreHeight },
+                        label: { (h: String?) -> String in Self.heightLabel(h) }) { (h: String?) in vm.exploreHeight = h }
+            }
+            if vm.exploreHeight != nil { sourceSection }
+        }
+    }
+
+    /// QUÉ BUSCAS (solo con una altura elegida): vídeo o encadenes / solo vídeo / solo encadenes.
+    private var sourceSection: some View {
+        let sources: [String] = ["", "_VIDEO", "_SENDS"]
+        return section(L("QUÉ BUSCAS")) {
+            chipRow(sources, id: { (s: String) -> String in s.isEmpty ? "any" : s },
+                    isSel: { (s: String) -> Bool in s == vm.exploreHeightSource },
+                    label: { (s: String) -> String in SchoolBlocksExplorerModel.sourceLabel(s) }) { (s: String) in
+                vm.exploreHeightSource = s
+            }
         }
     }
 

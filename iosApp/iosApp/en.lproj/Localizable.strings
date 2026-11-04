@@ -1940,3 +1940,8 @@
 "1 persona" = "1 person";
 "%@ personas" = "%@ people";
 "%@ de %@" = "%@ at %@";
+"ALTURA (SIN MARCAR = TODAS)" = "HEIGHT (NONE SELECTED = ALL)";
+"QUÉ BUSCAS" = "LOOKING FOR";
+"Vídeo o encadenes" = "Video or sends";
+"Solo vídeo" = "Video only";
+"Solo encadenes" = "Sends only";
