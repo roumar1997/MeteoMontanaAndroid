@@ -95,6 +95,8 @@ final class SchoolListViewModel: ObservableObject {
     private static let gradeMaxKey = "explore_grade_max"
     @Published var orientations: Set<String> = [] { didSet { dispatchExplore() } }
     @Published var exploreSort: ExploreSort = .distance { didSet { dispatchExplore() } }
+    /// ALTURA: nil = todas; "TALL" / "SHORT" = con vídeo de beta o hechas por gente de esa altura (el servidor, `beta=`).
+    @Published var exploreHeight: String? = nil { didSet { dispatchExplore() } }
     @Published var exploreGrouped = true
     @Published var exploreHits: [LineSearchHit] = []
     @Published var exploreLoading = false
@@ -131,7 +133,7 @@ final class SchoolListViewModel: ObservableObject {
                 // por distancia y se reordena aquí (ver exploreGroups). "Más
                 // repetidos" SÍ lo ordena el servidor (cuenta los diarios).
                 sort: self.exploreSort == .mostRepeated ? "MOST_REPEATED" : "DISTANCE",
-                offset: 0, withRatings: false, beta: nil, startType: nil, withTopo: false,
+                offset: 0, withRatings: false, beta: self.exploreHeight, startType: nil, withTopo: false,
                 withRepetitions: self.exploreSort == .mostRepeated)
             let hits = (try? await AppDependencies.shared.container.exploreLines.invoke(criteria: criteria)) ?? []
             guard !Task.isCancelled else { return }

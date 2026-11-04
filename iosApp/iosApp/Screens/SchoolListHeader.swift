@@ -587,6 +587,7 @@ struct FilterChips: View {
         } else {
             if vm.gradeMin != nil || vm.gradeMax != nil { n += 1 }
             if !vm.orientations.isEmpty { n += 1 }
+            if vm.exploreHeight != nil { n += 1 }
             if vm.exploreSort != .distance { n += 1 }
         }
         return n
@@ -606,6 +607,7 @@ struct FilterChips: View {
                 parts.append("\(vm.gradeMin ?? "…")–\(vm.gradeMax ?? "…")")
             }
             if !vm.orientations.isEmpty { parts.append(vm.orientations.sorted().joined(separator: "/")) }
+            if let h = vm.exploreHeight { parts.append(h == "TALL" ? "+1,70" : "−1,70") }
             if vm.exploreSort != .distance { parts.append(vm.exploreSort.label) }
         }
         return parts.joined(separator: " · ")
@@ -669,6 +671,7 @@ struct FilterChips: View {
         vm.gradeMin = nil
         vm.gradeMax = nil
         vm.orientations = []
+        vm.exploreHeight = nil
         vm.exploreSort = .distance
     }
 
@@ -767,6 +770,15 @@ struct FilterChips: View {
                     chipRow(SchoolListViewModel.ShowMode.allCases, id: { $0.rawValue },
                             isSel: { $0 == vm.showMode },
                             label: { $0.label }) { vm.showMode = $0 }
+                }
+            }
+            if vm.exploreTab == .blocks {
+                // +1,70 / −1,70: con vídeo de beta o hechas por gente de esa altura (la que dijo en su perfil).
+                section(L("ALTURA · VÍDEO O ENCADENES")) {
+                    chipRow([String?.none, "TALL", "SHORT"], id: { $0 ?? "all" },
+                            isSel: { $0 == vm.exploreHeight },
+                            label: { $0 == nil ? NSLocalizedString("schools_filter_all", comment: "")
+                                     : ($0 == "TALL" ? "+1,70" : "−1,70") }) { vm.exploreHeight = $0 }
                 }
             }
             section(L("ORDENAR POR")) {
