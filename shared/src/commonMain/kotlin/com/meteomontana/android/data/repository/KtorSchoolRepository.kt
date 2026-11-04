@@ -51,5 +51,8 @@ private fun LineSearchHitDto.toDomain() = LineSearchHit(
     lat = lat, lon = lon, orientation = orientation, discipline = discipline,
     rating = rating, ratingCount = ratingCount, repetitions = repetitions,
     repetitionsTall = repetitionsTall, repetitionsShort = repetitionsShort,
+    betaVideos = betaVideos.orEmpty().filter { it.url.isNotBlank() }.map {
+        com.meteomontana.android.domain.model.BetaVideo(it.url, it.height)
+    },
     sectorBlockId = sectorBlockId, restrictionLevel = restrictionLevel
 )

@@ -232,7 +232,8 @@ struct SchoolGuideView: View {
 
     private func lineRow(_ h: LineSearchHit, number: Int) -> some View {
         let id = h.lineId ?? ""
-        return HStack(spacing: 9) {
+        return VStack(alignment: .leading, spacing: 0) {
+        HStack(spacing: 9) {
             Button { mark(h.blockId); onOpen(id) } label: {
                 HStack(spacing: 9) {
                     GuideLineNumber(number: number, grade: h.grade)
@@ -256,8 +257,14 @@ struct SchoolGuideView: View {
             }.buttonStyle(.plain)
             tickButton(h)
         }
-        .padding(.horizontal, 12).padding(.vertical, 9)
+        .padding(.horizontal, 12).padding(.top, 9)
+        .padding(.bottom, h.communityBadges.isEmpty ? 9 : 4)
         .overlay(alignment: .top) { Divider().overlay(Cumbre.rule.opacity(0.6)) }
+        // Vídeos (por altura) y quién la ha hecho, fuera del botón de la fila: tocar un vídeo no abre la piedra.
+        CommunityBadgesRow(hit: h)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, 43).padding(.trailing, 12).padding(.bottom, h.communityBadges.isEmpty ? 0 : 9)
+        }
     }
 
     /// ✓ verde = hecha · ◐ naranja = proyecto · vacío = sin hacer.
@@ -340,7 +347,6 @@ struct SchoolGuideView: View {
         var parts: [String] = []
         if let start = feedStartTypeLabel(h.startType) { parts.append(start) }
         if let avg = h.rating?.doubleValue, (h.ratingCount?.intValue ?? 0) > 0 { parts.append("★ \(String(format: "%.1f", avg))") }
-        if let r = h.repetitionsLabel { parts.append(r) }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 

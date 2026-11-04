@@ -131,6 +131,10 @@ data class MonthlyStatsDto(
     val bestRange: String? = null
 )
 
+/** Un vídeo de beta: enlace y altura de quien lo subió ("TALL" / "SHORT" / null). */
+@kotlinx.serialization.Serializable
+data class BetaVideoDto(val url: String = "", val height: String? = null)
+
 /** Resultado del buscador GLOBAL de vías/bloques (pantalla de Escuelas). */
 @kotlinx.serialization.Serializable
 data class LineSearchHitDto(
@@ -160,6 +164,8 @@ data class LineSearchHitDto(
     // De ellas, las de gente de más / menos de 1,70 (aditivo).
     val repetitionsTall: Int? = null,
     val repetitionsShort: Int? = null,
+    // Vídeos de beta con la altura de quien los subió (aditivo; solo con withRepetitions).
+    val betaVideos: List<BetaVideoDto>? = null,
     // Sector de la piedra y restricción en vigor hoy (aditivos; null con backends viejos).
     val sectorBlockId: String? = null,
     val restrictionLevel: String? = null

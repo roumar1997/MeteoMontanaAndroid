@@ -1934,3 +1934,9 @@
 "Sectores desde aquí" = "Sectors from here";
 "ALTURA · VÍDEO O ENCADENES (SIN MARCAR = TODAS)" = "HEIGHT · VIDEO OR SENDS (NONE SELECTED = ALL)";
 "ALTURA · VÍDEO O ENCADENES" = "HEIGHT · VIDEO OR SENDS";
+"Vídeo" = "Video";
+"%@ vídeos" = "%@ videos";
+"Vídeo %@ · %@" = "Video %@ · %@";
+"1 persona" = "1 person";
+"%@ personas" = "%@ people";
+"%@ de %@" = "%@ at %@";

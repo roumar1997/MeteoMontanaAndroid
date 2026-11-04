@@ -35,6 +35,8 @@ data class LineSearchHit(
     /** De esas repeticiones, las de gente de más / menos de 1,70 (la altura de su perfil). null con backends viejos. */
     val repetitionsTall: Int? = null,
     val repetitionsShort: Int? = null,
+    /** Vídeos de beta de la vía (o de la piedra), con la altura de quien los subió. Vacío si no hay o no se pidieron. */
+    val betaVideos: List<BetaVideo> = emptyList(),
     /** Sector (ZONE) de la piedra, o null si va suelta. */
     val sectorBlockId: String? = null,
     /** Restricción en vigor hoy sobre la piedra o su sector: null, "NOTICE", "REGULATED" o "CLOSED". */
@@ -49,6 +51,21 @@ data class LineSearchHit(
      * "✓ 4 (3 +1,70 · 1 −1,70)": personas que la han hecho y, si alguna dijo su altura, cuántas de cada grupo. Igual en
      * las dos apps y en el PDF (no lleva palabras: vale en ES y EN). null si nadie la ha hecho.
      */
+    /**
+     * Las pastillas de la vía, en orden, iguales en las dos apps y en el PDF:
+     * vídeos agrupados por altura (+1,70, −1,70, sin altura), luego «✓ N personas» y «N de ±1,70».
+     */
+    val communityBadges: List<CommunityBadge> get() = buildList {
+        val groups = betaVideos.groupBy { it.height?.takeIf { h -> h == "TALL" || h == "SHORT" } }
+        listOf("TALL", "SHORT", null).forEach { h -> groups[h]?.let { add(CommunityBadge.Video(h, it)) } }
+        val total = repetitions ?: 0
+        if (total > 0) {
+            add(CommunityBadge.Done(total))
+            repetitionsTall?.takeIf { it > 0 }?.let { add(CommunityBadge.DoneByHeight("TALL", it)) }
+            repetitionsShort?.takeIf { it > 0 }?.let { add(CommunityBadge.DoneByHeight("SHORT", it)) }
+        }
+    }
+
     val repetitionsLabel: String? get() {
         val total = repetitions ?: 0
         if (total <= 0) return null

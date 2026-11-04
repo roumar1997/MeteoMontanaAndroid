@@ -134,7 +134,8 @@ final class SchoolListViewModel: ObservableObject {
                 // repetidos" SÍ lo ordena el servidor (cuenta los diarios).
                 sort: self.exploreSort == .mostRepeated ? "MOST_REPEATED" : "DISTANCE",
                 offset: 0, withRatings: false, beta: self.exploreHeight, startType: nil, withTopo: false,
-                withRepetitions: self.exploreSort == .mostRepeated)
+                // Siempre: cada resultado enseña quién la ha hecho (por altura) y sus vídeos de beta.
+                withRepetitions: true)
             let hits = (try? await AppDependencies.shared.container.exploreLines.invoke(criteria: criteria)) ?? []
             guard !Task.isCancelled else { return }
             self.exploreHits = hits
@@ -965,6 +966,7 @@ struct SchoolListView: View {
     /// Fila de vía: miniatura (§8.4), nombre + grado coloreado, piedra/escuela,
     /// orientación votada o "SIN ORIENTACIÓN ASIGNADA" (§8.1), distancia.
     private func exploreLineRow(_ h: LineSearchHit, showSchool: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
         Button {
             if let school = vm.schools.first(where: { $0.id == h.schoolId }) {
                 navTarget = SchoolNavTarget(school: school, via: h.lineId ?? h.lineName ?? h.blockName)
@@ -996,9 +998,6 @@ struct SchoolListView: View {
                         }
                         // Restricción en vigor (cierre por nidificación…): el detalle se ve al abrir la escuela.
                         if let k = h.restrictionKind { RestrictionMark(kind: k, size: 14) }
-                        if let r = h.repetitions?.intValue, r > 0 {
-                            Text("✓ \(r)").font(Cumbre.mono(10.5, .bold)).foregroundStyle(Cumbre.ok)
-                        }
                         // Vía o bloque: la modalidad del propio resultado manda (la
                         // trae el backend); si no llega (servidor viejo), el filtro
                         // activo y, por último, el estilo de la escuela — que solo vale
@@ -1031,6 +1030,11 @@ struct SchoolListView: View {
             .onAppear { gradeSplits.want(h.lineId) }
         }
         .buttonStyle(.plain)
+        // Vídeos de beta (por altura) y quién la ha hecho: se ve por qué sale con el filtro de ALTURA. Fuera del botón.
+        CommunityBadgesRow(hit: h)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, 70).padding(.trailing, 16).padding(.bottom, h.communityBadges.isEmpty ? 0 : 8)
+        }
     }
 }
 
