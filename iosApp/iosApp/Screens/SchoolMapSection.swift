@@ -1267,10 +1267,10 @@ struct SchoolMapSection: View {
                     Text(L("Sectores desde aquí")).eyebrow()
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
-                            ForEach(near, id: .sector.id) { s in
+                            ForEach(near, id: \.sector.id) { s in
                                 Button { selectZone(s.sector) } label: {
-                                    Text("(s.sector.name.isEmpty ? L("Sector") : s.sector.name) · (s.distanciaTexto)"
-                                         + (s.piedras > 0 ? " · (s.piedras)" : ""))
+                                    Text((s.sector.name.isEmpty ? L("Sector") : s.sector.name) + " · " + s.distanciaTexto
+                                         + (s.piedras > 0 ? " · \(s.piedras)" : ""))
                                         .font(.system(size: 13, weight: .semibold)).foregroundStyle(Cumbre.ink)
                                         .padding(.horizontal, 11).padding(.vertical, 7)
                                         .background(Color.white.opacity(0.85), in: Capsule())
