@@ -772,15 +772,7 @@ struct FilterChips: View {
                             label: { $0.label }) { vm.showMode = $0 }
                 }
             }
-            if vm.exploreTab == .blocks {
-                // +1,70 / −1,70: con vídeo de beta o hechas por gente de esa altura (la que dijo en su perfil).
-                section(L("ALTURA · VÍDEO O ENCADENES")) {
-                    chipRow([String?.none, "TALL", "SHORT"], id: { $0 ?? "all" },
-                            isSel: { $0 == vm.exploreHeight },
-                            label: { $0 == nil ? NSLocalizedString("schools_filter_all", comment: "")
-                                     : ($0 == "TALL" ? "+1,70" : "−1,70") }) { vm.exploreHeight = $0 }
-                }
-            }
+            if vm.exploreTab == .blocks { heightSection }
             section(L("ORDENAR POR")) {
                 if vm.exploreTab == .blocks {
                     chipRow(SchoolListViewModel.ExploreSort.allCases, id: { $0.rawValue },
@@ -792,6 +784,25 @@ struct FilterChips: View {
                             label: { $0.label }) { vm.sortBy = $0 }
                 }
             }
+        }
+    }
+
+    /// +1,70 / −1,70: con vídeo de beta o hechas por gente de esa altura (la que dijo en su perfil). Aparte del panel
+    /// para que Swift no tarde demasiado en comprobar los tipos de todo el bloque de filtros.
+    private var heightSection: some View {
+        let options: [String?] = [nil, "TALL", "SHORT"]
+        return section(L("ALTURA · VÍDEO O ENCADENES")) {
+            chipRow(options, id: { (h: String?) -> String in h ?? "all" },
+                    isSel: { (h: String?) -> Bool in h == vm.exploreHeight },
+                    label: { (h: String?) -> String in Self.heightLabel(h) }) { (h: String?) in vm.exploreHeight = h }
+        }
+    }
+
+    private static func heightLabel(_ h: String?) -> String {
+        switch h {
+        case nil: return NSLocalizedString("schools_filter_all", comment: "")
+        case "TALL": return "+1,70"
+        default: return "−1,70"
         }
     }
 
