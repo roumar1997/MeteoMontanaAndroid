@@ -25,7 +25,7 @@ packages:
     # el que crasheaba (fork: 20+ frameworks Firebase embebidos + copia estática).
     # El Archive tarda más compilando fuente; es el precio de que funcione.
     url: https://github.com/firebase/firebase-ios-sdk
-    from: "11.0.0"
+    from: "12.19.3"  # parche eMudhra (certificados comprometidos, oct-2026)
   GoogleSignIn:
     url: https://github.com/google/GoogleSignIn-iOS
     from: "8.0.0"
@@ -114,7 +114,7 @@ targets:
         CFBundleShortVersionString: "2.25.9"
         # CFBundleVersion: cada subida a App Store Connect necesita un número
         # ÚNICO y mayor que el anterior.
-        CFBundleVersion: "340"
+        CFBundleVersion: "341"
         UILaunchScreen: {}
         # App Store exige declarar orientaciones (device family incluye iPad "1,2").
         # iPhone: solo vertical. iPad: las 4 (requisito de multitarea de Apple).
