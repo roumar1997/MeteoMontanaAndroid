@@ -66,6 +66,7 @@ struct AscentSheet: View {
     @State private var vote: String? = nil
     @State private var pendingVote: String? = nil
     @State private var showAllGrades = false
+    @State private var choosingHeight = false
     @State private var share = FeedSharePref.enabled
     // Descripción opcional del autor (viaja como "caption", max 500).
     @State private var caption = ""
@@ -133,6 +134,9 @@ struct AscentSheet: View {
                     styleTile(icon: "bolt", title: L("Al flash"), subtitle: L("Primer intento, con beta"), isOn: Binding(get: { alFlash }, set: { alFlash = $0; if $0 { aVista = false } }))
                 }
                 .fixedSize(horizontal: false, vertical: true)
+                // TU ALTURA: con la que cuenta este encadene (+1,70 / −1,70). Si ya la dijiste, una línea; si no, aquí mismo.
+                sectionLabel(L("TU ALTURA"))
+                heightRow
                 sectionLabel(L("¿QUÉ GRADO LE DAS? · OPCIONAL"))
                 gradeSection
                 shareRow.padding(.top, 16)
@@ -260,18 +264,37 @@ struct AscentSheet: View {
 
     // MARK: - Grado
 
+    /// «Mides más de 1,70 · CAMBIAR», o las tres opciones si aún no la has dicho (o al pulsar CAMBIAR).
     @ViewBuilder
-    private var gradeSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // La altura se pide UNA vez en la vida, la primera vez que eliges un grado.
-            if votes.myHeight == nil, pendingVote != nil {
-                HeightPromptCard(selected: nil) { group in
+    private var heightRow: some View {
+        if votes.myHeight == nil || choosingHeight {
+            VStack(alignment: .leading, spacing: 6) {
+                HeightChoiceView(selected: votes.myHeight) { group in
+                    choosingHeight = false
                     Task {
                         await votes.setMyHeight(group)
                         if votes.myHeight != nil, let p = pendingVote { vote = p; pendingVote = nil }
                     }
                 }
+                Text(L("Se guarda en tu perfil y cuenta para saber cuánta gente de cada altura hace cada vía."))
+                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
             }
+        } else {
+            HStack {
+                Text(votes.myHeight == .tall ? L("Mides más de 1,70")
+                     : votes.myHeight == .short ? L("Mides menos de 1,70") : L("Prefieres no decir tu altura"))
+                    .font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                Spacer()
+                Button { choosingHeight = true } label: {
+                    Text(L("CAMBIAR")).font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.terra)
+                }.buttonStyle(.plain)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var gradeSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
             if !quickGrades.isEmpty {
                 HStack(spacing: 5) { ForEach(quickGrades, id: \.self) { gradeButton($0) } }
             }

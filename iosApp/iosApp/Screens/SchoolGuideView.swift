@@ -333,7 +333,7 @@ struct SchoolGuideView: View {
         var parts: [String] = []
         if let start = feedStartTypeLabel(h.startType) { parts.append(start) }
         if let avg = h.rating?.doubleValue, (h.ratingCount?.intValue ?? 0) > 0 { parts.append("★ \(String(format: "%.1f", avg))") }
-        if let r = h.repetitions?.intValue, r > 0 { parts.append("✓ \(r)") }
+        if let r = h.repetitionsLabel { parts.append(r) }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 

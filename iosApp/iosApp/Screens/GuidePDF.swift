@@ -199,7 +199,7 @@ enum GuidePDF {
         var parts: [String] = []
         if let st = feedStartTypeLabel(h.startType) { parts.append(st) }
         if let avg = h.rating?.doubleValue, (h.ratingCount?.intValue ?? 0) > 0 { parts.append("★ \(String(format: "%.1f", avg))") }
-        if let n = h.repetitions?.intValue, n > 0 { parts.append("✓ \(n)") }
+        if let r = h.repetitionsLabel { parts.append(r) }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 }

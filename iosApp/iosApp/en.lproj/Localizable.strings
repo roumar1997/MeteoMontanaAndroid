@@ -1924,3 +1924,11 @@
 "← ÍNDICE" = "← INDEX";
 "↑ INICIO DEL SECTOR" = "↑ SECTOR START";
 "Mapa de la escuela" = "School map";
+
+/* Hoja de ascenso: tu altura (2026-11-04) */
+"TU ALTURA" = "YOUR HEIGHT";
+"Mides más de 1,70" = "You are taller than 1.70";
+"Mides menos de 1,70" = "You are shorter than 1.70";
+"Prefieres no decir tu altura" = "You prefer not to say your height";
+"Se guarda en tu perfil y cuenta para saber cuánta gente de cada altura hace cada vía." = "Saved to your profile; it shows how many people of each height climb each line.";
+"Sectores desde aquí" = "Sectors from here";

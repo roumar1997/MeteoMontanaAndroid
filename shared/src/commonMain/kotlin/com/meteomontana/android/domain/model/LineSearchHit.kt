@@ -32,6 +32,9 @@ data class LineSearchHit(
     val ratingCount: Int? = null,
     /** Personas distintas que la tienen hecha en su diario (solo el total); null si no se pidió o es una piedra. */
     val repetitions: Int? = null,
+    /** De esas repeticiones, las de gente de más / menos de 1,70 (la altura de su perfil). null con backends viejos. */
+    val repetitionsTall: Int? = null,
+    val repetitionsShort: Int? = null,
     /** Sector (ZONE) de la piedra, o null si va suelta. */
     val sectorBlockId: String? = null,
     /** Restricción en vigor hoy sobre la piedra o su sector: null, "NOTICE", "REGULATED" o "CLOSED". */
@@ -41,4 +44,18 @@ data class LineSearchHit(
 ) {
     /** El tipo de restricción para pintar el "!", o null si no hay. */
     val restrictionKind: RestrictionKind? get() = restrictionLevel?.let { RestrictionKind.parse(it) }
+
+    /**
+     * "✓ 4 (3 +1,70 · 1 −1,70)": personas que la han hecho y, si alguna dijo su altura, cuántas de cada grupo. Igual en
+     * las dos apps y en el PDF (no lleva palabras: vale en ES y EN). null si nadie la ha hecho.
+     */
+    val repetitionsLabel: String? get() {
+        val total = repetitions ?: 0
+        if (total <= 0) return null
+        val split = buildList {
+            repetitionsTall?.takeIf { it > 0 }?.let { add("$it +1,70") }
+            repetitionsShort?.takeIf { it > 0 }?.let { add("$it −1,70") }
+        }
+        return if (split.isEmpty()) "✓ $total" else "✓ $total (${split.joinToString(" · ")})"
+    }
 }

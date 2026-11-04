@@ -280,20 +280,7 @@ struct SchoolMapSection: View {
                                         miniBlock = b
                                         flyToParkingZone(b)
                                     case "ZONE":
-                                        // Encuadra el sector con sus piedras
-                                        // (expandiéndolas), como el parking.
-                                        miniBlock = b
-                                        // Zoom FIJO centrado entre sector y piedras
-                                        // (los encuadres calculados se iban a extremos).
-                                        let stones = vm.blocks.filter { $0.sectorBlockId == b.id }
-                                        vm.collapsedSectors.remove(b.id)
-                                        let pts = [CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)]
-                                            + stones.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
-                                        let cLat = pts.map { $0.latitude }.reduce(0, +) / Double(pts.count)
-                                        let cLon = pts.map { $0.longitude }.reduce(0, +) / Double(pts.count)
-                                        focusFit = []
-                                        focusCoord = CLLocationCoordinate2D(latitude: cLat, longitude: cLon)
-                                        focusToken += 1
+                                        selectZone(b)
                                     default:
                                         // Piedra: centra suave y abre su ficha.
                                         focusFit = []
@@ -923,6 +910,21 @@ struct SchoolMapSection: View {
                 set: { if $0 == nil { flow.formCoord = nil } })
     }
 
+    /// Tocar un sector (en el mapa o en «Sectores desde aquí» del parking): su tarjeta y encuadrarlo con sus piedras,
+    /// desplegándolas. Zoom FIJO centrado entre sector y piedras (los encuadres calculados se iban a extremos).
+    private func selectZone(_ b: Block) {
+        miniBlock = b
+        let stones = vm.blocks.filter { $0.sectorBlockId == b.id }
+        vm.collapsedSectors.remove(b.id)
+        let pts = [CLLocationCoordinate2D(latitude: b.lat, longitude: b.lon)]
+            + stones.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
+        let cLat = pts.map { $0.latitude }.reduce(0, +) / Double(pts.count)
+        let cLon = pts.map { $0.longitude }.reduce(0, +) / Double(pts.count)
+        focusFit = []
+        focusCoord = CLLocationCoordinate2D(latitude: cLat, longitude: cLon)
+        focusToken += 1
+    }
+
     /// "Ver en mapa" (guía de BLOQUES): centra y acerca el mapa a la piedra, desplegando su sector, sin abrir la ficha.
     private func maybeFocusBlock() {
         guard !didAutoOpen, let id = focusBlockId, !id.isEmpty,
@@ -1254,6 +1256,28 @@ struct SchoolMapSection: View {
                     cardPill(L("Seguir camino"), icon: "figure.walk") {
                         miniBlock = nil
                         followingApproach = ap
+                    }
+                }
+            }
+            // Desde un parking, los sectores ordenados por lo que queda por andar (como Android). Tocar uno hace lo mismo
+            // que tocarlo en el mapa.
+            if isParking {
+                let near = SectoresDesdeParking.shared.calcular(parking: mb, todos: vm.blocks)
+                if !near.isEmpty {
+                    Text(L("Sectores desde aquí")).eyebrow()
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(near, id: .sector.id) { s in
+                                Button { selectZone(s.sector) } label: {
+                                    Text("(s.sector.name.isEmpty ? L("Sector") : s.sector.name) · (s.distanciaTexto)"
+                                         + (s.piedras > 0 ? " · (s.piedras)" : ""))
+                                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                                        .padding(.horizontal, 11).padding(.vertical, 7)
+                                        .background(Color.white.opacity(0.85), in: Capsule())
+                                        .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
+                                }.buttonStyle(.plain)
+                            }
+                        }
                     }
                 }
             }
