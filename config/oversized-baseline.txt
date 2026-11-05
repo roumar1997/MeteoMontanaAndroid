@@ -9,7 +9,6 @@
 888 iosApp/iosApp/Screens/BoulderFormSheet.swift
 842 app/src/main/java/com/meteomontana/android/ui/components/SchoolMapView.kt
 840 iosApp/iosApp/Screens/AssistantViewModel.swift
-761 app/src/main/java/com/meteomontana/android/ui/assistant/AssistantViewModel.kt
 798 iosApp/iosApp/Screens/StatsView.swift
 734 iosApp/iosApp/Screens/AssistantChatView.swift
 719 iosApp/iosApp/Screens/AdminContributionCards.swift

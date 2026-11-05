@@ -371,3 +371,4 @@ topos (líneas sobre foto), tema visual Cumbre, autenticación Firebase.
 - 2026-11-05: BlockDetailDialog 845→570 (BlockLineItem + BlockDetailHeader). Quedan 24.
 - 2026-11-05: SchoolMap 678→572 (SchoolMapStyleFilter + PendingTickSheet). Quedan 23.
 - 2026-11-05: MainScreen 745→583 (MainTabBar, WeatherRadarToggle, WeatherRadarTab). Quedan 22.
+- 2026-11-05: AssistantViewModel 761→599: consultas a AssistantData, acciones confirmadas a AssistantActionRunner, guardar/recuperar la conversación a AssistantTranscriptMapper (deps del VM 24→10). Quedan 21.
