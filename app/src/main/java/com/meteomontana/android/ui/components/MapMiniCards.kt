@@ -47,8 +47,10 @@ import android.net.Uri
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.outlined.CloseFullscreen
 import androidx.compose.material.icons.outlined.GpsFixed
+import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.OpenInFull
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Map
@@ -57,6 +59,17 @@ import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.Icon
+import com.meteomontana.android.ui.theme.Serif
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.draw.shadow
+import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.Navigation
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -101,18 +114,8 @@ internal fun SchoolViaSearchBar(
     var query by remember { mutableStateOf("") }
     val closeKeyboard = rememberKeyboardDismisser()
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        androidx.compose.material3.OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(R.string.map_mini_cards_buscar_vias_bloques)) },
-            singleLine = true,
-            shape = MaterialTheme.shapes.small,
-            colors = androidx.compose.material3.TextFieldDefaults.colors(
-                focusedContainerColor   = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface
-            )
-        )
+        CumbreSearchField(query, { query = it }, stringResource(R.string.map_mini_cards_buscar_vias_bloques),
+            onSearch = { closeKeyboard() })
         val q = query.trim()
         if (q.length >= 2) {
             data class Hit(val label: String, val sub: String, val lineId: String?, val name: String)
@@ -232,9 +235,9 @@ internal fun ZoneShapeIcon() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mini-ficha flotante de parking/sector sobre el mapa. Una sola línea de alto:
-// icono + nombre + subtítulo, y a la derecha (admin: ✎ 🗑) + CÓMO LLEGAR + ✕.
-// Para sectores con piedras añade el toggle VER/OCULTAR PIEDRAS explícito.
+// Tarjeta flotante de parking/sector sobre el mapa, como la de iOS: insignia P/S, nombre en serif, pastillas de tipo y
+// distancia, X para cerrar, y debajo CÓMO LLEGAR (+ VER/OCULTAR PIEDRAS en un sector con piedras). El admin ve además
+// EDITAR y BORRAR (MOVER es solo de iOS). Desde el parking se ofrecen los sectores, ordenados por lo que queda por andar.
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
 internal fun MiniBlockCard(
@@ -247,123 +250,139 @@ internal fun MiniBlockCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onClose: () -> Unit,
-    /** Sectores de la escuela, para ofrecerlos desde la ficha del PARKING: el
-     *  parking es la puerta de entrada — aparcas y desde ahí decides a qué zona
-     *  subes. Cada uno con su distancia DESDE EL PARKING (no desde ti: lo que
-     *  importa ahí es cuánto queda por andar). Vacío = no se pinta la fila. */
+    /** Sectores de la escuela para ofrecerlos desde el PARKING, con su distancia DESDE EL PARKING. Vacío = sin fila. */
     sectores: List<SectorCercano> = emptyList(),
     onSectorClick: (Block) -> Unit = {},
+    /** Camino grabado hasta aquí: «Seguir camino» sin ir a buscarlo a APROXIMACIONES. */
+    approach: com.meteomontana.android.domain.model.Approach? = null,
+    onFollowApproach: (com.meteomontana.android.domain.model.Approach) -> Unit = {},
+    /** Piedra (desde «Ver en mapa» de la guía): abre su ficha completa. */
+    onOpenStone: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val isParking = block.type == "PARKING"
-    val badgeColor = if (isParking) Color(0xFF1A56DB) else Color(0xFF3F6B4A)
+    val isStone = !isParking && block.type != "ZONE"
+    val accent = if (isStone) Terra else if (isParking) Color(0xFF1A56DB) else Color(0xFF3F6B4A)
     val distance = userLoc?.let { loc ->
         val km = Geo.haversineKm(loc.lat, loc.lon, block.lat, block.lon)
         if (km < 1.0) "${(km * 1000).toInt()} m" else "${"%.1f".format(km)} km"
     }
-    val subtitle = buildString {
+    val kindText = buildString {
         append(if (isParking) "Parking" else "Sector")
         if (!isParking && stoneCount > 0) append(stringResource(R.string.map_mini_cards_v3_piedra, stoneCount, if (stoneCount == 1) "" else "s"))
-        distance?.let { append(" · $it") }
-    }
+    }.let { base -> if (isStone) stringResource(R.string.map_card_stone_lines, block.lines.size) else base }
+    val shape = RoundedCornerShape(24.dp)
+    val hasStonesButton = !isParking && !isStone && stoneCount > 0
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.background)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-            .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+            .shadow(12.dp, shape)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.92f))
+            .border(1.dp, Color.White.copy(alpha = 0.55f), shape)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(accent), contentAlignment = Alignment.Center) {
+                Text(if (isParking) "P" else if (isStone) "◆" else "S", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(block.name.ifBlank { kindText }, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 19.sp,
+                    color = MaterialTheme.colorScheme.onBackground, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    CardTag(kindText, accent)
+                    distance?.let { CardTag(it, MaterialTheme.colorScheme.onSurfaceVariant) }
+                }
+            }
             Box(
-                modifier = Modifier.size(24.dp)
-                    .clip(if (isParking) RoundedCornerShape(6.dp) else androidx.compose.foundation.shape.CircleShape)
-                    .background(badgeColor),
+                Modifier.size(32.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.07f))
+                    .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
-                Text(if (isParking) "P" else "Z", color = Color.White,
-                    style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                Icon(Icons.Outlined.Close, stringResource(R.string.common_close), tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp))
             }
-            Column(Modifier.weight(1f)) {
-                Text(block.name.ifBlank { if (isParking) "Parking" else "Sector" },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground, maxLines = 1)
-                Text(subtitle, style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-            }
-            if (isAdmin) {
-                Text("✎", style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.clip(RoundedCornerShape(8.dp))
-                        .clickable(onClick = onEdit).padding(Spacing.xs))
-                Text("🗑", style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.clip(RoundedCornerShape(8.dp))
-                        .clickable(onClick = onDelete).padding(Spacing.xs))
-            }
-            Box(
-                modifier = Modifier.clip(RoundedCornerShape(9.dp)).background(terraFillColor())
-                    .clickable {
-                        runCatching {
-                            ctx.startActivity(android.content.Intent(
-                                android.content.Intent.ACTION_VIEW,
-                                android.net.Uri.parse(
-                                    "https://www.google.com/maps/dir/?api=1&destination=${block.lat},${block.lon}")
-                            ))
-                        }
-                    }
-                    .padding(horizontal = Spacing.sm, vertical = 7.dp)
-            ) {
-                Text(stringResource(R.string.map_mini_cards_como_llegar), style = EyebrowTextStyle, color = Color.White)
-            }
-            Text("✕", style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.clip(RoundedCornerShape(8.dp))
-                    .clickable(onClick = onClose).padding(Spacing.xs))
         }
-        // El parking como puerta de entrada: desde aquí se salta a cualquier
-        // sector sin tener que buscarlo a ojo en el mapa. Al tocar uno pasa lo
-        // mismo que al tocarlo en el mapa (acercarse y desplegar sus piedras),
-        // así que no hay dos comportamientos distintos que mantener.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            CardPill(stringResource(R.string.map_card_directions), Icons.Outlined.Navigation, primary = true, modifier = Modifier.weight(1f)) {
+                runCatching {
+                    ctx.startActivity(Intent(Intent.ACTION_VIEW,
+                        Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${block.lat},${block.lon}")))
+                }
+            }
+            if (isStone) {
+                CardPill(stringResource(R.string.map_card_open_stone), Icons.Outlined.Layers, modifier = Modifier.weight(1f)) {
+                    onClose(); onOpenStone()
+                }
+            } else if (hasStonesButton) {
+                CardPill(
+                    stringResource(if (collapsed) R.string.map_card_show_stones else R.string.map_card_hide_stones),
+                    if (collapsed) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
+                    modifier = Modifier.weight(1f), onClick = onToggleStones
+                )
+            } else if (approach != null) {
+                CardPill(stringResource(R.string.map_card_follow_path), Icons.AutoMirrored.Outlined.DirectionsWalk, modifier = Modifier.weight(1f)) {
+                    onClose()
+                    onFollowApproach(approach)
+                }
+            }
+        }
         if (isParking && sectores.isNotEmpty()) {
-            Text(
-                stringResource(R.string.map_mini_cards_v2_sectores_desde_aqui),
-                style = EyebrowTextStyle,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = Spacing.xs, bottom = 2.dp)
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-            ) {
+            Text(stringResource(R.string.map_mini_cards_v2_sectores_desde_aqui), style = EyebrowTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 sectores.forEach { s ->
                     MochilaCard(
-                        label = "${s.sector.name.ifBlank { "Sector" }} · ${s.distanciaTexto}" +
-                            if (s.piedras > 0) " · ${s.piedras}" else "",
+                        label = "${s.sector.name.ifBlank { "Sector" }} · ${s.distanciaTexto}" + if (s.piedras > 0) " · ${s.piedras}" else "",
                         selected = false
                     ) { onSectorClick(s.sector) }
                 }
             }
         }
-        // Toggle explícito de piedras del sector (antes: tap "silencioso" en el marker).
-        if (!isParking && stoneCount > 0) {
-            Box(
-                modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs)
-                    .clip(RoundedCornerShape(9.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(9.dp))
-                    .clickable(onClick = onToggleStones)
-                    .padding(vertical = 6.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(if (collapsed) stringResource(R.string.map_mini_cards_v3_ver_piedras) else stringResource(R.string.map_mini_cards_v3_ocultar_piedras),
-                    style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onBackground)
+        if (isAdmin && !isStone) {
+            Column {
+                Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)))
+                Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("ADMIN", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(44.dp))
+                    AdminChip(stringResource(R.string.map_card_edit), Icons.Outlined.Edit, MaterialTheme.colorScheme.onBackground, Modifier.weight(1f), onEdit)
+                    AdminChip(stringResource(R.string.map_card_delete), Icons.Outlined.Delete, MaterialTheme.colorScheme.error, Modifier.weight(1f), onDelete)
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun CardTag(text: String, tint: Color) {
+    Text(text, color = tint, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, maxLines = 1,
+        modifier = Modifier.clip(CircleShape).background(tint.copy(alpha = 0.13f)).padding(horizontal = 8.dp, vertical = 3.dp))
+}
+
+@Composable
+private fun CardPill(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier = Modifier,
+                     primary: Boolean = false, onClick: () -> Unit) {
+    val fg = if (primary) Color.White else MaterialTheme.colorScheme.onBackground
+    Row(
+        modifier.clip(CircleShape)
+            .background(if (primary) terraFillColor() else MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onClick).padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, tint = fg, modifier = Modifier.size(16.dp))
+        Text(text, color = fg, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun AdminChip(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, modifier: Modifier, onClick: () -> Unit) {
+    Row(
+        modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surface).clickable(onClick = onClick).padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, null, tint = tint, modifier = Modifier.size(14.dp))
+        Text(text, color = tint, fontWeight = FontWeight.Medium, fontSize = 13.sp, maxLines = 1)
     }
 }

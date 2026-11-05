@@ -37,4 +37,8 @@ object AppText {
         return if (args.isEmpty()) appContext.getString(id)
         else appContext.getString(id, *args.map { it ?: "" }.toTypedArray())
     }
+
+    /** Texto con singular / plural ("1 persona", "5 personas"). */
+    fun plural(@androidx.annotation.PluralsRes id: Int, count: Int, vararg args: Any?): String =
+        appContext.resources.getQuantityString(id, count, *args.map { it ?: "" }.toTypedArray())
 }

@@ -58,13 +58,7 @@ fun SchoolTabBar(
 ) {
     val labels = mapOf(
         SchoolTab.MAP to stringResource(R.string.detail_tab_map),
-        SchoolTab.BLOCKS to stringResource(
-            when (blocksKind) {
-                BlocksTabKind.BOULDERS -> R.string.detail_tab_boulders
-                BlocksTabKind.ROUTES -> R.string.detail_tab_routes
-                BlocksTabKind.BOTH -> R.string.detail_tab_boulders_routes
-            }
-        ),
+        SchoolTab.BLOCKS to stringResource(R.string.detail_tab_guide), // la guía de la escuela, como iOS (2026-11-03)
         SchoolTab.WEATHER to stringResource(R.string.detail_tab_weather),
         SchoolTab.NOTES to stringResource(R.string.detail_tab_notes)
     )
@@ -81,13 +75,13 @@ fun SchoolTabBar(
                     .background(if (active) terraFillColor() else MaterialTheme.colorScheme.surface)
                     .border(1.dp, if (active) terraFillColor() else MaterialTheme.colorScheme.outline, CircleShape)
                     .clickable { onSelect(tab) }
-                    .padding(vertical = 11.dp),
+                    .padding(vertical = 9.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     labels.getValue(tab),
                     color = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 0.6.sp,
+                    fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 10.5.sp, letterSpacing = 0.6.sp,
                     maxLines = 1, textAlign = TextAlign.Center
                 )
             }

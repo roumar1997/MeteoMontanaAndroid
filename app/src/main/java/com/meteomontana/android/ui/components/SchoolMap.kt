@@ -110,6 +110,9 @@ fun SchoolMap(
     onGuardarBorrador: ((com.meteomontana.android.ui.screens.detail.BoulderDraftStore.Draft) -> Unit)? = null,
     onBorrarBorrador: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
+    /** Camino grabado hasta un parking o sector (el verificado si hay), para «Seguir camino» en su tarjeta. */
+    approachTo: (blockId: String) -> com.meteomontana.android.domain.model.Approach? = { null },
+    onFollowApproach: (com.meteomontana.android.domain.model.Approach) -> Unit = {},
     /** Va justo debajo del mapa, encima de PARKINGS (aproximaciones). */
     contenidoTrasMapa: @Composable () -> Unit = {}
 ) {
@@ -119,6 +122,8 @@ fun SchoolMap(
     // Ahora la ficha abre directamente en cuanto hay bloques; el mapa solo se
     // expande cuando el usuario lo abre (o al trazar un muro desde el editor).
     var selectedBlock by remember { mutableStateOf<Block?>(null) }
+    // La GUÍA (pestaña BLOQUES) abre piedras aquí y vuelve a su sitio cuando se cierra la ficha.
+    androidx.compose.runtime.LaunchedEffect(selectedBlock != null) { viewModel.setBlockSheetOpen(selectedBlock != null) }
     // Filtro LOCAL por GRADO (BLOCK_SEARCH_DESIGN.md §7). No persiste al salir
     // de la escuela. Vive aquí (no dentro del `run {}` de más abajo) porque lo
     // necesitan tanto la barra del mapa como la ficha de piedra (selectedBlock?.let).
@@ -237,6 +242,8 @@ fun SchoolMap(
                 viewModel     = viewModel,
                 bridge        = bridge,
                 wallEdit      = wallEdit,
+                approachTo = approachTo,
+                onFollowApproach = onFollowApproach,
                 contenidoTrasMapa = contenidoTrasMapa,
                 // Orden de iOS: sectores/parkings → grado → vía/bloque → mapa. Los filtros viajan como ranura porque
                 // los sectores/parkings (que van ANTES) viven dentro del mapa.
@@ -389,26 +396,12 @@ fun SchoolMap(
                         viewModel.toggleLine(block, line, idx, schoolName, sectorName, markDone = false)
                     }
                 } else {
-                    val wasProject = projectLineIds.contains(line.id)
-                    when (com.meteomontana.android.data.local.FeedPublishPrefs.get(fichaCtx)) {
-                        com.meteomontana.android.data.local.FeedPublishMode.ASK ->
-                            pendingTick = PendingTick(
-                                block = block, line = line, index = idx,
-                                schoolName = schoolName, sectorName = sectorName,
-                                wasProject = wasProject
-                            )
-                        com.meteomontana.android.data.local.FeedPublishMode.ALWAYS ->
-                            viewModel.viewModelScope.launch {
-                                val r = viewModel.toggleLine(block, line, idx, schoolName, sectorName, markDone = true)
-                                if (r.getOrNull() == true) {
-                                    viewModel.publishTickToFeed(block, line, wasProject)
-                                }
-                            }
-                        com.meteomontana.android.data.local.FeedPublishMode.NEVER ->
-                            viewModel.viewModelScope.launch {
-                                viewModel.toggleLine(block, line, idx, schoolName, sectorName, markDone = true)
-                            }
-                    }
+                    // Siempre la hoja de ascenso: ahí se decide si se comparte (interruptor), sin ajuste global.
+                    pendingTick = PendingTick(
+                        block = block, line = line, index = idx,
+                        schoolName = schoolName, sectorName = sectorName,
+                        wasProject = projectLineIds.contains(line.id)
+                    )
                 }
             }) else null,
             onToggleProject = if (block.type == "BLOCK") ({ line, idx, nowProject ->
@@ -444,44 +437,46 @@ fun SchoolMap(
 
     // Hoja de publicar el tick (estilo Cumbre).
     pendingTick?.let { pt ->
-        FeedPublishSheet(
-            lineLabel = pt.line.name.ifBlank { stringResource(R.string.school_map_v3_via_2, pt.index + 1) } +
-                (pt.line.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
+        val ascentVoteVm: CommunityVoteViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+        val myHeight by ascentVoteVm.myHeight.collectAsStateWithLifecycle()
+        androidx.compose.runtime.LaunchedEffect(Unit) { ascentVoteVm.loadMyHeight() }
+        AscentSheet(
+            lineName = pt.line.name.ifBlank { stringResource(R.string.school_map_v3_via_2, pt.index + 1) },
+            setterGrade = pt.line.grade,
             wasProject = pt.wasProject,
-            onPublish = { always, caption, photoUri, sessionDate, aVista, alFlash ->
-                if (always) com.meteomontana.android.data.local.FeedPublishPrefs.set(
-                    fichaCtx, com.meteomontana.android.data.local.FeedPublishMode.ALWAYS)
+            myHeight = myHeight,
+            onSetHeight = { ascentVoteVm.setMyHeight(it) },
+            initialShare = com.meteomontana.android.data.local.FeedSharePref.enabled(fichaCtx),
+            onSave = { choice ->
                 pendingTick = null
                 viewModel.viewModelScope.launch {
+                    // Primero el diario (el voto de grado exige tener la vía en él), luego publicar y votar.
                     val r = viewModel.toggleLine(
                         pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName, markDone = true,
-                        sessionDate = sessionDate, aVista = aVista, alFlash = alFlash)
+                        sessionDate = choice.sessionDate, aVista = choice.aVista, alFlash = choice.alFlash)
                     if (r.getOrNull() == true) {
-                        viewModel.publishTickToFeed(
-                            pt.block, pt.line, pt.wasProject, caption,
-                            photoUri = photoUri?.toString(),
-                            onPublishFailed = {
-                                android.widget.Toast.makeText(
-                                    fichaCtx,
-                                    AppText.get(R.string.school_map_v3_no_se_pudo_publicar_el),
-                                    android.widget.Toast.LENGTH_LONG
-                                ).show()
-                            },
-                            onPhotoUploadFailed = {
-                                android.widget.Toast.makeText(
-                                    fichaCtx, R.string.feed_photo_upload_failed,
-                                    android.widget.Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        )
+                        if (choice.publish) {
+                            viewModel.publishTickToFeed(
+                                pt.block, pt.line, pt.wasProject, choice.caption,
+                                photoUri = choice.photoUri?.toString(),
+                                onPublishFailed = {
+                                    android.widget.Toast.makeText(
+                                        fichaCtx,
+                                        AppText.get(R.string.school_map_v3_no_se_pudo_publicar_el),
+                                        android.widget.Toast.LENGTH_LONG
+                                    ).show()
+                                },
+                                onPhotoUploadFailed = {
+                                    android.widget.Toast.makeText(
+                                        fichaCtx, R.string.feed_photo_upload_failed,
+                                        android.widget.Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            )
+                        }
+                        val grade = choice.gradeVote
+                        if (grade != null && pt.line.id.isNotEmpty()) ascentVoteVm.voteGrade(pt.line.id, grade)
                     }
-                }
-            },
-            onDiaryOnly = { sessionDate, aVista, alFlash ->
-                pendingTick = null
-                viewModel.viewModelScope.launch {
-                    viewModel.toggleLine(pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName,
-                        markDone = true, sessionDate = sessionDate, aVista = aVista, alFlash = alFlash)
                 }
             },
             onDismiss = { pendingTick = null }

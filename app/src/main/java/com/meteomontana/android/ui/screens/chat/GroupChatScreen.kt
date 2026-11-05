@@ -479,14 +479,19 @@ fun GroupChatScreen(
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            val dayStarts = chatDayStarts(state.messages)
             items(state.messages.reversed(), key = { it.id }) { msg ->
-                GroupMessageBubble(
-                    msg = msg,
-                    myUid = state.myUid,
-                    senderName = state.memberNames[msg.fromUid] ?: "",
-                    nameFor = { uid -> if (uid == state.myUid) AppText.get(R.string.school_presence_row_v3_tu) else state.memberNames[uid] ?: "" },
-                    onReply = { viewModel.startReply(msg) }
-                )
+                // El separador de día va dentro del item, encima de la burbuja (como en el chat 1 a 1).
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    dayStarts[msg.id]?.let { ChatDayDivider(it) }
+                    GroupMessageBubble(
+                        msg = msg,
+                        myUid = state.myUid,
+                        senderName = state.memberNames[msg.fromUid] ?: "",
+                        nameFor = { uid -> if (uid == state.myUid) AppText.get(R.string.school_presence_row_v3_tu) else state.memberNames[uid] ?: "" },
+                        onReply = { viewModel.startReply(msg) }
+                    )
+                }
             }
             // reverseLayout: se pinta arriba del todo; cargar antiguos no mueve el scroll.
             if (state.canLoadMore) {
@@ -616,10 +621,10 @@ private fun GroupMessageBubble(
             horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start) {
             Column(modifier = Modifier
                 .widthIn(max = 280.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(ChatBubbleShape)
                 .background(bg)
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                .padding(horizontal = 10.dp, vertical = 6.dp)
+                .border(1.dp, if (isMine) Color.Transparent else MaterialTheme.colorScheme.outline, ChatBubbleShape)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 // Nombre del emisor (solo en mensajes de otros).
                 if (!isMine && senderName.isNotBlank()) {

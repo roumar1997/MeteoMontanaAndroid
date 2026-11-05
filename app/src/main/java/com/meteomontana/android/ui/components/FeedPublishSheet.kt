@@ -13,6 +13,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.FlashOn
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -173,7 +180,7 @@ internal fun CumbreSuccessDialog(
     }
 }
 
-/** Tick pendiente de confirmar (hoja "Publicar en el feed"). */
+/** Tick pendiente de confirmar (hoja de ascenso). */
 internal data class PendingTick(
     val block: Block,
     val line: com.meteomontana.android.domain.model.BlockLine,
@@ -183,64 +190,74 @@ internal data class PendingTick(
     val wasProject: Boolean
 )
 
+/** Lo que se decide en la hoja de ascenso al guardar. */
+internal data class AscentChoice(
+    val sessionDate: String?,
+    val aVista: Boolean,
+    val alFlash: Boolean,
+    val gradeVote: String?,
+    val publish: Boolean,
+    val caption: String?,
+    val photoUri: Uri?
+)
+
 /**
- * Hoja de publicar un ascenso (estilo Cumbre: fondo Paper, borde Rule, eyebrow
- * mono, primario Terra). Tres acciones: PUBLICAR EN EL FEED (primario), "Solo
- * en mi diario" (texto) y el checkbox "Publicar siempre sin preguntar" (solo
- * aplica si se publica). Cerrar la hoja = no marcar nada.
+ * Voto que queda al pulsar [g]: como [nextGradeVote], pero pulsar el único grado elegido lo quita (null).
+ * Pares de grados contiguos (7a/7a+) como en la hoja de votar grado.
+ */
+internal fun nextAscentVote(g: String, current: String?): String? {
+    val parts = gradeParts(current)
+    return if (parts.size == 1 && g in parts) null else nextGradeVote(g, current)
+}
+
+/**
+ * Hoja de ascenso (espejo de AscentSheet de iOS, build 323): cuándo, estilo (a vista / al flash, uno u otro),
+ * voto de grado (5 rápidos alrededor del grado del equipador + rejilla completa; se pueden elegir dos contiguos),
+ * interruptor "Compartir en Comunidad" (descripción y foto solo si se publica) y UN botón que dice qué hará.
+ * Cerrar la hoja = no marcar nada.
  */
 @androidx.compose.runtime.Composable
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-internal fun FeedPublishSheet(
-    lineLabel: String,
+internal fun AscentSheet(
+    lineName: String,
+    setterGrade: String?,
     wasProject: Boolean,
-    onPublish: (always: Boolean, caption: String?, photoUri: Uri?, sessionDate: String?, aVista: Boolean, alFlash: Boolean) -> Unit,
-    onDiaryOnly: (sessionDate: String?, aVista: Boolean, alFlash: Boolean) -> Unit,
+    myHeight: com.meteomontana.android.domain.model.HeightGroup?,
+    onSetHeight: (com.meteomontana.android.domain.model.HeightGroup) -> Unit,
+    initialShare: Boolean,
+    onSave: (AscentChoice) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var always by remember { mutableStateOf(false) }
-    // C3: CUANDO la encadenaste. null = hoy (el 90% de los casos, cero friccion).
-    // La fecha se guarda en el diario SIEMPRE, publiques o no.
+    // CUÁNDO la encadenaste: null = hoy. La fecha se guarda en el diario SIEMPRE, publiques o no.
     var sessionDate by remember { mutableStateOf<String?>(null) }
-    // Estilo de ascensión: independientes entre sí, se puede marcar 1, el
-    // otro, los dos o ninguno — sin un tercer botón "Ninguno" (Rodrigo,
-    // 2026-08-21).
+    // A vista y al flash son cosas distintas: uno u otro (encender uno apaga el otro).
     var aVista by remember { mutableStateOf(false) }
     var alFlash by remember { mutableStateOf(false) }
+    // Voto de grado y el que espera a que se diga la altura (solo la primera vez en la vida).
+    var vote by remember { mutableStateOf<String?>(null) }
+    var pendingVote by remember { mutableStateOf<String?>(null) }
+    var showAllGrades by remember { mutableStateOf(false) }
+    var share by remember { mutableStateOf(initialShare) }
     var showDatePicker by remember { mutableStateOf(false) }
     // Descripción opcional del autor (viaja como "caption", max 500).
     var caption by remember { mutableStateOf("") }
-    // Foto de celebración: cámara del sistema (TakePicture sobre un URI del
-    // FileProvider; sin permiso CAMERA en el Manifest → no hace falta runtime
-    // permission) o elegida de la GALERÍA (Photo Picker, tampoco pide permiso).
-    // OJO robustez (paridad con el blindaje iOS 2026-07-18): los URIs van en
-    // rememberSaveable — con la cámara abierta MIUI mata el proceso a menudo
-    // y un remember simple perdía la foto al volver (se quedaba en null).
+    // Foto de celebración: cámara del sistema (TakePicture sobre un URI del FileProvider) o galería (Photo Picker).
+    // rememberSaveable: con la cámara abierta MIUI mata el proceso a menudo y un remember simple perdía la foto.
     val photoCtx = LocalContext.current
-    var photoUri by androidx.compose.runtime.saveable.rememberSaveable {
-        mutableStateOf<Uri?>(null)
-    }
-    var pendingCameraUri by androidx.compose.runtime.saveable.rememberSaveable {
-        mutableStateOf<Uri?>(null)
-    }
+    var photoUri by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<Uri?>(null) }
+    var pendingCameraUri by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<Uri?>(null) }
     val cameraLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.TakePicture()
     ) { ok ->
         val pending = pendingCameraUri
         if (ok && pending != null) {
             photoUri = pending
-            // Red de seguridad: copia la foto también al carrete del usuario
-            // (MediaStore, sin permisos en API 29+). Aunque algo fallara
-            // después, la foto del grupo existe en Galería. Best effort.
+            // Red de seguridad: copia también al carrete (MediaStore, sin permisos en API 29+). Best effort.
             saveCelebrationToGallery(photoCtx, pending)
         } else if (ok) {
-            // NUNCA en silencio: la cámara dijo OK pero el URI pendiente se
-            // perdió (no debería pasar con rememberSaveable) → avisar YA.
-            android.widget.Toast.makeText(
-                photoCtx, R.string.feed_photo_failed, android.widget.Toast.LENGTH_LONG
-            ).show()
+            // NUNCA en silencio: la cámara dijo OK pero el URI pendiente se perdió → avisar YA.
+            android.widget.Toast.makeText(photoCtx, R.string.feed_photo_failed, android.widget.Toast.LENGTH_LONG).show()
         }
-        // ok=false = cancelado por el usuario → sin aviso (es lo esperado).
     }
     val galleryLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()
@@ -248,9 +265,7 @@ internal fun FeedPublishSheet(
     fun launchCamera() {
         val dir = java.io.File(photoCtx.cacheDir, "feed").apply { mkdirs() }
         val file = java.io.File(dir, "celebration-${System.currentTimeMillis()}.jpg")
-        val uri = androidx.core.content.FileProvider.getUriForFile(
-            photoCtx, "${photoCtx.packageName}.fileprovider", file
-        )
+        val uri = androidx.core.content.FileProvider.getUriForFile(photoCtx, "${photoCtx.packageName}.fileprovider", file)
         pendingCameraUri = uri
         runCatching { cameraLauncher.launch(uri) }
     }
@@ -258,18 +273,29 @@ internal fun FeedPublishSheet(
         runCatching {
             galleryLauncher.launch(
                 androidx.activity.result.PickVisualMediaRequest(
-                    androidx.activity.result.contract.ActivityResultContracts
-                        .PickVisualMedia.ImageOnly
+                    androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly
                 )
             )
         }
+    }
+    // La altura se pide UNA vez; en cuanto se sabe, el voto que esperaba pasa a ser el voto.
+    androidx.compose.runtime.LaunchedEffect(myHeight) {
+        if (myHeight != null && pendingVote != null) { vote = pendingVote; pendingVote = null }
+    }
+    fun tapGrade(g: String) {
+        if (myHeight == null) pendingVote = nextAscentVote(g, pendingVote)
+        else vote = nextAscentVote(g, vote)
+    }
+    // Dos por abajo, el del equipador y dos por arriba. Vacío si su grado no está en la lista (doble, fuera de rango…).
+    val quickGrades = remember(setterGrade) {
+        val i = ALL_GRADES.indexOf(setterGrade?.trim()?.lowercase())
+        if (i < 0) emptyList() else (i - 2..i + 2).mapNotNull { ALL_GRADES.getOrNull(it) }
     }
     if (showDatePicker) {
         val state = androidx.compose.material3.rememberDatePickerState(
             initialSelectedDateMillis = System.currentTimeMillis(),
             selectableDates = object : androidx.compose.material3.SelectableDates {
-                override fun isSelectableDate(utcTimeMillis: Long) =
-                    utcTimeMillis <= System.currentTimeMillis()
+                override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis <= System.currentTimeMillis()
             })
         androidx.compose.material3.DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -284,264 +310,275 @@ internal fun FeedPublishSheet(
             }
         ) { androidx.compose.material3.DatePicker(state = state) }
     }
-    // N5: abrir ENTERA (el boton 'Solo en mi diario' quedaba oculto).
     val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
     androidx.compose.material3.ModalBottomSheet(
         sheetState = sheetState,
         onDismissRequest = onDismiss,
-        // El fondo lo pone cumbreSheetSurface, conservando el color propio de
-        // esta hoja; si lo pintase el sheet, taparía el borde y el canto.
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        // El fondo lo pone cumbreSheetSurface; si lo pintase el sheet, taparía el borde y el canto.
+        containerColor = Color.Transparent,
         shape = CumbreSheetShape
     ) {
+        com.meteomontana.android.ui.guide.GuideHost(HEIGHT_GUIDE, Modifier.fillMaxWidth()) {
         Column(
             Modifier.fillMaxWidth()
                 .cumbreSheetSurface(MaterialTheme.colorScheme.background)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = Spacing.md)
                 .padding(bottom = Spacing.lg)
         ) {
-            // Eyebrow del tipo de logro.
-            Text(
-                stringResource(
-                    if (wasProject) R.string.feed_kind_project_done else R.string.feed_kind_tick
-                ),
-                style = EyebrowTextStyle,
-                color = Terra
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                stringResource(R.string.feed_mark_done_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                lineLabel,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(Spacing.md))
-            // Autocompletado de @menciones al escribir la descripción.
-            // ── C3: ¿CUANDO LA ENCADENASTE? (Hoy / Ayer / Otra fecha) ────────
-            Text(
-                stringResource(R.string.feed_publish_sheet_v2_cuando_la_encadenaste),
-                style = EyebrowTextStyle,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(6.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val today = java.time.LocalDate.now()
-                DateChip(stringResource(R.string.w_today), selected = sessionDate == null) { sessionDate = null }
-                DateChip(stringResource(R.string.w_yesterday), selected = sessionDate == today.minusDays(1).toString()) {
-                    sessionDate = today.minusDays(1).toString()
+            AscentHeader(lineName, setterGrade, wasProject)
+            AscentSectionLabel(stringResource(R.string.ascent_when))
+            AscentDateSegment(sessionDate, onToday = { sessionDate = null },
+                onYesterday = { sessionDate = java.time.LocalDate.now().minusDays(1).toString() },
+                onOther = { showDatePicker = true })
+            AscentSectionLabel(stringResource(R.string.ascent_style))
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AscentStyleTile(Icons.Outlined.Visibility, stringResource(R.string.ascent_onsight),
+                    stringResource(R.string.ascent_onsight_sub), aVista, Modifier.weight(1f)) {
+                    aVista = !aVista; if (aVista) alFlash = false
                 }
-                val custom = sessionDate?.takeIf { it != today.minusDays(1).toString() }
-                DateChip(custom?.let { formatShortDate(it) } ?: stringResource(R.string.feed_publish_sheet_v4_otra_fecha),
-                    selected = custom != null) { showDatePicker = true }
+                AscentStyleTile(Icons.Outlined.FlashOn, stringResource(R.string.ascent_flash),
+                    stringResource(R.string.ascent_flash_sub), alFlash, Modifier.weight(1f)) {
+                    alFlash = !alFlash; if (alFlash) aVista = false
+                }
             }
-            Spacer(Modifier.height(12.dp))
-
-            // ── Estilo de ascensión: dos chips independientes, sin etiqueta
-            // "Estilo" encima — se pulsan directamente (Rodrigo, 2026-08-21).
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                DateChip(stringResource(R.string.feed_publish_sheet_v4_a_vista), selected = aVista) { aVista = !aVista }
-                DateChip(stringResource(R.string.feed_publish_sheet_v4_al_flash), selected = alFlash) { alFlash = !alFlash }
-            }
-            Spacer(Modifier.height(12.dp))
-
-            com.meteomontana.android.ui.components.MentionSuggestions(
-                text = caption, onReplace = { if (it.length <= 500) caption = it })
-            // Descripción opcional del post.
-            androidx.compose.material3.OutlinedTextField(
-                value = caption,
-                onValueChange = { if (it.length <= 500) caption = it },
-                placeholder = {
-                    Text(stringResource(R.string.feed_caption_hint),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                maxLines = 4,
-                shape = RoundedCornerShape(2.dp)
-            )
-            Spacer(Modifier.height(Spacing.md))
-            // Foto de celebración (opcional): fila para abrir la cámara o
-            // miniatura con ✕ para quitarla/repetir.
-            val currentPhoto = photoUri
-            if (currentPhoto == null) {
-                // Dos accesos: hacer la foto ahora o elegirla de la galería
-                // (para publicar después sin estar con el móvil en el momento).
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                            .clip(RoundedCornerShape(2.dp))
-                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                            .clickable { launchCamera() }
-                            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        Icon(
-                            Icons.Outlined.PhotoCamera,
-                            contentDescription = null,
-                            tint = Terra,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            stringResource(R.string.feed_take_photo),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                            .clip(RoundedCornerShape(2.dp))
-                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                            .clickable { launchGallery() }
-                            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        Icon(
-                            Icons.Outlined.PhotoLibrary,
-                            contentDescription = null,
-                            tint = Terra,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            stringResource(R.string.feed_pick_from_gallery),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            // TU ALTURA: con la que cuenta este encadene (+1,70 / −1,70) para saber cuánta gente de cada altura hace la
+            // vía. Si ya la dijiste (mochila), una línea; si no, se elige aquí mismo.
+            AscentSectionLabel(stringResource(R.string.ascent_height))
+            AscentHeightRow(myHeight, onSetHeight)
+            AscentSectionLabel(stringResource(R.string.ascent_grade_title))
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                val chosen = gradeParts(vote ?: pendingVote)
+                if (quickGrades.isNotEmpty()) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.fillMaxWidth()) {
+                        quickGrades.forEach { g -> AscentGradeButton(g, g in chosen, Modifier.weight(1f)) { tapGrade(g) } }
                     }
                 }
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    Box {
-                        coil.compose.AsyncImage(
-                            model = currentPhoto,
-                            contentDescription = stringResource(R.string.feed_celebration_photo),
-                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                            modifier = Modifier.size(width = 88.dp, height = 110.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
-                        )
-                        // ✕ quita la foto (se puede volver a hacer otra).
-                        Box(
-                            Modifier.align(Alignment.TopEnd).padding(4.dp)
-                                .size(22.dp)
-                                .clip(androidx.compose.foundation.shape.CircleShape)
-                                .background(Color.Black.copy(alpha = 0.55f))
-                                .clickable { photoUri = null },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("✕", color = Color.White,
-                                style = MaterialTheme.typography.labelMedium)
+                if (showAllGrades || quickGrades.isEmpty()) {
+                    listOf("4", "5", "6", "7", "8").forEach { n ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.fillMaxWidth()) {
+                            SUFFIXES.forEach { suf ->
+                                val g = n + suf
+                                AscentGradeButton(g, g in chosen, Modifier.weight(1f)) { tapGrade(g) }
+                            }
                         }
                     }
-                    Column {
+                }
+                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        if (quickGrades.isEmpty()) stringResource(R.string.ascent_grade_hint_free)
+                        else stringResource(R.string.ascent_grade_hint_setter, setterGrade.orEmpty()),
+                        fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (quickGrades.isNotEmpty()) {
                         Text(
-                            stringResource(R.string.feed_retake_celebration_photo),
-                            style = EyebrowTextStyle,
-                            color = Terra,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(2.dp))
-                                .clickable { launchCamera() }
-                                .padding(Spacing.sm)
-                        )
-                        Text(
-                            stringResource(R.string.feed_pick_from_gallery_caps),
-                            style = EyebrowTextStyle,
-                            color = Terra,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(2.dp))
-                                .clickable { launchGallery() }
-                                .padding(Spacing.sm)
+                            stringResource(if (showAllGrades) R.string.ascent_less else R.string.ascent_other_grade),
+                            style = EyebrowTextStyle.copy(fontSize = 10.sp), color = Terra,
+                            modifier = Modifier.clickable { showAllGrades = !showAllGrades }.padding(vertical = 2.dp)
                         )
                     }
                 }
             }
-            Spacer(Modifier.height(Spacing.md))
-            // Checkbox "Publicar siempre sin preguntar".
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-                    .clip(RoundedCornerShape(2.dp))
-                    .border(1.dp, if (always) Terra else MaterialTheme.colorScheme.outline,
-                        RoundedCornerShape(2.dp))
-                    .clickable { always = !always }
-                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                Text(if (always) "☑" else "☐",
-                    color = if (always) Terra else MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    stringResource(R.string.feed_publish_always),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (always) Terra else MaterialTheme.colorScheme.onSurfaceVariant
+            Spacer(Modifier.height(16.dp))
+            AscentShareRow(share) { share = it }
+            if (share) {
+                Spacer(Modifier.height(10.dp))
+                com.meteomontana.android.ui.components.MentionSuggestions(
+                    text = caption, onReplace = { if (it.length <= 500) caption = it })
+                androidx.compose.material3.OutlinedTextField(
+                    value = caption,
+                    onValueChange = { if (it.length <= 500) caption = it },
+                    placeholder = {
+                        Text(stringResource(R.string.feed_caption_hint), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2, maxLines = 4,
+                    shape = RoundedCornerShape(10.dp)
                 )
+                Spacer(Modifier.height(Spacing.sm))
+                AscentPhotoRow(photoUri, onCamera = { launchCamera() }, onGallery = { launchGallery() },
+                    onRemove = { photoUri = null })
             }
-            Spacer(Modifier.height(Spacing.md))
-            // Primario: PUBLICAR EN EL FEED (Terra, texto blanco).
+            Spacer(Modifier.height(16.dp))
             Box(
                 Modifier.fillMaxWidth()
-                    .clip(RoundedCornerShape(2.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(terraFillColor())
-                    .clickable { onPublish(always, caption.trim().ifBlank { null }, photoUri, sessionDate, aVista, alFlash) }
-                    .padding(vertical = 14.dp),
+                    .clickable {
+                        com.meteomontana.android.data.local.FeedSharePref.set(photoCtx, share)
+                        onSave(AscentChoice(
+                            sessionDate = sessionDate, aVista = aVista, alFlash = alFlash,
+                            gradeVote = vote, publish = share,
+                            caption = if (share) caption.trim().ifBlank { null } else null,
+                            photoUri = if (share) photoUri else null))
+                    }
+                    .padding(vertical = 15.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    stringResource(R.string.feed_publish_action),
-                    style = EyebrowTextStyle,
-                    color = Color.White
+                    stringResource(if (share) R.string.ascent_save_publish else R.string.ascent_save_diary),
+                    style = EyebrowTextStyle, color = Color.White
                 )
             }
-            Spacer(Modifier.height(Spacing.sm))
-            // Secundario: solo diario.
-            Box(
-                Modifier.fillMaxWidth()
-                    .clip(RoundedCornerShape(2.dp))
-                    .clickable(onClick = { onDiaryOnly(sessionDate, aVista, alFlash) })
-                    .padding(vertical = 12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    stringResource(R.string.feed_publish_diary_only),
-                    style = EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        }
         }
     }
 }
 
-
-/** Chip de fecha (Hoy/Ayer/Otra) — seleccionado = fondo Terra. */
 @androidx.compose.runtime.Composable
-private fun DateChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Box(
-        Modifier
-            .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
-            .background(if (selected) Terra else MaterialTheme.colorScheme.surface)
-            .border(1.dp, if (selected) Terra else MaterialTheme.colorScheme.outlineVariant,
-                com.meteomontana.android.ui.theme.CumbrePillShape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp)
-    ) {
-        Text(label, style = MaterialTheme.typography.labelMedium,
-            color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface)
+private fun AscentHeader(lineName: String, setterGrade: String?, wasProject: Boolean) {
+    Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(stringResource(if (wasProject) R.string.feed_kind_project_done else R.string.feed_kind_tick),
+                style = EyebrowTextStyle, color = Terra)
+            Text(lineName, fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold,
+                fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground)
+        }
+        if (!setterGrade.isNullOrBlank()) {
+            val style = com.meteomontana.android.ui.theme.gradeChipStyle(setterGrade)
+            Text(setterGrade, style = EyebrowTextStyle.copy(fontSize = 14.sp),
+                color = if (style.dark) Color.Black else Color.White,
+                modifier = Modifier
+                    .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
+                    .background(com.meteomontana.android.ui.theme.gradeChipColor(setterGrade))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, com.meteomontana.android.ui.theme.CumbrePillShape)
+                    .padding(horizontal = 13.dp, vertical = 6.dp))
+        }
     }
 }
 
-internal fun formatShortDate(iso: String): String = runCatching {
-    val d = java.time.LocalDate.parse(iso)
-    "%d %s".format(d.dayOfMonth, CalendarLabels.monthsShort()[d.monthValue - 1].uppercase())
-}.getOrDefault(iso)
+@androidx.compose.runtime.Composable
+private fun AscentSectionLabel(text: String) {
+    Text(text, style = EyebrowTextStyle.copy(fontSize = 10.sp), color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 18.dp, bottom = 7.dp))
+}
+
+/** Hoy | Ayer | Otra fecha…, como un selector segmentado. */
+@androidx.compose.runtime.Composable
+private fun AscentDateSegment(sessionDate: String?, onToday: () -> Unit, onYesterday: () -> Unit, onOther: () -> Unit) {
+    val yesterday = java.time.LocalDate.now().minusDays(1).toString()
+    val custom = sessionDate?.takeIf { it != yesterday }
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(11.dp)).background(MaterialTheme.colorScheme.surface).padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        AscentSegment(stringResource(R.string.w_today), sessionDate == null, Modifier.weight(1f), onToday)
+        AscentSegment(stringResource(R.string.w_yesterday), sessionDate == yesterday, Modifier.weight(1f), onYesterday)
+        AscentSegment(custom?.let { formatShortDate(it) } ?: stringResource(R.string.feed_publish_sheet_v4_otra_fecha),
+            custom != null, Modifier.weight(1f), onOther)
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun AscentSegment(label: String, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    Box(
+        modifier.clip(RoundedCornerShape(9.dp))
+            .background(if (on) MaterialTheme.colorScheme.background else Color.Transparent)
+            .border(1.dp, if (on) MaterialTheme.colorScheme.outline else Color.Transparent, RoundedCornerShape(9.dp))
+            .clickable(onClick = onClick).padding(vertical = 9.dp, horizontal = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+            color = if (on) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun AscentStyleTile(
+    icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String,
+    on: Boolean, modifier: Modifier, onClick: () -> Unit
+) {
+    Column(
+        modifier.fillMaxHeight()
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (on) Terra.copy(alpha = 0.11f) else MaterialTheme.colorScheme.surface)
+            .border(1.dp, if (on) Terra else MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp),
+            tint = if (on) Terra else MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(top = 4.dp))
+        Text(subtitle, fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Cada grado con SU color; el elegido va relleno. */
+@androidx.compose.runtime.Composable
+private fun AscentGradeButton(g: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val style = com.meteomontana.android.ui.theme.gradeChipStyle(g)
+    val accent = if (style.dark) MaterialTheme.colorScheme.onSurface else style.stroke
+    Box(
+        modifier
+            .background(if (selected) com.meteomontana.android.ui.theme.gradeChipColor(g)
+                        else MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+            .border(1.dp, if (selected && !style.dark) Color.Transparent else accent, RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick).padding(vertical = 9.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(g, style = EyebrowTextStyle.copy(fontSize = 12.sp), maxLines = 1,
+            color = if (selected) (if (style.dark) Color.Black else Color.White) else accent)
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun AscentShareRow(share: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+            .clickable { onChange(!share) }.padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(stringResource(R.string.ascent_share_title), fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground)
+            Text(stringResource(R.string.ascent_share_sub), fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        androidx.compose.material3.Switch(
+            checked = share, onCheckedChange = onChange,
+            colors = androidx.compose.material3.SwitchDefaults.colors(checkedTrackColor = Terra))
+    }
+}
+
+/** Foto de celebración: dos accesos (cámara / galería) o la miniatura con ✕ y repetir. */
+@androidx.compose.runtime.Composable
+private fun AscentPhotoRow(photo: Uri?, onCamera: () -> Unit, onGallery: () -> Unit, onRemove: () -> Unit) {
+    if (photo == null) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AscentPhotoButton(Icons.Outlined.PhotoCamera, stringResource(R.string.feed_take_photo), Modifier.weight(1f), onCamera)
+            AscentPhotoButton(Icons.Outlined.PhotoLibrary, stringResource(R.string.feed_pick_from_gallery), Modifier.weight(1f), onGallery)
+        }
+        return
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Box {
+            coil.compose.AsyncImage(
+                model = photo,
+                contentDescription = stringResource(R.string.feed_celebration_photo),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.size(width = 88.dp, height = 110.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(6.dp))
+            )
+            Box(
+                Modifier.align(Alignment.TopEnd).padding(4.dp).size(22.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(Color.Black.copy(alpha = 0.55f)).clickable(onClick = onRemove),
+                contentAlignment = Alignment.Center
+            ) { Text("✕", color = Color.White, style = MaterialTheme.typography.labelMedium) }
+        }
+        Column {
+            Text(stringResource(R.string.feed_retake_celebration_photo), style = EyebrowTextStyle, color = Terra,
+                modifier = Modifier.clip(RoundedCornerShape(2.dp)).clickable(onClick = onCamera).padding(Spacing.sm))
+            Text(stringResource(R.string.feed_pick_from_gallery_caps), style = EyebrowTextStyle, color = Terra,
+                modifier = Modifier.clip(RoundedCornerShape(2.dp)).clickable(onClick = onGallery).padding(Spacing.sm))
+        }
+    }
+}
+

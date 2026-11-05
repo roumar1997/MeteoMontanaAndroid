@@ -47,7 +47,7 @@ Todo lo demás se consulta cuando toca, y por eso vive aparte.
 2. Si la tarea toca algo con historia, busca en `HISTORIAL.md` antes de sacar
    conclusiones — media hora de bug ya resuelto está escrita ahí.
 3. Empieza sin preguntar, salvo que el usuario pida otra cosa.
-4. Al terminar: **una línea** en `HISTORIAL.md` y actualiza "Estado actual".
+4. Al terminar: **una línea** en `HISTORIAL.md`, actualiza "Estado actual" y **`estado-cumbre.json`** (panel «Estado Cumbre» del chat: cada función con su estado iOS/Android pendiente→hecho→probado→publicado y los builds). Obligatorio tras CADA cambio o validación de Álvaro.
 
 ## 🗺️ Mapa de repos — LEER PRIMERO
 
@@ -228,6 +228,10 @@ Reglas:
 - Doc completo: `DESIGN.md` en la raíz.
 
 ## Estado actual
+
+**📖 GUÍA DE LA ESCUELA + PDF EN ANDROID (2026-11-03) — compila, pasa tests, SIN PROBAR en el móvil y SIN COMMITEAR.** Pestaña BLOQUES = la guía de iOS (build 340) y su PDF sin casillas. Código en `ui/screens/detail/guide/` + `SchoolGuideHost.kt`; enlaces y JPEG del PDF en `data/guide/PdfFinisher.kt` (Android guarda las fotos sin comprimir). Probar con lo demás pendiente de Android, mirando sobre todo el peso del PDF y que los enlaces salten. Detalle en `HISTORIAL.md` 2026-11-03.
+
+**🤖 ANDROID A LA PAR DEL ASISTENTE Y EL MAPA DE iOS (2026-11-01) — compila, pasa tests, SIN PROBAR en el móvil y SIN COMMITEAR.** Chat del asistente rehecho como iOS (bienvenida con Cumbri, burbujas, seguimientos), MI CASA, restricciones, viajes, clásicas, objetivo/logros, grado por altura, varias vías de golpe, aviso de mañana, quedada rellena, hoja de ascenso, filtros A VISTA/AL FLASH, tarjeta de sector/parking con «Seguir camino». Siguiente: probar en el Android de Álvaro con la checklist y, con su OK, commit (solo lo de esta sesión). Detalle en `HISTORIAL.md` 2026-11-01.
 
 **✅ HOJA DE ASCENSO NUEVA (2026-10-31) — iOS build 317 a TestFlight (2.25.8), Android SIN PORTAR.** Marcar una vía abre una hoja corta con CUÁNDO, ESTILO, ¿QUÉ GRADO LE DAS? y un interruptor «Compartir en Comunidad» (apagado por defecto, recuerda lo último); un solo botón GUARDAR EN MI DIARIO / GUARDAR Y PUBLICAR. Se acabó el ajuste Preguntar/Siempre/Nunca. Pendiente: que Álvaro lo valide en el 317, y luego portar a Android pidiéndole capturas concretas. Detalle en `HISTORIAL.md` 2026-10-31.
 

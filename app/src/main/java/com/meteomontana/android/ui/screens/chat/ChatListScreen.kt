@@ -30,6 +30,9 @@ import androidx.compose.material.icons.outlined.GroupAdd
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SwipeToDismissBox
@@ -100,6 +103,27 @@ fun ChatListScreen(
                 message = stringResource(R.string.chat_list_screen_v3_toca_el_lapiz_para_escribir)
             )
         } else {
+            // Buscador + filtros (Álvaro, 2026-10-22; espejo de ChatListView.swift): con muchos chats ya costaba encontrar uno.
+            var query by remember { mutableStateOf("") }
+            var filter by remember { mutableStateOf(ChatFilter.All) }
+            val groupName = stringResource(R.string.w_group)
+            fun titleOf(item: ChatListItem): String {
+                val conv = item.conversation
+                if (conv.isGroup) return conv.name ?: groupName
+                val other = item.otherProfile
+                return other?.username ?: other?.displayName ?: ""
+            }
+            val q = query.trim().lowercase()
+            val shown = items.filter { item ->
+                val conv = item.conversation
+                val passes = when (filter) {
+                    ChatFilter.All -> true
+                    ChatFilter.Unread -> conv.unreadCount > 0
+                    ChatFilter.Groups -> conv.isGroup
+                }
+                passes && (q.isEmpty() || titleOf(item).lowercase().contains(q) ||
+                    (conv.lastMessage ?: "").lowercase().contains(q))
+            }
             LazyColumn {
                 item {
                     com.meteomontana.android.ui.components.FirstTimeHint(
@@ -107,7 +131,26 @@ fun ChatListScreen(
                         text = stringResource(R.string.chat_list_screen_v3_desliza_una_conversacion_a_la)
                     )
                 }
-                items(items, key = { it.conversation.id }) { item ->
+                item {
+                    ChatSearchBar(
+                        query = query, onQuery = { query = it },
+                        filter = filter, onFilter = { filter = it },
+                        counts = mapOf(
+                            ChatFilter.All to items.size,
+                            ChatFilter.Unread to items.count { it.conversation.unreadCount > 0 },
+                            ChatFilter.Groups to items.count { it.conversation.isGroup }
+                        )
+                    )
+                }
+                if (shown.isEmpty()) {
+                    item {
+                        Text(stringResource(R.string.chat_no_match), color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    }
+                }
+                items(shown, key = { it.conversation.id }) { item ->
                     val conv = item.conversation
                     if (conv.isGroup) {
                         SwipeableConvRow(
@@ -116,6 +159,7 @@ fun ChatListScreen(
                             name = conv.name ?: stringResource(R.string.w_group),
                             lastMessage = conv.lastMessage ?: "",
                             unread = conv.unreadCount,
+                            date = chatListDate(conv.lastAtMillis),
                             onClick = { onOpenGroup(conv.id) },
                             onDelete = { viewModel.deleteConversation(conv.id) },
                             onMarkUnread = { viewModel.markUnread(conv.id) }
@@ -129,6 +173,7 @@ fun ChatListScreen(
                             name = other?.username ?: other?.displayName ?: otherUid.take(6),
                             lastMessage = conv.lastMessage ?: "",
                             unread = conv.unreadCount,
+                            date = chatListDate(conv.lastAtMillis),
                             onClick = { onOpenChat(otherUid) },
                             onDelete = { viewModel.deleteConversation(conv.id) },
                             onMarkUnread = { viewModel.markUnread(conv.id) }
@@ -164,12 +209,8 @@ private fun NewChatDialog(
                 color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.size(8.dp))
             val closeKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
-            OutlinedTextField(
-                value = query, onValueChange = { query = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text(stringResource(R.string.chat_list_screen_v2_buscar_entre_seguidores_seguidos)) },
-                singleLine = true
-            )
+            com.meteomontana.android.ui.components.CumbreSearchField(query, { query = it },
+                stringResource(R.string.chat_list_screen_v2_buscar_entre_seguidores_seguidos), onSearch = { closeKeyboard() })
             Spacer(Modifier.size(8.dp))
             if (contacts.isEmpty()) {
                 Text(stringResource(R.string.chat_list_screen_v2_sigue_a_alguien_o_que),
@@ -218,7 +259,8 @@ private fun SwipeableConvRow(
     onClick: () -> Unit,
     onDelete: () -> Unit,
     onMarkUnread: () -> Unit,
-    isGroup: Boolean = false
+    isGroup: Boolean = false,
+    date: String = ""
 ) {
     val state = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -248,7 +290,7 @@ private fun SwipeableConvRow(
         }
     ) {
         ConvRow(avatarUrl = avatarUrl, name = name, lastMessage = lastMessage,
-            unread = unread, onClick = onClick, isGroup = isGroup)
+            unread = unread, onClick = onClick, isGroup = isGroup, date = date)
     }
 }
 
@@ -279,10 +321,11 @@ private fun ConvRow(
     lastMessage: String,
     unread: Long,
     onClick: () -> Unit,
-    isGroup: Boolean = false
+    isGroup: Boolean = false,
+    date: String = ""
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
+        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -315,14 +358,76 @@ private fun ConvRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1)
         }
-        if (unread > 0) {
-            Box(modifier = Modifier.size(24.dp).clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(if (unread > 9) "9+" else unread.toString(),
-                    color = androidx.compose.ui.graphics.Color.White,
-                    style = MaterialTheme.typography.labelMedium)
+        // Fecha arriba y, debajo, el contador de no leídos (como en iOS).
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (date.isNotEmpty()) {
+                Text(date, fontFamily = com.meteomontana.android.ui.theme.Mono, fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (unread > 0) {
+                Box(modifier = Modifier.size(22.dp).clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(if (unread > 9) "9+" else unread.toString(),
+                        color = androidx.compose.ui.graphics.Color.White,
+                        style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+    }
+}
+
+/** Filtros de la lista de mensajes. */
+private enum class ChatFilter(val label: Int) {
+    All(R.string.chat_filter_all), Unread(R.string.chat_filter_unread), Groups(R.string.chat_filter_groups)
+}
+
+/** Buscador en píldora + filtros con su recuento, igual que el de Escuelas. Espejo de ChatListView.searchBar (iOS). */
+@Composable
+private fun ChatSearchBar(
+    query: String, onQuery: (String) -> Unit,
+    filter: ChatFilter, onFilter: (ChatFilter) -> Unit,
+    counts: Map<ChatFilter, Int>
+) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        androidx.compose.material3.TextField(
+            value = query,
+            onValueChange = onQuery,
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text(stringResource(R.string.chat_search_hint), style = MaterialTheme.typography.bodyMedium) },
+            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+            trailingIcon = {
+                if (query.isNotEmpty()) IconButton(onClick = { onQuery("") }) {
+                    Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.common_close),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            shape = CircleShape,
+            colors = androidx.compose.material3.TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
+            )
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ChatFilter.entries.forEach { f ->
+                val on = f == filter
+                Row(
+                    Modifier.clip(CircleShape)
+                        .background(if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
+                        .clickable { onFilter(f) }
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val fg = if (on) androidx.compose.ui.graphics.Color.White else MaterialTheme.colorScheme.onBackground
+                    Text(stringResource(f.label), color = fg, fontSize = 13.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                    Text("${counts[f] ?: 0}", color = fg.copy(alpha = 0.8f), fontSize = 10.sp,
+                        fontFamily = com.meteomontana.android.ui.theme.Mono)
+                }
             }
         }
     }

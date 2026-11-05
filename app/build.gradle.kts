@@ -36,8 +36,8 @@ android {
         applicationId = "com.meteomontana.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 122
-        versionName = "6.7"
+        versionCode = 123
+        versionName = "7.1.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -184,6 +184,7 @@ dependencies {
 
     // Widget "Favoritas hoy" en la pantalla de inicio
     implementation(libs.androidx.glance.appwidget)
+    implementation(libs.mediapipe.tasks.vision)
 
     // Tests
     testImplementation(libs.junit)

@@ -378,8 +378,8 @@ fun StatsScreen(
                             Column(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(c.copy(alpha = 0.10f))
                                 .border(1.dp, c.copy(alpha = 0.5f), RoundedCornerShape(12.dp)).padding(vertical = 12.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(g, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = c, maxLines = 1)
-                                Text(q.substringAfter('-') + " '" + q.substringBefore('-').takeLast(2), fontFamily = FontFamily.Monospace,
+                                Text(g, fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = c, maxLines = 1)
+                                Text(q.substringAfter('-') + " '" + q.substringBefore('-').takeLast(2), fontFamily = com.meteomontana.android.ui.theme.Mono,
                                     fontWeight = FontWeight.Bold, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
@@ -391,7 +391,7 @@ fun StatsScreen(
                     Text(stringResource(R.string.stats_screen_ultimas_12_semanas), style = EyebrowTextStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                     Text(stringResource(R.string.stats_weeks_out_chip, p.weeksOut.count { it }, p.weeksOut.size),
-                        color = Color.White, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 9.5.sp,
+                        color = Color.White, fontFamily = com.meteomontana.android.ui.theme.Mono, fontWeight = FontWeight.Bold, fontSize = 9.5.sp,
                         modifier = Modifier.clip(CircleShape).background(Terra).padding(horizontal = 8.dp, vertical = 3.dp))
                 }
                 Spacer(Modifier.height(Spacing.xs))
@@ -433,8 +433,8 @@ fun StatsScreen(
                     Row(Modifier.fillMaxWidth().clickable { expandedSchool = if (isOpen) null else school },
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Column(Modifier.width(62.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("$count", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 26.sp, color = Terra)
-                            Text(stringResource(R.string.stats_ascents_word), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+                            Text("$count", fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold, fontSize = 26.sp, color = Terra)
+                            Text(stringResource(R.string.stats_ascents_word), fontFamily = com.meteomontana.android.ui.theme.Mono, fontWeight = FontWeight.Bold,
                                 fontSize = 8.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -516,7 +516,7 @@ private fun weekColor(i: Int, flags: List<Boolean>, out: Boolean): Color {
 @Composable
 private fun GradePill(grade: String) {
     val c = gradeAccent(grade)
-    Text(grade, color = c, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 11.sp,
+    Text(grade, color = c, fontFamily = com.meteomontana.android.ui.theme.Mono, fontWeight = FontWeight.Bold, fontSize = 11.sp,
         modifier = Modifier.clip(CircleShape).background(c.copy(alpha = 0.14f))
             .border(1.dp, c.copy(alpha = 0.6f), CircleShape).padding(horizontal = 9.dp, vertical = 3.dp))
 }
@@ -542,12 +542,12 @@ private fun BestMonthCard(month: String, count: Int) {
         }
         Column(Modifier.weight(1f)) {
             Text(stringResource(R.string.stats_best_month_title), style = EyebrowTextStyle, color = Terra)
-            Text(month.replaceFirstChar { it.uppercase() }, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
+            Text(month.replaceFirstChar { it.uppercase() }, fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold,
                 fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurface)
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("$count", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 30.sp, color = Terra)
-            Text(stringResource(R.string.stats_ascents_word), fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold,
+            Text("$count", fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold, fontSize = 30.sp, color = Terra)
+            Text(stringResource(R.string.stats_ascents_word), fontFamily = com.meteomontana.android.ui.theme.Mono, fontWeight = FontWeight.Bold,
                 fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -580,7 +580,7 @@ private fun MetricCard(label: String, value: String, modifier: Modifier = Modifi
         .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
         .padding(Spacing.sm),
         horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
+        Text(value, fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold,
             fontSize = 20.sp, color = if (terra) Terra else MaterialTheme.colorScheme.onSurface)
         Text(label, style = EyebrowTextStyle.copy(fontSize = 8.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -656,9 +656,9 @@ private fun MonthBars(counts: List<Pair<String, Int>>) {
 private fun MonthTile(value: String, label: String, terra: Boolean, modifier: Modifier) {
     Column(modifier.clip(RoundedCornerShape(9.dp)).background(MaterialTheme.colorScheme.background).padding(vertical = 9.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(value, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 20.sp, maxLines = 1,
+        Text(value, fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold, fontSize = 20.sp, maxLines = 1,
             color = if (terra) Terra else MaterialTheme.colorScheme.onSurface)
-        Text(label, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 8.sp, maxLines = 2,
+        Text(label, fontFamily = com.meteomontana.android.ui.theme.Mono, fontWeight = FontWeight.Bold, fontSize = 8.sp, maxLines = 2,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

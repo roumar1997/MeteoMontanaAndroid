@@ -222,6 +222,14 @@ class SchoolListViewModel @Inject constructor(
 
     private val _exploreSortBy = MutableStateFlow(ExploreSortBy.Distance)
     val exploreSortBy: StateFlow<ExploreSortBy> = _exploreSortBy.asStateFlow()
+    /** ALTURA: null = todas; "TALL" / "SHORT" = con vídeo de beta o hechas por gente de esa altura (`beta=` del servidor). */
+    private val _exploreHeight = MutableStateFlow<String?>(null)
+    val exploreHeight: StateFlow<String?> = _exploreHeight.asStateFlow()
+    fun setExploreHeight(h: String?) { _exploreHeight.value = h; dispatchExplore() }
+    /** QUÉ BUSCAS con la ALTURA: "" vídeo o encadenes, "_VIDEO" solo vídeo, "_SENDS" solo encadenes. */
+    private val _exploreHeightSource = MutableStateFlow("")
+    val exploreHeightSource: StateFlow<String> = _exploreHeightSource.asStateFlow()
+    fun setExploreHeightSource(s: String) { _exploreHeightSource.value = s; dispatchExplore() }
 
     private val _exploreGrouped = MutableStateFlow(true)
     val exploreGrouped: StateFlow<Boolean> = _exploreGrouped.asStateFlow()
@@ -259,6 +267,8 @@ class SchoolListViewModel @Inject constructor(
     fun clearAllFilters() {
         _filters.update { SchoolFilters(query = it.query) }
         _gradeMin.value = null; _gradeMax.value = null; _orientations.value = emptySet()
+        _exploreHeight.value = null
+        _exploreHeightSource.value = ""
         _exploreSortBy.value = ExploreSortBy.Distance
         explorePrefs.edit().remove("grade_min").remove("grade_max").apply()
         load()
@@ -303,7 +313,9 @@ class SchoolListViewModel @Inject constructor(
                 // distancia y se reordena en exploreGroups/exploreHitsSorted. "Más repetidos"
                 // SÍ lo ordena el servidor.
                 sort = if (_exploreSortBy.value == ExploreSortBy.MostRepeated) "MOST_REPEATED" else "DISTANCE",
-                withRepetitions = _exploreSortBy.value == ExploreSortBy.MostRepeated
+                // Siempre: cada resultado enseña quién la ha hecho (por altura) y sus vídeos de beta.
+                withRepetitions = true,
+                beta = _exploreHeight.value?.let { it + _exploreHeightSource.value }
             )
             _exploreHits.value = runCatching { exploreLines(criteria) }.getOrDefault(emptyList())
             _exploreLoading.value = false

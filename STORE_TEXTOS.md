@@ -7,7 +7,7 @@ Límites App Store: promocional 170, novedades 4000, descripción 4000.
 ## Texto promocional (167)
 
 ```
-Sabe si hoy se puede escalar y dónde: nota 0-100 por escuela según el tiempo y el secado de la roca, radar de lluvia, mapas con bloques y vías y quedadas con tu gente.
+Sabe si hoy se puede escalar y dónde: nota 0-100 por escuela, roca seca o mojada, mejor hora por sector, mapas con bloques y vías, tu diario y quedadas con tu gente.
 ```
 
 ## Descripción (la de siempre)
@@ -64,4 +64,49 @@ Hecha por escaladores, para escaladores.
 • Bienvenida más corta: una sola pantalla.
 • Iconos de mosquetón y crashpad para distinguir vías y bloques.
 • Arreglos y mejoras de rendimiento.
+```
+
+## Novedades — build 323 (iOS 2.25.8), 2026-11-01
+
+Solo lo que entró desde el build 316 (el tren 2.25.7 ya estaba cerrado).
+
+```
+• Hoja de ascenso nueva: al marcar una vía eliges cuándo, el estilo (a vista, al flash…) y qué grado le das, todo en una hoja corta. Si dudas, elige dos grados (7a/7a+).
+• Compartir en Comunidad ahora es un interruptor dentro de la hoja, apagado por defecto: un solo botón para guardar en tu diario o guardar y publicar.
+• Diario: filtros A VISTA y AL FLASH que se pueden combinar.
+• Mapa de la escuela: la tarjeta de sector o parking sale arriba, con CÓMO LLEGAR y OCULTAR PIEDRAS.
+```
+
+## Novedades — build 340 (iOS 2.25.9), 2026-11-04
+
+Solo lo que entró desde el build 323.
+
+```
+• Guía de la escuela: la pestaña BLOQUES es ahora una guía sector a sector y piedra a piedra, con la foto de cada cara y sus líneas, salida y comentario de cada vía.
+• Mapa general de la escuela en satélite, con sectores, piedras y parkings; toca un sector para saltar a él.
+• Al principio de cada sector, sus vías ordenadas por grado: toca una y te lleva a su piedra.
+• Marca vías como hechas o proyecto desde la propia guía, guarda un marcapáginas y abre «Ver en mapa» o «Cómo llegar» en cada piedra.
+• Arriba, las más repetidas y las mejor valoradas.
+• Funciona sin conexión si tienes la escuela descargada.
+• Descarga la guía en PDF (de toda la escuela o de un sector) para llevarla impresa o en el móvil, con índice y enlaces que saltan a cada sector y piedra.
+```
+
+## Texto promocional nuevo (2026-11-05)
+
+```
+Sabe si hoy se puede escalar y dónde: nota 0-100 por escuela, roca seca o mojada, guía de cada escuela piedra a piedra, beta en vídeo por altura, tu diario y quedadas.
+```
+
+## Novedades — build 347 (iOS 2.25.10), 2026-11-05
+
+Solo lo que entró desde el build 340.
+
+```
+• Tu altura al marcar una vía: elige si mides más o menos de 1,70 y tus encadenes cuentan en su grupo.
+• En cada vía ves cuánta gente de +1,70 y de −1,70 la ha hecho, y los vídeos de beta por altura: tócalo y se abre directamente (si hay varios, eliges).
+• Nuevo filtro ALTURA en la guía y en Escuelas → Vías/Bloques, con QUÉ BUSCAS: vídeo o encadenes, solo vídeo o solo encadenes.
+• Al cerrar una piedra vuelves justo a donde estabas en la guía.
+• «Sectores desde aquí» en la tarjeta del parking.
+• Guía en PDF más compacta: fotos verticales con sus vías al lado y menos páginas en blanco.
+• Los sectores cargan sin parpadeos.
 ```

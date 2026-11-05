@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -87,9 +88,10 @@ fun ForecastBodyColumn(
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
         SectionTitle(stringResource(R.string.detail_next_days))
         forecast.days.take(7).forEachIndexed { i, d ->
+            // Cada día ya es una tarjeta: sin línea divisoria entre ellos.
             DayRow(day = d, dayIndex = i, onClick = onDayClick?.let { { it(i) } })
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
         }
+        Spacer(Modifier.height(8.dp))
     }
 }
 
@@ -99,13 +101,18 @@ fun HeroSection(forecast: Forecast) {
     val verdict = if (cur.score >= 55) stringResource(R.string.detail_yes) else stringResource(R.string.detail_no)
     val window = forecast.bestWindow
 
+    // Tarjeta redondeada, como las de Escuelas (espejo de HeroSection en iOS).
+    val heroShape = RoundedCornerShape(16.dp)
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp).fillMaxWidth()
+            .clip(heroShape).background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, heroShape)
+            .padding(16.dp),
         verticalAlignment = Alignment.Top
     ) {
         Text(
             verdict,
-            fontFamily = FontFamily.Serif,
+            fontFamily = com.meteomontana.android.ui.theme.Serif,
             fontWeight = FontWeight.Bold,
             fontSize = 56.sp,
             color = if (cur.score >= 55) MaterialTheme.colorScheme.secondary
@@ -156,8 +163,8 @@ fun RockStatusBand(cur: Current) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .background(accent.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
-            .border(1.dp, accent.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+            .background(accent.copy(alpha = 0.12f), RoundedCornerShape(14.dp))
+            .border(1.dp, accent.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -213,7 +220,7 @@ fun CurrentWeather(cur: Current) {
     ) {
         Text(
             "${cur.temperature.toInt()}°",
-            fontFamily = FontFamily.Serif,
+            fontFamily = com.meteomontana.android.ui.theme.Serif,
             fontWeight = FontWeight.Bold,
             fontSize = 56.sp,
             color = MaterialTheme.colorScheme.onBackground
@@ -254,8 +261,9 @@ fun ConditionsGrid(cur: Current) {
 private fun ConditionCell(label: String, value: String, unit: String, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
             .padding(8.dp)
     ) {
         Text(label, style = MaterialTheme.typography.labelMedium,

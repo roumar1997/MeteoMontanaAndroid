@@ -93,7 +93,8 @@ private fun PlacesLine(
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
-        contentPadding = PaddingValues(horizontal = Spacing.md)
+        // Sin margen propio: ya lo pone la pantalla (antes quedaba doble a la izquierda, Álvaro 2026-11-05).
+        contentPadding = PaddingValues(0.dp)
     ) {
         items(items, key = { it.id }) { place ->
             Row(

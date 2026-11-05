@@ -107,48 +107,41 @@ val Mono  = JetBrainsMonoFamily
 // Letterspacing/sizes copiados de los estilos inline observados en
 // index.html (eyebrow 0.62rem ≈ 10sp, etc.).
 // =============================================================================
+/** Sin el relleno de fuente de Android: con Inter cada texto salía más alto que en iOS (2026-11-05). */
+internal val NoFontPadding = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
+
 val CumbreTypography = Typography(
-    displayLarge = TextStyle(
-        fontFamily = Serif, fontWeight = FontWeight.Bold,
+    displayLarge = TextStyle(platformStyle = NoFontPadding,        fontFamily = Serif, fontWeight = FontWeight.Bold,
         fontSize = 32.sp, letterSpacing = (-0.5).sp
     ),
-    displayMedium = TextStyle(
-        fontFamily = Serif, fontWeight = FontWeight.SemiBold,
+    displayMedium = TextStyle(platformStyle = NoFontPadding,        fontFamily = Serif, fontWeight = FontWeight.SemiBold,
         fontSize = 28.sp, letterSpacing = (-0.3).sp
     ),
-    headlineLarge = TextStyle(
-        fontFamily = Sans, fontWeight = FontWeight.Bold,
+    headlineLarge = TextStyle(platformStyle = NoFontPadding,        fontFamily = Sans, fontWeight = FontWeight.Bold,
         fontSize = 24.sp
     ),
-    headlineMedium = TextStyle(
-        fontFamily = Sans, fontWeight = FontWeight.SemiBold,
+    headlineMedium = TextStyle(platformStyle = NoFontPadding,        fontFamily = Sans, fontWeight = FontWeight.SemiBold,
         fontSize = 20.sp
     ),
-    titleLarge = TextStyle(
-        fontFamily = Sans, fontWeight = FontWeight.SemiBold,
+    titleLarge = TextStyle(platformStyle = NoFontPadding,        fontFamily = Sans, fontWeight = FontWeight.SemiBold,
         fontSize = 18.sp
     ),
-    titleMedium = TextStyle(
-        fontFamily = Sans, fontWeight = FontWeight.Medium,
+    titleMedium = TextStyle(platformStyle = NoFontPadding,        fontFamily = Sans, fontWeight = FontWeight.Medium,
         fontSize = 16.sp
     ),
-    bodyLarge = TextStyle(
-        fontFamily = Sans, fontWeight = FontWeight.Normal,
+    bodyLarge = TextStyle(platformStyle = NoFontPadding,        fontFamily = Sans, fontWeight = FontWeight.Normal,
         fontSize = 16.sp, lineHeight = 24.sp
     ),
-    bodyMedium = TextStyle(
-        fontFamily = Sans, fontWeight = FontWeight.Normal,
+    bodyMedium = TextStyle(platformStyle = NoFontPadding,        fontFamily = Sans, fontWeight = FontWeight.Normal,
         fontSize = 14.sp, lineHeight = 20.sp
     ),
-    labelLarge = TextStyle(
-        fontFamily = Sans, fontWeight = FontWeight.Medium,
-        fontSize = 14.sp, letterSpacing = 0.5.sp
+    labelLarge = TextStyle(platformStyle = NoFontPadding,        fontFamily = Sans, fontWeight = FontWeight.Medium,
+        fontSize = 13.sp, letterSpacing = 0.sp  // como las etiquetas de iOS (13, sin tracking)
     ),
     // OJO: este estilo se usa por todos lados (km/h, mm, "09", "10"…) — no
     // metas tracking aquí o se te parten los dígitos en columnas.
     // Para los "eyebrow" con tracking ancho, usa EyebrowTextStyle (abajo).
-    labelMedium = TextStyle(
-        fontFamily = Mono, fontWeight = FontWeight.Medium,
+    labelMedium = TextStyle(platformStyle = NoFontPadding,        fontFamily = Mono, fontWeight = FontWeight.Medium,
         fontSize = 11.sp, letterSpacing = 0.sp
     ),
 )
@@ -161,8 +154,7 @@ val CumbreTypography = Typography(
  * Nunca como style por defecto: el tracking ancho destroza dígitos
  * cortos como "09" o "10".
  */
-val EyebrowTextStyle = TextStyle(
-    fontFamily = Mono,
+val EyebrowTextStyle = TextStyle(platformStyle = NoFontPadding,    fontFamily = Mono,
     fontWeight = FontWeight.Bold,
     fontSize = 10.sp,
     letterSpacing = 1.8.sp

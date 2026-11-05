@@ -180,8 +180,8 @@ private fun AspectChip(aspect: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 /** Todos los grados en orden (4a, 4a+, ... 8c+): sirve para saber cuáles son contiguos. */
-private val SUFFIXES = listOf("a", "a+", "b", "b+", "c", "c+")
-private val ALL_GRADES = listOf("4", "5", "6", "7", "8").flatMap { n -> SUFFIXES.map { n + it } }
+internal val SUFFIXES = listOf("a", "a+", "b", "b+", "c", "c+")
+internal val ALL_GRADES = listOf("4", "5", "6", "7", "8").flatMap { n -> SUFFIXES.map { n + it } }
 
 /**
  * Qué voto queda al pulsar [g]: si ya está elegido, se quita de un voto doble (queda el otro); si es el contiguo del

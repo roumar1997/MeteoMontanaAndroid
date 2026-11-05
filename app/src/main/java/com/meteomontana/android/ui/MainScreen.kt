@@ -109,9 +109,9 @@ private fun WeatherRadarToggle(
     Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Row(
             Modifier
-                .clip(RoundedCornerShape(2.dp))
+                .clip(androidx.compose.foundation.shape.CircleShape)
                 .background(MaterialTheme.colorScheme.surface)
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.CircleShape)
         ) {
             @Composable
             fun segment(label: String, active: Boolean, onClick: () -> Unit) {
@@ -121,7 +121,7 @@ private fun WeatherRadarToggle(
                     color = if (active) androidx.compose.ui.graphics.Color.White
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
-                        .background(
+                        .clip(androidx.compose.foundation.shape.CircleShape).background(
                             if (active) MaterialTheme.colorScheme.primary
                             else androidx.compose.ui.graphics.Color.Transparent
                         )
@@ -712,6 +712,7 @@ fun MainScreen(
                             com.meteomontana.android.ui.assistant.AssistantBubble(
                                 viewModel = assistantVm,
                                 onOpenTarget = { schoolId, viaId -> openSheet(Routes.schoolDetail(schoolId, viaId = viaId)) },
+                                onOpenMeetup = { m -> openSheet(Routes.createMeetup(m.schoolId, m.schoolName, m.day, m.name, m.description)) },
                                 modifier = Modifier.align(Alignment.BottomEnd)
                                     .padding(end = 16.dp, bottom = reservaAbajo + 12.dp)
                                     .zIndex(3f)

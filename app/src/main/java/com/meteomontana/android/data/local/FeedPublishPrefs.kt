@@ -26,3 +26,22 @@ object FeedPublishPrefs {
             .edit().putString(KEY, mode.name).apply()
     }
 }
+
+/**
+ * Interruptor "Compartir en Comunidad" de la hoja de ascenso: arranca como lo dejaste la última vez (apagado la
+ * primera). Quien tenía el ajuste antiguo en "Siempre" lo conserva encendido. Reemplaza al Preguntar/Siempre/Nunca.
+ */
+object FeedSharePref {
+    private const val FILE = "feed"
+    private const val KEY = "share_default"
+
+    fun enabled(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+        return if (prefs.contains(KEY)) prefs.getBoolean(KEY, false)
+        else FeedPublishPrefs.get(context) == FeedPublishMode.ALWAYS
+    }
+
+    fun set(context: Context, value: Boolean) {
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putBoolean(KEY, value).apply()
+    }
+}

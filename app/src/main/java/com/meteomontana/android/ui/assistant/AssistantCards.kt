@@ -65,6 +65,8 @@ import com.meteomontana.android.ui.theme.scoreColor
 // (iOS). Los textos salen de [AssistantPresenter]; las palabras sueltas, de [AssistantWords].
 
 private val CardShape = RoundedCornerShape(2.dp)
+/** Tarjetas redondeadas de escuelas recomendadas y sectores, con el lenguaje del diario (Álvaro, 2026-10-23). Espejo de iOS. */
+private val RoundCard = RoundedCornerShape(14.dp)
 
 @Composable
 private fun cardModifier(modifier: Modifier = Modifier) = modifier
@@ -72,6 +74,13 @@ private fun cardModifier(modifier: Modifier = Modifier) = modifier
     .clip(CardShape)
     .background(MaterialTheme.colorScheme.surface)
     .border(1.dp, MaterialTheme.colorScheme.outline, CardShape)
+
+@Composable
+private fun roundCardModifier(modifier: Modifier = Modifier) = modifier
+    .fillMaxWidth()
+    .clip(RoundCard)
+    .background(MaterialTheme.colorScheme.surface)
+    .border(1.dp, MaterialTheme.colorScheme.outline, RoundCard)
 
 @Composable
 private fun MonoText(
@@ -102,6 +111,7 @@ class AssistantWords(lang: String) {
     fun linesOfGrade(n: Int) = t("$n vías o bloques de ese grado", "$n routes or boulders of that grade")
     fun linesTotal(n: Int) = t("$n vías y bloques en total", "$n routes and boulders in total")
     val openSchoolCd = t("Abrir escuela", "Open school")
+    val stones = t("piedras", "boulders")
 }
 
 // ── Escuelas recomendadas ─────────────────────────────────────────────────────────────────────────────────────────
@@ -125,9 +135,16 @@ private fun AssistantSchoolCardView(
     rank: Int, card: AssistantSchoolCard, showForecast: Boolean, filtered: Boolean,
     presenter: AssistantPresenter, words: AssistantWords, onOpenSchool: (String) -> Unit
 ) {
-    Column(cardModifier().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(roundCardModifier().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("$rank", color = Terra, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.width(24.dp))
+            // El puesto en un círculo, como la nota en las tarjetas de Escuelas.
+            Box(
+                Modifier.size(34.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("$rank", color = MaterialTheme.colorScheme.primary, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
             Column(Modifier.weight(1f)) {
                 Text(card.name, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
                 val subtitle = listOfNotNull(
@@ -136,8 +153,9 @@ private fun AssistantSchoolCardView(
                 ).joinToString(" · ")
                 if (subtitle.isNotEmpty()) Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             }
-            MonoText(words.open, 10, Terra, spacing = 1.8f,
-                modifier = Modifier.border(1.dp, Terra, CardShape).clickable { onOpenSchool(card.schoolId) }.padding(horizontal = 10.dp, vertical = 7.dp))
+            MonoText(words.open, 10, Color.White, spacing = 1.4f,
+                modifier = Modifier.clip(androidx.compose.foundation.shape.CircleShape).background(MaterialTheme.colorScheme.primary)
+                    .clickable { onOpenSchool(card.schoolId) }.padding(horizontal = 12.dp, vertical = 7.dp))
         }
         if (showForecast && card.days.isNotEmpty()) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -152,7 +170,7 @@ private fun AssistantSchoolCardView(
 @Composable
 private fun AssistantDayCell(day: AssistantDay, presenter: AssistantPresenter, words: AssistantWords, modifier: Modifier) {
     Column(
-        modifier.background(MaterialTheme.colorScheme.background).border(1.dp, MaterialTheme.colorScheme.outline).padding(vertical = 6.dp),
+        modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.background).padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         MonoText(presenter.dayLabel(day.date), 9, MaterialTheme.colorScheme.onSurfaceVariant)
@@ -172,13 +190,19 @@ fun AssistantBreakdownView(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         breakdown.sectors.forEach { sector -> AssistantSectorView(sector, breakdown.sun, breakdown.school.id, presenter, words, onOpen) }
-        MonoText(words.openSchool(breakdown.school.name), 10, Color.White, spacing = 1.8f,
+        MonoText(words.openSchool(breakdown.school.name), 10, Color.White, spacing = 1.4f,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,   // centrado, como en iOS
-            modifier = Modifier.fillMaxWidth().clip(CardShape).background(Terra)
-                .clickable { onOpen(breakdown.school.id, null) }.padding(vertical = 10.dp))
+            modifier = Modifier.padding(top = 2.dp).fillMaxWidth().clip(androidx.compose.foundation.shape.CircleShape)
+                .background(MaterialTheme.colorScheme.primary)
+                .clickable { onOpen(breakdown.school.id, null) }.padding(vertical = 11.dp))
     }
 }
 
+/**
+ * Un sector como tarjeta, con el lenguaje de «Escuelas y sectores» del diario (Álvaro, 2026-10-23: «que se vea como en
+ * el perfil, no tan soso»): foto de una de sus piedras, nombre, barra de cuántas piedras cumplen frente a las que
+ * podrían (sin orientación votada), resumen y desplegable con las piedras. Espejo de AssistantSectorView (iOS).
+ */
 @Composable
 private fun AssistantSectorView(
     sector: AssistantSector, sun: String?, schoolId: String,
@@ -186,24 +210,46 @@ private fun AssistantSectorView(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val hasStones = sector.stones.isNotEmpty() || sector.unknownStones.isNotEmpty()
-    Column(cardModifier()) {
+    // Con los recuentos del servidor, no con las listas (que pueden venir recortadas).
+    val total = sector.matching + sector.unknownOrientation
+    val share = if (total == 0) 0f else sector.matching.toFloat() / total
+    val cover = (sector.stones + sector.unknownStones).firstOrNull { !it.photoPath.isNullOrEmpty() }
+    Column(roundCardModifier()) {
         Row(
-            Modifier.fillMaxWidth().clickable(enabled = hasStones) { expanded = !expanded }.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            Modifier.fillMaxWidth().clickable(enabled = hasStones) { expanded = !expanded }.padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(sector.name ?: words.noSector, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                Text(presenter.sectorSummary(sector, sun), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            if (cover != null) {
+                MiniTopoThumbnail(cover.photoPath!!, cover.linePath, cover.grade,
+                    Modifier.size(58.dp).clip(RoundedCornerShape(10.dp)))
+            } else {
+                Column(
+                    Modifier.size(58.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.background),
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
+                ) {
+                    Text("$total", color = MaterialTheme.colorScheme.primary, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                    Text(words.stones, color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = Mono, fontSize = 8.sp)
+                }
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(sector.name ?: words.noSector, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Box(Modifier.fillMaxWidth().height(5.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))) {
+                    if (share > 0f) Box(Modifier.fillMaxWidth(share).height(5.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(MaterialTheme.colorScheme.primary))
+                }
+                MonoText(presenter.sectorSummary(sector, sun), 10, MaterialTheme.colorScheme.primary)
             }
             if (hasStones) Icon(if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown, null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
         }
         if (expanded) {
-            Column(Modifier.padding(bottom = 6.dp)) {
+            Column(Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 sector.stones.forEach { AssistantStoneRow(it, true, schoolId, presenter, onOpen) }
                 if (sector.unknownStones.isNotEmpty()) {
                     MonoText(words.unknownOrientationHeader, 9, MaterialTheme.colorScheme.onSurfaceVariant, spacing = 1.4f,
-                        modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 4.dp))
+                        modifier = Modifier.padding(start = 4.dp, top = 4.dp))
                     sector.unknownStones.forEach { AssistantStoneRow(it, false, schoolId, presenter, onOpen) }
                 }
             }
@@ -216,11 +262,15 @@ private fun AssistantSectorView(
 private fun AssistantStoneRow(stone: AssistantStone, confirmed: Boolean, schoolId: String, presenter: AssistantPresenter, onOpen: (String, String?) -> Unit) {
     val line = stone.firstLineId
     Row(
-        Modifier.fillMaxWidth().then(if (line != null) Modifier.clickable { onOpen(schoolId, line) } else Modifier)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+        // Cada piedra en su fila redondeada dentro de la tarjeta del sector.
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.background)
+            .then(if (line != null) Modifier.clickable { onOpen(schoolId, line) } else Modifier)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        stone.photoPath?.takeIf { it.isNotEmpty() }?.let { MiniTopoThumbnail(it, stone.linePath, stone.grade, Modifier.size(44.dp)) }
+        stone.photoPath?.takeIf { it.isNotEmpty() }?.let {
+            MiniTopoThumbnail(it, stone.linePath, stone.grade, Modifier.size(44.dp).clip(RoundedCornerShape(8.dp)))
+        }
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(stone.name, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Medium, fontSize = 13.sp,

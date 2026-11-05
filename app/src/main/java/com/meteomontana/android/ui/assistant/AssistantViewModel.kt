@@ -5,9 +5,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.dto.AssistantSnapshotCodec
 import com.meteomontana.android.data.local.JournalDoneStore
+import com.meteomontana.android.data.local.AssistantHomeStore
+import com.meteomontana.android.domain.model.AssistantRestrictions
+import com.meteomontana.android.domain.usecase.community.GetGradeVotesUseCase
+import com.meteomontana.android.domain.usecase.journal.AchievementsCalculator
+import com.meteomontana.android.domain.usecase.journal.GetYearGoalUseCase
+import com.meteomontana.android.domain.usecase.journal.GoalCalculator
+import com.meteomontana.android.domain.usecase.journal.SchoolPlace
+import com.meteomontana.android.domain.usecase.schools.GetSchoolsUseCase
 import com.meteomontana.android.data.outbox.OutboxRepository
 import com.meteomontana.android.data.outbox.OutboxType
 import com.meteomontana.android.domain.model.AssistantAnswer
+import com.meteomontana.android.domain.model.AssistantLogItem
 import com.meteomontana.android.domain.model.AssistantBreakdown
 import com.meteomontana.android.domain.model.AssistantMessagePayload
 import com.meteomontana.android.domain.model.AssistantOption
@@ -35,6 +44,13 @@ import com.meteomontana.android.domain.usecase.profile.GetWeekendAlertUseCase
 import com.meteomontana.android.domain.usecase.profile.UpdateWeekendAlertUseCase
 import com.meteomontana.android.domain.usecase.schools.ExploreLinesUseCase
 import com.meteomontana.android.domain.usecase.schools.SearchLinesUseCase
+import com.meteomontana.android.ui.assistant.photo.StoneCandidate
+import com.meteomontana.android.ui.assistant.photo.StoneOutcome
+import com.meteomontana.android.ui.assistant.photo.StonePhotoInput
+import com.meteomontana.android.ui.assistant.photo.StonePhotoLocator
+import com.meteomontana.android.ui.assistant.photo.StonePhotoMatcher
+import com.meteomontana.android.ui.assistant.photo.StonePhotoWords
+import com.meteomontana.android.ui.assistant.photo.StoneStage
 import com.meteomontana.android.util.AppLanguage
 import com.meteomontana.android.util.CatalogLabels
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -43,6 +59,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -54,13 +72,15 @@ import kotlinx.serialization.json.Json
 /** Una acción propuesta en el chat. Nunca se ejecuta sin que el usuario la confirme con un toque. */
 data class PendingAction(
     val id: Long,
-    /** ADD_FAVORITE | REMOVE_FAVORITE | OPEN_SCHOOL | ENABLE_WEEKEND_ALERT | LOG_DONE | LOG_PROJECT */
+    /** ADD_FAVORITE | REMOVE_FAVORITE | OPEN_SCHOOL | ENABLE_WEEKEND_ALERT | ENABLE_MORNING_ALERT | SET_HOME | CREATE_MEETUP | LOG_DONE | LOG_PROJECT */
     val kind: String,
     val schoolId: String,
     val schoolName: String,
     /** Para apuntar en el diario: la vía encontrada y el día ("yyyy-MM-dd"). */
     val hit: LineSearchHit? = null,
     val date: String? = null,
+    /** Hora de una quedada ("09:00"), si se dijo. */
+    val time: String? = null,
     val state: State = State.WAITING
 ) {
     enum class State { WAITING, DONE, CANCELLED }
@@ -90,7 +110,15 @@ data class AssistantMessage(
     val journalEntries: List<JournalSession> = emptyList(),
     val journalTotal: Int = 0,
     /** Lo que la app hará por el usuario SOLO si lo confirma. Varias cuando el nombre de una vía es ambiguo. */
-    val pendingActions: List<PendingAction> = emptyList()
+    val pendingActions: List<PendingAction> = emptyList(),
+    /** Las piedras más probables de una foto («¿Qué piedra es esta?»). No se guardan con la conversación. */
+    val photoMatches: List<StoneCandidate> = emptyList(),
+    /** Respuesta a "¿se puede escalar en X?": las restricciones de la zona o de la escuela. */
+    val restrictions: AssistantRestrictions? = null,
+    /** Plan de un viaje de varios días: la mejor escuela de cada día. */
+    val trip: List<AssistantPresenter.TripDay> = emptyList(),
+    /** Varias vías del día para apuntar de una vez con un solo toque. */
+    val confirmAll: Boolean = false
 ) {
     val hasCards: Boolean get() = recommendation != null || breakdown != null || weather != null || hits.isNotEmpty()
 }
@@ -102,11 +130,15 @@ data class AssistantUiState(
     val messages: List<AssistantMessage> = emptyList(),
     val input: String = "",
     val isLoading: Boolean = false,
+    /** Qué paso de la búsqueda de una foto va (se enseña junto a los puntos de «escribiendo»). */
+    val loadingNote: String? = null,
     /** Preguntas escritas o dictadas mientras aún se contestaba otra: esperan su turno y se contestan POR ORDEN. */
     val queued: List<String> = emptyList(),
     val openRequest: AssistantOpenRequest? = null,
     /** La burbuja se mantuvo pulsada: el chat, al abrirse, empieza a escuchar directamente. */
-    val listenOnOpen: Boolean = false
+    val listenOnOpen: Boolean = false,
+    /** El usuario confirmó preparar una quedada: el chat se cierra y se abre el formulario ya relleno. */
+    val meetupRequest: com.meteomontana.android.ui.screens.meetups.MeetupPrefill? = null
 ) {
     val canSend: Boolean get() = input.isNotBlank() && queued.size < AssistantViewModel.MAX_QUEUED
 }
@@ -137,7 +169,14 @@ class AssistantViewModel @Inject constructor(
     private val getWeekendAlert: GetWeekendAlertUseCase,
     private val updateWeekendAlert: UpdateWeekendAlertUseCase,
     private val getMeetups: GetMeetupsUseCase,
-    private val locationProvider: LocationProvider
+    private val locationProvider: LocationProvider,
+    private val stoneMatcher: StonePhotoMatcher,
+    private val stoneLocator: StonePhotoLocator,
+    private val homeStore: AssistantHomeStore,
+    private val getYearGoal: GetYearGoalUseCase,
+    private val getSchools: GetSchoolsUseCase,
+    private val getGradeVotes: GetGradeVotesUseCase,
+    val speaker: AssistantSpeaker
 ) : ViewModel() {
 
     private val store = AssistantTranscriptStore(SharedTranscriptStorage(context))
@@ -261,13 +300,24 @@ class AssistantViewModel @Inject constructor(
     fun setInput(text: String) = _state.update { it.copy(input = text.take(MAX_TEXT)) }
     fun requestOpen(schoolId: String, viaId: String? = null) = _state.update { it.copy(openRequest = AssistantOpenRequest(schoolId, viaId)) }
     fun consumeOpenRequest() = _state.update { it.copy(openRequest = null) }
+    fun consumeMeetupRequest() = _state.update { it.copy(meetupRequest = null) }
+
+    /** ¿Hay casa guardada? (menú «⋯» del chat: guardar u olvidar). */
+    private val _hasHome = MutableStateFlow(homeStore.home != null)
+    val hasHome: StateFlow<Boolean> = _hasHome.asStateFlow()
+
+    fun forgetHome() {
+        homeStore.clear()
+        _hasHome.value = false
+    }
     fun setListenOnOpen(on: Boolean) = _state.update { it.copy(listenOnOpen = on) }
 
     private fun append(m: AssistantMessage) = _state.update { it.copy(messages = it.messages + m) }
     private fun newId() = nextId++
     private fun reply(text: String, chips: List<String> = emptyList()) = append(AssistantMessage(newId(), false, text, chips))
 
-    fun send(text: String? = null) {
+    /** [spoken] = la pregunta se dictó: según el modo de voz, la respuesta se lee en voz alta. */
+    fun send(text: String? = null, spoken: Boolean = false) {
         val raw = (text ?: _state.value.input).trim()
         if (raw.isEmpty()) return
         _state.update { it.copy(input = "") }
@@ -280,7 +330,7 @@ class AssistantViewModel @Inject constructor(
         _state.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             try {
-                respond(raw)
+                respond(raw, spoken)
                 // Sin ningún punto de espera entre una respuesta y la siguiente: una pregunta nueva no puede colarse en paralelo.
                 while (_state.value.queued.isNotEmpty()) {
                     val next = _state.value.queued.first()
@@ -296,13 +346,25 @@ class AssistantViewModel @Inject constructor(
     }
 
     /** Contesta UNA pregunta (la envía al servidor y pinta la respuesta). */
-    private suspend fun respond(raw: String) {
+    private suspend fun respond(raw: String, spoken: Boolean = false) {
         lastQuestion = raw
         append(AssistantMessage(newId(), true, raw))
         val location = currentLocation()
+        val before = _state.value.messages.size
         try {
-            val answer = askAssistant(raw, previous, location?.lat, location?.lon, contextSchoolId)
-            handle(answer, location)
+            val home = homeStore.home
+            val answer = askAssistant(raw, previous, location?.lat, location?.lon, contextSchoolId, home?.lat, home?.lon)
+            // "Cerca de casa" o "por Teruel": las búsquedas que hace la app también miden desde ahí.
+            val u = answer.understood
+            val placeLat = u?.placeLat
+            val placeLon = u?.placeLon
+            val place = when {
+                placeLat != null && placeLon != null -> UserLocation(placeLat, placeLon)
+                u?.useHome == true -> home ?: location
+                else -> location
+            }
+            handle(answer, place)
+            speakNewAnswer(before, spoken)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -322,7 +384,81 @@ class AssistantViewModel @Inject constructor(
         send(text)
     }
 
+    /** Lee en voz alta la respuesta que acaba de llegar (la última del asistente), si el modo de voz lo pide. */
+    private fun speakNewAnswer(after: Int, spoken: Boolean) {
+        if (!speaker.mode.value.shouldSpeak(spoken)) return
+        val answer = _state.value.messages.drop(after).lastOrNull { !it.isUser } ?: return
+        speaker.speak(spokenText(answer, AppLanguage.effective(context)), answer.id)
+    }
+
+    // ── Foto de una piedra ────────────────────────────────────────────────────────────────────────────────────────
+
+    /** La búsqueda de una foto en marcha: «Parar» la cancela. */
+    private var photoJob: Job? = null
+
+    /**
+     * «¿Qué piedra es esta?»: dónde se hizo la foto (o dónde está el usuario) y, entre las piedras de alrededor, a
+     * cuál se parece más. Todo en el móvil: la foto no se sube a ningún sitio. Espejo de `identifyPhoto` de iOS.
+     */
+    fun identifyPhoto(photo: StonePhotoInput) {
+        if (busy) return
+        busy = true
+        val words = StonePhotoWords(AppLanguage.effective(context))
+        append(AssistantMessage(newId(), true, words.userMessage))
+        _state.update { it.copy(isLoading = true, loadingNote = if (photo.fromCamera) words.checkingWhere else words.readingWhere) }
+        photoJob = viewModelScope.launch {
+            try {
+                searchStone(photo, words)
+            } catch (e: CancellationException) {
+                // «Parar»: no se pinta nada.
+            } finally {
+                busy = false
+                _state.update { it.copy(isLoading = false, loadingNote = null) }
+                persist()
+            }
+        }
+    }
+
+    /** Corta lo que se esté pensando o buscando. */
+    fun stopThinking() {
+        photoJob?.cancel()
+        speaker.stop()
+    }
+
+    private suspend fun searchStone(photo: StonePhotoInput, words: StonePhotoWords) {
+        val place = stoneLocator.locate(photo)
+        var lastStage: String? = null
+        val outcome = withTimeoutOrNull(StonePhotoMatcher.TOTAL_TIMEOUT_MS) {
+            stoneMatcher.match(photo.uri, place.lat, place.lon, place.approximate) { stage ->
+                lastStage = words.stage(stage)
+                _state.update { it.copy(loadingNote = lastStage) }
+            }
+        }
+        if (outcome == null) {
+            reply(words.tookTooLong(lastStage))
+            return
+        }
+        when (outcome) {
+            StoneOutcome.NoLocation -> reply(words.noLocation)
+            StoneOutcome.NoData -> reply(words.noData)
+            is StoneOutcome.NoSchoolNear -> reply(words.noSchoolNear(place.approximate, outcome.closestName, outcome.closestKm))
+            is StoneOutcome.NoStones -> reply(words.noStonesNear(outcome.schoolName))
+            is StoneOutcome.Found -> {
+                val first = outcome.top.firstOrNull() ?: return
+                val weak = StonePhotoMatcher.isWeak(outcome.top)
+                append(AssistantMessage(
+                    newId(), false,
+                    words.intro(outcome.sure && !weak, outcome.approximate, first.schoolName, weak),
+                    photoMatches = outcome.top
+                ))
+                speakNewAnswer(_state.value.messages.size - 1, spoken = false)
+            }
+        }
+    }
+
     fun reset() {
+        speaker.stop()
+        photoJob?.cancel()
         _state.update { AssistantUiState(listenOnOpen = it.listenOnOpen) }
         previous = null
         store.clear()
@@ -341,6 +477,16 @@ class AssistantViewModel @Inject constructor(
                 val rec = answer.recommendation
                 val summary = answer.summary
                 val breakdown = answer.breakdown
+                answer.restrictions?.let { r ->
+                    append(AssistantMessage(newId(), false, p.restrictionsIntro(r, answer.resolvedSchool?.name), chips, restrictions = r))
+                    return
+                }
+                if (rec != null && u?.trip == true) {
+                    val plan = p.tripPlan(rec)
+                    append(AssistantMessage(newId(), false, p.tripIntro(plan), chips,
+                        recommendation = if (plan.isEmpty()) rec else null, trip = plan))
+                    return
+                }
                 when {
                     weather != null -> append(AssistantMessage(newId(), false, p.weatherHeadline(weather), chips, weather = weather))
                     rec != null -> {
@@ -356,6 +502,8 @@ class AssistantViewModel @Inject constructor(
                     }
                     u?.intent == "ACTION" && u.action != null -> proposeAction(u.action!!, answer, chips)
                     summary != null -> reply(p.summaryText(summary), chips)
+                    u?.intent == "MINE" && (u.mineTopic == "GOAL" || u.mineTopic == "ACHIEVEMENTS") ->
+                        reply(goalOrAchievements(u.mineTopic!!), chips)
                     u?.intent == "MINE" -> {
                         // Lo suyo se contesta AQUÍ, con lo que la app ya tiene: el diario nunca sale del móvil.
                         val mine = mineAnswer(answer)
@@ -367,6 +515,11 @@ class AssistantViewModel @Inject constructor(
                     else -> {
                         // Búsqueda simple: primero se ENSEÑAN las vías o bloques que cumplen, y cada una se puede tocar.
                         val hits = loadHits(answer, location)
+                        if (u?.heightGrade == true && hits.isNotEmpty()) {
+                            // "¿Es más dura para bajos?": el grado votado por cada altura, de las vías encontradas.
+                            append(AssistantMessage(newId(), false, heightGradeText(hits), chips, hits = hits, hitsTotal = hits.size))
+                            return
+                        }
                         val needsLocation = u?.maxDistanceKm != null && location == null
                         val rated = u?.topRated == true || u?.minStars != null
                         append(AssistantMessage(newId(), false, p.hitsIntro(hits.size, needsLocation, rated), chips,
@@ -397,6 +550,23 @@ class AssistantViewModel @Inject constructor(
     private suspend fun proposeAction(kind: String, answer: AssistantAnswer, chips: List<String>) {
         val p = presenter
         val u = answer.understood
+        when (kind) {
+            "SET_HOME", "ENABLE_MORNING_ALERT" -> {
+                append(AssistantMessage(newId(), false, p.actionPrompt(kind, ""), chips,
+                    pendingActions = listOf(PendingAction(newId(), kind, "", ""))))
+                return
+            }
+            "CREATE_MEETUP" -> {
+                val school = answer.resolvedSchool ?: return
+                append(AssistantMessage(newId(), false, p.meetupPrompt(school.name, u?.dateFrom, u?.time), chips,
+                    pendingActions = listOf(PendingAction(newId(), kind, school.id, school.name, date = u?.dateFrom, time = u?.time))))
+                return
+            }
+        }
+        if ((kind == "LOG_DONE" || kind == "LOG_PROJECT") && (u?.logItems?.size ?: 0) > 1) {
+            proposeSeveralLogs(u!!.logItems, answer, chips)
+            return
+        }
         if (kind != "LOG_DONE" && kind != "LOG_PROJECT") {
             val school = answer.resolvedSchool ?: return
             append(AssistantMessage(newId(), false, p.actionPrompt(kind, school.name), chips,
@@ -461,6 +631,26 @@ class AssistantViewModel @Inject constructor(
                 updateWeekendAlert(alert)
                 return p.weekendAlertDone(action.schoolName)
             }
+            "ENABLE_MORNING_ALERT" -> {
+                val change = AssistantActions.withMorningAlert(getWeekendAlert())
+                if (change.already) return p.morningAlertAlready()
+                val alert = change.alert ?: throw IllegalStateException("aviso no disponible")
+                updateWeekendAlert(alert)
+                return p.morningAlertDone()
+            }
+            "SET_HOME" -> {
+                val here = currentLocation() ?: return p.homeNoLocation()
+                homeStore.save(here.lat, here.lon)
+                _hasHome.value = true
+                return p.homeSaved()
+            }
+            "CREATE_MEETUP" -> {
+                val prefill = com.meteomontana.android.ui.screens.meetups.MeetupPrefill(
+                    action.schoolId, action.schoolName, action.date,
+                    p.meetupName(action.schoolName, action.date, action.time), action.time?.let { p.meetupTime(it) })
+                _state.update { it.copy(meetupRequest = prefill) }
+                return p.meetupOpening()
+            }
             "LOG_DONE", "LOG_PROJECT" -> {
                 val hit = action.hit ?: throw IllegalStateException("falta la vía")
                 val date = action.date ?: throw IllegalStateException("falta la fecha")
@@ -480,6 +670,75 @@ class AssistantViewModel @Inject constructor(
             else -> requestOpen(action.schoolId)
         }
         return p.actionDone(action.kind, action.schoolName)
+    }
+
+    /**
+     * "Hoy hice Zarzamora, la Ola y probé el Techo": se busca cada una y se propone apuntarlas TODAS de una vez (la mejor
+     * coincidencia de cada nombre, en la escuela dicha si la hay). Las que no aparecen se dicen.
+     */
+    private suspend fun proposeSeveralLogs(items: List<AssistantLogItem>, answer: AssistantAnswer, chips: List<String>) {
+        val p = presenter
+        val date = answer.understood?.dateFrom ?: todayIso()
+        val journal = runCatching { getMyJournal() }.getOrDefault(emptyList())
+        val actions = mutableListOf<PendingAction>()
+        val missing = mutableListOf<String>()
+        for (item in items) {
+            val status = if (item.project) "PROJECT" else "DONE"
+            val found = runCatching { searchLines(item.name) }.getOrDefault(emptyList())
+            val hit = AssistantActions.matchLines(found, item.name, answer.resolvedSchool?.id)
+                .firstOrNull { !AssistantActions.isLogged(journal, it, status) }
+            if (hit == null) { missing += item.name; continue }
+            actions += PendingAction(newId(), if (item.project) "LOG_PROJECT" else "LOG_DONE", hit.schoolId, hit.schoolName, hit = hit, date = date)
+        }
+        if (actions.isEmpty()) { reply(p.noneOfTheseFound(missing), chips); return }
+        append(AssistantMessage(newId(), false, p.multiLogPrompt(actions.size, date, missing), chips,
+            pendingActions = actions, confirmAll = true))
+    }
+
+    /** «Apuntar las N»: apunta cada una de las propuestas del mensaje. Las que fallen se dicen al final. */
+    fun confirmAll(messageId: Long) {
+        val message = _state.value.messages.firstOrNull { it.id == messageId } ?: return
+        viewModelScope.launch {
+            val lines = mutableListOf<String>()
+            for (action in message.pendingActions.filter { it.state == PendingAction.State.WAITING }) {
+                val text = try { perform(action) } catch (e: CancellationException) { throw e } catch (e: Exception) { null }
+                if (text != null) {
+                    updateMessage(messageId) { m ->
+                        m.copy(pendingActions = m.pendingActions.map { if (it.id == action.id) it.copy(state = PendingAction.State.DONE) else it })
+                    }
+                    lines += text
+                } else {
+                    lines += presenter.couldNotLog(action.hit?.let { it.lineName ?: it.blockName } ?: action.schoolName)
+                }
+            }
+            reply(lines.joinToString("\n"))
+            persist()
+        }
+    }
+
+    /** Su objetivo del año o sus logros: se calculan AQUÍ con su diario (no sale del móvil). */
+    private suspend fun goalOrAchievements(topic: String): String {
+        val journal = getMyJournal()
+        val today = todayIso()
+        if (topic == "GOAL") {
+            val year = today.take(4).toInt()
+            val goal = getYearGoal(year) ?: return presenter.noGoalText(year)
+            return presenter.goalText(GoalCalculator.progress(goal, journal))
+        }
+        val schools = runCatching { getSchools() }.getOrDefault(emptyList())
+        val places = schools.associate { it.id to SchoolPlace(it.region, it.country) }
+        return presenter.achievementsText(AchievementsCalculator.compute(journal, places, today)) {
+            com.meteomontana.android.ui.screens.profile.achievementText(it, AppLanguage.wrap(context).resources)
+        }
+    }
+
+    /** Grado votado por altura de las vías encontradas (las 4 primeras con vía concreta). */
+    private suspend fun heightGradeText(hits: List<LineSearchHit>): String {
+        val lines = hits.filter { it.lineId != null }.take(4).mapNotNull { hit ->
+            val summary = runCatching { getGradeVotes(hit.lineId!!) }.getOrNull() ?: return@mapNotNull null
+            presenter.heightGradeLine(hit.lineName ?: hit.blockName, summary)
+        }
+        return if (lines.isEmpty()) presenter.noHeightVotes() else lines.joinToString("\n")
     }
 
     fun cancel(messageId: Long) = updateMessage(messageId) { m ->
@@ -524,7 +783,7 @@ class AssistantViewModel @Inject constructor(
         val rated = u.topRated || u.minStars != null
         val hasFilter = u.gradeMin != null || u.gradeMax != null || u.discipline != null || u.rockTypes.isNotEmpty() ||
             u.orientations.isNotEmpty() || u.maxDistanceKm != null || schoolId != null || rated ||
-            (u.useMyLocation && location != null) || u.beta != null || u.startType != null || u.withTopo || u.notDone
+            (u.useMyLocation && location != null) || u.beta != null || u.startType != null || u.withTopo || u.notDone || u.mostRepeated
 
         var hits: List<LineSearchHit> = emptyList()
         if (hasFilter) {
@@ -537,8 +796,9 @@ class AssistantViewModel @Inject constructor(
                 lon = if (schoolIds == null) location?.lon else null,
                 // "cerca de mí" sin cifra = 50 km, como en el servidor.
                 maxDistanceKm = if (schoolIds != null) null else (u.maxDistanceKm ?: if (u.useMyLocation && location != null) 50.0 else null),
-                sort = "DISTANCE", offset = 0, withRatings = rated, beta = u.beta,
-                startType = u.startType, withTopo = u.withTopo, withRepetitions = false
+                // "Las clásicas": por cuánta gente la ha hecho (el servidor ya ordena y cuenta las repeticiones).
+                sort = if (u.mostRepeated) "MOST_REPEATED" else "DISTANCE", offset = 0, withRatings = rated, beta = u.beta,
+                startType = u.startType, withTopo = u.withTopo, withRepetitions = u.mostRepeated
             )
             hits = exploreLines(criteria)
         } else if (!u.q.isNullOrEmpty()) {

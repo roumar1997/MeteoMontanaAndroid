@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.users
 
+import com.meteomontana.android.ui.components.SkeletonProfile
 import com.meteomontana.android.ui.components.userRing
 import com.meteomontana.android.ui.components.VerifiedCheck
 import androidx.compose.foundation.layout.width
@@ -276,9 +277,7 @@ fun PublicProfileScreen(
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         when (val s = state) {
-            PublicProfileUiState.Loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
+            PublicProfileUiState.Loading -> SkeletonProfile()
             is PublicProfileUiState.Error -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                 Text(stringResource(R.string.public_profile_screen_v2_error_1_s, s.message), color = MaterialTheme.colorScheme.error)
             }
@@ -363,7 +362,7 @@ private fun Body(
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(p.displayName ?: p.username ?: stringResource(R.string.w_user),
-                    fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp,
+                    fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp,
                     color = MaterialTheme.colorScheme.onBackground,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 VerifiedCheck(p.uid, 18.dp)
@@ -525,7 +524,7 @@ private fun StatBox(label: String, value: String, modifier: Modifier = Modifier,
             .padding(horizontal = 4.dp, vertical = 9.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(value, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
+        Text(value, fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold,
             fontSize = 20.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
         Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 2,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -539,7 +538,7 @@ private fun FollowCount(value: Long, label: String, onClick: () -> Unit) {
         modifier = Modifier.clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("$value", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
+        Text("$value", fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold,
             fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground)
         Text(label, style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)

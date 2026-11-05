@@ -1,22 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Icono de la splash screen: la montaña de marca en Terra. La Splash Screen
-     API lo recorta en un círculo y exige que el dibujo quepa en el 66% central
-     del viewport — de ahí el grupo con escala 0.5 centrada. -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <group
-        android:scaleX="0.5"
-        android:scaleY="0.5"
-        android:pivotX="12"
-        android:pivotY="12">
-        <path
-            android:fillColor="#C2410C"
-            android:pathData="M14,6 L20.5,19 L9,19 Z" />
-        <path
-            android:fillColor="#C2410C"
-            android:pathData="M8.5,9 L13.5,19 L3.5,19 Z" />
-    </group>
-</vector>
+<!-- Icono de la pantalla de carga: el LOGO de Cumbre (el mismo de iOS y del perfil), no un dibujo aparte.
+     La Splash Screen API recorta en círculo y solo enseña el 66 % central: de ahí el margen del 18 %. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/logo_cumbre"
+    android:inset="18%" />

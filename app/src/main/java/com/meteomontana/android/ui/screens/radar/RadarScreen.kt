@@ -43,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -277,29 +278,23 @@ fun RadarScreen(
         // Título flotante. Baja 48dp: el conmutador TIEMPO⇄RADAR de la primera
         // pestaña flota arriba-centro (MainScreen) y en móviles estrechos
         // pisaba este rótulo — el título queda en una "fila" propia debajo.
-        Column(
+        // Indicador compacto «● Lluvia en directo» (antes una tarjeta grande que tapaba el mapa). El crédito de AEMET va
+        // ahora en la hoja de abajo, junto a la leyenda. Espejo de RadarView.swift (Álvaro, 2026-10-22).
+        Row(
             modifier = Modifier.align(Alignment.TopStart)
                 .statusBarsPadding().padding(top = 48.dp).padding(Spacing.sm)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.92f))
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .shadow(4.dp, CircleShape)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.94f))
+                .padding(horizontal = 12.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp)
         ) {
-            Text(stringResource(R.string.radar_screen_v2_radar), style = EyebrowTextStyle, color = Terra)
+            Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF3B82F6)))
             Text(stringResource(R.string.radar_screen_v2_lluvia_en_directo),
-                style = MaterialTheme.typography.titleMedium.copy(fontFamily = Serif))
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onBackground)
         }
-
-        // Crédito AEMET (licencia)
-        Text(
-            stringResource(R.string.radar_screen_v2_aemet),
-            style = EyebrowTextStyle,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.align(Alignment.TopEnd)
-                .statusBarsPadding().padding(Spacing.sm)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.85f))
-                .padding(horizontal = 8.dp, vertical = 4.dp))
 
         // Botonera lateral (derecha): botones directos de un toque.
         Column(
@@ -352,24 +347,6 @@ fun RadarScreen(
             }
         }
 
-        // Leyenda (encima del player)
-        Row(
-            modifier = Modifier.align(Alignment.BottomStart)
-                .padding(start = Spacing.sm, bottom = 236.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.9f))
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                .padding(horizontal = 8.dp, vertical = 5.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            LegendDot(Color(0xFF5C8FD6)); Text(stringResource(R.string.radar_screen_debil), style = EyebrowTextStyle)
-            Spacer(Modifier.width(3.dp))
-            LegendDot(Color(0xFF3D6FBF)); Text(stringResource(R.string.radar_screen_v2_media), style = EyebrowTextStyle)
-            Spacer(Modifier.width(3.dp))
-            LegendDot(Color(0xFF274F98)); Text(stringResource(R.string.radar_screen_v2_fuerte), style = EyebrowTextStyle)
-        }
-
         // Mini-ficha de escuela (tap en pin) — sube por encima del player.
         selectedSchool?.let { school ->
             RadarSchoolCard(
@@ -377,7 +354,7 @@ fun RadarScreen(
                 onDetail = { onSchoolDetail(school.id) },
                 onClose = { selectedSchool = null },
                 modifier = Modifier.align(Alignment.BottomCenter)
-                    .padding(start = Spacing.sm, end = Spacing.sm, bottom = 236.dp))
+                    .padding(start = Spacing.sm, end = Spacing.sm, bottom = 262.dp))
         }
 
         if (state.error != null) {
@@ -407,10 +384,12 @@ fun RadarScreen(
                     top = Spacing.sm
                 )
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
+                .shadow(8.dp, RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(20.dp))
                 .background(MaterialTheme.colorScheme.background.copy(alpha = 0.97f))
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
-                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 DayChip(stringResource(R.string.w_today_caps), state.day == RadarDay.HOY) {
@@ -468,6 +447,17 @@ fun RadarScreen(
                     }
                 }
             }
+            // Leyenda y fuente dentro de la misma hoja (antes iban sueltas sobre el mapa).
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                LegendDot(Color(0xFF5C8FD6)); Text(stringResource(R.string.radar_screen_debil), style = EyebrowTextStyle)
+                Spacer(Modifier.width(3.dp))
+                LegendDot(Color(0xFF3D6FBF)); Text(stringResource(R.string.radar_screen_v2_media), style = EyebrowTextStyle)
+                Spacer(Modifier.width(3.dp))
+                LegendDot(Color(0xFF274F98)); Text(stringResource(R.string.radar_screen_v2_fuerte), style = EyebrowTextStyle)
+                Spacer(Modifier.weight(1f))
+                Text(stringResource(R.string.radar_screen_v2_aemet), style = EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
@@ -494,17 +484,14 @@ private fun SideButton(
 
 @Composable
 private fun DayChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    // Hoy / Ayer en píldora (espejo de dayChip en RadarView.swift).
     Box(
-        modifier = Modifier.clip(RoundedCornerShape(8.dp))
+        modifier = Modifier.clip(CircleShape)
             .background(
                 if (selected) MaterialTheme.colorScheme.onSurface
-                else Color.Transparent)
-            .border(1.dp,
-                if (selected) MaterialTheme.colorScheme.onSurface
-                else MaterialTheme.colorScheme.outline,
-                RoundedCornerShape(8.dp))
+                else MaterialTheme.colorScheme.surface)
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 5.dp)
+            .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
         Text(label, style = EyebrowTextStyle,
             color = if (selected) MaterialTheme.colorScheme.background

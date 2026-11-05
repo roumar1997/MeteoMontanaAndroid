@@ -58,6 +58,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -176,22 +177,11 @@ fun ProfileScreen(
             onDeleteAccount = { settingsOpen = false; viewModel.deleteAccount() }
         )
     } else {
-        Column(modifier = Modifier.fillMaxSize()
+        // Como iOS: el perfil pasa POR DEBAJO de las pastillas de arriba (que flotan), en vez de cortarse contra una
+        // cabecera fija. La foto empieza a la altura de las pastillas, entre las de la izquierda y las de la derecha.
+        Box(modifier = Modifier.fillMaxSize()
             .background(MaterialTheme.colorScheme.background)) {
-            // Cabecera: ayuda (izq) · título · compartir + ajustes (der). Compartir
-            // y ajustes solo cuando el perfil ha cargado (necesitan sus datos).
-            ProfileTopBar(
-                // Sin titulo: debajo ya estan tu foto, tu nombre y tu @usuario.
-                // Poner "Cuenta" encima solo repite donde estas y roba altura.
-                title = "",
-                showClose = showClose,
-                onBack = onBack,
-                onGear = successState?.let { { gearOpen = true } },
-                onShare = successState?.let { s -> { shareProfile(ctx, scope, s.profile, s.stats) } },
-                onSettings = successState?.let { { settingsOpen = true } },
-                onAdmin = successState?.takeIf { it.profile.isAdmin }?.let { { onAdmin() } },
-                pendingReview = successState?.pendingReview ?: 0
-            )
+            Box(Modifier.fillMaxSize()) {
             when (val s = state) {
                 ProfileUiState.Loading -> SkeletonProfile()
                 is ProfileUiState.Error -> CenterBox { Text(stringResource(R.string.profile_screen_v2_error_1_s, s.message), color = MaterialTheme.colorScheme.error) }
@@ -210,9 +200,24 @@ fun ProfileScreen(
                     onOpenMaxGrade = onOpenMaxGrade,
                     onOpenProjects = onOpenProjects,
                     onOpenMyPosts = onOpenMyPosts,
-                    onOpenStats = onOpenStats
+                    onOpenStats = onOpenStats,
+                    onPhotoChanged = viewModel::load
                 )
             }
+            }
+            // Cabecera: ayuda (izq) · compartir + ajustes (der). Compartir y ajustes solo cuando el perfil ha cargado.
+            ProfileTopBar(
+                // Sin titulo: debajo ya estan tu foto, tu nombre y tu @usuario.
+                // Poner "Cuenta" encima solo repite donde estas y roba altura.
+                title = "",
+                showClose = showClose,
+                onBack = onBack,
+                onGear = successState?.let { { gearOpen = true } },
+                onShare = successState?.let { s -> { shareProfile(ctx, scope, s.profile, s.stats) } },
+                onSettings = successState?.let { { settingsOpen = true } },
+                onAdmin = successState?.takeIf { it.profile.isAdmin }?.let { { onAdmin() } },
+                pendingReview = successState?.pendingReview ?: 0
+            )
         }
     }
 
@@ -333,12 +338,14 @@ private fun Content(
     onOpenMaxGrade: () -> Unit,
     onOpenProjects: () -> Unit,
     onOpenMyPosts: () -> Unit = {},
-    onOpenStats: () -> Unit = {}
+    onOpenStats: () -> Unit = {},
+    onPhotoChanged: () -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         // Sin esto no se llega al boton de anadir bloque/via.
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            top = 6.dp,
             bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)
     ) {
         if (offline) {
@@ -357,7 +364,8 @@ private fun Content(
         // Cabecera centrada (avatar grande, nombre, @usuario, píldoras ADMIN/PREMIUM
         // y seguidores). El grado máx vive solo en las stats (decisión de Rodrigo).
         item { Header(profile, followers = followers, following = following,
-            onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing) }
+            onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing,
+            canChangePhoto = !offline, onPhotoChanged = onPhotoChanged) }
         item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects, onOpenMyPosts, onOpenStats) }
         // Admin ya no va aquí: es un botón arriba a la izquierda (junto al "?").
         // La lista de escuelas tampoco (ya vive en la pestaña Diario).
@@ -371,46 +379,103 @@ private fun Header(
     followers: Long = 0,
     following: Long = 0,
     onClickFollowers: () -> Unit = {},
-    onClickFollowing: () -> Unit = {}
+    onClickFollowing: () -> Unit = {},
+    /** false sin conexión: el toque solo amplía la foto, como antes. */
+    canChangePhoto: Boolean = true,
+    onPhotoChanged: () -> Unit = {}
 ) {
     // Foto a pantalla completa con zoom al tocar el avatar.
     var zoomPhoto by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
     zoomPhoto?.let { url ->
         com.meteomontana.android.ui.components.FullScreenPhotoDialog(url) { zoomPhoto = null }
     }
+    // Tocar tu foto: menú «Cambiar foto / Ver foto» → selector → recorte → se sube (Álvaro, 2026-10-23; espejo de iOS).
+    val photoVm: ProfilePhotoViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val uploading by photoVm.uploading.collectAsStateWithLifecycle()
+    val photoFailed by photoVm.failed.collectAsStateWithLifecycle()
+    var photoMenu by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val openPicker = rememberProfilePhotoPicker { uri -> photoVm.change(uri, onPhotoChanged) }
+    if (photoFailed) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = photoVm::dismissError,
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = photoVm::dismissError) { Text(stringResource(android.R.string.ok)) }
+            },
+            title = { Text(stringResource(R.string.profile_photo_error_title)) },
+            text = { Text(stringResource(R.string.profile_photo_error_body)) }
+        )
+    }
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Avatar centrado (algo más pequeño: que el diario y ESTADÍSTICAS se vean sin bajar).
-        if (p.photoUrl != null) {
-            androidx.compose.runtime.key(p.photoUrl) {
-                AsyncImage(
-                    model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
-                        .data(p.photoUrl)
-                        .memoryCachePolicy(coil.request.CachePolicy.WRITE_ONLY)
-                        .crossfade(200)
-                        .build(),
-                    contentDescription = null,
-                    modifier = Modifier.userRing(p.uid, 76.dp).size(76.dp).clip(CircleShape)
+        val onAvatarTap = {
+            if (canChangePhoto) photoMenu = true else if (p.photoUrl != null) zoomPhoto = p.photoUrl
+        }
+        Box {
+            if (p.photoUrl != null) {
+                androidx.compose.runtime.key(p.photoUrl) {
+                    AsyncImage(
+                        model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                            .data(p.photoUrl)
+                            .memoryCachePolicy(coil.request.CachePolicy.WRITE_ONLY)
+                            .crossfade(200)
+                            .build(),
+                        contentDescription = stringResource(R.string.profile_photo_title),
+                        modifier = Modifier.userRing(p.uid, 76.dp).size(76.dp).clip(CircleShape)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                            .clickable(onClick = onAvatarTap)
+                    )
+                }
+            } else {
+                Image(
+                    painter = painterResource(R.drawable.logo_cumbre),
+                    contentDescription = stringResource(R.string.profile_photo_title),
+                    modifier = Modifier.size(76.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                        .clickable { zoomPhoto = p.photoUrl }
+                        .clickable(enabled = canChangePhoto, onClick = onAvatarTap)
                 )
             }
-        } else {
-            Image(
-                painter = painterResource(R.drawable.logo_cumbre),
-                contentDescription = null,
-                modifier = Modifier.size(76.dp).clip(CircleShape)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-            )
+            if (uploading) {
+                Box(
+                    Modifier.size(76.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.35f)),
+                    contentAlignment = Alignment.Center
+                ) { CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(24.dp)) }
+            }
+            if (canChangePhoto) {
+                // Icono de cámara: que se vea que la foto se puede tocar.
+                Box(
+                    Modifier.align(Alignment.BottomEnd).size(24.dp)
+                        .clip(CircleShape).background(MaterialTheme.colorScheme.background)
+                        .padding(2.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.material3.Icon(
+                        androidx.compose.material.icons.Icons.Filled.PhotoCamera, contentDescription = null,
+                        tint = Color.White, modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
+            androidx.compose.material3.DropdownMenu(expanded = photoMenu, onDismissRequest = { photoMenu = false }) {
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { Text(stringResource(R.string.profile_photo_change)) },
+                    onClick = { photoMenu = false; openPicker() }
+                )
+                if (p.photoUrl != null) {
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = { Text(stringResource(R.string.profile_photo_view)) },
+                        onClick = { photoMenu = false; zoomPhoto = p.photoUrl }
+                    )
+                }
+            }
         }
         Spacer(Modifier.height(8.dp))
         // Nombre grande serif.
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 p.displayName ?: p.username ?: stringResource(R.string.school_presence_row_v3_tu),
-                fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 24.sp,
+                fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold, fontSize = 24.sp,
                 color = MaterialTheme.colorScheme.onBackground
             )
             VerifiedCheck(p.uid, 19.dp)
@@ -419,17 +484,13 @@ private fun Header(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 "@${p.username ?: p.displayName?.lowercase()?.replace(" ", "_") ?: "tu_username"}",
-                style = MaterialTheme.typography.titleSmall,
+                fontFamily = com.meteomontana.android.ui.theme.Mono, fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (p.isPremium) ProfilePill("PREMIUM", MaterialTheme.colorScheme.primary)
         }
         // Título, insignias y nivel por aportaciones (tocar = elegir título y viero/bloquero).
         com.meteomontana.android.ui.components.RewardsBlock(uid = null)
-        p.email?.let {
-            Text(it, style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
 
         // La bio, colocada como en iOS: DESPUÉS del email y con la tinta
         // normal, no en gris de dato secundario.
@@ -472,7 +533,7 @@ private fun FollowCount(value: Long, label: String, onClick: () -> Unit) {
         modifier = Modifier.clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("$value", fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
+        Text("$value", fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold,
             fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground)
         Text(label, style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -575,7 +636,6 @@ private fun ProfileSettingsScreen(
 
             SettingsSectionLabel(stringResource(R.string.profile_section_prefs))
             MenuRow(Icons.Outlined.Notifications, stringResource(R.string.profile_weather_alert), onWeekendAlert)
-            FeedPublishSettingRow()
             LanguageRow()
             val ctx = LocalContext.current
             MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(R.string.profile_show_hints)) {
@@ -655,83 +715,6 @@ private fun SettingsSectionLabel(text: String) {
 }
 
 
-/**
- * Fila de ajuste "Publicar ascensos en el feed": muestra el valor actual y
- * abre un diálogo con Preguntar / Siempre / Nunca (FeedPublishPrefs).
- */
-@Composable
-private fun FeedPublishSettingRow() {
-    val ctx = androidx.compose.ui.platform.LocalContext.current
-    var mode by remember {
-        androidx.compose.runtime.mutableStateOf(
-            com.meteomontana.android.data.local.FeedPublishPrefs.get(ctx))
-    }
-    var showDialog by remember { androidx.compose.runtime.mutableStateOf(false) }
-    val labelOf: @Composable (com.meteomontana.android.data.local.FeedPublishMode) -> String = {
-        stringResource(
-            when (it) {
-                com.meteomontana.android.data.local.FeedPublishMode.ASK -> R.string.feed_pref_ask
-                com.meteomontana.android.data.local.FeedPublishMode.ALWAYS -> R.string.feed_pref_always
-                com.meteomontana.android.data.local.FeedPublishMode.NEVER -> R.string.feed_pref_never
-            }
-        )
-    }
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable { showDialog = true }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Icon(Icons.Outlined.People, contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-        Text(stringResource(R.string.profile_feed_publish), style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
-        Text(labelOf(mode), style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Icon(Icons.Outlined.ChevronRight, contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-    }
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text(stringResource(R.string.profile_feed_publish)) },
-            text = {
-                Column {
-                    com.meteomontana.android.data.local.FeedPublishMode.entries.forEach { m ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                                .clickable {
-                                    com.meteomontana.android.data.local.FeedPublishPrefs.set(ctx, m)
-                                    mode = m
-                                    showDialog = false
-                                }
-                                .padding(vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            androidx.compose.material3.RadioButton(
-                                selected = mode == m,
-                                onClick = {
-                                    com.meteomontana.android.data.local.FeedPublishPrefs.set(ctx, m)
-                                    mode = m
-                                    showDialog = false
-                                }
-                            )
-                            Text(labelOf(m), style = MaterialTheme.typography.bodyLarge)
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showDialog = false }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            }
-        )
-    }
-}
-
 @Composable
 private fun MenuRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -806,7 +789,7 @@ private fun StatCell(label: String, value: String, modifier: Modifier = Modifier
             .padding(horizontal = 4.dp, vertical = 9.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(value, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
+        Text(value, fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold,
             fontSize = 20.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
         Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 2,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,

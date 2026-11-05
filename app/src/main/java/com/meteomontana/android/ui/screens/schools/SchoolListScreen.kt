@@ -131,10 +131,18 @@ fun SchoolListScreen(
 
     // ── Pestaña "Vías/Bloques" (BLOCK_SEARCH_DESIGN.md §4.1b) ──
     val exploreTab by viewModel.exploreTab.collectAsStateWithLifecycle()
+    // La estrella FAVS se recuerda encendida entre aperturas.
+    val compareCtx = androidx.compose.ui.platform.LocalContext.current
+    var favoritesCompare by remember {
+        androidx.compose.runtime.mutableStateOf(
+            compareCtx.getSharedPreferences("schools", android.content.Context.MODE_PRIVATE).getBoolean("favoritesCompare", false))
+    }
     val gradeMin by viewModel.gradeMin.collectAsStateWithLifecycle()
     val gradeMax by viewModel.gradeMax.collectAsStateWithLifecycle()
     val exploreOrientations by viewModel.orientations.collectAsStateWithLifecycle()
     val exploreSortBy by viewModel.exploreSortBy.collectAsStateWithLifecycle()
+    val exploreHeight by viewModel.exploreHeight.collectAsStateWithLifecycle()
+    val exploreHeightSource by viewModel.exploreHeightSource.collectAsStateWithLifecycle()
     val exploreGrouped by viewModel.exploreGrouped.collectAsStateWithLifecycle()
     val exploreHits by viewModel.exploreHits.collectAsStateWithLifecycle()
     val exploreHitsSorted by viewModel.exploreHitsSorted.collectAsStateWithLifecycle()
@@ -318,44 +326,11 @@ fun SchoolListScreen(
             // las dos secciones (aunque una esté vacía) → se aprende solo.
             item {
                 Box(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
-                    OutlinedTextField(
+                    com.meteomontana.android.ui.components.CumbreSearchField(
                         value = filters.query,
                         onValueChange = viewModel::setQuery,
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text(stringResource(R.string.school_list_screen_busca_escuelas_vias_y)) },
-                        // Lupa dentro del campo, como en iOS: sin ella el
-                        // buscador parece una caja de texto cualquiera.
-                        leadingIcon = {
-                            androidx.compose.material3.Icon(
-                                Icons.Outlined.Search,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        trailingIcon = {
-                            // P8: X para limpiar de un toque (paridad iOS).
-                            if (filters.query.isNotEmpty()) {
-                                androidx.compose.material3.Icon(
-                                    Icons.Outlined.Close,
-                                    contentDescription = stringResource(R.string.common_close),
-                                    modifier = Modifier.clickable { viewModel.setQuery("") }
-                                )
-                            }
-                        },
-                        singleLine = true,
-                        // La tecla de buscar del propio teclado lo cierra: la
-                        // lista ya filtra al escribir, no hay nada que enviar.
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            imeAction = androidx.compose.ui.text.input.ImeAction.Search
-                        ),
-                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(
-                            onSearch = { closeKeyboard() }
-                        ),
-                        shape = com.meteomontana.android.ui.theme.CumbrePillShape,
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor   = MaterialTheme.colorScheme.surface,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                        )
+                        placeholder = stringResource(R.string.school_list_screen_busca_escuelas_vias_y),
+                        onSearch = { closeKeyboard() }
                     )
                 }
             }
@@ -530,13 +505,16 @@ fun SchoolListScreen(
                 Column(Modifier.padding(top = Spacing.sm)) {
                     FiltersToggleRow(
                         open = filtersOpen,
-                        activeCount = activeFilterCount(filters, exploreTab, gradeMin, gradeMax, exploreOrientations, exploreSortBy),
+                        activeCount = activeFilterCount(filters, exploreTab, gradeMin, gradeMax, exploreOrientations, exploreSortBy) +
+                            (if (exploreTab == ExploreTab.Blocks && exploreHeight != null) 1 else 0),
                         countText = countText,
                         dayLabel = dayLabel,
                         daysOpen = daysOpen,
                         onToggleOpen = { filtersOpen = !filtersOpen },
                         onToggleDays = { daysOpen = !daysOpen },
                         onClear = viewModel::clearAllFilters,
+                        favsOn = if (exploreTab == ExploreTab.Schools) favoritesCompare else null,
+                        onToggleFavs = { favoritesCompare = !favoritesCompare; compareCtx.getSharedPreferences("schools", android.content.Context.MODE_PRIVATE).edit().putBoolean("favoritesCompare", favoritesCompare).apply() },
                         modifier = Modifier.guideTarget("schools.filters")
                     )
                     Spacer(Modifier.height(Spacing.sm))
@@ -562,7 +540,11 @@ fun SchoolListScreen(
                         orientations = exploreOrientations,
                         onToggleOrientation = viewModel::toggleOrientation,
                         exploreSortBy = exploreSortBy,
-                        onExploreSort = viewModel::setExploreSortBy
+                        onExploreSort = viewModel::setExploreSortBy,
+                        exploreHeight = exploreHeight,
+                        onExploreHeight = viewModel::setExploreHeight,
+                        exploreHeightSource = exploreHeightSource,
+                        onExploreHeightSource = viewModel::setExploreHeightSource
                     )
                 }
             }
@@ -579,6 +561,13 @@ fun SchoolListScreen(
             }
 
             item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
+
+            // Comparar tus favoritas (estrella FAVS): anillo con la nota de hoy y una tira por día.
+            if (favoritesCompare && exploreTab == ExploreTab.Schools) {
+                item(key = "favorites-compare") {
+                    FavoritesCompareCard(onOpen = openSchool, modifier = Modifier.padding(horizontal = 12.dp).padding(top = 8.dp))
+                }
+            }
 
             // Hint de comparar — justo antes de la lista de escuelas
             item {
@@ -1303,12 +1292,6 @@ private fun ExploreLineRow(
                     Spacer(Modifier.size(6.dp))
                     com.meteomontana.android.ui.components.RestrictionMark(it, size = 14)
                 }
-                // Cuántas personas la han hecho (solo con el orden "Más repetidos").
-                h.repetitions?.takeIf { it > 0 }?.let {
-                    Spacer(Modifier.size(6.dp))
-                    Text("✓ $it", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = com.meteomontana.android.ui.theme.Ok)
-                }
                 // Vía o bloque: solo cuando se sabe cuál es (ver exploreRowKind).
                 if (kind.isSingle) {
                     Spacer(Modifier.size(6.dp))
@@ -1324,6 +1307,8 @@ private fun ExploreLineRow(
                 Text(subtitle, style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
+            // Vídeos de beta (por altura) y cuánta gente la ha hecho: se ve por qué sale con el filtro de ALTURA.
+            com.meteomontana.android.ui.components.CommunityBadgesRow(h, Modifier.padding(vertical = 3.dp))
             if (!h.orientation.isNullOrBlank()) {
                 Text(h.orientation!!, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurfaceVariant)

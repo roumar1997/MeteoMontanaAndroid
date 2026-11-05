@@ -335,7 +335,7 @@ private fun centerCropSrc(pw: Int, ph: Int, dstRatio: Float): Rect {
 }
 
 /** Ejecuta un DrawOp de renderTopo sobre un Canvas nativo, desplazado (dx,dy). */
-private fun drawOpNative(op: DrawOp, c: Canvas, dx: Float, dy: Float) {
+internal fun drawOpNative(op: DrawOp, c: Canvas, dx: Float, dy: Float) {
     when (op) {
         is DrawOp.LinePath -> {
             val path = Path()

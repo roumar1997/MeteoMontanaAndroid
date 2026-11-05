@@ -275,7 +275,7 @@ private fun StatCard(label: String, value: Long, modifier: Modifier = Modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(value.toString(),
-            fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold,
+            fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold,
             fontSize = 24.sp, color = MaterialTheme.colorScheme.onBackground)
         Text(label, style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)

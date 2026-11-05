@@ -1,6 +1,5 @@
 package com.meteomontana.android.ui.screens.profile
 
-import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.components.SkeletonForm
 import com.meteomontana.android.ui.theme.inkButtonColor
 
@@ -19,13 +18,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import android.app.Activity
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
-import com.yalantis.ucrop.UCrop
-import java.io.File
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.size
@@ -58,7 +52,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import androidx.core.content.ContextCompat
 import com.meteomontana.android.R
 import com.meteomontana.android.data.api.dto.UpdateProfileRequest
 
@@ -131,53 +124,8 @@ private fun EditForm(
     }
     var gearVersion by remember { mutableStateOf(0) }
 
-    val context = LocalContext.current
-
-    // uCrop devuelve un Uri al fichero ya recortado.
-    val cropLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val resultUri = result.data?.let { UCrop.getOutput(it) }
-            resultUri?.let(onPickPhoto)
-        }
-    }
-
-    // Picker normal — al elegir, lanzamos uCrop con la foto seleccionada.
-    val picker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            val destFile = File(context.cacheDir, "profile_crop_${System.currentTimeMillis()}.jpg")
-            val destUri = Uri.fromFile(destFile)
-            val intent = UCrop.of(uri, destUri)
-                .withAspectRatio(1f, 1f)
-                .withMaxResultSize(1024, 1024)
-                .withOptions(UCrop.Options().apply {
-                    setCircleDimmedLayer(true)        // máscara circular
-                    setShowCropFrame(false)
-                    setShowCropGrid(false)
-                    setHideBottomControls(false)
-                    setFreeStyleCropEnabled(false)
-                    setCompressionQuality(85)
-                    setToolbarTitle(AppText.get(R.string.edit_profile_screen_v3_recortar_foto))
-                    // Colores Cumbre: barra de papel y el ✓/✕ en tinta encima
-                    // (con los de serie, blancos sobre blanco, el ✓ apenas se
-                    // distinguía). DÓNDE se dibuja la barra lo arregla
-                    // Theme.MeteoMontana.Crop — ver el AndroidManifest.
-                    setToolbarColor(ContextCompat.getColor(context, R.color.crop_toolbar))
-                    setStatusBarColor(ContextCompat.getColor(context, R.color.crop_toolbar))
-                    setToolbarWidgetColor(ContextCompat.getColor(context, R.color.crop_ink))
-                    setActiveControlsWidgetColor(ContextCompat.getColor(context, R.color.crop_terra))
-                })
-                .getIntent(context)
-                // uCrop apunta a SU PROPIA UCropActivity por defecto; se
-                // retarget a CumbreCropActivity (misma librería, con el
-                // fix de insets). Los extras del intent no se tocan.
-                .setClass(context, CumbreCropActivity::class.java)
-            cropLauncher.launch(intent)
-        }
-    }
+    // Selector + recorte compartido con el perfil (ProfilePhotoPicker.kt).
+    val openPicker = rememberProfilePhotoPicker(onPickPhoto)
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -197,14 +145,14 @@ private fun EditForm(
                                 .crossfade(200)
                                 .build(),
                             contentDescription = null,
-                            modifier = Modifier.size(80.dp).clip(CircleShape).clickable { picker.launch("image/*") }
+                            modifier = Modifier.size(80.dp).clip(CircleShape).clickable { openPicker() }
                         )
                     }
                 } else {
                     Image(
                         painter = painterResource(R.drawable.logo_cumbre),
                         contentDescription = stringResource(R.string.a11y_change_photo),
-                        modifier = Modifier.size(80.dp).clip(CircleShape).clickable { picker.launch("image/*") }
+                        modifier = Modifier.size(80.dp).clip(CircleShape).clickable { openPicker() }
                     )
                 }
                 if (s.uploadingPhoto) {

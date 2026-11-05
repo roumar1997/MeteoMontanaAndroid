@@ -263,11 +263,12 @@ fun JournalEntriesScreen(
         stateSaver = androidx.compose.runtime.saveable.listSaver<Set<String>, String>(
             save = { it.toList() }, restore = { it.toSet() })
     ) { androidx.compose.runtime.mutableStateOf(emptySet<String>()) }
-    // Filtro por ESTILO: "aVista" | "alFlash" | null (todos). Cliente, como
-    // el de grado — no necesita ruta nueva (Rodrigo, 2026-08-21).
-    var styleFilter by androidx.compose.runtime.saveable.rememberSaveable {
-        androidx.compose.runtime.mutableStateOf<String?>(null)
-    }
+    // Filtro por ESTILO: "aVista" y/o "alFlash"; vacío = todos. Se pueden encender los dos para ver juntas
+    // las de ambos estilos. Cliente, como el de grado — no necesita ruta nueva (Rodrigo, 2026-08-21).
+    var styleFilters by androidx.compose.runtime.saveable.rememberSaveable(
+        stateSaver = androidx.compose.runtime.saveable.listSaver<Set<String>, String>(
+            save = { it.toList() }, restore = { it.toSet() })
+    ) { androidx.compose.runtime.mutableStateOf(emptySet<String>()) }
     // Buscar por nombre de vía, escuela, sector o nº de piedra (Álvaro, 2026-10-19).
     var query by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
 
@@ -371,11 +372,11 @@ fun JournalEntriesScreen(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                                 ) {
-                                    StyleBadge(stringResource(R.string.journal_entries_screen_v4_a_vista), active = styleFilter == "aVista") {
-                                        styleFilter = if (styleFilter == "aVista") null else "aVista"
+                                    StyleBadge(stringResource(R.string.journal_entries_screen_v4_a_vista), active = "aVista" in styleFilters) {
+                                        styleFilters = if ("aVista" in styleFilters) styleFilters - "aVista" else styleFilters + "aVista"
                                     }
-                                    StyleBadge(stringResource(R.string.journal_entries_screen_v4_al_flash), active = styleFilter == "alFlash") {
-                                        styleFilter = if (styleFilter == "alFlash") null else "alFlash"
+                                    StyleBadge(stringResource(R.string.journal_entries_screen_v4_al_flash), active = "alFlash" in styleFilters) {
+                                        styleFilters = if ("alFlash" in styleFilters) styleFilters - "alFlash" else styleFilters + "alFlash"
                                     }
                                 }
                             }
@@ -384,11 +385,8 @@ fun JournalEntriesScreen(
                             com.meteomontana.android.ui.components.gradeMatches(it.grade, gradeFilters) &&
                                 journalMatches(it, s.viaInfo[it.id], query)
                         }.let { list ->
-                            when (styleFilter) {
-                                "aVista" -> list.filter { it.aVista }
-                                "alFlash" -> list.filter { it.alFlash }
-                                else -> list
-                            }
+                            if (styleFilters.isEmpty()) list
+                            else list.filter { ("aVista" in styleFilters && it.aVista) || ("alFlash" in styleFilters && it.alFlash) }
                         }
                         // C3: agrupado por MES (cabecera "JULIO 2026 - N"), orden
                         // cronologico descendente por fecha de la sesion.
@@ -577,11 +575,11 @@ internal fun EntryRow(
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         if (e.aVista || onChangeStyle != null) {
                             StyleBadge(stringResource(R.string.journal_entries_screen_v4_a_vista), active = e.aVista,
-                                onClick = onChangeStyle?.let { { it(!e.aVista, e.alFlash) } })
+                                onClick = onChangeStyle?.let { { it(!e.aVista, false) } })
                         }
                         if (e.alFlash || onChangeStyle != null) {
                             StyleBadge(stringResource(R.string.journal_entries_screen_v4_al_flash), active = e.alFlash,
-                                onClick = onChangeStyle?.let { { it(e.aVista, !e.alFlash) } })
+                                onClick = onChangeStyle?.let { { it(false, !e.alFlash) } })
                         }
                     }
                 }

@@ -24,3 +24,8 @@
 
 # SQLDelight driver
 -keep class app.cash.sqldelight.** { *; }
+
+# MediaPipe (¿Qué piedra es esta?): su código nativo busca clases Java por nombre (JNI) y R8 las renombraría o quitaría.
+-keep class com.google.mediapipe.** { *; }
+-dontwarn com.google.mediapipe.**
+-dontwarn com.google.auto.value.**

@@ -763,7 +763,7 @@ fun BlockDetailDialog(
                 // coma no se pueden pegar en Google Maps — que es exactamente
                 // para lo que están ahí. Cinco decimales bastan: es ~1 metro.
                 "%.5f, %.5f".format(java.util.Locale.US, block.lat, block.lon),
-                style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
+                style = MaterialTheme.typography.labelMedium.copy(fontFamily = com.meteomontana.android.ui.theme.Mono),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 

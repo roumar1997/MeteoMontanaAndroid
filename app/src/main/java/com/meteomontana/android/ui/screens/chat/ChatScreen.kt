@@ -128,14 +128,19 @@ fun ChatScreen(
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            val dayStarts = chatDayStarts(state.messages)
             items(state.messages.reversed(), key = { it.id }) { msg ->
-                MessageBubble(
-                    msg = msg,
-                    myUid = state.myUid ?: state.myProfile?.uid,
-                    otherName = state.otherProfile?.username
-                        ?: state.otherProfile?.displayName ?: stringResource(R.string.w_user),
-                    onReply = { viewModel.startReply(msg) }
-                )
+                // El separador va DENTRO del item, encima de la burbuja (el contenido del item no se invierte).
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    dayStarts[msg.id]?.let { ChatDayDivider(it) }
+                    MessageBubble(
+                        msg = msg,
+                        myUid = state.myUid ?: state.myProfile?.uid,
+                        otherName = state.otherProfile?.username
+                            ?: state.otherProfile?.displayName ?: stringResource(R.string.w_user),
+                        onReply = { viewModel.startReply(msg) }
+                    )
+                }
             }
             // reverseLayout: este item se pinta ARRIBA del todo (final de la lista
             // invertida). Cargar antiguos no mueve el scroll (se añaden por arriba).
@@ -327,10 +332,11 @@ private fun MessageBubble(
             horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start) {
             Column(modifier = Modifier
                 .widthIn(max = 280.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(ChatBubbleShape)
                 .background(bg)
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                .padding(horizontal = 10.dp, vertical = 6.dp)
+                // Borde solo en las de la otra persona (en las mías el terracota ya delimita).
+                .border(1.dp, if (isMine) Color.Transparent else MaterialTheme.colorScheme.outline, ChatBubbleShape)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 // Cita del mensaje al que responde este mensaje. Copiamos a locals
                 // porque replyText/replyToId son propiedades de otro módulo (shared)

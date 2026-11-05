@@ -109,6 +109,19 @@ object Routes {
     const val MEETUP_DETAIL = "meetups/{meetupId}"
     fun meetupDetail(id: String) = "meetups/$id"
     const val CREATE_MEETUP = "meetups/new"
+    /** Patrón de crear quedada: los datos opcionales los trae el asistente y el formulario se abre ya relleno. */
+    const val CREATE_MEETUP_PATTERN = "meetups/new?schoolId={schoolId}&schoolName={schoolName}&day={day}&name={name}&desc={desc}"
+    fun createMeetup(schoolId: String, schoolName: String, day: String?, name: String, description: String?): String {
+        fun e(s: String) = android.net.Uri.encode(s)
+        val q = buildList {
+            add("schoolId=${e(schoolId)}")
+            add("schoolName=${e(schoolName)}")
+            add("name=${e(name)}")
+            day?.let { add("day=${e(it)}") }
+            description?.let { add("desc=${e(it)}") }
+        }
+        return "$CREATE_MEETUP?" + q.joinToString("&")
+    }
     const val MEETUP_ALERT = "meetups/alert"
 
 }

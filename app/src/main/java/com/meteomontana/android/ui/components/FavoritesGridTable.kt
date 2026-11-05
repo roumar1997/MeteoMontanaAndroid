@@ -76,8 +76,8 @@ fun FavoritesGridTable(grid: FavoritesGrid, modifier: Modifier = Modifier) {
                             .weight(1f)
                             .padding(horizontal = 1.dp)
                             .height(28.dp)
-                            .background(scoreColor(cell.avgScore), RoundedCornerShape(2.dp))
-                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp)),
+                            .background(scoreColor(cell.avgScore), RoundedCornerShape(8.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(cell.avgScore.toString(),

@@ -41,8 +41,8 @@ fun SchoolWeatherTab(
         Column(Modifier.guideTarget("detail_weather.days")) {
             SectionTitle(stringResource(R.string.detail_next_days))
             forecast.days.take(7).forEachIndexed { i, d ->
+                // Cada día ya es una tarjeta: sin línea divisoria entre ellos.
                 DayRow(day = d, dayIndex = i, onClick = onDayClick?.let { { it(i) } })
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
             }
         }
     }

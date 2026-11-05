@@ -140,7 +140,7 @@ private fun SchoolRow(school: SchoolStats, top: Int, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(Modifier.width(62.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(school.blockCount.toString(), fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+            Text(school.blockCount.toString(), fontFamily = com.meteomontana.android.ui.theme.Serif,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, fontSize = 26.sp,
                 color = com.meteomontana.android.ui.theme.Terra)
             Text(stringResource(R.string.stats_ascents_word), fontFamily = com.meteomontana.android.ui.theme.Mono,

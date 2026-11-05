@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.schools
 
+import androidx.compose.ui.unit.sp
 import com.meteomontana.android.util.CatalogLabels
 import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
@@ -20,6 +21,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material.icons.outlined.LocationDisabled
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -34,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import com.meteomontana.android.ui.components.BETA_SOURCES
 import com.meteomontana.android.ui.components.CumbreChip
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Terra
@@ -68,7 +75,11 @@ fun SchoolFiltersBar(
     orientations: Set<String>,
     onToggleOrientation: (String) -> Unit,
     exploreSortBy: ExploreSortBy,
-    onExploreSort: (ExploreSortBy) -> Unit
+    onExploreSort: (ExploreSortBy) -> Unit,
+    exploreHeight: String? = null,
+    onExploreHeight: (String?) -> Unit = {},
+    exploreHeightSource: String = "",
+    onExploreHeightSource: (String) -> Unit = {}
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -156,6 +167,27 @@ fun SchoolFiltersBar(
                 )
             }
         }
+        if (exploreTab == ExploreTab.Blocks) {
+            // +1,70 / −1,70: con vídeo de beta o hechas por gente de esa altura (la que dijo en su perfil).
+            Section(stringResource(R.string.schools_filter_height)) {
+                ChipRow(
+                    items = listOf<String?>(null, "TALL", "SHORT"),
+                    isSelected = { it == exploreHeight },
+                    label = { h -> when (h) { null -> AppText.get(R.string.schools_filter_all); "TALL" -> "+1,70"; else -> "−1,70" } },
+                    onClick = onExploreHeight
+                )
+            }
+            if (exploreHeight != null) {
+                Section(stringResource(R.string.filter_beta_source)) {
+                    ChipRow(
+                        items = BETA_SOURCES.map { it.first },
+                        isSelected = { it == exploreHeightSource },
+                        label = { s -> AppText.get(BETA_SOURCES.first { it.first == s }.second) },
+                        onClick = onExploreHeightSource
+                    )
+                }
+            }
+        }
         Section(stringResource(R.string.school_filters_bar_v3_ordenar_por)) {
             if (exploreTab == ExploreTab.Blocks) {
                 ChipRow(
@@ -204,7 +236,8 @@ private fun TabButton(label: String, active: Boolean, modifier: Modifier = Modif
         Text(
             label,
             color = if (active) androidx.compose.ui.graphics.Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.labelLarge
+            fontFamily = com.meteomontana.android.ui.theme.Mono, fontSize = 12.sp,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
         )
     }
 }
@@ -250,6 +283,9 @@ fun FiltersToggleRow(
     onToggleOpen: () -> Unit,
     onToggleDays: () -> Unit,
     onClear: () -> Unit,
+    /** Estrella FAVS: solo en la pestaña Escuelas (null = no se enseña). */
+    favsOn: Boolean? = null,
+    onToggleFavs: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val active = activeCount > 0
@@ -304,6 +340,7 @@ fun FiltersToggleRow(
                 Text(stringResource(R.string.schools_clear_short), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary)
             }
         }
+        if (favsOn != null) FavsChip(favsOn, onToggleFavs)
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(50))
@@ -414,5 +451,28 @@ private fun <T> ChipRow(
                 onClick = { onClick(item) }
             )
         }
+    }
+}
+
+/** «★ FAVS»: enciende/apaga la comparación de tus favoritas. No filtra la lista (para eso, Mostrar → Favoritos). */
+@Composable
+private fun FavsChip(on: Boolean, onClick: () -> Unit) {
+    val fill = com.meteomontana.android.ui.theme.terraFillColor()
+    val fg = if (on) androidx.compose.ui.graphics.Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+    val desc = stringResource(R.string.favs_chip_desc)
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(if (on) fill else MaterialTheme.colorScheme.surface)
+            .border(1.dp, if (on) fill else MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = desc; selected = on }
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(if (on) Icons.Filled.Star else Icons.Outlined.StarBorder, contentDescription = null, tint = fg,
+            modifier = Modifier.size(12.dp))
+        Text(stringResource(R.string.favs_chip), style = EyebrowTextStyle, color = fg, maxLines = 1, softWrap = false)
     }
 }

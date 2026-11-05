@@ -246,7 +246,7 @@ private fun SmallMetric(label: String, value: String, modifier: Modifier) {
     Column(modifier.background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
         .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp)).padding(Spacing.sm),
         horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 20.sp,
+        Text(value, fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold, fontSize = 20.sp,
             color = MaterialTheme.colorScheme.onSurface)
         Text(label, style = EyebrowTextStyle.copy(fontSize = 8.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -383,26 +383,33 @@ private fun AchievementChip(a: Achievement, rarity: AchievementRarity?) {
 }
 
 @Composable
-fun achievementText(a: Achievement): String = when (a.kind) {
-    AchievementKind.GRADE -> stringResource(
-        if (a.discipline == "ROUTE") R.string.ach_grade_route else R.string.ach_grade_boulder, a.param)
-    AchievementKind.DAY_GRADE -> stringResource(
-        if (a.discipline == "ROUTE") R.string.ach_day_route else R.string.ach_day_boulder, a.count, a.param)
-    AchievementKind.TOTAL_GRADE -> stringResource(
-        if (a.discipline == "ROUTE") R.string.ach_total_route else R.string.ach_total_boulder, a.count, a.param)
-    AchievementKind.VOLUME -> stringResource(R.string.ach_volume, a.param)
-    AchievementKind.FLASHES -> stringResource(R.string.ach_flashes, a.param)
-    AchievementKind.ONSIGHTS -> stringResource(R.string.ach_onsights, a.param)
-    AchievementKind.FLASH_MAX -> stringResource(R.string.ach_flash_max)
-    AchievementKind.ONSIGHT_MAX -> stringResource(R.string.ach_onsight_max)
-    AchievementKind.SCHOOLS -> stringResource(R.string.ach_schools, a.param)
-    AchievementKind.REGIONS -> stringResource(R.string.ach_regions, a.param)
-    AchievementKind.ABROAD -> stringResource(R.string.ach_abroad)
-    AchievementKind.WEEKENDS -> stringResource(R.string.ach_weekends, a.param)
-    AchievementKind.WEEK_STREAK -> stringResource(R.string.ach_week_streak, a.param)
-    AchievementKind.MONTH_STREAK -> stringResource(R.string.ach_month_streak, a.param)
-    AchievementKind.DAYS_IN_YEAR -> stringResource(R.string.ach_days_year, a.param)
-    AchievementKind.EVERY_MONTH -> stringResource(R.string.ach_every_month)
-    AchievementKind.PROJECTS -> if (a.param == "1") stringResource(R.string.ach_project_one)
-        else stringResource(R.string.ach_projects, a.param)
+fun achievementText(a: Achievement): String =
+    achievementText(a, androidx.compose.ui.platform.LocalContext.current.resources)
+
+/** Igual, fuera de la UI (el asistente lo usa para decir los siguientes logros). */
+fun achievementText(a: Achievement, res: android.content.res.Resources): String {
+    fun s(id: Int, vararg args: Any): String = res.getString(id, *args)
+    return when (a.kind) {
+        AchievementKind.GRADE -> s(
+            if (a.discipline == "ROUTE") R.string.ach_grade_route else R.string.ach_grade_boulder, a.param)
+        AchievementKind.DAY_GRADE -> s(
+            if (a.discipline == "ROUTE") R.string.ach_day_route else R.string.ach_day_boulder, a.count, a.param)
+        AchievementKind.TOTAL_GRADE -> s(
+            if (a.discipline == "ROUTE") R.string.ach_total_route else R.string.ach_total_boulder, a.count, a.param)
+        AchievementKind.VOLUME -> s(R.string.ach_volume, a.param)
+        AchievementKind.FLASHES -> s(R.string.ach_flashes, a.param)
+        AchievementKind.ONSIGHTS -> s(R.string.ach_onsights, a.param)
+        AchievementKind.FLASH_MAX -> s(R.string.ach_flash_max)
+        AchievementKind.ONSIGHT_MAX -> s(R.string.ach_onsight_max)
+        AchievementKind.SCHOOLS -> s(R.string.ach_schools, a.param)
+        AchievementKind.REGIONS -> s(R.string.ach_regions, a.param)
+        AchievementKind.ABROAD -> s(R.string.ach_abroad)
+        AchievementKind.WEEKENDS -> s(R.string.ach_weekends, a.param)
+        AchievementKind.WEEK_STREAK -> s(R.string.ach_week_streak, a.param)
+        AchievementKind.MONTH_STREAK -> s(R.string.ach_month_streak, a.param)
+        AchievementKind.DAYS_IN_YEAR -> s(R.string.ach_days_year, a.param)
+        AchievementKind.EVERY_MONTH -> s(R.string.ach_every_month)
+        AchievementKind.PROJECTS -> if (a.param == "1") s(R.string.ach_project_one)
+            else s(R.string.ach_projects, a.param)
+    }
 }

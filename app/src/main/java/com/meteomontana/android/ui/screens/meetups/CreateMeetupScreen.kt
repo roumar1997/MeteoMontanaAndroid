@@ -72,6 +72,12 @@ import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
+/**
+ * Datos que trae el asistente («crea una quedada en Albarracín el sábado a las 9»): el formulario se abre ya relleno y
+ * el usuario lo revisa y la crea con su botón. Espejo de `AssistantViewModel.MeetupRequest` (iOS).
+ */
+data class MeetupPrefill(val schoolId: String, val schoolName: String, val day: String?, val name: String, val description: String?)
+
 /** Pantalla de creación de quedada. Campos: nombre, escuela, días, privacidad,
  *  disciplina y límite de participantes. */
 @Composable
@@ -79,6 +85,7 @@ fun CreateMeetupScreen(
     onBack: () -> Unit = {},
     onCreated: (meetupId: String) -> Unit = {},
     onEditProfile: () -> Unit = {},
+    prefill: MeetupPrefill? = null,
     viewModel: MeetupsViewModel = hiltViewModel()
 ) {
     val createError by viewModel.createError.collectAsStateWithLifecycle()
@@ -102,6 +109,18 @@ fun CreateMeetupScreen(
     var photoUrl by remember { mutableStateOf<String?>(null) }
     var showSchoolPicker by remember { mutableStateOf(false) }
     val schoolResults by viewModel.schoolResults.collectAsStateWithLifecycle()
+
+    // Lo que trae el asistente se aplica UNA vez: si el usuario lo cambia, no se le vuelve a poner encima.
+    var prefillApplied by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(prefill) {
+        val p = prefill ?: return@LaunchedEffect
+        if (prefillApplied) return@LaunchedEffect
+        prefillApplied = true
+        if (name.isEmpty()) name = p.name
+        schoolId = p.schoolId
+        schoolName = p.schoolName
+        p.day?.let { selectedDays.value = selectedDays.value + it }
+    }
 
     // Cargar scores de los días seleccionados cuando hay escuela
     LaunchedEffect(schoolId, selectedDays.value) {
@@ -290,6 +309,7 @@ fun CreateMeetupScreen(
                     val req = CreateMeetupRequest(
                         schoolId = schoolId.trim(),
                         name = name.trim(),
+                        description = prefill?.description,
                         discipline = discipline,
                         privacy = privacy,
                         memberLimit = limitText.toIntOrNull(),

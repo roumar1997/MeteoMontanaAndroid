@@ -1,5 +1,8 @@
 package com.meteomontana.android.ui.theme
 
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.ui.unit.TextUnit
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -74,7 +77,16 @@ fun MeteoMontanaTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography  = CumbreTypography,
-        shapes      = CumbreShapes,
-        content     = content
-    )
+        shapes      = CumbreShapes
+    ) {
+        // Un Text con tamaño propio (fontSize = 13.sp) heredaba el alto de línea de 24 sp de bodyLarge y todo salía
+        // más alto que en iOS. Sin alto fijo, cada texto usa el natural de su letra, como en iOS.
+        // Una pastilla de letra 11 medía 30 dp (24 de línea + 6 de margen) frente a 19 pt en iOS.
+        // OJO: ProvideTextStyle MEZCLA con el estilo de fuera y un lineHeight «sin especificar» no pisa el 24 → hay
+        // que REEMPLAZAR el estilo con CompositionLocalProvider.
+        androidx.compose.runtime.CompositionLocalProvider(
+            LocalTextStyle provides CumbreTypography.bodyLarge.copy(lineHeight = TextUnit.Unspecified),
+            content = content
+        )
+    }
 }

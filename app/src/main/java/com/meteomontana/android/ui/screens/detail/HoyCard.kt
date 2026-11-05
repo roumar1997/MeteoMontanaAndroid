@@ -97,7 +97,7 @@ fun HoyCard(forecast: Forecast, modifier: Modifier = Modifier) {
         }
         // Las próximas 16 horas van SIEMPRE a la vista (Álvaro, 2026-10-18).
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        Box(Modifier.padding(vertical = 6.dp)) { HourlyScoreGrid(hours = forecast.hours) }
+        Box(Modifier.padding(vertical = 6.dp)) { HourlyScoreGrid(hours = forecast.hours, compact = true) }
         AnimatedVisibility(open) {
             Column {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)

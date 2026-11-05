@@ -360,8 +360,7 @@ private fun SheetNavHost(
                         val uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() }
                         ProjectsScreen(
                             onBack = popSheetOrDismiss,
-                            onOpenBoulders = { sheetNav.navigate(Routes.journalEntries(filter = "project:BOULDER", uid = uid)) },
-                            onOpenRoutes = { sheetNav.navigate(Routes.journalEntries(filter = "project:ROUTE", uid = uid)) }
+                            onOpenSchool = { id, via, viaId -> sheetNav.navigate(Routes.schoolDetail(id, via, viaId)) }
                         )
                     }
 
@@ -511,8 +510,19 @@ private fun SheetNavHost(
                             onEditProfile = { sheetNav.navigate(Routes.EDIT_PROFILE) }
                         )
                     }
-                    composable(Routes.CREATE_MEETUP) {
+                    composable(
+                        route = Routes.CREATE_MEETUP_PATTERN,
+                        arguments = listOf("schoolId", "schoolName", "day", "name", "desc").map { key ->
+                            navArgument(key) { type = NavType.StringType; nullable = true; defaultValue = null }
+                        }
+                    ) { entry ->
+                        val a = entry.arguments
                         CreateMeetupScreen(
+                            prefill = a?.getString("schoolId")?.let { id ->
+                                com.meteomontana.android.ui.screens.meetups.MeetupPrefill(
+                                    id, a.getString("schoolName").orEmpty(), a.getString("day"),
+                                    a.getString("name").orEmpty(), a.getString("desc"))
+                            },
                             onBack = popSheetOrDismiss,
                             onCreated = { id ->
                                 sheetNav.popBackStack()

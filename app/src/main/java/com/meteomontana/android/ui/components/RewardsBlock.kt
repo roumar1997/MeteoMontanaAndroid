@@ -147,7 +147,7 @@ fun rewardTitle(level: Int): String = stringResource(when (level) {
 /** Color del título de un nivel (para la aureola de las fotos). */
 fun titleColor(level: Int): Color = rewardStyle(level).first
 
-private fun rewardStyle(level: Int): Pair<Color, ImageVector> = when (level) {
+internal fun rewardStyle(level: Int): Pair<Color, ImageVector> = when (level) {
     0 -> Color(0xFF73787F) to Icons.Filled.Eco
     1 -> Color(0xFFCC5C33) to Icons.Filled.BackHand
     5 -> Color(0xFF338C4D) to Icons.Filled.Hiking
@@ -164,7 +164,7 @@ private fun rewardStyle(level: Int): Pair<Color, ImageVector> = when (level) {
 
 /** Píldora de un título con su color e icono; apagada con candado si aún no se ha desbloqueado. */
 @Composable
-private fun TitlePill(level: Int, on: Boolean = false, locked: Boolean = false, modifier: Modifier = Modifier, showCheck: Boolean = false) {
+internal fun TitlePill(level: Int, on: Boolean = false, locked: Boolean = false, modifier: Modifier = Modifier, showCheck: Boolean = false) {
     val (color, icon) = rewardStyle(level)
     val fg = if (on) Color.White else if (locked) MaterialTheme.colorScheme.onSurfaceVariant else color
     Row(
@@ -181,14 +181,14 @@ private fun TitlePill(level: Int, on: Boolean = false, locked: Boolean = false, 
 }
 
 /** Oro del nivel máximo: un degradado que se desplaza (brillo) sobre el texto y el borde. */
-private val GoldColors = listOf(Color(0xFFB8860B), Color(0xFFFFD54A), Color(0xFFFFF6C2), Color(0xFFFFD54A), Color(0xFFB8860B))
+internal val GoldColors = listOf(Color(0xFFB8860B), Color(0xFFFFD54A), Color(0xFFFFF6C2), Color(0xFFFFD54A), Color(0xFFB8860B))
 
 /**
  * El título. El nivel 50 («Señor de la Cumbre») se nota a la legua: oro con brillo que recorre las letras, destellos
  * a los lados y un borde dorado. El resto, en terracota como siempre (Álvaro, 2026-10-18).
  */
 @Composable
-private fun RewardTitle(level: Int) {
+internal fun RewardTitle(level: Int) {
     val title = rewardTitle(level)
     if (level < 50) {
         TitlePill(level)
@@ -219,7 +219,7 @@ private fun RewardTitle(level: Int) {
 }
 
 /** «#RRGGBB» → Color (null si no es válido). */
-private fun colorFromHex(hex: String?): Color? = colorFromHexOrNull(hex)
+internal fun colorFromHex(hex: String?): Color? = colorFromHexOrNull(hex)
 
 /** «#RRGGBB» → Color (null si no es válido). Lo usa también la aureola de las fotos. */
 fun colorFromHexOrNull(hex: String?): Color? = runCatching {
@@ -233,7 +233,7 @@ fun colorFromHexOrNull(hex: String?): Color? = runCatching {
  * pero en el color que eligió el admin (Álvaro, 2026-10-19).
  */
 @Composable
-private fun SpecialTitle(text: String, colorHex: String?) {
+internal fun SpecialTitle(text: String, colorHex: String?) {
     val base = colorFromHex(colorHex) ?: Color(0xFFB8860B)
     val shine by androidx.compose.animation.core.rememberInfiniteTransition(label = "especial").animateFloat(
         initialValue = 0f, targetValue = 1f,
@@ -260,12 +260,12 @@ private fun SpecialTitle(text: String, colorHex: String?) {
 }
 
 @Composable
-private fun climberTypeLabel(type: String?): String = stringResource(when (type) {
+internal fun climberTypeLabel(type: String?): String = stringResource(when (type) {
     "ROUTES" -> R.string.climber_routes; "BOULDER" -> R.string.climber_boulder; "BOTH" -> R.string.climber_both
     else -> R.string.climber_none
 })
 
-private fun climberTypeStyle(type: String?): Pair<Color, ImageVector> = when (type) {
+internal fun climberTypeStyle(type: String?): Pair<Color, ImageVector> = when (type) {
     "ROUTES" -> Color(0xFF2973BF) to Icons.Filled.Timeline
     "BOULDER" -> Color(0xFFD97A1A) to Icons.Filled.ViewInAr
     "BOTH" -> Color(0xFF338C4D) to Icons.Filled.SwapVert
@@ -273,7 +273,7 @@ private fun climberTypeStyle(type: String?): Pair<Color, ImageVector> = when (ty
 }
 
 @Composable
-private fun ClimberChip(type: String?, on: Boolean, onClick: () -> Unit) {
+internal fun ClimberChip(type: String?, on: Boolean, onClick: () -> Unit) {
     val (color, icon) = climberTypeStyle(type)
     val fg = if (on) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
     // El elegido, clarísimo: relleno, check, borde grueso y sombra; los demás, apagados.
@@ -290,7 +290,7 @@ private fun ClimberChip(type: String?, on: Boolean, onClick: () -> Unit) {
     }
 }
 
-private const val PROMPT_KEY = "climber_type_prompt_done"
+internal const val PROMPT_KEY = "climber_type_prompt_done"
 
 /**
  * Bajo el nombre del perfil: título, insignias y nivel. En el tuyo ([uid] null) además: tocar abre la hoja para elegir
@@ -349,17 +349,6 @@ fun RewardsBlock(uid: String?, viewModel: RewardsViewModel = hiltViewModel(key =
             }
         }
 
-        if (own) {
-            rewards.nextLevel?.let { next ->
-                Text(stringResource(R.string.rewards_progress, rewards.approved, next),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, textAlign = TextAlign.Center)
-                val from = rewards.level
-                LinearProgressIndicator(
-                    progress = { ((rewards.approved - from).toFloat() / (next - from)).coerceIn(0f, 1f) },
-                    modifier = Modifier.widthIn(max = 220.dp).fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
-                    color = terraFillColor(), trackColor = MaterialTheme.colorScheme.surfaceVariant)
-            }
-        }
     }
     if (own) ClimberTypePrompt(rewards) { viewModel.update(it, null) }
     if (sheet) RewardsSheet(rewards, mineIds, rarity, onDismiss = { sheet = false },
@@ -369,7 +358,7 @@ fun RewardsBlock(uid: String?, viewModel: RewardsViewModel = hiltViewModel(key =
 }
 
 @Composable
-private fun Badge(text: String, color: Color, onClick: (() -> Unit)? = null) {
+internal fun Badge(text: String, color: Color, onClick: (() -> Unit)? = null) {
     Text(text.uppercase(), color = color, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 10.sp,
         letterSpacing = 0.8.sp,
         modifier = Modifier.clip(CircleShape).border(1.dp, color, CircleShape)
@@ -378,11 +367,11 @@ private fun Badge(text: String, color: Color, onClick: (() -> Unit)? = null) {
 }
 
 /** Con menos escaladores sincronizados que esto el porcentaje no dice nada: se enseña solo la dificultad. */
-private const val MIN_USERS_FOR_PERCENT = 5
+internal const val MIN_USERS_FOR_PERCENT = 5
 
 /** «★ 3 bloques de 7c o más en un día» con «ÉPICO · 3% de escaladores» debajo, en el color de su dificultad. */
 @Composable
-private fun FeaturedAchievement(id: String?, rarity: AchievementRarity?) {
+internal fun FeaturedAchievement(id: String?, rarity: AchievementRarity?) {
     val a = id?.let { AchievementsCalculator.byId(it) } ?: return
     val color = com.meteomontana.android.ui.screens.profile.tierColor(a.tier)
     val enough = rarity != null && rarity.totalUsers >= MIN_USERS_FOR_PERCENT
@@ -400,7 +389,7 @@ private fun FeaturedAchievement(id: String?, rarity: AchievementRarity?) {
     }
 }
 
-private fun tierNameRes(t: com.meteomontana.android.domain.usecase.journal.AchievementTier) = when (t) {
+internal fun tierNameRes(t: com.meteomontana.android.domain.usecase.journal.AchievementTier) = when (t) {
     com.meteomontana.android.domain.usecase.journal.AchievementTier.COMMON -> R.string.tier_common
     com.meteomontana.android.domain.usecase.journal.AchievementTier.UNCOMMON -> R.string.tier_uncommon
     com.meteomontana.android.domain.usecase.journal.AchievementTier.RARE -> R.string.tier_rare
@@ -411,7 +400,7 @@ private fun tierNameRes(t: com.meteomontana.android.domain.usecase.journal.Achie
 /** Una vez: «¿Escalas sobre todo vías o bloque?». Opcional; se cierra con «Ahora no» y se cambia luego en la hoja. */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun ClimberTypePrompt(rewards: UserRewards, onChoose: (String) -> Unit) {
+internal fun ClimberTypePrompt(rewards: UserRewards, onChoose: (String) -> Unit) {
     val prefs = LocalContext.current.getSharedPreferences("rewards", android.content.Context.MODE_PRIVATE)
     var done by remember { mutableStateOf(prefs.getBoolean(PROMPT_KEY, false) || rewards.climberType != null) }
     if (done) return
@@ -434,7 +423,7 @@ private fun ClimberTypePrompt(rewards: UserRewards, onChoose: (String) -> Unit) 
 }
 
 @Composable
-private fun Choice(text: String, on: Boolean, onClick: () -> Unit) {
+internal fun Choice(text: String, on: Boolean, onClick: () -> Unit) {
     Text(text, color = if (on) Color.White else MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold,
         fontSize = 13.sp,
         modifier = Modifier.clip(CircleShape).background(if (on) terraFillColor() else MaterialTheme.colorScheme.surface)
@@ -442,11 +431,11 @@ private fun Choice(text: String, on: Boolean, onClick: () -> Unit) {
             .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 7.dp))
 }
 
-private val ALL_LEVELS = listOf(0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50)
+internal val ALL_LEVELS = listOf(0, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50)
 
 /** Etiqueta redondeada (dificultad, porcentaje). */
 @Composable
-private fun TierChip(text: String, color: Color, filled: Boolean) {
+internal fun TierChip(text: String, color: Color, filled: Boolean) {
     Text(text, color = if (filled) Color.White else color, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 9.5.sp,
         letterSpacing = 0.6.sp,
         modifier = Modifier.clip(CircleShape).background(if (filled) color else color.copy(alpha = 0.10f))
@@ -454,7 +443,7 @@ private fun TierChip(text: String, color: Color, filled: Boolean) {
 }
 
 @Composable
-private fun TierPick(title: String, color: Color, on: Boolean, count: Int, onClick: () -> Unit) {
+internal fun TierPick(title: String, color: Color, on: Boolean, count: Int, onClick: () -> Unit) {
     val fg = if (on) Color.White else color
     Row(
         Modifier.clip(CircleShape).background(if (on) color else color.copy(alpha = 0.10f))
@@ -470,7 +459,7 @@ private fun TierPick(title: String, color: Color, on: Boolean, count: Int, onCli
 /** Fila para elegir el logro destacado: franja con el color de su dificultad, texto, y «ÉPICO · 3% de escaladores». */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AchievementPickRow(a: com.meteomontana.android.domain.usecase.journal.Achievement, rarity: AchievementRarity?,
+internal fun AchievementPickRow(a: com.meteomontana.android.domain.usecase.journal.Achievement, rarity: AchievementRarity?,
                                on: Boolean, onClick: () -> Unit) {
     val color = com.meteomontana.android.ui.screens.profile.tierColor(a.tier)
     val enough = rarity != null && rarity.totalUsers >= MIN_USERS_FOR_PERCENT
@@ -495,121 +484,3 @@ private fun AchievementPickRow(a: com.meteomontana.android.domain.usecase.journa
     }
 }
 
-/** Elegir el título (entre los desbloqueados) y si eres viero, bloquero o las dos. */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
-@Composable
-private fun RewardsSheet(rewards: UserRewards, mineIds: Set<String>?, rarity: AchievementRarity?, onDismiss: () -> Unit,
-                         onHide: (Boolean) -> Unit, onSave: (String?, Int?, String?) -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        // Se desplaza: con todos los títulos y los logros no cabe en una pantalla (Álvaro, 2026-10-19).
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 24.dp).navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.climber_prompt_title), style = EyebrowTextStyle, color = Terra)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                (UserRewards.CLIMBER_TYPES + "").chunked(2).forEach { pair ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        pair.forEach { t ->
-                            val on = (rewards.climberType ?: "") == t
-                            Box(Modifier.weight(1f)) { ClimberChip(t.ifEmpty { null }, on) { onSave(t, null, null) } }
-                        }
-                        if (pair.size == 1) Box(Modifier.weight(1f)) {}
-                    }
-                }
-            }
-            // Logro destacado: desplegable; uno de los desbloqueados, con chips por dificultad como en las estadísticas.
-            var featuredOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
-            var tierFilter by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<Int?>(null) }
-            Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, Terra.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                    .clickable { featuredOpen = !featuredOpen }.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(stringResource(R.string.featured_pick), style = EyebrowTextStyle, color = Terra, modifier = Modifier.weight(1f))
-                Text(rewards.featuredAchievement?.let { AchievementsCalculator.byId(it) }
-                    ?.let { com.meteomontana.android.ui.screens.profile.achievementText(it) } ?: stringResource(R.string.featured_none),
-                    fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
-                    modifier = Modifier.weight(1f, fill = false).padding(horizontal = 8.dp))
-                Text(if (featuredOpen) "▴" else "▾", color = Terra)
-            }
-            val allUnlocked = mineIds?.let { ids -> AchievementsCalculator.catalog.filter { it.id in ids }.sortedByDescending { it.tier.ordinal } }
-            val unlocked = allUnlocked?.filter { tierFilter == null || it.tier.ordinal == tierFilter }
-            when {
-                !featuredOpen -> Unit
-                mineIds == null -> Text(stringResource(R.string.featured_loading), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                allUnlocked.isNullOrEmpty() -> Text(stringResource(R.string.featured_none_synced), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                else -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        TierPick(stringResource(R.string.ach_filter_all), Terra, tierFilter == null, allUnlocked.size) { tierFilter = null }
-                        allUnlocked.map { it.tier }.distinct().sortedBy { it.ordinal }.forEach { t ->
-                            TierPick(stringResource(tierNameRes(t)).uppercase(), com.meteomontana.android.ui.screens.profile.tierColor(t),
-                                tierFilter == t.ordinal, allUnlocked.count { it.tier == t }) { tierFilter = if (tierFilter == t.ordinal) null else t.ordinal }
-                        }
-                    }
-                    val noneOn = rewards.featuredAchievement == null
-                    Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surface)
-                            .border(1.dp, if (noneOn) Terra else MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
-                            .clickable { onSave(null, null, "") }.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(stringResource(R.string.featured_none), fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-                        if (noneOn) Icon(Icons.Filled.CheckCircle, null, tint = Terra)
-                    }
-                    (unlocked ?: emptyList()).forEach { a ->
-                        AchievementPickRow(a, rarity, rewards.featuredAchievement == a.id) { onSave(null, null, a.id) }
-                    }
-                }
-            }
-            Text(stringResource(R.string.rewards_title_pick), style = EyebrowTextStyle, color = Terra)
-            rewards.specialTitle?.takeIf { it.isNotBlank() }?.let { special ->
-                SpecialTitle(special, rewards.specialColor)
-                Text(stringResource(R.string.rewards_special_hint), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-            }
-            // «Sin título»: no enseñar ninguno (Álvaro, 2026-10-19).
-            val hidden = rewards.titleHidden
-            Row(
-                Modifier.clip(CircleShape)
-                    .background(if (hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.surface)
-                    .border(if (hidden) 3.dp else 1.dp, if (hidden) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline, CircleShape)
-                    .clickable { onHide(!hidden) }.padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Icon(if (hidden) Icons.Filled.CheckCircle else Icons.Filled.VisibilityOff, null,
-                    tint = if (hidden) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(15.dp))
-                Text(stringResource(R.string.rewards_no_title), fontSize = 14.sp,
-                    fontWeight = if (hidden) FontWeight.Bold else FontWeight.Medium,
-                    color = if (hidden) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(stringResource(R.string.rewards_title_hint, rewards.approved), color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 12.sp)
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ALL_LEVELS.forEach { l ->
-                    val has = l in rewards.unlockedLevels
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        TitlePill(l, on = !rewards.titleHidden && rewards.titleLevel == l, locked = !has, showCheck = true,
-                            modifier = if (has) Modifier.clickable { onSave(null, l, null) } else Modifier)
-                        if (!has) Text(stringResource(R.string.rewards_needs, l), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                    }
-                }
-            }
-        }
-    }
-}
-
-/** Qué es su título y cómo se consigue (espejo de titleInfo de iOS). */
-@Composable
-private fun titleInfoText(r: com.meteomontana.android.domain.model.UserRewards): String {
-    val special = r.specialTitle
-    if (!special.isNullOrBlank()) {
-        val base = stringResource(R.string.title_info_special, special)
-        return when (TitleEffectKind.from(r.titleEffect)) {
-            TitleEffectKind.FAIRIES -> base + " " + stringResource(R.string.title_info_fairies)
-            TitleEffectKind.DRAGONS -> base + " " + stringResource(R.string.title_info_dragons)
-            null -> base
-        }
-    }
-    if (r.titleLevel <= 0) return stringResource(R.string.title_info_starter, rewardTitle(0))
-    return stringResource(R.string.title_info_level, rewardTitle(r.titleLevel), r.titleLevel, r.approved)
-}

@@ -78,7 +78,7 @@ fun Modifier.titleEffectHalo(kind: TitleEffectKind, size: Dp, animated: Boolean)
     val ringWidth = (size * (if (animated) 0.07f else 0.11f)).coerceAtLeast(2.dp)
     // Animado (perfil): hueco encima y debajo para las figuras. Sin él, la ficha las cortaba por arriba y el dragón
     // tapaba el nombre (captura de Álvaro, 2026-10-19). Va ANTES del dibujo: el centro sigue siendo el de la foto.
-    val room = if (animated) this.padding(top = size * 0.66f, bottom = size * 0.45f) else this
+    val room = if (animated) this.padding(top = size * 0.5f, bottom = size * 0.42f) else this
     return room.drawWithContent {
         val t = if (animated) time else 0f
         val c = center

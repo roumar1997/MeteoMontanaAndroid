@@ -178,6 +178,9 @@ internal fun SchoolMapView(
     /** Piedras sin ninguna vía en la selección del filtro de grado (ver
      * BLOCK_SEARCH_DESIGN.md §7) — se pintan atenuadas en el mapa. */
     gradeDimmedBlockIds: Set<String> = emptySet(),
+    /** Camino grabado hasta un parking o sector (el verificado si hay), para «Seguir camino» en su tarjeta. */
+    approachTo: (blockId: String) -> com.meteomontana.android.domain.model.Approach? = { null },
+    onFollowApproach: (com.meteomontana.android.domain.model.Approach) -> Unit = {},
     /** Lo que va JUSTO debajo del mapa y encima de PARKINGS (aproximaciones).
      *  Es una ranura porque esos datos viven en la pantalla de detalle, pero su
      *  sitio en pantalla está aquí dentro — igual que en iOS. */
@@ -311,6 +314,18 @@ internal fun SchoolMapView(
                 }
             }
         }
+    }
+
+    // «Ver en mapa» desde la GUÍA: centra en la piedra y enseña su mini-ficha, SIN abrir la ficha completa.
+    val focusBlockId by viewModel.focusBlockId.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(focusBlockId, mapRef.value, blocks) {
+        val id = focusBlockId ?: return@LaunchedEffect
+        val map = mapRef.value ?: return@LaunchedEffect
+        val b = blocks.firstOrNull { it.id == id } ?: return@LaunchedEffect
+        collapsedSectors = collapsedSectors - setOfNotNull(b.sectorBlockId)
+        runCatching { map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(b.lat, b.lon), ZOOM_PIEDRA)) }
+        miniBlock = b
+        viewModel.consumeFocusBlock()
     }
 
     // Preview de muro activo: el del editor si está trazando, si no el del flujo crear.
@@ -724,6 +739,8 @@ internal fun SchoolMapView(
                     onEdit = { editingMiniBlock = mb },
                     onDelete = { confirmDeleteMini = mb },
                     onClose = { miniBlock = null },
+                    approach = approachTo(mb.id),
+                    onFollowApproach = onFollowApproach,
                     // Desde el parking se ofrecen los sectores, ordenados por lo
                     // que queda por andar. Tocar uno hace EXACTAMENTE lo mismo
                     // que tocarlo en el mapa (mismo camino de código: si algún
@@ -733,8 +750,9 @@ internal fun SchoolMapView(
                             .calcular(mb, blocks)
                     else emptyList(),
                     onSectorClick = { sector -> onBlockTap(sector) },
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                        .padding(horizontal = Spacing.sm, vertical = Spacing.sm)
+                    onOpenStone = { onBlockTap(mb) },
+                    modifier = Modifier.align(Alignment.TopCenter)
+                        .padding(horizontal = 10.dp, vertical = 10.dp)
                 )
             }
         }

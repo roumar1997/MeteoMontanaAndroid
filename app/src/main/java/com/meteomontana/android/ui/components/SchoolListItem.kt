@@ -205,7 +205,7 @@ private fun SoftPill(text: String, fg: Color, bg: Color) {
 
 /** La nota en un anillo que se llena con su color (sin nota: anillo vacío y «—»). */
 @Composable
-private fun ScoreRing(score: Int?) {
+internal fun ScoreRing(score: Int?) {
     val color = score?.let { scoreColor(it) } ?: MaterialTheme.colorScheme.onSurfaceVariant
     val track = cumbrePillBg()
     val label = score?.let { "$it, ${CatalogLabels.scoreLabel(it)}" } ?: stringResource(R.string.schools_card_no_score)

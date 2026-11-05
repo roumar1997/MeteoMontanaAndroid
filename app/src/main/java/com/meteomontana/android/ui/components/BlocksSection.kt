@@ -45,6 +45,9 @@ fun BlocksSection(
     schoolId: String = "",
     viewModel: SchoolDetailViewModel? = null,
     onMyProposals: () -> Unit = {},
+    /** Camino grabado hasta un parking o sector (el verificado si hay), para «Seguir camino» en su tarjeta. */
+    approachTo: (blockId: String) -> com.meteomontana.android.domain.model.Approach? = { null },
+    onFollowApproach: (com.meteomontana.android.domain.model.Approach) -> Unit = {},
     /** Va justo debajo del mapa, encima de PARKINGS (aproximaciones). */
     contenidoTrasMapa: @Composable () -> Unit = {}
 ) {
@@ -140,6 +143,8 @@ fun BlocksSection(
             onGuardarBorrador = { d -> val con = d.copy(schoolId = schoolId); borradores.save(con); borradorPiedra = con },
             onBorrarBorrador = { borradores.clear(schoolId); borradorPiedra = null },
             onMyProposals = onMyProposals,
+            approachTo = approachTo,
+            onFollowApproach = onFollowApproach,
             contenidoTrasMapa = contenidoTrasMapa
         )
     }

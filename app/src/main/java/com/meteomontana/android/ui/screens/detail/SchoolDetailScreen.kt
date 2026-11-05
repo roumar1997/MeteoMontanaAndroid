@@ -57,6 +57,8 @@ import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
 import com.meteomontana.android.ui.theme.Spacing
 import kotlinx.coroutines.launch
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 
 @Composable
 fun SchoolDetailScreen(
@@ -325,10 +327,21 @@ private fun Content(
     androidx.compose.runtime.CompositionLocalProvider(
         com.meteomontana.android.ui.components.LocalSchoolRestrictions provides restrictionsUi
     ) {
+    // El scroll de la ficha, a mano: la GUÍA baja hasta un sector o una piedra (índice, marcapáginas).
+    val scroll = androidx.compose.foundation.rememberScrollState()
+    var viewportTop by remember { mutableStateOf(0f) }
+    val guideScope = androidx.compose.runtime.rememberCoroutineScope()
+    val topMarginPx = with(androidx.compose.ui.platform.LocalDensity.current) { 8.dp.toPx() }
+    val guideScroller = remember(scroll) {
+        com.meteomontana.android.ui.screens.detail.guide.GuideScroller { y ->
+            guideScope.launch { scroll.animateScrollTo((scroll.value + (y - viewportTop - topMarginPx)).toInt().coerceAtLeast(0)) }
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(androidx.compose.foundation.rememberScrollState())
+            .onGloballyPositioned { viewportTop = it.positionInWindow().y }
+            .verticalScroll(scroll)
     ) {
         com.meteomontana.android.ui.components.FirstTimeHint(
             hintKey = "detail_offline",
@@ -384,6 +397,8 @@ private fun Content(
                     // pone iOS (SchoolMapSection.swift:126-134). Aquí colgaban
                     // al final, detrás de sectores. Va por ranura porque el dato
                     // vive en esta pantalla pero su sitio está dentro del mapa.
+                    approachTo = { id -> approachesState.value.firstOrNull { it.toBlockId == id && it.isVerified } ?: approachesState.value.firstOrNull { it.toBlockId == id } },
+                    onFollowApproach = { followingApproach = it },
                     contenidoTrasMapa = {
                         com.meteomontana.android.ui.components.ApproachesSection(
                             // Mismo motivo que blocksState: llegan del servidor
@@ -403,6 +418,18 @@ private fun Content(
         var showHelp by remember { mutableStateOf(false) }
         val guides = com.meteomontana.android.ui.guide.LocalGuideController.current
         val blocksVm: SchoolBlocksViewModel = hiltViewModel()
+        // Piedra abierta desde la GUÍA: al cerrar su ficha se vuelve a la GUÍA (y el marcapáginas baja hasta ella).
+        var returnToGuide by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+        var sheetSeen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+        val sheetOpen by viewModel.blockSheetOpen.collectAsStateWithLifecycle()
+        LaunchedEffect(sheetOpen) {
+            if (!returnToGuide) return@LaunchedEffect
+            if (sheetOpen) sheetSeen = true
+            else if (sheetSeen) { returnToGuide = false; sheetSeen = false; tab = SchoolTab.BLOCKS }
+        }
+        // Salir del MAPA a otra pestaña a mano cancela la vuelta automática.
+        LaunchedEffect(tab) { if (tab != SchoolTab.MAP) returnToGuide = false }
+        val photoFinder: com.meteomontana.android.ui.assistant.photo.SchoolPhotoFinderViewModel = hiltViewModel()
 
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
@@ -433,8 +460,15 @@ private fun Content(
                     showHelp = true
                 }
             }
+            // «¿Qué piedra es esta?»: una foto y dice cuál de las de ESTA escuela es (todo en el móvil).
+            Spacer(Modifier.size(8.dp))
+            com.meteomontana.android.ui.assistant.photo.SchoolPhotoButton(school, photoFinder, Modifier.guideTarget("detail.photo"))
         }
         if (showHelp) com.meteomontana.android.ui.components.HelpSheet(topicKey = "detail", onDismiss = { showHelp = false })
+        com.meteomontana.android.ui.assistant.photo.SchoolPhotoSheet(photoFinder, school.name) { blockId ->
+            photoFinder.cancel()
+            onBlockClick(blockId)
+        }
 
         if (forecast != null) {
             HoyCard(forecast)
@@ -484,15 +518,17 @@ private fun Content(
         when (tab) {
             // Piedras y mapa disponibles YA, con el tiempo cargando o caído.
             SchoolTab.MAP -> blocksSection()
-            SchoolTab.BLOCKS -> SchoolBlocksTab(blocksVm, onOpen = onBlockClick)
+            SchoolTab.BLOCKS -> SchoolGuideHost(
+                school = school, blocks = blocks, viewModel = viewModel, blocksVm = blocksVm,
+                scroller = guideScroller,
+                goToMap = { returnAfter -> returnToGuide = returnAfter; sheetSeen = false; tab = SchoolTab.MAP }
+            )
             SchoolTab.WEATHER -> if (forecast != null) {
                 SchoolWeatherTab(
                     forecast = forecast,
-                    // Boletín de montaña AEMET: solo escuelas de un macizo ESPAÑOL. Fuera de España no existe boletín, y
-                    // enseñar un hueco vacío es peor que no ofrecer la función.
-                    bulletin = mountainBulletin
-                        ?.takeIf { com.meteomontana.android.domain.util.SpainOnlyFeatures.showsMountainBulletin(school.country) }
-                        ?.let { b -> { com.meteomontana.android.ui.components.MountainBulletinSection(b) } },
+                    // Boletín de montaña AEMET QUITADO (Álvaro, 2026-11-05): unas veces llega y otras no. Para volver a ponerlo,
+                    // pasar aquí `bulletin = mountainBulletin?.let { b -> { MountainBulletinSection(b) } }` (solo España).
+                    bulletin = null,
                     onDayClick = onDayClick
                 )
             }

@@ -39,6 +39,42 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material.icons.outlined.VolumeOff
+import androidx.compose.material.icons.outlined.VolumeUp
+import androidx.compose.material.icons.outlined.NearMe
+import androidx.compose.material.icons.outlined.WbSunny
+import androidx.compose.material.icons.outlined.Contrast
+import androidx.compose.material.icons.outlined.WbTwilight
+import androidx.compose.material.icons.outlined.ViewInAr
+import androidx.compose.material.icons.outlined.VerticalAlignTop
+import androidx.compose.material.icons.outlined.StarOutline
+import androidx.compose.material.icons.outlined.WbCloudy
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import androidx.compose.material.icons.outlined.FormatListNumbered
+import androidx.compose.material.icons.outlined.Accessibility
+import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.ArrowUpward
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.rotate
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Stop
@@ -77,6 +113,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.meteomontana.android.R
+import com.meteomontana.android.ui.assistant.photo.AssistantPhotoMatchesView
+import com.meteomontana.android.ui.assistant.photo.StonePhotoWords
+import com.meteomontana.android.ui.assistant.photo.rememberStonePhotoSource
 import com.meteomontana.android.domain.model.AssistantOption
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Mono
@@ -96,8 +135,8 @@ private class ChatWords(lang: String) {
     val close = t("Cerrar", "Close")
     val thinking = t("Pensando…", "Thinking…")
     val queued = t("en cola", "queued")
-    val listening = t("Escuchando… se envía solo al callar. Toca el micrófono para parar y editar.",
-        "Listening… it sends itself when you stop talking. Tap the mic to stop and edit.")
+    val listening = t("Escuchando · se envía solo al callar",
+        "Listening · it sends itself when you stop")
     val heardNothing = t("No te he oído. Toca el micrófono e inténtalo otra vez.", "I didn't hear you. Tap the mic and try again.")
     val welcomeTitle = t("¿Qué buscas hoy?", "What are you looking for today?")
     val welcomeBody = t("Pregúntame por escuelas, bloques, vías, el tiempo o la sombra de un sector. También puedes dictarlo.",
@@ -114,6 +153,26 @@ private class ChatWords(lang: String) {
     val micMessage = t("Para dictar necesito permiso de micrófono. Puedes dárselo en Ajustes.", "To dictate I need microphone permission. You can grant it in Settings.")
     val settings = t("Ajustes", "Settings")
     val micUnavailable = t("Este móvil no tiene reconocimiento de voz.", "This phone has no speech recognition.")
+    val assistant = t("Asistente", "Assistant")
+    val typing = t("Escribiendo…", "Typing…")
+    val realData = t("Responde con datos reales", "Answers with real data")
+    val newConversation = t("Nueva conversación", "New conversation")
+    val assistantSettings = t("Ajustes del asistente", "Assistant settings")
+    val spokenAnswers = t("Respuestas habladas", "Spoken answers")
+    val whenSpoken = t("Si pregunto hablando", "When I ask by voice")
+    val always = t("Siempre", "Always")
+    val never = t("Nunca", "Never")
+    val voiceOff = t("Quitar la voz", "Turn voice off")
+    val voiceOn = t("Activar la voz", "Turn voice on")
+    val readAloud = t("Leer en voz alta", "Read aloud")
+    val stopReading = t("Parar de leer", "Stop reading")
+    val stop = t("Parar", "Stop")
+    val stopAnswer = t("Parar la respuesta", "Stop the answer")
+    val myHome = t("MI CASA", "MY HOME")
+    val saveHome = t("Guardar aquí como mi casa", "Save here as my home")
+    val forgetHome = t("Olvidar mi casa", "Forget my home")
+    /** La frase que se envía al tocar «Guardar aquí como mi casa» (el asistente pide confirmar). */
+    val saveHomePhrase = t("guarda aquí como mi casa", "save here as my home")
 }
 
 /**
@@ -129,6 +188,7 @@ private class ChatWords(lang: String) {
 fun AssistantBubble(
     viewModel: AssistantViewModel,
     onOpenTarget: (schoolId: String, viaId: String?) -> Unit,
+    onOpenMeetup: (com.meteomontana.android.ui.screens.meetups.MeetupPrefill) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -181,6 +241,15 @@ fun AssistantBubble(
             onOpenTarget(request.schoolId, request.viaId)
         }
     }
+    // "Crea una quedada…" confirmada: el chat se cierra y se abre el formulario ya relleno.
+    val meetup = state.meetupRequest
+    LaunchedEffect(meetup) {
+        if (meetup != null) {
+            open = false
+            viewModel.consumeMeetupRequest()
+            onOpenMeetup(meetup)
+        }
+    }
 
     if (open) AssistantChatSheet(viewModel, onDismiss = { open = false })
 }
@@ -212,7 +281,7 @@ private fun AssistantChatSheet(vm: AssistantViewModel, onDismiss: () -> Unit) {
     DisposableEffect(Unit) {
         voice.onText = { vm.setInput(it) }
         // Al callar, la pregunta se envía sola.
-        voice.onFinished = { spoken -> vm.send(spoken) }
+        voice.onFinished = { spoken -> vm.send(spoken, spoken = true) }
         if (vm.state.value.listenOnOpen) {
             vm.setListenOnOpen(false)
             if (voice.hasPermission()) voice.start() else micLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -233,10 +302,10 @@ private fun AssistantChatSheet(vm: AssistantViewModel, onDismiss: () -> Unit) {
             color = MaterialTheme.colorScheme.background
         ) {
             Column(Modifier.fillMaxSize().imePadding().navigationBarsPadding()) {
-                Header(state.messages.isNotEmpty(), words, onNew = { voice.stop(); vm.reset() }, onClose = { voice.stop(); onDismiss() })
+                Header(vm, state, words, onNew = { voice.stop(); vm.reset() }, onClose = { voice.stop(); vm.speaker.stop(); onDismiss() })
                 MessagesList(vm, state, presenter, assistantWords, words, Modifier.weight(1f))
-                VoiceHint(voice, words)
                 InputBar(vm, state, voice, words, onToggleVoice = ::toggleVoice, onSend = { voice.stop(); vm.send() })
+                VoiceHint(voice, words)
             }
         }
     }
@@ -258,19 +327,82 @@ private fun AssistantChatSheet(vm: AssistantViewModel, onDismiss: () -> Unit) {
     )
 }
 
+/**
+ * Cabecera como la de iOS: altavoz (un toque y deja de hablar) a la izquierda; Cumbri, «Asistente» y qué está haciendo
+ * en el centro; y a la derecha el menú «⋯» (cuándo contesta hablando), nueva conversación y cerrar.
+ */
 @Composable
-private fun Header(hasMessages: Boolean, words: ChatWords, onNew: () -> Unit, onClose: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+private fun Header(vm: AssistantViewModel, state: AssistantUiState, words: ChatWords, onNew: () -> Unit, onClose: () -> Unit) {
+    val mode by vm.speaker.mode.collectAsStateWithLifecycle()
+    val voiceOn = mode != AssistantSpeechMode.NEVER
+    val hasHome by vm.hasHome.collectAsStateWithLifecycle()
+    var menuOpen by remember { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-            if (hasMessages) Text(words.newChat, color = Terra, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 11.sp,
-                modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surface).clickable(onClick = onNew).padding(horizontal = 14.dp, vertical = 10.dp))
+            ToolbarIcon(
+                if (voiceOn) Icons.Outlined.VolumeUp else Icons.Outlined.VolumeOff,
+                if (voiceOn) words.voiceOff else words.voiceOn
+            ) { vm.speaker.setMode(if (voiceOn) AssistantSpeechMode.NEVER else AssistantSpeechMode.WHEN_SPOKEN) }
         }
-        Text("Cumbre", color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
-        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-            Text(words.close, color = Terra, fontSize = 15.sp,
-                modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surface).clickable(onClick = onClose).padding(horizontal = 16.dp, vertical = 10.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Image(painterResource(R.drawable.assistant_bubble), contentDescription = null, modifier = Modifier.size(30.dp))
+            Column {
+                Text(words.assistant, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                Text(if (state.isLoading) words.typing else words.realData,
+                    color = if (state.isLoading) Terra else MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+            }
+        }
+        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
+            Box {
+                ToolbarIcon(Icons.Outlined.MoreHoriz, words.assistantSettings) { menuOpen = true }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    Text(words.spokenAnswers, color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = Mono, fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+                    listOf(
+                        AssistantSpeechMode.WHEN_SPOKEN to words.whenSpoken,
+                        AssistantSpeechMode.ALWAYS to words.always,
+                        AssistantSpeechMode.NEVER to words.never
+                    ).forEach { (option, label) ->
+                        DropdownMenuItem(
+                            text = { Text(label, color = if (option == mode) Terra else MaterialTheme.colorScheme.onBackground,
+                                fontWeight = if (option == mode) FontWeight.Bold else FontWeight.Normal) },
+                            onClick = { vm.speaker.setMode(option); menuOpen = false }
+                        )
+                    }
+                    // La casa para "cerca de casa": se guarda solo en este móvil.
+                    androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                    Text(words.myHome, color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = Mono, fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+                    if (hasHome) {
+                        DropdownMenuItem(
+                            text = { Text(words.forgetHome, color = MaterialTheme.colorScheme.error) },
+                            leadingIcon = { Icon(Icons.Outlined.Home, null, tint = MaterialTheme.colorScheme.error) },
+                            onClick = { vm.forgetHome(); menuOpen = false }
+                        )
+                    } else {
+                        DropdownMenuItem(
+                            text = { Text(words.saveHome) },
+                            leadingIcon = { Icon(Icons.Outlined.Home, null) },
+                            onClick = { vm.send(words.saveHomePhrase); menuOpen = false }
+                        )
+                    }
+                }
+            }
+            if (state.messages.isNotEmpty()) ToolbarIcon(Icons.Outlined.Edit, words.newConversation, onNew)
+            ToolbarIcon(Icons.Outlined.Close, words.close, onClose)
         }
     }
+}
+
+/** Botón redondo de la cabecera (mismo aspecto que en iOS: círculo de papel con borde fino). */
+@Composable
+private fun ToolbarIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, description: String, onClick: () -> Unit) {
+    Box(
+        Modifier.size(34.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+            .clickable(onClick = onClick).semantics { contentDescription = description },
+        contentAlignment = Alignment.Center
+    ) { Icon(icon, null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(17.dp)) }
 }
 
 @Composable
@@ -287,146 +419,306 @@ private fun MessagesList(
     LazyColumn(modifier.fillMaxWidth(), state = listState, contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)) {
         if (state.messages.isEmpty()) item(key = "welcome") { Welcome(vm, presenter, words) }
-        items(state.messages.size, key = { state.messages[it].id }) { i -> MessageView(vm, state.messages[i], state.isLoading, presenter, aw, words) }
+        items(state.messages.size, key = { state.messages[it].id }) { i -> MessageView(vm, state.messages[i], state.isLoading, presenter, aw, words,
+            showFollowUps = i == state.messages.lastIndex && !state.isLoading && state.queued.isEmpty()) }
         if (state.isLoading) item(key = "loading") {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CircularProgressIndicator(color = Terra, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
-                Text(words.thinking, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+            BotRow {
+                TypingDots(words.thinking)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    state.loadingNote?.let {
+                        Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.weight(1f, fill = false))
+                    }
+                    Row(
+                        Modifier.clip(RoundedCornerShape(50)).border(1.5.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
+                            .clickable { vm.stopThinking() }.padding(horizontal = 12.dp, vertical = 6.dp)
+                            .semantics { contentDescription = words.stopAnswer },
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Icon(Icons.Outlined.Stop, null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(11.dp))
+                        Text(words.stop, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    }
+                }
             }
         }
         // Preguntas que esperan su turno (se contestan por orden).
         items(state.queued.size, key = { "queued-$it-${state.queued[it]}" }) { i ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(state.queued[i], color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp,
-                        modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(inkButtonColor().copy(alpha = 0.55f)).padding(horizontal = 13.dp, vertical = 10.dp))
-                    Text(words.queued, color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(state.queued[i], color = Color.White, fontSize = 14.sp,
+                        modifier = Modifier.padding(start = 44.dp).alpha(0.55f).clip(UserBubbleShape).background(terraFillColor())
+                            .padding(horizontal = 14.dp, vertical = 10.dp))
+                    Text("${words.queued} · ${i + 1}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 9.sp)
                 }
             }
         }
     }
 }
 
+/** Bocadillos con la esquina del lado de quien habla casi en punta (estilo mensajería), como en iOS. */
+private val UserBubbleShape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 5.dp, bottomStart = 18.dp)
+private val BotBubbleShape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomEnd = 18.dp, bottomStart = 5.dp)
+
+/** Fila del asistente: Cumbri pequeño a la izquierda y su contenido al lado. */
+@Composable
+private fun BotRow(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+        Image(painterResource(R.drawable.assistant_bubble), contentDescription = null, modifier = Modifier.padding(top = 2.dp).size(22.dp).clip(CircleShape))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
+    }
+}
+
+/** Tres puntos que laten mientras el asistente piensa. */
+@Composable
+private fun TypingDots(description: String) {
+    val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "typing")
+    Row(
+        Modifier.shadow(2.dp, BotBubbleShape).clip(BotBubbleShape).background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 14.dp, vertical = 13.dp).semantics { contentDescription = description },
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        repeat(3) { i ->
+            val a by transition.animateFloat(
+                initialValue = 0.25f, targetValue = 1f,
+                animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                    androidx.compose.animation.core.tween(550), androidx.compose.animation.core.RepeatMode.Reverse,
+                    androidx.compose.animation.core.StartOffset(i * 180)),
+                label = "dot$i"
+            )
+            Box(Modifier.size(7.dp).alpha(a).clip(CircleShape).background(MaterialTheme.colorScheme.onSurfaceVariant))
+        }
+    }
+}
+
 @Composable
 private fun Welcome(vm: AssistantViewModel, presenter: AssistantPresenter, words: ChatWords) {
-    Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(words.welcomeTitle, color = MaterialTheme.colorScheme.onBackground, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp)
-        Text(words.welcomeBody, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
-        Text(words.holdHint, color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-        presenter.suggestions().forEach { s ->
-            Text(s, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp,
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                    .clickable { vm.send(s) }.padding(horizontal = 12.dp, vertical = 10.dp))
+    val name = remember { com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.displayName }
+    val icons = listOf(Icons.Outlined.NearMe, Icons.Outlined.WbSunny, Icons.Outlined.Contrast)
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Image(painterResource(R.drawable.cumbri_welcome), contentDescription = null, modifier = Modifier.height(130.dp))
+        Text(presenter.greeting(name), color = MaterialTheme.colorScheme.onBackground, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+        Text(words.welcomeBody, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        Column(Modifier.padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            presenter.suggestions().forEachIndexed { i, s ->
+                val card = RoundedCornerShape(14.dp)
+                Row(
+                    Modifier.fillMaxWidth().shadow(2.dp, card).clip(card).background(MaterialTheme.colorScheme.surface)
+                        .clickable { vm.send(s) }.padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(Modifier.size(34.dp).clip(CircleShape).background(TerraBg), contentAlignment = Alignment.Center) {
+                        Icon(icons[i % icons.size], null, tint = Terra, modifier = Modifier.size(16.dp))
+                    }
+                    Text(s, Modifier.weight(1f), color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(14.dp).rotate(-45f))
+                }
+            }
         }
+        Text(words.holdHint, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 2.dp))
     }
 }
 
 @Composable
 private fun MessageView(
     vm: AssistantViewModel, m: AssistantMessage, loading: Boolean,
-    presenter: AssistantPresenter, aw: AssistantWords, words: ChatWords
+    presenter: AssistantPresenter, aw: AssistantWords, words: ChatWords, showFollowUps: Boolean
 ) {
     if (m.isUser) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             Text(m.text, color = Color.White, fontSize = 14.sp,
-                modifier = Modifier.padding(start = 44.dp).clip(RoundedCornerShape(12.dp)).background(inkButtonColor()).padding(horizontal = 13.dp, vertical = 10.dp))
+                modifier = Modifier.padding(start = 44.dp).clip(UserBubbleShape).background(terraFillColor()).padding(horizontal = 14.dp, vertical = 10.dp))
         }
         return
     }
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(m.text, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp,
-            modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surface)
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp)).padding(horizontal = 13.dp, vertical = 10.dp))
-        if (m.chips.isNotEmpty()) ChipsRow(m.chips)
+    val lang = AppLanguage.effective(LocalContext.current)
+    BotRow {
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(m.text, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp,
+                modifier = Modifier.weight(1f, fill = false).shadow(2.dp, BotBubbleShape).clip(BotBubbleShape)
+                    .background(MaterialTheme.colorScheme.surface).padding(horizontal = 14.dp, vertical = 10.dp))
+            SpeakerButton(vm, m, lang, words)
+        }
+        if (m.photoMatches.isNotEmpty()) AssistantPhotoMatchesView(m.photoMatches, StonePhotoWords(lang)) { c -> vm.requestOpen(c.schoolId, c.lineId) }
+        if (m.chips.isNotEmpty()) ChipsRow(m.chips, presenter)
+        m.restrictions?.let { AssistantRestrictionsView(it, presenter) { id -> vm.requestOpen(id) } }
+        if (m.trip.isNotEmpty()) AssistantTripView(m.trip, presenter) { id -> vm.requestOpen(id) }
         m.recommendation?.let { AssistantRecommendationView(it, presenter, aw) { id -> vm.requestOpen(id) } }
         m.breakdown?.let { AssistantBreakdownView(it, presenter, aw) { school, via -> vm.requestOpen(school, via) } }
         m.weather?.let { AssistantWeatherCard(it, presenter, aw) }
         if (m.journalEntries.isNotEmpty()) AssistantJournalListView(m.journalEntries, m.journalTotal, presenter) { school, via -> vm.requestOpen(school, via) }
         m.retryText?.let { RetryButton(words, enabled = !loading) { vm.retry(it) } }
-        if (m.pendingActions.any { it.state == PendingAction.State.WAITING }) ConfirmButtons(vm, m, words, enabled = !loading)
+        if (m.pendingActions.any { it.state == PendingAction.State.WAITING }) ConfirmButtons(vm, m, presenter, enabled = !loading)
         if (m.hits.isNotEmpty()) AssistantHitsView(m.hits, presenter, aw) { school, via -> vm.requestOpen(school, via) }
         if (m.restored && m.hasCards) presenter.savedNote(m.createdAt)?.let {
             Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
         }
         if (m.options.isNotEmpty()) OptionsColumn(vm, m.options)
+        if (showFollowUps) FollowUpsRow(vm, presenter.followUps(m))
     }
 }
 
+/** Ideas para seguir preguntando debajo de la última respuesta: se envían tal cual o abren la escuela. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun ChipsRow(chips: List<String>) {
+private fun FollowUpsRow(vm: AssistantViewModel, items: List<AssistantPresenter.FollowUp>) {
+    if (items.isEmpty()) return
+    androidx.compose.foundation.layout.FlowRow(
+        Modifier.padding(top = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        items.forEach { item ->
+            Text(item.title, color = Terra, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, maxLines = 1,
+                modifier = Modifier.clip(RoundedCornerShape(50)).border(1.5.dp, Terra, RoundedCornerShape(50))
+                    .clickable { item.openSchoolId?.let { vm.requestOpen(it) } ?: vm.send(item.title) }
+                    .padding(horizontal = 12.dp, vertical = 6.dp))
+        }
+    }
+}
+
+/** Lo que ha entendido, en pastillas con un icono pequeño (sitio, sol/sombra, cuándo…). */
+@Composable
+private fun ChipsRow(chips: List<String>, presenter: AssistantPresenter) {
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         chips.forEach { chip ->
-            Text(chip, color = Terra, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 11.sp, maxLines = 1,
-                modifier = Modifier.clip(RoundedCornerShape(2.dp)).background(TerraBg.copy(alpha = 0.85f))
-                    .border(1.dp, Terra.copy(alpha = 0.35f), RoundedCornerShape(2.dp)).padding(horizontal = 9.dp, vertical = 5.dp))
+            Row(
+                Modifier.clip(CircleShape).background(TerraBg).padding(horizontal = 10.dp, vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                presenter.chipIcon(chip)?.let { Icon(chipVector(it), null, tint = Terra, modifier = Modifier.size(11.dp)) }
+                Text(chip, color = Terra, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 11.sp, maxLines = 1)
+            }
         }
+    }
+}
+
+private fun chipVector(icon: AssistantPresenter.ChipIcon) = when (icon) {
+    AssistantPresenter.ChipIcon.SHADE -> Icons.Outlined.Contrast
+    AssistantPresenter.ChipIcon.SUN -> Icons.Outlined.WbSunny
+    AssistantPresenter.ChipIcon.MORNING -> Icons.Outlined.WbTwilight
+    AssistantPresenter.ChipIcon.AFTERNOON -> Icons.Outlined.WbTwilight
+    AssistantPresenter.ChipIcon.BOULDER -> Icons.Outlined.ViewInAr
+    AssistantPresenter.ChipIcon.ROUTE -> Icons.Outlined.VerticalAlignTop
+    AssistantPresenter.ChipIcon.LOCATION -> Icons.Outlined.NearMe
+    AssistantPresenter.ChipIcon.STAR -> Icons.Outlined.StarOutline
+    AssistantPresenter.ChipIcon.NO_RAIN -> Icons.Outlined.WbCloudy
+    AssistantPresenter.ChipIcon.TOPO -> Icons.Outlined.Image
+    AssistantPresenter.ChipIcon.NOT_DONE -> Icons.Outlined.RadioButtonUnchecked
+    AssistantPresenter.ChipIcon.MOST_LINES -> Icons.Outlined.FormatListNumbered
+    AssistantPresenter.ChipIcon.BETA -> Icons.Outlined.Accessibility
+    AssistantPresenter.ChipIcon.FACE -> Icons.Outlined.Explore
+    AssistantPresenter.ChipIcon.CALENDAR -> Icons.Outlined.CalendarMonth
+    AssistantPresenter.ChipIcon.PIN -> Icons.Outlined.Place
+}
+
+/** Botón de píldora terracota con icono (Reintentar, Confirmar, Apuntar las N), como en iOS. */
+@Composable
+private fun PrimaryPill(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.clip(CircleShape).background(terraFillColor().copy(alpha = if (enabled) 1f else 0.5f))
+            .clickable(enabled = enabled, onClick = onClick).padding(horizontal = 16.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(icon, null, tint = Color.White, modifier = Modifier.size(13.dp))
+        Text(text, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
     }
 }
 
 /** Tras un fallo pasajero, repetir la misma pregunta con un toque (sin escribirla de nuevo). */
 @Composable
-private fun RetryButton(words: ChatWords, enabled: Boolean, onClick: () -> Unit) {
-    Row(
-        Modifier.clip(RoundedCornerShape(2.dp)).background(terraFillColor().copy(alpha = if (enabled) 1f else 0.5f))
-            .clickable(enabled = enabled, onClick = onClick).padding(horizontal = 14.dp, vertical = 9.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Icon(Icons.Outlined.Refresh, null, tint = Color.White, modifier = Modifier.size(14.dp))
-        Text(words.retry, color = Color.White, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.4.sp)
-    }
-}
+private fun RetryButton(words: ChatWords, enabled: Boolean, onClick: () -> Unit) =
+    PrimaryPill(words.retry.lowercase().replaceFirstChar { it.uppercase() }, Icons.Outlined.Refresh, enabled, onClick)
 
-/** CONFIRMAR / CANCELAR para una acción propuesta: la app nunca hace nada por su cuenta. */
 @Composable
-private fun ConfirmButtons(vm: AssistantViewModel, m: AssistantMessage, words: ChatWords, enabled: Boolean) {
+private fun CancelPill(presenter: AssistantPresenter, enabled: Boolean, onClick: () -> Unit) {
+    Text(presenter.cancelWord(), color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
+        modifier = Modifier.clip(CircleShape).border(1.5.dp, MaterialTheme.colorScheme.outline, CircleShape)
+            .clickable(enabled = enabled, onClick = onClick).padding(horizontal = 16.dp, vertical = 9.dp))
+}
+
+/** Confirmar / Cancelar para una acción propuesta: la app nunca hace nada por su cuenta. */
+@Composable
+private fun ConfirmButtons(vm: AssistantViewModel, m: AssistantMessage, presenter: AssistantPresenter, enabled: Boolean) {
+    val waiting = m.pendingActions.filter { it.state == PendingAction.State.WAITING }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        m.pendingActions.filter { it.state == PendingAction.State.WAITING }.forEach { action ->
-            Text(
-                confirmTitle(action, m.pendingActions.size > 1, words),
-                color = Color.White, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.4.sp,
-                modifier = Modifier.clip(RoundedCornerShape(2.dp)).background(terraFillColor().copy(alpha = if (enabled) 1f else 0.5f))
-                    .clickable(enabled = enabled) { vm.confirm(m.id, action.id) }.padding(horizontal = 14.dp, vertical = 9.dp)
-            )
+        when {
+            m.confirmAll -> {
+                // Varias vías del día: se enseñan todas y se apuntan con un solo toque.
+                waiting.forEach { action ->
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surface)
+                            .padding(horizontal = 12.dp, vertical = 9.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(if (action.kind == "LOG_PROJECT") Icons.Outlined.RadioButtonUnchecked else Icons.Outlined.CheckCircle,
+                            null, tint = Terra, modifier = Modifier.size(18.dp))
+                        Text(logLine(action, presenter), color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PrimaryPill(presenter.logAll(waiting.size), Icons.Outlined.Check, enabled) { vm.confirmAll(m.id) }
+                    CancelPill(presenter, enabled) { vm.cancel(m.id) }
+                }
+            }
+            waiting.size > 1 -> {
+                // Varias candidatas: una tarjeta por cada una para elegir, y Cancelar debajo.
+                waiting.forEach { action -> OptionCard(confirmTitle(action, presenter), enabled) { vm.confirm(m.id, action.id) } }
+                CancelPill(presenter, enabled) { vm.cancel(m.id) }
+            }
+            else -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                waiting.forEach { action -> PrimaryPill(presenter.confirmWord(), Icons.Outlined.Check, enabled) { vm.confirm(m.id, action.id) } }
+                CancelPill(presenter, enabled) { vm.cancel(m.id) }
+            }
         }
-        Text(words.cancel, color = MaterialTheme.colorScheme.onBackground, fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.4.sp,
-            modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                .clickable(enabled = enabled) { vm.cancel(m.id) }.padding(horizontal = 14.dp, vertical = 9.dp))
     }
 }
 
-/** "CONFIRMAR", o con varias candidatas el nombre de cada una para poder elegir. */
-private fun confirmTitle(action: PendingAction, several: Boolean, words: ChatWords): String {
-    val hit = action.hit
-    if (!several || hit == null) return words.confirm
+/** "Zarzamora · 7a · Albarracín — hecha" / "— proyecto". */
+private fun logLine(action: PendingAction, p: AssistantPresenter): String {
+    val hit = action.hit ?: return action.schoolName
+    val grade = hit.grade?.let { " · $it" } ?: ""
+    val what = if (action.kind == "LOG_PROJECT") p.projectWord() else p.doneWord()
+    return "${hit.lineName ?: hit.blockName}$grade · ${hit.schoolName} — $what"
+}
+
+/** El nombre de cada candidata para poder elegir. */
+private fun confirmTitle(action: PendingAction, p: AssistantPresenter): String {
+    val hit = action.hit ?: return p.confirmWord()
     val grade = hit.grade?.let { " · $it" } ?: ""
     return "${hit.lineName ?: hit.blockName}$grade · ${hit.schoolName}"
+}
+
+/** Tarjeta redondeada tocable con flecha: opciones de "¿a cuál te refieres?" y candidatas a confirmar. */
+@Composable
+private fun OptionCard(text: String, enabled: Boolean = true, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        Modifier.fillMaxWidth().shadow(2.dp, shape).clip(shape).background(MaterialTheme.colorScheme.surface)
+            .clickable(enabled = enabled, onClick = onClick).padding(horizontal = 14.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(text, Modifier.weight(1f), color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+    }
 }
 
 @Composable
 private fun OptionsColumn(vm: AssistantViewModel, options: List<AssistantOption>) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        options.forEach { option ->
-            Text(option.name, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.background)
-                    .border(1.dp, MaterialTheme.colorScheme.onBackground, RoundedCornerShape(2.dp))
-                    .clickable { vm.send(option.name) }.padding(horizontal = 12.dp, vertical = 10.dp))
-        }
+        options.forEach { option -> OptionCard(option.name) { vm.send(option.name) } }
     }
 }
 
-/** Estado del micrófono, justo encima de la caja: qué está pasando y cómo pararlo. */
+/** Estado del micrófono, debajo de la caja: corto, para no tapar la conversación. */
 @Composable
 private fun VoiceHint(voice: AssistantVoiceInput, words: ChatWords) {
+    val center = androidx.compose.ui.text.style.TextAlign.Center
     if (voice.isListening) {
-        Row(Modifier.fillMaxWidth().background(TerraBg.copy(alpha = 0.6f)).padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CircularProgressIndicator(color = Terra, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
-            Text(words.listening, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-        }
+        Text(words.listening, color = Terra, fontWeight = FontWeight.Medium, fontSize = 11.sp, textAlign = center,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp))
     } else if (voice.heardNothing) {
-        Text(words.heardNothing, color = MaterialTheme.colorScheme.error, fontSize = 12.sp,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp))
+        Text(words.heardNothing, color = MaterialTheme.colorScheme.error, fontSize = 11.sp, textAlign = center,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp))
     }
 }
 
@@ -435,32 +727,106 @@ private fun InputBar(
     vm: AssistantViewModel, state: AssistantUiState, voice: AssistantVoiceInput, words: ChatWords,
     onToggleVoice: () -> Unit, onSend: () -> Unit
 ) {
-    Column {
-        androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
+    Row(
+        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        StoneCameraButton(vm, enabled = !state.isLoading, words = words, lang = AppLanguage.effective(LocalContext.current))
+        // Caja de texto de píldora, como la de iOS: fondo de papel con sombra suave, sin borde.
+        val field = RoundedCornerShape(21.dp)
+        Box(
+            Modifier.weight(1f).heightIn(min = 42.dp).shadow(2.dp, field).clip(field).background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = 16.dp, vertical = 11.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            if (state.input.isEmpty()) {
+                Text(words.placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 15.sp, maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            }
+            androidx.compose.foundation.text.BasicTextField(
                 value = state.input, onValueChange = vm::setInput,
-                modifier = Modifier.weight(1f),
-                placeholder = { Text(words.placeholder, fontSize = 14.sp) },
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = androidx.compose.ui.text.TextStyle(color = MaterialTheme.colorScheme.onBackground, fontSize = 15.sp),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(Terra),
                 maxLines = 4,
-                shape = RoundedCornerShape(2.dp),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 keyboardActions = KeyboardActions(onSend = { onSend() })
             )
-            val listening = voice.isListening
+        }
+        val listening = voice.isListening
+        Box(Modifier.size(42.dp), contentAlignment = Alignment.Center) {
+            if (listening) PulseRing()
             Box(
-                Modifier.size(48.dp).clip(RoundedCornerShape(2.dp)).background(if (listening) terraFillColor() else TerraBg)
-                    .border(1.dp, Terra, RoundedCornerShape(2.dp)).clickable(onClick = onToggleVoice)
+                Modifier.size(42.dp).clip(CircleShape).background(if (listening) terraFillColor() else TerraBg)
+                    .clickable(onClick = onToggleVoice)
                     .semantics { contentDescription = if (listening) words.stopDictation else words.dictate },
                 contentAlignment = Alignment.Center
-            ) { Icon(if (listening) Icons.Outlined.Stop else Icons.Outlined.Mic, null, tint = if (listening) Color.White else Terra) }
-            Box(
-                Modifier.size(48.dp).clip(RoundedCornerShape(2.dp))
-                    .background(if (state.canSend) terraFillColor() else MaterialTheme.colorScheme.onSurfaceVariant)
-                    .clickable(enabled = state.canSend, onClick = onSend)
-                    .semantics { contentDescription = words.send },
-                contentAlignment = Alignment.Center
-            ) { Icon(Icons.AutoMirrored.Outlined.Send, null, tint = Color.White) }
+            ) {
+                Icon(if (listening) Icons.Outlined.Stop else Icons.Outlined.Mic, null,
+                    tint = if (listening) Color.White else Terra, modifier = Modifier.size(20.dp))
+            }
+        }
+        Box(
+            Modifier.size(42.dp).clip(CircleShape)
+                .background(if (state.canSend) terraFillColor() else MaterialTheme.colorScheme.onSurfaceVariant)
+                .clickable(enabled = state.canSend, onClick = onSend)
+                .semantics { contentDescription = words.send },
+            contentAlignment = Alignment.Center
+        ) { Icon(Icons.Outlined.ArrowUpward, null, tint = Color.White, modifier = Modifier.size(20.dp)) }
+    }
+}
+
+/** Anillo que se expande alrededor del micrófono mientras escucha. */
+@Composable
+private fun PulseRing() {
+    val t = androidx.compose.animation.core.rememberInfiniteTransition(label = "pulse")
+    val p by t.animateFloat(0f, 1f, androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(1100)), label = "p")
+    Box(Modifier.size(42.dp).scale(1f + 0.45f * p).alpha(0.7f * (1f - p)).border(2.dp, Terra, CircleShape))
+}
+
+/** Leer (o parar) esta respuesta en voz alta. */
+@Composable
+private fun SpeakerButton(vm: AssistantViewModel, m: AssistantMessage, lang: String, words: ChatWords) {
+    val speakingId by vm.speaker.speakingId.collectAsStateWithLifecycle()
+    val active = speakingId == m.id
+    Box(
+        Modifier.size(26.dp).clip(CircleShape)
+            .background(if (active) Terra else MaterialTheme.colorScheme.surface)
+            .then(if (active) Modifier else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
+            .clickable { vm.speaker.toggle(spokenText(m, lang), m.id) }
+            .semantics { contentDescription = if (active) words.stopReading else words.readAloud },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(if (active) Icons.Outlined.Stop else Icons.Outlined.VolumeUp, null,
+            tint = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(13.dp))
+    }
+}
+
+/** Cámara junto a la caja de texto: «¿Qué piedra es esta?» con una foto hecha ahora o elegida de la galería. */
+@Composable
+private fun StoneCameraButton(vm: AssistantViewModel, enabled: Boolean, words: ChatWords, lang: String) {
+    val stoneWords = remember(lang) { StonePhotoWords(lang) }
+    val source = rememberStonePhotoSource(onPhoto = vm::identifyPhoto)
+    var open by remember { mutableStateOf(false) }
+    Box {
+        Box(
+            Modifier.size(42.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                .clickable(enabled = enabled) { open = true }
+                .semantics { contentDescription = stoneWords.menuCd },
+            contentAlignment = Alignment.Center
+        ) { Icon(Icons.Outlined.PhotoCamera, null, tint = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline) }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text(stoneWords.takePhoto) },
+                leadingIcon = { Icon(Icons.Outlined.PhotoCamera, null) },
+                onClick = { open = false; source.takePhoto() }
+            )
+            DropdownMenuItem(
+                text = { Text(stoneWords.pickPhoto) },
+                leadingIcon = { Icon(Icons.Outlined.PhotoLibrary, null) },
+                onClick = { open = false; source.pickPhoto() }
+            )
         }
     }
 }

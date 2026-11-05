@@ -66,7 +66,14 @@ data class StoredAssistantConversation(
         val year: Int? = null,
         val notDone: Boolean = false,
         val action: String? = null,
-        val mostLines: Boolean = false
+        val mostLines: Boolean = false,
+        val mostRepeated: Boolean = false,
+        val heightGrade: Boolean = false,
+        val trip: Boolean = false,
+        val useHome: Boolean = false,
+        val placeName: String? = null,
+        val placeLat: Double? = null,
+        val placeLon: Double? = null
     ) {
         fun toDomain() = AssistantUnderstood(
             intent = intent, dateFrom = dateFrom, dateTo = dateTo, gradeMin = gradeMin, gradeMax = gradeMax,
@@ -75,7 +82,8 @@ data class StoredAssistantConversation(
             schoolMentions = schoolMentions, topRated = topRated, minStars = minStars, hoursAhead = hoursAhead,
             weatherTopic = weatherTopic, useMyLocation = useMyLocation, beta = beta, startType = startType,
             withTopo = withTopo, noRain = noRain, mineTopic = mineTopic, year = year, notDone = notDone,
-            action = action, mostLines = mostLines
+            action = action, mostLines = mostLines, mostRepeated = mostRepeated, heightGrade = heightGrade, trip = trip,
+            useHome = useHome, placeName = placeName, placeLat = placeLat, placeLon = placeLon
         )
 
         companion object {
@@ -87,7 +95,8 @@ data class StoredAssistantConversation(
                 minStars = u.minStars, hoursAhead = u.hoursAhead, weatherTopic = u.weatherTopic,
                 useMyLocation = u.useMyLocation, beta = u.beta, startType = u.startType, withTopo = u.withTopo,
                 noRain = u.noRain, mineTopic = u.mineTopic, year = u.year, notDone = u.notDone, action = u.action,
-                mostLines = u.mostLines
+                mostLines = u.mostLines, mostRepeated = u.mostRepeated, heightGrade = u.heightGrade, trip = u.trip,
+                useHome = u.useHome, placeName = u.placeName, placeLat = u.placeLat, placeLon = u.placeLon
             )
         }
     }

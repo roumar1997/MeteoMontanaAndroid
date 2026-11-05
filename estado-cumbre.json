@@ -1,0 +1,45 @@
+{
+  "_ayuda": "Lo lee el panel Estado Cumbre. Estados: pendiente (no hecho), hecho (programado, sin probar), probado (validado por Álvaro), publicado (en la tienda). Claude lo actualiza al terminar cada cosa.",
+  "builds": {
+    "ios": "7.1.4 (build 348) · compilando para TestFlight",
+    "android": "7.1.4 (vc123) · AAB firmado (Escritorio, AABs Play), listo para subir",
+    "note": "Versión común 7.1.4 en iOS y Android"
+  },
+  "steps": [
+    { "name": "iOS 7.1.4 enviada a revisión", "done": true },
+    { "name": "Instalar Android en el Xiaomi y probar paso a paso", "done": true },
+    { "name": "Arreglos de la prueba: pedir altura y tamaño en Android (hechos, falta que los pruebes)", "done": true },
+    { "name": "AAB Android 7.1.4 firmado y subido a Play", "done": false },
+    { "name": "Tanda de arquitectura: partir los ficheros grandes", "done": false },
+    { "name": "Bloqueo + CI para que no vuelvan a crecer", "done": false },
+    { "name": "Limpieza: quitar lo antiguo que no se usa, docs al día y un buen README", "done": false }
+  ],
+  "features": [
+    { "name": "Buscador por grado (Vías/Bloques)", "ios": "publicado", "android": "publicado" },
+    { "name": "Iconos vía/bloque", "ios": "publicado", "android": "publicado" },
+    { "name": "Escuelas en tarjetas + diario «⋯»", "ios": "probado", "android": "probado" },
+    { "name": "Hadas y dragones", "ios": "probado", "android": "probado" },
+    { "name": "Hoja de ascenso nueva", "ios": "probado", "android": "probado" },
+    { "name": "Asistente como iOS (Cumbri, MI CASA…)", "ios": "probado", "android": "probado" },
+    { "name": "Guía de la escuela (pestaña GUÍA)", "ios": "probado", "android": "probado" },
+    { "name": "PDF de la guía ligero y con enlaces", "ios": "probado", "android": "probado" },
+    { "name": "PDF sin pastillas de vídeo/personas", "ios": "probado", "android": "probado" },
+    { "name": "PDF compacto (foto vertical con vías al lado)", "ios": "probado", "android": "probado" },
+    { "name": "«¿Qué piedra es esta?» en el mapa", "ios": "probado", "android": "probado" },
+    { "name": "Filtro de Cara (hoja)", "ios": "probado", "android": "probado" },
+    { "name": "Hueco del sector mientras carga", "ios": "probado", "android": "probado" },
+    { "name": "Sectores desde aquí (parking)", "ios": "probado", "android": "probado" },
+    { "name": "TU ALTURA en la hoja de ascenso", "ios": "probado", "android": "probado" },
+    { "name": "Pastillas de vídeo por altura", "ios": "probado", "android": "probado" },
+    { "name": "Pastillas solo «N de ±1,70»", "ios": "probado", "android": "probado" },
+    { "name": "Filtro ALTURA en Escuelas y guía", "ios": "probado", "android": "probado" },
+    { "name": "QUÉ BUSCAS (vídeo / encadenes)", "ios": "probado", "android": "probado" },
+    { "name": "Volver a la piedra al cerrarla", "ios": "probado", "android": "probado" },
+    { "name": "Enlaces del PDF que dejan de saltar (Android)", "ios": "probado", "android": "probado" },
+    { "name": "Android se ve demasiado grande", "ios": "probado", "android": "probado" },
+    { "name": "Ofrecer poner tu altura al marcar (se guarda en el perfil)", "ios": "hecho", "android": "hecho" },
+    { "name": "Quitar boletín de montaña AEMET", "ios": "hecho", "android": "hecho" },
+    { "name": "Pantalla de carga con el logo de Cumbre", "ios": "publicado", "android": "hecho" },
+    { "name": "Perfil más corto (sin correo, nivel en la hoja del título)", "ios": "hecho", "android": "hecho" }
+  ]
+}

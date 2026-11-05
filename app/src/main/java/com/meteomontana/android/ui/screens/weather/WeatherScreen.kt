@@ -38,7 +38,6 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.meteomontana.android.domain.model.FavoriteSchool
 import com.meteomontana.android.ui.components.CumbreChip
-import com.meteomontana.android.ui.components.FavoritesGridTable
 import com.meteomontana.android.ui.guide.guideTarget
 import com.meteomontana.android.ui.components.forecastBody
 import androidx.compose.ui.res.stringResource
@@ -108,12 +107,6 @@ fun WeatherScreen(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(
                         bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)
                 ) {
-                    // Comparación de favoritas arriba (igual que iOS): ves de un
-                    // vistazo el score medio por día de tus escuelas favoritas.
-                    if (s.grid != null && s.grid.rows.isNotEmpty()) {
-                        item { Box(Modifier.guideTarget("weather.compare")) { FavoritesGridTable(grid = s.grid) } }
-                        item { HorizontalDivider(color = MaterialTheme.colorScheme.outline) }
-                    }
                     forecastBody(
                         forecast = s.forecast,
                         onDayClick = { idx ->
@@ -182,7 +175,7 @@ private fun PermissionPrompt(onRequest: () -> Unit) {
         Button(
             onClick = onRequest,
             colors = ButtonDefaults.buttonColors(containerColor = inkButtonColor(), contentColor = Color.White),
-            shape = MaterialTheme.shapes.small
+            shape = androidx.compose.foundation.shape.CircleShape
         ) { Text(stringResource(R.string.weather_screen_v2_dar_permiso)) }
     }
 }

@@ -71,7 +71,7 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 Spacer(Modifier.height(20.dp))
                 Text(
                     stringResource(R.string.login_title),
-                    fontFamily = FontFamily.Serif,
+                    fontFamily = com.meteomontana.android.ui.theme.Serif,
                     fontWeight = FontWeight.Bold,
                     fontSize = 36.sp,
                     letterSpacing = 4.sp,

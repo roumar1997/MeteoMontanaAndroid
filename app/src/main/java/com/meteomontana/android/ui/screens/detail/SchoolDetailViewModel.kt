@@ -160,6 +160,20 @@ class SchoolDetailViewModel @Inject constructor(
     val autoOpenBlockId: StateFlow<String?> = _autoOpenBlockId.asStateFlow()
     fun consumeAutoOpenBlock() { _autoOpenBlockId.value = null }
 
+    /** La GUÍA abre una piedra sin vía conocida: la ficha la abre en cuanto haya bloques. */
+    fun openBlock(blockId: String) { _autoOpenBlockId.value = blockId }
+
+    /** «Ver en mapa» desde la GUÍA: el mapa se centra en esa piedra SIN abrir su ficha. */
+    private val _focusBlockId = MutableStateFlow<String?>(null)
+    val focusBlockId: StateFlow<String?> = _focusBlockId.asStateFlow()
+    fun focusBlock(blockId: String) { _focusBlockId.value = blockId }
+    fun consumeFocusBlock() { _focusBlockId.value = null }
+
+    /** ¿Está abierta la ficha de una piedra? La GUÍA lo usa para volver a su sitio al cerrarla. */
+    private val _blockSheetOpen = MutableStateFlow(false)
+    val blockSheetOpen: StateFlow<Boolean> = _blockSheetOpen.asStateFlow()
+    fun setBlockSheetOpen(open: Boolean) { _blockSheetOpen.value = open }
+
     // ── Diario ✓ hecho/proyecto (delegado en JournalTickController) ────────
 
     val myJournal: StateFlow<List<com.meteomontana.android.domain.model.JournalSession>> = journal.myJournal

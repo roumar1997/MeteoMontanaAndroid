@@ -12,4 +12,8 @@
     <!-- Foto tomada en el momento al CREAR una piedra nueva, cualquiera de
          sus caras (BoulderFormDialog.kt, cámara → TakePicture) -->
     <cache-path name="nueva-piedra" path="nueva-piedra/" />
+    <!-- Foto hecha en el momento para «¿Qué piedra es esta?» (cámara → TakePicture) -->
+    <cache-path name="piedra-por-foto" path="piedra-por-foto/" />
+    <!-- La guía de la escuela en PDF (pestaña BLOQUES → Descargar guía) -->
+    <cache-path name="guide" path="guide/" />
 </paths>

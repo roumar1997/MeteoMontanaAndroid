@@ -3,6 +3,11 @@ package com.meteomontana.android.ui.assistant
 import com.meteomontana.android.domain.model.AssistantBreakdown
 import com.meteomontana.android.domain.model.AssistantClarification
 import com.meteomontana.android.domain.model.AssistantRecommendation
+import com.meteomontana.android.domain.model.AssistantRestriction
+import com.meteomontana.android.domain.model.AssistantRestrictions
+import com.meteomontana.android.domain.model.GradeSummary
+import com.meteomontana.android.domain.usecase.journal.Achievement
+import com.meteomontana.android.domain.usecase.journal.GoalProgress
 import com.meteomontana.android.domain.model.AssistantSector
 import com.meteomontana.android.domain.model.AssistantStatus
 import com.meteomontana.android.domain.model.AssistantStone
@@ -66,6 +71,10 @@ class AssistantPresenter(lang: String, private val labels: AssistantLabels) {
         "NEEDS_TWO_SCHOOLS" -> t("¿Con qué otra escuela quieres compararla?", "Which other crag do you want to compare it with?")
         "NEEDS_LOCATION" -> t("Necesito saber dónde estás. Activa la ubicación o dime el nombre del sitio.",
             "I need to know where you are. Turn on location or tell me the place.")
+        "PLACE_NOT_FOUND" -> t("No encuentro ese sitio en el mapa. ¿Puedes decirlo de otra forma (pueblo, ciudad o provincia)?",
+            "I can't find that place on the map. Could you say it another way (town, city or province)?")
+        "NEEDS_HOME" -> t("Aún no sé dónde vives. Cuando estés en casa, dime «guarda aquí como mi casa».",
+            "I don't know where you live yet. When you're at home, tell me \"save here as my home\".")
         "SECTOR_NOT_FOUND" ->
             if (c.options.isEmpty()) t("Esa escuela no tiene sectores.", "That crag has no sectors.")
             else t("No encuentro ese sector. Estos son los de la escuela:", "I can't find that sector. These are the crag's sectors:")
@@ -120,8 +129,49 @@ class AssistantPresenter(lang: String, private val labels: AssistantLabels) {
         "ADD_FAVORITE" -> t("¿Añado $school a tus favoritas?", "Add $school to your favourites?")
         "REMOVE_FAVORITE" -> t("¿Quito $school de tus favoritas?", "Remove $school from your favourites?")
         "ENABLE_WEEKEND_ALERT" -> t("¿Activo el aviso de fin de semana para $school?", "Turn on the weekend alert for $school?")
+        "ENABLE_MORNING_ALERT" -> t(
+            "¿Activo el aviso de cada mañana? Entre las 7 y las 11 te aviso si alguna de tus favoritas tiene buenas condiciones ese día.",
+            "Turn on the morning alert? Between 7 and 11 I'll tell you if any of your favourites has good conditions that day.")
+        "SET_HOME" -> t("¿Guardo donde estás ahora como tu casa? Solo se guarda en este móvil.",
+            "Save where you are now as your home? It's only stored on this phone.")
         else -> t("¿Abro $school?", "Open $school?")
     }
+
+    fun homeNoLocation() = t("No sé dónde estás: activa la ubicación y vuelve a decírmelo.", "I don't know where you are: turn on location and tell me again.")
+    fun homeSaved() = t("Hecho: guardada tu casa. Ya puedes preguntarme «cerca de casa».", "Done: your home is saved. You can now ask me \"near home\".")
+    fun morningAlertAlready() = t("El aviso de cada mañana ya estaba activado.", "The morning alert was already on.")
+    fun morningAlertDone() = t(
+        "Hecho: cada mañana, entre las 7 y las 11, te aviso si alguna favorita tiene buen día. Necesitas tener escuelas en favoritas.",
+        "Done: every morning, between 7 and 11, I'll tell you if a favourite has a good day. You need crags in your favourites.")
+    fun meetupOpening() = t("Abriendo la quedada para que la revises y la crees.", "Opening the meetup so you can review and create it.")
+    fun meetupTime(time: String) = t("Quedamos a las $time.", "Meeting at $time.")
+
+    fun meetupPrompt(school: String, date: String?, time: String?): String {
+        val day = date?.let { dayLabel(it) }
+        return when {
+            day != null && time != null -> t("¿Preparo una quedada en $school el $day a las $time?", "Set up a meetup at $school on $day at $time?")
+            day != null -> t("¿Preparo una quedada en $school el $day?", "Set up a meetup at $school on $day?")
+            else -> t("¿Preparo una quedada en $school?", "Set up a meetup at $school?")
+        }
+    }
+
+    /** Nombre propuesto para la quedada: "Albarracín · SÁB 25 · 09:00". */
+    fun meetupName(school: String, date: String?, time: String?): String =
+        listOfNotNull(school, date?.let { dayLabel(it) }, time).joinToString(" · ")
+
+    fun multiLogPrompt(count: Int, date: String, missing: List<String>): String {
+        val head = t("¿Apunto estas $count en tu diario el ${dateRange(date, null)}?", "Log these $count in your diary on ${dateRange(date, null)}?")
+        if (missing.isEmpty()) return head
+        return head + " " + t("No encuentro: ${missing.joinToString(", ")}.", "I can't find: ${missing.joinToString(", ")}.")
+    }
+    fun noneOfTheseFound(names: List<String>) = t("No encuentro ninguna de esas vías: ${names.joinToString(", ")}.",
+        "I can't find any of those routes: ${names.joinToString(", ")}.")
+    fun couldNotLog(name: String) = t("No se pudo apuntar «$name».", "Couldn't log “$name”.")
+    fun logAll(count: Int) = t("Apuntar las $count", "Log all $count")
+    fun doneWord() = t("hecha", "sent")
+    fun projectWord() = t("proyecto", "project")
+    fun cancelWord() = t("Cancelar", "Cancel")
+    fun confirmWord() = t("Confirmar", "Confirm")
 
     /** La pregunta de confirmación al apuntar UNA vía en el diario. */
     fun logPrompt(kind: String, hit: LineSearchHit, date: String): String {
@@ -248,6 +298,128 @@ class AssistantPresenter(lang: String, private val labels: AssistantLabels) {
         val d2 = b.dayOfMonth
         val m2 = months[b.monthValue - 1]
         return if (m1 == m2) "$d1 – $d2 $m2" else "$d1 $m1 – $d2 $m2"
+    }
+
+    // ── Restricciones ─────────────────────────────────────────────────────────────────────────────────────────────
+
+    fun restrictionsIntro(r: AssistantRestrictions, school: String?): String {
+        val period = if (r.from == r.to) dayLabel(r.from) else dateRange(r.from, r.to)
+        val active = r.items.count { it.active }
+        if (school != null) {
+            if (r.items.isEmpty()) return t("No tengo ninguna restricción apuntada en $school. Aun así, mira los carteles al llegar.",
+                "I have no restrictions recorded at $school. Still, check the signs when you arrive.")
+            if (active == 0) return t("En $school no hay restricciones en vigor para $period. Estas son las que tiene en otras fechas:",
+                "At $school there are no restrictions in force for $period. These are the ones it has on other dates:")
+            return if (active == 1) t("En $school hay 1 restricción en vigor para $period:", "At $school there is 1 restriction in force for $period:")
+            else t("En $school hay $active restricciones en vigor para $period:", "At $school there are $active restrictions in force for $period:")
+        }
+        if (active == 0) return t("No tengo restricciones en vigor para $period en las ${r.schoolsChecked} escuelas de la zona. Mira los carteles al llegar.",
+            "I have no restrictions in force for $period at the ${r.schoolsChecked} crags in the area. Check the signs when you arrive.")
+        return if (active == 1) t("Hay 1 restricción en vigor en la zona para $period:", "There is 1 restriction in force in the area for $period:")
+        else t("Hay $active restricciones en vigor en la zona para $period:", "There are $active restrictions in force in the area for $period:")
+    }
+
+    fun restrictionKind(kind: String) = when (kind) {
+        "CLOSED" -> t("Cerrado", "Closed")
+        "REGULATED" -> t("Regulado", "Regulated")
+        else -> t("Aviso", "Notice")
+    }
+
+    /** Qué afecta: el sector, o cuántas piedras sueltas. */
+    fun restrictionPlace(i: AssistantRestriction): String {
+        if (!i.sectorName.isNullOrEmpty()) return i.sectorName!!
+        return if (i.blockCount == 1) t("1 piedra", "1 boulder") else t("${i.blockCount} piedras", "${i.blockCount} boulders")
+    }
+
+    /** Cuándo: "Todo el año", "Cada año, 1 feb – 30 jun" o "1 feb – 30 jun". */
+    fun restrictionWhen(i: AssistantRestriction): String {
+        if (i.permanent) return t("Todo el año", "All year")
+        val from = i.startsOn ?: return ""
+        val to = i.endsOn ?: return ""
+        return if (i.yearly) t("Cada año, ${dateRange(from, to)}", "Every year, ${dateRange(from, to)}") else dateRange(from, to)
+    }
+
+    fun restrictionsSource(name: String) = t("Fuente: $name", "Source: $name")
+    fun restrictionsDisclaimer() = t("Datos que mantiene Cumbre a partir de fuentes oficiales. Mira siempre los carteles de la zona.",
+        "Data kept by Cumbre from official sources. Always check the signs in the area.")
+
+    // ── Viaje de varios días ──────────────────────────────────────────────────────────────────────────────────────
+
+    /** Un día del plan: la mejor escuela de ese día (sin lluvia si alguna se libra). */
+    data class TripDay(val date: String, val schoolId: String, val schoolName: String, val score: Int, val rainy: Boolean)
+
+    fun tripPlan(r: AssistantRecommendation): List<TripDay> {
+        if (!r.forecastAvailable) return emptyList()
+        return r.dates.mapNotNull { date ->
+            val options = r.schools.mapNotNull { s -> s.days.firstOrNull { it.date == date }?.let { s to it } }
+            val dry = options.filter { !it.second.rainy }
+            val best = dry.ifEmpty { options }.maxByOrNull { it.second.score } ?: return@mapNotNull null
+            TripDay(date, best.first.schoolId, best.first.name, best.second.score, best.second.rainy)
+        }
+    }
+
+    fun tripIntro(plan: List<TripDay>): String {
+        val first = plan.firstOrNull() ?: return t("Aún no hay previsión para esos días. Estas son las escuelas que mejor encajan:",
+            "There's no forecast for those days yet. These are the crags that fit best:")
+        if (plan.map { it.schoolId }.toSet().size == 1) return t("Para esos ${plan.size} días, lo mejor es quedarte en ${first.schoolName}:",
+            "For those ${plan.size} days, your best bet is to stay at ${first.schoolName}:")
+        return t("Tu plan para ${plan.size} días, con el mejor sitio de cada día:", "Your plan for ${plan.size} days, with the best place each day:")
+    }
+
+    // ── Grado según la altura ─────────────────────────────────────────────────────────────────────────────────────
+
+    /** "Zarzamora: los de más de 1,70 la votan 7a y los de menos 7a+." a partir de los votos separados por altura. */
+    fun heightGradeLine(name: String, summary: GradeSummary): String {
+        summary.heightSplit?.let { return t("$name: los de más de 1,70 la votan ${it.tallGrade} y los de menos ${it.shortGrade}.",
+            "$name: climbers over 1.70 m vote it ${it.tallGrade} and shorter ones ${it.shortGrade}.") }
+        fun top(votes: Map<String, Int>?) = votes?.maxByOrNull { it.value }?.takeIf { it.value > 0 }
+        val tall = top(summary.votesByHeight["TALL"])
+        val short = top(summary.votesByHeight["SHORT"])
+        return when {
+            tall == null && short == null -> t("$name: aún no hay votos de grado por altura.", "$name: no grade votes by height yet.")
+            tall != null && short != null && tall.key == short.key ->
+                t("$name: altos y bajos coinciden en ${tall.key}.", "$name: tall and short climbers agree on ${tall.key}.")
+            else -> "$name: " + listOfNotNull(
+                tall?.let { t("+1,70: ${it.key} (${it.value} votos)", "+1.70: ${it.key} (${it.value} votes)") },
+                short?.let { t("−1,70: ${it.key} (${it.value} votos)", "−1.70: ${it.key} (${it.value} votes)") }
+            ).joinToString(" · ")
+        }
+    }
+    fun noHeightVotes() = t("No he encontrado votos de grado para esas vías.", "I haven't found grade votes for those routes.")
+
+    // ── Objetivo y logros ─────────────────────────────────────────────────────────────────────────────────────────
+
+    fun goalText(p: GoalProgress): String {
+        val g = p.goal
+        val parts = mutableListOf<String>()
+        g.grade?.let { grade ->
+            parts += if (p.gradeReached) t("el $grade ya lo tienes", "you already have $grade")
+            else t("el $grade aún no (tu máximo este año: ${p.maxGradeThisYear ?: "—"})", "$grade not yet (your best this year: ${p.maxGradeThisYear ?: "—"})")
+        }
+        g.ascents?.let { a ->
+            val done = p.ascentsDone
+            parts += if (done >= a) t("$a ascensiones: ¡hecho!", "$a ascents: done!")
+            else t("$done de $a ascensiones (te faltan ${a - done})", "$done of $a ascents (${a - done} to go)")
+        }
+        g.days?.let { d ->
+            val done = p.daysDone
+            parts += if (done >= d) t("$d días de roca: ¡hecho!", "$d days on rock: done!")
+            else t("$done de $d días de roca (te faltan ${d - done})", "$done of $d days on rock (${d - done} to go)")
+        }
+        if (parts.isEmpty()) return t("Tu objetivo de ${g.year} no tiene metas todavía.", "Your ${g.year} goal has no targets yet.")
+        return t("Tu objetivo de ${g.year}: ${parts.joinToString("; ")}.", "Your ${g.year} goal: ${parts.joinToString("; ")}.")
+    }
+
+    fun noGoalText(year: Int) = t("Aún no tienes objetivo para $year. Puedes ponerlo en tu perfil, en Estadísticas.",
+        "You don't have a goal for $year yet. You can set it in your profile, under Statistics.")
+
+    /** Cuántos logros tiene y el siguiente de cada familia (el catálogo va de fácil a difícil dentro de cada una). */
+    fun achievementsText(all: List<Achievement>, describe: (Achievement) -> String): String {
+        val unlocked = all.count { it.unlocked }
+        val next = all.filter { !it.unlocked }.distinctBy { it.group }.take(3).map(describe)
+        if (next.isEmpty()) return t("Tienes los ${all.size} logros. ¡Todos!", "You have all ${all.size} achievements!")
+        return t("Tienes $unlocked de ${all.size} logros. Los siguientes más a mano: ${next.joinToString(" · ")}.",
+            "You have $unlocked of ${all.size} achievements. The closest next ones: ${next.joinToString(" · ")}.")
     }
 
     // ── Resultados de una búsqueda ────────────────────────────────────────────────────────────────────────────────
@@ -559,6 +731,62 @@ class AssistantPresenter(lang: String, private val labels: AssistantLabels) {
     fun loggedOffline(line: String) = t("Sin conexión: apuntaré «$line» cuando vuelvas a tener red.", "Offline: I'll log “$line” when you're back online.")
     fun loggedDone(line: String) = t("Hecho: «$line» apuntada como hecha.", "Done: “$line” logged as sent.")
     fun loggedProject(line: String) = t("Hecho: «$line» apuntada como proyecto.", "Done: “$line” logged as a project.")
+
+    // ── Chat ──────────────────────────────────────────────────────────────────────────────────────────────────
+
+    /** Saludo de la pantalla vacía con el nombre de pila ("Hola, Álvaro"); sin nombre, solo "Hola". */
+    fun greeting(displayName: String?): String {
+        val first = displayName?.trim()?.split(" ")?.firstOrNull()?.takeIf { it.isNotBlank() } ?: return t("Hola", "Hello")
+        return t("Hola, $first", "Hello, $first")
+    }
+
+    /**
+     * Icono de una etiqueta de lo entendido (sitio, sol/sombra, cuándo…). Las etiquetas se guardan como texto, así que se
+     * deduce al pintar: lo conocido por su texto, los grados y números sin icono y el resto (escuela o sector) con la chincheta.
+     */
+    fun chipIcon(chip: String): ChipIcon? {
+        val known = mapOf(
+            t("Sombra", "Shade") to ChipIcon.SHADE, t("Sol", "Sun") to ChipIcon.SUN,
+            t("Mañana", "Morning") to ChipIcon.MORNING, t("Tarde", "Afternoon") to ChipIcon.AFTERNOON,
+            t("Bloque", "Boulder") to ChipIcon.BOULDER, t("Vía", "Route") to ChipIcon.ROUTE,
+            t("Mi ubicación", "My location") to ChipIcon.LOCATION, t("Mejor valoradas", "Top rated") to ChipIcon.STAR,
+            t("Sin lluvia", "No rain") to ChipIcon.NO_RAIN, t("Con topo", "With topo") to ChipIcon.TOPO,
+            t("Sin hacer", "Not done yet") to ChipIcon.NOT_DONE, t("Con más vías", "Most routes") to ChipIcon.MOST_LINES,
+            t("Con beta", "With beta") to ChipIcon.BETA, t("Beta +1,70", "Beta over 1.70 m") to ChipIcon.BETA,
+            t("Beta -1,70", "Beta under 1.70 m") to ChipIcon.BETA
+        )
+        known[chip]?.let { return it }
+        if (chip.startsWith("Cara ") || chip.endsWith(" face")) return ChipIcon.FACE
+        if (chip.first().isDigit() && (chip.endsWith(" h") || monthsShort().any { it.isNotEmpty() && chip.endsWith(it) })) return ChipIcon.CALENDAR
+        if (chip.any { it.isDigit() } || chip.startsWith("★") || chip.startsWith("≥") || chip.startsWith("≤") || chip.startsWith("<")) return null
+        return ChipIcon.PIN
+    }
+
+    enum class ChipIcon { SHADE, SUN, MORNING, AFTERNOON, BOULDER, ROUTE, LOCATION, STAR, NO_RAIN, TOPO, NOT_DONE, MOST_LINES, BETA, FACE, CALENDAR, PIN }
+
+    /** Una sugerencia para seguir la conversación: una pregunta que se envía tal cual, o abrir una escuela ([openSchoolId]). */
+    data class FollowUp(val title: String, val openSchoolId: String? = null)
+
+    /**
+     * Qué ofrecer debajo de la última respuesta, según lo que enseñó. Vacío si no hay nada natural que proponer o si la
+     * respuesta espera algo del usuario (confirmar, elegir, reintentar).
+     */
+    fun followUps(m: AssistantMessage): List<FollowUp> {
+        if (m.isUser || m.retryText != null || m.options.isNotEmpty() || m.pendingActions.any { it.state == PendingAction.State.WAITING }) return emptyList()
+        fun ask(es: String, english: String) = FollowUp(t(es, english))
+        m.breakdown?.let { b ->
+            return listOf(
+                if (b.sun == "SUN") ask("¿Y a la sombra?", "And in the shade?") else ask("¿Y al sol?", "And in the sun?"),
+                ask("¿Y mañana a las 17?", "And tomorrow at 5 pm?"),
+                FollowUp(t("Abrir ${b.school.name}", "Open ${b.school.name}"), b.school.id)
+            )
+        }
+        if (m.recommendation != null) return listOf(ask("¿Y el finde?", "And the weekend?"), ask("Solo bloques", "Boulders only"), ask("Más cerca de mí", "Closer to me"))
+        if (m.weather != null) return listOf(ask("¿Y mañana?", "And tomorrow?"), ask("¿Mejor hora para ir?", "Best time to go?"), ask("¿Está la roca seca?", "Is the rock dry?"))
+        if (m.hits.isNotEmpty()) return listOf(ask("Que no haya hecho", "Not done yet"), ask("Solo con topo", "Only with topo"), ask("Un grado más", "One grade harder"))
+        if (m.journalEntries.isNotEmpty()) return listOf(ask("¿Y el mes pasado?", "And last month?"), ask("Solo bloques", "Boulders only"), ask("Mis proyectos", "My projects"))
+        return emptyList()
+    }
 
     /** Frases de ejemplo para el chat vacío. */
     fun suggestions() = listOf(
