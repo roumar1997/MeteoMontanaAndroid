@@ -96,56 +96,8 @@ import com.meteomontana.android.R
  *  navega al destino real; al volver a ella se cierra la tarjeta. */
 internal const val SHEET_ROOT = "sheet_root"
 
-/**
- * Conmutador TIEMPO ⇄ RADAR de la primera pestaña (segmented estilo Cumbre:
- * cápsula con borde Rule, segmento activo Terra).
- */
-@Composable
-private fun WeatherRadarToggle(
-    showRadar: Boolean,
-    onSelect: (radar: Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        Row(
-            Modifier
-                .clip(androidx.compose.foundation.shape.CircleShape)
-                .background(MaterialTheme.colorScheme.surface)
-                .border(1.dp, MaterialTheme.colorScheme.outline, androidx.compose.foundation.shape.CircleShape)
-        ) {
-            @Composable
-            fun segment(label: String, active: Boolean, onClick: () -> Unit) {
-                Text(
-                    label,
-                    style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
-                    color = if (active) androidx.compose.ui.graphics.Color.White
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .clip(androidx.compose.foundation.shape.CircleShape).background(
-                            if (active) MaterialTheme.colorScheme.primary
-                            else androidx.compose.ui.graphics.Color.Transparent
-                        )
-                        .clickable(onClick = onClick)
-                        .padding(horizontal = 18.dp, vertical = 9.dp)
-                )
-            }
-            segment(
-                androidx.compose.ui.res.stringResource(
-                    com.meteomontana.android.R.string.weather_toggle_weather),
-                !showRadar
-            ) { onSelect(false) }
-            segment(
-                androidx.compose.ui.res.stringResource(
-                    com.meteomontana.android.R.string.weather_toggle_radar),
-                showRadar
-            ) { onSelect(true) }
-        }
-    }
-}
-
-
 /** Ruta del host de pestañas (las 5 viven compuestas dentro). */
-private const val TABS_HOST = "tabs"
+internal const val TABS_HOST = "tabs"
 
 @Composable
 fun MainScreen(
@@ -296,82 +248,12 @@ fun MainScreen(
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                // Cápsula flotante (estilo iOS) en vez de la barra plana a todo el ancho.
-                Box(
-                    modifier = Modifier.fillMaxWidth()
-                        .navigationBarsPadding()
-                        // Márgenes laterales: la cápsula ocupa el ancho MENOS
-                        // esto, igual que en iOS. Antes se encogía a lo que
-                        // ocupaban los iconos.
-                        .padding(horizontal = 12.dp)
-                        .padding(bottom = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        modifier = Modifier
-                            // A todo el ancho disponible: es lo que permite
-                            // repartir las cinco pestañas por igual con weight,
-                            // sea cual sea el móvil.
-                            .fillMaxWidth()
-                            // Fondo + borde del armazón en UNA sola llamada: según
-                            // el tratamiento activo será color liso, esmerilado o
-                            // esmerilado con canto de luz. La barra no sabe cuál.
-                            .cumbreChromeSurface(CumbreCapsuleShape)
-                            .padding(horizontal = 6.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        mainTabs.forEach { tab ->
-                            val selected = selectedTab == tab.route
-                            val tint = if (selected) MaterialTheme.colorScheme.primary
-                                       else MaterialTheme.colorScheme.onSurfaceVariant
-                            // LOS CINCO RÓTULOS SIEMPRE, como en iOS: icono arriba
-                            // y nombre debajo. Antes solo se etiquetaba el activo
-                            // porque en horizontal no caben cinco nombres; en
-                            // vertical sí, y así sabes a dónde vas antes de pulsar.
-                            //
-                            // ADAPTABLE: `weight(1f)` reparte el ancho a partes
-                            // iguales sea cual sea la pantalla, y el rótulo se
-                            // recorta con puntos suspensivos si el móvil es muy
-                            // estrecho. Ni un ancho fijo, que es lo que descuadra
-                            // al cambiar de dispositivo.
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(24.dp))
-                                    .background(
-                                        if (selected) MaterialTheme.colorScheme.primaryContainer
-                                        else androidx.compose.ui.graphics.Color.Transparent
-                                    )
-                                    .clickable {
-                                        // Con el overlay abierto, pulsar una
-                                        // pestaña lo cierra y cambia de tab.
-                                        if (sheetVisible) dismissSheet()
-                                        if (!selected) {
-                                            selectedTab = tab.route
-                                        } else {
-                                            // Ya estabas en esta pestaña: el
-                                            // segundo toque lleva arriba, como
-                                            // en cualquier app de movil.
-                                            volverArriba[tab.route] =
-                                                (volverArriba[tab.route] ?: 0) + 1
-                                        }
-                                    }
-                                    .padding(horizontal = 2.dp, vertical = 7.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                Icon(tab.icon, contentDescription = stringResource(tab.labelRes),
-                                    tint = tint, modifier = Modifier.size(20.dp))
-                                Text(
-                                    stringResource(tab.labelRes),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = tint,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                    }
+                MainTabBar(selectedTab) { tab, selected ->
+                    // Con el overlay abierto, pulsar una pestaña lo cierra y cambia de tab.
+                    if (sheetVisible) dismissSheet()
+                    // Ya estabas en esta pestaña: el segundo toque lleva arriba, como en cualquier app.
+                    if (!selected) selectedTab = tab.route
+                    else volverArriba[tab.route] = (volverArriba[tab.route] ?: 0) + 1
                 }
             }
         },
@@ -512,53 +394,9 @@ fun MainScreen(
                         androidx.compose.runtime.mutableStateOf(false)
                     }
                     if (weatherShowsRadar) radarVisited = true
-                    Box(Modifier.fillMaxSize()) {
-                        // ── Capa TIEMPO ──
-                        Box(
-                            Modifier.fillMaxSize()
-                                .zIndex(if (!weatherShowsRadar) 1f else 0f)
-                                .graphicsLayer { alpha = if (!weatherShowsRadar) 1f else 0f }
-                        ) {
-                            com.meteomontana.android.ui.guide.GuideHost("weather") {
-                            androidx.compose.foundation.layout.Column(Modifier.fillMaxSize()) {
-                                WeatherRadarToggle(
-                                    showRadar = false,
-                                    onSelect = { weatherShowsRadar = it },
-                                    modifier = Modifier.padding(top = 8.dp).guideTarget("weather.toggle")
-                                )
-                                WeatherScreen(
-                                    onDayClick = { schoolId, lat, lon, idx ->
-                                        if (schoolId != null) openSheet(Routes.dayDetail(schoolId, idx))
-                                        else openSheet(Routes.dayDetailByLocation(lat, lon, idx))
-                                    },
-                                    visible = selectedTab == Tab.Weather.route &&
-                                        !weatherShowsRadar && !sheetVisible
-                                )
-                            }
-                            }
-                        }
-                        // ── Capa RADAR (mapa a pantalla completa) ──
-                        if (radarVisited) {
-                            Box(
-                                Modifier.fillMaxSize()
-                                    .zIndex(if (weatherShowsRadar) 1f else 0f)
-                                    .graphicsLayer { alpha = if (weatherShowsRadar) 1f else 0f }
-                            ) {
-                                RadarScreen(onSchoolDetail = { id ->
-                                    openSheet(Routes.schoolDetail(id))
-                                })
-                                WeatherRadarToggle(
-                                    showRadar = true,
-                                    onSelect = { weatherShowsRadar = it },
-                                    modifier = Modifier
-                                        .align(Alignment.TopCenter)
-                                        .statusBarsPadding()
-                                        .padding(top = 8.dp)
-                                        .zIndex(2f)
-                                )
-                            }
-                        }
-                    }
+                    WeatherRadarTab(weatherShowsRadar, radarVisited,
+                        weatherVisible = selectedTab == Tab.Weather.route && !sheetVisible,
+                        onShowRadar = { weatherShowsRadar = it }, openSheet = { openSheet(it) })
                 }
                         tabContainer(Tab.Schools.route) {
                     com.meteomontana.android.ui.guide.GuideHost("schools") {

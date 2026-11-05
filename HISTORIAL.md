@@ -370,3 +370,4 @@ topos (líneas sobre foto), tema visual Cumbre, autenticación Firebase.
 - 2026-11-05: BoulderFormDialog 855→546 (BoulderAdvancedOptions + BoulderFormRows). BlockDetailDialog 845→663 (BlockLineItem + LineTicks); SIGUIENTE: sacar su barra de arriba (CumbreSheetHeader con compartir y menú de opciones, ~95 líneas) para bajar de 600. Quedan 25.
 - 2026-11-05: BlockDetailDialog 845→570 (BlockLineItem + BlockDetailHeader). Quedan 24.
 - 2026-11-05: SchoolMap 678→572 (SchoolMapStyleFilter + PendingTickSheet). Quedan 23.
+- 2026-11-05: MainScreen 745→583 (MainTabBar, WeatherRadarToggle, WeatherRadarTab). Quedan 22.
