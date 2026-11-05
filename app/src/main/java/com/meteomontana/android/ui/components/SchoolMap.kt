@@ -436,52 +436,7 @@ fun SchoolMap(
     }
 
     // Hoja de publicar el tick (estilo Cumbre).
-    pendingTick?.let { pt ->
-        val ascentVoteVm: CommunityVoteViewModel = androidx.hilt.navigation.compose.hiltViewModel()
-        val myHeight by ascentVoteVm.myHeight.collectAsStateWithLifecycle()
-        androidx.compose.runtime.LaunchedEffect(Unit) { ascentVoteVm.loadMyHeight() }
-        AscentSheet(
-            lineName = pt.line.name.ifBlank { stringResource(R.string.school_map_v3_via_2, pt.index + 1) },
-            setterGrade = pt.line.grade,
-            wasProject = pt.wasProject,
-            myHeight = myHeight,
-            onSetHeight = { ascentVoteVm.setMyHeight(it) },
-            initialShare = com.meteomontana.android.data.local.FeedSharePref.enabled(fichaCtx),
-            onSave = { choice ->
-                pendingTick = null
-                viewModel.viewModelScope.launch {
-                    // Primero el diario (el voto de grado exige tener la vía en él), luego publicar y votar.
-                    val r = viewModel.toggleLine(
-                        pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName, markDone = true,
-                        sessionDate = choice.sessionDate, aVista = choice.aVista, alFlash = choice.alFlash)
-                    if (r.getOrNull() == true) {
-                        if (choice.publish) {
-                            viewModel.publishTickToFeed(
-                                pt.block, pt.line, pt.wasProject, choice.caption,
-                                photoUri = choice.photoUri?.toString(),
-                                onPublishFailed = {
-                                    android.widget.Toast.makeText(
-                                        fichaCtx,
-                                        AppText.get(R.string.school_map_v3_no_se_pudo_publicar_el),
-                                        android.widget.Toast.LENGTH_LONG
-                                    ).show()
-                                },
-                                onPhotoUploadFailed = {
-                                    android.widget.Toast.makeText(
-                                        fichaCtx, R.string.feed_photo_upload_failed,
-                                        android.widget.Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            )
-                        }
-                        val grade = choice.gradeVote
-                        if (grade != null && pt.line.id.isNotEmpty()) ascentVoteVm.voteGrade(pt.line.id, grade)
-                    }
-                }
-            },
-            onDismiss = { pendingTick = null }
-        )
-    }
+    pendingTick?.let { pt -> PendingTickSheet(pt, viewModel) { pendingTick = null } }
 
     // Flujo "+ AÑADIR VÍAS" / editar piedra-muro. Se oculta mientras se traza el
     // muro en el mapa (el estado vive en wallEdit, así no se pierde lo editado).
@@ -615,64 +570,3 @@ fun SchoolMap(
     }
 }
 
-// ── Filtro Vía/Bloque de la escuela ─────────────────────────────────────
-// Paridad con styleFilterRow/matchesStyleFilter de SchoolMapSection.swift.
-
-@Composable
-private fun StyleFilterRow(
-    selected: Set<String>,
-    onToggle: (String) -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        listOf(stringResource(R.string.school_map_v3_via), "Bloque").forEach { opt ->
-            val active = opt in selected
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(if (active) Terra else MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                    .clickable { onToggle(opt) }
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    opt.uppercase(), style = EyebrowTextStyle,
-                    color = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-/** "ROUTE" en el backend = estilo "Vía"; "BOULDER" = "Bloque". */
-private fun styleLabelForDiscipline(discipline: String): String =
-    if (discipline.uppercase() == "ROUTE") AppText.get(R.string.w_route) else AppText.get(R.string.w_boulder)
-
-/**
- * ¿Esta piedra/sector pasa el filtro Vía/Bloque? Vacío = sin filtrar. Un
- * sector sin piedras dentro (sectorDisciplines vacío/null) siempre se ve —
- * no hay disciplina que comparar todavía (evita que desaparezca).
- */
-private fun matchesStyleFilter(b: Block, styleFilter: Set<String>): Boolean {
-    if (styleFilter.isEmpty()) return true
-    return when (b.type.uppercase()) {
-        "BLOCK" -> styleLabelForDiscipline(b.discipline) in styleFilter
-        "ZONE" -> {
-            val disciplines = b.sectorDisciplines ?: emptyList()
-            if (disciplines.isEmpty()) true
-            else disciplines.any { styleLabelForDiscipline(it) in styleFilter }
-        }
-        else -> true
-    }
-}
-
-/** Texto tras enviar desde el mapa: admin y personas de confianza publican directo; el resto espera revisión. */
-private fun submitSuccessText(isAdmin: Boolean): String = when {
-    isAdmin -> AppText.get(R.string.school_map_v3_publicado_en_el_mapa)
-    com.meteomontana.android.domain.usecase.contributions.ContributionOutcome.publishedDirectly ->
-        AppText.get(R.string.school_map_v3_publicado_de_confianza)
-    else -> AppText.get(R.string.school_map_v3_propuesta_enviada_un_admin_la)
-}
