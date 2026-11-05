@@ -372,3 +372,4 @@ topos (líneas sobre foto), tema visual Cumbre, autenticación Firebase.
 - 2026-11-05: SchoolMap 678→572 (SchoolMapStyleFilter + PendingTickSheet). Quedan 23.
 - 2026-11-05: MainScreen 745→583 (MainTabBar, WeatherRadarToggle, WeatherRadarTab). Quedan 22.
 - 2026-11-05: AssistantViewModel 761→599: consultas a AssistantData, acciones confirmadas a AssistantActionRunner, guardar/recuperar la conversación a AssistantTranscriptMapper (deps del VM 24→10). Quedan 21.
+- 2026-11-05: flujo de aportar por debajo de 600: ProposeContributionFlow 654→582 (BoulderDraft = state-holder de los 10 campos de la piedra con restore/startNew, ProposeStep a su fichero), AddLinesFlow 619→569 (EditFaces.kt), ContributionTopoDialog 620→546 (TopoEditorHeader). move-kt-blocks.js ya convierte también . Quedan 18 (1 Android: SchoolMapView; 1 shared; 16 iOS).

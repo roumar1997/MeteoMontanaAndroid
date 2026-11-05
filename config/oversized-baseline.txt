@@ -15,9 +15,6 @@
 715 iosApp/iosApp/Screens/BlockInfoSheet.swift
 707 iosApp/iosApp/Screens/GuidePDF.swift
 706 iosApp/iosApp/Screens/EditLinesSheet.swift
-654 app/src/main/java/com/meteomontana/android/ui/screens/detail/ProposeContributionFlow.kt
 650 iosApp/iosApp/Screens/SchoolDetailView.swift
 649 shared/src/commonMain/kotlin/com/meteomontana/android/di/IosDependencyContainer.kt
-620 app/src/main/java/com/meteomontana/android/ui/screens/detail/ContributionTopoDialog.kt
-619 app/src/main/java/com/meteomontana/android/ui/screens/detail/AddLinesFlow.kt
 603 iosApp/iosApp/Screens/AdminTabs.swift

@@ -75,57 +75,6 @@ import com.meteomontana.android.ui.theme.gradeStyle
 import kotlinx.coroutines.launch
 
 /**
- * Una cara editable de la piedra dentro del editor: la foto actual (remota) y/o
- * una foto nueva elegida que la sustituye, más sus vías. Las vías existentes
- * llevan `existingLineId`; las nuevas no.
- */
-internal data class EditFace(
-    val existingPhotoPath: String?,   // foto remota actual (null si cara nueva)
-    val newPhotoUri: Uri?,            // foto local elegida (sustituye a la anterior)
-    val bloques: List<BoulderBloqueForm>
-) {
-    /** Modelo para Coil: la nueva si la hay, si no la URL remota. */
-    val photoModel: Any? get() = newPhotoUri ?: existingPhotoPath?.takeIf { it.isNotBlank() }
-    val hasPhoto: Boolean get() = photoModel != null
-}
-
-/** STAND/SIT/JUMP/TRAV (backend) → PIE/SIT/LANCE/TRAV (app). */
-private fun startTypeForBoulderUi(raw: String?): String? = when (raw?.uppercase()) {
-    "STAND", "PIE"  -> "PIE"
-    "SIT"           -> "SIT"
-    "SEMI"          -> "SEMI"
-    "JUMP", "LANCE" -> "LANCE"
-    "TRAV"          -> "TRAV"
-    else            -> null
-}
-
-/**
- * Construye el estado editable inicial (caras + vías) desde una piedra existente.
- * Lo usa el contenedor (SchoolMap) para elevar el estado del editor y que
- * sobreviva mientras el diálogo se oculta para trazar el muro en el mapa.
- */
-internal fun initialEditFaces(block: Block): List<EditFace> =
-    block.facesOrDerived().let { fs ->
-        if (fs.isEmpty()) listOf(EditFace(block.photoPath, null, listOf(BoulderBloqueForm())))
-        else fs.map { f ->
-            EditFace(
-                existingPhotoPath = f.photoPath,
-                newPhotoUri = null,
-                bloques = f.lines.map { l ->
-                    BoulderBloqueForm(
-                        name = l.name, grade = l.grade,
-                        startType = startTypeForBoulderUi(l.startType?.toString()),
-                        linePath = com.meteomontana.android.ui.screens.topo.parseLineStroke(l.linePath).points,
-                        existingLineId = l.id,
-                        description = l.lineDescription,
-                        variant = l.variant
-                    )
-                }.ifEmpty { listOf(BoulderBloqueForm()) }
-            )
-        }
-    }
-
-/**
  * Flujo "Editar / corregir vías" sobre una piedra existente — editor COMPLETO,
  * paridad con el de creación. Es un componente CONTROLADO: su estado (caras,
  * geometría, sentido, cara seleccionada, trazado) lo posee el contenedor para

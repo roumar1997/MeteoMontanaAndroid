@@ -1,6 +1,5 @@
 package com.meteomontana.android.ui.screens.detail
 
-
 import com.meteomontana.android.util.AppText
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -24,48 +23,6 @@ import com.meteomontana.android.R
 //   ProposeCommonUi.kt       → SubmitFooter, selectores, CumbreDialog
 
 // ─── Estados internos del flujo ─────────────────────────────────────────────
-
-/** Datos del marker fantasma que SchoolMap renderiza durante una corrección. */
-data class CorrectionGhost(
-    val originalId: String?,   // id del marker original a "fantasmear". null=escuela.
-    val newLat: Double?,
-    val newLon: Double?
-)
-
-/** Foto de "Enviar piedra" con lo que se pudo leer de su EXIF. */
-data class PhotoSeed(
-    val photoUri: android.net.Uri,
-    val lat: Double,
-    val lon: Double,
-    /** Orientación sugerida por el rumbo de la cámara, si la foto lo traía. */
-    val aspect: String?
-)
-
-private sealed interface ProposeStep {
-    data object TypePicker    : ProposeStep
-    data object WaitingMapTap : ProposeStep
-    data class  Form(val lat: Double, val lon: Double)        : ProposeStep  // PARKING
-    data class  BoulderForm(val lat: Double, val lon: Double) : ProposeStep  // BOULDER
-    /** Foto ya colocada donde se hizo: solo falta confirmar el sitio. */
-    data class  PhotoConfirm(val lat: Double, val lon: Double) : ProposeStep
-    data class  WallTracing(val lat: Double, val lon: Double) : ProposeStep  // trazar muro en el mapa
-    data class  SectorForm(val lat: Double, val lon: Double)  : ProposeStep  // SECTOR
-    data object SchoolNameCorrection  : ProposeStep  // SCHOOL_NAME_CORRECTION, sin tocar el mapa
-    data object SchoolStyleCorrection : ProposeStep  // SCHOOL_STYLE_CORRECTION, sin tocar el mapa
-    data object CorrectionPickTarget : ProposeStep                          // espera tap en marker existente
-    data class  CorrectionMoving(
-        val targetId: String?,    // null = mover escuela entera
-        val targetName: String,
-        val oldLat: Double,
-        val oldLon: Double,
-        val targetType: String,   // BLOCK / PARKING / ZONE / SCHOOL
-        val newLat: Double? = null,  // null = aún no fijada
-        val newLon: Double? = null
-    ) : ProposeStep
-    data class  Success(val queued: Boolean = false) : ProposeStep
-}
-
-// ─── Punto de entrada ────────────────────────────────────────────────────────
 
 /**
  * Flujo completo de "Proponer mejora":
@@ -153,23 +110,8 @@ fun ProposeContributionFlow(
             else ProposeStep.TypePicker
         )
     }
-    var boulderMode by remember { mutableStateOf(false) }
-
-    // Estado del borrador BOULDER (elevado aquí para persistir entre BoulderForm y TopoDialog).
-    // Una piedra puede tener VARIAS CARAS (fotos), cada una con sus vías.
-    var boulderName by remember { mutableStateOf("") }
-    var boulderFaces by remember { mutableStateOf(listOf(BoulderFaceForm())) }
-    var boulderTopoFaceIdx by remember { mutableStateOf<Int?>(null) }  // cara cuyo editor de líneas está abierto
-    var boulderSectorBlockId by remember { mutableStateOf<String?>(null) }
-    var boulderDiscipline by remember { mutableStateOf("BOULDER") }  // BOULDER (bloque) / ROUTE (vía)
-    // F: orientación de la piedra elegida por el autor (opcional).
-    var boulderOrientation by remember { mutableStateOf<String?>(null) }
-    // Geometría en el mapa: POINT (marcador) o LINE (muro = polilínea trazada en el mapa).
-    var boulderGeometry by remember { mutableStateOf("POINT") }
-    // Sentido de numeración de las vías del muro: LTR (izq→der) / RTL (der→izq).
-    var boulderDirection by remember { mutableStateOf("LTR") }
-    // Polilínea trazada del muro: lista de puntos [lat,lon] (vacía mientras geometry=POINT).
-    var boulderPath by remember { mutableStateOf<List<Pair<Double, Double>>>(emptyList()) }
+    // La piedra que se propone (sobrevive al pasar del formulario al editor de líneas).
+    val boulder = remember { BoulderDraft() }
     /** Coordenadas del formulario abierto, para poder guardarlo a medias. */
     var preguntandoGuardar by remember { mutableStateOf<Pair<Double, Double>?>(null) }
     /** Fallo al preparar las fotos para la cola de envío. Se avisa y NO se
@@ -194,9 +136,9 @@ fun ProposeContributionFlow(
     androidx.compose.runtime.LaunchedEffect(photoSeed) {
         if (photoSeed != null) {
             onPhotoSeedConsumed?.invoke()
-            boulderFaces = listOf(BoulderFaceForm(
+            boulder.faces = listOf(BoulderFaceForm(
                 photoUri = photoSeed.photoUri, orientation = photoSeed.aspect))
-            boulderOrientation = photoSeed.aspect
+            boulder.orientation = photoSeed.aspect
         }
     }
 
@@ -216,8 +158,8 @@ fun ProposeContributionFlow(
             }
             is ProposeStep.WallTracing -> {
                 // Cada tap añade un punto a la polilínea del muro. LISTO cierra el modo.
-                boulderPath = boulderPath + (lat to lon)
-                onWallPreviewChange(boulderPath)
+                boulder.path = boulder.path + (lat to lon)
+                onWallPreviewChange(boulder.path)
             }
             else -> {}
         }
@@ -225,8 +167,8 @@ fun ProposeContributionFlow(
 
     // Botones DESHACER / LISTO del banner de trazado (SchoolMap los dispara).
     onWallUndo {
-        boulderPath = boulderPath.dropLast(1)
-        onWallPreviewChange(boulderPath)
+        boulder.path = boulder.path.dropLast(1)
+        onWallPreviewChange(boulder.path)
     }
     onWallDone {
         val cur = step as? ProposeStep.WallTracing ?: return@onWallDone
@@ -303,10 +245,10 @@ fun ProposeContributionFlow(
         val enCurso = BoulderDraftStore.Draft(
             // El id de la escuela lo rellena el ViewModel, que es quien lo sabe.
             schoolId = "", lat = lat, lon = lon,
-            name = boulderName, discipline = boulderDiscipline,
-            geometry = boulderGeometry, direction = boulderDirection,
-            sectorBlockId = boulderSectorBlockId, orientation = boulderOrientation,
-            path = boulderPath, faces = boulderFaces, savedAt = System.currentTimeMillis()
+            name = boulder.name, discipline = boulder.discipline,
+            geometry = boulder.geometry, direction = boulder.direction,
+            sectorBlockId = boulder.sectorBlockId, orientation = boulder.orientation,
+            path = boulder.path, faces = boulder.faces, savedAt = System.currentTimeMillis()
         )
         if (!enCurso.tieneContenido()) {
             // Formulario vacio: no hay nada que salvar, se cierra sin molestar.
@@ -343,15 +285,7 @@ fun ProposeContributionFlow(
         is ProposeStep.TypePicker -> TypePickerDialog(
             onContinuarBorrador = borrador?.let { b ->
                 {
-                    boulderMode = true; pickedType = "BOULDER"
-                    boulderName = b.name
-                    boulderFaces = b.faces
-                    boulderSectorBlockId = b.sectorBlockId
-                    boulderDiscipline = b.discipline
-                    boulderGeometry = b.geometry
-                    boulderDirection = b.direction
-                    boulderOrientation = b.orientation
-                    boulderPath = b.path
+                    boulder.restore(b); pickedType = "BOULDER"
                     step = ProposeStep.BoulderForm(b.lat, b.lon)
                 }
             },
@@ -359,24 +293,17 @@ fun ProposeContributionFlow(
                 { onDismiss(); it() }
             },
             onParking = {
-                boulderMode = false; pickedType = "PARKING"
+                boulder.mode = false; pickedType = "PARKING"
                 step = ProposeStep.WaitingMapTap
                 onStartWaitingTap()
             },
             onBoulder = {
-                boulderMode = true; pickedType = "BOULDER"
-                boulderFaces = listOf(BoulderFaceForm())
-                boulderName = ""
-                boulderSectorBlockId = null
-                boulderDiscipline = "BOULDER"
-                boulderGeometry = "POINT"
-                boulderDirection = "LTR"
-                boulderPath = emptyList()
+                boulder.startNew(); pickedType = "BOULDER"
                 step = ProposeStep.WaitingMapTap
                 onStartWaitingTap()
             },
             onSector = {
-                boulderMode = false; pickedType = "SECTOR"
+                boulder.mode = false; pickedType = "SECTOR"
                 step = ProposeStep.WaitingMapTap
                 onStartWaitingTap()
             },
@@ -456,23 +383,23 @@ fun ProposeContributionFlow(
             BoulderFormDialog(
                 lat = s.lat,
                 lon = s.lon,
-                faces = boulderFaces,
-                onFacesChange = { boulderFaces = it },
-                onOpenTopo = { faceIdx -> boulderTopoFaceIdx = faceIdx },
+                faces = boulder.faces,
+                onFacesChange = { boulder.faces = it },
+                onOpenTopo = { faceIdx -> boulder.topoFaceIdx = faceIdx },
                 sectorBlocks = sectorBlocks,
-                sectorBlockId = boulderSectorBlockId,
-                onSectorChange = { boulderSectorBlockId = it },
-                discipline = boulderDiscipline,
-                onDisciplineChange = { boulderDiscipline = it },
-                blockOrientation = boulderOrientation,
-                onBlockOrientationChange = { boulderOrientation = it },
-                geometry = boulderGeometry,
-                onGeometryChange = { boulderGeometry = it },
-                direction = boulderDirection,
-                onDirectionChange = { boulderDirection = it },
-                path = boulderPath,
+                sectorBlockId = boulder.sectorBlockId,
+                onSectorChange = { boulder.sectorBlockId = it },
+                discipline = boulder.discipline,
+                onDisciplineChange = { boulder.discipline = it },
+                blockOrientation = boulder.orientation,
+                onBlockOrientationChange = { boulder.orientation = it },
+                geometry = boulder.geometry,
+                onGeometryChange = { boulder.geometry = it },
+                direction = boulder.direction,
+                onDirectionChange = { boulder.direction = it },
+                path = boulder.path,
                 onTraceWall = {
-                    onWallPreviewChange(boulderPath)
+                    onWallPreviewChange(boulder.path)
                     onWallTracingChange(true)
                     step = ProposeStep.WallTracing(s.lat, s.lon)
                 },
@@ -482,15 +409,15 @@ fun ProposeContributionFlow(
                 onSubmit = {
                     val result = viewModel.submitBoulderFacesContribution(
                         lat = s.lat, lon = s.lon,
-                        name = boulderName,
-                        faces = boulderFaces,
-                        sectorBlockId = boulderSectorBlockId,
-                        discipline = boulderDiscipline,
-                        geometry = boulderGeometry,
-                        path = if (boulderGeometry == "LINE" && boulderPath.isNotEmpty())
-                            boulderPath.toPathJson() else null,
-                        direction = boulderDirection,
-                        blockOrientation = boulderOrientation
+                        name = boulder.name,
+                        faces = boulder.faces,
+                        sectorBlockId = boulder.sectorBlockId,
+                        discipline = boulder.discipline,
+                        geometry = boulder.geometry,
+                        path = if (boulder.geometry == "LINE" && boulder.path.isNotEmpty())
+                            boulder.path.toPathJson() else null,
+                        direction = boulder.direction,
+                        blockOrientation = boulder.orientation
                     )
                     if (result.isSuccess) { onBorrarBorrador?.invoke(); step = ProposeStep.Success() }
                     result.isSuccess
@@ -503,7 +430,7 @@ fun ProposeContributionFlow(
                         // medias: antes se guardaba esa cara sin foto y en
                         // silencio, y el usuario perdía el trabajo sin saberlo
                         // ("subo tres fotos y sube una", 2026-08-15).
-                        val preparadas = boulderFaces.map { f ->
+                        val preparadas = boulder.faces.map { f ->
                             f to f.photoUri?.let {
                                 com.meteomontana.android.data.outbox.copyPhotoToOutbox(context, it)
                             }
@@ -523,13 +450,13 @@ fun ProposeContributionFlow(
                             )
                         }
                         viewModel.queueBoulderOffline(
-                            lat = s.lat, lon = s.lon, name = boulderName,
-                            sectorBlockId = boulderSectorBlockId,
-                            discipline = boulderDiscipline,
-                            geometry = boulderGeometry,
-                            pathJson = if (boulderGeometry == "LINE" && boulderPath.isNotEmpty())
-                                boulderPath.toPathJson() else null,
-                            direction = boulderDirection,
+                            lat = s.lat, lon = s.lon, name = boulder.name,
+                            sectorBlockId = boulder.sectorBlockId,
+                            discipline = boulder.discipline,
+                            geometry = boulder.geometry,
+                            pathJson = if (boulder.geometry == "LINE" && boulder.path.isNotEmpty())
+                                boulder.path.toPathJson() else null,
+                            direction = boulder.direction,
                             faces = qFaces
                         )
                         step = ProposeStep.Success(queued = true)
@@ -538,20 +465,20 @@ fun ProposeContributionFlow(
             )
 
             // Editor de líneas de UNA cara (se muestra encima del formulario).
-            val topoIdx = boulderTopoFaceIdx
-            val topoFace = topoIdx?.let { boulderFaces.getOrNull(it) }
+            val topoIdx = boulder.topoFaceIdx
+            val topoFace = topoIdx?.let { boulder.faces.getOrNull(it) }
             val topoPhoto = topoFace?.photoUri
             if (topoIdx != null && topoFace != null && topoPhoto != null) {
                 ContributionTopoDialog(
                     photoUri = topoPhoto,
                     bloques = topoFace.bloques,
                     onSave = { updated ->
-                        boulderFaces = boulderFaces.toMutableList().also {
+                        boulder.faces = boulder.faces.toMutableList().also {
                             it[topoIdx] = topoFace.copy(bloques = updated)
                         }
-                        boulderTopoFaceIdx = null
+                        boulder.topoFaceIdx = null
                     },
-                    onDismiss = { boulderTopoFaceIdx = null }
+                    onDismiss = { boulder.topoFaceIdx = null }
                 )
             }
         }

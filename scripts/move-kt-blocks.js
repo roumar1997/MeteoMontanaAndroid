@@ -20,7 +20,7 @@ for (const r of ranges) {
   for (let i = a; i <= b; i++) take.add(i - 1);
   moved.push(lines.slice(a - 1, b).join(eol));
 }
-const toInternal = s => s.replace(/^private (fun|class|val|const val|object|data class|enum class|sealed class|interface|var) /gm, "internal $1 ");
+const toInternal = s => s.replace(/^private (fun|class|val|const val|object|data class|enum class|sealed class|sealed interface|interface|var) /gm, "internal $1 ");
 
 const pkg = lines.find(l => l.startsWith("package "));
 const imports = lines.filter(l => l.startsWith("import "));
