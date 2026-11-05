@@ -269,6 +269,9 @@ struct AscentSheet: View {
     private var heightRow: some View {
         if votes.myHeight == nil || choosingHeight {
             VStack(alignment: .leading, spacing: 6) {
+                if votes.myHeight == nil {
+                    Text(L("¿Quieres poner tu altura?")).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                }
                 HeightChoiceView(selected: votes.myHeight) { group in
                     choosingHeight = false
                     Task {
@@ -276,7 +279,7 @@ struct AscentSheet: View {
                         if votes.myHeight != nil, let p = pendingVote { vote = p; pendingVote = nil }
                     }
                 }
-                Text(L("Se guarda en tu perfil y cuenta para saber cuánta gente de cada altura hace cada vía."))
+                Text(L("Ayuda a la comunidad: quien mida parecido a ti sabrá cuánta gente de su altura encadena cada vía. Se guarda en tu perfil, no tienes que ponerla allí."))
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
             }
         } else {
