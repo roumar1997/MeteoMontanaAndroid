@@ -33,42 +33,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-sealed interface SchoolDetailUiState {
-    data object Loading : SchoolDetailUiState
-    data class Error(val message: String) : SchoolDetailUiState
-    data class Success(
-        val school: School,
-        val forecast: Forecast?,
-        val forecastError: String?,
-        val notes: List<Note>,
-        val isFavorite: Boolean,
-        val blocks: List<Block>,
-        val isCurrentUserAdmin: Boolean = false,
-        val monthlyStats: MonthlyStats? = null,
-        val monthlyLoading: Boolean = false,
-        val isSavedOffline: Boolean = false,
-        /** Si !=null, los datos provienen del snapshot offline guardado en esa fecha (epoch ms). */
-        val offlineSnapshotAt: Long? = null,
-        /** Si !=null, el forecast viene de la caché local y se bajó en esa fecha (epoch ms). */
-        val forecastCachedAt: Long? = null,
-        /** Boletín de montaña AEMET si la escuela cae en uno de los 9 macizos. */
-        val mountainBulletin: com.meteomontana.android.domain.model.MountainBulletin? = null,
-        /** Aproximaciones (parking → sector) — APPROACH_DESIGN.md, admin-gated. */
-        val approaches: List<com.meteomontana.android.domain.model.Approach> = emptyList(),
-        /** Si !=null, hay que preguntar al usuario si baja las fotos (puede ir
-         *  por datos). Guardar los datos no se pregunta: pesan poco. */
-        val ofertaFotosOffline: OfertaFotosOffline? = null,
-        /** Progreso 0..1 mientras bajan las fotos; null = no hay descarga. */
-        val descargaFotos: Float? = null,
-        /** Cuántas fotos NO se pudieron bajar. Se avisa: prometer fotos que
-         *  luego faltan se descubre ya sin cobertura, cuando no hay remedio. */
-        val fotosOfflineFallidas: Int? = null
-    ) : SchoolDetailUiState
-}
-
-/** Lo que se le ofrece al usuario descargar para ver la escuela sin cobertura. */
-data class OfertaFotosOffline(val cuantas: Int, val bytesEstimados: Long)
-
 /**
  * FACHADA del detalle de escuela: publica el estado y delega el trabajo en sus
  * colaboradores (SRP — antes esta clase hacía las 4 cosas ella misma, ~1000
@@ -108,14 +72,8 @@ class SchoolDetailViewModel @Inject constructor(
     /** Foto de "Enviar piedra" a la espera de que se abra su escuela. */
     private val photoProposal: com.meteomontana.android.ui.screens.schools.PhotoProposalSeed,
     // Aproximaciones (SOLO ADMIN crea/borra por ahora — APPROACH_DESIGN.md §2.6/§10).
-    private val getApproachesUseCase: com.meteomontana.android.domain.usecase.approach.GetApproachesUseCase,
-    private val createApproachUseCase: com.meteomontana.android.domain.usecase.approach.CreateApproachUseCase,
-    private val addApproachPinUseCase: com.meteomontana.android.domain.usecase.approach.AddApproachPinUseCase,
-    private val deleteApproachUseCase: com.meteomontana.android.domain.usecase.approach.DeleteApproachUseCase,
-    private val confirmProcessionaryUseCase: com.meteomontana.android.domain.usecase.schools.ConfirmProcessionaryUseCase,
-    private val retractProcessionaryUseCase: com.meteomontana.android.domain.usecase.schools.RetractProcessionaryUseCase,
-    private val reportProcessionaryActiveNowUseCase: com.meteomontana.android.domain.usecase.schools.ReportProcessionaryActiveNowUseCase,
-    private val clearProcessionaryActiveNowUseCase: com.meteomontana.android.domain.usecase.schools.ClearProcessionaryActiveNowUseCase
+    private val approaches: ApproachActions,
+    private val processionary: ProcessionaryActions,
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
@@ -415,80 +373,17 @@ class SchoolDetailViewModel @Inject constructor(
         }
     }
 
-    /** "Sí que hay en este sector": marca la escuela para siempre. Toggleable. */
-    fun confirmProcessionary() {
-        val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
-        if (cur.school.hasKnownProcessionary) return
-        viewModelScope.launch {
-            try {
-                confirmProcessionaryUseCase(schoolId)
-                val alertActive = com.meteomontana.android.domain.util.ProcessionarySeason.isInSeason() ||
-                    cur.school.processionaryActiveNowSet
-                _uiState.value = cur.copy(
-                    school = cur.school.copy(
-                        hasKnownProcessionary = true,
-                        processionaryAlertActive = alertActive
-                    )
-                )
-                com.meteomontana.android.domain.util.ProcessionaryOverrideStore.set(schoolId, alertActive)
-            } catch (_: Throwable) {}
-        }
-    }
+    // ── Procesionaria (delegada en ProcessionaryActions): los cuatro botones, todos se pueden deshacer ──
+    fun confirmProcessionary() = updateSchool { processionary.confirm(schoolId, it) }
+    fun retractProcessionary() = updateSchool { processionary.retract(schoolId, it) }
+    fun reportProcessionaryActiveNow() = updateSchool { processionary.reportActiveNow(schoolId, it) }
+    fun clearProcessionaryActiveNow() = updateSchool { processionary.clearActiveNow(schoolId, it) }
 
-    /** Deshace "Sí que hay en este sector". Toggleable. */
-    fun retractProcessionary() {
-        val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
-        if (!cur.school.hasKnownProcessionary) return
-        viewModelScope.launch {
-            try {
-                retractProcessionaryUseCase(schoolId)
-                _uiState.value = cur.copy(
-                    school = cur.school.copy(
-                        hasKnownProcessionary = false,
-                        processionaryAlertActive = false,
-                        processionaryActiveNowSet = false
-                    )
-                )
-                com.meteomontana.android.domain.util.ProcessionaryOverrideStore.set(schoolId, false)
-            } catch (_: Throwable) {}
-        }
-    }
-
-    /** "Las he visto antes de tiempo": activa la alarma ya, con caducidad. Toggleable. */
-    fun reportProcessionaryActiveNow() {
+    /** Cambia la escuela del detalle con lo que devuelva [change] (null = nada que hacer); si falla, se queda como estaba. */
+    private fun updateSchool(change: suspend (com.meteomontana.android.domain.model.School) -> com.meteomontana.android.domain.model.School?) {
         val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
         viewModelScope.launch {
-            try {
-                reportProcessionaryActiveNowUseCase(schoolId)
-                _uiState.value = cur.copy(
-                    school = cur.school.copy(
-                        hasKnownProcessionary = true,
-                        processionaryAlertActive = true,
-                        processionaryActiveNowSet = true
-                    )
-                )
-                com.meteomontana.android.domain.util.ProcessionaryOverrideStore.set(schoolId, true)
-            } catch (_: Throwable) {}
-        }
-    }
-
-    /** Deshace solo "Las he visto antes de tiempo" (no toca la confirmación permanente). Toggleable. */
-    fun clearProcessionaryActiveNow() {
-        val cur = _uiState.value as? SchoolDetailUiState.Success ?: return
-        if (!cur.school.processionaryActiveNowSet) return
-        viewModelScope.launch {
-            try {
-                clearProcessionaryActiveNowUseCase(schoolId)
-                val alertActive = cur.school.hasKnownProcessionary &&
-                    com.meteomontana.android.domain.util.ProcessionarySeason.isInSeason()
-                _uiState.value = cur.copy(
-                    school = cur.school.copy(
-                        processionaryActiveNowSet = false,
-                        processionaryAlertActive = alertActive
-                    )
-                )
-                com.meteomontana.android.domain.util.ProcessionaryOverrideStore.set(schoolId, alertActive)
-            } catch (_: Throwable) {}
+            runCatching { change(cur.school) }.getOrNull()?.let { _uiState.value = cur.copy(school = it) }
         }
     }
 
@@ -652,51 +547,19 @@ class SchoolDetailViewModel @Inject constructor(
     /** Refresca solo la lista de aproximaciones (tras grabar/borrar/añadir chincheta). */
     fun reloadApproaches() {
         viewModelScope.launch {
-            val approaches = runCatching { getApproachesUseCase(schoolId) }.getOrDefault(emptyList())
-            val cur = _uiState.value
-            if (cur is SchoolDetailUiState.Success) _uiState.value = cur.copy(approaches = approaches)
+            val list = approaches.load(schoolId)
+            (_uiState.value as? SchoolDetailUiState.Success)?.let { _uiState.value = it.copy(approaches = list) }
         }
     }
 
-    /** Admin: sube el camino grabado + sus chinchetas pendientes (en memoria). */
     suspend fun createApproach(
         req: com.meteomontana.android.data.api.dto.CreateApproachRequest,
         pins: List<com.meteomontana.android.data.api.dto.AddApproachPinRequest>
-    ): Result<Unit> = runCatching {
-        val approach = createApproachUseCase(schoolId, req)
-        pins.forEach { pinReq -> runCatching { addApproachPinUseCase(approach.id, pinReq) } }
-        reloadApproaches()
-    }
+    ): Result<Unit> = runCatching { approaches.create(schoolId, req, pins); reloadApproaches() }
 
-    /** Cualquier usuario (hoy solo admin desde la UI): añade una chincheta a una aproximación ya publicada. */
-    suspend fun addApproachPin(
-        approachId: String,
-        req: com.meteomontana.android.data.api.dto.AddApproachPinRequest
-    ): Result<Unit> = runCatching {
-        addApproachPinUseCase(approachId, req)
-        reloadApproaches()
-    }
+    suspend fun addApproachPin(approachId: String, req: com.meteomontana.android.data.api.dto.AddApproachPinRequest): Result<Unit> =
+        runCatching { approaches.addPin(approachId, req); reloadApproaches() }
 
-    /** Admin: borra un camino entero (y sus chinchetas, en cascada en el backend). */
-    suspend fun deleteApproach(approachId: String): Result<Unit> = runCatching {
-        deleteApproachUseCase(approachId)
-        reloadApproaches()
-    }
+    suspend fun deleteApproach(approachId: String): Result<Unit> = runCatching { approaches.delete(approachId); reloadApproaches() }
 }
 
-/**
- * Ids de las vías de [block] cuyo diario casa con alguna clave de [keys]:
- * por lineId ("escuela|#id", aguanta homónimas — fix "La ola") o por nombre
- * como LEGADO (entradas antiguas sin lineId). Es la traducción diario → ✓ de
- * la ficha de piedra; función PURA para testearla sin Compose.
- */
-fun matchedLineIds(
-    block: com.meteomontana.android.domain.model.Block,
-    keys: Set<String>
-): Set<String> =
-    block.lines.mapIndexedNotNull { idx, line ->
-        val viaName = line.name.ifBlank { "Vía ${idx + 1}" }
-        val idKey = journalViaKey(block.schoolId, line.id.takeIf { it.isNotBlank() }, viaName)
-        val nameKey = "${block.schoolId}|${viaName.trim().lowercase()}"
-        if (keys.contains(idKey) || keys.contains(nameKey)) line.id else null
-    }.toSet()

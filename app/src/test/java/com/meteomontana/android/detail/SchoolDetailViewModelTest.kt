@@ -186,14 +186,8 @@ class SchoolDetailViewModelTest {
             networkMonitor,
             mockk(relaxed = true),  // rateLineUseCase
             com.meteomontana.android.ui.screens.schools.PhotoProposalSeed(),
-            mockk<com.meteomontana.android.domain.usecase.approach.GetApproachesUseCase>(relaxed = true),
-            mockk<com.meteomontana.android.domain.usecase.approach.CreateApproachUseCase>(relaxed = true),
-            mockk<com.meteomontana.android.domain.usecase.approach.AddApproachPinUseCase>(relaxed = true),
-            mockk<com.meteomontana.android.domain.usecase.approach.DeleteApproachUseCase>(relaxed = true),
-            mockk<com.meteomontana.android.domain.usecase.schools.ConfirmProcessionaryUseCase>(relaxed = true),
-            mockk<com.meteomontana.android.domain.usecase.schools.RetractProcessionaryUseCase>(relaxed = true),
-            mockk<com.meteomontana.android.domain.usecase.schools.ReportProcessionaryActiveNowUseCase>(relaxed = true),
-            mockk<com.meteomontana.android.domain.usecase.schools.ClearProcessionaryActiveNowUseCase>(relaxed = true)
+            com.meteomontana.android.ui.screens.detail.ApproachActions(mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true)),
+            com.meteomontana.android.ui.screens.detail.ProcessionaryActions(mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
         )
     }
 

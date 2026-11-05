@@ -21,7 +21,6 @@
 715 iosApp/iosApp/Screens/BlockInfoSheet.swift
 707 iosApp/iosApp/Screens/GuidePDF.swift
 706 iosApp/iosApp/Screens/EditLinesSheet.swift
-702 app/src/main/java/com/meteomontana/android/ui/screens/detail/SchoolDetailViewModel.kt
 678 app/src/main/java/com/meteomontana/android/ui/components/SchoolMap.kt
 654 app/src/main/java/com/meteomontana/android/ui/screens/detail/ProposeContributionFlow.kt
 650 iosApp/iosApp/Screens/SchoolDetailView.swift

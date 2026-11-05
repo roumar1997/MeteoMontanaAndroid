@@ -5,16 +5,13 @@ en Kotlin con la app iOS (SwiftUI) y se conecta al backend Spring Boot.
 **Paridad exigida**: iOS replica Android verbatim — mismas pantallas, textos,
 orden y colores.
 
-**Excepción — panel de ADMIN (2026-09-06):** Álvaro solo usa el panel de admin
-en iOS. Para cualquier función nueva del panel de admin (propuestas, historial,
-chat admin→usuario, gestión): implementar **primero en iOS**, dar un TestFlight
-para que lo valide él a fondo, y **solo después** portar a Android — pidiéndole
-capturas concretas (decir explícitamente cuál hace falta y de qué pantalla)
-en vez de asumir cómo debe verse. El resto de la app sigue con paridad
-simultánea de siempre.
+**Excepción — panel de ADMIN (confirmado 2026-11-05):** el panel de admin vive
+SOLO en iOS (Álvaro es el único admin y lo usa en el iPhone). No se porta a
+Android ni se piden capturas de admin. Lo que ve cualquier usuario (verificado,
+aureola, títulos especiales) sí lleva paridad.
 
 **Excepción — REDISEÑO visual "que no se note que es de Claude" (2026-09-28):**
-mismo patrón que el panel de admin. Álvaro pidió romper con la paleta
+PENDIENTE para más adelante (confirmado 2026-11-05). Álvaro pidió romper con la paleta
 crema+terracota+serif (demasiado reconocible como hecha con IA) y elegir una
 dirección propia (topos de escalada, cartografía, cinta técnica...). Se
 implementa **primero en iOS**, Álvaro da el visto bueno con capturas
