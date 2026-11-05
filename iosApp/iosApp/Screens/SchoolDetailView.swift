@@ -421,8 +421,8 @@ struct SchoolDetailView: View {
                 .guideTarget("detail.tabs")
             switch tab {
             case .map:
-                // Boletín de montaña ENCIMA del mapa (paridad con Android).
-                MountainBulletinSection(lat: school.lat, lon: school.lon, country: school.country)
+                // Boletín de montaña AEMET QUITADO (Álvaro, 2026-11-05): unas veces llega y otras no.
+                // Para volver: MountainBulletinSection(lat: school.lat, lon: school.lon, country: school.country)
                 SchoolMapSection(school: school, openVia: mapOpenVia, focusBlockId: mapFocusBlock, showsSearch: false,
                                  onBlockSheetClosed: {
                                      // Una sola vuelta: la lista conserva sus filtros (viven en blocksModel).

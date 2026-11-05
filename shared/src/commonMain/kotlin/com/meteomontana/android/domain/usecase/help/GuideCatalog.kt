@@ -41,6 +41,11 @@ object GuideCatalog {
     }
 
     private val ES: Map<String, List<GuideStep>> = mapOf(
+        // No es de una pantalla: la lanza la hoja de ascenso la PRIMERA vez si no has dicho tu altura (Álvaro, 2026-11-05).
+        "ascent_height" to listOf(
+            GuideStep("ascent.height", "Esto es importante",
+                "Dinos si mides más o menos de 1,70. Así quien mida parecido a ti sabrá cuánta gente de su altura encadena cada vía. Se guarda en tu perfil y solo se ve sumado, nunca tu nombre.")
+        ),
         "schools" to listOf(
             GuideStep("schools.score", "La nota de hoy",
                 "Este número (0–100) dice si hoy se puede escalar en esa escuela. Cuanto más alto y más verde, mejor."),
@@ -122,6 +127,10 @@ object GuideCatalog {
     )
 
     private val EN: Map<String, List<GuideStep>> = mapOf(
+        "ascent_height" to listOf(
+            GuideStep("ascent.height", "This matters",
+                "Tell us if you are taller or shorter than 1.70 m. People your height will see how many climbers like them send each line. It is saved to your profile and only shown as totals, never with your name.")
+        ),
         "schools" to listOf(
             GuideStep("schools.score", "Today's score",
                 "This number (0–100) tells you if you can climb at that crag today. The higher and greener, the better."),

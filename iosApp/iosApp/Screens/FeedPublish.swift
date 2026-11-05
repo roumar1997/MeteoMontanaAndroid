@@ -67,6 +67,9 @@ struct AscentSheet: View {
     @State private var pendingVote: String? = nil
     @State private var showAllGrades = false
     @State private var choosingHeight = false
+    // «Prefiero no decirlo»: la PRIMERA vez que apuntas algo se vuelve a ofrecer, con el porqué (una sola vez).
+    @State private var nudgeHeight = false
+    private var heightGuideUsed: Bool { UserDefaults.standard.bool(forKey: GuideStore.usedKey("ascent_height")) }
     @State private var share = FeedSharePref.enabled
     // Descripción opcional del autor (viaja como "caption", max 500).
     @State private var caption = ""
@@ -136,7 +139,7 @@ struct AscentSheet: View {
                 .fixedSize(horizontal: false, vertical: true)
                 // TU ALTURA: con la que cuenta este encadene (+1,70 / −1,70). Si ya la dijiste, una línea; si no, aquí mismo.
                 sectionLabel(L("TU ALTURA"))
-                heightRow
+                heightRow.guideTarget("ascent.height")
                 sectionLabel(L("¿QUÉ GRADO LE DAS? · OPCIONAL"))
                 gradeSection
                 shareRow.padding(.top, 16)
@@ -156,6 +159,8 @@ struct AscentSheet: View {
             .padding(.horizontal, 16).padding(.top, 22).padding(.bottom, 20)
         }
         .scrollDismissesKeyboard(.interactively)
+        .guideHost("ascent_height")
+        .task(id: votes.myHeight) { await offerHeightOnce() }
         .background(Cumbre.bg.ignoresSafeArea())
         .presentationDetents([.fraction(0.86), .large])
         .presentationDragIndicator(.visible)
@@ -267,13 +272,13 @@ struct AscentSheet: View {
     /// «Mides más de 1,70 · CAMBIAR», o las tres opciones si aún no la has dicho (o al pulsar CAMBIAR).
     @ViewBuilder
     private var heightRow: some View {
-        if votes.myHeight == nil || choosingHeight {
+        if votes.myHeight == nil || choosingHeight || nudgeHeight {
             VStack(alignment: .leading, spacing: 6) {
-                if votes.myHeight == nil {
+                if votes.myHeight == nil || nudgeHeight {
                     Text(L("¿Quieres poner tu altura?")).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
                 }
                 HeightChoiceView(selected: votes.myHeight) { group in
-                    choosingHeight = false
+                    choosingHeight = false; nudgeHeight = false
                     Task {
                         await votes.setMyHeight(group)
                         if votes.myHeight != nil, let p = pendingVote { vote = p; pendingVote = nil }
@@ -292,7 +297,21 @@ struct AscentSheet: View {
                     Text(L("CAMBIAR")).font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.terra)
                 }.buttonStyle(.plain)
             }
+            if votes.myHeight == .unspecified {
+                Text(L("Si la compartes, ayudas a mucha más gente: cuantas más alturas haya, más claro se ve qué vías van mejor a quien mide como tú."))
+                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink2).padding(.top, 4)
+            }
         }
+    }
+
+    /// La PRIMERA vez que apuntas algo sin altura (o con «prefiero no decirlo»): se abren las opciones y se ilumina la
+    /// fila como en AYUDA, con el porqué; hay que pulsar Entendido. Una sola vez (lo recuerda la propia guía).
+    private func offerHeightOnce() async {
+        guard !heightGuideUsed, votes.myHeight == nil || votes.myHeight == .unspecified else { return }
+        if votes.myHeight == .unspecified { nudgeHeight = true }
+        try? await Task.sleep(nanoseconds: 1_100_000_000)   // sin «flashazo»: que la hoja suba y la altura termine de cargar
+        guard !heightGuideUsed, votes.myHeight == nil || votes.myHeight == .unspecified else { return }
+        GuideStore.shared.start("ascent_height")
     }
 
     @ViewBuilder
