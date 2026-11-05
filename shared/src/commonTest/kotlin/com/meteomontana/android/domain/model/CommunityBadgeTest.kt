@@ -10,11 +10,15 @@ class CommunityBadgeTest {
             repetitions = reps, repetitionsTall = tall, repetitionsShort = short, betaVideos = videos)
 
     @Test fun videosByHeightThenPeople() {
-        val b = hit(listOf(BetaVideo("a", "SHORT"), BetaVideo("b", "TALL"), BetaVideo("c", "TALL")), 5, 1, 0).communityBadges
+        val b = hit(listOf(BetaVideo("a", "SHORT"), BetaVideo("b", "TALL"), BetaVideo("c", "TALL")), 5, 1, 2).communityBadges
         assertEquals(listOf(
             CommunityBadge.Video("TALL", listOf(BetaVideo("b", "TALL"), BetaVideo("c", "TALL"))),
             CommunityBadge.Video("SHORT", listOf(BetaVideo("a", "SHORT"))),
-            CommunityBadge.Done(5), CommunityBadge.DoneByHeight("TALL", 1)), b)
+            CommunityBadge.DoneByHeight("TALL", 1), CommunityBadge.DoneByHeight("SHORT", 2)), b)
+    }
+
+    @Test fun peopleWithoutHeightAreNotShown() {
+        assertEquals(emptyList(), hit(reps = 5, tall = 0, short = null).communityBadges)
     }
 
     @Test fun nothingWhenNobodyAndNoVideos() {

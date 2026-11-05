@@ -53,17 +53,14 @@ data class LineSearchHit(
      */
     /**
      * Las pastillas de la vía, en orden, iguales en las dos apps y en el PDF:
-     * vídeos agrupados por altura (+1,70, −1,70, sin altura), luego «✓ N personas» y «N de ±1,70».
+     * vídeos agrupados por altura (+1,70, −1,70, sin altura), luego «N de +1,70» y «N de −1,70».
+     * Quien no ha marcado su altura cuenta para «más repetidos» pero no sale en las pastillas.
      */
     val communityBadges: List<CommunityBadge> get() = buildList {
         val groups = betaVideos.groupBy { it.height?.takeIf { h -> h == "TALL" || h == "SHORT" } }
         listOf("TALL", "SHORT", null).forEach { h -> groups[h]?.let { add(CommunityBadge.Video(h, it)) } }
-        val total = repetitions ?: 0
-        if (total > 0) {
-            add(CommunityBadge.Done(total))
-            repetitionsTall?.takeIf { it > 0 }?.let { add(CommunityBadge.DoneByHeight("TALL", it)) }
-            repetitionsShort?.takeIf { it > 0 }?.let { add(CommunityBadge.DoneByHeight("SHORT", it)) }
-        }
+        repetitionsTall?.takeIf { it > 0 }?.let { add(CommunityBadge.DoneByHeight("TALL", it)) }
+        repetitionsShort?.takeIf { it > 0 }?.let { add(CommunityBadge.DoneByHeight("SHORT", it)) }
     }
 
     val repetitionsLabel: String? get() {

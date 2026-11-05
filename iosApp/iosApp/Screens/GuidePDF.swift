@@ -394,8 +394,8 @@ private final class Writer {
         sectorHero(s)
         sectorIndex(s)
 
-        // Las piedras empiezan en página nueva, después del resumen del sector.
-        lightPage(continuing: true)
+        // Las piedras siguen en el hueco que deje el resumen: cada tarjeta salta de página solo si no cabe.
+        y += 4
         for b in s.blocks {
             let faces = b.faces
             for (fi, face) in faces.enumerated() {
@@ -521,8 +521,8 @@ private final class Writer {
     private let photoMaxH: CGFloat = 330
     private let bandH: CGFloat = 40
 
-    private func rowH(_ h: LineSearchHit) -> CGFloat {
-        let w = rowTextW
+    private func rowH(_ h: LineSearchHit, textW: CGFloat? = nil) -> CGFloat {
+        let w = textW ?? rowTextW
         var t = P.measure(h.lineName ?? h.blockName, .systemFont(ofSize: 12, weight: .semibold), width: w)
         if let m = P.meta(h) { t += 2 + P.measure(m, .systemFont(ofSize: 9), width: w) }
         if let d = h.lineDescription, !d.isEmpty { t += 2 + P.measure(d, .italicSystemFont(ofSize: 9.5), width: w) }
@@ -535,6 +535,8 @@ private final class Writer {
 
     private func faceCard(block b: GuideBlock, face: GuideFace, faceIndex: Int, faceCount: Int) {
         let photo = face.photo.flatMap { input.photos[$0] }
+        if let photo, photo.size.height > photo.size.width * 1.05,
+           sideCard(block: b, face: face, photo: photo, faceIndex: faceIndex, faceCount: faceCount) { return }
         let photoH: CGFloat = photo.map { min(P.contentW * $0.size.height / max($0.size.width, 1), photoMaxH) } ?? bandH
         let rows = face.lines.map(rowH)
         let startPage = pageNo
@@ -598,7 +600,59 @@ private final class Writer {
         }
     }
 
-    private func drawRow(_ h: LineSearchHit, number: Int, y ry: CGFloat, height: CGFloat, last: Bool) {
+    /// Foto VERTICAL: la foto a la izquierda (a su tamaño, sin franjas negras) y las vías a la derecha, para que
+    /// quepan dos piedras por página sin que la foto se vea más pequeña. Devuelve false si no cabe ni en una
+    /// página entera (muchas vías): entonces se usa la tarjeta normal, que sabe partirse.
+    private func sideCard(block b: GuideBlock, face: GuideFace, photo: UIImage, faceIndex: Int, faceCount: Int) -> Bool {
+        let aspect = photo.size.height / max(photo.size.width, 1)
+        let photoH = min(photoMaxH, P.contentW * 0.5 * aspect)
+        let photoW = photoH / aspect
+        let listX = P.margin + photoW + 14
+        let listW = P.contentW - photoW - 14 - 12
+        let textW = listW - 84
+        let rows = face.lines.map { rowH($0, textW: textW) }
+        let cardH = max(photoH, rows.reduce(0, +) + 8)
+        let freshTop: CGFloat = 56 + 28
+        guard cardH <= P.bottomLimit - freshTop else { return false }
+
+        if y + cardH > P.bottomLimit { continuePage(from: b, startedAt: pageNo) }
+        if faceIndex == 0 { dest(Writer.blockDest(b.blockId), y: y) }
+
+        let card = CGRect(x: P.margin, y: y, width: P.contentW, height: cardH)
+        let cardPath = UIBezierPath(roundedRect: card, cornerRadius: 16)
+        UIColor.white.setFill(); cardPath.fill()
+        let r = CGRect(x: card.minX, y: card.minY, width: photoW, height: photoH)
+        cg.saveGState()
+        cardPath.addClip()
+        photo.draw(in: r)
+        cg.translateBy(x: r.minX, y: r.minY)
+        TopoPainter.paint(CGContextTarget(cg: cg), vias: face.topoVias, size: r.size,
+                          style: .share(scale: r.width / 360.0, badgeOuter: 9, badgeInner: 7.2,
+                                        badgeText: 9.5, startText: 7, fanStart: 9 * 2 + 4, fanEnd: 10.5 * 2 + 4))
+        cg.restoreGState()
+
+        let p1 = P.pill(L("PIEDRA %@", b.blockName.uppercased()), P.mono(8.5), fg: .white,
+                        bg: P.dark.withAlphaComponent(0.88), at: CGPoint(x: r.minX + 10, y: r.minY + 10))
+        if faceCount > 1 {
+            P.pill(L("Cara %@ de %@", faceIndex + 1, faceCount), .systemFont(ofSize: 8.5, weight: .semibold), fg: P.dark,
+                   bg: UIColor.white.withAlphaComponent(0.9), at: CGPoint(x: r.minX + 10, y: p1.maxY + 5))
+        }
+
+        var ry = card.minY + 4
+        for (k, hit) in face.lines.enumerated() {
+            drawRow(hit, number: k + 1, y: ry, height: rows[k], last: k == rows.count - 1, x0: listX, width: listW)
+            ry += rows[k]
+        }
+        y += cardH + 14
+        return true
+    }
+
+    private func drawRow(_ h: LineSearchHit, number: Int, y ry: CGFloat, height: CGFloat, last: Bool,
+                         x0: CGFloat? = nil, width: CGFloat? = nil) {
+        let innerX = x0 ?? self.innerX
+        let innerW = width ?? self.innerW
+        let rowTextX = innerX + 84
+        let rowTextW = innerW - 84
         let style = GradeColor.style(h.grade)
         let chipStyle = GradeColor.chipStyle(h.grade)
         // Número (el mismo que la línea en la foto).
