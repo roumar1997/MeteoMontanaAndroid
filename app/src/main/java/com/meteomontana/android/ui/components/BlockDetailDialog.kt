@@ -156,6 +156,19 @@ fun BlockDetailDialog(
     }
     fun orientationOf(photoIndex: Int?) =
         orientationSummaries.firstOrNull { it.photoIndex == photoIndex }
+    // Lo del diario de cada vía y compartir una vía (WhatsApp…): lo usan las filas de vías (BlockLineItem).
+    val lineTicks = remember(onTickLine, onToggleProject) { LineTicks(tickedLines, projectLines, onTickLine, onToggleProject) }
+    fun shareLine(line: com.meteomontana.android.domain.model.BlockLine) {
+        val sectorName = availableSectors?.firstOrNull { it.id == block.sectorBlockId }?.name
+        shareScope.launch {
+            // Los datos comunitarios se consultan AL compartir (best-effort): el precargado podía no haber llegado.
+            val badge = orientationOf(null)?.consensus ?: communityVm.fetchOrientationConsensus(block.id)
+            val setterRef = communityVm.fetchSetterGradeRef(line.id)
+            shareVia(shareScope, context, block, line, schoolName, tickedLines.toSet(), projectLines.toSet(), sectorName,
+                orientationBadge = badge, setterGradeRef = setterRef)
+        }
+    }
+
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showSectorPicker by remember { mutableStateOf(false) }
     // "OPCIONES" plegado: la ficha ya tiene muchos botones; solo CÓMO LLEGAR
@@ -526,209 +539,14 @@ fun BlockDetailDialog(
                         )
                         Spacer(Modifier.height(Spacing.xs))
                         face.lines.forEachIndexed { idx, line ->
-                            val lineGrade = line.grade
-                            val style = gradeChipStyle(lineGrade)
-                            // Filtro por grado (BLOCK_SEARCH_DESIGN.md §7): vías fuera de
-                            // la selección se atenúan, no se ocultan (contexto de la piedra).
-                            val gradeDimmed = gradeMatchingLineIds != null && line.id !in gradeMatchingLineIds
-                            Column(
-                                Modifier.graphicsLayer(alpha = if (gradeDimmed) 0.35f else 1f)
-                            ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                modifier = Modifier.padding(vertical = 2.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(CircleShape)
-                                        .background(style.stroke)
-                                        .padding(2.dp)
-                                        .height(18.dp)
-                                ) {
-                                    Text(
-                                        "${idx + 1}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (style.dark) Color.Black else Color.White,
-                                        modifier = Modifier.padding(horizontal = 6.dp)
-                                    )
-                                }
-                                if (lineGrade != null) {
-                                    // C5: el grado es VOTABLE (chip discontinuo terra).
-                                    if (!isProposal && line.id.isNotBlank()) {
-                                        // Pastilla con SU color y una flecha clara; si la altura parte la opinión, dos colores.
-                                        GradeChip(grade = lineGrade, split = gradeBadges[line.id]?.split) {
-                                            gradeVoteLine = line
-                                            communityVm.loadGrade(line.id)
-                                        }
-                                    } else Text(
-                                        lineGrade,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = if (style.dark) MaterialTheme.colorScheme.onSurface else style.stroke
-                                    )
-                                }
-                                // Nombre junto a la pastilla y, debajo, la variante en pequeño (como iOS): ocupa el
-                                // hueco que queda, así las acciones de la derecha nunca se salen ni se mueven.
-                                Column(Modifier.weight(1f)) {
-                                    Text(
-                                        line.name.ifBlank { stringResource(R.string.school_map_v3_via_2, "${idx + 1}") },
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        maxLines = 2
-                                    )
-                                    if (!line.variant.isNullOrBlank()) {
-                                        Text(
-                                            line.variant!!,
-                                            fontSize = 12.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 2
-                                        )
-                                    }
-                                }
-                                if (line.startType != null) {
-                                    Text(
-                                        line.startType!!,
-                                        fontFamily = com.meteomontana.android.ui.theme.Mono,
-                                        fontSize = 10.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                // Compartir esta vía/bloque (WhatsApp etc.): enlace que
-                                // abre la app directamente en esta piedra con la línea.
-                                if (!isProposal) {
-                                    androidx.compose.material3.Icon(
-                                        Icons.Outlined.Share,
-                                        contentDescription = stringResource(R.string.block_detail_dialog_v2_compartir),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier
-                                            .clip(CircleShape)
-                                            .clickable {
-                                                val sectorName = availableSectors
-                                                    ?.firstOrNull { it.id == block.sectorBlockId }?.name
-                                                shareScope.launch {
-                                                // N10: los datos comunitarios se consultan AL
-                                                // compartir (best-effort, ~100ms) — el preload
-                                                // podia no haber llegado.
-                                                val badge = orientationOf(null)?.consensus
-                                                    ?: communityVm.fetchOrientationConsensus(block.id)
-                                                val setterRef = communityVm.fetchSetterGradeRef(line.id)
-                                                shareVia(
-                                                    shareScope, context, block, line, schoolName,
-                                                    tickedLines.toSet(), projectLines.toSet(), sectorName,
-                                                    orientationBadge = badge,
-                                                    setterGradeRef = setterRef
-                                                )
-                                            }
-                                            }
-                                            .padding(5.dp)
-                                            .size(22.dp)
-                                    )
-                                }
-                                // Proyecto: la estás probando, aún no te ha salido. Oculto
-                                // si ya está hecha (no tiene sentido marcarla como proyecto).
-                                if (onToggleProject != null && !isProposal) {
-                                    val done = tickedLines.contains(line.id)
-                                    if (!done) {
-                                        // (El compartir ya empujó el grupo a la derecha.)
-                                        val isProject = projectLines.contains(line.id)
-                                        Box(
-                                            modifier = Modifier
-                                                .size(30.dp)
-                                                .clip(CircleShape)
-                                                .then(
-                                                    if (isProject) Modifier.background(terraFillColor(), CircleShape)
-                                                    else Modifier.border(1.5.dp, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), CircleShape)
-                                                )
-                                                .clickable {
-                                                    if (isProject) projectLines.remove(line.id)
-                                                    else projectLines.add(line.id)
-                                                    onToggleProject(line, idx, !isProject)
-                                                },
-                                            contentAlignment = androidx.compose.ui.Alignment.Center
-                                        ) {
-                                            Text(
-                                                "P",
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (isProject) Color.White
-                                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                                            )
-                                        }
-                                    }
-                                }
-                                // Tic: marca/desmarca la vía en tu diario (toggle).
-                                if (onTickLine != null && !isProposal) {
-                                    val done = tickedLines.contains(line.id)
-                                    // El botón de compartir ya empujó el grupo a la derecha.
-                                    if (isProposal) Spacer(Modifier.weight(1f))
-                                    Text(
-                                        if (done) "✓" else "○",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        color = if (done) Color(0xFF1FA84E)
-                                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier
-                                            .clip(CircleShape)
-                                            .clickable {
-                                                if (done) {
-                                                    tickedLines.remove(line.id)
-                                                } else {
-                                                    tickedLines.add(line.id)
-                                                    // Al marcarla hecha desde aquí, si era un proyecto
-                                                    // desaparece de la lista local (promoción; el
-                                                    // ViewModel hace lo mismo en el servidor).
-                                                    projectLines.remove(line.id)
-                                                }
-                                                onTickLine(line, idx, !done)
-                                            }
-                                            .padding(horizontal = 6.dp)
-                                    )
-                                }
-                            }
-                            // Qué hace la pastilla del grado: cuántos votos hay y que se puede votar.
-                            if (!isProposal && line.id.isNotBlank() && !lineGrade.isNullOrEmpty()) {
-                                Text(
-                                    gradeBadgeCaption(gradeBadges[line.id]),
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(start = 28.dp, bottom = 2.dp)
-                                )
-                            }
-                            // Estrellas: valoración media + votar (si está habilitado)
-                            if (onRateLine != null && !isProposal && block.type == "BLOCK") {
-                                LineStarsRow(
-                                    lineId = line.id,
-                                    avgStars = line.avgStars,
-                                    myStars = line.myStars ?: 0,
-                                    onRate = { stars -> onRateLine(line.id, stars) }
-                                )
-                            }
-                            // Descripción/beta de la vía (si la tiene).
-                            line.lineDescription?.takeIf { it.isNotBlank() }?.let { d ->
-                                Text(d, style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(start = 28.dp, bottom = 2.dp))
-                            }
-                            // Enlaces de beta de ESTA vía (desplegable) — Álvaro, 2026-09-15.
-                            if (!isProposal) {
-                                Box(Modifier.padding(start = 28.dp)) {
-                                    BetaLinksThread(
-                                        blockId = block.id,
-                                        lineId = line.id,
-                                        myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                                    )
-                                }
-                            }
-                            // Comentarios de ESTA vía (desplegable).
-                            if (!isProposal) {
-                                Box(Modifier.padding(start = 28.dp)) {
-                                    LineCommentsThread(
-                                        blockId = block.id,
-                                        lineId = line.id,
-                                        myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-                                    )
-                                }
-                            }
-                            }
+                            BlockLineItem(
+                                line, idx, block, isProposal,
+                                dimmed = gradeMatchingLineIds != null && line.id !in gradeMatchingLineIds,
+                                gradeBadge = gradeBadges[line.id],
+                                ticks = lineTicks, onRateLine = onRateLine,
+                                onGradeVote = { gradeVoteLine = it; communityVm.loadGrade(it.id) },
+                                onShare = ::shareLine
+                            )
                         }
                     }
                 }
