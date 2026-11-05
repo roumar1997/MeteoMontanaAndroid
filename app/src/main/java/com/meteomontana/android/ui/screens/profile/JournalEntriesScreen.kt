@@ -82,167 +82,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-sealed interface JournalEntriesUiState {
-    data object Loading : JournalEntriesUiState
-    data class Success(
-        val entries: List<JournalSession>,
-        val filter: String?,
-        val isMine: Boolean,
-        // entryId -> (nº piedra, sector) resueltos del catálogo en vivo.
-        val viaInfo: Map<String, com.meteomontana.android.domain.usecase.journal.ViaCatalogInfo> = emptyMap()
-    ) : JournalEntriesUiState
-    data class Error(val message: String) : JournalEntriesUiState
-}
-
-@HiltViewModel
-class JournalEntriesViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
-    private val getMyJournal: GetMyJournalUseCase,
-    private val getMyJournalStats: GetMyJournalStatsUseCase,
-    private val getUserJournal: GetUserJournalUseCase,
-    private val getUserStats: GetUserStatsUseCase,
-    private val deleteJournalEntry: DeleteJournalEntryUseCase,
-    private val updateJournalDate: com.meteomontana.android.domain.usecase.journal.UpdateJournalDateUseCase,
-    private val updateJournalStyle: com.meteomontana.android.domain.usecase.journal.UpdateJournalStyleUseCase,
-    private val getJournalViaInfo: com.meteomontana.android.domain.usecase.journal.GetJournalViaInfoUseCase,
-    private val outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository
-) : ViewModel() {
-    private val filter: String? = savedStateHandle["filter"]
-    private val uid: String? = savedStateHandle.get<String>("uid")?.takeIf { it.isNotBlank() }
-    private val isMine: Boolean = uid == null
-
-    private val _state = MutableStateFlow<JournalEntriesUiState>(JournalEntriesUiState.Loading)
-    val state: StateFlow<JournalEntriesUiState> = _state.asStateFlow()
-
-    // Mensaje de error del ÚLTIMO cambio de estilo, con el detalle real (código
-    // HTTP incluido) en vez de un aviso genérico — para poder diagnosticar sin
-    // logs si vuelve a fallar (Rodrigo, 2026-08-22).
-    private val _styleError = MutableStateFlow<String?>(null)
-    val styleError: StateFlow<String?> = _styleError.asStateFlow()
-    fun clearStyleError() { _styleError.value = null }
-
-    // Filtro compuesto "school:X|sector:Y" (llegando desde JournalSectorsScreen):
-    // el título es el nombre del sector, no de la escuela (ya viniste de ahí).
-    private val sectorName: String? = filter
-        ?.takeIf { it.contains("|sector:") }
-        ?.substringAfter("|sector:")
-
-    val title: String = when {
-        filter == null               -> if (isMine) AppText.get(R.string.journal_entries_screen_v4_todos_mis_bloques) else AppText.get(R.string.journal_entries_screen_v4_todos_los_bloques)
-        sectorName != null           -> sectorName
-        filter.startsWith("school:") -> filter.removePrefix("school:")
-        filter == "grade-max"        -> AppText.get(R.string.journal_entries_screen_v4_grado_maximo)
-        filter == "discipline:BOULDER" -> if (isMine) AppText.get(R.string.journal_entries_screen_v4_mis_bloques) else "Bloques"
-        filter == "discipline:ROUTE"   -> if (isMine) AppText.get(R.string.journal_entries_screen_v4_mis_vias) else AppText.get(R.string.journal_entries_screen_v4_vias)
-        filter == "project"          -> if (isMine) AppText.get(R.string.journal_entries_screen_v4_mis_proyectos) else "Proyectos"
-        filter == "project:BOULDER"  -> if (isMine) AppText.get(R.string.journal_entries_screen_v4_mis_proyectos_bloques) else AppText.get(R.string.journal_entries_screen_v4_proyectos_bloques)
-        filter == "project:ROUTE"    -> if (isMine) AppText.get(R.string.journal_entries_screen_v4_mis_proyectos_vias) else AppText.get(R.string.journal_entries_screen_v4_proyectos_vias)
-        else                         -> AppText.get(R.string.w_logbook)
-    }
-
-    init { load() }
-
-    fun load() {
-        viewModelScope.launch {
-            _state.value = try {
-                val server = if (uid == null) getMyJournal() else getUserJournal(uid)
-                // En mi propio diario, descuento las vías con BORRADO pendiente en
-                // la cola offline (desmarcadas sin red): si no, seguían apareciendo
-                // hasta sincronizar. Espejo de doneViaKeys en el detalle.
-                val visible = if (isMine) {
-                    val pendingDeletes = outboxRepo.all()
-                        .filter { it.type == com.meteomontana.android.data.outbox.OutboxType.JOURNAL_DELETE }
-                        .map { it.payloadJson }.toSet()
-                    if (pendingDeletes.isEmpty()) server
-                    else server.filter {
-                        // El payload del borrado puede ser clave por lineId
-                        // ("escuela|#id") o por nombre (legado) — probar ambas.
-                        val idKey = it.lineId?.takeIf { l -> l.isNotBlank() }
-                            ?.let { l -> "${it.schoolId ?: ""}|#$l" }
-                        val nameKey = "${it.schoolId ?: ""}|${it.blockName.trim().lowercase()}"
-                        idKey !in pendingDeletes && nameKey !in pendingDeletes
-                    }
-                } else server
-                // Sin duplicados: la misma vía marcada varias veces se colapsa en
-                // una (la más reciente). Por lineId cuando lo hay (dos homónimas
-                // son entradas DISTINTAS); por escuela|sector|nombre como legado.
-                val all = visible.distinctBy {
-                    it.lineId?.takeIf { l -> l.isNotBlank() }
-                        ?: "${it.schoolId ?: ""}|${(it.sector ?: "").trim().lowercase()}|${it.blockName.trim().lowercase()}"
-                }
-                // Los PROYECTOS (probando, aún no hecho) tienen sus propias pantallas
-                // ("project"/"project:BOULDER"/"project:ROUTE"); el resto de filtros
-                // (todos preexistentes) solo muestran lo HECHO, para no mezclarlos.
-                val done = all.filter { it.status != "PROJECT" }
-                val projects = all.filter { it.status == "PROJECT" }
-                val filtered = when {
-                    filter == null               -> done
-                    filter == "project"           -> projects
-                    filter == "project:BOULDER"   -> projects.filter { !it.discipline.equals("ROUTE", true) }
-                    filter == "project:ROUTE"     -> projects.filter { it.discipline.equals("ROUTE", true) }
-                    // "school:X|sector:Y" (viene de JournalSectorsScreen): primero por
-                    // escuela; el filtro por sector se aplica DESPUÉS, una vez resuelto
-                    // viaInfo más abajo (el sector no se guarda en la entrada).
-                    filter.startsWith("school:") -> {
-                        val name = filter.removePrefix("school:").substringBefore("|sector:")
-                        done.filter { it.schoolName?.equals(name, ignoreCase = true) == true }
-                    }
-                    filter == "grade-max" -> {
-                        val max = if (uid == null) getMyJournalStats().maxGrade
-                                  else getUserStats(uid).maxGrade
-                        if (max != null) done.filter { it.grade == max } else emptyList()
-                    }
-                    // Modalidad: BOULDER (bloque) o ROUTE (vía). Entradas viejas sin
-                    // modalidad cuentan como BOULDER (default), igual que en stats.
-                    filter == "discipline:BOULDER" -> done.filter { !it.discipline.equals("ROUTE", true) }
-                    filter == "discipline:ROUTE"   -> done.filter { it.discipline.equals("ROUTE", true) }
-                    else -> done
-                }
-                // Resuelvo nº de piedra + sector en vivo del catálogo (no se guardan
-                // en la entrada). Si falla la red, queda vacío y no se muestran.
-                val viaInfoAll = runCatching { getJournalViaInfo(filtered) }.getOrDefault(emptyMap())
-                // Segunda pasada: dentro de la escuela, quedarnos solo con las del
-                // sector pedido (comparación por nombre de sector, insensible a mayúsculas).
-                val entries = if (sectorName != null) {
-                    filtered.filter { viaInfoAll[it.id]?.sector?.equals(sectorName, ignoreCase = true) == true }
-                } else filtered
-                val viaInfo = if (sectorName != null) viaInfoAll.filterKeys { k -> entries.any { it.id == k } } else viaInfoAll
-                JournalEntriesUiState.Success(entries, filter, isMine, viaInfo)
-            } catch (t: Throwable) {
-                JournalEntriesUiState.Error(t.toUserMessage())
-            }
-        }
-    }
-
-    /** C3: cambiar la fecha de una entrada y recargar. */
-    fun changeDate(id: String, newDate: String) {
-        viewModelScope.launch {
-            runCatching { updateJournalDate(id, newDate) }
-                .onSuccess { load() }
-        }
-    }
-
-    /** Cambiar el estilo (a vista / al flash) de una entrada. Independientes. */
-    fun changeStyle(id: String, aVista: Boolean, alFlash: Boolean) {
-        viewModelScope.launch {
-            runCatching { updateJournalStyle(id, aVista, alFlash) }
-                .onSuccess { load() }
-                .onFailure { e ->
-                    android.util.Log.e("CumbreEstilo", "PATCH journal/$id/style fallo", e)
-                    _styleError.value = e.toUserMessage()
-                }
-        }
-    }
-
-    fun delete(id: String) {
-        if (!isMine) return
-        viewModelScope.launch {
-            runCatching { deleteJournalEntry(id) }
-            load()
-        }
-    }
-}
-
 @Composable
 fun JournalEntriesScreen(
     onBack: () -> Unit,
@@ -644,7 +483,7 @@ internal fun EntryRow(
 
 /** Botón que descubre el deslizar (FECHA gris / BORRAR rojo). */
 @Composable
-private fun SwipeAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
+internal fun SwipeAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
                         color: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
     Column(
         Modifier.width(76.dp).fillMaxHeight().background(color).clickable(onClick = onClick),
@@ -664,11 +503,10 @@ internal fun shortJournalDate(iso: String): String = runCatching {
         .replace(".", "")
 }.getOrDefault(iso.take(10))
 
-
 /** Chip pequeño de estilo (A VISTA / AL FLASH) — pulsable si onClick != null,
  *  para poder marcarlo/desmarcarlo sin abrir un diálogo aparte. */
 @Composable
-private fun StyleBadge(label: String, active: Boolean, onClick: (() -> Unit)?) {
+internal fun StyleBadge(label: String, active: Boolean, onClick: (() -> Unit)?) {
     Box(
         Modifier
             .clip(com.meteomontana.android.ui.theme.CumbrePillShape)

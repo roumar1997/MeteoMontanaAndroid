@@ -230,7 +230,7 @@ fun ProfileScreen(
 }
 
 /** Dispara la imagen 1080×1920 (formato historia) de "compartir perfil". */
-private fun shareProfile(ctx: Context, scope: CoroutineScope, p: PrivateProfile, stats: JournalStats) {
+internal fun shareProfile(ctx: Context, scope: CoroutineScope, p: PrivateProfile, stats: JournalStats) {
     val handle = p.username ?: p.uid
     scope.launch {
         com.meteomontana.android.ui.share.shareProfileAsImage(
@@ -244,7 +244,7 @@ private fun shareProfile(ctx: Context, scope: CoroutineScope, p: PrivateProfile,
 }
 
 @Composable
-private fun ProfileTopBar(
+internal fun ProfileTopBar(
     title: String,
     showClose: Boolean,
     onBack: () -> Unit,
@@ -323,7 +323,7 @@ private fun ProfileTopBar(
 }
 
 @Composable
-private fun Content(
+internal fun Content(
     profile: PrivateProfile,
     stats: JournalStats,
     followers: Long,
@@ -374,7 +374,7 @@ private fun Content(
 }
 
 @Composable
-private fun Header(
+internal fun Header(
     p: PrivateProfile,
     followers: Long = 0,
     following: Long = 0,
@@ -516,7 +516,7 @@ private fun Header(
 }
 
 @Composable
-private fun ProfilePill(text: String, color: Color) {
+internal fun ProfilePill(text: String, color: Color) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(2.dp))
@@ -528,7 +528,7 @@ private fun ProfilePill(text: String, color: Color) {
 }
 
 @Composable
-private fun FollowCount(value: Long, label: String, onClick: () -> Unit) {
+internal fun FollowCount(value: Long, label: String, onClick: () -> Unit) {
     Column(
         modifier = Modifier.clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -538,266 +538,4 @@ private fun FollowCount(value: Long, label: String, onClick: () -> Unit) {
         Text(label, style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
-}
-
-/** Fila "Idioma" de Ajustes: abre un diálogo Automático / Español / English. */
-@Composable
-private fun LanguageRow() {
-    val ctx = LocalContext.current
-    var open by remember { mutableStateOf(false) }
-    val current = com.meteomontana.android.util.AppLanguage.get(ctx)
-    val options = listOf(
-        com.meteomontana.android.util.AppLanguage.SYSTEM to stringResource(R.string.language_system),
-        com.meteomontana.android.util.AppLanguage.ES to stringResource(R.string.language_es),
-        com.meteomontana.android.util.AppLanguage.EN to stringResource(R.string.language_en),
-    )
-    MenuRow(Icons.Outlined.Language, stringResource(R.string.settings_language)) { open = true }
-    if (open) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { open = false },
-            title = { Text(stringResource(R.string.language_dialog_title)) },
-            text = {
-                Column {
-                    options.forEach { (value, label) ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth().clickable {
-                                open = false
-                                if (value != current) {
-                                    com.meteomontana.android.util.AppLanguage.set(ctx, value)
-                                    // OJO: ctx.applicationContext es el MISMO objeto desde que arrancó el
-                                    // proceso, con la configuración (idioma) que tenía entonces — reenvolverlo
-                                    // aquí es lo que de verdad hace que AppText/CatalogLabels lean el idioma
-                                    // nuevo sin esperar a que se mate y reabra la app (Álvaro, 2026-09-28:
-                                    // tras cambiar de idioma, "Granito" y "Malo" seguían en español).
-                                    com.meteomontana.android.util.AppText.init(
-                                        com.meteomontana.android.util.AppLanguage.wrap(ctx.applicationContext)
-                                    )
-                                    com.meteomontana.android.data.api.ApiLanguage.code = com.meteomontana.android.util.AppLanguage.effective(ctx)
-                                    (ctx as? android.app.Activity)?.recreate()
-                                }
-                            }.padding(vertical = 10.dp)
-                        ) {
-                            androidx.compose.material3.RadioButton(selected = value == current, onClick = null)
-                            Spacer(Modifier.padding(start = 12.dp))
-                            Text(label, style = MaterialTheme.typography.bodyLarge)
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = { open = false }) { Text(stringResource(R.string.w_close)) }
-            }
-        )
-    }
-}
-
-/**
- * Hoja de ajustes (⚙️): agrupa lo que antes ocupaba el perfil — cuenta, mi
- * actividad, preferencias y sesión. Bottom sheet (paridad iOS).
- */
-@Composable
-private fun ProfileSettingsScreen(
-    onBack: () -> Unit,
-    isPrivate: Boolean,
-    onEdit: () -> Unit,
-    onSavedSchools: () -> Unit,
-    onWeekendAlert: () -> Unit,
-    onSubmissions: () -> Unit,
-    onOpenFollowRequests: () -> Unit,
-    onSignOut: () -> Unit,
-    onDeleteAccount: () -> Unit
-) {
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        // Cabecera: flecha atrás + "Ajustes".
-        Box(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.profile_screen_atras),
-                    tint = MaterialTheme.colorScheme.onBackground)
-            }
-            Text(stringResource(R.string.profile_settings),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.align(Alignment.Center))
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
-        Column(Modifier.fillMaxWidth()
-            .verticalScroll(androidx.compose.foundation.rememberScrollState())
-            .padding(bottom = 24.dp)) {
-            SettingsSectionLabel(stringResource(R.string.profile_section_account))
-            MenuRow(Icons.Outlined.Edit, stringResource(R.string.profile_edit), onEdit)
-
-            SettingsSectionLabel(stringResource(R.string.profile_section_activity))
-            MenuRow(Icons.Outlined.Download, stringResource(R.string.profile_saved_schools), onSavedSchools)
-            MenuRow(Icons.Outlined.Place, stringResource(R.string.profile_my_contributions), onSubmissions)
-            if (isPrivate) {
-                MenuRow(Icons.Outlined.PersonAdd, stringResource(R.string.profile_follow_requests), onOpenFollowRequests)
-            }
-
-            SettingsSectionLabel(stringResource(R.string.profile_section_prefs))
-            MenuRow(Icons.Outlined.Notifications, stringResource(R.string.profile_weather_alert), onWeekendAlert)
-            LanguageRow()
-            val ctx = LocalContext.current
-            MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(R.string.profile_show_hints)) {
-                com.meteomontana.android.ui.components.resetAllHints(ctx)
-                android.widget.Toast.makeText(ctx, ctx.getString(R.string.profile_screen_v3_pistas_reactivadas), android.widget.Toast.LENGTH_SHORT).show()
-            }
-            // Interruptor general de las guías por pantalla ("? AYUDA" parpadea / guía de Escuelas sale sola).
-            com.meteomontana.android.ui.guide.GuidesToggleRow(Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-
-
-            // Cierre de la pantalla EXACTAMENTE como iOS (AccountView): botón
-            // "Cerrar sesión" en su recuadro, debajo "Eliminar cuenta" como
-            // texto discreto centrado, y la versión al final del todo. Aquí
-            // estaba en otro orden y "Eliminar cuenta" gritaba en rojo con
-            // papelera, cuando es la acción que MENOS hay que invitar a pulsar.
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline, modifier = Modifier.padding(top = 8.dp))
-            var showDelete by remember { mutableStateOf(false) }
-            Box(
-                modifier = Modifier.fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .clip(MaterialTheme.shapes.small)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
-                    .clickable(onClick = onSignOut)
-                    .padding(vertical = 14.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(stringResource(R.string.profile_logout),
-                    style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.onSurface)
-            }
-            Text(
-                stringResource(R.string.profile_delete_account),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-                    .clickable { showDelete = true }
-                    .padding(vertical = 12.dp)
-            )
-            // Que version es esta. Sin esto, "no me ha llegado el arreglo" y
-            // "no lo has arreglado" son indistinguibles.
-            Text(
-                stringResource(R.string.profile_screen_v2_cumbre) + com.meteomontana.android.BuildConfig.VERSION_NAME +
-                    " (vc" + com.meteomontana.android.BuildConfig.VERSION_CODE + ") · " +
-                    com.meteomontana.android.BuildConfig.BUILD_TIME +
-                    if (com.meteomontana.android.BuildConfig.DEBUG) " · staging" else "",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            if (showDelete) {
-                AlertDialog(
-                    onDismissRequest = { showDelete = false },
-                    title = { Text(stringResource(R.string.profile_screen_eliminar_tu_cuenta)) },
-                    text = { Text(stringResource(R.string.profile_screen_se_borraran_tu_perfil)) },
-                    confirmButton = {
-                        TextButton(onClick = { showDelete = false; onDeleteAccount() }) {
-                            Text(stringResource(R.string.profile_screen_v2_eliminar), color = MaterialTheme.colorScheme.error)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDelete = false }) { Text(stringResource(R.string.common_cancel)) }
-                    }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingsSectionLabel(text: String) {
-    Text(text.uppercase(),
-        style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 2.dp))
-}
-
-
-@Composable
-private fun MenuRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Icon(icon, contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-        Text(label, style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
-        Icon(Icons.Outlined.ChevronRight, contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-    }
-}
-
-@Composable
-private fun StatsRow(
-    stats: JournalStats,
-    onBoulders: () -> Unit,
-    onRoutes: () -> Unit,
-    onSchools: () -> Unit,
-    onMax: () -> Unit,
-    onProjects: () -> Unit,
-    onMyPosts: () -> Unit,
-    onOpenStats: () -> Unit
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).guideTarget("profile.diary"),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // ESTADÍSTICAS arriba del todo, que se vea sin bajar (Álvaro, 2026-10-19).
-        Box(Modifier.guideTarget("profile.stats")) { com.meteomontana.android.ui.components.StatsEntryButton(onClick = onOpenStats) }
-        // Fila 1: contadores BLOQUES / VÍAS / ESCUELAS.
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatCell(stringResource(R.string.profile_blocks), stats.boulderCount.toString(), Modifier.weight(1f).clickable(onClick = onBoulders))
-            StatCell(stringResource(R.string.profile_routes), stats.routeCount.toString(), Modifier.weight(1f).clickable(onClick = onRoutes))
-            StatCell(stringResource(R.string.profile_schools), stats.schoolCount.toString(), Modifier.weight(1f).clickable(onClick = onSchools))
-        }
-        // Fila 2: grado máximo separado por modalidad (escalas distintas).
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatCell(stringResource(R.string.profile_max_boulder), stats.maxBoulderGrade ?: "—", Modifier.weight(1f).clickable(onClick = onMax))
-            StatCell(stringResource(R.string.profile_max_route), stats.maxRouteGrade ?: "—", Modifier.weight(1f).clickable(onClick = onMax))
-            StatCell(stringResource(R.string.profile_projects), stats.projectCount.toString(), Modifier.weight(1f).clickable(onClick = onProjects))
-        }
-        // Mis publicaciones: una fila fina en vez de otra celda grande (como iOS).
-        Row(
-            Modifier.fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface, com.meteomontana.android.ui.theme.CumbreStatCardShape)
-                .border(1.dp, MaterialTheme.colorScheme.outline, com.meteomontana.android.ui.theme.CumbreStatCardShape)
-                .clickable(onClick = onMyPosts).padding(horizontal = 14.dp, vertical = 11.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(stringResource(R.string.feed_my_posts_section).uppercase(), style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-            Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
-        }
-    }
-}
-
-@Composable
-private fun StatCell(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .background(MaterialTheme.colorScheme.surface, com.meteomontana.android.ui.theme.CumbreStatCardShape)
-            .border(1.dp, MaterialTheme.colorScheme.outline, com.meteomontana.android.ui.theme.CumbreStatCardShape)
-            .padding(horizontal = 4.dp, vertical = 9.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(value, fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold,
-            fontSize = 20.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
-        Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 2,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun CenterBox(content: @Composable () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { content() }
 }

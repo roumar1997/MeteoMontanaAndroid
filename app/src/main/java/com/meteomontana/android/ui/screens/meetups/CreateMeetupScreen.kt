@@ -388,12 +388,6 @@ private fun DayPickerRow(
     }
 }
 
-private fun scoreColor(score: Int): androidx.compose.ui.graphics.Color = when {
-    score >= 80 -> androidx.compose.ui.graphics.Color(0xFF22C55E)  // verde
-    score >= 60 -> androidx.compose.ui.graphics.Color(0xFFF59E0B)  // ámbar
-    score >= 40 -> androidx.compose.ui.graphics.Color(0xFFEF4444)  // rojo suave
-    else        -> androidx.compose.ui.graphics.Color(0xFF6B7280)  // gris
-}
 
 private fun nextNDays(n: Int): List<Pair<Pair<String, String>, String>> {
     val result = mutableListOf<Pair<Pair<String, String>, String>>()

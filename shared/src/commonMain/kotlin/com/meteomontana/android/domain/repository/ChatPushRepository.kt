@@ -11,4 +11,7 @@ interface ChatPushRepository {
 
     /** Pide al backend que dispare la notificación push del mensaje al receptor. */
     suspend fun notifyMessage(toUid: String, preview: String)
+
+    /** Lo mismo para un mensaje en un chat de GRUPO (avisa a todos menos a quien escribe). */
+    suspend fun notifyGroup(convId: String, preview: String)
 }

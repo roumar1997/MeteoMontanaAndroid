@@ -83,96 +83,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-sealed interface PublicProfileUiState {
-    data object Loading : PublicProfileUiState
-    data class Success(
-        val profile: PublicProfile,
-        val status: FollowStatus,
-        val stats: JournalStats? = null
-    ) : PublicProfileUiState
-    data class Error(val message: String) : PublicProfileUiState
-}
-
-@HiltViewModel
-class PublicProfileViewModel @Inject constructor(
-    savedStateHandle: SavedStateHandle,
-    private val getPublicProfile: GetPublicProfileUseCase,
-    private val getFollowStatus: GetFollowStatusUseCase,
-    private val getUserStats: GetUserStatsUseCase,
-    private val followUser: FollowUserUseCase,
-    private val unfollowUser: UnfollowUserUseCase,
-    private val getMyProfile: GetMyProfileUseCase,
-    private val getUserAssistantAccess: GetUserAssistantAccessUseCase,
-    private val setUserAssistantAccess: SetUserAssistantAccessUseCase
-) : ViewModel() {
-    private val uid: String = checkNotNull(savedStateHandle["uid"])
-    private val _state = MutableStateFlow<PublicProfileUiState>(PublicProfileUiState.Loading)
-    val state: StateFlow<PublicProfileUiState> = _state.asStateFlow()
-
-    /** Interruptor del asistente de IA de ESTE usuario. null = no se enseña (no eres admin, o es tu propio perfil). */
-    private val _adminAssistant = MutableStateFlow<AdminAssistantUi?>(null)
-    val adminAssistant: StateFlow<AdminAssistantUi?> = _adminAssistant.asStateFlow()
-
-    init { load() }
-
-    fun load() {
-        _state.value = PublicProfileUiState.Loading
-        viewModelScope.launch {
-            _state.value = try {
-                // Perfil y follow status en paralelo (ambos solo necesitan uid).
-                coroutineScope {
-                    val profileD = async { getPublicProfile(uid) }
-                    val statusD = async {
-                        runCatching { getFollowStatus(uid) }
-                            .getOrDefault(FollowStatus(0, 0, false, false, false))
-                    }
-                    val profile = profileD.await()
-                    val stats = if (profile.locked) null
-                                else runCatching { getUserStats(uid) }.getOrNull()
-                    PublicProfileUiState.Success(profile, statusD.await(), stats)
-                }
-            } catch (t: Throwable) {
-                PublicProfileUiState.Error(t.toUserMessage())
-            }
-            (_state.value as? PublicProfileUiState.Success)?.let { loadAdminAssistant(it.profile.uid) }
-        }
-    }
-
-    /** Solo si quien mira es admin (y no es su propio perfil): lee el interruptor del asistente de IA de este usuario. */
-    private suspend fun loadAdminAssistant(profileUid: String) {
-        _adminAssistant.value = null
-        val me = runCatching { getMyProfile() }.getOrNull() ?: return
-        if (!me.isAdmin || me.uid == profileUid) return
-        runCatching { getUserAssistantAccess(profileUid) }
-            .onSuccess { _adminAssistant.value = AdminAssistantUi(it) }
-    }
-
-    /** Activa o desactiva el asistente de IA de este usuario. Si falla, el interruptor vuelve a su sitio. */
-    fun setAssistantAccess(enabled: Boolean) {
-        val profileUid = (_state.value as? PublicProfileUiState.Success)?.profile?.uid ?: return
-        val before = _adminAssistant.value ?: return
-        _adminAssistant.value = AdminAssistantUi(enabled, saving = true)
-        viewModelScope.launch {
-            _adminAssistant.value = runCatching { setUserAssistantAccess(profileUid, enabled) }
-                .fold({ AdminAssistantUi(it) }, { before })
-        }
-    }
-
-    fun toggleFollow() {
-        val cur = _state.value as? PublicProfileUiState.Success ?: return
-        viewModelScope.launch {
-            try {
-                if (cur.status.iFollowThem) unfollowUser(uid) else followUser(uid)
-                val newStatus = getFollowStatus(uid)
-                val newProfile = runCatching { getPublicProfile(uid) }.getOrDefault(cur.profile)
-                val newStats = if (newProfile.locked) null
-                               else runCatching { getUserStats(uid) }.getOrNull()
-                _state.value = PublicProfileUiState.Success(newProfile, newStatus, newStats)
-            } catch (_: Throwable) {}
-        }
-    }
-}
-
 @Composable
 fun PublicProfileScreen(
     onBack: () -> Unit,
@@ -317,7 +227,7 @@ fun PublicProfileScreen(
 }
 
 @Composable
-private fun Body(
+internal fun Body(
     s: PublicProfileUiState.Success,
     onToggleFollow: () -> Unit,
     adminAssistant: AdminAssistantUi? = null,
@@ -470,7 +380,7 @@ private fun Body(
 }
 
 @Composable
-private fun ActivityStatsRow(
+internal fun ActivityStatsRow(
     stats: JournalStats,
     onBlocksClick: () -> Unit,
     onRoutesClick: () -> Unit,
@@ -513,7 +423,7 @@ private fun ActivityStatsRow(
 }
 
 @Composable
-private fun StatBox(label: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+internal fun StatBox(label: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     // Mismo estilo que el StatCell del perfil propio (fondo surface + borde + serif).
     Column(
         modifier = modifier
@@ -533,7 +443,7 @@ private fun StatBox(label: String, value: String, modifier: Modifier = Modifier,
 }
 
 @Composable
-private fun FollowCount(value: Long, label: String, onClick: () -> Unit) {
+internal fun FollowCount(value: Long, label: String, onClick: () -> Unit) {
     Column(
         modifier = Modifier.clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -546,7 +456,7 @@ private fun FollowCount(value: Long, label: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun SchoolStatRow(school: SchoolStats, onClick: () -> Unit) {
+internal fun SchoolStatRow(school: SchoolStats, onClick: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth()
         .clickable(onClick = onClick)
         .padding(vertical = 10.dp),
@@ -567,7 +477,7 @@ private fun SchoolStatRow(school: SchoolStats, onClick: () -> Unit) {
 }
 
 @Composable
-private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
+internal fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onBackground)
@@ -577,7 +487,7 @@ private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun FollowButton(iFollow: Boolean, requestPending: Boolean, onClick: () -> Unit) {
+internal fun FollowButton(iFollow: Boolean, requestPending: Boolean, onClick: () -> Unit) {
     val text = when {
         iFollow         -> stringResource(R.string.profile_following).uppercase()
         requestPending  -> stringResource(R.string.profile_requested)

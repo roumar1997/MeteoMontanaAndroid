@@ -3,6 +3,7 @@
 # Los que YA se pasaban están en config/oversized-baseline.txt con su tamaño de hoy: pueden ENCOGER, nunca crecer.
 # Cuando uno baja del límite hay que quitarlo de la lista (el script lo exige), así la lista solo se acorta.
 # Uso: scripts/check-file-sizes.sh            (comprueba)
+#      scripts/check-file-sizes.sh --shrink   (tras partir: quita los que ya cumplen y baja los topes)
 #      scripts/check-file-sizes.sh --list     (enseña los que se pasan, para rehacer la lista)
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -11,6 +12,17 @@ BASELINE=config/oversized-baseline.txt
 
 files() { git ls-files 'app/src/main/*.kt' 'shared/src/*.kt' 'iosApp/*.swift'; }
 count() { wc -l < "$1" | tr -d ' '; }
+
+# --shrink: reescribe la lista con lo que queda por encima de 600 y su tamaño ACTUAL (solo puede bajar; no añade nada nuevo).
+if [[ "${1:-}" == "--shrink" ]]; then
+  tmp=$(mktemp)
+  grep "^#" "$BASELINE" > "$tmp"
+  while read -r n f; do
+    [[ -z "${n:-}" || "$n" == \#* || ! -f "$f" ]] && continue
+    c=$(count "$f"); (( c > LIMIT )) && echo "$(( c < n ? c : n )) $f" >> "$tmp"
+  done < "$BASELINE"
+  mv "$tmp" "$BASELINE"; echo "Lista actualizada: $(grep -vc "^#" "$BASELINE") ficheros por partir."; exit 0
+fi
 
 if [[ "${1:-}" == "--list" ]]; then
   files | while read -r f; do n=$(count "$f"); (( n > LIMIT )) && echo "$n $f"; done | sort -rn

@@ -13,3 +13,9 @@ class NotifyChatMessageUseCase(private val repo: ChatPushRepository) {
     @Throws(Exception::class)
     suspend operator fun invoke(toUid: String, preview: String) = repo.notifyMessage(toUid, preview)
 }
+
+/** Dispara la push de un mensaje de GRUPO a sus miembros (tras escribirlo en Firestore). */
+class NotifyGroupMessageUseCase(private val repo: ChatPushRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(convId: String, preview: String) = repo.notifyGroup(convId, preview)
+}
