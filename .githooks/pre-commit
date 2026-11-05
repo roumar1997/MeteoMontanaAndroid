@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Freno local: no deja commitear si un fichero pasa de 600 líneas o uno de los ya grandes crece (igual que el CI).
+# Se activa una vez por clon con: git config core.hooksPath .githooks
+exec bash "$(git rev-parse --show-toplevel)/scripts/check-file-sizes.sh"
