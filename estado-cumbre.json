@@ -10,7 +10,7 @@
     { "name": "Instalar Android en el Xiaomi y probar paso a paso", "done": true },
     { "name": "Arreglos de la prueba (altura, tamaño Android, PDF): probados", "done": true },
     { "name": "AAB Android 7.1.4 firmado y subido a Play", "done": false },
-    { "name": "Arquitectura: 16 de 45 partidos (Android casi; faltan los de una sola función, iOS y servidor)", "done": false },
+    { "name": "Arquitectura: 19 de 45 partidos + presentador del asistente en shared (faltan 26: Android difíciles, iOS y servidor)", "done": false },
     { "name": "Bloqueo + CI: apps HECHO (45 por partir), falta el servidor", "done": false },
     { "name": "Limpieza + README + «Cómo trabajamos» (todas las normas)", "done": false }
   ],
