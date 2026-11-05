@@ -538,7 +538,7 @@ private final class Writer {
         if let photo, photo.size.height > photo.size.width * 1.05,
            sideCard(block: b, face: face, photo: photo, faceIndex: faceIndex, faceCount: faceCount) { return }
         let photoH: CGFloat = photo.map { min(P.contentW * $0.size.height / max($0.size.width, 1), photoMaxH) } ?? bandH
-        let rows = face.lines.map(rowH)
+        let rows = face.lines.map { rowH($0) }
         let startPage = pageNo
 
         // Cabe la foto y al menos una vía; si no, página nueva.
