@@ -559,6 +559,7 @@ let EXPLORE_GRADE_LADDER: [String] = BOULDER_GRADES.filter { $0 != "PROY" }
 /// escuelas + slider de grado + orientación, BLOCK_SEARCH_DESIGN.md §4/§8).
 struct FilterChips: View {
     @ObservedObject var vm: SchoolListViewModel
+    @ObservedObject var explore: ExploreLinesViewModel
     /// Plegados por defecto (2026-10-14: "demasiadas cosas" a la vista). Lo activo se resume en una línea.
     @State private var open = false
     /// Estrella «FAVS»: enseña la comparación de tus favoritas encima de la lista (se recuerda).
@@ -582,13 +583,13 @@ struct FilterChips: View {
         if vm.maxDistanceKm != 50 { n += 1 }
         if vm.style != nil { n += 1 }
         if vm.rock != nil { n += 1 }
-        if vm.exploreTab == .schools {
+        if explore.tab == .schools {
             if vm.showMode != .all { n += 1 }
         } else {
-            if vm.gradeMin != nil || vm.gradeMax != nil { n += 1 }
-            if !vm.orientations.isEmpty { n += 1 }
-            if vm.exploreHeight != nil { n += 1 }
-            if vm.exploreSort != .distance { n += 1 }
+            if explore.gradeMin != nil || explore.gradeMax != nil { n += 1 }
+            if !explore.orientations.isEmpty { n += 1 }
+            if explore.height != nil { n += 1 }
+            if explore.sortBy != .distance { n += 1 }
         }
         return n
     }
@@ -600,18 +601,18 @@ struct FilterChips: View {
         parts.append(vm.maxDistanceKm.map { L("Hasta %@ km", Int($0)) } ?? L("Cualquier distancia"))
         if let s = vm.style { parts.append(styleLabel(s)) }
         if let r = vm.rock { parts.append(rockLabel(r)) }
-        if vm.exploreTab == .schools {
+        if explore.tab == .schools {
             if vm.showMode != .all { parts.append(vm.showMode.label) }
         } else {
-            if vm.gradeMin != nil || vm.gradeMax != nil {
-                parts.append("\(vm.gradeMin ?? "…")–\(vm.gradeMax ?? "…")")
+            if explore.gradeMin != nil || explore.gradeMax != nil {
+                parts.append("\(explore.gradeMin ?? "…")–\(explore.gradeMax ?? "…")")
             }
-            if !vm.orientations.isEmpty { parts.append(vm.orientations.sorted().joined(separator: "/")) }
-            if let h = vm.exploreHeight {
+            if !explore.orientations.isEmpty { parts.append(explore.orientations.sorted().joined(separator: "/")) }
+            if let h = explore.height {
                 parts.append((h == "TALL" ? "+1,70" : "−1,70")
-                             + (vm.exploreHeightSource.isEmpty ? "" : " " + SchoolBlocksExplorerModel.sourceLabel(vm.exploreHeightSource).lowercased()))
+                             + (explore.heightSource.isEmpty ? "" : " " + SchoolBlocksExplorerModel.sourceLabel(explore.heightSource).lowercased()))
             }
-            if vm.exploreSort != .distance { parts.append(vm.exploreSort.label) }
+            if explore.sortBy != .distance { parts.append(explore.sortBy.label) }
         }
         return parts.joined(separator: " · ")
     }
@@ -642,7 +643,7 @@ struct FilterChips: View {
             }
             .buttonStyle(.plain)
             clearButton
-            if vm.exploreTab == .schools { favoritesChip }
+            if explore.tab == .schools { favoritesChip }
             dayChip
         }
         .padding(.horizontal, 12)
@@ -671,12 +672,7 @@ struct FilterChips: View {
         vm.style = nil
         vm.rock = nil
         vm.showMode = .all
-        vm.gradeMin = nil
-        vm.gradeMax = nil
-        vm.orientations = []
-        vm.exploreHeight = nil
-        vm.exploreHeightSource = ""
-        vm.exploreSort = .distance
+        explore.clearAll()
     }
 
     /// «★ FAVS»: enciende/apaga la comparación de tus favoritas. No filtra la lista (para eso, Mostrar → Favoritos).
@@ -750,12 +746,12 @@ struct FilterChips: View {
             // Por PERMISO, no por "aún sin coordenadas": al abrir la app la
             // ubicación tarda un momento y el aviso salía y desaparecía en cada
             // arranque (Álvaro, 2026-10-02).
-            if vm.exploreTab == .blocks {
+            if explore.tab == .blocks {
                 section(L("GRADO")) { gradeRangeSection }
                 section(L("ORIENTACIÓN")) { orientationChips }
             }
             // En VÍAS/BLOQUES se ve todo: el filtro Vía/Bloque sobraba (Álvaro, 2026-10-18). Solo en ESCUELAS.
-            if vm.exploreTab != .blocks {
+            if explore.tab != .blocks {
                 section(L("ESTILO")) {
                     chipRow([String?.none] + vm.styles.map { Optional($0) }, id: { $0 ?? "all" },
                             isSel: { $0 == vm.style },
@@ -769,19 +765,19 @@ struct FilterChips: View {
                         isSel: { $0 == vm.rock },
                         label: { $0.map(rockLabel) ?? NSLocalizedString("schools_filter_all", comment: "") }) { vm.rock = $0 }
             }
-            if vm.exploreTab == .schools {
+            if explore.tab == .schools {
                 section(L("MOSTRAR")) {
                     chipRow(SchoolListViewModel.ShowMode.allCases, id: { $0.rawValue },
                             isSel: { $0 == vm.showMode },
                             label: { $0.label }) { vm.showMode = $0 }
                 }
             }
-            if vm.exploreTab == .blocks { heightSection }
+            if explore.tab == .blocks { heightSection }
             section(L("ORDENAR POR")) {
-                if vm.exploreTab == .blocks {
-                    chipRow(SchoolListViewModel.ExploreSort.allCases, id: { $0.rawValue },
-                            isSel: { $0 == vm.exploreSort },
-                            label: { $0.label }) { vm.exploreSort = $0 }
+                if explore.tab == .blocks {
+                    chipRow(ExploreLinesViewModel.Sort.allCases, id: { $0.rawValue },
+                            isSel: { $0 == explore.sortBy },
+                            label: { $0.label }) { explore.sortBy = $0 }
                 } else {
                     chipRow(SchoolListViewModel.SortMode.allCases, id: { $0.rawValue },
                             isSel: { $0 == vm.sortBy },
@@ -798,10 +794,10 @@ struct FilterChips: View {
         return VStack(alignment: .leading, spacing: 12) {
             section(L("ALTURA")) {
                 chipRow(options, id: { (h: String?) -> String in h ?? "all" },
-                        isSel: { (h: String?) -> Bool in h == vm.exploreHeight },
-                        label: { (h: String?) -> String in Self.heightLabel(h) }) { (h: String?) in vm.exploreHeight = h }
+                        isSel: { (h: String?) -> Bool in h == explore.height },
+                        label: { (h: String?) -> String in Self.heightLabel(h) }) { (h: String?) in explore.height = h }
             }
-            if vm.exploreHeight != nil { sourceSection }
+            if explore.height != nil { sourceSection }
         }
     }
 
@@ -810,9 +806,9 @@ struct FilterChips: View {
         let sources: [String] = ["", "_VIDEO", "_SENDS"]
         return section(L("QUÉ BUSCAS")) {
             chipRow(sources, id: { (s: String) -> String in s.isEmpty ? "any" : s },
-                    isSel: { (s: String) -> Bool in s == vm.exploreHeightSource },
+                    isSel: { (s: String) -> Bool in s == explore.heightSource },
                     label: { (s: String) -> String in SchoolBlocksExplorerModel.sourceLabel(s) }) { (s: String) in
-                vm.exploreHeightSource = s
+                explore.heightSource = s
             }
         }
     }
@@ -829,8 +825,8 @@ struct FilterChips: View {
     /// entre escuelas y vías, sin pantalla nueva.
     private var tabSwitcher: some View {
         HStack(spacing: 2) {
-            tabButton(L("Escuelas"), active: vm.exploreTab == .schools) { vm.exploreTab = .schools }
-            tabButton(L("Vías/Bloques"), active: vm.exploreTab == .blocks) { vm.exploreTab = .blocks; vm.dispatchExplore() }
+            tabButton(L("Escuelas"), active: explore.tab == .schools) { explore.tab = .schools }
+            tabButton(L("Vías/Bloques"), active: explore.tab == .blocks) { explore.tab = .blocks }
         }
         .padding(3)
         .background(Cumbre.rule.opacity(0.18), in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
@@ -877,8 +873,8 @@ struct FilterChips: View {
     /// grado usado se recuerda entre sesiones (UserDefaults, vía el VM).
     private var gradeRangeSection: some View {
         HStack(spacing: 10) {
-            gradeDropdown(L("MÍN"), selected: vm.gradeMin) { vm.gradeMin = $0 }
-            gradeDropdown(L("MÁX"), selected: vm.gradeMax) { vm.gradeMax = $0 }
+            gradeDropdown(L("MÍN"), selected: explore.gradeMin) { explore.gradeMin = $0 }
+            gradeDropdown(L("MÁX"), selected: explore.gradeMax) { explore.gradeMax = $0 }
         }
         .padding(.horizontal, 12)
     }
@@ -907,9 +903,9 @@ struct FilterChips: View {
 
     private var orientationChips: some View {
         chipRow(["N", "NE", "E", "SE", "S", "SO", "O", "NO"], id: { $0 },
-                isSel: { vm.orientations.contains($0) },
+                isSel: { explore.orientations.contains($0) },
                 label: { $0 }) { o in
-            if vm.orientations.contains(o) { vm.orientations.remove(o) } else { vm.orientations.insert(o) }
+            if explore.orientations.contains(o) { explore.orientations.remove(o) } else { explore.orientations.insert(o) }
         }
     }
 

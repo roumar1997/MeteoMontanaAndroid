@@ -1,10 +1,8 @@
 # Ficheros que YA pasaban de 600 líneas el 2026-11-05 (tamaño de ese día). Pueden encoger, nunca crecer.
 # Al partir uno por debajo de 600, se borra su línea. Objetivo: que esta lista quede vacía.
 1580 iosApp/iosApp/Screens/SchoolMapSection.swift
-1382 app/src/main/java/com/meteomontana/android/ui/screens/schools/SchoolListScreen.kt
 1239 iosApp/iosApp/Screens/JournalView.swift
-1091 iosApp/iosApp/Screens/SchoolListView.swift
-984 iosApp/iosApp/Screens/SchoolListHeader.swift
+980 iosApp/iosApp/Screens/SchoolListHeader.swift
 979 iosApp/iosApp/Screens/MeetupDetailView.swift
 977 iosApp/iosApp/Screens/UsersView.swift
 959 iosApp/iosApp/Screens/AccountView.swift
@@ -26,7 +24,6 @@
 773 app/src/main/java/com/meteomontana/android/di/UseCasesModule.kt
 745 app/src/main/java/com/meteomontana/android/ui/MainScreen.kt
 734 iosApp/iosApp/Screens/AssistantChatView.swift
-720 app/src/main/java/com/meteomontana/android/ui/screens/schools/SchoolListViewModel.kt
 719 iosApp/iosApp/Screens/AdminContributionCards.swift
 715 iosApp/iosApp/Screens/BlockInfoSheet.swift
 707 iosApp/iosApp/Screens/GuidePDF.swift

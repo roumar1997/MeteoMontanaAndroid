@@ -28,67 +28,6 @@ import javax.inject.Inject
 import com.meteomontana.android.domain.util.Geo
 import com.meteomontana.android.ui.screens.detail.BOULDER_GRADES
 
-/** Un grupo de resultados "Vías/Bloques" por escuela (BLOCK_SEARCH_DESIGN.md §8.3). */
-data class ExploreGroup(
-    val schoolId: String,
-    val schoolName: String,
-    val hits: List<com.meteomontana.android.domain.model.LineSearchHit>
-)
-
-// Orden y etiquetas alineados con iOS (Todas/Bloque/Vía).
-enum class StyleFilter(@androidx.annotation.StringRes val labelRes: Int, val apiValue: String?) {
-    All(R.string.w_all, null),
-    Boulder(R.string.w_boulder, "Bloque"),   // apiValue: valor del catálogo, NO se traduce
-    Via(R.string.w_route, "Vía")
-}
-
-// iOS muestra "Mejor score" primero.
-enum class SortBy(@androidx.annotation.StringRes val labelRes: Int) {
-    Score(R.string.sort_best_score),
-    Distance(R.string.sort_nearest)
-}
-
-val DISTANCE_OPTIONS = listOf<Double?>(null, 50.0, 100.0, 150.0, 200.0, 250.0, 300.0, 350.0, 400.0, 450.0, 500.0)
-// Alfabético, como iOS.
-val ROCK_TYPES       = listOf("Granito", "Caliza", "Arenisca", "Basalto", "Conglomerado", "Pizarra")
-
-// ── Pestaña "Escuelas" / "Vías/Bloques" (BLOCK_SEARCH_DESIGN.md §4.1b) ──
-// Espejo EXACTO del diseño validado en iOS (builds 243→252) — ver esa
-// sección para el porqué de cada decisión (el modo implícito sin pestaña
-// se probó y se descartó).
-enum class ExploreTab { Schools, Blocks }
-
-/** "ORDENAR POR" del modo Vías/Bloques — NUNCA "Grado" (se probó y no
- *  aportaba nada). "Mejores condiciones" reordena en el CLIENTE: el score
- *  es meteorológico y el backend no lo conoce. */
-enum class ExploreSortBy(@androidx.annotation.StringRes val labelRes: Int) {
-    Distance(R.string.sort_nearest_explore),
-    BestConditions(R.string.sort_best_conditions),
-    /** Lo ordena el SERVIDOR: cuenta las personas que tienen cada vía hecha en su diario. */
-    MostRepeated(R.string.sort_most_repeated)
-}
-
-/** Escalera REAL de grados (la misma que usa el editor de vías,
- *  `BOULDER_GRADES`) — nunca inventada. "PROY" no es un punto de la
- *  escalera, se excluye del rango. */
-val EXPLORE_GRADE_LADDER: List<String> = BOULDER_GRADES.filter { it != "PROY" }
-
-data class SchoolFilters(
-    val style: StyleFilter = StyleFilter.All,
-    val maxDistanceKm: Double? = 50.0,       // 50 km por defecto (como la PWA)
-    val rockTypes: List<String> = emptyList(),
-    val onlyFavorites: Boolean = false,
-    val onlySavedOffline: Boolean = false,
-    val sortBy: SortBy = SortBy.Score,       // ordenado por mejor score por defecto
-    val query: String = ""
-)
-
-sealed interface SchoolListUiState {
-    data object Loading : SchoolListUiState
-    data class Success(val schools: List<School>) : SchoolListUiState
-    data class Error(val message: String) : SchoolListUiState
-}
-
 @HiltViewModel
 class SchoolListViewModel @Inject constructor(
     private val getSchoolCatalog: GetSchoolCatalogUseCase,
@@ -106,7 +45,6 @@ class SchoolListViewModel @Inject constructor(
     private val outbox: com.meteomontana.android.data.outbox.OutboxRepository,
     private val getPublicProfile: com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase,
     private val searchLines: com.meteomontana.android.domain.usecase.schools.SearchLinesUseCase,
-    private val exploreLines: com.meteomontana.android.domain.usecase.schools.ExploreLinesUseCase,
     @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
     /** Foto elegida en "Enviar piedra", a la espera de que se abra su escuela. */
     val photoSeed: PhotoProposalSeed
@@ -202,153 +140,14 @@ class SchoolListViewModel @Inject constructor(
     /** true si el modo tramo está activo (hay días elegidos). */
     val rangeMode: Boolean get() = _selectedDays.value.isNotEmpty()
 
-    // ── Pestaña "Vías/Bloques" (BLOCK_SEARCH_DESIGN.md §4.1b) ──
-    // Espejo exacto del diseño validado en iOS. `gradeMin`/`gradeMax` se
-    // recuerdan entre sesiones (SharedPreferences) — Álvaro: "que se te
-    // queden guardados los últimos que has utilizado".
-    private val explorePrefs by lazy {
-        appContext.getSharedPreferences("explore_prefs", android.content.Context.MODE_PRIVATE)
-    }
-    private val _exploreTab = MutableStateFlow(ExploreTab.Schools)
-    val exploreTab: StateFlow<ExploreTab> = _exploreTab.asStateFlow()
-
-    private val _gradeMin = MutableStateFlow(explorePrefs.getString("grade_min", null))
-    val gradeMin: StateFlow<String?> = _gradeMin.asStateFlow()
-    private val _gradeMax = MutableStateFlow(explorePrefs.getString("grade_max", null))
-    val gradeMax: StateFlow<String?> = _gradeMax.asStateFlow()
-
-    private val _orientations = MutableStateFlow<Set<String>>(emptySet())
-    val orientations: StateFlow<Set<String>> = _orientations.asStateFlow()
-
-    private val _exploreSortBy = MutableStateFlow(ExploreSortBy.Distance)
-    val exploreSortBy: StateFlow<ExploreSortBy> = _exploreSortBy.asStateFlow()
-    /** ALTURA: null = todas; "TALL" / "SHORT" = con vídeo de beta o hechas por gente de esa altura (`beta=` del servidor). */
-    private val _exploreHeight = MutableStateFlow<String?>(null)
-    val exploreHeight: StateFlow<String?> = _exploreHeight.asStateFlow()
-    fun setExploreHeight(h: String?) { _exploreHeight.value = h; dispatchExplore() }
-    /** QUÉ BUSCAS con la ALTURA: "" vídeo o encadenes, "_VIDEO" solo vídeo, "_SENDS" solo encadenes. */
-    private val _exploreHeightSource = MutableStateFlow("")
-    val exploreHeightSource: StateFlow<String> = _exploreHeightSource.asStateFlow()
-    fun setExploreHeightSource(s: String) { _exploreHeightSource.value = s; dispatchExplore() }
-
-    private val _exploreGrouped = MutableStateFlow(true)
-    val exploreGrouped: StateFlow<Boolean> = _exploreGrouped.asStateFlow()
-
-    private val _exploreHits = MutableStateFlow<List<com.meteomontana.android.domain.model.LineSearchHit>>(emptyList())
-    val exploreHits: StateFlow<List<com.meteomontana.android.domain.model.LineSearchHit>> = _exploreHits.asStateFlow()
-
-    private val _exploreLoading = MutableStateFlow(false)
-    val exploreLoading: StateFlow<Boolean> = _exploreLoading.asStateFlow()
-
-    fun setExploreTab(tab: ExploreTab) { _exploreTab.value = tab; dispatchExplore() }
-    fun setGradeMin(g: String?) {
-        _gradeMin.value = g
-        explorePrefs.edit().putString("grade_min", g).apply()
-        dispatchExplore()
-    }
-    fun setGradeMax(g: String?) {
-        _gradeMax.value = g
-        explorePrefs.edit().putString("grade_max", g).apply()
-        dispatchExplore()
-    }
-    fun toggleOrientation(o: String) {
-        _orientations.update { if (o in it) it - o else it + o }
-        dispatchExplore()
-    }
-    fun setExploreSortBy(s: ExploreSortBy) {
-        _exploreSortBy.value = s
-        // "Más repetidos" cambia lo que se pide al servidor; los otros dos órdenes se resuelven en local.
-        dispatchExplore()
-    }
     /**
-     * Todos los filtros como de base (50 km, cualquier estilo y roca, todas las escuelas, sin grado ni orientación, por
-     * mejor score / cercanía). Lo usa el botón BORRAR de la fila de filtros. Conserva lo que se haya escrito en el buscador.
+     * Filtros de la lista como de base (50 km, cualquier estilo y roca, todas las escuelas, por mejor nota). Lo usa el
+     * botón BORRAR de la fila de filtros (que también limpia los de Vías/Bloques). Conserva lo escrito en el buscador.
      */
     fun clearAllFilters() {
         _filters.update { SchoolFilters(query = it.query) }
-        _gradeMin.value = null; _gradeMax.value = null; _orientations.value = emptySet()
-        _exploreHeight.value = null
-        _exploreHeightSource.value = ""
-        _exploreSortBy.value = ExploreSortBy.Distance
-        explorePrefs.edit().remove("grade_min").remove("grade_max").apply()
         load()
-        dispatchExplore()
     }
-
-    fun toggleExploreGrouped() { _exploreGrouped.value = !_exploreGrouped.value }
-
-    /** Quita grado/orientación (sin salir de la pestaña Vías/Bloques) — lo usa
-     *  el "sin resultados" para empezar de cero. */
-    fun clearExplore() {
-        _gradeMin.value = null; _gradeMax.value = null; _orientations.value = emptySet()
-        explorePrefs.edit().remove("grade_min").remove("grade_max").apply()
-        dispatchExplore()
-    }
-
-    private var exploreJob: kotlinx.coroutines.Job? = null
-
-    /** Resultado en vivo, sin botón "ver N vías" — debounce de ~300ms tras el
-     *  último cambio. */
-    fun dispatchExplore() {
-        exploreJob?.cancel()
-        if (_exploreTab.value != ExploreTab.Blocks) { _exploreHits.value = emptyList(); _exploreLoading.value = false; return }
-        _exploreLoading.value = true
-        exploreJob = viewModelScope.launch {
-            kotlinx.coroutines.delay(300)
-            val f = _filters.value
-            val criteria = com.meteomontana.android.domain.model.LineExploreCriteria(
-                gradeMin = _gradeMin.value, gradeMax = _gradeMax.value,
-                discipline = when (f.style) {
-                    StyleFilter.Boulder -> "BOULDER"
-                    StyleFilter.Via -> "ROUTE"
-                    StyleFilter.All -> null
-                },
-                rockTypes = f.rockTypes.ifEmpty { null },
-                schoolIds = null,
-                orientations = _orientations.value.toList().ifEmpty { null },
-                lat = userLat, lon = userLon,
-                maxDistanceKm = f.maxDistanceKm,
-                // "Mejores condiciones" no lo sabe el backend (score del
-                // tiempo, vive en el cliente) — se pide siempre por
-                // distancia y se reordena en exploreGroups/exploreHitsSorted. "Más repetidos"
-                // SÍ lo ordena el servidor.
-                sort = if (_exploreSortBy.value == ExploreSortBy.MostRepeated) "MOST_REPEATED" else "DISTANCE",
-                // Siempre: cada resultado enseña quién la ha hecho (por altura) y sus vídeos de beta.
-                withRepetitions = true,
-                beta = _exploreHeight.value?.let { it + _exploreHeightSource.value }
-            )
-            _exploreHits.value = runCatching { exploreLines(criteria) }.getOrDefault(emptyList())
-            _exploreLoading.value = false
-        }
-    }
-
-    private fun exploreGroupScore(schoolId: String): Int =
-        if (rangeMode) _rangeScores.value[schoolId]?.combinedScore ?: -1
-        else _scores.value[schoolId]?.todayScore ?: -1
-
-    /** Agrupados por escuela, en el orden que trae el backend (distancia) salvo
-     *  que "Mejores condiciones" esté activo, que reordena los GRUPOS por el
-     *  score de HOY/tramo. */
-    val exploreGroups: StateFlow<List<ExploreGroup>> =
-        combine(_exploreHits, _exploreSortBy, _scores, _rangeScores) { hits, sortBy, _, _ ->
-            val order = mutableListOf<String>()
-            val byId = mutableMapOf<String, MutableList<com.meteomontana.android.domain.model.LineSearchHit>>()
-            for (h in hits) {
-                if (h.schoolId !in byId) { byId[h.schoolId] = mutableListOf(); order.add(h.schoolId) }
-                byId[h.schoolId]!!.add(h)
-            }
-            var groups = order.map { id -> ExploreGroup(id, byId[id]?.firstOrNull()?.schoolName.orEmpty(), byId[id].orEmpty()) }
-            if (sortBy == ExploreSortBy.BestConditions) {
-                groups = groups.sortedByDescending { exploreGroupScore(it.schoolId) }
-            }
-            groups
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    /** Lista plana (modo desagrupado) con el mismo criterio de orden. */
-    val exploreHitsSorted: StateFlow<List<com.meteomontana.android.domain.model.LineSearchHit>> =
-        combine(_exploreHits, _exploreSortBy, _scores, _rangeScores) { hits, sortBy, _, _ ->
-            if (sortBy == ExploreSortBy.BestConditions) hits.sortedByDescending { exploreGroupScore(it.schoolId) } else hits
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         viewModelScope.launch {
@@ -459,7 +258,7 @@ class SchoolListViewModel @Inject constructor(
                 userLat = loc.lat
                 userLon = loc.lon
                 _userLocation.value = loc
-                load(); dispatchExplore()
+                load()
             }
         }
     }
@@ -615,17 +414,17 @@ class SchoolListViewModel @Inject constructor(
     // filterQuery / filtro / orden viven ahora en SchoolFilterEngine (shared,
     // testeado por SchoolFilterEngineTest).
 
-    fun setStyle(style: StyleFilter)        { _filters.update { it.copy(style = style) }; load(); dispatchExplore() }
-    fun setDistance(km: Double?)            { _filters.update { it.copy(maxDistanceKm = km) }; load(); dispatchExplore() }
+    fun setStyle(style: StyleFilter)        { _filters.update { it.copy(style = style) }; load() }
+    fun setDistance(km: Double?)            { _filters.update { it.copy(maxDistanceKm = km) }; load() }
     fun toggleRock(rock: String) {
         _filters.update {
             val newList = if (rock in it.rockTypes) it.rockTypes - rock else it.rockTypes + rock
             it.copy(rockTypes = newList)
         }
-        load(); dispatchExplore()
+        load()
     }
     /** Chip "Todas" de tipo de roca: limpia la selección. */
-    fun clearRocks() { _filters.update { it.copy(rockTypes = emptyList()) }; load(); dispatchExplore() }
+    fun clearRocks() { _filters.update { it.copy(rockTypes = emptyList()) }; load() }
     /**
      * Marca/desmarca favorita desde la lista. Optimista: pinta ya. Si la red
      * falla (offline), NO revierte: encola la acción en el outbox para

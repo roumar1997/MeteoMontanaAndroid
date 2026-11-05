@@ -9,552 +9,10 @@ import UIKit
 // + estrella + subtítulo + heatmap 10 celdas + tag ● SECA/MOJADA).
 // Datos reales del backend vía use cases compartidos (KMP). Filtrado local.
 
-@MainActor
-final class SchoolListViewModel: ObservableObject {
-    @Published var schools: [School] = []
-    @Published var scores: [String: SchoolScore] = [:]
-    @Published var loading = true
-    @Published var errorText: String?
-
-    enum SortMode: String, CaseIterable {
-        case score = "Mejor score", distance = "Más cercanos"
-        var label: String { L(rawValue) }   // rawValue = clave en español; L() da el texto del idioma activo
-    }
-    // Filtro rápido: todas / solo favoritas / solo guardadas offline.
-    enum ShowMode: String, CaseIterable {
-        case all = "Todas", favorites = "Favoritos", saved = "Guardados"
-        var label: String { L(rawValue) }
-    }
-    static let distanceOptions: [Double?] = [nil, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]
-
-    @Published var query = ""
-    @Published var style: String? { didSet { dispatchExplore() } }
-    @Published var rock: String? { didSet { dispatchExplore() } }
-    @Published var maxDistanceKm: Double? = 50 { didSet { dispatchExplore() } }   // 50 km por defecto (como Android/PWA)
-    @Published var showMode: ShowMode = .all
-    @Published var savedIds: Set<String> = []    // escuelas guardadas offline (observeSaved)
-    @Published var savedSchoolsList: [SavedSchool] = []  // datos de las guardadas (para verlas sin red)
-    @Published var sortBy: SortMode = .score
-    @Published var favoriteIds: Set<String> = []
-    /// Falta el PERMISO de ubicación (se sabe al instante, sin esperar al GPS).
-    /// El aviso de Filtros y el botón del mapa usan esto y no `userLat == nil`,
-    /// que durante unos instantes tras abrir la app es nil aunque haya permiso.
-    @Published var needsLocationPermission: Bool = !AppDependencies.shared.locationBridge.hasPermission()
-    @Published var userLat: Double? { didSet { dispatchExplore() } }
-    @Published var userLon: Double? { didSet { dispatchExplore() } }
-    @Published var compareSelection: Set<String> = []  // long-press para comparar (máx 3)
-    @Published var unreadNotifications: Int = 0
-    @Published var unreadChats: Int = 0          // badge en el icono de mensajes
-    private var chatTask: Task<Void, Never>?
-    /// Lo que ACABAS de tocar en la ficha de una escuela manda sobre lo que
-    /// trajo el catálogo — sin esto la lista seguiría sin marcar hasta la
-    /// próxima recarga completa (Álvaro, 2026-09-05: "que no haga falta
-    /// estar recargando").
-    @Published var processionaryOverrides: [String: Bool] = [:]
-    private var processionaryTask: Task<Void, Never>?
-
-    func startObservingProcessionaryOverrides() {
-        guard processionaryTask == nil else { return }
-        processionaryTask = Task { [weak self] in
-            for await map in ProcessionaryOverrideStore.shared.observe() {
-                self?.processionaryOverrides = map.mapValues { $0.boolValue }
-            }
-        }
-    }
-
-    func processionaryAlertActive(for school: School) -> Bool {
-        processionaryOverrides[school.id] ?? school.processionaryAlertActive
-    }
-
-    // ── Selector de días (tramo) ──
-    // Fechas ISO (yyyy-MM-dd) elegidas, máx 5. Vacío = modo "hoy".
-    @Published var selectedDates: Set<String> = []
-    /// Mapa de la lista desplegado (botón del mapa en la fila Escuelas / Vías-Bloques).
-    @Published var showMap = false
-    /// Panel de días desplegado (chip HOY ⌄): plegado por defecto para que la lista se vea antes.
-    @Published var daysOpen = false
-    @Published var rangeScores: [String: RangeScore] = [:]
-    var rangeMode: Bool { !selectedDates.isEmpty }
-
-    // ── Modo "explorar por grado" — pestaña Escuelas/Bloques
-    // (BLOCK_SEARCH_DESIGN.md §4/§8, vuelta al mockup con pestaña tras probar
-    // la versión sin pestaña en TestFlight — Álvaro, 2026-10-01: "no me
-    // gusta cómo funciona"). La MISMA lista de Escuelas cambia a vías al
-    // tocar "Bloques"; Fase 2 (Android) pendiente de portar tras validar aquí.
-    enum ExploreTab: String { case schools, blocks }
-    enum ExploreSort: String, CaseIterable {
-        case distance = "Cercanía", bestConditions = "Mejores condiciones", mostRepeated = "Más repetidos"
-        var label: String { L(rawValue) }
-    }
-    @Published var exploreTab: ExploreTab = .schools
-    /// Se recuerda el último grado usado entre sesiones (Álvaro, 2026-10-01:
-    /// "que se te queden guardados los últimos que has utilizado").
-    @Published var gradeMin: String? { didSet { UserDefaults.standard.set(gradeMin, forKey: Self.gradeMinKey); dispatchExplore() } }
-    @Published var gradeMax: String? { didSet { UserDefaults.standard.set(gradeMax, forKey: Self.gradeMaxKey); dispatchExplore() } }
-    private static let gradeMinKey = "explore_grade_min"
-    private static let gradeMaxKey = "explore_grade_max"
-    @Published var orientations: Set<String> = [] { didSet { dispatchExplore() } }
-    @Published var exploreSort: ExploreSort = .distance { didSet { dispatchExplore() } }
-    /// ALTURA: nil = todas; "TALL" / "SHORT" = con vídeo de beta o hechas por gente de esa altura (el servidor, `beta=`).
-    @Published var exploreHeight: String? = nil { didSet { dispatchExplore() } }
-    /// Con altura elegida: "" = vídeo o encadenes, "_VIDEO" = solo vídeo, "_SENDS" = solo encadenes.
-    @Published var exploreHeightSource: String = "" { didSet { if exploreHeight != nil { dispatchExplore() } } }
-    @Published var exploreGrouped = true
-    @Published var exploreHits: [LineSearchHit] = []
-    @Published var exploreLoading = false
-    private var exploreTask: Task<Void, Never>?
-    var exploreActive: Bool { exploreTab == .blocks }
-
-    /// Quita grado/orientación elegidos (sin salir de la pestaña Bloques) —
-    /// lo usa el "sin resultados" para empezar de cero. El selector manual de
-    /// escuelas (§8.2b) se quitó (Álvaro, 2026-10-01: "lista interminable,
-    /// imposible de gestionar") — DISTANCIA ya filtra sola.
-    func clearExplore() { gradeMin = nil; gradeMax = nil; orientations = [] }
-
-    /// §8.2: resultado en vivo, sin botón "ver N vías" — debounce de ~300ms
-    /// tras el último cambio (grado, orientación, escuelas, radio, ubicación).
-    func dispatchExplore() {
-        exploreTask?.cancel()
-        guard exploreActive else { exploreHits = []; exploreLoading = false; return }
-        exploreLoading = true
-        exploreTask = Task { [weak self] in
-            guard let self else { return }
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            guard !Task.isCancelled else { return }
-            let criteria = LineExploreCriteria(
-                gradeMin: self.gradeMin, gradeMax: self.gradeMax,
-                discipline: self.style.map { $0 == "Bloque" ? "BOULDER" : "ROUTE" },
-                rockTypes: self.rock.map { [$0] },
-                schoolIds: nil,
-                orientations: self.orientations.isEmpty ? nil : Array(self.orientations),
-                lat: self.userLat.map { KotlinDouble(double: $0) },
-                lon: self.userLon.map { KotlinDouble(double: $0) },
-                maxDistanceKm: self.maxDistanceKm.map { KotlinDouble(double: $0) },
-                // "Mejores condiciones" no es un orden que sepa el backend (el
-                // score es del tiempo, vive solo en el cliente) — se pide
-                // por distancia y se reordena aquí (ver exploreGroups). "Más
-                // repetidos" SÍ lo ordena el servidor (cuenta los diarios).
-                sort: self.exploreSort == .mostRepeated ? "MOST_REPEATED" : "DISTANCE",
-                offset: 0, withRatings: false, beta: self.exploreHeight.map { $0 + self.exploreHeightSource },
-                startType: nil, withTopo: false,
-                // Siempre: cada resultado enseña quién la ha hecho (por altura) y sus vídeos de beta.
-                withRepetitions: true)
-            let hits = (try? await AppDependencies.shared.container.exploreLines.invoke(criteria: criteria)) ?? []
-            guard !Task.isCancelled else { return }
-            self.exploreHits = hits
-            self.exploreLoading = false
-        }
-    }
-
-    /// Agrupados por escuela, respetando el orden que ya trae el backend
-    /// (cercanía o grado) — §8.3.
-    var exploreGroups: [(schoolId: String, schoolName: String, hits: [LineSearchHit])] {
-        var order: [String] = []
-        var byId: [String: [LineSearchHit]] = [:]
-        for h in exploreHits {
-            if byId[h.schoolId] == nil { byId[h.schoolId] = []; order.append(h.schoolId) }
-            byId[h.schoolId]!.append(h)
-        }
-        var groups = order.map { id in (schoolId: id, schoolName: byId[id]?.first?.schoolName ?? "", hits: byId[id] ?? []) }
-        if exploreSort == .bestConditions {
-            // El backend no sabe de condiciones meteorológicas (vive en el
-            // cliente) — se pide siempre por distancia y aquí se reordenan
-            // los GRUPOS (no las vías sueltas) por el índice de HOY/tramo.
-            groups.sort { exploreGroupScore($0.schoolId) > exploreGroupScore($1.schoolId) }
-        }
-        return groups
-    }
-
-    private func exploreGroupScore(_ schoolId: String) -> Int {
-        if rangeMode { return rangeScores[schoolId].map { Int($0.combinedScore) } ?? -1 }
-        return scores[schoolId].map { Int($0.todayScore) } ?? -1
-    }
-
-    /// Lista plana (modo desagrupado) con el mismo criterio de orden que
-    /// `exploreGroups` cuando es "Mejores condiciones".
-    var exploreHitsSorted: [LineSearchHit] {
-        guard exploreSort == .bestConditions else { return exploreHits }
-        return exploreHits.sorted { exploreGroupScore($0.schoolId) > exploreGroupScore($1.schoolId) }
-    }
-
-    private let getSchools: GetSchoolsUseCase
-    private let getTodayScores: GetTodayScoresUseCase
-    private let getRangeScores: GetRangeScoresUseCase
-    private let getMyFavorites: GetMyFavoritesUseCase
-    private let addFavorite: AddFavoriteUseCase
-    private let removeFavorite: RemoveFavoriteUseCase
-    private let locationBridge = AppDependencies.shared.locationBridge
-    private let locationProvider = AppDependencies.shared.container.locationProvider
-    private let cachedSchools = AppDependencies.shared.container.cachedSchools
-    private let savedSchools = AppDependencies.shared.container.savedSchools
-    private var savedTask: Task<Void, Never>?
-
-    init(
-        getSchools: GetSchoolsUseCase = AppDependencies.shared.container.getSchools,
-        getTodayScores: GetTodayScoresUseCase = AppDependencies.shared.container.getTodayScores,
-        getRangeScores: GetRangeScoresUseCase = AppDependencies.shared.container.getRangeScores,
-        getMyFavorites: GetMyFavoritesUseCase = AppDependencies.shared.container.getMyFavorites,
-        addFavorite: AddFavoriteUseCase = AppDependencies.shared.container.addFavorite,
-        removeFavorite: RemoveFavoriteUseCase = AppDependencies.shared.container.removeFavorite
-    ) {
-        self.getSchools = getSchools
-        self.getTodayScores = getTodayScores
-        self.getRangeScores = getRangeScores
-        self.getMyFavorites = getMyFavorites
-        self.addFavorite = addFavorite
-        self.removeFavorite = removeFavorite
-        self.gradeMin = UserDefaults.standard.string(forKey: Self.gradeMinKey)
-        self.gradeMax = UserDefaults.standard.string(forKey: Self.gradeMaxKey)
-    }
-
-    /// Marca/desmarca una fecha (ISO yyyy-MM-dd), máximo 5. Recalcula el tramo.
-    func toggleDate(_ iso: String) {
-        if selectedDates.contains(iso) { selectedDates.remove(iso) }
-        else if selectedDates.count < 5 { selectedDates.insert(iso) }
-        rangeScores = [:]
-        Task { await loadRangeScores() }
-    }
-
-    /// Carga los scores del tramo por lotes (≤60 ids/call), para TODAS las
-    /// escuelas (así cambiar filtros no deja huecos). El backend cachea.
-    private func loadRangeScores() async {
-        guard !selectedDates.isEmpty else { return }
-        let dates = selectedDates.sorted()
-        let ids = schools.map { $0.id }
-        for chunk in stride(from: 0, to: ids.count, by: 60) {
-            let slice = Array(ids[chunk..<min(chunk + 60, ids.count)])
-            guard let batch = try? await getRangeScores.invoke(ids: slice, dates: dates) else { continue }
-            for r in batch { rangeScores[r.id] = r }
-        }
-    }
-
-    // Estilos combinados ("Bloque,Vía") se descomponen en sus valores
-    // individuales — el filtro no debe ofrecer la combinación como su propia
-    // opción, solo Vía / Bloque, cada una recogiendo también las escuelas
-    // mixtas (ver `matchesStyle`).
-    var styles: [String] { uniqueValues(schools.flatMap { ($0.style ?? "").split(separator: ",").map { String($0) } }) }
-    // Granito, Caliza y Arenisca primero (las mas buscadas); el resto alfabetico.
-    var rocks: [String] {
-        let all = uniqueValues(schools.map { $0.rockType })
-        let priority = ["Granito", "Caliza", "Arenisca"]
-        let first = priority.compactMap { p in all.first { $0.caseInsensitiveCompare(p) == .orderedSame } }
-        return first + all.filter { r in !first.contains(r) }
-    }
-    var activeFilters: Bool { style != nil || rock != nil || maxDistanceKm != nil || showMode != .all }
-    func clearFilters() { style = nil; rock = nil; query = ""; maxDistanceKm = nil; showMode = .all }
-
-    /// Vuelve a "HOY": quita los días elegidos.
-    func clearDates() {
-        selectedDates = []
-        rangeScores = [:]
-    }
-
-    func toggleCompare(_ id: String) {
-        if compareSelection.contains(id) { compareSelection.remove(id) }
-        else if compareSelection.count < 3 { compareSelection.insert(id) }
-    }
-    func clearCompare() { compareSelection.removeAll() }
-
-    // MEMOIZADO: es propiedad calculada y SwiftUI la evalúa en cada pasada de
-    // layout (prefetch de la lazy list incluido) — cada pasada recorría las
-    // 191 escuelas KOTLIN (puentes ObjC + GC). Con la firma de entradas solo
-    // se recalcula cuando cambia algo de verdad.
-    private var filteredCache: (sig: String, list: [School])? = nil
-    var filtered: [School] {
-        // En pasos: 14 elementos en una expresión saturan el type-checker.
-        var parts: [String] = []
-        parts.append(query)
-        parts.append(style ?? "")
-        parts.append(rock ?? "")
-        parts.append(String(maxDistanceKm ?? -1))
-        parts.append(String(describing: showMode))
-        parts.append(String(describing: sortBy))
-        parts.append(String(rangeMode))
-        parts.append(String(schools.count))
-        parts.append(String(scores.count))
-        parts.append(String(rangeScores.count))
-        parts.append(String(favoriteIds.count))
-        parts.append(String(savedSchoolsList.count))
-        parts.append(String(userLat ?? 0))
-        parts.append(String(userLon ?? 0))
-        let sig = parts.joined(separator: "|")
-        if let c = filteredCache, c.sig == sig { return c.list }
-        let list = computeFiltered()
-        filteredCache = (sig, list)
-        return list
-    }
-
-    private func computeFiltered() -> [School] {
-        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
-        // En modo GUARDADOS partimos de las escuelas guardadas offline: si el
-        // catálogo no está en caché (sin red, primera vez), las sintetizamos
-        // desde el snapshot guardado para que SÍ se vean.
-        let base: [School]
-        if showMode == .saved {
-            base = savedSchoolsList.map { sv in
-                schools.first { $0.id == sv.id }
-                    ?? School(id: sv.id, name: sv.name, location: nil, region: sv.region,
-                              style: nil, rockType: sv.rockType, lat: sv.lat, lon: sv.lon, source: nil,
-                              country: "ES", hasKnownProcessionary: false, processionaryAlertActive: false, processionaryActiveNowSet: false)
-            }
-        } else {
-            base = schools
-        }
-        var list: [School]
-        if !q.isEmpty {
-            // BÚSQUEDA por nombre: manda sobre TODO. Ignora distancia/estilo/roca/
-            // favoritas para que "Albarracín" salga aunque esté fuera del radio.
-            list = base.filter {
-                $0.name.lowercased().contains(q) || ($0.location?.lowercased().contains(q) ?? false)
-            }
-        } else {
-            list = base.filter { s in
-                (style == nil || matchesStyle(s.style, style!))
-                && (rock == nil || s.rockType?.caseInsensitiveCompare(rock!) == .orderedSame)
-            }
-            // Distancia (solo si hay ubicación y límite elegido). En modo
-            // GUARDADOS NO se aplica: quiero ver todas mis guardadas aunque estén
-            // lejos (igual que la búsqueda por nombre ignora el radio).
-            if showMode != .saved, let max = maxDistanceKm, let la = userLat, let lo = userLon {
-                list = list.filter { Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $0.lat, lon2: $0.lon) <= max }
-            }
-            // Solo favoritas / solo guardadas offline.
-            switch showMode {
-            case .all: break
-            case .favorites: list = list.filter { favoriteIds.contains($0.id) }
-            case .saved: break   // `base` ya está restringido a las guardadas
-            }
-        }
-        // Orden DECORATE-SORT: la clave se calcula UNA vez por escuela (cada
-        // acceso a un objeto Kotlin cruza el puente ObjC; hacerlo dentro del
-        // comparador eran ~3.000 cruces por orden).
-        switch sortBy {
-        case .score:
-            if rangeMode {
-                let keyed = list.map { ($0, rangeScores[$0.id]?.combinedScore ?? -1) }
-                return keyed.sorted { $0.1 > $1.1 }.map { $0.0 }
-            }
-            let keyed = list.map { ($0, scores[$0.id]?.todayScore ?? -1) }
-            return keyed.sorted { $0.1 > $1.1 }.map { $0.0 }
-        case .distance:
-            guard let la = userLat, let lo = userLon else {
-                let keyed = list.map { ($0, scores[$0.id]?.todayScore ?? -1) }
-                return keyed.sorted { $0.1 > $1.1 }.map { $0.0 }
-            }
-            let keyed = list.map { s -> (School, Double) in
-                (s, Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: s.lat, lon2: s.lon))
-            }
-            return keyed.sorted { $0.1 < $1.1 }.map { $0.0 }
-        }
-    }
-
-    /// Observa mis conversaciones para el badge de chats sin leer (suma de unread).
-    func startObservingChats() {
-        guard chatTask == nil, let chat = AppDependencies.shared.container.chatService else { return }
-        chatTask = Task { [weak self] in
-            for await convs in chat.observeMyConversations() {
-                guard let self else { return }
-                self.unreadChats = convs
-                    .filter { !chatIsHiddenForMe($0) }
-                    .reduce(0) { $0 + Int(truncatingIfNeeded: $1.unreadCount) }
-                self.warmChatProfiles(convs)
-            }
-        }
-    }
-
-    /// uids cuyo perfil ya cacheé esta sesión (no repetir la llamada).
-    private var warmedProfileUids = Set<String>()
-
-    /// Pre-cachea (en disco) los perfiles de todos los participantes de mis
-    /// conversaciones con solo tener la app abierta online — sin entrar a Chats.
-    /// Así offline el chat ya muestra nombres/avatares (estilo Instagram).
-    /// getPublicProfile escribe el caché; AvatarCircle persiste el avatar en disco.
-    private func warmChatProfiles(_ convs: [ChatServiceConversation]) {
-        let uids = Set(convs.flatMap { $0.participants.compactMap { $0 as? String } })
-            .subtracting(warmedProfileUids)
-        guard !uids.isEmpty else { return }
-        let getProfile = AppDependencies.shared.container.getPublicProfile
-        for uid in uids {
-            Task { [weak self] in
-                // Cachea el perfil (nombre/usuario) y PRE-DESCARGA el avatar a
-                // disco, para que el chat se vea offline sin haber abierto Chats.
-                // Solo marcamos el uid como cacheado si la llamada tuvo éxito; si
-                // falla (token aún no listo al arrancar) se reintenta en la
-                // siguiente emisión del observador.
-                guard let p = try? await getProfile.invoke(uid: uid) else { return }
-                self?.warmedProfileUids.insert(uid)
-                if let photo = p.photoUrl, !photo.isEmpty {
-                    await ImageCache.prefetch([photo])
-                }
-            }
-        }
-    }
-
-    func load() async {
-        errorText = nil
-        startObservingSaved()
-        startObservingChats()
-        startObservingProcessionaryOverrides()
-        // 1. Pinta desde la caché local al instante (si la hay).
-        if let cached = try? await cachedSchools?.load(), !cached.isEmpty {
-            schools = cached
-            loading = false
-        } else {
-            loading = true
-        }
-        // 2. Revalida desde red y actualiza la caché.
-        do {
-            let fresh = try await getSchools.invoke(
-                region: nil, style: nil, rockType: nil, lat: nil, lon: nil, radioKm: nil
-            )
-            schools = fresh
-            try? await cachedSchools?.replaceAll(schools: fresh)
-        } catch {
-            // Sin red: si no había caché, error; si había, seguimos offline.
-            if schools.isEmpty { errorText = error.localizedDescription }
-        }
-        loading = false
-        await loadLocation()
-        await loadFavorites()
-        await loadUnread()
-        await loadScores()
-    }
-
-    func refresh() async { await load() }
-
-    /// Observa las escuelas guardadas offline (Flow de SQLDelight) para el filtro
-    /// GUARDADOS. Idempotente: solo arranca un task.
-    func startObservingSaved() {
-        guard savedTask == nil, let savedSchools else { return }
-        savedTask = Task { [weak self] in
-            for await list in savedSchools.observeSaved() {
-                guard let self else { return }
-                self.savedIds = Set(list.map { $0.id })
-                self.savedSchoolsList = list
-            }
-        }
-    }
-
-    private func loadUnread() async {
-        if let inbox = try? await AppDependencies.shared.container.getMyNotifications.invoke(limit: 50) {
-            unreadNotifications = Int(inbox.unreadCount)
-        }
-    }
-
-    /// Recarga el contador de no leídas (al cerrar la bandeja de notificaciones).
-    func refreshUnread() async { await loadUnread() }
-
-    /// Reintenta cargar la ubicación si aún no la tenemos (p. ej. al primer
-    /// arranque, cuando el permiso se concede DESPUÉS de cargar la lista → sin
-    /// esto salían todas las escuelas ignorando el filtro de 50 km hasta
-    /// reabrir la app; espeja el onLocationGranted() de Android).
-    func refreshLocationIfNeeded() async {
-        needsLocationPermission = !locationBridge.hasPermission()
-        if userLat == nil { await loadLocation() }
-    }
-
-    private func loadLocation() async {
-        needsLocationPermission = !locationBridge.hasPermission()
-        guard locationBridge.hasPermission() else { return }
-        if let loc = try? await locationProvider?.current() {
-            userLat = loc.lat; userLon = loc.lon
-        }
-    }
-
-    /// "Activar ubicación" del aviso en DISTANCIA (Álvaro, 2026-10-01): a
-    /// diferencia de Tiempo, este mapa no ofrecía ninguna forma de arreglarlo
-    /// si el permiso quedó denegado — solo mostraba el punto azul en silencio
-    /// si ya estaba concedido, sin más. Denegado → Ajustes (reabrir el diálogo
-    /// del sistema no hace nada ahí); sin decidir todavía → pide permiso.
-    func requestLocation() {
-        if locationBridge.isDeniedOrRestricted() {
-            if let url = URL(string: UIApplication.openSettingsURLString) {
-                UIApplication.shared.open(url)
-            }
-        } else {
-            locationBridge.requestPermission()
-        }
-    }
-
-    /// Distancia en km del usuario a la escuela (Haversine compartido). nil si
-    /// no hay ubicación.
-    func distanceKm(_ school: School) -> Int? {
-        guard let la = userLat, let lo = userLon else { return nil }
-        let km = Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: school.lat, lon2: school.lon)
-        return Int(km.rounded())
-    }
-
-    private func loadFavorites() async {
-        // Requiere sesión (el login es obligatorio al arrancar). Si falla (offline),
-        // partimos de lo que ya hay en pantalla para no perder el estado.
-        let container = AppDependencies.shared.container
-        let server = try? await getMyFavorites.invoke()
-        var base = server.map { Set($0.map { $0.id }) } ?? favoriteIds
-        // Reconciliar con la cola offline: suma marcadas y resta desmarcadas.
-        if let add = try? await container.pendingFavoriteIds() { base.formUnion(add) }
-        if let del = try? await container.pendingFavoriteDeleteIds() { base.subtract(del) }
-        favoriteIds = base
-    }
-
-    /// Toggle optimista: actualiza la estrella al instante. Si la red falla
-    /// (offline), NO revierte: encola la acción para sincronizarla al reconectar
-    /// (mismo comportamiento que SchoolListViewModel.kt de Android).
-    func toggleFavorite(_ schoolId: String) {
-        let wasFavorite = favoriteIds.contains(schoolId)
-        let nowFavorite = !wasFavorite
-        if wasFavorite { favoriteIds.remove(schoolId) } else { favoriteIds.insert(schoolId) }
-        Task {
-            do {
-                if wasFavorite { try await removeFavorite.invoke(schoolId: schoolId) }
-                else { try await addFavorite.invoke(schoolId: schoolId) }
-            } catch {
-                // Sin red: mantener el estado optimista y encolar para más tarde.
-                try? await AppDependencies.shared.container.enqueueFavorite(schoolId: schoolId, favorite: nowFavorite)
-            }
-        }
-    }
-
-    private func loadScores() async {
-        let ids = schools.map { $0.id }
-        for chunk in stride(from: 0, to: ids.count, by: 50) {
-            let slice = Array(ids[chunk..<min(chunk + 50, ids.count)])
-            guard let batch = try? await getTodayScores.invoke(ids: slice) else { continue }
-            // UNA publicación por lote (no por escuela): cada escritura de un
-            // @Published reordena y re-difea la lista ENTERA de 191 filas —
-            // ~200 seguidas atascaban el hilo principal >5s → watchdog
-            // 0x8BADF00D (los cierres de jul-2026).
-            var acc = scores
-            for s in batch { acc[s.id] = s }
-            scores = acc
-        }
-        // Offline (o ids que la red no devolvió): rellenar con el forecast
-        // cacheado de cada escuela guardada/visitada, para que la lista pinte el
-        // score guardado en vez de "—". El detalle ya lo mostraba (imagen 2).
-        let container = AppDependencies.shared.container
-        var acc = scores
-        for id in ids where acc[id] == nil {
-            if let s = try? await container.cachedTodayScore(schoolId: id) { acc[id] = s }
-        }
-        if acc.count != scores.count { scores = acc }
-    }
-
-    private func uniqueValues(_ raw: [String?]) -> [String] {
-        Array(Set(raw.compactMap { $0 }.filter { !$0.isEmpty })).sorted()
-    }
-
-    // Una escuela "Bloque,Vía" tiene que salir al filtrar por Vía Y al
-    // filtrar por Bloque — mismo criterio que `hasStyle` en el backend
-    // (GetSchoolsUseCase.java).
-    private func matchesStyle(_ schoolStyle: String?, _ wanted: String) -> Bool {
-        guard let schoolStyle else { return false }
-        return schoolStyle.split(separator: ",").contains {
-            $0.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(wanted) == .orderedSame
-        }
-    }
-}
-
 struct SchoolListView: View {
     @StateObject private var vm = SchoolListViewModel()
+    /// Pestaña «Vías/Bloques» (separada de la lista el 2026-11-05).
+    @StateObject private var explore = ExploreLinesViewModel()
     @Environment(\.scenePhase) private var scenePhase
     /// Escuela pedida desde el asistente: se abre aquí dentro, con la barra de pestañas visible.
     @ObservedObject private var router = ShareLinkRouter.shared
@@ -610,6 +68,9 @@ struct SchoolListView: View {
                 CompareView(schools: vm.filtered.filter { vm.compareSelection.contains($0.id) })
             }
             .task { await vm.load() }
+            // Lo que «Vías/Bloques» toma de la lista: filtros comunes, ubicación y la nota de cada escuela.
+            .onAppear { explore.setContext(exploreContext) }
+            .onChange(of: exploreContext) { _, c in explore.setContext(c) }
             // Primera vez tras crear la cuenta: la guía de Escuelas sale sola, una vez (saltable). El resto de guías
             // son opcionales (el "?" de cada pantalla, que parpadea las primeras visitas).
             .task(id: vm.schools.isEmpty) {
@@ -650,11 +111,11 @@ struct SchoolListView: View {
 
                     MapToggleAndPanel(vm: vm, onOpen: { navTarget = SchoolNavTarget(school: $0, via: nil) })
 
-                    FilterChips(vm: vm)
+                    FilterChips(vm: vm, explore: explore)
                     Divider().overlay(Cumbre.rule)
 
                     // Hint de comparar — justo antes de la lista
-                    if favoritesCompare && vm.exploreTab == .schools && !vm.exploreActive {
+                    if favoritesCompare && explore.tab == .schools && !explore.active {
                         FavoritesCompareCard { id in
                             if let s = vm.schools.first(where: { $0.id == id }) { navTarget = SchoolNavTarget(school: s, via: nil) }
                         }
@@ -671,7 +132,7 @@ struct SchoolListView: View {
                         SkeletonList(count: 6) { SkeletonRow() }
                     } else if let err = vm.errorText {
                         ErrorRow(message: err) { Task { await vm.refresh() } }
-                    } else if vm.exploreActive {
+                    } else if explore.active {
                         exploreResultsSection
                     } else {
                         let items = vm.filtered
@@ -711,6 +172,13 @@ struct SchoolListView: View {
     }
 
     /// Tocar: si hay selección de comparar activa, la cambia; si no, abre la escuela.
+    /// Filtros comunes, ubicación y nota (de hoy o del tramo) que necesita la pestaña «Vías/Bloques».
+    private var exploreContext: ExploreContext {
+        ExploreContext(style: vm.style, rock: vm.rock, maxDistanceKm: vm.maxDistanceKm, lat: vm.userLat, lon: vm.userLon,
+                       scoreBySchool: vm.rangeMode ? vm.rangeScores.mapValues { Int($0.combinedScore) }
+                                                   : vm.scores.mapValues { Int($0.todayScore) })
+    }
+
     private func openSchool(_ school: School) {
         if vm.compareSelection.isEmpty { navTarget = SchoolNavTarget(school: school, via: nil) }
         else { vm.toggleCompare(school.id) }
@@ -873,23 +341,23 @@ struct SchoolListView: View {
     private var exploreResultsSection: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text(vm.exploreLoading ? L("Buscando…") : L("%@ vías/bloques encontrados", vm.exploreHits.count))
+                Text(explore.loading ? L("Buscando…") : L("%@ vías/bloques encontrados", explore.hits.count))
                     .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
                 Spacer()
-                Button { vm.exploreGrouped.toggle() } label: {
-                    Image(systemName: vm.exploreGrouped ? "rectangle.grid.1x2" : "square.grid.2x2")
+                Button { explore.grouped.toggle() } label: {
+                    Image(systemName: explore.grouped ? "rectangle.grid.1x2" : "square.grid.2x2")
                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
                 }
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, 16).padding(.vertical, 8)
 
-            if vm.exploreLoading && vm.exploreHits.isEmpty {
+            if explore.loading && explore.hits.isEmpty {
                 SkeletonList(count: 4) { SkeletonRow() }
-            } else if vm.exploreHits.isEmpty {
-                EmptyRow(canClear: true) { vm.clearExplore() }
-            } else if vm.exploreGrouped {
-                ForEach(vm.exploreGroups, id: \.schoolId) { group in
+            } else if explore.hits.isEmpty {
+                EmptyRow(canClear: true) { explore.clearCriteria() }
+            } else if explore.grouped {
+                ForEach(explore.groups, id: \.schoolId) { group in
                     exploreGroupHeader(group)
                     if expandedGroups.contains(group.schoolId) {
                         ForEach(group.hits, id: \.stableId) { h in
@@ -899,7 +367,7 @@ struct SchoolListView: View {
                     }
                 }
             } else {
-                ForEach(vm.exploreHitsSorted, id: \.stableId) { h in
+                ForEach(explore.sortedHits, id: \.stableId) { h in
                     exploreLineRow(h, showSchool: true)
                     Divider().overlay(Cumbre.rule)
                 }
