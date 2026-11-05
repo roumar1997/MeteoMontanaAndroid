@@ -1,5 +1,8 @@
 package com.meteomontana.android.ui.assistant
 
+import com.meteomontana.android.presentation.assistant.AssistantLabels
+import com.meteomontana.android.presentation.assistant.AssistantPresenter
+import com.meteomontana.android.presentation.assistant.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable

@@ -11,10 +11,8 @@
 845 app/src/main/java/com/meteomontana/android/ui/components/BlockDetailDialog.kt
 842 app/src/main/java/com/meteomontana/android/ui/components/SchoolMapView.kt
 840 iosApp/iosApp/Screens/AssistantViewModel.swift
-832 app/src/main/java/com/meteomontana/android/ui/assistant/AssistantViewModel.kt
-815 iosApp/iosApp/Screens/AssistantPresenter.swift
+761 app/src/main/java/com/meteomontana/android/ui/assistant/AssistantViewModel.kt
 798 iosApp/iosApp/Screens/StatsView.swift
-797 app/src/main/java/com/meteomontana/android/ui/assistant/AssistantPresenter.kt
 745 app/src/main/java/com/meteomontana/android/ui/MainScreen.kt
 734 iosApp/iosApp/Screens/AssistantChatView.swift
 719 iosApp/iosApp/Screens/AdminContributionCards.swift

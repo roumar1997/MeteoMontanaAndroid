@@ -1,5 +1,8 @@
 package com.meteomontana.android.ui.assistant
 
+import com.meteomontana.android.presentation.assistant.AssistantLabels
+import com.meteomontana.android.presentation.assistant.AssistantPresenter
+import com.meteomontana.android.presentation.assistant.*
 import com.meteomontana.android.domain.model.AssistantClimbing
 import com.meteomontana.android.domain.model.AssistantHourPoint
 import com.meteomontana.android.domain.model.AssistantNow

@@ -1,5 +1,8 @@
 package com.meteomontana.android.ui.assistant
 
+import com.meteomontana.android.presentation.assistant.AssistantLabels
+import com.meteomontana.android.presentation.assistant.AssistantPresenter
+import com.meteomontana.android.presentation.assistant.*
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener

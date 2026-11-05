@@ -1,5 +1,8 @@
 package com.meteomontana.android.ui.assistant
 
+import com.meteomontana.android.presentation.assistant.AssistantLabels
+import com.meteomontana.android.presentation.assistant.AssistantPresenter
+import com.meteomontana.android.presentation.assistant.*
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import android.Manifest
@@ -36,6 +39,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Terrain
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Edit
@@ -216,6 +220,7 @@ internal fun chipVector(icon: AssistantPresenter.ChipIcon) = when (icon) {
     AssistantPresenter.ChipIcon.FACE -> Icons.Outlined.Explore
     AssistantPresenter.ChipIcon.CALENDAR -> Icons.Outlined.CalendarMonth
     AssistantPresenter.ChipIcon.PIN -> Icons.Outlined.Place
+    AssistantPresenter.ChipIcon.ROCK -> Icons.Outlined.Terrain
 }
 
 /** Botón de píldora terracota con icono (Reintentar, Confirmar, Apuntar las N), como en iOS. */
