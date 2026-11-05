@@ -158,12 +158,12 @@ fun BlockDetailDialog(
         orientationSummaries.firstOrNull { it.photoIndex == photoIndex }
     // Lo del diario de cada vía y compartir una vía (WhatsApp…): lo usan las filas de vías (BlockLineItem).
     val lineTicks = remember(onTickLine, onToggleProject) { LineTicks(tickedLines, projectLines, onTickLine, onToggleProject) }
-    fun shareLine(line: com.meteomontana.android.domain.model.BlockLine) {
+    fun shareLine(line: com.meteomontana.android.domain.model.BlockLine, withSetterGrade: Boolean = true) {
         val sectorName = availableSectors?.firstOrNull { it.id == block.sectorBlockId }?.name
         shareScope.launch {
             // Los datos comunitarios se consultan AL compartir (best-effort): el precargado podía no haber llegado.
             val badge = orientationOf(null)?.consensus ?: communityVm.fetchOrientationConsensus(block.id)
-            val setterRef = communityVm.fetchSetterGradeRef(line.id)
+            val setterRef = if (withSetterGrade) communityVm.fetchSetterGradeRef(line.id) else null
             shareVia(shareScope, context, block, line, schoolName, tickedLines.toSet(), projectLines.toSet(), sectorName,
                 orientationBadge = badge, setterGradeRef = setterRef)
         }
@@ -173,7 +173,6 @@ fun BlockDetailDialog(
     var showSectorPicker by remember { mutableStateOf(false) }
     // "OPCIONES" plegado: la ficha ya tiene muchos botones; solo CÓMO LLEGAR
     // queda a la vista y el resto (editar vías, sector, eliminar) va dentro.
-    var optionsOpen by remember { mutableStateOf(false) }
 
     // El scroll del contenido, en una variable: hace falta para decidir cuándo
     // se puede cerrar la hoja arrastrando (ver confirmValueChange).
@@ -223,103 +222,11 @@ fun BlockDetailDialog(
             // Barra fija: Cerrar · Cómo llegar · Compartir · ⚙ Opciones.
             // Espejo de la de iOS (Álvaro, 2026-08-24): estaban todas al fondo
             // de la ficha y había que scrollear hasta abajo para usarlas.
-            val hayOpciones = !isProposal && (
-                (onAddLines != null && block.type == "BLOCK") ||
-                (onAssignSector != null && block.type == "BLOCK" && !availableSectors.isNullOrEmpty()) ||
-                onEdit != null || onDelete != null)
-            val puedeCompartir = block.type == "BLOCK" && !isProposal && block.lines.isNotEmpty()
-            CumbreSheetHeader(
-                titulo = block.name,
-                onClose = onDismiss,
-                accion = {
-                    androidx.compose.material3.IconButton(onClick = {
-                        val uri = Uri.parse(
-                            "https://www.google.com/maps/dir/?api=1&destination=${block.lat},${block.lon}"
-                        )
-                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
-                    }) {
-                        androidx.compose.material3.Icon(
-                            Icons.Outlined.Directions,
-                            contentDescription = stringResource(R.string.common_directions),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (puedeCompartir) {
-                        androidx.compose.material3.IconButton(onClick = {
-                            block.lines.firstOrNull()?.let { first ->
-                                val blockSector = availableSectors
-                                    ?.firstOrNull { z -> z.id == block.sectorBlockId }?.name
-                                shareScope.launch {
-                                    val badge = orientationOf(null)?.consensus
-                                        ?: communityVm.fetchOrientationConsensus(block.id)
-                                    shareVia(shareScope, context, block, first, schoolName,
-                                        tickedLines.toSet(), projectLines.toSet(), blockSector,
-                                        orientationBadge = badge)
-                                }
-                            }
-                        }) {
-                            androidx.compose.material3.Icon(
-                                Icons.Outlined.Share,
-                                contentDescription = stringResource(R.string.common_share),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    if (hayOpciones) {
-                        Box {
-                            androidx.compose.material3.IconButton(onClick = { optionsOpen = true }) {
-                                androidx.compose.material3.Icon(
-                                    Icons.Outlined.Settings,
-                                    contentDescription = stringResource(R.string.block_detail_dialog_v2_opciones),
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            androidx.compose.material3.DropdownMenu(
-                                expanded = optionsOpen,
-                                onDismissRequest = { optionsOpen = false },
-                                // Con el contenedor por defecto el menú salía
-                                // BLANCO, ajeno al resto de la app (Álvaro,
-                                // 2026-08-24). Papel de Cumbre + borde, como
-                                // cualquier otra superficie.
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                shape = androidx.compose.material3.MaterialTheme.shapes.small,
-                                border = androidx.compose.foundation.BorderStroke(
-                                    1.dp, MaterialTheme.colorScheme.outline)
-                            ) {
-                                if (onAddLines != null && block.type == "BLOCK") {
-                                    androidx.compose.material3.DropdownMenuItem(
-                                        text = {
-                                            Text(if (block.lines.isEmpty()) stringResource(R.string.block_add_routes)
-                                                 else stringResource(R.string.block_edit_routes))
-                                        },
-                                        onClick = { optionsOpen = false; onAddLines() }
-                                    )
-                                }
-                                if (onAssignSector != null && block.type == "BLOCK" && !availableSectors.isNullOrEmpty()) {
-                                    androidx.compose.material3.DropdownMenuItem(
-                                        text = {
-                                            Text(if (block.sectorBlockId == null) stringResource(R.string.propose_assign_sector)
-                                                 else stringResource(R.string.propose_change_sector))
-                                        },
-                                        onClick = { optionsOpen = false; showSectorPicker = true }
-                                    )
-                                }
-                                if (onEdit != null) {
-                                    androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.block_detail_dialog_v2_editar)) },
-                                        onClick = { optionsOpen = false; onEdit() }
-                                    )
-                                }
-                                if (onDelete != null) {
-                                    androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.block_detail_dialog_v2_eliminar), color = MaterialTheme.colorScheme.error) },
-                                        onClick = { optionsOpen = false; showDeleteConfirm = true }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+            BlockDetailHeader(
+                block, isProposal, availableSectors, onDismiss,
+                onShareBlock = { block.lines.firstOrNull()?.let { shareLine(it, withSetterGrade = false) } },
+                onAddLines = onAddLines, onAssignSector = onAssignSector, onEdit = onEdit, onDelete = onDelete,
+                onPickSector = { showSectorPicker = true }, onConfirmDelete = { showDeleteConfirm = true }
             )
             // Restricción en vigor de esta piedra o sector: aviso fijo arriba (no se pierde con el scroll).
             LocalSchoolRestrictions.current?.let { ui ->
