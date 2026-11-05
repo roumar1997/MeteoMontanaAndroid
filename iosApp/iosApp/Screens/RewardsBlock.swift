@@ -268,14 +268,6 @@ struct RewardsBlock: View {
                     badge(L("De confianza"), Cumbre.ok, info: L("De confianza: lo que propone se publica sin pasar por revisión. Se consigue con 20 aportaciones aprobadas o lo da un admin."))
                 }
             }
-
-            if uid == nil, let next = r.nextLevel?.intValue {
-                Text(L("%@ aportaciones aprobadas · siguiente nivel con %@", r.approved, next))
-                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3).multilineTextAlignment(.center)
-                let from = Int(r.level)
-                ProgressView(value: min(1, max(0, Double(Int(r.approved) - from) / Double(max(1, next - from)))))
-                    .tint(Cumbre.terraFill).frame(maxWidth: 220)
-            }
         }
     }
 
@@ -349,6 +341,20 @@ private func chip(_ text: String, on: Bool) -> some View {
 /// Elegir el título (entre los desbloqueados) y si eres viero, bloquero o las dos.
 private struct RewardsSheet: View {
     let rewards: UserRewards
+
+    /// «N aportaciones aprobadas · siguiente nivel con M» y su barra (antes en el perfil; ahora solo aquí).
+    @ViewBuilder private func levelProgress(_ r: UserRewards) -> some View {
+        if let next = r.nextLevel?.intValue {
+            VStack(spacing: 6) {
+                Text(L("%@ aportaciones aprobadas · siguiente nivel con %@", r.approved, next))
+                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3).multilineTextAlignment(.center)
+                let from = Int(r.level)
+                ProgressView(value: min(1, max(0, Double(Int(r.approved) - from) / Double(max(1, next - from)))))
+                    .tint(Cumbre.terraFill).frame(maxWidth: 220)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
     @ObservedObject var model: RewardsModel
     @State private var featuredOpen = false
     @State private var tierFilter: Int? = nil
@@ -370,6 +376,7 @@ private struct RewardsSheet: View {
         let r = model.rewards ?? rewards
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
+                levelProgress(r)
                 Text(L("¿VIERO O BLOQUERO?")).eyebrow(Cumbre.terra)
                 FlowChips(items: ["ROUTES", "BOULDER", "BOTH", ""]) { t in
                     Button { Task { await model.update(climberType: t, titleLevel: nil) } } label: {

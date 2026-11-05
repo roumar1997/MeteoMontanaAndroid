@@ -754,8 +754,8 @@ struct AvatarCircle: View {
         .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
         .overlay(AvatarRing(badge: uid.flatMap { badges.badges[$0] }, size: size))
         // Con hadas o dragones animados (perfil): hueco encima y debajo para que no se corten ni tapen el nombre.
-        .padding(.top, effectRoom ? size * 0.66 : 0)
-        .padding(.bottom, effectRoom ? size * 0.45 : 0)
+        .padding(.top, effectRoom ? size * 0.5 : 0)
+        .padding(.bottom, effectRoom ? size * 0.42 : 0)
         .onAppear { badges.want(uid) }
         // Caché en disco (igual que las fotos de piedras): el avatar se ve SIN
         // conexión una vez descargado. AsyncImage no persistía en disco → offline

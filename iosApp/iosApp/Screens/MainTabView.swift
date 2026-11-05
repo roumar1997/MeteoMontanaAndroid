@@ -114,8 +114,8 @@ struct WeatherRadarToggle: View {
             segment(L("RADAR"), active: showRadar) { onSelect(true) }
         }
         .background(Cumbre.bg.opacity(0.95))
-        .clipShape(RoundedRectangle(cornerRadius: 2))
-        .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
     }
 
     private func segment(_ label: String, active: Bool,
@@ -125,7 +125,7 @@ struct WeatherRadarToggle: View {
                 .font(Cumbre.mono(10, .bold)).tracking(1.8)
                 .foregroundStyle(active ? .white : Cumbre.ink3)
                 .padding(.horizontal, 18).padding(.vertical, 9)
-                .background(active ? Cumbre.terra : Color.clear)
+                .background(active ? Cumbre.terra : Color.clear, in: Capsule())
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

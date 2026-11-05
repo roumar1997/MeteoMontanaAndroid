@@ -402,7 +402,7 @@ struct AccountView: View {
                 }
                 badges
             }
-            if let e = email { Text(e).font(.system(size: 13)).foregroundStyle(Cumbre.ink2) }
+
             // Título, insignias y nivel por aportaciones (tocar = elegir título y viero/bloquero).
             RewardsBlock(uid: nil).padding(.top, 4)
         }
