@@ -32,6 +32,21 @@ jobs:
       # Si existe el secret GOOGLE_SERVICES_JSON (contenido del fichero real,
       # Settings → Secrets → Actions) se usa ese → el APK del artifact tiene
       # Firebase funcional (login Google, push). Si no, dummy solo-compilar.
+      - name: Detekt (solo problemas nuevos; lo viejo está en detekt-baseline.xml)
+        run: |
+          chmod +x gradlew
+          ./gradlew detekt --continue
+
+      - name: Informe de detekt (solo si falla)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: detekt-report
+          retention-days: 3
+          path: |
+            app/build/reports/detekt/
+            shared/build/reports/detekt/
+
       - name: Write google-services.json
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}

@@ -1,0 +1,83 @@
+# Reglas de detekt para Cumbre (sobre los valores por defecto).
+# Lo que ya existía está en <módulo>/detekt-baseline.xml: el CI solo falla por problemas NUEVOS.
+# El baseline solo puede ENCOGER (se regenera para quitar entradas, nunca para esconder problemas nuevos).
+
+build:
+  maxIssues: 0
+
+complexity:
+  LongMethod:
+    active: true
+    threshold: 80
+    ignoreAnnotated: ['Preview']
+  LongParameterList:
+    active: true
+    functionThreshold: 12
+    constructorThreshold: 12
+    ignoreDefaultParameters: true
+    ignoreAnnotated: ['Composable']
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 15
+    ignoreSimpleWhenEntries: true
+  NestedBlockDepth:
+    active: true
+    threshold: 4
+  LargeClass:
+    active: true
+    threshold: 600
+  TooManyFunctions:
+    active: true
+    thresholdInFiles: 25
+    thresholdInClasses: 20
+    thresholdInObjects: 20
+    ignoreAnnotatedFunctions: ['Preview']
+  ComplexCondition:
+    active: true
+    threshold: 5
+
+style:
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    active: true
+    maxLineLength: 140
+  ReturnCount:
+    active: false
+  UnusedPrivateMember:
+    active: true
+  WildcardImport:
+    active: true
+  ForbiddenComment:
+    active: false
+
+naming:
+  FunctionNaming:
+    active: true
+    ignoreAnnotated: ['Composable']
+
+Compose:
+  ComposableNaming:
+    active: true
+  ComposableParamOrder:
+    active: true
+  ModifierMissing:
+    active: true
+  ModifierNaming:
+    active: true
+  MultipleEmitters:
+    active: true
+  PreviewPublic:
+    active: true
+  ContentEmitterReturningValues:
+    active: true
+  LambdaParameterInRestartableEffect:
+    active: true
+  RememberMissing:
+    active: true
+  ViewModelForwarding:
+    active: true
+  UnstableCollections:
+    active: false
+  Material2:
+    active: false

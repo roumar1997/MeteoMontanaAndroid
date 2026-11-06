@@ -58,8 +58,9 @@ documento**: los demás enlazan aquí, no la copian.
 
 - **Primero pruebo yo**: tests, capturas automáticas y recorridos en el Xiaomi.
   A Álvaro solo le llega lo que no puedo comprobar.
-- Se le da una **lista numerada** en el chat.
-- Él contesta **solo lo que falla**, por número y con captura.
+- La ronda se carga en el panel **«Pruebas»** (cada punto: «Haz» y «Debe pasar»).
+- Álvaro contesta **por audio en el chat** citando números. Claude resume lo que dijo en cada tarjeta (bien / a medias / falla), arregla con ese resumen y, en la ronda siguiente, el punto vuelve con **«Antes falló: …»**.
+- Basta con decir lo que falla o va a medias; las capturas, en el chat con su número.
 - Android se prueba en el **Redmi Note 12 Pro**.
 - Las capturas de referencia se guardan en `Escritorio\paridad absoluta`.
 

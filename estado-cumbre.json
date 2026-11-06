@@ -31,7 +31,23 @@
       "done": true
     },
     {
-      "name": "Limpieza + README + «Cómo trabajamos» (todas las normas)",
+      "name": "Plan 7.2 · 1. Normas y memorias",
+      "done": true
+    },
+    {
+      "name": "Plan 7.2 · 2. Mods Taller y Pruebas",
+      "done": true
+    },
+    {
+      "name": "Plan 7.2 · 3. Reglas automáticas (detekt, SwiftLint, puerto aportaciones, contratos)",
+      "done": false
+    },
+    {
+      "name": "Plan 7.2 · 4–7. Capturas, Maestro, publicación segura, interruptor remoto",
+      "done": false
+    },
+    {
+      "name": "Plan 7.2 · 8. Pruebas y publicar 7.2",
       "done": false
     }
   ],

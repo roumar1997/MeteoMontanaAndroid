@@ -68,12 +68,14 @@ los dos entornos. `climbingteams.com` lo sirve **Cloudflare Pages** (push a `mai
 - **Antes de la 7.2** (orden acordado el 2026-11-06):
   1. normas y memorias;
   2. mods «Taller» y «Pruebas»;
-  3. reglas automáticas;
+  3. reglas automáticas: detekt + SwiftLint, deuda del servidor (aportaciones sin puerto), tests de contrato servidor↔apps;
   4. tests de capturas en Android;
   5. recorridos con Maestro;
   6. publicación segura;
   7. interruptor remoto;
   8. pruebas y publicar.
+- **Siempre que se toque algo**: pasar a `shared` la lógica de negocio que esté copiada en Swift.
+- **Después de la 7.2**: partir Android en módulos por funcionalidad y medir la fluidez (Álvaro nota Android algo más lento que iOS).
 - Backend: el refactor está en staging; falta el «sí, fusiona» para pasarlo a `main`.
 
 ## Trampas vigentes

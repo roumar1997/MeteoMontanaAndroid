@@ -1,0 +1,203 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:AssistantPresenter.kt$AssistantPresenter$chip.any { it.isDigit() } || chip.startsWith("★") || chip.startsWith("≥") || chip.startsWith("≤") || chip.startsWith("&lt;")</ID>
+    <ID>CyclomaticComplexMethod:AssistantPresenter.kt$AssistantPresenter$fun chipIcon(chip: String): ChipIcon?</ID>
+    <ID>CyclomaticComplexMethod:AssistantPresenter.kt$AssistantPresenter$fun chips(u: AssistantUnderstood, school: String?, sector: String?): List&lt;String&gt;</ID>
+    <ID>CyclomaticComplexMethod:GetJournalViaInfoUseCase.kt$GetJournalViaInfoUseCase$suspend operator fun invoke(entries: List&lt;JournalSession&gt;): Map&lt;String, ViaCatalogInfo&gt;</ID>
+    <ID>CyclomaticComplexMethod:KtorSchoolApi.kt$KtorSchoolApi$@Throws(Exception::class) suspend fun exploreLines(criteria: LineExploreCriteria): List&lt;LineSearchHitDto&gt;</ID>
+    <ID>CyclomaticComplexMethod:OutboxSyncService.kt$OutboxSyncService$suspend fun flushJournalOutbox()</ID>
+    <ID>CyclomaticComplexMethod:TopoRenderer.kt$fun dropRetrace(points: List&lt;Pair&lt;Float, Float&gt;&gt;): List&lt;Pair&lt;Float, Float&gt;&gt;</ID>
+    <ID>CyclomaticComplexMethod:TopoRenderer.kt$fun magnetizeStroke( drawn: List&lt;Pair&lt;Float, Float&gt;&gt;, others: List&lt;List&lt;Pair&lt;Float, Float&gt;&gt;&gt;, threshold: Float = 0.04f ): List&lt;Pair&lt;Float, Float&gt;&gt;</ID>
+    <ID>CyclomaticComplexMethod:TopoRenderer.kt$fun renderTopo( lines: List&lt;TopoLineData&gt;, w: Float, h: Float, badgeR: Pair&lt;Float, Float&gt; = 14f to 11f, badgeTextPx: Pair&lt;Float, Float&gt; = 22f to 7f, startR: Pair&lt;Float, Float&gt; = 22f to 18f, startTextPx: Pair&lt;Float, Float&gt; = 18f to 6f, /** Guion de TODAS las líneas (on, off) en px — estilo guía: discontinuas * para no tapar la roca. El caller lo escala (density / canvas 1080). */ dashPx: Pair&lt;Float, Float&gt; = 12f to 9f, /** Largo de cada franja de tramo compartido, en px (escalar como dashPx). */ stripePx: Float = SHARED_STRIPE_PX, /** * Separacion del abanico de badges (inicio, fin) en px. Por defecto se * deduce del tamano del badge, que es lo razonable sin zoom. * * Con la foto ampliada hay que pasarla SIN escalar: los tamanos encogen * para que el trazo no engorde, pero si el abanico encoge con ellos los * numeros se van juntando y parece que la linea se desliza sobre la roca. */ fanSpacingPx: Pair&lt;Float, Float&gt;? = null ): List&lt;DrawOp&gt;</ID>
+    <ID>LongMethod:AchievementsCalculator.kt$AchievementsCalculator$fun compute(all: List&lt;JournalSession&gt;, places: Map&lt;String, SchoolPlace&gt;, today: String): List&lt;Achievement&gt;</ID>
+    <ID>LongMethod:TopoRenderer.kt$fun renderTopo( lines: List&lt;TopoLineData&gt;, w: Float, h: Float, badgeR: Pair&lt;Float, Float&gt; = 14f to 11f, badgeTextPx: Pair&lt;Float, Float&gt; = 22f to 7f, startR: Pair&lt;Float, Float&gt; = 22f to 18f, startTextPx: Pair&lt;Float, Float&gt; = 18f to 6f, /** Guion de TODAS las líneas (on, off) en px — estilo guía: discontinuas * para no tapar la roca. El caller lo escala (density / canvas 1080). */ dashPx: Pair&lt;Float, Float&gt; = 12f to 9f, /** Largo de cada franja de tramo compartido, en px (escalar como dashPx). */ stripePx: Float = SHARED_STRIPE_PX, /** * Separacion del abanico de badges (inicio, fin) en px. Por defecto se * deduce del tamano del badge, que es lo razonable sin zoom. * * Con la foto ampliada hay que pasarla SIN escalar: los tamanos encogen * para que el trazo no engorde, pero si el abanico encoge con ellos los * numeros se van juntando y parece que la linea se desliza sobre la roca. */ fanSpacingPx: Pair&lt;Float, Float&gt;? = null ): List&lt;DrawOp&gt;</ID>
+    <ID>LoopWithTooManyJumpStatements:GetJournalViaInfoUseCase.kt$GetJournalViaInfoUseCase$for</ID>
+    <ID>MatchingDeclarationName:TopoRenderer.kt$TopoLineData</ID>
+    <ID>MaxLineLength:AdminUseCases.kt$ApproveContributionUseCase$suspend</ID>
+    <ID>MaxLineLength:AssistantDto.kt$schoolMentions</ID>
+    <ID>MaxLineLength:AssistantHitsTexts.kt$// Textos del asistente sobre resultados de búsqueda: agrupar por escuela y sector, estrellas y comparar (extensiones de AssistantPresenter).</ID>
+    <ID>MaxLineLength:AssistantHitsTexts.kt$fun</ID>
+    <ID>MaxLineLength:AssistantHitsTexts.kt$if (needsLocationForDistance) text += " " + t("Para filtrar por distancia activa tu ubicación.", "Turn on your location to filter by distance.")</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$ChipIcon</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$Shown.HITS -&gt; listOf(ask("Que no haya hecho", "Not done yet"), ask("Solo con topo", "Only with topo"), ask("Un grado más", "One grade harder"))</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$Shown.JOURNAL -&gt; listOf(ask("¿Y el mes pasado?", "And last month?"), ask("Solo bloques", "Boulders only"), ask("Mis proyectos", "My projects"))</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$Shown.RECOMMENDATION -&gt; listOf(ask("¿Y el finde?", "And the weekend?"), ask("Solo bloques", "Boulders only"), ask("Más cerca de mí", "Closer to me"))</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$Shown.WEATHER -&gt; listOf(ask("¿Y mañana?", "And tomorrow?"), ask("¿Mejor hora para ir?", "Best time to go?"), ask("¿Está la roca seca?", "Is the rock dry?"))</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$count == 0 -&gt; t("No tienes ninguna encadenada con esos filtros en tu diario.", "You have no sends in your diary matching those filters.")</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$date == null &amp;&amp; place != null -&gt; t("No tienes ninguna sesión apuntada en $place.", "You have no sessions logged at $place.")</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$date == null -&gt; t("Aún no has apuntado ninguna sesión en tu diario.", "You haven't logged any session in your diary yet.")</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$day != null &amp;&amp; time != null -&gt; t("¿Preparo una quedada en $school el $day a las $time?", "Set up a meetup at $school on $day at $time?")</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$else</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$fun alreadyInWeekendAlert(school: String)</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$fun homeNoLocation()</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$fun homeSaved()</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$fun loggedOffline(line: String)</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$fun weekendAlertDone(school: String)</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$if</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$if (chip.any { it.isDigit() } || chip.startsWith("★") || chip.startsWith("≥") || chip.startsWith("≤") || chip.startsWith("&lt;")) return null</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$if (chip.first().isDigit() &amp;&amp; (chip.endsWith(" h") || monthsShort().any { it.isNotEmpty() &amp;&amp; chip.endsWith(it) })) return ChipIcon.CALENDAR</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$max != null -&gt; t("$period: llevas $count encadenadas. La más dura: $max.", "$period: you have $count sends. Hardest: $max.")</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$max != null -&gt; t("Llevas $count encadenadas con esos filtros. La más dura: $max.", "You have $count sends matching those filters. Hardest: $max.")</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$place != null -&gt; t("Tu última vez en $place fue el ${dateRange(date, null)}.", "Your last time at $place was on ${dateRange(date, null)}.")</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$return</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$return t("Tu plan para ${plan.size} días, con el mejor sitio de cada día:", "Your plan for ${plan.size} days, with the best place each day:")</ID>
+    <ID>MaxLineLength:AssistantPresenter.kt$AssistantPresenter$val head = t("¿Apunto estas $count en tu diario el ${dateRange(date, null)}?", "Log these $count in your diary on ${dateRange(date, null)}?")</ID>
+    <ID>MaxLineLength:AssistantWeatherTexts.kt$"$place: now ${round(n.temperature)} °C, wind ${round(n.windKmh)} km/h, humidity ${round(n.humidity)} %. For climbing: ${w.climbing.label} (${w.climbing.score}/100)."</ID>
+    <ID>MaxLineLength:AssistantWeatherTexts.kt$else</ID>
+    <ID>MaxLineLength:AssistantWeatherTexts.kt$if (b.totalStones == 0) return t("No he encontrado piedras que cumplan eso en ${b.school.name}.", "I found no boulders matching that at ${b.school.name}.")</ID>
+    <ID>MaxLineLength:AssistantWeatherTexts.kt$if (r.byCount) return t("Las escuelas con más vías o bloques de ese grado:", "The schools with the most routes or boulders of that grade:")</ID>
+    <ID>MaxLineLength:AssistantWeatherTexts.kt$return</ID>
+    <ID>MaxLineLength:AssistantWeatherTexts.kt$return if (filtered) known else t("Estas son las piedras de ${b.school.name} por sector.", "These are the boulders at ${b.school.name} by sector.")</ID>
+    <ID>MaxLineLength:AssistantWeatherTexts.kt$text += " " + if (w.climbing.rockWet) t("La roca está húmeda.", "The rock is damp.") else t("La roca está seca.", "The rock is dry.")</ID>
+    <ID>MaxLineLength:BetaLinkUseCases.kt$AddBetaLinkUseCase$suspend</ID>
+    <ID>MaxLineLength:GuideCatalog.kt$GuideCatalog$"Dinos si mides más o menos de 1,70. Así quien mida parecido a ti sabrá cuánta gente de su altura encadena cada vía. Se guarda en tu perfil y solo se ve sumado, nunca tu nombre."</ID>
+    <ID>MaxLineLength:GuideCatalog.kt$GuideCatalog$"FILTERS picks distance, rock and style. The TODAY chip opens the days: pick up to 5 to compare a range and see where it rains."</ID>
+    <ID>MaxLineLength:GuideCatalog.kt$GuideCatalog$"FILTROS elige distancia, roca y estilo. El chip HOY abre los días: marca hasta 5 para comparar un tramo y ver dónde llueve."</ID>
+    <ID>MaxLineLength:GuideCatalog.kt$GuideCatalog$"Haz una foto a una piedra (o elige una de la galería) y te digo cuál de esta escuela es. También desde casa, con fotos sin ubicación."</ID>
+    <ID>MaxLineLength:GuideCatalog.kt$GuideCatalog$"MAP: sectors, car parks and boulders. BOULDERS: find routes by grade, sector or beta. WEATHER: the next days. NOTES: what the community says."</ID>
+    <ID>MaxLineLength:GuideCatalog.kt$GuideCatalog$"MAPA: sectores, parkings y piedras. BLOQUES: busca vías por grado, sector o beta. TIEMPO: los próximos días. NOTAS: lo que cuenta la comunidad."</ID>
+    <ID>MaxLineLength:GuideCatalog.kt$GuideCatalog$"Take a photo of a boulder (or pick one from your gallery) and I'll tell you which one of this crag it is. Works from home too, with photos without location."</ID>
+    <ID>MaxLineLength:GuideCatalog.kt$GuideCatalog$"Tell us if you are taller or shorter than 1.70 m. People your height will see how many climbers like them send each line. It is saved to your profile and only shown as totals, never with your name."</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Alerta de tiempo", "Configura un aviso que compara tus escuelas (o por cercanía) los días que elijas.", icon = "bell")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Alertas", "La campanita activa las alertas: elige los días que te interesan y te avisamos cuando alguien cree una quedada.", icon = "bell")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Alerts", "The bell activates alerts: choose the days you're interested in and we'll notify you when someone creates a meetup.", icon = "bell")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("BOULDERS tab", "At the top, the 3 most repeated (how many people have them done in their journal). Filter by one or more grades, by beta from people taller or shorter than 1.70 m, or by name; the rest is grouped by sector.", icon = "book")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Best time per sector", "Under today's card: today's best time window for each sector, based on the way it faces (sun or shade). Expand it to see each sector with an 8 am–8 pm strip coloured by score. If the rock is wet it only counts once it has dried, and rainy hours don't count.", icon = "clock")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Boulder with routes", "Add one or more photos (faces) and, on each one, its routes (name, grade, type). Draw each route by dragging on the photo.", icon = "edit")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Buscar vías y bloques por grado", "Arriba, cambia de «Escuelas» a «Vías/Bloques»: elige el grado mínimo y máximo y te salen las vías de ese rango dentro de la DISTANCIA que marques, agrupadas por escuela. Ordénalas por cercanía o por mejores condiciones.", icon = "filter")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Chat directo", "Si ya estás unido a una quedada, al tocarla entras directo al chat del grupo (no al detalle).", icon = "chat")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Choose what to propose", "Parking, boulder, sector or correct the position of something existing.", icon = "plus")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Compara varios días", "Toca los chips de día (hasta 5) para ver un tramo: el número pasa a ser la media y se marcan los días de lluvia.", icon = "calendar")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Comparar escuelas", "Mantén pulsada una escuela para entrar en modo comparar (hasta 3); abajo aparece COMPARAR.", icon = "compare")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Comparar favoritas", "La tabla compara el índice medio por día de tus favoritas.", icon = "compare", id = "weather.compare")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Comparar tus favoritas", "Enciende «FAVS» (junto a HOY) y arriba de la lista verás tus favoritas: la nota de hoy y una tira con los próximos días, con su mejor día marcado. Toca una para abrirla. Se queda encendida hasta que la apagues.", icon = "compare", id = "schools.favs")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Compare days", "Tap the day chips (up to 5) to see a range: the number becomes the average and rainy days are marked.", icon = "calendar")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Compare favorites", "The table compares the average index by day of your favorites.", icon = "compare", id = "weather.compare")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Compare schools", "Long-press a school to enter compare mode (up to 3); COMPARE appears at the bottom.", icon = "compare")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Compare your favorites", "Turn on \"FAVS\" (next to TODAY) and above the list you'll see your favorites: today's score and a strip with the next days, with their best day marked. Tap one to open it. It stays on until you turn it off.", icon = "compare", id = "schools.favs")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Compartir", "Con el icono de compartir generas una imagen del ascenso lista para historias o WhatsApp.", icon = "star")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Crear una quedada", "Pulsa + para crear: elige escuela, días, privacidad (abierta, seguidos/seguidores o no mixto) y límite de plazas.", icon = "plus")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Create a meetup", "Tap + to create: choose school, days, privacy (open, followers or women-only) and participant limit.", icon = "plus")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Cuando estés en la roca", "Pulsa «Aquí» para que otros sepan que estás, y usa el símbolo del chat para hablar con quien vaya a esa escuela.", icon = "chat")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Cómo se añade", "Marca el ✓ de una vía dentro de su piedra (en el detalle de la escuela) y aparece aquí.", icon = "tick")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Descripción", "Si eres el organizador puedes añadir detalles (material, nivel, punto de encuentro) con el lápiz.", icon = "edit")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Description", "If you're the organizer you can add details (gear, level, meeting point) with the pencil.", icon = "edit")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Direct chat", "If you've already joined a meetup, tapping it takes you straight to the group chat (not the detail).", icon = "chat")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("El asistente (Cumbri)", "Si lo tienes activado, verás su burbuja. Pregúntale escribiendo o hablando: vías por grado y escuela, dónde ir sin lluvia, el tiempo, tu diario… Contesta con datos reales y, si te propone guardar algo (favorita, apuntar en el diario), siempre te pide confirmar. El altavoz de arriba elige si te lee las respuestas, y con la cámara le preguntas qué piedra es.", icon = "chat")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("El índice y por qué", "Arriba ves el veredicto (SÍ/NO) y el índice /100. Toca \"¿Por qué este índice?\" para ver los factores (temperatura, humedad, viento, lluvia, secado de la roca…).", icon = "info")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Favoritas", "Toca la estrella de una escuela para guardarla como favorita. Funciona sin conexión.", icon = "star")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Filter by days", "Use the day chips to see only meetups on the days you're interested in (you can select multiple).", icon = "calendar")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Filtra", "Por distancia, estilo (bloque/vía), tipo de roca, y ordena por mejor score o más cercanas.", icon = "filter")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Filtrar por días", "Usa los chips de día para ver solo quedadas de los días que te interesan (puedes elegir varios).", icon = "calendar")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Filtros guardados", "Los filtros que elijas (tipo de grupo, distancia) se guardan y se aplican la próxima vez que abras Quedadas. Así no tienes que configurarlos cada vez.", icon = "star")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Gestiona una conversación", "Desliza una conversación: a la izquierda para borrarla, a la derecha para marcarla como no leída.", icon = "edit")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Guardar offline", "El icono de descarga guarda la escuela (previsión + mapa + piedras) para verla sin conexión.", icon = "download")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("How to add", "Tap the ✓ of a route inside its boulder (in the school detail) and it appears here.", icon = "tick")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Index per day", "Each day shows a colored badge with the climbing index (green = good, red = bad).", icon = "info")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Long walls", "Choose WALL geometry, trace the wall by tapping points on the map and choose the numbering direction.", icon = "wall")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Mapa de la escuela", "Markers: P = parking, Z = sector, piedra y muros. Toca un sector (Z) para mostrar/ocultar sus piedras. Toca una piedra para ver sus vías.", icon = "map")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Mapa de quedadas", "Toca \"VER MAPA DE QUEDADAS\" para ver en qué escuelas hay quedadas activas. Toca una para filtrar.", icon = "map")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Marcar una vía hecha", "Dentro de una piedra, toca el círculo (○ → ✓) de una vía para apuntarla en tu diario. Funciona sin conexión.", icon = "tick")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Mark a route done", "Inside a boulder, tap the circle (○ → ✓) of a route to log it in your journal. Works offline.", icon = "tick")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Me gusta y comentarios", "Toca el corazón para dar me gusta y el bocadillo para comentar un ascenso.", icon = "chat")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Meetup map", "Tap \"VIEW MEETUP MAP\" to see which schools have active meetups. Tap one to filter.", icon = "map")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Mejor hora por sector", "Bajo la tarjeta de hoy: la mejor franja de hoy en cada sector según hacia dónde mira (sol o sombra). Despliégala para ver cada sector con una tira de 8 a 20 h coloreada por nota. Si la roca está mojada, solo cuenta cuando haya secado, y las horas con lluvia no cuentan.", icon = "clock")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Muros largos", "Elige geometría MURO, traza el muro tocando puntos en el mapa y elige el sentido de numeración.", icon = "wall")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Nuevo mensaje / grupo", "Con los iconos de arriba inicias una conversación nueva o creas un grupo.", icon = "chat")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Objetivo del año y logros", "En Mis estadísticas tienes tu pirámide, un objetivo para el año (un grado, un número de ascensiones o de días de roca; opcional y solo lo ves tú) y los logros que vas desbloqueando.", icon = "tick")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Offline", "In conversations that already exist you can write without internet; the message sends when you reconnect.", icon = "wifioff")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Pestaña BLOQUES", "Arriba, los 3 más repetidos (cuántas personas los tienen hechos en su diario). Filtra por uno o varios grados, por beta de gente de más o menos de 1,70 o por nombre; el resto sale agrupado por sector.", icon = "book")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Piedra con vías", "Añade una o varias fotos (caras) y, en cada una, sus vías (nombre, grado, tipo). Dibuja cada vía arrastrando sobre la foto.", icon = "edit")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Post a send", "When you tick a route you can post it to the feed or keep it in your journal only. In Profile you can choose Ask / Always / Never.", icon = "tick")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Proponer / corregir", "Con + PROPONER añades parking, piedra, sector o corriges una posición; un admin lo revisa.", icon = "plus")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Propose / correct", "With + PROPOSE you can add parking, boulder, sector or correct a position; an admin reviews it.", icon = "plus")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Próximas horas y días", "Desliza la fila de \"Próximas 16 horas\" y mira los próximos 7 días con el mejor día marcado.", icon = "clock")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Publicar un ascenso", "Al marcar una vía como hecha puedes publicarla en el feed o guardarla solo en tu diario. En Perfil puedes elegir Preguntar / Siempre / Nunca.", icon = "tick")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Responder a un mensaje", "Dentro del chat, desliza una burbuja a la derecha para responder citándola.", icon = "reply")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Restricciones", "Si una zona de la escuela está cerrada o regulada (por ejemplo, por nidificación), junto al nombre sale una pastilla con «!». Tócala para ver qué sectores, desde cuándo y la fuente. Ante la duda, manda la señalización en el lugar.", icon = "info")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Restrictions", "If part of the crag is closed or regulated (for example, for nesting birds), a pill with \"!\" appears next to its name. Tap it to see which sectors, since when and the source. When in doubt, the signs on site rule.", icon = "info")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Save offline", "The download icon saves the school (forecast + map + boulders) to use without internet.", icon = "download")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Saved filters", "The filters you choose (group type, distance) are saved and applied next time you open Meetups. No need to configure them every time.", icon = "star")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("School map", "Markers: P = parking, Z = sector, boulder and walls. Tap a sector (Z) to show/hide its boulders. Tap a boulder to see its routes.", icon = "map")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Search routes and boulders by grade", "At the top, switch from \"Schools\" to \"Routes/Boulders\": pick the lowest and highest grade and you get the lines in that range within the DISTANCE you set, grouped by crag. Sort them by proximity or by best conditions.", icon = "filter")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Sin conexión", "En conversaciones que ya existen puedes escribir sin internet; el mensaje se envía al reconectar.", icon = "wifioff")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("The assistant (Cumbri)", "If it's enabled for you, you'll see its bubble. Ask by typing or speaking: lines by grade and crag, where to go without rain, the weather, your journal… It answers with real data and, if it offers to save something (favourite, log in your journal), it always asks you to confirm. The speaker at the top chooses whether it reads answers aloud, and with the camera you ask which boulder it is.", icon = "chat")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("The index and why", "At the top you see the verdict (YES/NO) and the index /100. Tap \"Why this index?\" to see the factors (temperature, humidity, wind, rain, rock drying…).", icon = "info")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Titles and badges", "Your title comes from your level; tap it to choose your Cumbri (routes or boulder) or \"No title\". Sometimes Cumbre gives you a special title or an effect around your photo, which goes away when you pick another title.", icon = "star")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Tu altura y los votos de grado", "En tu mochila puedes decir una vez si mides más o menos de 1,70 (es privado). Tus votos de grado cuentan en tu grupo: si los dos grupos votan un grado muy distinto, el grado de esa vía sale partido en dos colores.", icon = "person")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Tu diario", "Toca BLOQUES, VÍAS o ESCUELAS para ver lo que has marcado como hecho. El grado máximo se calcula solo desde el diario.", icon = "book")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Tu ubicación o una favorita", "Con los chips de arriba cambias entre tu ubicación y cada escuela favorita.", icon = "star")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Títulos e insignias", "Tu título sale de tu nivel; tocándolo eliges tu Cumbri (vías o bloque) o «Sin título». A veces Cumbre te da un título especial o un efecto alrededor de tu foto, que se quita eligiendo otro título.", icon = "star")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Upcoming hours and days", "Scroll the \"Next 16 hours\" row and check the next 7 days with the best day highlighted.", icon = "clock")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Views", "FOLLOWING shows activity from people you follow; ALL from the whole community; MINE your posts; RANKING the contributor leaderboard.", icon = "filter")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Vistas", "SIGUIENDO muestra la actividad de la gente a la que sigues; TODOS la de toda la comunidad; MÍAS tus publicaciones; RANKING el ranking de contribuidores.", icon = "filter")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Weather alert", "Set up a notification that compares your schools (or by proximity) on the days you choose.", icon = "bell")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("When you're at the crag", "Tap \"Here\" so others know you're there, and use the chat symbol to talk to whoever is heading to that crag.", icon = "chat")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Which boulder is this?", "The camera icon next to HELP: take a photo of a boulder or pick one from your gallery and it shows the 3 boulders of this crag that look most alike. If the photo has a location it checks the ones nearby; if not (screenshots, forwarded photos), it compares by looks only. Everything happens on your phone: the photo isn't sent anywhere.", icon = "camera", id = "detail.photo")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Yearly goal and achievements", "In My stats you have your pyramid, a goal for the year (a grade, a number of ascents or of rock days; optional and only you see it) and the achievements you unlock.", icon = "tick")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Your height and grade votes", "In your backpack you can say once whether you're taller or shorter than 1.70 m (it's private). Your grade votes count in your group: if both groups vote a very different grade, that line's grade is split into two colours.", icon = "person")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Your journal", "Tap BOULDERS, ROUTES or SCHOOLS to see what you've marked as done. The max grade is calculated from the journal.", icon = "book")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Your location or a favorite", "Use the chips at the top to switch between your location and each favorite school.", icon = "star")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("¿Qué piedra es esta?", "El icono de cámara junto a AYUDA: haz una foto a una piedra o elige una de la galería y te enseña las 3 piedras de esta escuela que más se parecen. Si la foto tiene ubicación, mira las que hay cerca; si no (capturas, fotos reenviadas), compara solo por cómo se ven. Todo se hace en el móvil: la foto no se envía a ningún sitio.", icon = "camera", id = "detail.photo")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$HelpItem("Índice por día", "Cada día muestra un badge de color con el índice para escalar (verde = bueno, rojo = malo).", icon = "info")</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$intro = "Cumbre's social feed: when someone ticks a route (and chooses to post it) it shows up here, with the boulder photo and its line drawn on top."</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$intro = "El feed social de Cumbre: cuando alguien marca una vía como hecha (y decide publicarla) aparece aquí, con la foto de la piedra y su línea dibujada."</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$intro = "El listado de escuelas de escalada con su índice del día. El índice (0-100) resume si hoy es buen día para escalar: verde = bueno, ámbar = regular, rojo = malo."</ID>
+    <ID>MaxLineLength:HelpCatalog.kt$HelpCatalog$intro = "The list of climbing schools with today's index. The index (0-100) summarizes whether today is a good day to climb: green = good, amber = fair, red = bad."</ID>
+    <ID>MaxLineLength:KtorAdminRepository.kt$KtorAdminRepository$override suspend fun getPendingContributions(status: String?): List&lt;Contribution&gt;</ID>
+    <ID>MaxLineLength:KtorRewardsRepository.kt$KtorRewardsRepository$api.badges(uids).map { UserBadge(it.uid, it.verified, it.titleLevel, it.titleHidden, it.specialTitle, it.specialColor, it.titleEffect) }</ID>
+    <ID>MaxLineLength:LineDiff.kt$if (norm(orig.description) != norm(new.description)) add(FieldChange(LineField.DESCRIPTION, norm(orig.description), norm(new.description)))</ID>
+    <ID>MaxLineLength:Mappings.kt$fun</ID>
+    <ID>MaxLineLength:Mappings.kt$fun JournalStatsDto.toDomain()</ID>
+    <ID>MayBeConst:SchoolLinesExplorer.kt$BetaHeights$// `val` y no `const val`: así Swift los lee igual que el resto (`BetaHeights.shared.TALL`). val TALL = "TALL" // +1,70 m</ID>
+    <ID>MayBeConst:SchoolLinesExplorer.kt$BetaHeights$val SHORT = "SHORT" // -1,70 m</ID>
+    <ID>SwallowedException:KtorMeetupApi.kt$KtorMeetupApi$e: Exception</ID>
+    <ID>SwallowedException:KtorMeetupRepository.kt$KtorMeetupRepository$e: Exception</ID>
+    <ID>SwallowedException:MapGeometry.kt$MapGeometry$e: Exception</ID>
+    <ID>SwallowedException:MeetupCacheRepository.kt$MeetupCacheRepository$e: Exception</ID>
+    <ID>SwallowedException:MeetupMappings.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:KtorBlockRepository.kt$KtorBlockRepository$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:KtorFeedRepository.kt$KtorFeedRepository$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:KtorMeetupApi.kt$KtorMeetupApi$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:KtorMeetupRepository.kt$KtorMeetupRepository$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:LoadSchoolLinesUseCase.kt$LoadSchoolLinesUseCase$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MapGeometry.kt$MapGeometry$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MeetupCacheRepository.kt$MeetupCacheRepository$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MeetupMappings.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SocialUseCases.kt$GetPublicProfileUseCase$e: Exception</ID>
+    <ID>TooManyFunctions:AdminRepository.kt$AdminRepository</ID>
+    <ID>TooManyFunctions:AssistantPresenter.kt$AssistantPresenter</ID>
+    <ID>TooManyFunctions:BlockRepository.kt$BlockRepository</ID>
+    <ID>TooManyFunctions:FeedRepository.kt$FeedRepository</ID>
+    <ID>TooManyFunctions:IosDependencyContainer.kt$IosDependencyContainer</ID>
+    <ID>TooManyFunctions:KtorModerationApi.kt$KtorModerationApi</ID>
+    <ID>TooManyFunctions:Mappings.kt$com.meteomontana.android.data.api.dto.Mappings.kt</ID>
+    <ID>TooManyFunctions:MeetupRepository.kt$MeetupRepository</ID>
+    <ID>TooManyFunctions:ModerationRepository.kt$ModerationRepository</ID>
+    <ID>TooManyFunctions:OutboxSyncService.kt$OutboxSyncService</ID>
+    <ID>TooManyFunctions:SocialRepository.kt$SocialRepository</ID>
+    <ID>UnusedParameter:AchievementsCalculator.kt$AchievementsCalculator$today: String</ID>
+    <ID>UnusedParameter:MonthlyStatsRepository.kt$MonthlyStatsRepository$lat: Double</ID>
+    <ID>UnusedParameter:MonthlyStatsRepository.kt$MonthlyStatsRepository$lon: Double</ID>
+    <ID>UnusedParameter:MonthlyStatsRepository.kt$MonthlyStatsRepository$rockType: String?</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.data.api.*</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.data.repository.*</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.data.saved.*</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.domain.port.*</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.domain.usecase.admin.*</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.domain.usecase.blocks.*</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.domain.usecase.contributions.*</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.domain.usecase.favorites.*</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.domain.usecase.forecast.*</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.domain.usecase.journal.*</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.domain.usecase.meetups.*</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.domain.usecase.notes.*</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.domain.usecase.notifications.*</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.domain.usecase.profile.*</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.domain.usecase.schools.*</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.domain.usecase.social.*</ID>
+    <ID>WildcardImport:IosDependencyContainer.kt$import com.meteomontana.android.domain.usecase.submissions.*</ID>
+  </CurrentIssues>
+</SmellBaseline>
