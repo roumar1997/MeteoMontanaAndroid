@@ -79,6 +79,12 @@ import kotlinx.coroutines.launch
  * Datos que trae el asistente («crea una quedada en Albarracín el sábado a las 9»): el formulario se abre ya relleno y
  * el usuario lo revisa y la crea con su botón. Espejo de `AssistantViewModel.MeetupRequest` (iOS).
  */
+/** Guarda los días elegidos como lista de «yyyy-MM-dd» (un Set no es Saveable por sí solo). */
+private val SelectedDaysSaver = androidx.compose.runtime.saveable.listSaver<androidx.compose.runtime.MutableState<Set<String>>, String>(
+    save = { it.value.toList() },
+    restore = { androidx.compose.runtime.mutableStateOf(it.toSet()) }
+)
+
 data class MeetupPrefill(val schoolId: String, val schoolName: String, val day: String?, val name: String, val description: String?)
 
 /** Pantalla de creación de quedada. Campos: nombre, escuela, días, privacidad,
@@ -111,9 +117,13 @@ fun CreateMeetupScreen(
     var privacy by rememberSaveable { mutableStateOf("OPEN") }
     var discipline by rememberSaveable { mutableStateOf<String?>(null) }
     var limitText by rememberSaveable { mutableStateOf("") }
-    val selectedDays = remember { mutableStateOf<Set<String>>(emptySet()) }
+    // Saveable como el resto del formulario: si no, tras recrearse la pantalla el nombre sobrevivía pero los días no
+    // y el formulario quedaba «a medias» (botón desactivado, parecía que se había reseteado).
+    val selectedDays = rememberSaveable(saver = SelectedDaysSaver) {
+        mutableStateOf<Set<String>>(emptySet())
+    }
     var submitting by remember { mutableStateOf(false) }
-    var photoUrl by remember { mutableStateOf<String?>(null) }
+    var photoUrl by rememberSaveable { mutableStateOf<String?>(null) }
     var showSchoolPicker by remember { mutableStateOf(false) }
     val schoolResults by viewModel.schoolResults.collectAsStateWithLifecycle()
 

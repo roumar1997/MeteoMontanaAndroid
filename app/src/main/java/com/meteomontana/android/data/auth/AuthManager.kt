@@ -109,11 +109,11 @@ class AuthManager @Inject constructor(
                 _authState.value = AuthState.Error(AppText.get(R.string.auth_unsupported_credential))
             }
         } catch (e: GetCredentialException) {
-            _authState.value = AuthState.Error(e.message ?: AppText.get(R.string.auth_signin_cancelled))
+            _authState.value = AuthState.Error(AppText.get(signInErrorRes(e)))
         } catch (e: GoogleIdTokenParsingException) {
             _authState.value = AuthState.Error(AppText.get(R.string.auth_invalid_token))
         } catch (e: Throwable) {
-            _authState.value = AuthState.Error(e.message ?: "Error desconocido")
+            _authState.value = AuthState.Error(AppText.get(signInErrorRes(e)))
         }
     }
 

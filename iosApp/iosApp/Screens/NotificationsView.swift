@@ -211,7 +211,7 @@ private struct NotificationRow: View {
                 if let b = n.body, !b.isEmpty {
                     Text(b).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
                 }
-                Text(String(n.createdAt.prefix(10)))
+                Text(notificationDateLabel(n.createdAt))
                     .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
             }
             Spacer()
@@ -219,4 +219,25 @@ private struct NotificationRow: View {
         .padding(.horizontal, 16).padding(.vertical, 12)
         .contentShape(Rectangle())
     }
+}
+
+/// «hace 2 h», «Ayer», «hace 3 días» o «10 ago» (mismas reglas que `notificationAge` de Android):
+/// la fecha cruda «2026-08-10» no se enseña nunca. Hora del servidor = UTC; «Ayer» por día natural.
+func notificationDateLabel(_ createdAt: String, now: Date = Date()) -> String {
+    let parser = DateFormatter()
+    parser.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+    parser.locale = Locale(identifier: "en_US_POSIX")
+    parser.timeZone = TimeZone(identifier: "UTC")
+    guard let created = parser.date(from: String(createdAt.prefix(19))) else { return String(createdAt.prefix(10)) }
+    let minutes = max(Int(now.timeIntervalSince(created) / 60), 0)
+    let cal = Calendar.current
+    let dayGap = cal.dateComponents([.day], from: cal.startOfDay(for: created), to: cal.startOfDay(for: now)).day ?? 0
+    if minutes < 1 { return L("ahora") }
+    if minutes < 60 { return L("hace %@ min", minutes) }
+    if dayGap <= 0 { return L("hace %@ h", minutes / 60) }
+    if dayGap == 1 { return L("Ayer") }
+    if dayGap < 7 { return L("hace %@ días", dayGap) }
+    let out = DateFormatter()
+    out.setLocalizedDateFormatFromTemplate("d MMM")
+    return out.string(from: created)
 }

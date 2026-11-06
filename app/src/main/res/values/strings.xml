@@ -1510,6 +1510,8 @@
     <string name="auth_unsupported_credential">Tipo de credencial no soportado</string>
     <string name="auth_invalid_token">Token inválido</string>
     <string name="auth_signin_cancelled">Inicio de sesión cancelado</string>
+    <string name="auth_no_google_account">No hay ninguna cuenta de Google en este dispositivo. Añádela en Ajustes y vuelve a intentarlo.</string>
+    <string name="auth_signin_failed">No se ha podido iniciar sesión. Inténtalo de nuevo.</string>
     <string name="push_channel_name">Avisos</string>
     <string name="push_channel_description">Mensajes, propuestas aprobadas, nuevos seguidores</string>
 

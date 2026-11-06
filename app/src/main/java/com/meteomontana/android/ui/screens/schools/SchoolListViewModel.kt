@@ -312,7 +312,7 @@ class SchoolListViewModel @Inject constructor(
                 query = f.query,
                 styleApiValue = f.style.apiValue,
                 rockTypes = f.rockTypes,
-                maxDistanceKm = f.maxDistanceKm,
+                maxDistanceKm = effectiveMaxDistanceKm(allSchools, userLat, userLon, f.maxDistanceKm),
                 onlyFavorites = f.onlyFavorites,
                 favoriteIds = _favoriteIds.value,
                 userLat = userLat, userLon = userLon

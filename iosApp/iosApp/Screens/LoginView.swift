@@ -137,7 +137,11 @@ struct LoginView: View {
     private func signIn() async {
         loading = .google; errorText = nil
         do { try await authBridge.signInWithGoogle() }
-        catch { errorText = error.localizedDescription }
+        catch {
+            // Cancelar el selector de Google (GIDSignIn, código -5) no es un error; el resto, texto propio (el del SDK sale en inglés).
+            let ns = error as NSError
+            if !(ns.domain == "com.google.GIDSignIn" && ns.code == -5) { errorText = NSLocalizedString("login_error_generic", comment: "") }
+        }
         loading = .none
     }
 
@@ -148,7 +152,7 @@ struct LoginView: View {
             // El usuario cancelando (código 1001) no es un error que mostrar.
             let ns = error as NSError
             if !(ns.domain == ASAuthorizationError.errorDomain && ns.code == ASAuthorizationError.canceled.rawValue) {
-                errorText = error.localizedDescription
+                errorText = NSLocalizedString("login_error_generic", comment: "")
             }
         }
         loading = .none

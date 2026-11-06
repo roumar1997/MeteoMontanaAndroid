@@ -1451,6 +1451,8 @@
     <string name="auth_unsupported_credential">Unsupported credential type</string>
     <string name="auth_invalid_token">Invalid token</string>
     <string name="auth_signin_cancelled">Sign-in cancelled</string>
+    <string name="auth_no_google_account">There is no Google account on this device. Add one in Settings and try again.</string>
+    <string name="auth_signin_failed">Could not sign in. Please try again.</string>
     <string name="push_channel_name">Alerts</string>
     <string name="push_channel_description">Messages, approved proposals, new followers</string>
 

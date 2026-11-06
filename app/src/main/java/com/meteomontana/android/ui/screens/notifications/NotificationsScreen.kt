@@ -293,7 +293,7 @@ private fun NotificationRow(n: Notification, onClick: () -> Unit) {
             }
             // Fecha: faltaba en Android (NotificationsView.swift sí la pinta,
             // n.createdAt.prefix(10)) — Álvaro, 2026-08-24, paridad con iOS.
-            Text(n.createdAt.take(10), style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+            Text(notificationDateLabel(n.createdAt), style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

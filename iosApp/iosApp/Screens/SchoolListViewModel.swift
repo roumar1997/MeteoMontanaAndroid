@@ -209,7 +209,10 @@ final class SchoolListViewModel: ObservableObject {
             // Distancia (solo si hay ubicación y límite elegido). En modo
             // GUARDADOS NO se aplica: quiero ver todas mis guardadas aunque estén
             // lejos (igual que la búsqueda por nombre ignora el radio).
-            if showMode != .saved, let max = maxDistanceKm, let la = userLat, let lo = userLon {
+            // Un radio que no contiene NINGUNA escuela del catálogo (móvil en otro país) no sirve de filtro: se ignora,
+            // o la lista arrancaba en «0 escuelas». Mismo criterio que `effectiveMaxDistanceKm` de Android.
+            if showMode != .saved, let max = maxDistanceKm, let la = userLat, let lo = userLon,
+               schools.contains(where: { Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $0.lat, lon2: $0.lon) <= max }) {
                 list = list.filter { Geo.shared.haversineKm(lat1: la, lon1: lo, lat2: $0.lat, lon2: $0.lon) <= max }
             }
             // Solo favoritas / solo guardadas offline.
