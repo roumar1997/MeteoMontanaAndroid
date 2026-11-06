@@ -94,67 +94,6 @@ import com.meteomontana.android.domain.util.Geo
  * consulta/invoca. La ficha de piedra vive en SchoolMap (izada).
  */
 
-private enum class MapStyleOption(val labelResId: Int) {
-    SATELLITE(R.string.map_satellite),
-    TOPO(R.string.map_topo)
-}
-
-private fun styleJsonFor(style: MapStyleOption): String = when (style) {
-    MapStyleOption.SATELLITE -> MapStyles.satellitePaper
-    MapStyleOption.TOPO      -> MapStyles.topoPaper
-}
-
-// Si el usuario está más lejos de esto del centro de los elementos de la
-// escuela, su ubicación NO entra en el encuadre inicial (evita que "verla
-// desde casa" estire el zoom para abarcarte a ti también).
-private const val MAX_USER_LOCATION_INCLUDE_KM = 20.0
-
-// ── Cuánto se acerca el mapa al tocar algo ───────────────────────────────────
-// Son MÍNIMOS, nunca máximos: si el usuario ya está más cerca, se respeta su
-// zoom y solo se centra. Forzar un zoom exacto le deshacía el trabajo — se
-// acercaba con los dedos, tocaba una piedra y el mapa le alejaba de vuelta.
-//
-// Zoom FIJO y no encuadre calculado a propósito: los encuadres automáticos se
-// iban a los extremos según cómo estuvieran repartidos los datos (una piedra
-// despistada a 2 km dejaba el resto diminuto).
-/** Al tocar un SECTOR: lo bastante cerca para distinguir sus piedras sueltas. */
-private const val ZOOM_SECTOR = 16.5
-/** Al tocar una PIEDRA: un punto más cerca, ya estás mirando una en concreto. */
-private const val ZOOM_PIEDRA = 17.0
-
-/**
- * Encuadre inicial del mapa: TODOS los elementos de la escuela (parkings,
- * sectores, piedras), por muy separados que estén — antes era zoom fijo 15
- * centrado en la escuela, que dejaba fuera sectores a kilómetros. La
- * ubicación del usuario se incluye SOLO si ya está razonablemente cerca.
- */
-private fun fitSchoolBoundsCameraUpdate(
-    markers: List<Block>,
-    userLoc: com.meteomontana.android.domain.model.UserLocation?,
-    padding: Int = 90
-): org.maplibre.android.camera.CameraUpdate? {
-    if (markers.isEmpty()) return null
-    val boundsBuilder = LatLngBounds.Builder()
-    markers.forEach { boundsBuilder.include(LatLng(it.lat, it.lon)) }
-    if (userLoc != null) {
-        val avgLat = markers.map { it.lat }.average()
-        val avgLon = markers.map { it.lon }.average()
-        val distKm = Geo.haversineKm(userLoc.lat, userLoc.lon, avgLat, avgLon)
-        if (distKm <= MAX_USER_LOCATION_INCLUDE_KM) {
-            boundsBuilder.include(LatLng(userLoc.lat, userLoc.lon))
-        }
-    }
-    return try {
-        CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), padding)
-    } catch (_: Exception) {
-        // Un único punto (o todos coincidentes) → bounds degenerado, cae a zoom fijo.
-        val first = markers.first()
-        CameraUpdateFactory.newLatLngZoom(LatLng(first.lat, first.lon), 15.0)
-    }
-}
-
-// ─── SchoolMapView (el mapa MapLibre en si) ─────────────────────────────────────────────────────────────────
-
 @Composable
 internal fun SchoolMapView(
     centerLat: Double,
@@ -424,111 +363,7 @@ internal fun SchoolMapView(
     }
 
     // Banners del flujo de propuesta (compartidos entre modo normal y fullscreen).
-    val flowBanners: @Composable () -> Unit = {
-        // Banner contextual con estado preciso del flujo.
-        if (bridge.waitingMapTap || bridge.correctionMode) {
-            val bannerText = when {
-                !bridge.correctionMode -> stringResource(R.string.school_map_view_v3_pulsa_en_el_mapa_en)
-                bridge.correctionTargetName == null ->
-                    stringResource(R.string.school_map_view_v3_pulsa_el_marker_piedra_parking)
-                bridge.correctionGhost?.newLat == null ->
-                    stringResource(R.string.school_map_view_v3_has_pulsado_ahora_pulsa_la, bridge.correctionTargetName ?: "")
-                else ->
-                    stringResource(R.string.school_map_view_v3_posicion_fijada_para_pulsa_otra, bridge.correctionTargetName ?: "")
-            }
-            Column(
-                modifier = Modifier.fillMaxWidth().background(terraFillColor())
-                    .padding(horizontal = Spacing.md, vertical = Spacing.sm)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(bannerText, style = EyebrowTextStyle, color = Color.White,
-                        modifier = Modifier.weight(1f))
-                    Text(" ✕", color = Color.White, style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.clickable(onClick = bridge::reset))
-                }
-                // Botón ACEPTAR cuando hay posición candidata fijada.
-                val ghost = bridge.correctionGhost
-                if (ghost?.newLat != null && ghost.newLon != null) {
-                    Spacer(Modifier.size(Spacing.sm))
-                    Box(modifier = Modifier.fillMaxWidth()
-                        .background(Color.White)
-                        .clickable(onClick = bridge::acceptCorrection)
-                        .padding(vertical = Spacing.sm),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(stringResource(R.string.school_map_view_aceptar), style = EyebrowTextStyle, color = Terra)
-                    }
-                }
-            }
-        }
-
-        // Banner de "la foto se hizo aqui": la piedra ya esta puesta en el mapa
-        // (marcador fantasma) y solo falta decir si el sitio vale.
-        bridge.photoConfirm?.let { _ ->
-            Column(
-                modifier = Modifier.fillMaxWidth().background(terraFillColor())
-                    .padding(horizontal = Spacing.md, vertical = Spacing.sm)
-            ) {
-                Text(stringResource(R.string.school_map_view_la_foto_se_hizo),
-                    style = EyebrowTextStyle, color = Color.White)
-                Spacer(Modifier.size(Spacing.sm))
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Box(modifier = Modifier.weight(1f)
-                        .background(Color.White)
-                        .clickable { bridge.photoAccept?.invoke() }
-                        .padding(vertical = Spacing.sm),
-                        contentAlignment = Alignment.Center
-                    ) { Text(stringResource(R.string.school_map_view_si_sigue), style = EyebrowTextStyle, color = Terra) }
-                    Box(modifier = Modifier.weight(1f)
-                        .border(1.dp, Color.White)
-                        .clickable { bridge.photoMove?.invoke() }
-                        .padding(vertical = Spacing.sm),
-                        contentAlignment = Alignment.Center
-                    ) { Text(stringResource(R.string.school_map_view_v2_moverla), style = EyebrowTextStyle, color = Color.White) }
-                }
-            }
-        }
-
-        // Banner del trazado de muro: cada tap añade un punto; DESHACER / LISTO.
-        // Sirve para el flujo CREAR (bridge.wallTracing) y el de EDITAR (wallEdit.tracing).
-        if (bridge.wallTracing || wallEdit.tracing) {
-            val pv = if (wallEdit.tracing) wallEdit.preview else bridge.wallPreview
-            val onUndo: () -> Unit = if (wallEdit.tracing) wallEdit::undoPoint else bridge::wallUndo
-            val onDone: () -> Unit = if (wallEdit.tracing) wallEdit::finishTracing else bridge::wallDone
-            val onCancel: () -> Unit = if (wallEdit.tracing) wallEdit::cancelTracing else bridge::reset
-            Column(
-                modifier = Modifier.fillMaxWidth().background(terraFillColor())
-                    .padding(horizontal = Spacing.md, vertical = Spacing.sm)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.school_map_view_v2_traza_el_muro_1_s, pv.size),
-                        style = EyebrowTextStyle, color = Color.White,
-                        modifier = Modifier.weight(1f))
-                    Text(" ✕", color = Color.White, style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.clickable(onClick = onCancel))
-                }
-                Spacer(Modifier.size(Spacing.sm))
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Box(modifier = Modifier.weight(1f)
-                        .background(Color.White.copy(alpha = if (pv.isEmpty()) 0.4f else 1f))
-                        .clickable(enabled = pv.isNotEmpty(), onClick = onUndo)
-                        .padding(vertical = Spacing.sm),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(stringResource(R.string.school_map_view_v2_deshacer), style = EyebrowTextStyle, color = Terra)
-                    }
-                    Box(modifier = Modifier.weight(1f)
-                        .background(Color.White.copy(alpha = if (pv.size >= 2) 1f else 0.4f))
-                        .clickable(enabled = pv.size >= 2, onClick = onDone)
-                        .padding(vertical = Spacing.sm),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(stringResource(R.string.school_map_view_listo), style = EyebrowTextStyle, color = Terra)
-                    }
-                }
-            }
-        }
-    }
+    val flowBanners: @Composable () -> Unit = { ProposalFlowBanners(bridge, wallEdit) }
 
     // MapView con overlays (+ PROPONER, expandir/cerrar, mini-ficha, dónde
     // estoy). Compartido entre el modo tarjeta (280 dp) y pantalla completa.
@@ -668,58 +503,14 @@ internal fun SchoolMapView(
             // (P cuadrada azul, piedra polígono terra, Z círculo verde);
             // apagado = capa oculta.
             if (!bridge.waitingMapTap && !bridge.correctionMode && !bridge.wallTracing) {
-                Column(
-                    // ARRIBA a la derecha, bajo PROPONER — centrada se solapaba
-                    // con el botón de ubicación (abajo a la derecha).
+                SchoolMapSideButtons(
+                    hiddenTypes = hiddenTypes,
+                    onRecenter = { mapRef.value?.let { map -> fitSchoolBoundsCameraUpdate(visibleMarkers, null)?.let { runCatching { map.animateCamera(it) } } } },
+                    onToggleStyle = { applyStyle(if (currentStyle == MapStyleOption.SATELLITE) MapStyleOption.TOPO else MapStyleOption.SATELLITE) },
+                    onToggleLayer = { toggleLayer(it) },
+                    onGoToMe = userLoc?.let { loc -> { mapRef.value?.let { map -> runCatching { map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(loc.lat, loc.lon), 15.5)) } } } },
                     modifier = Modifier.align(Alignment.TopEnd)
-                        .padding(top = 48.dp, end = Spacing.sm, bottom = Spacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Re-centrar en la escuela (vuelta al encuadre inicial).
-                    SideMapButton(active = true, onClick = {
-                        mapRef.value?.let { map ->
-                            fitSchoolBoundsCameraUpdate(visibleMarkers, null)?.let { update ->
-                                runCatching { map.animateCamera(update) }
-                            }
-                        }
-                    }) {
-                        androidx.compose.material3.Icon(
-                            androidx.compose.material.icons.Icons.Outlined.GpsFixed,
-                            contentDescription = stringResource(R.string.school_map_view_v2_centrar_en_la_escuela),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(20.dp))
-                    }
-                    SideMapButton(active = true, onClick = {
-                        applyStyle(if (currentStyle == MapStyleOption.SATELLITE)
-                            MapStyleOption.TOPO else MapStyleOption.SATELLITE)
-                    }) {
-                        androidx.compose.material3.Icon(
-                            androidx.compose.material.icons.Icons.Outlined.Layers,
-                            contentDescription = stringResource(R.string.school_map_view_topografico_satelite),
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(20.dp))
-                    }
-                    SideMapButton(active = "PARKING" !in hiddenTypes,
-                        onClick = { toggleLayer("PARKING") }) { ParkingShapeIcon() }
-                    SideMapButton(active = "BLOCK" !in hiddenTypes,
-                        onClick = { toggleLayer("BLOCK") }) { StoneShapeIcon() }
-                    SideMapButton(active = "ZONE" !in hiddenTypes,
-                        onClick = { toggleLayer("ZONE") }) { ZoneShapeIcon() }
-                    if (userLoc != null) {
-                        SideMapButton(active = true, onClick = {
-                            mapRef.value?.let { map ->
-                                runCatching {
-                                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                                        LatLng(userLoc.lat, userLoc.lon), 15.5))
-                                }
-                            }
-                        }) {
-                            Text("◎", color = Color(0xFF1A56DB),
-                                style = MaterialTheme.typography.titleMedium)
-                        }
-                    }
-                }
+                )
             }
 
             // Mini-ficha flotante de parking/sector: informa y da CÓMO LLEGAR
@@ -798,45 +589,12 @@ internal fun SchoolMapView(
             mapBox(Modifier.fillMaxWidth().height(cardMapHeight))
         }
 
-        // APROXIMACIONES van AQUÍ, justo debajo del mapa — es donde las pone iOS (SchoolMapSection.swift: mapArea →
-        // ApproachesSection).
+        // Aproximaciones justo debajo del mapa, como en iOS (SchoolMapSection.swift → ApproachesSection).
         contenidoTrasMapa()
     }
 
-    // Dialog de detalles (foto + líneas + vías + CÓMO LLEGAR).
-    // No incluye BORRAR — esa acción vive en el panel admin (FullScreenMapDialog).
-    // ── Admin desde la mini-ficha: editar / eliminar ──
-    editingMiniBlock?.let { mb ->
-        EditBlockDialog(
-            block = mb,
-            onSave = { req ->
-                mapScope.launch {
-                    viewModel.adminUpdateBlock(mb.id, req)
-                    editingMiniBlock = null
-                    miniBlock = null
-                }
-            },
-            onDismiss = { editingMiniBlock = null }
-        )
-    }
-    confirmDeleteMini?.let { mb ->
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { confirmDeleteMini = null },
-            title = { Text(stringResource(R.string.school_map_view_v2_eliminar_1_s, mb.name.ifBlank { if (mb.type == "PARKING") "parking" else "sector" })) },
-            text = { Text(stringResource(R.string.school_map_view_esta_accion_no_se)) },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    viewModel.deleteBlock(mb.id) {}
-                    confirmDeleteMini = null
-                    miniBlock = null
-                }) { Text(stringResource(R.string.school_map_view_v2_eliminar), color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { confirmDeleteMini = null }) {
-                    Text(stringResource(R.string.common_cancel))
-                }
-            }
-        )
-    }
-
+    // Admin desde la mini-ficha de parking/sector: editar o eliminar.
+    MiniBlockAdminDialogs(editingMiniBlock, confirmDeleteMini, viewModel, mapScope,
+        onCloseEdit = { editingMiniBlock = null }, onCloseDelete = { confirmDeleteMini = null },
+        onDone = { editingMiniBlock = null; confirmDeleteMini = null; miniBlock = null })
 }
