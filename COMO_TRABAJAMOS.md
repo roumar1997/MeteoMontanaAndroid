@@ -90,6 +90,8 @@ Elijo el modelo de cada tarea:
 | Arquitectura y errores difíciles | Opus 5.5 en alto |
 | Conversación y coordinación | Opus 5.5 en bajo o medio |
 
+**Tripulación Mugiwara** (cómo nos llamamos): Álvaro es **Luffy** (capitán); Claude es **Zoro** (coordina y revisa). Ayudantes, por oficio: **Sanji** (arquitectura y decisiones difíciles, Opus alto), **Nami** (investigar y planear), **Robin** (leer código, inventarios, auditorías, docs), **Chopper** (arreglar fallos con su test), **Franky** (CI, frenos, Gradle, herramientas), **Usopp** (pruebas: Maestro, capturas), **Brook** (funciones nuevas de pantallas), **Jinbe** (despliegues y publicaciones). Cada ayudante se lanza con su nombre delante («Chopper: …») y así sale en el Taller.
+
 El mod «Taller» enseña qué se está usando. El resumen de cada tarea dice qué usé y por qué.
 
 ## 9. Capturas y publicaciones

@@ -122,20 +122,9 @@ final class AccountViewModel: ObservableObject {
         authBridge.signOut {}
     }
 
-    /** N6: cambiar la fecha de una entrada y recargar. */
-    func changeDate(_ id: String, _ newDate: String) async {
-        _ = await reporting(L("No se pudo cambiar la fecha"), {
-            try await AppDependencies.shared.container.updateJournalDate.invoke(id: id, date: newDate)
-        })
-        await load()
-    }
-
-    /** Cambiar el estilo (a vista / al flash) de una entrada. Excluyentes (uno u otro). */
-    func changeStyle(_ id: String, _ aVista: Bool, _ alFlash: Bool) async {
-        _ = await reporting(L("No se pudo cambiar el estilo"), {
-            try await AppDependencies.shared.container.updateJournalStyle.invoke(
-                id: id, aVista: aVista, alFlash: alFlash)
-        })
+    /** «Editar ascenso»: guarda fecha y estilo de una entrada y recarga una vez. */
+    func editAscent(_ entry: JournalSession, _ newDate: String, _ style: AscentStyle) async {
+        await saveAscentEdit(entry, date: newDate, style: style)
         await load()
     }
 

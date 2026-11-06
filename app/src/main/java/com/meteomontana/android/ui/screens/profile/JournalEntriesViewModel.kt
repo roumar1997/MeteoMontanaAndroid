@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.profile
 
+import com.meteomontana.android.domain.model.AscentStyle
 import com.meteomontana.android.ui.components.SkeletonList
 import com.meteomontana.android.ui.components.SkeletonGradeRow
 import androidx.compose.foundation.layout.height
@@ -202,6 +203,22 @@ class JournalEntriesViewModel @Inject constructor(
             } catch (t: Throwable) {
                 JournalEntriesUiState.Error(t.toUserMessage())
             }
+        }
+    }
+
+    /** «Editar ascenso»: guarda fecha y estilo (solo lo que cambió, por los mismos casos de uso) y recarga una vez. */
+    fun editAscent(entry: JournalSession, newDate: String, style: AscentStyle) {
+        viewModelScope.launch {
+            runCatching {
+                if (newDate != entry.date.take(10)) updateJournalDate(entry.id, newDate)
+                if (style != AscentStyle.fromFlags(entry.aVista, entry.alFlash)) {
+                    updateJournalStyle(entry.id, style.aVista, style.alFlash)
+                }
+            }.onFailure { e ->
+                android.util.Log.e("CumbreEstilo", "editar ascenso ${entry.id} fallo", e)
+                _styleError.value = e.toUserMessage()
+            }
+            load()
         }
     }
 

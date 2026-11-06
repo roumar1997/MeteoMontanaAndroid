@@ -182,11 +182,8 @@ struct AccountBlocksList: View {
                                 .padding(.horizontal, 16).padding(.vertical, 8)
                             ForEach(byMonth[month]!, id: \.id) { e in
                                 JournalRow(entry: e, schoolId: e.schoolId, info: vm.viaInfo[e.id],
-                                           onChangeDate: { newDate in
-                                               Task { await vm.changeDate(e.id, newDate) }
-                                           },
-                                           onChangeStyle: { aVista, alFlash in
-                                               Task { await vm.changeStyle(e.id, aVista, alFlash) }
+                                           onEdit: { newDate, style in
+                                               Task { await vm.editAscent(e, newDate, style) }
                                            }) { vm.deleteBlock(e.id) }
                                 Divider().overlay(Cumbre.rule)
                             }

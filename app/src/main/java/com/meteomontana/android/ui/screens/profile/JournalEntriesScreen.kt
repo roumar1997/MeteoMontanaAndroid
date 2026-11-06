@@ -10,7 +10,8 @@ import kotlin.math.roundToInt
 
 import androidx.compose.material.icons.filled.MoreHoriz
 
-import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Edit
+import com.meteomontana.android.domain.model.AscentStyle
 
 import androidx.compose.foundation.layout.fillMaxHeight
 
@@ -246,11 +247,8 @@ fun JournalEntriesScreen(
                                     info = s.viaInfo[e.id],
                                     onClick = { e.schoolId?.let { onOpenSchool(it, e.blockName, e.lineId) } },
                                     onDelete = { viewModel.delete(e.id) },
-                                    onChangeDate = if (s.isMine) ({ newDate ->
-                                        viewModel.changeDate(e.id, newDate)
-                                    }) else null,
-                                    onChangeStyle = if (s.isMine) ({ aVista, alFlash ->
-                                        viewModel.changeStyle(e.id, aVista, alFlash)
+                                    onEdit = if (s.isMine) ({ newDate, style ->
+                                        viewModel.editAscent(e, newDate, style)
                                     }) else null
                                 )
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -273,13 +271,10 @@ internal fun EntryRow(
     info: com.meteomontana.android.domain.usecase.journal.ViaCatalogInfo? = null,
     onClick: () -> Unit = {},
     onDelete: () -> Unit,
-    /** C3: cambiar la fecha de la entrada (null = no editable, diario ajeno). */
-    onChangeDate: ((String) -> Unit)? = null,
-    /** Cambiar el estilo (a vista / al flash), independientes entre sí.
-     *  null = no editable (diario ajeno). */
-    onChangeStyle: ((aVista: Boolean, alFlash: Boolean) -> Unit)? = null
+    /** «Editar ascenso»: fecha + estilo de la entrada (null = no editable, diario ajeno). */
+    onEdit: ((date: String, style: AscentStyle) -> Unit)? = null
 ) {
-    var showDatePicker by androidx.compose.runtime.remember {
+    var showEditSheet by androidx.compose.runtime.remember {
         androidx.compose.runtime.mutableStateOf(false)
     }
     // Borrar pide confirmación: un toque sin querer en el cubo no se lleva la entrada (Álvaro, 2026-10-19).
@@ -301,32 +296,18 @@ internal fun EntryRow(
             }
         )
     }
-    if (showDatePicker && onChangeDate != null) {
-        val pickerState = androidx.compose.material3.rememberDatePickerState(
-            initialSelectedDateMillis = runCatching {
-                java.time.LocalDate.parse(e.date.take(10)).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
-            }.getOrNull(),
-            selectableDates = object : androidx.compose.material3.SelectableDates {
-                override fun isSelectableDate(utcTimeMillis: Long) =
-                    utcTimeMillis <= System.currentTimeMillis()
-            })
-        androidx.compose.material3.DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    pickerState.selectedDateMillis?.let { ms ->
-                        onChangeDate(java.time.Instant.ofEpochMilli(ms)
-                            .atZone(java.time.ZoneOffset.UTC).toLocalDate().toString())
-                    }
-                    showDatePicker = false
-                }) { Text("OK") }
-            }
-        ) { androidx.compose.material3.DatePicker(state = pickerState) }
+    if (showEditSheet && onEdit != null) {
+        EditAscentSheet(
+            initialDate = e.date,
+            initialStyle = AscentStyle.fromFlags(e.aVista, e.alFlash),
+            onSave = { date, style -> showEditSheet = false; onEdit(date, style) },
+            onDismiss = { showEditSheet = false }
+        )
     }
-    // Deslizar la fila a la izquierda descubre FECHA y BORRAR; el «⋯» hace lo mismo con nombre (Álvaro, 2026-10-19,
+    // Deslizar la fila a la izquierda descubre EDITAR y BORRAR; el «⋯» hace lo mismo con nombre (Álvaro, 2026-10-19,
     // espejo de JournalRow de iOS). Solo cuenta el arrastre horizontal: el scroll de la lista no se toca.
-    val canEdit = canDelete || onChangeDate != null
-    val actionsWidth = (if (onChangeDate != null) 76.dp else 0.dp) + (if (canDelete) 76.dp else 0.dp)
+    val canEdit = canDelete || onEdit != null
+    val actionsWidth = (if (onEdit != null) 76.dp else 0.dp) + (if (canDelete) 76.dp else 0.dp)
     val actionsPx = with(androidx.compose.ui.platform.LocalDensity.current) { actionsWidth.toPx() }
     val swipe = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
@@ -340,9 +321,9 @@ internal fun EntryRow(
     ) {
         if (canEdit && swipe.value < 0f) {
             Row(Modifier.align(Alignment.CenterEnd).fillMaxHeight()) {
-                if (onChangeDate != null) {
-                    SwipeAction(stringResource(R.string.journal_swipe_date), Icons.Outlined.CalendarMonth,
-                        com.meteomontana.android.ui.theme.Ink3) { closeSwipe(); showDatePicker = true }
+                if (onEdit != null) {
+                    SwipeAction(stringResource(R.string.journal_swipe_edit), Icons.Outlined.Edit,
+                        com.meteomontana.android.ui.theme.Ink3) { closeSwipe(); showEditSheet = true }
                 }
                 if (canDelete) {
                     SwipeAction(stringResource(R.string.journal_entries_screen_v2_borrar), Icons.Outlined.Delete,
@@ -409,18 +390,10 @@ internal fun EntryRow(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                // Estilo de ascensión: solo se ve si hay algo que enseñar (ajeno) o si es editable (propio).
-                if (e.aVista || e.alFlash || onChangeStyle != null) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        if (e.aVista || onChangeStyle != null) {
-                            StyleBadge(stringResource(R.string.journal_entries_screen_v4_a_vista), active = e.aVista,
-                                onClick = onChangeStyle?.let { { it(!e.aVista, false) } })
-                        }
-                        if (e.alFlash || onChangeStyle != null) {
-                            StyleBadge(stringResource(R.string.journal_entries_screen_v4_al_flash), active = e.alFlash,
-                                onClick = onChangeStyle?.let { { it(false, !e.alFlash) } })
-                        }
-                    }
+                // Estilo de ascensión: etiqueta SOLO si lo hay (A VISTA / AL FLASH); se cambia en «Editar ascenso».
+                if (e.aVista || e.alFlash) {
+                    StyleTag(stringResource(
+                        if (e.aVista) R.string.journal_entries_screen_v4_a_vista else R.string.journal_entries_screen_v4_al_flash))
                 }
                 // Escuela · Piedra N · sector · fecha («12 oct»): la fecha ya no es un botón escondido.
                 val subtitle = listOfNotNull(
@@ -452,12 +425,12 @@ internal fun EntryRow(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                     }
                     androidx.compose.material3.DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                        if (onChangeDate != null) {
+                        if (onEdit != null) {
                             androidx.compose.material3.DropdownMenuItem(
-                                text = { Text(stringResource(R.string.journal_change_date)) },
-                                leadingIcon = { Icon(Icons.Outlined.CalendarMonth, contentDescription = null,
+                                text = { Text(stringResource(R.string.journal_edit_ascent)) },
+                                leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null,
                                     tint = com.meteomontana.android.ui.theme.Terra) },
-                                onClick = { menuOpen = false; showDatePicker = true })
+                                onClick = { menuOpen = false; showEditSheet = true })
                         }
                         if (canDelete) {
                             androidx.compose.material3.DropdownMenuItem(
@@ -522,6 +495,22 @@ internal fun StyleBadge(label: String, active: Boolean, onClick: (() -> Unit)?) 
             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
             color = if (active) androidx.compose.ui.graphics.Color.White
                     else MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Etiqueta pequeña de estilo (A VISTA / AL FLASH) en el color activo; solo se pinta si el estilo está puesto. */
+@Composable
+internal fun StyleTag(label: String) {
+    Box(
+        Modifier
+            .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
+            .background(com.meteomontana.android.ui.theme.Terra)
+            .border(1.dp, com.meteomontana.android.ui.theme.Terra, com.meteomontana.android.ui.theme.CumbrePillShape)
+            .padding(horizontal = 7.dp, vertical = 3.dp)
+    ) {
+        Text(label, style = MaterialTheme.typography.labelSmall,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            color = androidx.compose.ui.graphics.Color.White)
     }
 }
 

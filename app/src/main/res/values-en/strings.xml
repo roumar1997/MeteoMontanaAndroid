@@ -1724,9 +1724,13 @@
     <string name="schools_card_no_score">No score</string>
     <string name="schools_card_best_now">Best hour: now (%1$d)</string>
     <string name="schools_card_best_at">Best hour: %1$d:00 (%2$d)</string>
-    <string name="journal_swipe_date">Date</string>
+    <string name="journal_swipe_edit">Edit</string>
     <string name="journal_more_options">More options</string>
-    <string name="journal_change_date">Change date</string>
+    <string name="journal_edit_ascent">Edit ascent</string>
+    <string name="journal_edit_ascent_title">EDIT ASCENT</string>
+    <string name="journal_edit_style">STYLE</string>
+    <string name="journal_style_none">None</string>
+    <string name="journal_edit_save">SAVE</string>
     <string name="journal_delete_from_log">Delete from log</string>
     <string name="title_info_special">“%1$s” is a special title given by the Cumbre team.</string>
     <string name="title_info_fairies">It comes with a fairy halo.</string>

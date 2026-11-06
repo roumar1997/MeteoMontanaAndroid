@@ -74,13 +74,10 @@ final class JournalViewModel: ObservableObject {
         await load()
     }
 
-    /** C3: cambiar la fecha de una entrada y recargar. */
-    func changeDate(_ id: String, _ newDate: String) async {
-        if await reporting(L("No se pudo cambiar la fecha"), {
-            try await AppDependencies.shared.container.updateJournalDate.invoke(id: id, date: newDate)
-        }) != nil {
-            await load()
-        }
+    /// «Editar ascenso»: guarda fecha y estilo y recarga una vez.
+    func editAscent(_ entry: JournalSession, _ newDate: String, _ style: AscentStyle) async {
+        await saveAscentEdit(entry, date: newDate, style: style)
+        await load()
     }
 
     func delete(_ id: String) {
@@ -153,8 +150,8 @@ struct JournalView: View {
                                     .padding(.horizontal, 16).padding(.vertical, 8)
                                 ForEach(byMonth[month]!, id: \.id) { e in
                                     JournalRow(entry: e, schoolId: e.schoolId,
-                                               onChangeDate: { newDate in
-                                                   Task { await vm.changeDate(e.id, newDate) }
+                                               onEdit: { newDate, style in
+                                                   Task { await vm.editAscent(e, newDate, style) }
                                                }) { vm.delete(e.id) }
                                     Divider().overlay(Cumbre.rule)
                                 }
@@ -202,18 +199,14 @@ struct JournalRow: View {
     var schoolId: String? = nil
     /// nº de piedra + sector resueltos en vivo del catálogo (no se guardan).
     var info: ViaCatalogInfo? = nil
-    /// C3: cambiar la fecha de la entrada (nil = no editable, diario ajeno).
-    var onChangeDate: ((String) -> Void)? = nil
-    /// Cambiar el estilo (a vista / al flash), excluyentes: encender uno apaga el otro.
-    /// nil = no editable (diario ajeno).
-    var onChangeStyle: ((_ aVista: Bool, _ alFlash: Bool) -> Void)? = nil
+    /// «Editar ascenso»: fecha + estilo de la entrada (nil = no editable, diario ajeno).
+    var onEdit: ((_ date: String, _ style: AscentStyle) -> Void)? = nil
     /// nil → fila de solo lectura (diario de otro usuario, no se puede borrar).
     var onDelete: (() -> Void)? = nil
-    @State private var showDatePicker = false
-    @State private var pickedDate = Date()
+    @State private var showEditSheet = false
     /// Borrar pide confirmación: un toque sin querer en el cubo no se lleva la entrada (Álvaro, 2026-10-19).
     @State private var confirmDelete = false
-    /// Deslizar la fila a la izquierda descubre FECHA y BORRAR (Álvaro, 2026-10-19). Las listas del diario son
+    /// Deslizar la fila a la izquierda descubre EDITAR y BORRAR (Álvaro, 2026-10-19). Las listas del diario son
     /// ScrollView, no List, así que el `swipeActions` nativo no existe aquí: gesto propio, solo en horizontal.
     @State private var swipeOffset: CGFloat = 0
     @State private var swipeBase: CGFloat = 0
@@ -239,9 +232,9 @@ struct JournalRow: View {
         return out.string(from: d)
     }
 
-    private var canEdit: Bool { onChangeDate != nil || onDelete != nil }
+    private var canEdit: Bool { onEdit != nil || onDelete != nil }
     /// Ancho de los botones que descubre el deslizar.
-    private var actionsWidth: CGFloat { (onChangeDate != nil ? 76 : 0) + (onDelete != nil ? 76 : 0) }
+    private var actionsWidth: CGFloat { (onEdit != nil ? 76 : 0) + (onDelete != nil ? 76 : 0) }
 
     private func splitHalf(_ g: String) -> some View {
         Text(g).font(Cumbre.mono(9, .bold))
@@ -280,21 +273,9 @@ struct JournalRow: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.blockName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
-                // Estilo de ascensión: solo se ve si hay algo que enseñar (ajeno)
-                // o si es editable (propio, para poder añadirlo después).
-                if entry.aVista || entry.alFlash || onChangeStyle != nil {
-                    HStack(spacing: 4) {
-                        if entry.aVista || onChangeStyle != nil {
-                            styleBadge(L("A VISTA"), active: entry.aVista) {
-                                onChangeStyle?(!entry.aVista, false)
-                            }
-                        }
-                        if entry.alFlash || onChangeStyle != nil {
-                            styleBadge(L("AL FLASH"), active: entry.alFlash) {
-                                onChangeStyle?(false, !entry.alFlash)
-                            }
-                        }
-                    }
+                // Estilo de ascensión: etiqueta SOLO si lo hay (A VISTA / AL FLASH); se cambia en «Editar ascenso».
+                if entry.aVista || entry.alFlash {
+                    styleTag(entry.aVista ? L("A VISTA") : L("AL FLASH"))
                 }
                 // Escuela + nº de piedra + sector (resueltos del catálogo en vivo).
                 if !subtitle.isEmpty {
@@ -308,20 +289,13 @@ struct JournalRow: View {
         }
     }
 
-    /// Chip pequeño de estilo (A VISTA / AL FLASH) — pulsable si onClick hace
-    /// algo (onChangeStyle != nil), para marcarlo/desmarcarlo sin diálogo.
-    private func styleBadge(_ label: String, active: Bool, onTap: @escaping () -> Void) -> some View {
-        Button(action: onTap) {
-            Text(label).font(Cumbre.mono(9, .bold))
-                .foregroundStyle(active ? .white : Cumbre.ink3)
-                .padding(.horizontal, 6).padding(.vertical, 2)
-                .background(active ? Cumbre.terra : Cumbre.paper,
-                            in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
-                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
-                    .stroke(active ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .disabled(onChangeStyle == nil)
+    /// Etiqueta pequeña de estilo (A VISTA / AL FLASH) en el color activo; solo se pinta si el estilo está puesto.
+    private func styleTag(_ label: String) -> some View {
+        Text(label).font(Cumbre.mono(9, .bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6).padding(.vertical, 2)
+            .background(Cumbre.terra, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
+            .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(Cumbre.terra, lineWidth: 1))
     }
 
     var body: some View {
@@ -340,7 +314,12 @@ struct JournalRow: View {
         }
         .clipped()
         .simultaneousGesture(canEdit ? swipeGesture : nil)
-        .sheet(isPresented: $showDatePicker) { datePickerSheet }
+        .sheet(isPresented: $showEditSheet) {
+            EditAscentSheet(initialDate: entry.date,
+                            initialStyle: AscentStyle(aVista: entry.aVista, alFlash: entry.alFlash),
+                            onSave: { date, style in showEditSheet = false; onEdit?(date, style) },
+                            onCancel: { showEditSheet = false })
+        }
         .alert(L("¿Borrar «%@» del diario?", entry.blockName), isPresented: $confirmDelete) {
             Button(L("Cancelar"), role: .cancel) {}
             Button(L("Borrar"), role: .destructive) { onDelete?() }
@@ -380,8 +359,8 @@ struct JournalRow: View {
     /// «⋯»: todo lo que se puede hacer con la entrada, con nombre y un botón grande.
     private var moreMenu: some View {
         Menu {
-            if onChangeDate != nil {
-                Button { openDatePicker() } label: { Label(L("Cambiar fecha"), systemImage: "calendar") }
+            if onEdit != nil {
+                Button { showEditSheet = true } label: { Label(L("Editar ascenso"), systemImage: "pencil") }
             }
             if onDelete != nil {
                 Button(role: .destructive) { confirmDelete = true } label: {
@@ -399,11 +378,11 @@ struct JournalRow: View {
         .accessibilityLabel(L("Más opciones"))
     }
 
-    /// Lo que descubre el deslizar: FECHA (gris) y BORRAR (rojo).
+    /// Lo que descubre el deslizar: EDITAR (gris) y BORRAR (rojo).
     private var swipeActions: some View {
         HStack(spacing: 0) {
-            if onChangeDate != nil {
-                swipeButton(L("Fecha"), icon: "calendar", color: Cumbre.ink3) { closeSwipe(); openDatePicker() }
+            if onEdit != nil {
+                swipeButton(L("Editar"), icon: "pencil", color: Cumbre.ink3) { closeSwipe(); showEditSheet = true }
             }
             if onDelete != nil {
                 swipeButton(L("Borrar"), icon: "trash", color: Cumbre.bad) { closeSwipe(); confirmDelete = true }
@@ -450,28 +429,6 @@ struct JournalRow: View {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { swipeOffset = 0 }
         swipeBase = 0
     }
-
-    private func openDatePicker() {
-        let p = DateFormatter(); p.dateFormat = "yyyy-MM-dd"; p.locale = Locale(identifier: "en_US_POSIX")
-        pickedDate = p.date(from: String(entry.date.prefix(10))) ?? Date()
-        showDatePicker = true
-    }
-
-    private var datePickerSheet: some View {
-        VStack(spacing: 12) {
-            Text("CAMBIAR FECHA").font(Cumbre.mono(11, .bold)).tracking(1)
-                .foregroundStyle(Cumbre.terra)
-            DatePicker("", selection: $pickedDate, in: ...Date(), displayedComponents: .date)
-                .datePickerStyle(.graphical)
-            Button("GUARDAR") {
-                let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
-                onChangeDate?(df.string(from: pickedDate))
-                showDatePicker = false
-            }
-            .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.terra)
-        }
-        .padding(16)
-        .presentationDetents([.medium])
     }
 }
 
