@@ -1,14 +1,17 @@
 # Cómo trabajamos
 
 Las normas de Cumbre en un solo sitio. Si algo de aquí choca con otro
-documento, manda este (y se corrige el otro).
+documento, manda este (y se corrige el otro). **Cada norma vive en un solo
+documento**: los demás enlazan aquí, no la copian. **Cada norma vive en un solo
+documento**: los demás enlazan aquí, no la copian.
 
 ## 1. Hay gente usando la app
 
 - La app está **publicada**. Cualquier cambio en el backend o en Firebase llega
   a usuarios reales.
-- **Nada se commitea ni se fusiona sin el OK de Álvaro**, sobre todo en el
-  backend. Para pasar algo a `main` hace falta un «sí, fusiona» explícito.
+- Commitear en la rama y subir a `develop`/staging no necesita permiso.
+  **Pasar a `main`, a producción o a las tiendas, siempre con el OK de Álvaro**
+  («sí, fusiona»).
 - Los cambios del backend son **aditivos** (campos opcionales, endpoints
   nuevos) para que las versiones viejas de la app sigan funcionando.
 
@@ -34,7 +37,7 @@ documento, manda este (y se corrige el otro).
   Lo comprueban el CI y el pre-commit. Si un fichero se pasa, se parte por
   responsabilidades; no vale subir el límite.
 - Cuando algo falla, se arregla **la clase de error y no solo el caso**: se
-  busca el mismo patrón en el resto de la app.
+  busca el mismo patrón en el resto de la app. **Todo error arreglado lleva su test.**
 - Todo se adapta a la pantalla: nada de medidas fijas. Hay que probar en la
   pantalla más estrecha.
 - Código y nombres en **inglés**; textos, comentarios y documentos en **español**.
@@ -53,6 +56,8 @@ documento, manda este (y se corrige el otro).
 
 ## 5. Pruebas con Álvaro
 
+- **Primero pruebo yo**: tests, capturas automáticas y recorridos en el Xiaomi.
+  A Álvaro solo le llega lo que no puedo comprobar.
 - Se le da una **lista numerada** en el chat.
 - Él contesta **solo lo que falla**, por número y con captura.
 - Android se prueba en el **Redmi Note 12 Pro**.
@@ -61,19 +66,46 @@ documento, manda este (y se corrige el otro).
 ## 6. Paridad entre iOS y Android
 
 - Las dos apps tienen las **mismas pantallas, textos, orden y colores**.
+- **Se hace primero en iOS**; cuando Álvaro lo valida, Android lo copia a partir de capturas.
 - **Excepción, el panel de admin**: vive solo en iOS. No se porta a Android ni
   se piden capturas de admin. Lo que ve cualquier usuario (verificado, aureola,
   títulos) sí lleva paridad.
-- **Rediseño visual pendiente**: se hará primero en iOS y, con el visto bueno de
-  Álvaro, se portará a Android. Mientras tanto, no se tocan los tokens de diseño.
+- **El diseño visual está terminado** (noviembre de 2026). Solo se retoca si Álvaro lo pide.
 
-## 7. Publicar
+## 7. Preguntas y decisiones
 
-- **Mismo número de versión público** en las dos tiendas (por ejemplo, 7.1.5).
+- **Decido yo**: arreglos, orden interno del código, tests, documentación, commits en la rama y subidas a `develop`.
+- **Pregunto siempre**: lo que cambie lo que ve el usuario, pasar a `main`/producción, publicar en las tiendas, y usar el nivel de razonamiento **máximo**.
+- Las preguntas, pocas, numeradas y con mi recomendación delante. Se contesta por número.
+
+## 8. Modelos y agentes
+
+Elijo el modelo de cada tarea:
+
+| Trabajo | Modelo |
+|---|---|
+| Búsquedas y cambios mecánicos | Haiku |
+| Tests, revisiones y documentos | Sonnet 5.5 |
+| Arquitectura y errores difíciles | Opus 5.5 en alto |
+| Conversación y coordinación | Opus 5.5 en bajo o medio |
+
+El mod «Taller» enseña qué se está usando. El resumen de cada tarea dice qué usé y por qué.
+
+## 9. Capturas y publicaciones
+
+- Las capturas para Instagram son **siempre de iOS**.
+- Las de referencia para la paridad van a `Escritorio\paridad absoluta`.
+- Cada campaña tiene su carpeta `Escritorio\publicaciones <mes>`, con el orden y los textos. Máximo 5 hashtags. Hay que tapar correos, otras personas y la burbuja de la IA. Solo se publica cuando la versión ya está en las tiendas.
+
+## 10. Publicar
+
+- **Mismo número de versión público** en las dos tiendas (por ejemplo, 7.2).
 - **Android**: el AAB se firma **en local** (el workflow de release falla con el
   keystore del secret). Antes se compila `:app:compileReleaseKotlin`. Los AAB
   se dejan en `Escritorio\AABs Play`.
 - **iOS**: workflow manual «iOS PROD .ipa». Si App Store Connect contesta
   «train closed», sube el número 2.x de `project.yml`.
 - **Forzar actualización**: `MIN_ANDROID_VC` / `MIN_IOS_BUILD` en Railway.
+- Publicación **por fases**: 5 % → 20 % → 50 % → 100 %, revisando Crashlytics y las reseñas en cada paso.
+- Las funciones nuevas con riesgo llevan **interruptor remoto**.
 - Pasos completos en [DEPLOYMENT.md](DEPLOYMENT.md).

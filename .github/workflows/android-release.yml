@@ -1,8 +1,8 @@
-# Compila el AAB de RELEASE firmado SIN depender del PC de Rodrigo (riesgo
+# Compila el AAB de RELEASE firmado SIN depender del PC de Álvaro (riesgo
 # señalado en la auditoría 2026-07-19: el proceso de release estaba atado a
 # una máquina). Lanzamiento MANUAL (Actions → Android Release AAB → Run):
 # nunca se dispara solo. El AAB firmado con la clave de SUBIDA solo sirve
-# para subirlo a la cuenta de Play de Rodrigo (Play App Signing re-firma).
+# para subirlo a la cuenta de Play de Álvaro (Play App Signing re-firma).
 name: Android Release AAB
 
 on:

@@ -1,280 +1,87 @@
-# MeteoMontana / Cumbre — Android + KMP
+# Cumbre — instrucciones para Claude
 
-App Android nativa (Kotlin + Jetpack Compose) que comparte `domain/` y `data/`
-en Kotlin con la app iOS (SwiftUI) y se conecta al backend Spring Boot.
-**Paridad exigida**: iOS replica Android verbatim — mismas pantallas, textos,
-orden y colores.
+App de escalada publicada en Google Play y App Store. Android (Kotlin + Compose)
+e iOS (SwiftUI) comparten `shared/` (Kotlin Multiplatform). Backend Spring Boot
+en `C:\Users\rouma\MeteoMontanaAPI` (`roumar1997/MeteoMontanaAPI`).
 
-**Excepción — panel de ADMIN (confirmado 2026-11-05):** el panel de admin vive
-SOLO en iOS (Álvaro es el único admin y lo usa en el iPhone). No se porta a
-Android ni se piden capturas de admin. Lo que ve cualquier usuario (verificado,
-aureola, títulos especiales) sí lleva paridad.
+**Las normas están en [`COMO_TRABAJAMOS.md`](COMO_TRABAJAMOS.md). Léelo antes de
+empezar: manda sobre cualquier otro documento.**
 
-**Excepción — REDISEÑO visual "que no se note que es de Claude" (2026-09-28):**
-PENDIENTE para más adelante (confirmado 2026-11-05). Álvaro pidió romper con la paleta
-crema+terracota+serif (demasiado reconocible como hecha con IA) y elegir una
-dirección propia (topos de escalada, cartografía, cinta técnica...). Se
-implementa **primero en iOS**, Álvaro da el visto bueno con capturas
-concretas, y **solo después** se porta a Android. Mientras tanto la app
-sigue funcionando con el sistema Cumbre actual (papel/tinta/terracota) en
-ambas — no tocar tokens de Android hasta tener el OK sobre iOS.
+## Lo imprescindible
 
-## 📚 Documentos del repo
+- El usuario es **Álvaro**. Responde en español y escribe el código en inglés.
+- **Hay usuarios reales.** Para pasar algo a `main` hace falta su «sí, fusiona».
+  El backend se sube primero a `develop` (staging) y se verifica ahí.
+- **SOLID + hexagonal siempre** ([ARCHITECTURE.md](ARCHITECTURE.md)). Límite de
+  600 líneas por fichero en las apps y 400 en el backend; lo comprueban el CI y el pre-commit.
+- **Paridad**: iOS y Android iguales en pantallas, textos y colores. El panel de
+  admin vive **solo en iOS**. El diseño visual está terminado.
+- **Modelos**: elige libremente el modelo y el nivel de razonamiento de cada
+  tarea, también para los subagentes. Antes de usar el nivel **máximo**, pídeselo a Álvaro.
+- **Al terminar cada tarea**: una línea en `HISTORIAL.md`, `estado-cumbre.json`
+  al día y un resumen corto de qué se ha probado y cómo.
 
-Este fichero es **memoria de trabajo**: lo que hay que tener presente SIEMPRE.
-Todo lo demás se consulta cuando toca, y por eso vive aparte.
+## Comandos
 
-| Documento | Qué es | Cuándo abrirlo |
-|---|---|---|
-| **`COMO_TRABAJAMOS.md`** | todas las normas del proyecto en un sitio (ramas, pruebas, publicar, paridad) | al empezar y ante cualquier duda de proceso |
-| **`ARCHITECTURE.md`** | reglas normativas (capas, umbrales, state-holders) | antes de crear o mover código |
-| **`REFERENCIA.md`** | mapa del código, endpoints, componentes clave, instalar iOS sin Mac | al tocar una zona que no conoces |
-| **`HISTORIAL.md`** | bitácora por sesión: causas raíz, decisiones, trampas | cuando algo raro tenga historia detrás |
-| `DESIGN.md` | sistema de diseño Cumbre (tokens, espaciado, tipografía) | al tocar UI |
-| `docs/WALLS_DESIGN.md` · `docs/MEETUPS_DESIGN.md` · `docs/FEED_DESIGN.md` | diseño de muros, quedadas y feed (implementados) | antes de tocar esas zonas |
-| `docs/APPROACH_DESIGN.md` | aproximaciones parking→sector con chinchetas — **SIN IMPLEMENTAR**, la Fase 0 es un cambio de términos que debe ver un abogado | antes de empezar esa función |
-| `DEPLOYMENT.md` | publicar (Railway, Firebase, Play, App Store, keystore) | **leer antes de publicar** |
-| **`docs/PLAN_PENDIENTES.md`** | los 11 puntos que pidió Álvaro el 2026-08-15, cada uno con causa YA investigada y solución — **nada implementado** | antes de tocar cualquiera de ellos |
-| `docs/MejorasFuturas.md` | plan priorizado de mejora post-lanzamiento | al elegir en qué invertir tiempo |
-| `docs/KMP_MIGRATION.md` | patrón bridge Kotlin↔Swift (migración ya completada) | al portar un `suspend` nuevo a iOS |
-| `docs/APP_STORE_CHECKLIST.md` | pasos de ficha de App Store | al tocar la ficha |
+```bash
+# Android (JAVA_HOME = JBR de Android Studio)
+./gradlew.bat :app:testDebugUnitTest :app:assembleDebug
+./gradlew.bat :shared:compileCommonMainKotlinMetadata   # antes de subir cambios de shared (iOS)
+./gradlew.bat :app:compileReleaseKotlin                 # antes de un AAB
+bash scripts/check-file-sizes.sh                        # freno de tamaño
 
-## ⚠️ Sesión nueva: por dónde empezar
+# Backend (en MeteoMontanaAPI/api). contextLoads falla en este PC: es normal
+./mvnw test
 
-1. Lee **Estado actual** y **Pendiente**, más abajo.
-2. Si la tarea toca algo con historia, busca en `HISTORIAL.md` antes de sacar
-   conclusiones — media hora de bug ya resuelto está escrita ahí.
-3. Empieza sin preguntar, salvo que el usuario pida otra cosa.
-4. Al terminar: **una línea** en `HISTORIAL.md`, actualiza "Estado actual" y **`estado-cumbre.json`** (panel «Estado Cumbre» del chat: cada función con su estado iOS/Android pendiente→hecho→probado→publicado y los builds). Obligatorio tras CADA cambio o validación de Álvaro.
-
-## 🗺️ Mapa de repos — LEER PRIMERO
-
-| Repo | Ruta local | GitHub |
-|---|---|---|
-| **Android** (este repo) | `C:\Users\rouma\MeteoMontanaAndroid` | `roumar1997/MeteoMontanaAndroid` |
-| **Backend** Spring Boot | `C:\Users\rouma\MeteoMontanaAPI` | `roumar1997/MeteoMontanaAPI` |
-| **PWA** JS (referencia visual) | `C:\Users\rouma\Desktop\MeteoMontana` | (no es este repo) |
-
-**Regla de oro**: cuando algo falla en Android y parece un problema del backend
-(nuevo campo, endpoint inexistente, lógica de negocio), ve a editar
-`C:\Users\rouma\MeteoMontanaAPI`. Cuando algo falla visualmente o en la UI,
-edita este repo. Los dos repos se trabajan juntos en la misma sesión.
-
----
-
-## 🌐 Ramas, CI y builds
-
-- Se desarrolla en `main` o en una rama `claude/**`. **CI en verde antes de
-  mergear**, siempre. Los `.md` actualizados tienen que llegar a `main`, o la
-  sesión siguiente no los ve.
-- **CI** (`.github/workflows/`): `android-ci.yml` compila y pasa tests dejando
-  el APK debug como artifact; `ios-ci.yml` compila el Swift en macOS — **es el
-  único feedback real de iOS sin Mac**; `ios-tests.yml` corre los tests de iOS.
-- **TestFlight**: workflow manual "iOS PROD .ipa (manual)" (`gh workflow run`).
-- **AAB de Play**: se compila **en local** con el keystore de subida. El
-  workflow de release falla con el keystore del secret (base64 corrupto) — no
-  fiarse de él.
-- **Secrets** para que el APK de Actions tenga Firebase funcional:
-  `GOOGLE_SERVICES_JSON` (si falta, config dummy) y `DEBUG_KEYSTORE_BASE64`
-  (⚠️ sin crear; sin él el runner firma con un keystore aleatorio y Google
-  Sign-In falla con `DEVELOPER_ERROR (10)`). Solo importan si instalas ESE APK.
-- **OJO al instalar en el móvil**: con Play App Signing la app instalada va
-  firmada con la clave de **Google**, así que **ninguna** compilación local
-  —debug ni release— actualiza encima. Hay que desinstalar e instalar, y eso
-  cierra la sesión y borra lo guardado offline.
-- El backend de producción corre en **Railway** siguiendo `main` del repo API.
-
-## 🟢🟡 Entornos: STAGING vs PRODUCCIÓN (desde 2026-06-22) — LEER
-
-Hay **testers reales** en la prueba cerrada de Play. Para desarrollar sin
-romperles la app montamos un entorno **staging** aislado. **Regla nº1: pedir
-OK antes de cualquier commit/merge, MUY especialmente en el backend.**
-
-**Dos entornos de backend en Railway** (proyecto `zoological-wisdom`), cada uno
-con **su propia base de datos** (aisladas — verificado):
-
-| Entorno | Rama backend | URL | BD | Quién la usa |
-|---|---|---|---|---|
-| **production** | `main` | `api.climbingteams.com` | datos reales (191 escuelas) | **testers de Play en vivo** |
-| **staging** | `develop` | `meteomontanaapi-staging.up.railway.app` | copia del catálogo (sin datos personales) | tú, para desarrollar |
-
-**Split de las apps** (este repo) — NO es por rama, es por **tipo de build**:
-
-| Build | Backend | Quién |
-|---|---|---|
-| **debug** (APK/`.ipa` de GitHub Actions) | **staging** | tú, desarrollar |
-| **release** (AAB Play / `.ipa` App Store) | **producción** | testers / público |
-
-- Android: `app/build.gradle.kts` (bloques `debug{}` / `release{}`).
-- iOS: `iosApp/iosApp/DI/AppDependencies.swift` (`#if DEBUG`) + `project.yml`
-  (config `Debug` define la condición `DEBUG`).
-
-**Flujos:**
-- **App** (Android/iOS): trabajas en `main`/`claude/**` de ESTE repo. El split lo
-  hace el build. Release sigue en prod → tocar esto no afecta a los testers.
-- **Backend** (`MeteoMontanaAPI`): push a **`develop`** → se prueba en staging →
-  mergear a **`main`** SOLO tras validar (Railway redespliega prod = testers).
-
-Firebase (auth/fotos/chat) sigue **compartido** entre staging y prod; lo aislado
-es backend + BD. Sembrar/copiar staging: `psql` 16 nativo
-(`C:\Program Files\PostgreSQL\16\bin`) + `\copy` CSV con
-`SET session_replication_role=replica` (por el FK auto-ref de
-`school_blocks.sector_block_id`). Docker Desktop no arranca en este PC.
-
----
-
-## Cómo trabaja el usuario
-
-Junior developer aprendiendo. Quiere entender cada línea. Reglas:
-
-1. **Idioma: español.** Código en **inglés**.
-2. **SOLID + clean code + hexagonal, SIEMPRE** (regla de Álvaro, 2026-07-20):
-   todo lo que se cree, modifique o arregle cumple `ARCHITECTURE.md`. Lo que
-   se toca se deja mejor (boy-scout); los atajos inevitables se avisan, nunca
-   se cuelan en silencio.
-3. **Paso a paso.** Una cosa a la vez. Esperas confirmación antes del siguiente.
-4. **Verifica antes de proponer.** Lee el código existente antes de tocar algo.
-5. **Trade-offs explícitos** en decisiones de diseño.
-
-## Workflow de cada sesión
-
-**Flujo de CADA cambio**:
-
-1. **Lee antes de tocar.** El fichero que vas a editar, y `HISTORIAL.md` si el
-   asunto tiene pasado. No asumas lo que hay dentro.
-2. **Compila y pasa los tests.** `JAVA_HOME` al JBR de Android Studio (Java 21):
-   `.\gradlew.bat :app:testDebugUnitTest :app:assembleDebug`. **Verdes antes de
-   commitear, siempre**; si uno se rompe se arregla primero. Tocar
-   `shared/commonMain` recompila con SKIE (la 1ª vez ~40 min, luego incremental).
-   Backend: `./mvnw test` — `ApiApplicationTests.contextLoads` falla en este PC
-   por no haber Postgres local, y eso es normal.
-3. **Verifica de verdad.** Si el cambio es visible, instálalo y míralo; si es de
-   servidor, pruébalo contra el entorno desplegado. **Al esperar un despliegue,
-   la señal tiene que ser algo que SOLO pueda dar el commit nuevo** — comprobar
-   algo que ya se cumplía antes lleva a dar por bueno el código viejo.
-4. **Pide OK antes de commitear**, y con más razón en el backend: hay usuarios
-   reales en producción. Backend a `develop`→staging antes que a `main`→prod
-   siempre que staging esté vivo.
-5. **Deja constancia**: una línea en `HISTORIAL.md` y "Estado actual" al día.
-
-**Protocolo de edición**:
-- Si tocas backend Y app, empieza por el backend.
-- Aplica los cambios con las herramientas de edición, no pegando fragmentos.
-- **No edites ficheros Gradle mientras hay un build corriendo** (desincroniza el
-  catálogo de versiones → build roto).
-- Tras un `replace` masivo, **comprueba que aterrizó** (busca el resultado): un
-  patrón que no casa no da error, y el CI en verde solo prueba que compila.
-
-## ⚡ Arranque rápido (cada sesión)
-
-```powershell
-# 1. Levantar Postgres (desde la raíz del backend)
-cd C:\Users\rouma\MeteoMontanaAPI
-docker compose up -d
-
-# 2. Arrancar el backend
-cd api
-./mvnw spring-boot:run
-# → escucha en http://localhost:8080
-# → Flyway aplica migraciones automáticamente al arrancar
-
-# 3. Android Studio: abrir C:\Users\rouma\MeteoMontanaAndroid
-#    Sync Gradle si hay cambios en build.gradle.kts o libs.versions.toml
-#    Run → instala en emulador o móvil físico
+# iOS: solo en CI. TestFlight:
+gh workflow run ios-prod-ipa.yml --ref <rama> -f runner=macos-15-intel
 ```
 
-**Verificar que el back funciona:**
-```
-GET http://localhost:8080/actuator/health  →  {"status":"UP"}
-GET http://localhost:8080/api/schools      →  array de 191 escuelas
-```
+## Entornos
 
----
+| Build | Backend | Rama del backend |
+|---|---|---|
+| debug | staging `meteomontanaapi-staging.up.railway.app` | `develop` |
+| release | producción `api.climbingteams.com` | `main` |
 
-## Stack
+Datos reales en un debug: `-PdebugApi=prod`. Firebase está compartido entre
+los dos entornos. `climbingteams.com` lo sirve **Cloudflare Pages** (push a `main` de
+`roumar1997/MeteoMontana`), no Firebase Hosting.
 
-- **Lenguaje**: Kotlin, **UI**: Jetpack Compose, **Nav**: Navigation Compose
-- **Red**: Retrofit + OkHttp + Moshi, **DI**: Hilt, **Async**: Coroutines + Flow
-- **Imagen**: Coil, **Mapas**: MapLibre Android SDK
-- **Auth/Push/Chat**: Firebase (Auth, FCM, Firestore para chat)
-- **Min SDK**: API 26 (Android 8.0)
+## Dónde está cada cosa
 
-## Conexión con el backend
-
-`API_BASE_URL` se define en `app/build.gradle.kts`. En **debug** apunta a
-staging y en **release** a producción (ver Entornos, arriba). Para backend
-local: `http://10.0.2.2:8080/api/` desde el emulador, o la IP del PC desde un
-móvil físico (`192.168.0.12`, Ethernet) — y toda IP nueva hay que añadirla
-también a `res/xml/network_security_config.xml` o Android 9+ la bloquea.
-
-Firebase project **climbingteams** (Auth con Google). `google-services.json`
-excluido de git.
-
-## Diseño visual — tema Cumbre
-
-Sistema Cumbre: papel, tinta, terracota. Sin gradientes, sin blur, radius 0/2/4dp.
-Tokens en `ui/theme/`: `Color.kt`, `Type.kt` (Google Fonts: Inter / Source Serif 4 /
-JetBrains Mono), `Shape.kt`, `Spacing.kt`, `Theme.kt`.
-
-Reglas:
-- **Sin elevation shadows** — bordes `1.dp` color `Rule`
-- **Cards**: fondo `Paper`, borde `Rule` 1dp, radius `2dp`
-- **Botón primario**: fondo `Terra`, texto blanco
-- **Eyebrow** (headers tipo "DISTANCIA", "VER MAPA"): usar `EyebrowTextStyle`
-  (Mono 10sp Bold tracking 1.8sp). **No usar `labelMedium` para esto** — su
-  tracking 0sp es para dígitos (km/h, horas).
-- Doc completo: `DESIGN.md` en la raíz.
+| Documento | Qué hay |
+|---|---|
+| [COMO_TRABAJAMOS.md](COMO_TRABAJAMOS.md) | Normas: ramas, pruebas, publicación, paridad, modelos |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Capas y reglas del código |
+| [REFERENCIA.md](REFERENCIA.md) | Mapa del código, endpoints, instalar iOS sin Mac |
+| [DESIGN.md](DESIGN.md) | Sistema visual (tokens, tipografía, espaciado) |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Publicar en Railway, Play y App Store |
+| [HISTORIAL.md](HISTORIAL.md) | Bitácora: causas raíz y trampas. **Búscalo antes de sacar conclusiones** |
+| `docs/` | Diseños de funciones, planes y textos de tienda |
+| `docs/archivo/` | Versiones anteriores de este fichero y del «Estado actual» |
 
 ## Estado actual
 
-> Resumido el 2026-11-06. Lo anterior, copiado tal cual, está en
-> `docs/archivo/ESTADO_ANTERIOR.md`; el detalle de cada cambio, en `HISTORIAL.md`.
+- **Publicada: 7.1.4** en las dos tiendas, y es la versión mínima en Railway.
+- **iOS 349** (tren 2.25.11): herramientas de admin y denuncias nuevas, de camino a TestFlight.
+- **Antes de la 7.2** (orden acordado el 2026-11-06):
+  1. normas y memorias;
+  2. mods «Taller» y «Pruebas»;
+  3. reglas automáticas;
+  4. tests de capturas en Android;
+  5. recorridos con Maestro;
+  6. publicación segura;
+  7. interruptor remoto;
+  8. pruebas y publicar.
+- Backend: el refactor está en staging; falta el «sí, fusiona» para pasarlo a `main`.
 
-**Versiones (número público común en las dos tiendas):**
-- **7.1.4** — Android vc123 (AAB firmado en `Escritorio\AABs Play`, falta subirlo a Play) e iOS build 348 (en revisión).
-- **iOS 349** (tren 2.25.11) — herramientas de admin (mensaje del «Equipo Cumbre», restablecer nombre/usuario, historial) y denuncias nuevas. Va a TestFlight.
-- **Siguiente: 7.1.5** en las dos (Android vc124), para que todos tengan el diálogo de denuncia nuevo.
+## Trampas vigentes
 
-**Hecho en noviembre de 2026:**
-- Android a la par de iOS en lo visual (validado en el Note 12 Pro).
-- Arquitectura terminada: ningún fichero de las apps pasa de 600 líneas ni del backend de 400. Lo vigila un freno en el CI y en el pre-commit (`scripts/check-file-sizes.sh` en los dos repos).
-- Backend en producción con la V97 (detalle opcional en las denuncias). El refactor del backend está en `develop`/staging, falta pasarlo a `main`.
-
-**Lo siguiente, en orden:**
-1. Limpieza: README, `COMO_TRABAJAMOS.md` y código sin uso.
-2. Una ronda de pruebas completa (lista numerada; Álvaro dice solo lo que falla).
-3. Publicar la 7.1.5 en las dos tiendas.
-
-**Pendientes de Álvaro (no bloquean):**
-- Quitar `TELEGRAM_BOT_TOKEN` de staging en Railway (el bot solo debe avisar de producción).
-- Rotación de claves tras el incidente de Railway: ver memoria `project_pending_2026-10-23`.
-- iOS: `PrivacyInfo.xcprivacy` declara ubicación aproximada y la app envía la precisa. Arreglarlo en la próxima release (`docs/MejorasFuturas.md`).
-- Antes de cobrar por la app: plan comercial de Open-Meteo, DSA de comerciante y acuerdos de pago (`docs/MejorasFuturas.md` §6.4).
-
-**Trampas que siguen vigentes:**
-- **Tren de versiones de iOS**: el build lleva `CFBundleShortVersionString` 2.x en `project.yml`. Cuando un tren se publica o se cierra, App Store Connect rechaza el build («train closed») y hay que subir el último número (2.25.10 → 2.25.11).
-- **Forzar actualización**: `MIN_ANDROID_VC` / `MIN_IOS_BUILD` en el servicio de Railway.
-- **Fotos**: se sirven por `photos.climbingteams.com`. Si cambias una foto ya subida, purga la caché de Cloudflare.
-- **Asistente de IA**: antes de tocarlo, lee sus trampas en `docs/archivo/ESTADO_ANTERIOR.md` (Google va a rachas, fechas y dictado) y añade la frase que falla a `GeminiPhraseSuite`.
-- **AAB**: compila antes `:app:compileReleaseKotlin`, porque el release usa una Compose más antigua que el debug.
-
-## Notas operativas
-
-- **`climbingteams.com` lo sirve CLOUDFLARE PAGES, no Firebase Hosting**
-  (verificado 2026-08-13). La entrada del historial del 2026-07-15 dice que
-  basta `firebase deploy` + purgar caché: **es FALSO y hace perder el tiempo**.
-  Firebase solo actualiza `climbingteams.web.app`, que no visita nadie.
-  Para cambiar el dominio: **commit + push a `main` de
-  `roumar1997/MeteoMontana`** (`Desktop/MeteoMontana`) → Cloudflare Pages
-  despliega solo en ~1-2 min. Se reconoce por los ficheros `_headers` y
-  `_redirects` (convención de Pages) y porque el dominio devuelve la cabecera
-  `content-security-policy` que sale de `_headers`, mientras que
-  `firebase.json` no define cabeceras.
-- Arranque local: ver "⚡ Arranque rápido" arriba.
-- Migraciones Flyway del backend: consultar `api/src/main/resources/db/migration/`
-  para la versión más reciente (no repetir aquí, cambia cada sesión).
-- `serviceAccountKey.json` / `google-services.json` / `.env` / keystores —
-  todos excluidos de git en ambos repos, verificado.
-- Spring Security: endpoints públicos listados en `SecurityConfig.java`
-  (catálogo de escuelas, perfiles públicos si `isPublic`, forecast, health);
-  todo lo demás exige token Firebase; `/api/admin/**` exige rol admin.
+- **Tren de iOS**: si App Store Connect contesta «train closed», sube el 2.x de `iosApp/project.yml`.
+- **Fotos**: van por `photos.climbingteams.com`. Si cambias una ya subida, purga la caché de Cloudflare.
+- **Asistente de IA**: antes de tocarlo, lee sus trampas en `docs/archivo/ESTADO_ANTERIOR.md`. Las frases que fallen van a `GeminiPhraseSuite`.
+- **Instalar en el móvil**: la app de Play va firmada por Google. Un build local
+  no se instala encima: hay que desinstalar antes, y se pierde lo offline.
+- **Worktree nuevo**: copia el `google-services.json` real y `local.properties` con barras normales.
+- **PowerShell corrompe los acentos** al hacer barridos con Get-Content/Set-Content: usa node o perl.

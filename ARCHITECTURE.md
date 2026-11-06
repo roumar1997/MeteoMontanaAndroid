@@ -16,8 +16,8 @@ UI (Compose / SwiftUI)  →  ViewModel  →  UseCase (shared)  →  Repositorio 
 Reglas de dependencia (la flecha SOLO apunta hacia dentro):
 
 1. **La UI no llama APIs ni repos directamente** — siempre a través del
-   ViewModel, y el ViewModel a través de use cases. Si un VM inyecta un
-   `Ktor*Api`, es deuda marcada (quedan: SchoolList, Radar, Chat, Admin).
+   ViewModel, y el ViewModel a través de use cases. Ningún VM inyecta un `Ktor*Api` (cerrado
+   en 2026-11; lo vigila `ArchitectureRulesTest`).
 2. **El dominio (`shared/domain`) es puro**: sin Ktor, sin Firebase, sin
    tipos de plataforma, sin anotaciones de framework. Las únicas excepciones
    toleradas están documentadas en el propio código (p. ej. `descriptionText`
@@ -35,16 +35,18 @@ Reglas de dependencia (la flecha SOLO apunta hacia dentro):
    interfaz.
 
 4. **Backend hexagonal**: los use cases de `application/` dependen de puertos
-   de `domain/port`, no de entidades JPA. (El subsistema social/feed viola
-   esto hoy — deuda conocida, ver docs/MejorasFuturas.md.) El mapeo excepción→HTTP
+   de `domain/port`, no de entidades JPA. (Deuda conocida 2026-11: la revisión de
+   aportaciones — `ReviewContributionUseCase`, `BlockMaterializer`, `LineReconciler` —
+   usa la capa de persistencia directamente; hay que darle un puerto.) El mapeo excepción→HTTP
    vive SOLO en `GlobalExceptionHandler`; el dominio no conoce HTTP.
 
 ## 2. Tamaños y responsabilidad única
 
 - **Un fichero = una razón de cambio.** Si al describir un fichero necesitas
   la palabra "y" más de una vez, toca dividirlo.
-- Umbral de alarma: **>600 líneas** en un fichero de UI o **>400** en un
-  servicio de backend → pararse y preguntarse qué responsabilidades mezcla.
+- **Límite duro**: 600 líneas por fichero en las apps (Kotlin y Swift) y 400 en el
+  backend. Lo bloquean el CI y el pre-commit (`scripts/check-file-sizes.sh`).
+  Si un fichero se pasa, se parte por responsabilidades; no se sube el límite.
 - Un composable/función con **>12 parámetros** está pidiendo un state-holder
   (`@Stable` class con `mutableStateOf`, como `ProposalMapBridge`).
 - **iOS: todo ViewModel NUEVO recibe sus dependencias por `init` con default**
@@ -55,7 +57,7 @@ Reglas de dependencia (la flecha SOLO apunta hacia dentro):
 
 ## 3. El módulo del mapa de escuela (refactor 2026-07-19)
 
-Referencia de cómo queremos organizar features grandes — y espejo 1:1 con iOS:
+Referencia de cómo queremos organizar features grandes — y espejo 1:1 con iOS. (Tabla de 2026-07: desde entonces algunos ficheros se han partido más; los nombres sirven de patrón, no de inventario.)
 
 | Fichero (Android) | Responsabilidad única | Espejo iOS |
 |---|---|---|
@@ -100,7 +102,9 @@ Regla que sale de aquí: **si una vista de iOS ordena, filtra o agrupa con regla
 
 ## 4. Paridad Android ↔ iOS
 
-- iOS replica Android **verbatim** (pantallas, textos, orden, colores).
+- Las dos apps son iguales en pantallas, textos, orden y colores. **Se hace primero
+  en iOS**; cuando Álvaro lo valida, Android lo copia a partir de capturas concretas.
+  Excepción: el panel de admin solo existe en iOS.
 - La lógica compartible vive en `shared/` (KMP). Lo que iOS replica a mano
   (espejos: GradeColor, TopoShared, MarkerRenderer, TopoParse, serialización
   de bloques) lleva SIEMPRE un comentario "espejo de X.kt" en ambos lados y
@@ -113,7 +117,7 @@ Regla que sale de aquí: **si una vista de iOS ordena, filtra o agrupa con regla
 
 - **Tests verdes antes de cada commit, siempre.** Un refactor va: diseño →
   mover → compilar → tests → commit. Pasos pequeños; nada de big-bang.
-- Todo bug de producción deja un **test de regresión** con el porqué en el
+- **Todo error arreglado** (no solo los de producción) deja un **test de regresión** con el porqué en el
   comentario (patrón: JournalViaKeyTest, FeedContractTest).
 - Los CONTRATOS backend↔apps tienen test en los DOS lados con la misma
   muestra dorada (FeedContractTest .java/.kt). Cambios de API: solo aditivos
@@ -122,9 +126,6 @@ Regla que sale de aquí: **si una vista de iOS ordena, filtra o agrupa con regla
 - La validación de entrada del backend es declarativa (`@Valid` + `@Size`):
   todo String que acaba en columna lleva tope.
 
-## 6. Ramas y entornos (fase "dejar perfecta", desde 2026-07-19)
+## 6. Ramas, entornos y proceso
 
-- Trabajo diario → rama **`develop`** de los dos repos. CI la vigila.
-- `main` = lo publicado en tiendas. **Nada a main/prod** sin validar en
-  staging (espejo sanitizado de prod) y sin OK explícito de Rodrigo.
-- Apps debug → staging; release → producción. Ver CLAUDE.md §Entornos.
+No se repiten aquí: están en [COMO_TRABAJAMOS.md](COMO_TRABAJAMOS.md).
