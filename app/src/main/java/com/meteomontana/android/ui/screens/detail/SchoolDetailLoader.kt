@@ -216,7 +216,7 @@ class SchoolDetailLoader @Inject constructor(
                 val isAdminD = async { retryOnce { getMyProfile().isAdmin }.getOrDefault(false) }
                 val isSavedD = async { runCatching { savedSchoolRepo.loadOffline(schoolId) != null }.getOrDefault(false) }
                 // Aproximaciones (parking → sector): lectura, admin-gated en
-                // la UI (APPROACH_DESIGN.md §2.6/§10 — pendiente revisión legal).
+                // la UI (docs/APPROACH_DESIGN.md §2.6/§10 — pendiente revisión legal).
                 val approachesD = async { runCatching { getApproaches(schoolId) }.getOrDefault(emptyList()) }
                 // Boletín EN PARALELO con el resto — si se insertara tarde,
                 // recoloca la LazyColumn y Compose destruye el diálogo del

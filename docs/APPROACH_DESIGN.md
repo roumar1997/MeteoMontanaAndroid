@@ -1,7 +1,7 @@
-# APPROACH_DESIGN.md — Aproximaciones (del parking al sector)
+# docs/APPROACH_DESIGN.md — Aproximaciones (del parking al sector)
 
 > Estado: **diseño cerrado, sin implementar**. Documento hermano de
-> `WALLS_DESIGN.md` y `MEETUPS_DESIGN.md`. Leer antes de tocar nada de
+> `docs/WALLS_DESIGN.md` y `docs/MEETUPS_DESIGN.md`. Leer antes de tocar nada de
 > aproximaciones, chinchetas o grabación de recorrido.
 
 ---
@@ -235,7 +235,7 @@ Botones fijos: **DESHACER**, **SIMPLIFICAR** (reusa `simplifyStroke`),
 
 ### 5.2 Ver el diff antes de aprobar
 
-Igual que en `WALLS_DESIGN.md` §6 — **el admin no aprueba a ciegas**:
+Igual que en `docs/WALLS_DESIGN.md` §6 — **el admin no aprueba a ciegas**:
 
 - Trazo **propuesto** en terracota, trazo **original** en gris tenue debajo
 - Cabecera con `distancia · desnivel · nº puntos` (antes → después)
@@ -368,7 +368,7 @@ cobertura.
 ## 8. 🧩 Cambios en KMP
 
 `LocationProvider` solo tiene `current()` (un disparo). Hace falta el flujo
-continuo, con el patrón bridge de `KMP_MIGRATION.md`:
+continuo, con el patrón bridge de `docs/KMP_MIGRATION.md`:
 
 ```kotlin
 interface LocationProvider {

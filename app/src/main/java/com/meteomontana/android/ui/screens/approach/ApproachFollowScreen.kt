@@ -64,7 +64,7 @@ import com.meteomontana.android.R
 
 /**
  * Pantalla "SEGUIR" de una aproximación a pantalla completa — Fase 1/2 de
- * APPROACH_DESIGN.md §6.3/§6.4. Espejo de ApproachFollowView.swift (iOS).
+ * docs/APPROACH_DESIGN.md §6.3/§6.4. Espejo de ApproachFollowView.swift (iOS).
  *
  * Sin navegación giro a giro: solo la línea y el punto azul del usuario.
  * "+ CHINCHETA" y borrar el camino son SOLO ADMIN por ahora (§2.6/§10).

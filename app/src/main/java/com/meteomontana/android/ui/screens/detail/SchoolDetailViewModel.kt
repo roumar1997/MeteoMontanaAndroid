@@ -71,7 +71,7 @@ class SchoolDetailViewModel @Inject constructor(
     private val rateLineUseCase: com.meteomontana.android.domain.usecase.blocks.RateLineUseCase,
     /** Foto de "Enviar piedra" a la espera de que se abra su escuela. */
     private val photoProposal: com.meteomontana.android.ui.screens.schools.PhotoProposalSeed,
-    // Aproximaciones (SOLO ADMIN crea/borra por ahora — APPROACH_DESIGN.md §2.6/§10).
+    // Aproximaciones (SOLO ADMIN crea/borra por ahora — docs/APPROACH_DESIGN.md §2.6/§10).
     private val approaches: ApproachActions,
     private val processionary: ProcessionaryActions,
 ) : ViewModel() {
@@ -542,7 +542,7 @@ class SchoolDetailViewModel @Inject constructor(
         rateLineUseCase.unrate(blockId, lineId)
     }
 
-    // ── Aproximaciones (SOLO ADMIN por ahora, APPROACH_DESIGN.md §2.6/§10) ──
+    // ── Aproximaciones (SOLO ADMIN por ahora, docs/APPROACH_DESIGN.md §2.6/§10) ──
 
     /** Refresca solo la lista de aproximaciones (tras grabar/borrar/añadir chincheta). */
     fun reloadApproaches() {

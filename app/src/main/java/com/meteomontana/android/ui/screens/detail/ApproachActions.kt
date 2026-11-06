@@ -10,7 +10,7 @@ import com.meteomontana.android.domain.usecase.approach.GetApproachesUseCase
 import javax.inject.Inject
 
 /**
- * Aproximaciones parking → sector de una escuela (SOLO ADMIN por ahora, APPROACH_DESIGN.md §2.6/§10): leer, grabar un
+ * Aproximaciones parking → sector de una escuela (SOLO ADMIN por ahora, docs/APPROACH_DESIGN.md §2.6/§10): leer, grabar un
  * camino con sus chinchetas, añadir una chincheta y borrar. Sacado de SchoolDetailViewModel (2026-11-05).
  */
 class ApproachActions @Inject constructor(

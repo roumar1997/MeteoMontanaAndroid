@@ -39,7 +39,7 @@ import java.util.Locale
 
 /**
  * Sección APROXIMACIONES de la ficha de escuela — Fase 1+ de
- * APPROACH_DESIGN.md §6.1. Espejo de ApproachesSection.swift (iOS).
+ * docs/APPROACH_DESIGN.md §6.1. Espejo de ApproachesSection.swift (iOS).
  *
  * SOLO LECTURA para cualquier usuario; grabar/borrar es admin-only por ahora
  * (§2.6/§10 — pendiente revisión legal de términos antes de abrirlo a todos).
@@ -77,7 +77,7 @@ fun ApproachesSection(
 
         // Visible SOLO para admin por ahora — la pantalla que abre es la
         // definitiva, la que verá cualquier usuario cuando se active para
-        // todos (ver APPROACH_DESIGN.md §2.6/§10).
+        // todos (ver docs/APPROACH_DESIGN.md §2.6/§10).
         if (isAdmin) {
             Box(
                 modifier = Modifier

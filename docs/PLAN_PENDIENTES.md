@@ -4,7 +4,7 @@
 > supuesto) y trae síntoma, causa real y solución propuesta. Se ejecutan cuando
 > Rodrigo lo pida, uno a uno como siempre.
 >
-> Los pendientes de la sesión de fotos viven en `MejorasFuturas.md`
+> Los pendientes de la sesión de fotos viven en `docs/MejorasFuturas.md`
 > ("PENDIENTE SUELTO — salidos de la sesión de fotos"), no se repiten aquí.
 
 ## Resumen: qué necesita publicar versión nueva
@@ -15,7 +15,7 @@
 
 De la lista de Rodrigo **todo es de app**. Lo único que se arregla en caliente
 (backend/configuración) es lo de fotos, ya cerrado, y los cabos de
-`MejorasFuturas.md`. **Conviene agrupar varios puntos en una sola release**: cada
+`docs/MejorasFuturas.md`. **Conviene agrupar varios puntos en una sola release**: cada
 una cuesta revisión de Play + Apple y pruebas en dos móviles.
 
 **Tanda sugerida para la primera release**: puntos 5/10 (bug que sufren todos),

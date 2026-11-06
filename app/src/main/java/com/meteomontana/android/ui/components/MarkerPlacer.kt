@@ -102,7 +102,7 @@ internal class MarkerPlacer {
         wallPreview: List<Pair<Double, Double>> = emptyList(),
         headingDeg: Float? = null,
         /** Piedras (BLOCK) sin ninguna vía en la selección del filtro de grado:
-         * se pintan atenuadas, no se ocultan (BLOCK_SEARCH_DESIGN.md §7). */
+         * se pintan atenuadas, no se ocultan (docs/BLOCK_SEARCH_DESIGN.md §7). */
         gradeDimmedBlockIds: Set<String> = emptySet(),
         onBlockTap: (Block) -> Unit
     ) {

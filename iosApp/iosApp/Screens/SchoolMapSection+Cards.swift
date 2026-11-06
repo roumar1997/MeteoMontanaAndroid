@@ -372,5 +372,7 @@ extension SchoolMapSection {
 }
 
 /// Coordenada Identifiable para presentar el formulario por sheet(item:).
-struct CoordItem: Identifiable {
+struct MapCoordItem: Identifiable {
+    let coord: CLLocationCoordinate2D
+    var id: String { "\(coord.latitude),\(coord.longitude)" }
 }

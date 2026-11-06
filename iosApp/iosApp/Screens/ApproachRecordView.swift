@@ -2,7 +2,7 @@ import SwiftUI
 import Shared
 import CoreLocation
 
-// Grabar una aproximación (camino) — APPROACH_DESIGN.md §6.2/§6.4. SOLO ADMIN
+// Grabar una aproximación (camino) — docs/APPROACH_DESIGN.md §6.2/§6.4. SOLO ADMIN
 // por ahora (ver ApproachesSection): la pantalla en sí es la que verá
 // cualquier usuario el día que se abra, no hay nada "provisional" en el diseño.
 //

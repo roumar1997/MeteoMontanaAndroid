@@ -124,7 +124,7 @@ fun SchoolMap(
     var selectedBlock by remember { mutableStateOf<Block?>(null) }
     // La GUÍA (pestaña BLOQUES) abre piedras aquí y vuelve a su sitio cuando se cierra la ficha.
     androidx.compose.runtime.LaunchedEffect(selectedBlock != null) { viewModel.setBlockSheetOpen(selectedBlock != null) }
-    // Filtro LOCAL por GRADO (BLOCK_SEARCH_DESIGN.md §7). No persiste al salir
+    // Filtro LOCAL por GRADO (docs/BLOCK_SEARCH_DESIGN.md §7). No persiste al salir
     // de la escuela. Vive aquí (no dentro del `run {}` de más abajo) porque lo
     // necesitan tanto la barra del mapa como la ficha de piedra (selectedBlock?.let).
     var selectedGrades by remember { mutableStateOf(setOf<String>()) }
@@ -223,7 +223,7 @@ fun SchoolMap(
                     passesOrientation && matchesStyleFilter(b, styleFilter)
                 }
             }
-            // Filtro LOCAL por GRADO (BLOCK_SEARCH_DESIGN.md §7). `selectedGrades`
+            // Filtro LOCAL por GRADO (docs/BLOCK_SEARCH_DESIGN.md §7). `selectedGrades`
             // vive fuera de este `run {}` (ver arriba) — lo necesita también la
             // ficha de piedra, más abajo.
             val availableGrades = remember(visibleBlocks) {
@@ -340,7 +340,7 @@ fun SchoolMap(
     val fichaIsAdmin = (viewModel.uiState.collectAsStateWithLifecycle().value
         as? com.meteomontana.android.ui.screens.detail.SchoolDetailUiState.Success)?.isCurrentUserAdmin == true
 
-    // Filtro por grado (BLOCK_SEARCH_DESIGN.md §7): qué vías caen en la
+    // Filtro por grado (docs/BLOCK_SEARCH_DESIGN.md §7): qué vías caen en la
     // selección, para atenuar el resto DENTRO de la ficha (no solo en el mapa).
     val gradeFilter = remember(blocks, selectedGrades) {
         com.meteomontana.android.domain.util.filterBlocksByGrades(blocks, selectedGrades)

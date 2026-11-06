@@ -55,7 +55,7 @@ sealed interface SchoolDetailUiState {
         val forecastCachedAt: Long? = null,
         /** Boletín de montaña AEMET si la escuela cae en uno de los 9 macizos. */
         val mountainBulletin: com.meteomontana.android.domain.model.MountainBulletin? = null,
-        /** Aproximaciones (parking → sector) — APPROACH_DESIGN.md, admin-gated. */
+        /** Aproximaciones (parking → sector) — docs/APPROACH_DESIGN.md, admin-gated. */
         val approaches: List<com.meteomontana.android.domain.model.Approach> = emptyList(),
         /** Si !=null, hay que preguntar al usuario si baja las fotos (puede ir
          *  por datos). Guardar los datos no se pregunta: pesan poco. */

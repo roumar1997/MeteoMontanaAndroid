@@ -54,7 +54,7 @@ import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
 
 /**
- * Alta de una chincheta (foto y/o texto, NUNCA vacía — APPROACH_DESIGN.md
+ * Alta de una chincheta (foto y/o texto, NUNCA vacía — docs/APPROACH_DESIGN.md
  * §2.3). Compartida entre "seguir" (admin añade sobre una aproximación ya
  * publicada) y "grabar" (donde queda en memoria hasta guardar el camino).
  * Espejo de NewApproachPinSheet/NewPinDraftSheet (iOS).

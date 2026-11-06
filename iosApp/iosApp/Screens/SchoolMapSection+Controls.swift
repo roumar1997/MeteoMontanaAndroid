@@ -176,8 +176,8 @@ extension SchoolMapSection {
     }
 
     // Wrapper Identifiable para presentar el formulario de piedra.
-    var boulderCoordItem: Binding<CoordItem?> {
-        Binding(get: { flow.boulderCoord.map { CoordItem(coord: $0) } },
+    var boulderCoordItem: Binding<MapCoordItem?> {
+        Binding(get: { flow.boulderCoord.map { MapCoordItem(coord: $0) } },
                 set: { if $0 == nil { flow.boulderCoord = nil } })
     }
 
@@ -299,8 +299,8 @@ extension SchoolMapSection {
     }
 
     // Wrapper Identifiable para presentar el formulario con la coordenada fijada.
-    var coordItem: Binding<CoordItem?> {
-        Binding(get: { flow.formCoord.map { CoordItem(coord: $0) } },
+    var coordItem: Binding<MapCoordItem?> {
+        Binding(get: { flow.formCoord.map { MapCoordItem(coord: $0) } },
                 set: { if $0 == nil { flow.formCoord = nil } })
     }
 

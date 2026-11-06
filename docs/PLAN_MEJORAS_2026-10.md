@@ -1,4 +1,4 @@
-# PLAN_MEJORAS_2026-10.md — Salud, restricciones, mejor hora, estadísticas y logros, historial, recompensas y 8a.nu
+# docs/PLAN_MEJORAS_2026-10.md — Salud, restricciones, mejor hora, estadísticas y logros, historial, recompensas y 8a.nu
 
 Plan acordado con Álvaro el 2026-10-17. **Estado (2026-10-18): B, C, D, E, F y Salud (A3/A4/A6) HECHOS en staging + rama de apps; pendientes A1/A2/A7 (bot de Telegram), A5 (analítica), ilustraciones de Cumbri, carga de restricciones verificadas, Android del panel admin y G (8a.nu).** Ver `HISTORIAL.md` 2026-10-18.
 - Maquetas sobre capturas reales: https://claude.ai/artifact/BXvjS5aiUCgsQyXCymdv22

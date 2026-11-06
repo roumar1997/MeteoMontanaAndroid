@@ -130,7 +130,7 @@ fun SchoolListScreen(
     var filtersOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var daysOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
 
-    // ── Pestaña "Vías/Bloques" (BLOCK_SEARCH_DESIGN.md §4.1b) ──
+    // ── Pestaña "Vías/Bloques" (docs/BLOCK_SEARCH_DESIGN.md §4.1b) ──
     val exploreTab by explore.tab.collectAsStateWithLifecycle()
     // La estrella FAVS se recuerda encendida entre aperturas.
     val compareCtx = androidx.compose.ui.platform.LocalContext.current

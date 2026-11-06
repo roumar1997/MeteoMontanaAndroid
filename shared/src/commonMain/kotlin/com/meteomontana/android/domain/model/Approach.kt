@@ -2,7 +2,7 @@ package com.meteomontana.android.domain.model
 
 /**
  * Camino grabado (o dibujado) del parking a un sector/piedra, con sus
- * chinchetas. Fase 1 de APPROACH_DESIGN.md — solo lectura.
+ * chinchetas. Fase 1 de docs/APPROACH_DESIGN.md — solo lectura.
  */
 data class Approach(
     val id: String,

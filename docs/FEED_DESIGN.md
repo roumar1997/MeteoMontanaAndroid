@@ -1,4 +1,4 @@
-# FEED_DESIGN.md — Pestaña Comunidad (feed social + ranking)
+# docs/FEED_DESIGN.md — Pestaña Comunidad (feed social + ranking)
 
 > **Estado: DISEÑO — sin implementar.** Desarrollo SOLO en staging
 > (backend en `develop`, app en rama `claude/**` sin mergear a `main`

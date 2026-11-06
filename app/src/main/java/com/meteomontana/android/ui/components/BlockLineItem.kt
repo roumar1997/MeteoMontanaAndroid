@@ -93,7 +93,7 @@ internal fun BlockLineItem(
 ) {
         val lineGrade = line.grade
         val style = gradeChipStyle(lineGrade)
-        // Filtro por grado (BLOCK_SEARCH_DESIGN.md §7): vías fuera de
+        // Filtro por grado (docs/BLOCK_SEARCH_DESIGN.md §7): vías fuera de
         // la selección se atenúan, no se ocultan (contexto de la piedra).
         val gradeDimmed = dimmed
         Column(

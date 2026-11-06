@@ -115,7 +115,7 @@ internal fun SchoolMapView(
     onBlockSelected: (Block) -> Unit,
     onDismissBlock: () -> Unit,
     /** Piedras sin ninguna vía en la selección del filtro de grado (ver
-     * BLOCK_SEARCH_DESIGN.md §7) — se pintan atenuadas en el mapa. */
+     * docs/BLOCK_SEARCH_DESIGN.md §7) — se pintan atenuadas en el mapa. */
     gradeDimmedBlockIds: Set<String> = emptySet(),
     /** Camino grabado hasta un parking o sector (el verificado si hay), para «Seguir camino» en su tarjeta. */
     approachTo: (blockId: String) -> com.meteomontana.android.domain.model.Approach? = { null },

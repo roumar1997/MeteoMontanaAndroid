@@ -1,7 +1,7 @@
 import SwiftUI
 import Shared
 
-// Filtro LOCAL por grado dentro de una escuela — ver BLOCK_SEARCH_DESIGN.md §7.
+// Filtro LOCAL por grado dentro de una escuela — ver docs/BLOCK_SEARCH_DESIGN.md §7.
 // Chips multi-selección con la paleta de grados de la app (mismo patrón que
 // JournalBlocksListView), + lista de resultados agrupada por grado y
 // colapsable. La lógica de qué piedra/vía cae en la selección vive en shared

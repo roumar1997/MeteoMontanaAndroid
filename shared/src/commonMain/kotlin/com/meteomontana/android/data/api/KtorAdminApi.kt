@@ -43,7 +43,7 @@ class KtorAdminApi(private val client: HttpClient) {
         client.post("admin/push") { setBody(req) }.body()
 
     /** Rellena grade_score de las vías ya existentes (una sola vez; es
-     *  idempotente, se puede repetir sin romper nada) — BLOCK_SEARCH_DESIGN.md
+     *  idempotente, se puede repetir sin romper nada) — docs/BLOCK_SEARCH_DESIGN.md
      *  §2/§8. Disparado a mano desde el panel de admin de iOS. */
     suspend fun backfillGradeScore(): GradeScoreBackfillResultDto =
         client.post("admin/search/backfill-grade-score").body()

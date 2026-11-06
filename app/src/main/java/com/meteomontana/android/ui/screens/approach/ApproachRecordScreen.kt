@@ -64,7 +64,7 @@ import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
 
 /**
- * "GRABAR APROXIMACIÓN" — APPROACH_DESIGN.md §6.2/§6.4. SOLO ADMIN por ahora
+ * "GRABAR APROXIMACIÓN" — docs/APPROACH_DESIGN.md §6.2/§6.4. SOLO ADMIN por ahora
  * (ver ApproachesSection). Espejo de ApproachRecordView.swift (iOS).
  *
  * DESVIACIÓN de alcance respecto al diseño/iOS (documentada en el informe de

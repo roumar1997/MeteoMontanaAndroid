@@ -3,7 +3,7 @@ import Shared
 
 // Espejo de shared/.../domain/util/GradeFilter.kt — MISMA fórmula de score
 // que gradeArgb/GradeColor (un único criterio de orden de grados en toda la
-// app). Ver BLOCK_SEARCH_DESIGN.md §7 y ARCHITECTURE.md §4 (paridad).
+// app). Ver docs/BLOCK_SEARCH_DESIGN.md §7 y ARCHITECTURE.md §4 (paridad).
 // Selección MÚLTIPLE de grados exactos (chips, como en el diario) — no rango.
 
 /// Convierte un grado francés ("6a", "7B+"...) al score numérico:

@@ -237,6 +237,4 @@ extension SchoolMapSection {
         focusCoord = CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)
         focusToken += 1
     }
-
-    let coord: CLLocationCoordinate2D
 }

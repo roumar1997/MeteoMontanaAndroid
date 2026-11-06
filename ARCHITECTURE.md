@@ -24,7 +24,7 @@ Reglas de dependencia (la flecha SOLO apunta hacia dentro):
    por colisión con NSObject en iOS).
 3. **Los efectos de plataforma** (MediaStore, cámara, GPS, BLE…) viven en
    `data/local` (Android) o detrás de un puerto con bridge (patrón de
-   KMP_MIGRATION.md §22) — nunca inline en un composable.
+   docs/KMP_MIGRATION.md §22) — nunca inline en un composable.
 3.b **Gotcha de Kotlin/Native al crear un puerto nuevo**: si la clase que lo
    implementa ya lleva `@Throws(Exception::class)` en un método, la INTERFAZ
    debe llevarlo también — si no, Android compila pero el build de iOS falla
@@ -36,7 +36,7 @@ Reglas de dependencia (la flecha SOLO apunta hacia dentro):
 
 4. **Backend hexagonal**: los use cases de `application/` dependen de puertos
    de `domain/port`, no de entidades JPA. (El subsistema social/feed viola
-   esto hoy — deuda conocida, ver MejorasFuturas.md.) El mapeo excepción→HTTP
+   esto hoy — deuda conocida, ver docs/MejorasFuturas.md.) El mapeo excepción→HTTP
    vive SOLO en `GlobalExceptionHandler`; el dominio no conoce HTTP.
 
 ## 2. Tamaños y responsabilidad única

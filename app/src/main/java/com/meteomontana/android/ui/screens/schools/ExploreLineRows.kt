@@ -79,7 +79,7 @@ import kotlinx.coroutines.flow.first
 /**
  * Cabecera de grupo del modo "Vías/Bloques": nombre de escuela + score (de
  * HOY o combinado del tramo) + aviso MOJADA + contador — una sola vez por
- * grupo (BLOCK_SEARCH_DESIGN.md §8.3). Pulsable: pliega/despliega sus vías,
+ * grupo (docs/BLOCK_SEARCH_DESIGN.md §8.3). Pulsable: pliega/despliega sus vías,
  * EMPIEZAN PLEGADOS para poder verlas todas de un vistazo.
  */
 @Composable

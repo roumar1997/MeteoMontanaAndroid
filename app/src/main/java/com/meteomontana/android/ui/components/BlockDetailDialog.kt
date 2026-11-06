@@ -104,7 +104,7 @@ fun BlockDetailDialog(
     /** Sectores (ZONE) disponibles para "ASIGNAR SECTOR". null = no mostrar el botón. */
     availableSectors: List<Block>? = null,
     onAssignSector: ((sectorBlockId: String) -> Unit)? = null,
-    /** Ids de vías que caen en el filtro de grado (BLOCK_SEARCH_DESIGN.md §7).
+    /** Ids de vías que caen en el filtro de grado (docs/BLOCK_SEARCH_DESIGN.md §7).
      *  null = sin filtro, nada se atenúa. */
     gradeMatchingLineIds: Set<String>? = null,
     onDismiss: () -> Unit

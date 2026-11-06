@@ -47,7 +47,7 @@ import com.meteomontana.android.ui.theme.gradeChipColor
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
 
-// Filtro LOCAL por grado dentro de una escuela — ver BLOCK_SEARCH_DESIGN.md §7.
+// Filtro LOCAL por grado dentro de una escuela — ver docs/BLOCK_SEARCH_DESIGN.md §7.
 // Espejo de GradeFilterBar.swift (iOS): chips multi-selección con la paleta
 // de grados de la app (mismo patrón que el diario), resultados agrupados por
 // grado y colapsables, tocar una vía abre su piedra. La lógica de qué

@@ -77,7 +77,7 @@ enum StorageUploader {
         try await uploadJPEG(image, category: "meetup", meetupId: tempId)
     }
 
-    /// Foto de una chincheta de aproximación (Fase 1/2 de APPROACH_DESIGN.md).
+    /// Foto de una chincheta de aproximación (Fase 1/2 de docs/APPROACH_DESIGN.md).
     static func uploadApproachPinPhoto(_ image: UIImage) async throws -> String {
         try await uploadJPEG(image, category: "approach-pin")
     }

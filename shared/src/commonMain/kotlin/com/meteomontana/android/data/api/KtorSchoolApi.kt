@@ -69,7 +69,7 @@ class KtorSchoolApi(private val client: HttpClient) {
     suspend fun searchLines(query: String): List<LineSearchHitDto> =
         client.get("search/lines") { parameter("q", query) }.body()
 
-    /** Modo "explorar" del mismo endpoint (BLOCK_SEARCH_DESIGN.md §3/§8): sin
+    /** Modo "explorar" del mismo endpoint (docs/BLOCK_SEARCH_DESIGN.md §3/§8): sin
      *  texto libre, con filtros de grado/disciplina/roca/escuelas/orientación
      *  /distancia. Mismo `search/lines`, parámetros nuevos y aditivos. */
     @Throws(Exception::class)

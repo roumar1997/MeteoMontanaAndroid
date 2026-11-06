@@ -1,7 +1,7 @@
-# BLOCK_SEARCH_DESIGN.md — Buscador de vías por grado, cercanía y roca
+# docs/BLOCK_SEARCH_DESIGN.md — Buscador de vías por grado, cercanía y roca
 
 > Estado: **diseño cerrado, sin implementar**. Documento hermano de
-> `WALLS_DESIGN.md`, `MEETUPS_DESIGN.md` y `APPROACH_DESIGN.md`.
+> `docs/WALLS_DESIGN.md`, `docs/MEETUPS_DESIGN.md` y `docs/APPROACH_DESIGN.md`.
 
 ---
 
@@ -324,7 +324,7 @@ Una sola fase, sin backend:
 
 - No hace falta tocar `chk_start_type` ni ningún `CHECK` — `grade_score` es
   nullable y no restringido, mismo criterio que `kind`/`status` en
-  `APPROACH_DESIGN.md`: un valor nuevo de grado no debe romper nada.
+  `docs/APPROACH_DESIGN.md`: un valor nuevo de grado no debe romper nada.
 - Sin cambios de permisos, sin riesgo legal — es una consulta sobre datos que
   ya son públicos y ya se muestran.
 - Regla de siempre: nada de medidas fijas, todo adaptable

@@ -35,7 +35,7 @@ struct SchoolMapSection: View {
     /// Grados partidos por altura (se piden juntos para los resultados del buscador).
     @ObservedObject var gradeSplits = GradeSplitsStore.shared
     @State var orientationFilter: String? = nil
-    // Filtro LOCAL por GRADO (ver BLOCK_SEARCH_DESIGN.md §7). No llama al
+    // Filtro LOCAL por GRADO (ver docs/BLOCK_SEARCH_DESIGN.md §7). No llama al
     // servidor: la escuela ya trae todas sus vías. Las piedras sin ninguna vía
     // en rango se ATENÚAN (no se ocultan): se conserva el contexto del sector.
     // No persiste al salir de la escuela, a diferencia del filtro de escuelas.
@@ -44,7 +44,7 @@ struct SchoolMapSection: View {
     /// estilos ("Vía,Bloque" en school.style) — si es de uno solo, no aporta
     /// nada y no se muestra. Vacío = sin filtrar, se ve todo.
     @State var styleFilter: Set<String> = []
-    // Aproximaciones (caminos) — Fase 1 de APPROACH_DESIGN.md, solo lectura.
+    // Aproximaciones (caminos) — Fase 1 de docs/APPROACH_DESIGN.md, solo lectura.
     // El loader vive aquí (no dentro de ApproachesSection) para que la ficha
     // mini de un sector/parking pueda ofrecer "SEGUIR" si hay un camino hasta
     // él, no solo la sección de la ficha completa.
@@ -148,7 +148,7 @@ struct SchoolMapSection: View {
                 if !fullscreenMap {
                     mapArea(height: mapHeight)
                 }
-                // Grabar/chincheta SOLO ADMIN por ahora (APPROACH_DESIGN.md §2.6/§10).
+                // Grabar/chincheta SOLO ADMIN por ahora (docs/APPROACH_DESIGN.md §2.6/§10).
                 ApproachesSection(loader: approachesLoader, school: school,
                                    isAdmin: vm.isAdmin, following: $followingApproach)
                 // "CÓMO LLEGAR" de la escuela quitado: las indicaciones salen al

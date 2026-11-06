@@ -3,7 +3,7 @@ package com.meteomontana.android.domain.util
 import com.meteomontana.android.domain.model.Block
 
 /**
- * Filtro LOCAL por grado dentro de una escuela (ver BLOCK_SEARCH_DESIGN.md §7).
+ * Filtro LOCAL por grado dentro de una escuela (ver docs/BLOCK_SEARCH_DESIGN.md §7).
  * Puro Kotlin, sin dependencias de plataforma — Android e iOS comparten el
  * mismo resultado. No llama al servidor: la escuela ya trae todas sus vías.
  * Selección MÚLTIPLE de grados exactos (chips, como en el diario) — no rango.

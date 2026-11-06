@@ -34,7 +34,7 @@ data class ExploreContext(
 )
 
 /**
- * Pestaña «Vías/Bloques» de Escuelas (BLOCK_SEARCH_DESIGN.md §4.1b): grado, orientación, ALTURA y QUÉ BUSCAS, orden,
+ * Pestaña «Vías/Bloques» de Escuelas (docs/BLOCK_SEARCH_DESIGN.md §4.1b): grado, orientación, ALTURA y QUÉ BUSCAS, orden,
  * resultados agrupados por escuela o en lista. Separado de [SchoolListViewModel] (lista de escuelas) el 2026-11-05: cada
  * uno con una sola razón para cambiar. Mismo nombre y reparto en iOS.
  */

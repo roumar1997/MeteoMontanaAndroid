@@ -1,4 +1,4 @@
-# MejorasFuturas.md — Plan completo para dejar Cumbre "perfecta"
+# docs/MejorasFuturas.md — Plan completo para dejar Cumbre "perfecta"
 
 > Generado a partir de la revisión de arquitectura completa del 2026-07-09
 > (4 análisis en paralelo: UI Android, capa compartida KMP, backend Spring,

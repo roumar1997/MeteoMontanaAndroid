@@ -2,7 +2,7 @@ import SwiftUI
 import Shared
 import CoreLocation
 
-// Pantalla "SEGUIR" de una aproximación — Fase 1/2 de APPROACH_DESIGN.md
+// Pantalla "SEGUIR" de una aproximación — Fase 1/2 de docs/APPROACH_DESIGN.md
 // §6.3/§6.4. Sin navegación giro a giro: solo la línea y tu punto azul.
 // Línea continua si está VERIFICADA, discontinua si no.
 //
@@ -226,7 +226,7 @@ private extension ApproachPin {
     var isVerifiedFlag: Bool { status == "VERIFIED" }
 }
 
-/// Alta de una chincheta (foto y/o texto, nunca vacía — APPROACH_DESIGN.md
+/// Alta de una chincheta (foto y/o texto, nunca vacía — docs/APPROACH_DESIGN.md
 /// §2.3). Misma pantalla que verá cualquier usuario cuando se abra; hoy solo
 /// la lanza un admin (ver ApproachFollowView).
 private struct NewApproachPinSheet: View {

@@ -1,0 +1,79 @@
+# Cómo trabajamos
+
+Las normas de Cumbre en un solo sitio. Si algo de aquí choca con otro
+documento, manda este (y se corrige el otro).
+
+## 1. Hay gente usando la app
+
+- La app está **publicada**. Cualquier cambio en el backend o en Firebase llega
+  a usuarios reales.
+- **Nada se commitea ni se fusiona sin el OK de Álvaro**, sobre todo en el
+  backend. Para pasar algo a `main` hace falta un «sí, fusiona» explícito.
+- Los cambios del backend son **aditivos** (campos opcionales, endpoints
+  nuevos) para que las versiones viejas de la app sigan funcionando.
+
+## 2. Ramas y entornos
+
+| Qué | Dónde se trabaja | A dónde va |
+|---|---|---|
+| Apps | rama `claude/**` | `main`, con «sí, fusiona» |
+| Backend | `develop` → **staging** | `main` → **producción**, con «sí, fusiona» |
+
+- El APK/IPA **debug** usa staging y el **release** usa producción. Lo decide el
+  tipo de build, no la rama.
+- Tras subir al backend: espera a que Railway despliegue **ese commit** y haz una
+  prueba que solo pueda pasar con el código nuevo. Que `/actuator/health` diga
+  UP no basta.
+
+## 3. Calidad del código
+
+- **SOLID, código limpio y arquitectura hexagonal siempre** ([ARCHITECTURE.md](ARCHITECTURE.md)).
+  Lo que se toca se deja mejor que como estaba. Si hace falta un atajo, se
+  avisa; nunca se cuela en silencio.
+- **Tamaño máximo por fichero**: 600 líneas en las apps y 400 en el backend.
+  Lo comprueban el CI y el pre-commit. Si un fichero se pasa, se parte por
+  responsabilidades; no vale subir el límite.
+- Cuando algo falla, se arregla **la clase de error y no solo el caso**: se
+  busca el mismo patrón en el resto de la app.
+- Todo se adapta a la pantalla: nada de medidas fijas. Hay que probar en la
+  pantalla más estrecha.
+- Código y nombres en **inglés**; textos, comentarios y documentos en **español**.
+
+## 4. Antes de dar algo por bueno
+
+1. Se lee el código existente antes de tocarlo (y `HISTORIAL.md` si el asunto
+   tiene historia).
+2. Tests y compilación en verde:
+   `./gradlew :app:testDebugUnitTest :app:assembleDebug`, y en el backend
+   `./mvnw test`. En este PC `contextLoads` falla porque no hay Postgres, y es
+   normal.
+3. Si se ve en pantalla, se instala y se mira de verdad.
+4. Se apunta una línea en `HISTORIAL.md`, se actualiza «Estado actual» en
+   `CLAUDE.md` y se pone al día `estado-cumbre.json`.
+
+## 5. Pruebas con Álvaro
+
+- Se le da una **lista numerada** en el chat.
+- Él contesta **solo lo que falla**, por número y con captura.
+- Android se prueba en el **Redmi Note 12 Pro**.
+- Las capturas de referencia se guardan en `Escritorio\paridad absoluta`.
+
+## 6. Paridad entre iOS y Android
+
+- Las dos apps tienen las **mismas pantallas, textos, orden y colores**.
+- **Excepción, el panel de admin**: vive solo en iOS. No se porta a Android ni
+  se piden capturas de admin. Lo que ve cualquier usuario (verificado, aureola,
+  títulos) sí lleva paridad.
+- **Rediseño visual pendiente**: se hará primero en iOS y, con el visto bueno de
+  Álvaro, se portará a Android. Mientras tanto, no se tocan los tokens de diseño.
+
+## 7. Publicar
+
+- **Mismo número de versión público** en las dos tiendas (por ejemplo, 7.1.5).
+- **Android**: el AAB se firma **en local** (el workflow de release falla con el
+  keystore del secret). Antes se compila `:app:compileReleaseKotlin`. Los AAB
+  se dejan en `Escritorio\AABs Play`.
+- **iOS**: workflow manual «iOS PROD .ipa». Si App Store Connect contesta
+  «train closed», sube el número 2.x de `project.yml`.
+- **Forzar actualización**: `MIN_ANDROID_VC` / `MIN_IOS_BUILD` en Railway.
+- Pasos completos en [DEPLOYMENT.md](DEPLOYMENT.md).

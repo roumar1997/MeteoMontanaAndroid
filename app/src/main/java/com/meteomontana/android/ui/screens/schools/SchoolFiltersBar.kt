@@ -54,7 +54,7 @@ private val ORIENTATIONS = listOf("N", "NE", "E", "SE", "S", "SO", "O", "NO")
  * Barra de filtros estilo PWA: secciones apiladas (distancia, estilo, roca,
  * favoritos, ordenar). Cada sección es una fila horizontal scrollable de
  * chips. Gana un selector "Escuelas"/"Vías/Bloques" arriba del todo
- * (BLOCK_SEARCH_DESIGN.md §4.1b) — réplica exacta del diseño validado en
+ * (docs/BLOCK_SEARCH_DESIGN.md §4.1b) — réplica exacta del diseño validado en
  * iOS tras probar y descartar el modo implícito sin pestaña.
  */
 @Composable

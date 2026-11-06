@@ -2,7 +2,7 @@ import SwiftUI
 import Shared
 
 // Sección APROXIMACIONES de la ficha de escuela — Fase 1 de
-// APPROACH_DESIGN.md §6.1. Solo lectura: alta por usuario (grabar, añadir
+// docs/APPROACH_DESIGN.md §6.1. Solo lectura: alta por usuario (grabar, añadir
 // chincheta) llega en una fase posterior, sujeta a revisión legal.
 //
 // El loader vive en SchoolMapSection (no aquí) para que la ficha mini de un
@@ -62,7 +62,7 @@ struct ApproachesSection: View {
                             .padding(.horizontal, 16)
                     }
                     // El botón "+ GRABAR APROXIMACIÓN" (solo admin) se quitó el 2026-10-14 a petición de Álvaro.
-                    // ApproachRecordView sigue en el repo por si se retoma (APPROACH_DESIGN.md).
+                    // ApproachRecordView sigue en el repo por si se retoma (docs/APPROACH_DESIGN.md).
                 }
                 .padding(.vertical, 8)
             }

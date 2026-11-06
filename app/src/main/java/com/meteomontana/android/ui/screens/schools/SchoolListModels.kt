@@ -30,7 +30,7 @@ import com.meteomontana.android.ui.screens.detail.BOULDER_GRADES
 
 // Tipos de la pantalla Escuelas: filtros, orden, pestañas, grupos de Vías/Bloques y estado de la lista.
 
-/** Un grupo de resultados "Vías/Bloques" por escuela (BLOCK_SEARCH_DESIGN.md §8.3). */
+/** Un grupo de resultados "Vías/Bloques" por escuela (docs/BLOCK_SEARCH_DESIGN.md §8.3). */
 data class ExploreGroup(
     val schoolId: String,
     val schoolName: String,
@@ -54,7 +54,7 @@ val DISTANCE_OPTIONS = listOf<Double?>(null, 50.0, 100.0, 150.0, 200.0, 250.0, 3
 // Alfabético, como iOS.
 val ROCK_TYPES       = listOf("Granito", "Caliza", "Arenisca", "Basalto", "Conglomerado", "Pizarra")
 
-// ── Pestaña "Escuelas" / "Vías/Bloques" (BLOCK_SEARCH_DESIGN.md §4.1b) ──
+// ── Pestaña "Escuelas" / "Vías/Bloques" (docs/BLOCK_SEARCH_DESIGN.md §4.1b) ──
 // Espejo EXACTO del diseño validado en iOS (builds 243→252) — ver esa
 // sección para el porqué de cada decisión (el modo implícito sin pestaña
 // se probó y se descartó).

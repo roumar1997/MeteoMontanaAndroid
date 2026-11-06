@@ -306,7 +306,7 @@ internal fun Content(
     approaches: List<com.meteomontana.android.domain.model.Approach> = emptyList(),
     isAdmin: Boolean = false
 ) {
-    // Aproximaciones (parking → sector) — APPROACH_DESIGN.md, admin-gated.
+    // Aproximaciones (parking → sector) — docs/APPROACH_DESIGN.md, admin-gated.
     var followingApproach by remember { mutableStateOf<com.meteomontana.android.domain.model.Approach?>(null) }
     var recordingApproach by remember { mutableStateOf(false) }
     val approachScope = androidx.compose.runtime.rememberCoroutineScope()

@@ -129,7 +129,7 @@ class IosDependencyContainer(
         com.meteomontana.android.data.repository.KtorModerationRepository(moderationApi)
     private val blockRepository = KtorBlockRepository(blockApi, database)
     // Aproximaciones (caminos). Lectura pública; alta SOLO ADMIN por ahora
-    // (ver APPROACH_DESIGN.md §2.6/§10) — iOS llama a approachApi directo
+    // (ver docs/APPROACH_DESIGN.md §2.6/§10) — iOS llama a approachApi directo
     // para el alta, sin repositorio intermedio (patrón admin simple).
     val approachApi = com.meteomontana.android.data.api.KtorApproachApi(httpClient)
     private val approachRepository = com.meteomontana.android.data.repository

@@ -117,9 +117,9 @@ final class AssistantViewModel: ObservableObject {
 
     @Published var messages: [AssistantMessage] = []
     @Published var input = ""
-    @Published private(set) var isLoading = false
+    @Published var isLoading = false
     /// Qué está haciendo mientras piensa, si tarda (la foto de una piedra): se enseña bajo los puntos.
-    @Published private(set) var loadingNote: String?
+    @Published var loadingNote: String?
     /// Sube cada vez que el usuario toca "Parar": lo que estaba en marcha ve que ya no es lo actual y no pinta nada.
     var generation = 0
 

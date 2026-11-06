@@ -1,9 +1,9 @@
 {
   "_ayuda": "Lo lee el panel Estado Cumbre. Estados: pendiente (no hecho), hecho (programado, sin probar), probado (validado por Álvaro), publicado (en la tienda). Claude lo actualiza al terminar cada cosa.",
   "builds": {
-    "ios": "7.1.4 (build 348) en revisión · 349 (admin + denuncias) compilando",
-    "android": "7.1.4 (vc123) · AAB firmado (Escritorio, AABs Play), listo para subir",
-    "note": "Versión común 7.1.4 en iOS y Android"
+    "ios": "7.1.4 (build 348) PUBLICADA · 349 (admin + denuncias) a TestFlight",
+    "android": "7.1.4 (vc123) PUBLICADA en Play",
+    "note": "7.1.4 publicada en las dos tiendas y fijada como mínima en Railway"
   },
   "steps": [
     {
@@ -19,16 +19,16 @@
       "done": true
     },
     {
-      "name": "AAB Android 7.1.4 firmado y subido a Play",
-      "done": false
+      "name": "7.1.4 publicada en Play y App Store (mínima en Railway)",
+      "done": true
     },
     {
-      "name": "Arquitectura: 19 de 45 partidos + presentador del asistente en shared (faltan 26: Android difíciles, iOS y servidor)",
-      "done": false
+      "name": "Arquitectura: todos los ficheros partidos (apps ≤600 líneas, servidor ≤400)",
+      "done": true
     },
     {
-      "name": "Bloqueo + CI: apps HECHO (45 por partir), falta el servidor",
-      "done": false
+      "name": "Freno de tamaño en CI: apps y servidor",
+      "done": true
     },
     {
       "name": "Limpieza + README + «Cómo trabajamos» (todas las normas)",

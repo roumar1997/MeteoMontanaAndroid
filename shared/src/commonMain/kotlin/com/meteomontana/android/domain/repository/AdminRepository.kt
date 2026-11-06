@@ -30,7 +30,7 @@ interface AdminRepository {
         region: String? = null, style: String? = null, rockType: String? = null
     ): School
     /** Rellena grade_score de las vías ya existentes (una sola vez, idempotente)
-     *  — BLOCK_SEARCH_DESIGN.md §2/§8. */
+     *  — docs/BLOCK_SEARCH_DESIGN.md §2/§8. */
     suspend fun backfillGradeScore(): GradeScoreBackfillResult
 
     /** ¿Tiene este usuario el asistente de IA activado a mano? (su interruptor, no el global ni ser admin). */

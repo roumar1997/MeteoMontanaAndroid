@@ -17,7 +17,7 @@ struct AdminStatsTab: View {
     /// "ver propuestas pasadas" — al pulsar APROBADAS/RECHAZADAS (Álvaro, 2026-09-30).
     @State private var historyStatus: String? = nil
     /// Rellena grade_score de las vías ya existentes — una sola vez, se puede
-    /// repetir sin romper nada (BLOCK_SEARCH_DESIGN.md §2/§8). El buscador por
+    /// repetir sin romper nada (docs/BLOCK_SEARCH_DESIGN.md §2/§8). El buscador por
     /// grado no devolvía resultados porque las vías antiguas tenían ese campo
     /// vacío; las nuevas ya se rellenan solas al guardarse.
     @State private var backfillRunning = false

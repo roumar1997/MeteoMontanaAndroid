@@ -12,7 +12,7 @@ let EXPLORE_GRADE_LADDER: [String] = BOULDER_GRADES.filter { $0 != "PROY" }
 /// Barra de filtros — réplica de SchoolFiltersBar.kt, con el selector
 /// Escuelas/Bloques arriba (Álvaro, 2026-10-01: la versión sin pestaña no
 /// convencía en uso real — vuelta al mockup con pestaña + selector de
-/// escuelas + slider de grado + orientación, BLOCK_SEARCH_DESIGN.md §4/§8).
+/// escuelas + slider de grado + orientación, docs/BLOCK_SEARCH_DESIGN.md §4/§8).
 struct FilterChips: View {
     @ObservedObject var vm: SchoolListViewModel
     @ObservedObject var explore: ExploreLinesViewModel

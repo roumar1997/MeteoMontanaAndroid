@@ -30,7 +30,7 @@ interface SchoolRepository {
     suspend fun searchLines(query: String): List<LineSearchHit>
 
     /** Modo "explorar" del mismo buscador — filtros sin texto libre
-     *  (BLOCK_SEARCH_DESIGN.md §3/§8). */
+     *  (docs/BLOCK_SEARCH_DESIGN.md §3/§8). */
     suspend fun exploreLines(criteria: LineExploreCriteria): List<LineSearchHit>
 
     /** "Las he visto": marca la escuela como zona conocida de procesionaria. */

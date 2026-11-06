@@ -48,7 +48,7 @@ struct BlockInfoSheet: View {
     var onDelete: (() -> Void)? = nil
     /// Valorar una vía. nil = no mostrar estrellas.
     var onRateLine: ((String, Int) -> Void)? = nil
-    /// Filtro de grado activo en la escuela (BLOCK_SEARCH_DESIGN.md §7.3): las
+    /// Filtro de grado activo en la escuela (docs/BLOCK_SEARCH_DESIGN.md §7.3): las
     /// vías FUERA de rango se atenúan, nunca se ocultan — dentro de una piedra
     /// que sí se muestra, esconder vías haría perder el contexto de la pared.
     /// nil = sin filtro, todas a color pleno.

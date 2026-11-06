@@ -1,4 +1,4 @@
-# MEETUPS_DESIGN.md — Quedadas para escalar
+# docs/MEETUPS_DESIGN.md — Quedadas para escalar
 
 > **Implementado y en producción.** Queda como referencia del modelo de
 > datos y reglas de negocio para cuando se toque esta pestaña; el plan de
