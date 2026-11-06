@@ -190,6 +190,10 @@ class KtorModerationApi(private val client: HttpClient) {
     suspend fun resetUsername(uid: String): UserModerationDto? =
         try { client.post("admin/users/$uid/reset-username").body() } catch (_: Throwable) { null }
 
+    /** Cambia un nombre visible que no cumple las normas por uno neutro y se le explica. null si falla. */
+    suspend fun resetDisplayName(uid: String): UserModerationDto? =
+        try { client.post("admin/users/$uid/reset-name").body() } catch (_: Throwable) { null }
+
     suspend fun unbanUser2(uid: String, reason: String? = null): UserModerationDto? =
         try {
             client.post("admin/users/$uid/unban") {

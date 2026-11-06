@@ -226,7 +226,7 @@ struct UserModerationSheet: View {
                         }
 
                         Divider().overlay(Cumbre.rule)
-                        AdminTeamMessageSection(uid: uid, username: m.username) { updated in
+                        AdminTeamMessageSection(uid: uid, username: m.username, displayName: m.displayName) { updated in
                             if let updated { mod = updated } else { Task { await reload() } }
                         }
 
@@ -292,6 +292,7 @@ struct UserModerationSheet: View {
         case "DELETE_NOTE": return "Nota borrada"; case "DELETE_COMMENT": return "Comentario borrado"
         case "DELETE_MEETUP": return "Quedada borrada"
         case "MESSAGE": return "Mensaje del Equipo Cumbre"; case "RESET_USERNAME": return "Nombre de usuario restablecido"
+        case "RESET_NAME": return "Nombre restablecido"
         case "DELETE_FEED_POST": return "Publicación borrada"; case "DELETE_FEED_COMMENT": return "Comentario de Comunidad borrado"
         case "DELETE_BETA_LINK": return "Enlace de beta borrado"
         default: return a }

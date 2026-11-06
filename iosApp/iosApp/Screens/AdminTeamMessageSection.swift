@@ -7,12 +7,14 @@ import Shared
 struct AdminTeamMessageSection: View {
     let uid: String
     let username: String?
+    let displayName: String?
     /// La ficha actualizada que devuelve el servidor tras cada acción (para refrescar el historial).
     let onUpdated: (UserModerationDto?) -> Void
 
     @State private var text = ""
     @State private var sending = false
     @State private var confirmReset = false
+    @State private var confirmResetName = false
     @State private var sentNote: String?
 
     private var api: KtorModerationApi { AppDependencies.shared.container.moderationApi }
@@ -59,8 +61,8 @@ struct AdminTeamMessageSection: View {
             }
 
             Divider().overlay(Cumbre.rule).padding(.vertical, 4)
-            Text(L("NOMBRE DE USUARIO")).font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
-            Text(L("Si no lo cambia: se le pone uno neutro (escalador_1234) y se le explica por qué."))
+            Text(L("NOMBRE Y USUARIO")).font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
+            Text(L("Si no lo cambia: se le pone uno neutro («Escalador» o escalador_1234) y se le explica por qué."))
                 .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
             Button { confirmReset = true } label: {
                 Text(L("RESTABLECER @%@", username ?? "…"))
@@ -69,6 +71,19 @@ struct AdminTeamMessageSection: View {
                     .overlay(Capsule().stroke(Cumbre.bad, lineWidth: 1))
             }
             .buttonStyle(.plain)
+            Button { confirmResetName = true } label: {
+                Text(L("RESTABLECER NOMBRE «%@»", displayName ?? "…"))
+                    .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.bad)
+                    .frame(maxWidth: .infinity).padding(.vertical, 11)
+                    .overlay(Capsule().stroke(Cumbre.bad, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+        }
+        .confirmationDialog(L("¿Restablecer el nombre?"), isPresented: $confirmResetName, titleVisibility: .visible) {
+            Button(L("Restablecer"), role: .destructive) { resetName() }
+            Button(L("Cancelar"), role: .cancel) {}
+        } message: {
+            Text(L("Se le cambiará «%@» por «Escalador» y le llegará un mensaje del Equipo Cumbre explicándolo.", displayName ?? ""))
         }
         .confirmationDialog(L("¿Restablecer el nombre de usuario?"), isPresented: $confirmReset, titleVisibility: .visible) {
             Button(L("Restablecer"), role: .destructive) { resetUsername() }
@@ -88,6 +103,14 @@ struct AdminTeamMessageSection: View {
             sending = false
             if let updated { text = ""; sentNote = L("Mensaje enviado."); onUpdated(updated) }
             else { sentNote = L("No se pudo enviar. Inténtalo otra vez.") }
+        }
+    }
+
+    private func resetName() {
+        Task {
+            let updated = try? await api.resetDisplayName(uid: uid)
+            sentNote = updated == nil ? L("No se pudo restablecer. Inténtalo otra vez.") : L("Nombre restablecido.")
+            onUpdated(updated ?? nil)
         }
     }
 
