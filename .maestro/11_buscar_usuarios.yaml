@@ -1,0 +1,23 @@
+# Buscar usuarios: abre la lupa, escribe un texto y comprueba que salen resultados (sin seguir a nadie).
+appId: com.meteomontana.android
+---
+- launchApp:
+    clearState: false
+- tapOn: "Escuelas"
+- extendedWaitUntil:
+    visible: "VER MAPA"
+    timeout: 20000
+- tapOn: "Buscar usuarios"
+- extendedWaitUntil:
+    visible: "Nombre o @usuario…"
+    timeout: 10000
+- tapOn: "Nombre o @usuario…"
+- inputText: "alvaro"
+- extendedWaitUntil:
+    visible: ".*@alvaro.*"
+    timeout: 20000
+- hideKeyboard
+- tapOn: "Cerrar"
+- extendedWaitUntil:
+    visible: "VER MAPA"
+    timeout: 10000

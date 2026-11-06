@@ -1,0 +1,30 @@
+# Feed: alterna Explorar, Siguiendo y Ranking; abre los comentarios de una publicación si existe.
+appId: com.meteomontana.android
+---
+- launchApp:
+    clearState: false
+- tapOn: "Feed"
+- extendedWaitUntil:
+    visible: "Explorar"
+    timeout: 15000
+- tapOn: "Siguiendo"
+- waitForAnimationToEnd
+- tapOn: "Explorar"
+- waitForAnimationToEnd
+- tapOn: "Ranking"
+- extendedWaitUntil:
+    visible: "MAYORES CONTRIBUIDORES"
+    timeout: 15000
+- tapOn: "Explorar"
+- waitForAnimationToEnd
+# Publicación (opcional: depende de que haya contenido en staging)
+- runFlow:
+    when:
+      visible: "Comentarios"
+    commands:
+      - tapOn:
+          text: "Comentarios"
+          index: 0
+      - waitForAnimationToEnd
+      - back
+- assertVisible: "Explorar"

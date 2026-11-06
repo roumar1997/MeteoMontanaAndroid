@@ -1,0 +1,18 @@
+# Notificaciones: abre la campana, ve la lista y la cierra (sin marcar ni borrar nada).
+appId: com.meteomontana.android
+---
+- launchApp:
+    clearState: false
+- tapOn: "Escuelas"
+- extendedWaitUntil:
+    visible: "VER MAPA"
+    timeout: 20000
+- tapOn: "Notificaciones"
+- extendedWaitUntil:
+    visible: "Cerrar"
+    timeout: 10000
+- assertVisible: "Notificaciones"
+- tapOn: "Cerrar"
+- extendedWaitUntil:
+    visible: "VER MAPA"
+    timeout: 10000

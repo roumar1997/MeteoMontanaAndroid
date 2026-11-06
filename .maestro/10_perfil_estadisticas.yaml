@@ -1,0 +1,32 @@
+# Perfil: ESTADÍSTICAS → MIS ESTADÍSTICAS → volver; abre la lista BLOQUES del diario y busca.
+appId: com.meteomontana.android
+---
+- launchApp:
+    clearState: false
+- tapOn: "Perfil"
+- extendedWaitUntil:
+    visible: "ESTADÍSTICAS"
+    timeout: 15000
+- tapOn: "ESTADÍSTICAS"
+- extendedWaitUntil:
+    visible: "MIS ESTADÍSTICAS"
+    timeout: 15000
+- tapOn: "‹"
+- extendedWaitUntil:
+    visible: "SEGUIDORES"
+    timeout: 10000
+- tapOn:
+    text: "BLOQUES"
+    index: 0
+- extendedWaitUntil:
+    visible: "Mis bloques"
+    timeout: 15000
+- tapOn: "Buscar por nombre, escuela o sector"
+- inputText: "Zarzalejo"
+- waitForAnimationToEnd
+- assertVisible: ".*Zarzalejo.*"
+- hideKeyboard
+- tapOn: "Volver"
+- extendedWaitUntil:
+    visible: "SEGUIDORES"
+    timeout: 10000

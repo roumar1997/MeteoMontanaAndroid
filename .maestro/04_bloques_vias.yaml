@@ -1,0 +1,22 @@
+# Bloques/vías: en Zarzalejo (tiene vías) abre una vía de la guía y ve su topo y detalle.
+appId: com.meteomontana.android
+---
+- runFlow: comun/zarzalejo_guia.yaml
+- scrollUntilVisible:
+    element: "Teléfono rojo"
+    direction: DOWN
+    timeout: 40000
+- tapOn: "Teléfono rojo"
+- extendedWaitUntil:
+    visible: "PIEDRA.*"
+    timeout: 20000
+- assertVisible: "Ver foto en grande"
+# Topo a pantalla grande (opcional: depende de que el botón sea alcanzable)
+- runFlow:
+    when:
+      visible: "Ver foto en grande"
+    commands:
+      - tapOn: "Ver foto en grande"
+      - waitForAnimationToEnd
+      - back
+- assertVisible: "Volver"

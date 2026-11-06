@@ -1,0 +1,46 @@
+# Crear quedada (ESCRIBE en staging): crea «PRUEBA MAESTRO» en Zarzalejo, comprueba que se abre y la ELIMINA.
+appId: com.meteomontana.android
+---
+- launchApp:
+    clearState: false
+- tapOn: "Quedadas"
+- extendedWaitUntil:
+    visible: "Crear quedada"
+    timeout: 15000
+- runFlow:
+    when:
+      visible: "Entendido"
+    commands:
+      - tapOn: "Entendido"
+- tapOn: "Crear quedada"
+- extendedWaitUntil:
+    visible: "Nueva quedada"
+    timeout: 10000
+- tapOn: "Ej. Quedar en Pedriza"
+- inputText: "PRUEBA MAESTRO"
+- hideKeyboard
+- tapOn: "Buscar escuela…"
+- inputText: "Zarzalejo"
+# índice 1: el 0 es el texto escrito en el buscador
+- tapOn:
+    text: "Zarzalejo"
+    index: 1
+- tapOn: "SÁB.*"
+# tapOn por texto reinicia el formulario sin crear la quedada en el emulador; el toque por posición sí la crea
+- tapOn:
+    point: "50%,86%"
+# Al crearla se abre su detalle (tarda unos segundos)
+- extendedWaitUntil:
+    visible: "ELIMINAR QUEDADA"
+    timeout: 60000
+- assertVisible: "PRUEBA MAESTRO"
+# Limpieza: eliminarla
+- tapOn: "ELIMINAR QUEDADA"
+- extendedWaitUntil:
+    visible: "Se eliminará la quedada y su chat de grupo. ¿Continuar?"
+    timeout: 8000
+- tapOn: "Eliminar"
+- extendedWaitUntil:
+    visible: "QUEDADAS"
+    timeout: 20000
+- assertNotVisible: "PRUEBA MAESTRO"

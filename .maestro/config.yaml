@@ -1,0 +1,3 @@
+# Solo se ejecutan los flujos numerados; los trozos reutilizables viven en comun/.
+flows:
+  - "[0-9]*.yaml"

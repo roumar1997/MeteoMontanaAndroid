@@ -1,0 +1,15 @@
+# Radar/Tiempo: la pestaña Radar muestra TIEMPO y RADAR y se puede alternar.
+appId: com.meteomontana.android
+---
+- launchApp:
+    clearState: false
+- tapOn: "Radar"
+- extendedWaitUntil:
+    visible: "TIEMPO"
+    timeout: 20000
+- tapOn: "RADAR"
+- waitForAnimationToEnd:
+    timeout: 6000
+- assertVisible: "TIEMPO"
+- tapOn: "TIEMPO"
+- assertVisible: "RADAR"

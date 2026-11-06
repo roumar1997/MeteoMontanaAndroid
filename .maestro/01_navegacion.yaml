@@ -1,0 +1,23 @@
+# Arranque y las 5 pestañas: la app abre sin cerrarse y cada pestaña carga.
+appId: com.meteomontana.android
+---
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible: "Perfil"
+    timeout: 20000
+- tapOn: "Radar"
+- assertVisible: "Radar"
+- tapOn: "Feed"
+- extendedWaitUntil:
+    visible: "Explorar"
+    timeout: 15000
+- tapOn: "Escuelas"
+- extendedWaitUntil:
+    visible: "VER MAPA"
+    timeout: 15000
+- tapOn: "Quedadas"
+- tapOn: "Perfil"
+- extendedWaitUntil:
+    visible: "ESTADÍSTICAS"
+    timeout: 15000

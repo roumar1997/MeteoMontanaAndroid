@@ -1,0 +1,33 @@
+# Escuelas: la lista carga (al menos una tarjeta) y funcionan los filtros Bloque/Vía/QUITAR FILTROS.
+appId: com.meteomontana.android
+---
+- launchApp:
+    clearState: false
+- tapOn: "Escuelas"
+- extendedWaitUntil:
+    visible: "VER MAPA"
+    timeout: 20000
+# El emulador está lejos de España: el filtro de distancia puede dejar 0 escuelas.
+- runFlow:
+    when:
+      visible: "QUITAR FILTROS"
+    commands:
+      - tapOn: "QUITAR FILTROS"
+- extendedWaitUntil:
+    visible: ".* km"
+    timeout: 40000
+- tapOn:
+    text: "FILTROS.*"
+- extendedWaitUntil:
+    visible: "ESTILO"
+    timeout: 10000
+- tapOn: "Bloque"
+- tapOn: "Vía"
+- assertVisible: "ESTILO"
+# Dejar los filtros limpios: BORRAR (y QUITAR FILTROS si la lista quedó vacía)
+- tapOn: "BORRAR"
+- runFlow:
+    when:
+      visible: "QUITAR FILTROS"
+    commands:
+      - tapOn: "QUITAR FILTROS"

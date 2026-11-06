@@ -1,0 +1,22 @@
+# Mensajes: abre la bandeja, recorre los filtros Chats/Grupos/Todos y cierra (no se envía nada).
+appId: com.meteomontana.android
+---
+- launchApp:
+    clearState: false
+- tapOn: "Escuelas"
+- extendedWaitUntil:
+    visible: "VER MAPA"
+    timeout: 20000
+- tapOn: "Mensajes"
+- extendedWaitUntil:
+    visible: "Buscar en tus conversaciones"
+    timeout: 15000
+- tapOn: "Grupos"
+- waitForAnimationToEnd
+- tapOn: "Chats"
+- waitForAnimationToEnd
+- tapOn: "Todos"
+- tapOn: "Cerrar"
+- extendedWaitUntil:
+    visible: "VER MAPA"
+    timeout: 10000

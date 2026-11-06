@@ -1,0 +1,32 @@
+# Quedadas: abre filtros (disciplina, distancia, día), los cambia y los deja como estaban; abre una quedada si existe.
+appId: com.meteomontana.android
+---
+- launchApp:
+    clearState: false
+- tapOn: "Quedadas"
+- extendedWaitUntil:
+    visible: "FILTROS"
+    timeout: 15000
+- runFlow:
+    when:
+      visible: "Entendido"
+    commands:
+      - tapOn: "Entendido"
+- tapOn: "FILTROS"
+- extendedWaitUntil:
+    visible: "DISCIPLINA"
+    timeout: 8000
+- tapOn: "Bloque"
+- tapOn: "< 100 km"
+- waitForAnimationToEnd
+- tapOn: "Ambas"
+# Restaurar valores por defecto: distancia (1ª Cualquiera) y disciplina (2ª Cualquiera)
+- tapOn:
+    text: "Cualquiera"
+    index: 0
+- tapOn:
+    text: "Cualquiera"
+    index: 1
+# NOTA: abrir una quedada existente no se automatiza: en staging no hay ninguna activa.
+# El flujo 17 crea una, la abre y la elimina.
+- assertVisible: "QUEDADAS"

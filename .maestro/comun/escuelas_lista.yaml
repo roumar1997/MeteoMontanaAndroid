@@ -1,0 +1,17 @@
+# Reutilizable: abre la app, va a Escuelas y espera a que haya tarjetas (quita filtros si hace falta).
+appId: com.meteomontana.android
+---
+- launchApp:
+    clearState: false
+- tapOn: "Escuelas"
+- extendedWaitUntil:
+    visible: "VER MAPA"
+    timeout: 20000
+- runFlow:
+    when:
+      visible: "QUITAR FILTROS"
+    commands:
+      - tapOn: "QUITAR FILTROS"
+- extendedWaitUntil:
+    visible: ".* km"
+    timeout: 40000

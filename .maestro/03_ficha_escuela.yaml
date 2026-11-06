@@ -1,0 +1,36 @@
+# Ficha de escuela: abre la primera escuela, recorre sus pestañas y vuelve a la lista.
+appId: com.meteomontana.android
+---
+- runFlow: comun/escuelas_lista.yaml
+- tapOn:
+    text: ".* km"
+    index: 0
+- extendedWaitUntil:
+    visible: "MAPA"
+    timeout: 25000
+# Guía contextual de la primera visita (opcional)
+- runFlow:
+    when:
+      visible: "Entendido"
+    commands:
+      - tapOn: "Entendido"
+- tapOn: "GUÍA"
+- tapOn: "TIEMPO"
+- tapOn: "NOTAS"
+# BLOQUES / VÍAS solo aparece si la escuela tiene piedras o vías en staging (opcional)
+- runFlow:
+    when:
+      visible: "BLOQUES"
+    commands:
+      - tapOn: "BLOQUES"
+- runFlow:
+    when:
+      visible: "VÍAS"
+    commands:
+      - tapOn: "VÍAS"
+- tapOn: "MAPA"
+- assertVisible: "NOTAS"
+- tapOn: "Volver"
+- extendedWaitUntil:
+    visible: "VER MAPA"
+    timeout: 15000

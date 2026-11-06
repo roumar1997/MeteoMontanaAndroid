@@ -1,0 +1,20 @@
+# Buscador de vías por grado: pestaña Vías/Bloques, grado mínimo 6a y resultados.
+appId: com.meteomontana.android
+---
+- runFlow: comun/escuelas_lista.yaml
+- tapOn: "Vías/Bloques"
+- extendedWaitUntil:
+    visible: ".* vías/bloques encontrados"
+    timeout: 30000
+- tapOn:
+    text: "FILTROS.*"
+- tapOn: "MÍN"
+- tapOn: "6a"
+- extendedWaitUntil:
+    visible: ".* vías?/bloques? encontrados?"
+    timeout: 30000
+- assertNotVisible: "111 vías/bloques encontrados"
+- assertVisible: "BORRAR"
+# Dejar el filtro limpio
+- tapOn: "BORRAR"
+- tapOn: "Escuelas"

@@ -1,0 +1,51 @@
+# Marcar vía (ESCRIBE en staging): marca «Unos mecos bicho» hecha, la ve en el diario y la BORRA del diario.
+appId: com.meteomontana.android
+---
+- runFlow: comun/zarzalejo_guia.yaml
+- scrollUntilVisible:
+    element: "Unos mecos bicho"
+    direction: DOWN
+    timeout: 40000
+- tapOn: "Unos mecos bicho"
+- extendedWaitUntil:
+    visible: "PIEDRA.*"
+    timeout: 20000
+- scroll
+- tapOn: "Marcar como hecha"
+- extendedWaitUntil:
+    visible: "GUARDAR EN MI DIARIO"
+    timeout: 10000
+# Guía de la primera vez (opcional)
+- runFlow:
+    when:
+      visible: "SALIR"
+    commands:
+      - tapOn: "SALIR"
+- tapOn: "GUARDAR EN MI DIARIO"
+- waitForAnimationToEnd:
+    timeout: 5000
+# Comprobar en el diario
+- tapOn: "Perfil"
+- extendedWaitUntil:
+    visible: "SEGUIDORES"
+    timeout: 15000
+- tapOn:
+    text: "BLOQUES"
+    index: 0
+- extendedWaitUntil:
+    visible: "Mis bloques"
+    timeout: 15000
+- assertVisible: "Unos mecos bicho"
+# Limpieza: borrar la entrada recién creada (la primera, la más reciente)
+- tapOn:
+    text: "Más opciones"
+    index: 0
+- tapOn: "Borrar del diario"
+- extendedWaitUntil:
+    visible: "¿Borrar «Unos mecos bicho» del diario?"
+    timeout: 8000
+- tapOn: "Borrar"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible: "Unos mecos bicho"
+- tapOn: "Volver"

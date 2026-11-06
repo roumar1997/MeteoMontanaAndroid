@@ -1,0 +1,14 @@
+# Mapa de escuelas: VER MAPA, esperar a que cargue y OCULTAR MAPA.
+appId: com.meteomontana.android
+---
+- runFlow: comun/escuelas_lista.yaml
+- tapOn: "VER MAPA"
+- extendedWaitUntil:
+    visible: "OCULTAR MAPA"
+    timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 8000
+- tapOn: "OCULTAR MAPA"
+- extendedWaitUntil:
+    visible: "VER MAPA"
+    timeout: 10000

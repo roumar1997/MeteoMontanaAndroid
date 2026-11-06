@@ -1,0 +1,23 @@
+# Idioma en caliente: Perfil → Ajustes → Idioma → English (texto en inglés) → de vuelta a Español.
+appId: com.meteomontana.android
+---
+- launchApp:
+    clearState: false
+- tapOn: "Perfil"
+- extendedWaitUntil:
+    visible: "ESTADÍSTICAS"
+    timeout: 15000
+- tapOn: "Ajustes"
+- tapOn: "Idioma"
+- tapOn: "English"
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 10000
+- assertVisible: "Language"
+- tapOn: "Language"
+- tapOn: "Español"
+- extendedWaitUntil:
+    visible: "Ajustes"
+    timeout: 10000
+- assertVisible: "Idioma"
+- assertNotVisible: "Settings"
