@@ -1,0 +1,40 @@
+name: SwiftLint
+
+# Revisa el código Swift en Linux (no gasta minutos de Mac). Solo falla por problemas NUEVOS:
+# lo que ya había está en .swiftlint-baseline.json.
+# Para generar el baseline la primera vez (o encogerlo): lanzar este workflow a mano con write_baseline=true,
+# descargar el artefacto y commitearlo en la raíz.
+on:
+  push:
+    branches: ["main", "develop", "claude/**"]
+    paths: ["iosApp/**", ".swiftlint.yml", ".swiftlint-baseline.json", ".github/workflows/swiftlint.yml"]
+  workflow_dispatch:
+    inputs:
+      write_baseline:
+        description: "Generar .swiftlint-baseline.json en vez de comprobar"
+        type: boolean
+        default: false
+
+jobs:
+  swiftlint:
+    runs-on: ubuntu-latest
+    container: ghcr.io/realm/swiftlint:0.65.1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generar baseline
+        if: ${{ inputs.write_baseline }}
+        run: swiftlint lint --quiet --write-baseline .swiftlint-baseline.json || true
+
+      - name: Subir baseline
+        if: ${{ inputs.write_baseline }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: swiftlint-baseline
+          path: .swiftlint-baseline.json
+
+      - name: SwiftLint (solo problemas nuevos)
+        if: ${{ !inputs.write_baseline }}
+        run: |
+          if [ ! -f .swiftlint-baseline.json ]; then echo "Aún no hay baseline: genéralo con write_baseline=true"; exit 0; fi
+          swiftlint lint --quiet --strict --baseline .swiftlint-baseline.json

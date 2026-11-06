@@ -1,0 +1,37 @@
+# SwiftLint para la app iOS. Lo que ya existía está en .swiftlint-baseline.json:
+# el CI solo falla por problemas NUEVOS. El baseline solo puede encoger.
+included:
+  - iosApp/iosApp
+excluded:
+  - iosApp/**/Generated
+  - "**/.build"
+
+disabled_rules:
+  - trailing_whitespace
+  - todo
+  - identifier_name
+  - line_length
+  - opening_brace
+  - nesting
+
+opt_in_rules:
+  - empty_count
+  - unused_import
+
+function_body_length:
+  warning: 80
+  error: 120
+function_parameter_count:
+  warning: 8
+  error: 12
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+type_body_length:
+  warning: 400
+  error: 600
+file_length:
+  warning: 600
+  error: 600
+force_cast: warning
+force_try: warning

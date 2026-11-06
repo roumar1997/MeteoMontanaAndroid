@@ -1,7 +1,7 @@
 {
   "_ayuda": "Lo lee el panel Estado Cumbre. Estados: pendiente (no hecho), hecho (programado, sin probar), probado (validado por Álvaro), publicado (en la tienda). Claude lo actualiza al terminar cada cosa.",
   "builds": {
-    "ios": "7.1.4 (build 348) PUBLICADA · 349 (admin + denuncias) a TestFlight",
+    "ios": "7.1.4 (build 348) PUBLICADA · 349 (admin + denuncias) en TestFlight",
     "android": "7.1.4 (vc123) PUBLICADA en Play",
     "note": "7.1.4 publicada en las dos tiendas y fijada como mínima en Railway"
   },
