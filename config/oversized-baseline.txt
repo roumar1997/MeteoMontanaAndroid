@@ -1,18 +1,8 @@
 # Ficheros que YA pasaban de 600 líneas el 2026-11-05 (tamaño de ese día). Pueden encoger, nunca crecer.
 # Al partir uno por debajo de 600, se borra su línea. Objetivo: que esta lista quede vacía.
 1580 iosApp/iosApp/Screens/SchoolMapSection.swift
-1239 iosApp/iosApp/Screens/JournalView.swift
-980 iosApp/iosApp/Screens/SchoolListHeader.swift
-979 iosApp/iosApp/Screens/MeetupDetailView.swift
-977 iosApp/iosApp/Screens/UsersView.swift
-959 iosApp/iosApp/Screens/AccountView.swift
-888 iosApp/iosApp/Screens/BoulderFormSheet.swift
-840 iosApp/iosApp/Screens/AssistantViewModel.swift
-798 iosApp/iosApp/Screens/StatsView.swift
-734 iosApp/iosApp/Screens/AssistantChatView.swift
-719 iosApp/iosApp/Screens/AdminContributionCards.swift
-715 iosApp/iosApp/Screens/BlockInfoSheet.swift
-707 iosApp/iosApp/Screens/GuidePDF.swift
+709 iosApp/iosApp/Screens/BoulderFormSheet.swift
+785 iosApp/iosApp/Screens/AssistantViewModel.swift
+638 iosApp/iosApp/Screens/StatsView.swift
+668 iosApp/iosApp/Screens/BlockInfoSheet.swift
 706 iosApp/iosApp/Screens/EditLinesSheet.swift
-650 iosApp/iosApp/Screens/SchoolDetailView.swift
-603 iosApp/iosApp/Screens/AdminTabs.swift
