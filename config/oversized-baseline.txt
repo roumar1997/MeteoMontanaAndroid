@@ -15,5 +15,4 @@
 707 iosApp/iosApp/Screens/GuidePDF.swift
 706 iosApp/iosApp/Screens/EditLinesSheet.swift
 650 iosApp/iosApp/Screens/SchoolDetailView.swift
-649 shared/src/commonMain/kotlin/com/meteomontana/android/di/IosDependencyContainer.kt
 603 iosApp/iosApp/Screens/AdminTabs.swift
