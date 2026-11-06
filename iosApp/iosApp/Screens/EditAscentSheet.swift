@@ -1,4 +1,5 @@
 import SwiftUI
+import Shared
 
 /// Estilo de un ascenso como UNA eleccion excluyente (Ninguno / A vista / Al flash).
 /// En el servidor y en el diario viven como dos booleanos; este enum es el puente y
