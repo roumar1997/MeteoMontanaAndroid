@@ -76,7 +76,7 @@ los dos entornos. `climbingteams.com` lo sirve **Cloudflare Pages** (push a `mai
   8. pruebas y publicar.
 - **Siempre que se toque algo**: pasar a `shared` la lógica de negocio que esté copiada en Swift.
 - **Después de la 7.2**: partir Android en módulos por funcionalidad y medir la fluidez (Álvaro nota Android algo más lento que iOS).
-- Backend: el refactor está en staging; falta el «sí, fusiona» para pasarlo a `main`.
+- Backend en PRODUCCIÓN (main cd0f425, V98) con el interruptor remoto (todo encendido). Staging = copia de producción (2026-11-06).
 
 ## Trampas vigentes
 

@@ -43,12 +43,28 @@
       "done": true
     },
     {
-      "name": "Plan 7.2 · 4–7. Capturas, Maestro, publicación segura, interruptor remoto",
+      "name": "Plan 7.2 · 4. Capturas automáticas Android (Roborazzi en CI)",
+      "done": true
+    },
+    {
+      "name": "Plan 7.2 · 5. Recorridos Maestro (17, emulador Pixel 7 + vigilante de cierres/ANR)",
+      "done": true
+    },
+    {
+      "name": "Plan 7.2 · 6. Publicación por fases + alertas de Crashlytics",
       "done": false
+    },
+    {
+      "name": "Plan 7.2 · 7. Interruptor remoto (servidor en producción; apps en la rama, falta validar en iOS)",
+      "done": true
     },
     {
       "name": "Plan 7.2 · 8. Pruebas y publicar 7.2",
       "done": false
+    },
+    {
+      "name": "Staging refrescado con copia de producción (2026-11-06)",
+      "done": true
     }
   ],
   "features": [
