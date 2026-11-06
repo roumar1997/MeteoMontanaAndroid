@@ -249,7 +249,6 @@ struct SchoolMapSection: View {
     /// Buscador de vías/bloques (como el buscador de escuelas de la lista).
     // Muros (geometry=LINE) dibujados como polilínea terra en el mapa. Se ocultan
     // si la piedra pertenece a un sector colapsado (igual que su marcador).
-    var id: String { "\(coord.latitude),\(coord.longitude)" }
 }
 
 /// Selector de tipo de propuesta — espejo de TypePickerDialog.kt. PARKING está
