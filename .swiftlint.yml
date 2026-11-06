@@ -16,7 +16,6 @@ disabled_rules:
 
 opt_in_rules:
   - empty_count
-  - unused_import
 
 function_body_length:
   warning: 80

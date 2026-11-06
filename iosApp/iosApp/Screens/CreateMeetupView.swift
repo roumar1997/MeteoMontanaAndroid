@@ -230,8 +230,11 @@ struct CreateMeetupView: View {
                         }
                     } label: {
                         HStack {
-                            if submitting { ProgressView().scaleEffect(0.8).tint(.white) }
-                            else { Text(NSLocalizedString("create_meetup_create", comment: "")).fontWeight(.bold) }
+                            if submitting {
+                                ProgressView().scaleEffect(0.8).tint(.white)
+                            } else {
+                                Text(NSLocalizedString("create_meetup_create", comment: "")).fontWeight(.bold)
+                            }
                         }
                         .frame(maxWidth: .infinity)
                     }
