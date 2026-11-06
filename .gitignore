@@ -57,3 +57,6 @@ iosApp/build/
 iosApp/iosApp/Info.plist
 # Generado por XcodeGen desde project.yml (entitlements.properties).
 iosApp/iosApp/MeteoMontana.entitlements
+
+# Informes de Roborazzi (las referencias grabadas en CI van en app/src/test/screenshots y SI se versionan)
+/app/build/outputs/roborazzi/

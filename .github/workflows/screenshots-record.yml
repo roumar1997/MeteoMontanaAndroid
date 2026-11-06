@@ -1,0 +1,59 @@
+name: Screenshots - grabar referencias
+
+# Manual. Las imágenes de referencia SE GRABAN EN LINUX (mismas fuentes y antialiasing que android-ci.yml);
+# grabadas en Windows/Mac saldrían distintas y el CI fallaría siempre.
+# Uso: Actions -> "Screenshots - grabar referencias" -> Run workflow (en la rama que quieras),
+# bajar el artifact "screenshots-reference", copiar su contenido a app/src/test/screenshots/ y commitear.
+on:
+  workflow_dispatch:
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle (con caché de dependencias)
+        uses: gradle/actions/setup-gradle@v6
+
+      # Mismo google-services.json de relleno que android-ci.yml (el fichero real no está en git).
+      - name: Write google-services.json (dummy)
+        run: |
+          if [ ! -f app/google-services.json ]; then
+            cat > app/google-services.json <<'EOF'
+          {
+            "project_info": { "project_number": "000000000000", "project_id": "ci-dummy", "storage_bucket": "ci-dummy.appspot.com" },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": { "package_name": "com.meteomontana.android" }
+                },
+                "oauth_client": [],
+                "api_key": [ { "current_key": "AIzaSyDUMMY-DUMMY-DUMMY-DUMMY-DUMMY-DUMMY" } ],
+                "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+          fi
+
+      - name: Grabar capturas de referencia
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:recordRoborazziDebug --stacktrace
+
+      - name: Subir capturas
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshots-reference
+          retention-days: 7
+          path: app/src/test/screenshots/

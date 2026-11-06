@@ -95,6 +95,21 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:assembleDebug :app:testDebugUnitTest :shared:testDebugUnitTest --stacktrace
 
+      # Capturas de pantalla (Roborazzi): falla si un componente cambia sin querer. Se salta mientras no existan
+      # las referencias (grabarlas con el workflow "Screenshots - grabar referencias" y commitear app/src/test/screenshots).
+      - name: Verificar capturas de pantalla
+        if: hashFiles('app/src/test/screenshots/*.png') != ''
+        run: ./gradlew :app:verifyRoborazziDebug --stacktrace
+
+      - name: Informe de diferencias de capturas (solo si falla)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshots-diff
+          retention-days: 3
+          path: app/build/outputs/roborazzi/
+          if-no-files-found: ignore
+
       # APK instalable: Actions → run → Artifacts → app-debug-apk.
       # Permite probar en el móvil sin compilar en local (workflow GitHub-only).
       - name: Upload debug APK

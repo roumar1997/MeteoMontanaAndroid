@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.roborazzi)
 }
 
 // Sello de compilacion (hora local) que se ensena en Ajustes.
@@ -95,6 +96,8 @@ android {
             // en vez de reventar. Hizo falta al añadir registro permanente
             // en SchoolDetailLoader (Álvaro, 2026-08-25).
             isReturnDefaultValues = true
+            // Robolectric (capturas de pantalla) necesita los recursos y el manifiesto de la app.
+            isIncludeAndroidResources = true
         }
     }
 }
@@ -195,6 +198,12 @@ dependencies {
     testImplementation("org.json:json:20240303")
     // Driver JVM de SQLDelight (BD en memoria) para testear el outbox offline.
     testImplementation("app.cash.sqldelight:sqlite-driver:2.0.2")
+    // Capturas de pantalla en JVM (Roborazzi + Robolectric): ver app/src/test/java/.../screenshots
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
