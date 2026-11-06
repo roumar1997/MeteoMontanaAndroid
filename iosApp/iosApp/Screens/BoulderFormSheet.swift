@@ -21,54 +21,54 @@ struct BoulderFormSheet: View {
     var borrador: BoulderDraftStore.Draft? = nil
     let onDone: (Bool) -> Void
 
-    @Environment(\.dismiss) private var dismiss
-    @State private var name = ""
-    @State private var sectorId: String? = nil
-    @State private var discipline = "BOULDER"   // BOULDER (bloque) / ROUTE (vía)
+    @Environment(\.dismiss) var dismiss
+    @State var name = ""
+    @State var sectorId: String? = nil
+    @State var discipline = "BOULDER"   // BOULDER (bloque) / ROUTE (vía)
     // Una piedra grande no cabe en una foto → varias CARAS (foto + sus vías).
-    @State private var faces: [BoulderFaceForm] = [BoulderFaceForm()]
+    @State var faces: [BoulderFaceForm] = [BoulderFaceForm()]
     /// La foto de la semilla se coloca UNA vez: repetirlo en cada refresco
     /// borraría lo que el usuario vaya escribiendo.
-    @State private var semillaPuesta = false
+    @State var semillaPuesta = false
     /// Paso fino (2º): aquí se lee el número de grados.
-    @StateObject private var brujula = HeadingProvider(stepDegrees: 2)
-    @State private var selectedFace = 0
-    @State private var pickerItem: PhotosPickerItem?
+    @StateObject var brujula = HeadingProvider(stepDegrees: 2)
+    @State var selectedFace = 0
+    @State var pickerItem: PhotosPickerItem?
     // Elegir cámara o galería para la foto de una cara (paridad Android
     // BoulderFormDialog.kt) — antes solo se podía elegir de galería.
-    @State private var eligiendoOrigenFotoCara = false
-    @State private var showEditor = false
-    @State private var sending = false
+    @State var eligiendoOrigenFotoCara = false
+    @State var showEditor = false
+    @State var sending = false
     // Error de envío: al fallar NO se cierra el sheet — se muestra el error y
     // el botón pasa a REINTENTAR (la foto y las vías siguen ahí).
-    @State private var sendError: String? = nil
-    @State private var queued = false
+    @State var sendError: String? = nil
+    @State var queued = false
     // Muro/sector plegados (opciones avanzadas del formulario).
-    @State private var advancedOpen = false
+    @State var advancedOpen = false
     // F: orientación de la piedra según el autor (opcional; su primer voto).
-    @State private var blockOrientation: String? = nil
+    @State var blockOrientation: String? = nil
     // Geometría/sentido + trazado del muro (PUNTO por defecto).
-    @State private var geometry = "POINT"
-    @State private var direction = "LTR"
-    @State private var wallPath: [CLLocationCoordinate2D] = []
-    @State private var showTrace = false
+    @State var geometry = "POINT"
+    @State var direction = "LTR"
+    @State var wallPath: [CLLocationCoordinate2D] = []
+    @State var showTrace = false
     /// Cerrar una piedra a medias: preguntar, no tirar el trabajo.
-    @State private var preguntandoGuardar = false
+    @State var preguntandoGuardar = false
     /// Vía cuya ficha está ABIERTA. Solo una a la vez (ver viaCompacta).
-    @State private var expandedVia: UUID? = nil
+    @State var expandedVia: UUID? = nil
 
-    private var faceIdx: Int { min(max(selectedFace, 0), faces.count - 1) }
+    var faceIdx: Int { min(max(selectedFace, 0), faces.count - 1) }
 
     /// ¿Hay una vía ABIERTA en la foto que se está viendo? (el botón de añadir vía no puede depender de una abierta en OTRA foto)
-    private var expandedHere: Bool {
+    var expandedHere: Bool {
         faces.indices.contains(faceIdx) && faces[faceIdx].blocks.contains { $0.id == expandedVia }
     }
 
-    private static let aspects = Aspect.shared.ALL
+    static let aspects = Aspect.shared.ALL
 
     /// F: chips de orientación (mismo lenguaje discontinuo-terra de votable).
     @ViewBuilder
-    private func orientationChips(label: String, selected: String?,
+    func orientationChips(label: String, selected: String?,
                                   onPick: @escaping (String) -> Void) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label).font(Cumbre.mono(9, .bold)).tracking(1.2)
@@ -112,7 +112,7 @@ struct BoulderFormSheet: View {
 
     /// F: {"block":"NE","faces":{"0":"N"}} — la orientación que puso el autor
     /// se convierte en su PRIMER voto al aprobarse. nil si no marcó nada.
-    private func buildOrientationsJson() -> String? {
+    func buildOrientationsJson() -> String? {
         var parts: [String] = []
         if let b = blockOrientation { parts.append("\"block\":\"\(b)\"") }
         let facesDict = faces.enumerated().compactMap { idx, f in
@@ -124,7 +124,7 @@ struct BoulderFormSheet: View {
         return parts.isEmpty ? nil : "{" + parts.joined(separator: ",") + "}"
     }
     /// Foto del formulario tal y como está ahora mismo.
-    private func borradorActual() -> BoulderDraftStore.Draft {
+    func borradorActual() -> BoulderDraftStore.Draft {
         BoulderDraftStore.Draft(
             schoolId: schoolId, lat: coord.latitude, lon: coord.longitude,
             name: name, discipline: discipline, geometry: geometry,
@@ -135,7 +135,7 @@ struct BoulderFormSheet: View {
     }
 
     /// Deja el formulario como estaba al guardarlo.
-    private func aplicarBorrador(_ b: BoulderDraftStore.Draft) {
+    func aplicarBorrador(_ b: BoulderDraftStore.Draft) {
         name = b.name
         discipline = b.discipline
         geometry = b.geometry
@@ -148,12 +148,12 @@ struct BoulderFormSheet: View {
         faces = b.faces
     }
 
-    private var isWall: Bool { geometry == "LINE" }
+    var isWall: Bool { geometry == "LINE" }
 
     /// Elegir de galería (mismo selector que "aportar desde una foto": lee
     /// EXIF para sugerir orientación por la dirección de la cámara). Extraído
     /// para poder ofrecerlo junto a "hacer foto ahora" en un confirmationDialog.
-    private func elegirFotoDeGaleria() {
+    func elegirFotoDeGaleria() {
         let idx = faceIdx
         presentPhotoPickerResult { result in
             guard let result else {
@@ -195,7 +195,7 @@ struct BoulderFormSheet: View {
 
     /// Cada cara nace con una vía vacía: si esa es la única, se abre sola — que
     /// haya que tocar "Sin nombre" para empezar sería un paso de más.
-    private func abrirViaInicialSiProcede() {
+    func abrirViaInicialSiProcede() {
         let vias = faces[faceIdx].blocks
         if vias.count == 1, let v = vias.first, v.name.isEmpty, v.grade == nil, v.line.isEmpty {
             expandedVia = v.id
@@ -203,7 +203,7 @@ struct BoulderFormSheet: View {
     }
 
     /// Añade una vía vacía a la cara actual y abre SU ficha (las demás se pliegan).
-    private func nuevaVia() {
+    func nuevaVia() {
         let v = BoulderBlockForm()
         faces[faceIdx].blocks.append(v)
         expandedVia = v.id
@@ -211,7 +211,7 @@ struct BoulderFormSheet: View {
 
     /// Vía plegada: una sola línea con lo justo para reconocerla. Espejo del
     /// mismo componente de EditLinesSheet.
-    @ViewBuilder private func viaCompacta(idx: Int, via: BoulderBlockForm) -> some View {
+    @ViewBuilder func viaCompacta(idx: Int, via: BoulderBlockForm) -> some View {
         let titulo = via.name.trimmingCharacters(in: .whitespaces).isEmpty
             ? L("Sin nombre") : via.name
         HStack(spacing: 8) {
@@ -269,355 +269,12 @@ struct BoulderFormSheet: View {
             .onDisappear { brujula.stop() }
     }
 
-    private var contenido: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Rellena los datos de la piedra. Podrás añadir fotos y dibujar las líneas de cada vía sobre ellas.")
-                        .font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
-
-                    FirstTimeHint(
-                        hintKey: "boulder_form_guide",
-                        text: L("Pasos: 1) Añade una foto de la piedra, 2) marca sus vías con grado, 3) dibuja las líneas sobre la foto, 4) envía.")
-                    )
-
-                    // ── Modalidad: BLOQUE o VÍA ────────────────────────────────────
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("MODALIDAD").eyebrow()
-                        Text("¿Es una piedra de boulder (sentadas, bloques cortos) o de vía (escalada deportiva, más larga)?")
-                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                        DisciplineSelector(selected: $discipline)
-                    }
-
-                    // F: orientación de la piedra según el autor (opcional).
-                    // Al aprobarse se convierte en su PRIMER voto; la
-                    // comunidad puede seguir votando después.
-                    orientationChips(label: L("ORIENTACIÓN DE LA PIEDRA (opcional)"),
-                                     selected: blockOrientation) { a in
-                        blockOrientation = blockOrientation == a ? nil : a
-                    }
-
-                    // ── Opciones avanzadas: muro, sector y numeración (plegado) ──
-                    // El 90% de las propuestas son una piedra normal: esto vive
-                    // plegado para no estorbar (espejo del formulario Android).
-                    Button { withAnimation { advancedOpen.toggle() } } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Muro, sector y numeración").font(.system(size: 15)).foregroundStyle(Cumbre.ink)
-                                Text(isWall ? L("Muro de %@ puntos", wallPath.count) + (sectorId != nil ? L(" · con sector") : "")
-                                     : (sectorId != nil ? L("Con sector asignado") : L("Solo si es una pared larga o va en un sector")))
-                                    .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                            }
-                            Spacer()
-                            Image(systemName: advancedOpen ? "chevron.up" : "chevron.down")
-                                .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
-                        }
-                        .padding(12)
-                        .background(Cumbre.paper)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(advancedOpen ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-                    }.buttonStyle(.plain)
-                    if advancedOpen {
-                        // ── Geometría: PUNTO o MURO ────────────────────────────────────
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(NSLocalizedString("propose_geometry", comment: "")).eyebrow()
-                            Text("Punto = una piedra suelta. Muro = una pared larga que se traza en el mapa.")
-                                .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                            WallSeg(options: [("POINT", L("PUNTO")), ("LINE", L("MURO"))], selected: $geometry)
-                        }
-                        if isWall {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("SENTIDO DE NUMERACIÓN").eyebrow()
-                                WallSeg(options: [("LTR", L("IZQ → DER")), ("RTL", L("DER → IZQ"))], selected: $direction)
-                            }
-                            Button { showTrace = true } label: {
-                                Text(wallPath.isEmpty ? L("✎ TRAZAR EL MURO EN EL MAPA") : L("✓ MURO TRAZADO (%@ PUNTOS) · RE-TRAZAR", wallPath.count))
-                                    .font(Cumbre.mono(11, .bold)).foregroundStyle(Cumbre.terra)
-                                    .lineLimit(1).minimumScaleFactor(0.8)
-                                    .frame(maxWidth: .infinity).padding(.vertical, 10)
-                                    .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
-                                        .stroke(Cumbre.terra, lineWidth: 1))
-                            }.buttonStyle(.plain)
-                        }
-                        if !sectors.isEmpty {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("SECTOR (opcional)").eyebrow()
-                                Menu {
-                                    Button("Sin sector") { sectorId = nil }
-                                    ForEach(sectors, id: \.id) { s in
-                                        Button(s.name.isEmpty ? L("Zona") : s.name) { sectorId = s.id }
-                                    }
-                                } label: {
-                                    HStack {
-                                        Text(sectorName).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
-                                        Spacer(); Image(systemName: "chevron.down").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                                    }
-                                    .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                                }
-                            }
-                        }
-                    }
-
-                    // ── Caras (fotos) ──────────────────────────────────────────────
-                    Text("FOTOS DE LA PIEDRA").eyebrow()
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            // Pestañas CON MINIATURA, igual que al EDITAR: crear
-                            // una piedra se veía "a la antigua" con solo el
-                            // número (Álvaro, 2026-08-24).
-                            ForEach(Array(faces.enumerated()), id: \.element.id) { idx, _ in
-                                let on = idx == faceIdx
-                                Button { selectedFace = idx } label: {
-                                    VStack(spacing: 4) {
-                                        Group {
-                                            if let img = faces[idx].photo {
-                                                Image(uiImage: img).resizable().scaledToFill()
-                                            } else {
-                                                Cumbre.paper.overlay(
-                                                    Image(systemName: "photo").font(.system(size: 16))
-                                                        .foregroundStyle(Cumbre.ink3))
-                                            }
-                                        }
-                                        .frame(width: 52, height: 52)
-                                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                                        .overlay(RoundedRectangle(cornerRadius: 12)
-                                            .stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: on ? 2 : 1))
-                                        Text(L("FOTO %@", idx + 1)).font(Cumbre.mono(10, .bold))
-                                            .foregroundStyle(on ? Cumbre.terra : Cumbre.ink2)
-                                    }
-                                }.buttonStyle(.plain)
-                            }
-                            Button { faces.append(BoulderFaceForm()); selectedFace = faces.count - 1 } label: {
-                                VStack(spacing: 4) {
-                                    Image(systemName: "plus").font(.system(size: 18)).foregroundStyle(Cumbre.terra)
-                                        .frame(width: 52, height: 52)
-                                        .overlay(RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Cumbre.rule, style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
-                                    Text(NSLocalizedString("propose_add_photo", comment: ""))
-                                        .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra).lineLimit(1)
-                                }
-                            }.buttonStyle(.plain)
-                        }
-                    }
-                    if faces.count > 1 {
-                        Button {
-                            faces.remove(at: faceIdx); selectedFace = max(0, faceIdx - 1)
-                        } label: {
-                            Text("✕ QUITAR ESTA FOTO").font(Cumbre.mono(10, .bold))
-                                .foregroundStyle(Cumbre.bad)
-                        }.buttonStyle(.plain)
-                    }
-
-                    // ── Foto de la cara seleccionada ───────────────────────────────
-                    if let photo = faces[faceIdx].photo {
-                        Image(uiImage: photo).resizable().scaledToFit()
-                            .frame(maxHeight: 200).clipShape(RoundedRectangle(cornerRadius: 2))
-                    }
-                    // Mismo selector que "aportar desde una foto": el de
-                    // SwiftUI entrega una copia SIN ubicación, y entonces la
-                    // orientación no se podría sugerir nunca.
-                    Button {
-                        eligiendoOrigenFotoCara = true
-                    } label: {
-                        Text(faces[faceIdx].photo == nil ? L("SELECCIONAR FOTO") : L("CAMBIAR FOTO"))
-                            .font(Cumbre.mono(12, .bold)).tracking(0.6).foregroundStyle(Cumbre.terra)
-                            .frame(maxWidth: .infinity).padding(.vertical, 10)
-                            .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(Cumbre.rule, lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                    .confirmationDialog("¿Cómo quieres la foto?", isPresented: $eligiendoOrigenFotoCara) {
-                        Button("HACER FOTO AHORA") {
-                            let idx = faceIdx
-                            CameraAccess.request { granted in
-                                guard granted else { return }
-                                presentSystemCamera(context: "piedra-nueva-\(idx)") { image in
-                                    faces[idx].photo = image
-                                    sendError = nil
-                                }
-                            }
-                        }
-                        Button("ELEGIR DE GALERÍA") { elegirFotoDeGaleria() }
-                        Button("CANCELAR", role: .cancel) {}
-                    }
-                    // F: orientación de ESTA cara (opcional). Solo tiene
-                    // sentido con varias fotos; con una sola vale la general.
-                    if faces.count > 1 {
-                        orientationChips(label: L("ORIENTACIÓN DE ESTA CARA (opcional)"),
-                                         selected: faces[faceIdx].orientation) { a in
-                            faces[faceIdx].orientation =
-                                faces[faceIdx].orientation == a ? nil : a
-                        }
-                    }
-
-                    // ── Vías de esta foto ──────────────────────────────────────────
-                    // Una sola ficha abierta a la vez, igual que al EDITAR: con
-                    // los formularios apilados, meter la quinta vía obligaba a
-                    // scrollear las cuatro anteriores (Álvaro, 2026-08-24).
-                    Text(L("VÍAS EN ESTA FOTO (%@)", faces[faceIdx].blocks.count)).eyebrow().padding(.top, 4)
-                    ForEach(Array(faces[faceIdx].blocks.enumerated()), id: \.element.id) { idx, via in
-                        if via.id == expandedVia {
-                            VStack(alignment: .leading, spacing: 8) {
-                                BoulderBlockRow(block: $faces[faceIdx].blocks[idx], index: idx,
-                                                onDelete: faces[faceIdx].blocks.count > 1 ? {
-                                                    faces[faceIdx].blocks.remove(at: idx); expandedVia = nil
-                                                } : nil)
-                                HStack(spacing: 8) {
-                                    Button { expandedVia = nil } label: {
-                                        Text("LISTO").font(Cumbre.mono(12, .bold)).tracking(0.6)
-                                            .foregroundStyle(Cumbre.ink2)
-                                            .frame(maxWidth: .infinity).padding(.vertical, 10)
-                                            .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
-                                                .stroke(Cumbre.rule, lineWidth: 1))
-                                    }.buttonStyle(.plain)
-                                    Button { nuevaVia() } label: {
-                                        Text("AÑADIR OTRA +").font(Cumbre.mono(12, .bold)).tracking(0.6)
-                                            .foregroundStyle(.white)
-                                            .frame(maxWidth: .infinity).padding(.vertical, 10)
-                                            .background(Cumbre.terraFill,
-                                                        in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
-                                    }.buttonStyle(.plain)
-                                }
-                            }
-                        } else {
-                            viaCompacta(idx: idx, via: faces[faceIdx].blocks[idx])
-                        }
-                    }
-                    if !expandedHere {
-                        Button { nuevaVia() } label: {
-                            Text("+ AÑADIR VÍA").font(Cumbre.mono(12, .bold)).tracking(0.6)
-                                .foregroundStyle(Cumbre.terra).frame(maxWidth: .infinity).padding(.vertical, 10)
-                                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
-                                    .stroke(Cumbre.terra, lineWidth: 1))
-                        }.buttonStyle(.plain)
-                    }
-
-                    // ── Dibujar líneas de esta foto ────────────────────────────────
-                    let hasPhoto = faces[faceIdx].photo != nil
-                    Button { showEditor = true } label: {
-                        Text(faces[faceIdx].blocks.contains { !$0.line.isEmpty } ? L("✎ EDITAR LÍNEAS") : L("✎ DIBUJAR LÍNEAS"))
-                            .font(Cumbre.mono(12, .bold)).tracking(0.6)
-                            .foregroundStyle(hasPhoto ? .white : Cumbre.ink3)
-                            .frame(maxWidth: .infinity).padding(.vertical, 12)
-                            .background(hasPhoto ? Cumbre.terraFill : Color.clear,
-                                        in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
-                            .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
-                                .stroke(hasPhoto ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-                    }.buttonStyle(.plain).disabled(!hasPhoto)
-                    if !hasPhoto {
-                        Text("Añade una foto para poder dibujar las líneas.")
-                            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                    }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("COORDENADAS").eyebrow()
-                        Text(String(format: "%.5f, %.5f", coord.latitude, coord.longitude))
-                            .font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink2)
-                    }
-                }
-                .padding(16)
-            }
-            .background(Cumbre.bg.ignoresSafeArea())
-            .navigationTitle("Nueva piedra")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(NSLocalizedString("common_cancel", comment: "")) {
-                        // Una piedra son varios campos, una foto por cara y una
-                        // linea por via: cerrar no puede tirarlo sin preguntar.
-                        if BoulderDraftStore.tieneContenido(borradorActual()) {
-                            preguntandoGuardar = true
-                        } else {
-                            dismiss(); onDone(false)
-                        }
-                    }.foregroundStyle(Cumbre.ink3)
-                }
-                // ENVIAR arriba, fijo, igual que Editar vías (Álvaro,
-                // 2026-08-24: "fíjate que enviar propuesta está abajo y no
-                // arriba a la derecha como hablamos"). .borderedProminent para
-                // que el relleno ocupe la píldora entera en iOS 26.
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task { await send() }
-                    } label: {
-                        if sending { ProgressView().tint(.white) }
-                        else { Text(NSLocalizedString("propose_submit", comment: ""))
-                            .font(Cumbre.mono(11, .bold)).tracking(0.6) }
-                    }
-                    .buttonStyle(.borderedProminent).tint(Cumbre.terraFill)
-                    .disabled(sending)
-                }
-            }
-            // Deslizar hacia abajo NO puede tirar el trabajo en silencio: con
-            // algo escrito, el gesto se desactiva y hay que usar "Cancelar",
-            // que es quien pregunta (lo cazo Rodrigo: cancelar preguntaba, el
-            // gesto no).
-            .interactiveDismissDisabled(BoulderDraftStore.tieneContenido(borradorActual()))
-            .alert("¿Guardar para terminar luego?", isPresented: $preguntandoGuardar) {
-                Button("GUARDAR") {
-                    BoulderDraftStore.save(borradorActual())
-                    dismiss(); onDone(false)
-                }
-                Button("DESCARTAR", role: .destructive) {
-                    BoulderDraftStore.clear(schoolId: schoolId)
-                    dismiss(); onDone(false)
-                }
-            } message: {
-                Text("Se queda guardada en este móvil. No se envía a nadie hasta que la termines.")
-            }
-            .alert("Guardada en tu móvil", isPresented: $queued) {
-                Button("CERRAR") { dismiss(); onDone(false) }
-            } message: {
-                Text("Se enviará automáticamente en cuanto haya cobertura. No tienes que hacer nada.")
-            }
-            // No se pudo enviar (sin cobertura, lo normal): diálogo emergente en
-            // vez de un texto rojo colado en el formulario, mismo estilo que el
-            // de "¿Guardar también las fotos?" al descargar una escuela. Repetible
-            // — reintentar puede volver a fallar y el diálogo vuelve a salir.
-            .alert("No se pudo enviar",
-                   isPresented: Binding(get: { sendError != nil }, set: { if !$0 { sendError = nil } })) {
-                Button("Guardar y enviar con cobertura") { Task { await saveOffline() } }
-                Button("Reintentar") { Task { await send() } }
-            } message: {
-                Text(sendError ?? "")
-            }
-        }
-        .onChange(of: pickerItem) { _, item in
-            guard let item else { return }
-            let idx = faceIdx
-            // @MainActor OBLIGATORIO: `faces` es @State y de él se pinta la
-            // miniatura y depende el botón de dibujar. Sin esto se escribía
-            // fuera del hilo de la interfaz y SwiftUI no se enteraba (mismo
-            // fallo que en EditLinesSheet, build 142).
-            Task { @MainActor in
-                // loadTransferable a veces devuelve nil (foto en iCloud sin bajar
-                // aún): antes fallaba en silencio y la foto no aparecía.
-                if let data = try? await item.loadTransferable(type: Data.self),
-                   let img = UIImage(data: data) {
-                    faces[idx].photo = img
-                    sendError = nil
-                } else {
-                    sendError = L("No se pudo cargar la foto elegida (¿está en iCloud?). Elígela otra vez.")
-                }
-                pickerItem = nil
-            }
-        }
-        .sheet(isPresented: $showEditor) {
-            if faces[faceIdx].photo != nil {
-                TopoEditorView(photo: faces[faceIdx].photo, blocks: $faces[faceIdx].blocks)
-            }
-        }
-        .sheet(isPresented: $showTrace) {
-            WallTraceSheet(center: coord, initial: wallPath,
-                           contextMarkers: contextMarkers) { wallPath = $0 }
-        }
-    }
-
-    private var sectorName: String {
+    var sectorName: String {
         guard let sectorId, let s = sectors.first(where: { $0.id == sectorId }) else { return L("Sin sector") }
         return s.name.isEmpty ? L("Zona") : s.name
     }
 
-    private func send() async {
+    func send() async {
         sending = true
         // Sube la foto de cada cara → URL por cara. Ruta = la que permiten las
         // reglas de Firebase Storage (`piedra-photos-pending/{uid}_...`); subir a
@@ -664,7 +321,7 @@ struct BoulderFormSheet: View {
     /// Encola la propuesta entera (fotos copiadas a Documents/outbox-photos) para
     /// que ContributionOutboxFlusher.swift la suba al recuperar cobertura. El
     /// payload usa las mismas claves que QueuedBoulder de Android.
-    private func saveOffline() async {
+    func saveOffline() async {
         let fm = FileManager.default
         let dir = fm.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("outbox-photos", isDirectory: true)

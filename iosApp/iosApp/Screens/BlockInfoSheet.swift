@@ -32,14 +32,14 @@ struct GradeVoteTarget: Identifiable {
 
 struct BlockInfoSheet: View {
     // Votacion comunitaria (C2/C5): orientacion + sol/sombra + grado.
-    @StateObject private var community = CommunityVoteStore()
-    @State private var orientationTarget: OrientationTarget? = nil
-    @State private var gradeTarget: GradeVoteTarget? = nil
+    @StateObject var community = CommunityVoteStore()
+    @State var orientationTarget: OrientationTarget? = nil
+    @State var gradeTarget: GradeVoteTarget? = nil
     let block: Block
     var sectors: [Block] = []
     var schoolName: String? = nil
     /// Restricciones en vigor de la escuela (las da la ficha): aviso fijo arriba si afectan a esta piedra o sector.
-    @Environment(\.schoolRestrictions) private var restrictionsUI
+    @Environment(\.schoolRestrictions) var restrictionsUI
     /// Vía objetivo (deep-link del diario): su cara/foto se muestra la primera.
     var highlightVia: String? = nil
     var onEditLines: (() -> Void)? = nil
@@ -53,13 +53,13 @@ struct BlockInfoSheet: View {
     /// que sí se muestra, esconder vías haría perder el contexto de la pared.
     /// nil = sin filtro, todas a color pleno.
     var gradeMatchingLineIds: Set<String>? = nil
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.openURL) var openURL
 
     /// Caras de la piedra, SIEMPRE en el orden en que se introdujeron (FOTO 1,
     /// FOTO 2…). El deep-link del diario NO reordena: solo hace scroll a la cara
     /// que contiene la vía pulsada (ver `scrollFaceIndex`).
-    private var orderedFaces: [BlockFace] { block.facesOrDerived() }
+    var orderedFaces: [BlockFace] { block.facesOrDerived() }
 
     /// Índice de la cara que contiene la vía del deep-link (para hacer scroll a
     /// ella al abrir). Nil si no hay deep-link o no se encuentra.
@@ -70,35 +70,35 @@ struct BlockInfoSheet: View {
     /// "3c2cd1ea-..." nunca haría match con ningún `$0.name` y la ficha se
     /// quedaba siempre en FOTO 1 sin avisar — el mismo bug, una capa más
     /// adentro (Rodrigo, build 147: "solo me abre la primera").
-    private var scrollFaceIndex: Int? {
+    var scrollFaceIndex: Int? {
         guard let via = highlightVia?.trimmingCharacters(in: .whitespaces), !via.isEmpty else { return nil }
         return orderedFaces.firstIndex { f in f.lines.contains { $0.id == via } }
             ?? orderedFaces.firstIndex { f in
                 f.lines.contains { $0.name.trimmingCharacters(in: .whitespaces).caseInsensitiveCompare(via) == .orderedSame }
             }
     }
-    @State private var tickedLines: Set<String> = []   // vías marcadas como hechas en esta sesión
-    @State private var tickingLine: String?            // vía guardándose ahora
-    @State private var projectLines: Set<String> = []  // vías marcadas como PROYECTO
-    @State private var togglingProject: String?         // vía de proyecto guardándose ahora
-    @State private var showDeleteConfirm = false
+    @State var tickedLines: Set<String> = []   // vías marcadas como hechas en esta sesión
+    @State var tickingLine: String?            // vía guardándose ahora
+    @State var projectLines: Set<String> = []  // vías marcadas como PROYECTO
+    @State var togglingProject: String?         // vía de proyecto guardándose ahora
+    @State var showDeleteConfirm = false
     // Tick pendiente de confirmar: hoja "Publicar en el feed" (desmarcar sigue
     // siendo toggle directo, sin hoja). Espejo del flujo de SchoolMap.kt.
-    @State private var pendingTick: PendingFeedTick? = nil
+    @State var pendingTick: PendingFeedTick? = nil
     // Comentarios de la piedra/vías (un fetch por piedra; los hilos filtran).
-    @StateObject private var commentsStore = LineCommentsStore()
+    @StateObject var commentsStore = LineCommentsStore()
     // Enlaces de beta (un fetch por piedra; los hilos filtran) — Álvaro, 2026-09-15.
-    @StateObject private var betaLinksStore = BetaLinksStore()
+    @StateObject var betaLinksStore = BetaLinksStore()
     /// Cara marcada en las pestañas de salto (piedras con varias fotos).
-    @State private var caraVisible = 0
+    @State var caraVisible = 0
 
-    private var sectorName: String? {
+    var sectorName: String? {
         guard let sid = block.sectorBlockId else { return nil }
         return sectors.first(where: { $0.id == sid })?.name
     }
 
     /// ¿Esta vía queda fuera del filtro de grado activo? (nil = sin filtro).
-    private func gradeDimmed(_ lineId: String) -> Bool {
+    func gradeDimmed(_ lineId: String) -> Bool {
         guard let matching = gradeMatchingLineIds else { return false }
         return !matching.contains(lineId)
     }
@@ -108,11 +108,11 @@ struct BlockInfoSheet: View {
     /// usa 0,1,2… como identidad, así que `scrollTo(1)` era ambiguo y se iba a
     /// la PESTAÑA en vez de a la foto — al pulsar no pasaba nada visible
     /// (reportado por Rodrigo probando el build 139).
-    private func anclaDeCara(_ idx: Int) -> String { "cara-\(idx)" }
+    func anclaDeCara(_ idx: Int) -> String { "cara-\(idx)" }
 
     /// Misma lógica que DirectionsButton (SchoolDetailHelpers.swift), ahora
     /// disparada desde el icono de la barra de arriba.
-    private func openDirections() {
+    func openDirections() {
         let g = URL(string: "comgooglemaps://?daddr=\(block.lat),\(block.lon)&directionsmode=driving")!
         let web = URL(string: "https://www.google.com/maps/dir/?api=1&destination=\(block.lat),\(block.lon)")!
         openURL(UIApplication.shared.canOpenURL(g) ? g : web)
@@ -120,7 +120,7 @@ struct BlockInfoSheet: View {
 
     /// N10: COMPARTIR PIEDRA — portada con TODAS sus vías. Antes botón grande
     /// al final del scroll, ahora icono en la barra de arriba.
-    private func shareBlock() async {
+    func shareBlock() async {
         guard let firstLine = block.lines.first else { return }
         var badge = community.summaryFor(nil)?.consensus
         if badge == nil {
@@ -136,7 +136,7 @@ struct BlockInfoSheet: View {
 
     /// Pestaña para saltar a una cara — misma celda "mochila" que el Feed:
     /// plana, con borde fino; la activa marca borde y texto en terracota.
-    private func caraTab(_ label: String, selected: Bool,
+    func caraTab(_ label: String, selected: Bool,
                          action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
@@ -529,136 +529,6 @@ struct BlockInfoSheet: View {
         }
     }
 
-    /// Al abrir, marca como HECHAS (✓) las vías que ya están en tu diario, para
-    /// que el tic quede persistente entre sesiones. Match por escuela + nombre de
-    /// la vía (mismo nombre que se guardó al dar el tic).
-    private func loadDone() async {
-        let container = AppDependencies.shared.container
-        // Claves pendientes en la cola offline, separadas por estado (la cola
-        // JOURNAL guarda tanto "hechas" como "proyecto" bajo el mismo tipo).
-        let pendingDoneKeys: Set<String> = (try? await container.pendingJournalKeysByStatus(status: "DONE")) ?? []
-        let pendingProjectKeys: Set<String> = (try? await container.pendingJournalKeysByStatus(status: "PROJECT")) ?? []
-        let pendingDeletes: Set<String> = (try? await container.pendingJournalDeleteKeys()) ?? []
-        // Con red: sincroniza el registro local con la verdad del servidor
-        // (descontando las que tienen borrado pendiente). Separamos por status:
-        // solo DONE cuenta como "hecha"; solo PROJECT cuenta como "proyecto".
-        if let journal = try? await container.getMyJournal.invoke() {
-            var serverDoneKeys = Set<String>()
-            var serverProjectKeys = Set<String>()
-            for j in journal {
-                guard let sid = j.schoolId else { continue }
-                // Clave por lineId (aguanta homónimas — fix "La ola"); por
-                // nombre solo para entradas antiguas sin lineId. Mismo formato
-                // que journalViaKey de Android y los helpers del container.
-                let key: String
-                if let lid = j.lineId, !lid.isEmpty {
-                    key = "\(sid)|#\(lid)"
-                } else {
-                    key = "\(sid)|\(j.blockName.trimmingCharacters(in: .whitespaces).lowercased())"
-                }
-                if j.status == "PROJECT" { serverProjectKeys.insert(key) } else { serverDoneKeys.insert(key) }
-            }
-            JournalDoneStore.shared.sync(server: serverDoneKeys.subtracting(pendingDeletes), pending: pendingDoneKeys)
-            JournalProjectStore.shared.sync(server: serverProjectKeys.subtracting(pendingDeletes), pending: pendingProjectKeys)
-        }
-        // El registro local (UserDefaults) funciona también SIN conexión → evita
-        // duplicar al volver a entrar offline en la misma piedra.
-        let storeKeys = JournalDoneStore.shared.all
-        let projectKeys = JournalProjectStore.shared.all
-        var done = Set<String>()
-        var projects = Set<String>()
-        for (idx, l) in block.lines.enumerated() {
-            let viaName = l.name.isEmpty ? L("Vía %@", idx + 1) : l.name
-            // Clave por id + clave por nombre (LEGADO: entradas sin lineId).
-            let idKey = "\(block.schoolId)|#\(l.id)"
-            let nameKey = "\(block.schoolId)|\(viaName.trimmingCharacters(in: .whitespaces).lowercased())"
-            let isDone = (storeKeys.contains(idKey) || storeKeys.contains(nameKey)
-                          || pendingDoneKeys.contains(idKey) || pendingDoneKeys.contains(nameKey))
-                && !pendingDeletes.contains(idKey) && !pendingDeletes.contains(nameKey)
-            if isDone { done.insert(l.id) }
-            let isProject = (projectKeys.contains(idKey) || projectKeys.contains(nameKey)
-                             || pendingProjectKeys.contains(idKey) || pendingProjectKeys.contains(nameKey))
-                && !pendingDeletes.contains(idKey) && !pendingDeletes.contains(nameKey)
-            if isProject && !done.contains(l.id) { projects.insert(l.id) }
-        }
-        tickedLines = done
-        projectLines = projects
-    }
-
-    private var typeLabel: String {
-        switch block.type.uppercased() {
-        case "PARKING": return "PARKING"
-        case "ZONE": return L("ZONA")
-        default: return L("PIEDRA")
-        }
-    }
-
-    /// Toque en el tic: desmarcar va directo; marcar abre la hoja de ascenso
-    /// (fecha, estilo, grado y el interruptor de Comunidad). Cerrarla = no marcar nada.
-    private func onTickTapped(_ line: BlockLine, index: Int) {
-        if tickedLines.contains(line.id) {
-            Task { await toggle(line, index: index) }
-            return
-        }
-        // wasProject ANTES del toggle (marcar la quita de proyectos).
-        let wasProject = projectLines.contains(line.id)
-        pendingTick = PendingFeedTick(line: line, index: index, wasProject: wasProject)
-    }
-
-    /// Etiqueta "vía · grado" de la hoja de publicar.
-    private func feedTickLabel(_ line: BlockLine, index: Int) -> String {
-        var label = line.name.isEmpty ? L("Vía %@", index + 1) : line.name
-        if let g = line.grade, !g.isEmpty { label += " · \(g)" }
-        return label
-    }
-
-    /// La vía tal como la necesita el diario ("Vía N" si no tiene nombre).
-    private func journalRef(_ line: BlockLine, index: Int) -> JournalLineRef {
-        JournalLineRef(
-            schoolId: block.schoolId, schoolName: schoolName, sectorName: sectorName,
-            discipline: block.discipline, blockId: block.id, lineId: line.id,
-            viaName: line.name.isEmpty ? L("Vía %@", index + 1) : line.name, grade: line.grade)
-    }
-
-    /// Publica el tick en el feed Comunidad (fire-and-forget). Lógica en `JournalTicker` (compartida con la guía).
-    private func publishTickToFeed(_ line: BlockLine, wasProject: Bool,
-                                   caption: String? = nil, photo: UIImage? = nil) {
-        JournalTicker.publish(journalRef(line, index: 0), wasProject: wasProject, caption: caption, photo: photo)
-    }
-
-    /// Marca/DESMARCA la vía en tu diario (toggle). La lógica (cola sin red, legado por nombre…) vive en
-    /// `JournalTicker`; aquí solo se actualiza el estado de la hoja. Espejo del toggle de Android.
-    private func toggle(_ line: BlockLine, index: Int, sessionDate: String? = nil,
-                        aVista: Bool = false, alFlash: Bool = false) async {
-        tickingLine = line.id
-        let ref = journalRef(line, index: index)
-        if tickedLines.contains(line.id) {
-            tickedLines.remove(line.id)
-            await JournalTicker.unmarkDone(ref)
-        } else {
-            let wasProject = projectLines.contains(line.id)
-            projectLines.remove(line.id)
-            tickedLines.insert(line.id)
-            await JournalTicker.markDone(ref, wasProject: wasProject, sessionDate: sessionDate,
-                                         aVista: aVista, alFlash: alFlash)
-        }
-        tickingLine = nil
-    }
-
-    /// Marca/DESMARCA la vía como PROYECTO. No hace nada si ya está HECHA (la UI ya oculta el botón).
-    private func toggleProject(_ line: BlockLine, index: Int) async {
-        guard !tickedLines.contains(line.id) else { return }
-        togglingProject = line.id
-        let ref = journalRef(line, index: index)
-        if projectLines.contains(line.id) {
-            projectLines.remove(line.id)
-            await JournalTicker.removeProject(ref)
-        } else {
-            projectLines.insert(line.id)
-            await JournalTicker.markProject(ref)
-        }
-        togglingProject = nil
-    }
 }
 
 /// Carga una escuela por id y muestra su detalle. Útil cuando solo tenemos el

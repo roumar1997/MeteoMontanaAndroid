@@ -16,78 +16,78 @@ struct EditLinesSheet: View {
     /// Declarado el ÚLTIMO para que el closure final del caller enlace con él
     /// sin ambigüedad (focusVia/contextMarkers tienen default y van antes).
     let onDone: (Bool) -> Void
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss) var dismiss
     // Una piedra puede tener VARIAS caras (fotos). Cada cara edita SOLO sus vías
     // sobre SU foto (antes se mezclaban todas en la portada). `faceBlocks[i]` =
     // vías editables de la cara i; `facePhotos[i]` = su foto.
-    @State private var faceBlocks: [[BoulderBlockForm]] = []
-    @State private var facePhotos: [String?] = []
-    @State private var selectedFace = 0
-    @State private var showEditor = false
-    @State private var sending = false
-    @State private var sendError: String? = nil
+    @State var faceBlocks: [[BoulderBlockForm]] = []
+    @State var facePhotos: [String?] = []
+    @State var selectedFace = 0
+    @State var showEditor = false
+    @State var sending = false
+    @State var sendError: String? = nil
     /// El envío falló: se ofrece guardarlo para mandarlo con cobertura.
-    @State private var ofrecerGuardarOffline = false
-    @State private var loaded = false
+    @State var ofrecerGuardarOffline = false
+    @State var loaded = false
     // Foto nueva elegida para una cara (mejorar la imagen). Al cambiarla, TODAS
     // las vías de esa cara se mueven a la foto nueva y se redibujan sobre ella.
-    @State private var facePicked: [Int: UIImage] = [:]
-    @State private var pickerItem: PhotosPickerItem?
+    @State var facePicked: [Int: UIImage] = [:]
+    @State var pickerItem: PhotosPickerItem?
     // Elegir cámara o galería al cambiar la foto de una cara (paridad Android
     // AddLinesFlow.kt) — antes solo se podía elegir de galería.
-    @State private var eligiendoOrigenFoto = false
+    @State var eligiendoOrigenFoto = false
     // Geometría/sentido del muro (editables). El bloque ya creado los trae.
-    @State private var geometry = "POINT"
-    @State private var direction = "LTR"
+    @State var geometry = "POINT"
+    @State var direction = "LTR"
     // Modalidad (Bloque/Vía): antes solo se elegía al proponer la piedra
     // NUEVA y no se podía corregir después — un despiste al proponerla se
     // quedaba mal para siempre (Álvaro, 2026-09-08: caso real en La Pedriza,
     // "La Raja", 3 vías subidas como bloque). Precargada con la modalidad
     // actual del bloque, así que si no se toca se manda igual que ya estaba.
-    @State private var discipline = "BOULDER"
-    @State private var showReorder = false
-    @State private var showTrace = false
-    @State private var tracedPath: [CLLocationCoordinate2D] = []
+    @State var discipline = "BOULDER"
+    @State var showReorder = false
+    @State var showTrace = false
+    @State var tracedPath: [CLLocationCoordinate2D] = []
     // "Guardar y terminar luego" al EDITAR (ya existía al crear una piedra
     // nueva) — Rodrigo, 2026-08-21.
-    @State private var preguntandoGuardarEdicion = false
-    @State private var hayBorrador = false
-    @State private var borradorPendiente: EditBlockDraftStore.Draft?
+    @State var preguntandoGuardarEdicion = false
+    @State var hayBorrador = false
+    @State var borradorPendiente: EditBlockDraftStore.Draft?
     /// Vía cuya ficha está ABIERTA. Solo una a la vez: el resto se pliegan a
     /// una fila para no tener que scrollear formularios ya rellenados.
-    @State private var expandedVia: UUID? = nil
+    @State var expandedVia: UUID? = nil
     // ORIENTACIÓN desde el editor (Álvaro, 2026-08-24: "al editar molaría que
     // saliera lo de la orientación, poder orientar cada foto"). Se reutiliza la
     // VOTACIÓN comunitaria que ya existe, no el payload de la propuesta: el
     // voto entra al momento en vez de esperar a que un admin apruebe, y es
     // además la única vía que el backend aplica sobre una piedra ya creada
     // (orientationsJson solo se lee al materializar una piedra NUEVA).
-    @StateObject private var community = CommunityVoteStore()
-    @State private var orientationTarget: OrientationTarget? = nil
+    @StateObject var community = CommunityVoteStore()
+    @State var orientationTarget: OrientationTarget? = nil
 
     /// Al editar una piedra ya existente siempre hay al menos una vía con
     /// nombre/grado (viene del servidor) — no vale mirar solo si hay foto
     /// nueva, si no cancelar tras editar SOLO el nombre o el grado de una vía
     /// no ofrecía guardar nada (Rodrigo, 2026-08-22: "no sale nada de
     /// guardar editando"). Foto nueva O cualquier vía con datos cuenta.
-    private var hayContenidoSinEnviar: Bool {
+    var hayContenidoSinEnviar: Bool {
         !facePicked.isEmpty || faceBlocks.contains {
             $0.contains { !$0.name.trimmingCharacters(in: .whitespaces).isEmpty
                 || $0.grade != nil || !$0.line.isEmpty }
         }
     }
 
-    private var faceIdx: Int { min(max(selectedFace, 0), max(0, faceBlocks.count - 1)) }
-    private var isWall: Bool { geometry == "LINE" }
+    var faceIdx: Int { min(max(selectedFace, 0), max(0, faceBlocks.count - 1)) }
+    var isWall: Bool { geometry == "LINE" }
     /// Reordena las caras (foto + sus vías + foto nueva pendiente) en bloque.
-    private func swapFaces(_ a: Int, _ b: Int) {
+    func swapFaces(_ a: Int, _ b: Int) {
         guard facePhotos.indices.contains(a), facePhotos.indices.contains(b) else { return }
         facePhotos.swapAt(a, b); faceBlocks.swapAt(a, b)
         let pa = facePicked[a], pb = facePicked[b]
         facePicked[a] = pb; facePicked[b] = pa
     }
     /// Quita una cara y reindexa las fotos nuevas pendientes (dict por índice).
-    private func removeFace(_ idx: Int) {
+    func removeFace(_ idx: Int) {
         guard facePhotos.indices.contains(idx) else { return }
         facePhotos.remove(at: idx); faceBlocks.remove(at: idx)
         var np: [Int: UIImage] = [:]
@@ -96,7 +96,7 @@ struct EditLinesSheet: View {
         selectedFace = max(0, idx - 1)
     }
     /// Número global de la vía en el muro (cruza todas las fotos). nil si PUNTO.
-    private func wallNumber(_ idx: Int) -> Int? {
+    func wallNumber(_ idx: Int) -> Int? {
         guard isWall else { return nil }
         let preceding = faceBlocks.prefix(faceIdx).reduce(0) { $0 + $1.count }
         let total = faceBlocks.reduce(0) { $0 + $1.count }
@@ -106,15 +106,15 @@ struct EditLinesSheet: View {
     /// ¿Hay una vía ABIERTA en la foto que se está viendo? Antes el botón "+ NUEVA VÍA" dependía solo de que no hubiera NINGUNA
     /// abierta en ninguna foto: con una vía abierta en la foto 1, al añadir la foto 4 (vacía) el botón desaparecía y no se
     /// podía crear su primera vía (Álvaro, 2026-10-13).
-    private var expandedHere: Bool {
+    var expandedHere: Bool {
         faceBlocks.indices.contains(faceIdx) && faceBlocks[faceIdx].contains { $0.id == expandedVia }
     }
 
-    private var currentPhoto: String? { facePhotos.indices.contains(faceIdx) ? facePhotos[faceIdx] : nil }
-    private var hasPhoto: Bool { !(currentPhoto ?? "").isEmpty }
+    var currentPhoto: String? { facePhotos.indices.contains(faceIdx) ? facePhotos[faceIdx] : nil }
+    var hasPhoto: Bool { !(currentPhoto ?? "").isEmpty }
 
     /// Añade una vía vacía a la cara actual y abre SU ficha (las demás se pliegan).
-    private func nuevaVia() {
+    func nuevaVia() {
         guard faceBlocks.indices.contains(faceIdx) else { return }
         let v = BoulderBlockForm(facePhoto: currentPhoto)
         faceBlocks[faceIdx].append(v)
@@ -123,7 +123,7 @@ struct EditLinesSheet: View {
 
     /// Miniatura de una cara: la foto nueva sin enviar si la hay, si no la del
     /// servidor. Sin foto → marcador gris (una cara recién añadida).
-    @ViewBuilder private func faceThumb(_ i: Int) -> some View {
+    @ViewBuilder func faceThumb(_ i: Int) -> some View {
         if let img = facePicked[i] {
             Image(uiImage: img).resizable().scaledToFill()
         } else if let p = facePhotos.indices.contains(i) ? facePhotos[i] : nil,
@@ -138,7 +138,7 @@ struct EditLinesSheet: View {
     }
 
     /// Vía plegada: una sola línea con lo justo para reconocerla.
-    @ViewBuilder private func viaCompacta(idx: Int, via: BoulderBlockForm) -> some View {
+    @ViewBuilder func viaCompacta(idx: Int, via: BoulderBlockForm) -> some View {
         let titulo = via.name.trimmingCharacters(in: .whitespaces).isEmpty
             ? L("Sin nombre") : via.name
         HStack(spacing: 8) {
@@ -582,122 +582,8 @@ struct EditLinesSheet: View {
         }
     }
 
-    private func send() async {
-        sending = true
-        // 1) Sube las fotos nuevas (caras que el usuario cambió) → URL por cara, y
-        //    marca esas caras como "foto cambiada".
-        var newFacePhoto: [Int: String] = [:]
-        for (i, img) in facePicked {
-            // No seguir si una foto cambiada no sube (evita mezclar caras).
-            guard let url = try? await StorageUploader.uploadBoulderPhoto(img, schoolId: schoolId, index: i) else {
-                sending = false
-                // Ofrecer guardarlo TAMBIÉN aquí. Sin cobertura este es el
-                // primer sitio donde se falla —subir la foto— y hacer `return`
-                // sin más se saltaba el ofrecimiento: el usuario solo veía
-                // "reintentar" y no podía dejarlo guardado (Rodrigo, build 144).
-                ofrecerGuardarOffline = true
-                return
-            }
-            newFacePhoto[i] = url
-        }
-        // 2) Construye el payload por cara. Si la cara cambió de foto, se envían
-        //    TODAS sus vías (existentes como corrección + nuevas) con la foto nueva
-        //    → la cara entera se mueve a la imagen nueva. Si no cambió, solo las
-        //    vías modificadas + las nuevas.
-        // Estado COMPLETO: todas las vías en su orden, cada una con la foto de su
-        // cara (la nueva si la cara cambió). El backend (reconcileWall) reconcilia
-        // por lineId preservando el diario, reaplica el orden y borra las omitidas.
-        var payload: [BoulderBlockForm] = []
-        for (i, faceVias) in faceBlocks.enumerated() {
-            let movedPhoto = newFacePhoto[i]
-            for b in faceVias {
-                var v = b
-                if let p = movedPhoto { v.facePhoto = p }   // mover a la foto nueva
-                // Vía con ALGÚN dato (nombre, grado o trazo) → se conserva/corrige.
-                // Completamente vacía → se OMITE: si era existente el backend la
-                // borra (reconcilia omitidas), evitando vías fantasma imborrables.
-                let hasData = v.grade != nil || !v.name.isEmpty || !v.line.isEmpty
-                if hasData { payload.append(v) }
-            }
-        }
-        guard !payload.isEmpty else { sending = false; dismiss(); onDone(false); return }
-
-        let req = ContributionRequest(
-            type: "BOULDER", name: nil, lat: block.lat, lon: block.lon,
-            notes: nil, description: nil, proposedLat: nil, proposedLon: nil, correctionReason: nil,
-            targetBlockId: block.id, targetLineId: nil, sectorBlockId: nil,
-            photoUrl: nil, bloquesJson: buildBloquesJson(payload), topoLinesJson: nil, discipline: discipline,
-            geometry: geometry,
-            path: isWall ? (tracedPath.isEmpty ? block.path : buildPathJson(tracedPath)) : nil,
-            direction: direction, orientationsJson: nil)
-        let ok = (try? await AppDependencies.shared.container.submitContribution.invoke(schoolId: schoolId, req: req)) != nil
-        sending = false
-        if ok {
-            EditBlockDraftStore.clear(blockId: block.id)   // enviado: el borrador ya no aplica
-            dismiss(); onDone(true)
-        }
-        else {
-            // No se pudo enviar: en vez de dejarlo en "reinténtalo" (y que el
-            // usuario tenga que repetirlo todo en casa), se ofrece GUARDARLO
-            // para mandarlo al recuperar cobertura. Se PREGUNTA en vez de
-            // encolar solo: si el servidor rechazó por otra cosa, encolar a
-            // ciegas lo reintentaría eternamente.
-            ofrecerGuardarOffline = true
-        }
-    }
-
-    /// Guarda la edición para enviarla al recuperar cobertura. Las fotos nuevas
-    /// se copian a disco (las de las caras sin tocar conservan su URL), igual
-    /// que al proponer una piedra nueva sin red.
-    private func guardarSinCobertura() async {
-        let fm = FileManager.default
-        let dir = fm.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("outbox-photos", isDirectory: true)
-        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
-
-        var facesArr: [[String: Any]] = []
-        for (i, faceVias) in faceBlocks.enumerated() {
-            var localPath: Any = NSNull()
-            if let img = facePicked[i], let data = img.jpegData(compressionQuality: 0.85) {
-                let f = dir.appendingPathComponent(UUID().uuidString + ".jpg")
-                if (try? data.write(to: f)) != nil { localPath = f.path }
-            }
-            let vias: [[String: Any]] = faceVias.compactMap { b in
-                guard b.grade != nil || !b.name.isEmpty || !b.line.isEmpty else { return nil }
-                return [
-                    "name": b.name,
-                    "grade": b.grade ?? NSNull(),
-                    "startType": b.startType ?? NSNull(),
-                    "points": b.line.map { [Double($0.x), Double($0.y)] },
-                    "targetLineId": b.existingLineId ?? NSNull()
-                ]
-            }
-            facesArr.append([
-                "localPhotoPath": localPath,
-                "existingPhotoPath": b_existingPhoto(i) ?? NSNull(),
-                "vias": vias
-            ])
-        }
-        let payload: [String: Any] = [
-            "schoolId": schoolId,
-            "targetBlockId": block.id,
-            "lat": block.lat, "lon": block.lon,
-            "discipline": discipline,
-            "geometry": geometry,
-            "pathJson": isWall ? (tracedPath.isEmpty ? (block.path ?? NSNull()) : buildPathJson(tracedPath)) : NSNull(),
-            "direction": direction,
-            "faces": facesArr
-        ]
-        guard let d = try? JSONSerialization.data(withJSONObject: payload),
-              let json = String(data: d, encoding: .utf8) else { return }
-        try? await AppDependencies.shared.container
-            .enqueueBlockEditContribution(schoolId: schoolId, payloadJson: json)
-        EditBlockDraftStore.clear(blockId: block.id)   // encolado: el borrador ya no aplica
-        dismiss(); onDone(false)
-    }
-
     /// Foto que ya tenía esa cara en el servidor (nil si es cara nueva).
-    private func b_existingPhoto(_ i: Int) -> String? {
+    func b_existingPhoto(_ i: Int) -> String? {
         let caras = block.facesOrDerived()
         guard i < caras.count else { return nil }
         let p = caras[i].photoPath
