@@ -95,6 +95,21 @@ jobs:
           chmod +x gradlew
           ./gradlew :app:assembleDebug :app:testDebugUnitTest :shared:testDebugUnitTest --stacktrace
 
+      # Primera vez (o tras borrar app/src/test/screenshots): graba las referencias en Linux y las sube como
+      # artefacto «screenshots-reference» para commitearlas. Así nunca se graban en Windows.
+      - name: Grabar referencias de capturas (solo si no hay)
+        id: record
+        if: hashFiles('app/src/test/screenshots/*.png') == ''
+        run: ./gradlew :app:recordRoborazziDebug
+
+      - name: Subir referencias grabadas
+        if: steps.record.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-reference
+          retention-days: 7
+          path: app/src/test/screenshots/
+
       # Capturas de pantalla (Roborazzi): falla si un componente cambia sin querer. Se salta mientras no existan
       # las referencias (grabarlas con el workflow "Screenshots - grabar referencias" y commitear app/src/test/screenshots).
       - name: Verificar capturas de pantalla
