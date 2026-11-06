@@ -59,7 +59,7 @@
       "done": true
     },
     {
-      "name": "Plan 7.2 · 8. Pruebas y publicar 7.2",
+      "name": "Plan 7.2 · 8. Ronda de pruebas cargada en el panel; falta TestFlight + AAB cuando Álvaro diga «vamos con la 7.2»",
       "done": false
     },
     {
@@ -217,6 +217,21 @@
       "name": "Denuncias renovadas (motivos, texto, gracias, aviso al resolver)",
       "ios": "hecho",
       "android": "hecho"
+    },
+    {
+      "name": "Interruptor remoto («EN PAUSA»)",
+      "ios": "hecho",
+      "android": "probado"
+    },
+    {
+      "name": "Editar ascenso (fecha + estilo)",
+      "ios": "hecho",
+      "android": "probado"
+    },
+    {
+      "name": "Avisos con fecha legible",
+      "ios": "hecho",
+      "android": "probado"
     }
   ]
 }
