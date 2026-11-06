@@ -32,6 +32,9 @@ import com.meteomontana.android.R
 import com.meteomontana.android.data.api.KtorAppVersionApi
 import com.meteomontana.android.data.api.dto.FcmTokenRequest
 import com.meteomontana.android.data.auth.AuthManager
+import com.meteomontana.android.domain.model.FeatureFlags
+import com.meteomontana.android.domain.usecase.featureflags.ObserveFeatureFlagsUseCase
+import com.meteomontana.android.domain.usecase.featureflags.RefreshFeatureFlagsUseCase
 import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
 import com.meteomontana.android.domain.usecase.profile.UpdateFcmTokenUseCase
 import com.meteomontana.android.ui.screens.login.LoginScreen
@@ -55,6 +58,16 @@ fun AppRoot(
     // demasiado vieja, gate no descartable con botón a la tienda. Tolerante a
     // fallos: sin red o error → null → la app abre normal.
     val forceUpdateUrl by viewModel.forceUpdateUrl.collectAsStateWithLifecycle()
+    // Interruptores de funciones del servidor: se piden al arrancar y al volver a la app; el resto de la app los lee del local.
+    val featureFlags by viewModel.featureFlags.collectAsStateWithLifecycle()
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    androidx.compose.runtime.DisposableEffect(lifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_START) viewModel.refreshFeatureFlags()
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(authState) {
         if (authState is AuthManager.AuthState.SignedIn) viewModel.ensureUserProvisioned()
@@ -73,10 +86,14 @@ fun AppRoot(
     }
 
     // Las guías por pantalla ("? AYUDA") se comparten en toda la app: un solo controlador.
-    com.meteomontana.android.ui.guide.ProvideGuides {
-        when (authState) {
-            is AuthManager.AuthState.SignedIn -> MainScreen(deepLink = deepLink, onDeepLinkConsumed = onDeepLinkConsumed)
-            else -> LoginScreen()
+    androidx.compose.runtime.CompositionLocalProvider(
+        com.meteomontana.android.ui.components.LocalFeatureFlags provides featureFlags
+    ) {
+        com.meteomontana.android.ui.guide.ProvideGuides {
+            when (authState) {
+                is AuthManager.AuthState.SignedIn -> MainScreen(deepLink = deepLink, onDeepLinkConsumed = onDeepLinkConsumed)
+                else -> LoginScreen()
+            }
         }
     }
 }
@@ -171,8 +188,17 @@ class AppRootViewModel @Inject constructor(
     authManager: AuthManager,
     private val getMyProfile: GetMyProfileUseCase,
     private val updateFcmToken: UpdateFcmTokenUseCase,
-    private val appVersionApi: KtorAppVersionApi
+    private val appVersionApi: KtorAppVersionApi,
+    observeFeatureFlags: ObserveFeatureFlagsUseCase,
+    private val refreshFeatureFlagsUseCase: RefreshFeatureFlagsUseCase
 ) : ViewModel() {
+
+    /** Interruptores de funciones (asistente, publicar en Comunidad, crear quedada, PDF de la guía). */
+    val featureFlags: StateFlow<FeatureFlags> = observeFeatureFlags()
+
+    fun refreshFeatureFlags() {
+        viewModelScope.launch { runCatching { refreshFeatureFlagsUseCase() } }
+    }
 
     val authState: StateFlow<AuthManager.AuthState> = authManager.authState
 

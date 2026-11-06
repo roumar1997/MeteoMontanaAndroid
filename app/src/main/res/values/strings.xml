@@ -1910,4 +1910,6 @@
     <string name="report_sent_body">Lo revisará el equipo de Cumbre y te avisaremos cuando esté revisado. Mientras tanto, ya no lo verás.</string>
     <string name="report_ok">ENTENDIDO</string>
     <string name="notif_team_title">Equipo Cumbre</string>
+    <string name="feature_off_eyebrow">EN PAUSA</string>
+    <string name="feature_off_message">Esta función está en pausa un momento. Lo estamos arreglando; vuelve a probar en un rato.</string>
 </resources>

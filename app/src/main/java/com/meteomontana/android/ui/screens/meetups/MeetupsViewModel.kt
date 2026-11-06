@@ -4,6 +4,7 @@ import com.meteomontana.android.util.AppText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.domain.util.Geo
+import com.meteomontana.android.domain.model.FeatureDisabledException
 import com.meteomontana.android.domain.model.Meetup
 import com.meteomontana.android.domain.model.CreateMeetupRequest
 import com.meteomontana.android.domain.usecase.meetups.CreateMeetupUseCase
@@ -36,6 +37,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
+
+/** Aviso de función en pausa; [message] null = el texto de siempre. */
+data class FeatureNotice(val message: String?)
 
 data class MeetupsUiState(
     val meetups: List<Meetup> = emptyList(),
@@ -104,6 +108,10 @@ class MeetupsViewModel @Inject constructor(
 
     private val _createError = MutableStateFlow<String?>(null)
     val createError = _createError.asStateFlow()
+
+    /** Crear quedada está en pausa: aviso del servidor (puede ser null = texto de siempre); null = no hay aviso. */
+    private val _createPaused = MutableStateFlow<FeatureNotice?>(null)
+    val createPaused = _createPaused.asStateFlow()
 
     // RC3: gate de género (No Mixto exige perfil Mujer). En vez de un texto de
     // error críptico, las pantallas muestran un DIÁLOGO explicativo con botón a
@@ -272,11 +280,15 @@ class MeetupsViewModel @Inject constructor(
 
     fun create(req: CreateMeetupRequest, onSuccess: (Meetup) -> Unit, onError: () -> Unit = {}) {
         _createError.value = null
+        _createPaused.value = null
         viewModelScope.launch {
             try {
                 val meetup = createMeetup.execute(req)
                 loadMeetups()
                 onSuccess(meetup)
+            } catch (e: FeatureDisabledException) {
+                _createPaused.value = FeatureNotice(e.message)   // el servidor acaba de decir que está en pausa
+                onError()
             } catch (e: Exception) {
                 if (e.message?.contains("GENDER_REQUIRED") == true) {
                     _genderGate.value = true   // RC3: diálogo con CTA a Editar perfil

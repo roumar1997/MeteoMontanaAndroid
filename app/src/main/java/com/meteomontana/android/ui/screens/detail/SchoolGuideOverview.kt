@@ -183,10 +183,14 @@ internal fun OverviewCard(state: SchoolBlocksViewModel.UiState, vm: SchoolBlocks
 internal fun PdfButton(state: SchoolBlocksViewModel.UiState, vm: SchoolBlocksViewModel, schoolName: String) {
     var menu by remember { mutableStateOf(false) }
     val g = state.guideView
-    Box {
+    // El servidor puede poner el PDF en pausa (interruptor `guide_pdf`): botón apagado y aviso debajo.
+    val flags = com.meteomontana.android.ui.components.LocalFeatureFlags.current
+    val pdfOn = flags.isEnabled(com.meteomontana.android.domain.model.FeatureKey.GUIDE_PDF)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Box(Modifier.alpha(if (pdfOn) 1f else 0.5f)) {
         Row(
             Modifier.fillMaxWidth().clip(CircleShape).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                .clickable(enabled = !state.makingPdf && g != null) {
+                .clickable(enabled = pdfOn && !state.makingPdf && g != null) {
                     if (g != null && g.sectors.size > 1) menu = true else vm.exportPdf(schoolName, null)
                 }
                 .padding(vertical = 10.dp),
@@ -225,6 +229,9 @@ internal fun PdfButton(state: SchoolBlocksViewModel.UiState, vm: SchoolBlocksVie
                 }
             }
         }
+    }
+    if (!pdfOn) com.meteomontana.android.ui.components.FeatureOffNotice(
+        flags.messageFor(com.meteomontana.android.domain.model.FeatureKey.GUIDE_PDF))
     }
 }
 

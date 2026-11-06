@@ -29,9 +29,19 @@ struct CreateMeetupView: View {
     @State private var schoolPickerResults: [School] = []
     @State private var schoolName = ""
     @State private var dayScores: [String: Int] = [:]
+    // Crear quedada en pausa: por el interruptor del servidor (`featureFlags`) o por un 503 FEATURE_DISABLED acabado de recibir.
+    @ObservedObject private var featureFlags = FeatureFlagsModel.shared
+    @State private var paused: FeatureNotice?
 
     private let createMeetup = AppDependencies.shared.container.createMeetup
     private let getRangeScores = AppDependencies.shared.container.getRangeScores
+
+    private var pausedNotice: FeatureNotice? {
+        if !featureFlags.isEnabled(FeatureKey.shared.MEETUP_CREATE) {
+            return FeatureNotice(message: featureFlags.message(FeatureKey.shared.MEETUP_CREATE))
+        }
+        return paused
+    }
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
@@ -54,175 +64,183 @@ struct CreateMeetupView: View {
                 .background(Cumbre.bg)
                 .overlay(Divider(), alignment: .bottom)
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        // Foto del grupo
-                        VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel(L("FOTO DEL GRUPO (opcional)"))
-                            PhotosPicker(selection: $photoItem, matching: .images) {
-                                ZStack {
-                                    if let img = photoImage {
-                                        Image(uiImage: img)
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(maxWidth: .infinity)
-                                            .frame(height: 140)
-                                            .clipped()
-                                            .cornerRadius(4)
-                                    } else {
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .fill(Cumbre.bg)
-                                            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2)))
-                                            .frame(maxWidth: .infinity)
-                                            .frame(height: 140)
-                                    }
-                                    if uploadingPhoto {
-                                        ProgressView().tint(Cumbre.terra)
-                                    } else if photoImage == nil {
-                                        VStack(spacing: 4) {
-                                            Image(systemName: "camera.fill").font(.title2).foregroundColor(Cumbre.ink.opacity(0.4))
-                                            Text("AÑADIR FOTO").font(.system(size: 10, weight: .bold, design: .monospaced))
-                                                .tracking(1.8).foregroundColor(Cumbre.ink.opacity(0.4))
+                // Crear quedada en pausa (interruptor del servidor, o un 503 acabado de recibir): aviso en vez del formulario.
+                if let notice = pausedNotice {
+                    FeatureOffNotice(message: notice.message).padding(16)
+                    Spacer()
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 20) {
+                            // Foto del grupo
+                            VStack(alignment: .leading, spacing: 6) {
+                                FieldLabel(L("FOTO DEL GRUPO (opcional)"))
+                                PhotosPicker(selection: $photoItem, matching: .images) {
+                                    ZStack {
+                                        if let img = photoImage {
+                                            Image(uiImage: img)
+                                                .resizable()
+                                                .scaledToFill()
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 140)
+                                                .clipped()
+                                                .cornerRadius(4)
+                                        } else {
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .fill(Cumbre.bg)
+                                                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2)))
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 140)
+                                        }
+                                        if uploadingPhoto {
+                                            ProgressView().tint(Cumbre.terra)
+                                        } else if photoImage == nil {
+                                            VStack(spacing: 4) {
+                                                Image(systemName: "camera.fill").font(.title2).foregroundColor(Cumbre.ink.opacity(0.4))
+                                                Text("AÑADIR FOTO").font(.system(size: 10, weight: .bold, design: .monospaced))
+                                                    .tracking(1.8).foregroundColor(Cumbre.ink.opacity(0.4))
+                                            }
                                         }
                                     }
                                 }
-                            }
-                            .onChange(of: photoItem) { item in
-                                guard let item else { return }
-                                // @MainActor: photoImage/uploadingPhoto son @State.
-                                Task { @MainActor in
-                                    guard let data = try? await item.loadTransferable(type: Data.self),
-                                          let uiImg = UIImage(data: data) else { return }
-                                    photoImage = uiImg
-                                    uploadingPhoto = true
-                                    do {
-                                        let url = try await StorageUploader.uploadMeetupPhoto(
-                                            uiImg,
-                                            tempId: "new_\(Int(Date().timeIntervalSince1970))"
-                                        )
-                                        photoUrl = url
-                                    } catch {
-                                        photoUrl = nil
-                                        photoUploadError = L("No se pudo subir la foto. Inténtalo de nuevo.")
+                                .onChange(of: photoItem) { item in
+                                    guard let item else { return }
+                                    // @MainActor: photoImage/uploadingPhoto son @State.
+                                    Task { @MainActor in
+                                        guard let data = try? await item.loadTransferable(type: Data.self),
+                                              let uiImg = UIImage(data: data) else { return }
+                                        photoImage = uiImg
+                                        uploadingPhoto = true
+                                        do {
+                                            let url = try await StorageUploader.uploadMeetupPhoto(
+                                                uiImg,
+                                                tempId: "new_\(Int(Date().timeIntervalSince1970))"
+                                            )
+                                            photoUrl = url
+                                        } catch {
+                                            photoUrl = nil
+                                            photoUploadError = L("No se pudo subir la foto. Inténtalo de nuevo.")
+                                        }
+                                        uploadingPhoto = false
                                     }
-                                    uploadingPhoto = false
                                 }
                             }
-                        }
-                        if let err = photoUploadError {
-                            Text(err).font(.caption).foregroundColor(.red)
-                        }
-
-                        // Nombre
-                        VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel(L("NOMBRE"))
-                            TextField("Ej. Quedar en Pedriza", text: $name)
-                                .textFieldStyle(CumbreFieldStyle())
-                        }
-
-                        // Escuela
-                        VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel(L("ESCUELA"))
-                            Button { showSchoolPicker = true } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "building.2").foregroundColor(Cumbre.ink.opacity(0.5))
-                                    Text(schoolName.isEmpty ? NSLocalizedString("create_meetup_school_search", comment: "") : schoolName)
-                                        .foregroundStyle(schoolName.isEmpty ? Cumbre.ink.opacity(0.4) : Cumbre.ink)
-                                        .font(.system(size: 15))
-                                    Spacer()
-                                    Image(systemName: "chevron.right").foregroundColor(Cumbre.ink.opacity(0.3))
+                            if let err = photoUploadError {
+                                Text(err).font(.caption).foregroundColor(.red)
+                            }
+    
+                            // Nombre
+                            VStack(alignment: .leading, spacing: 6) {
+                                FieldLabel(L("NOMBRE"))
+                                TextField("Ej. Quedar en Pedriza", text: $name)
+                                    .textFieldStyle(CumbreFieldStyle())
+                            }
+    
+                            // Escuela
+                            VStack(alignment: .leading, spacing: 6) {
+                                FieldLabel(L("ESCUELA"))
+                                Button { showSchoolPicker = true } label: {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "building.2").foregroundColor(Cumbre.ink.opacity(0.5))
+                                        Text(schoolName.isEmpty ? NSLocalizedString("create_meetup_school_search", comment: "") : schoolName)
+                                            .foregroundStyle(schoolName.isEmpty ? Cumbre.ink.opacity(0.4) : Cumbre.ink)
+                                            .font(.system(size: 15))
+                                        Spacer()
+                                        Image(systemName: "chevron.right").foregroundColor(Cumbre.ink.opacity(0.3))
+                                    }
+                                    .padding(10)
+                                    .background(Cumbre.bg)
+                                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
                                 }
-                                .padding(10)
-                                .background(Cumbre.bg)
-                                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
+                            }
+    
+                            // Días
+                            VStack(alignment: .leading, spacing: 6) {
+                                FieldLabel(L("DÍAS (elige uno o varios)"))
+                                DayPickerView(selected: $selectedDays, schoolId: schoolId, dayScores: dayScores)
+                            }
+    
+                            // Privacidad
+                            VStack(alignment: .leading, spacing: 6) {
+                                FieldLabel(L("PRIVACIDAD"))
+                                PrivacyPickerView(selected: $privacy)
+                            }
+                            if privacy == "WOMEN" {
+                                Text("Solo mujeres. Asegúrate de tener género = Mujer en tu perfil (Perfil → Editar perfil).")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(Cumbre.ink.opacity(0.5))
+                            }
+    
+                            // Disciplina
+                            VStack(alignment: .leading, spacing: 6) {
+                                FieldLabel(L("DISCIPLINA (opcional)"))
+                                DisciplinePickerView(selected: $discipline)
+                            }
+    
+                            // Límite
+                            VStack(alignment: .leading, spacing: 6) {
+                                FieldLabel(L("LÍMITE DE PARTICIPANTES (opcional)"))
+                                TextField("Sin límite", text: $limitText)
+                                    .keyboardType(.numberPad)
+                                    .textFieldStyle(CumbreFieldStyle())
+                            }
+    
+                            // Error
+                            if let err = createError {
+                                Text(err).font(.caption).foregroundColor(.red)
                             }
                         }
-
-                        // Días
-                        VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel(L("DÍAS (elige uno o varios)"))
-                            DayPickerView(selected: $selectedDays, schoolId: schoolId, dayScores: dayScores)
-                        }
-
-                        // Privacidad
-                        VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel(L("PRIVACIDAD"))
-                            PrivacyPickerView(selected: $privacy)
-                        }
-                        if privacy == "WOMEN" {
-                            Text("Solo mujeres. Asegúrate de tener género = Mujer en tu perfil (Perfil → Editar perfil).")
-                                .font(.system(size: 12))
-                                .foregroundStyle(Cumbre.ink.opacity(0.5))
-                        }
-
-                        // Disciplina
-                        VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel(L("DISCIPLINA (opcional)"))
-                            DisciplinePickerView(selected: $discipline)
-                        }
-
-                        // Límite
-                        VStack(alignment: .leading, spacing: 6) {
-                            FieldLabel(L("LÍMITE DE PARTICIPANTES (opcional)"))
-                            TextField("Sin límite", text: $limitText)
-                                .keyboardType(.numberPad)
-                                .textFieldStyle(CumbreFieldStyle())
-                        }
-
-                        // Error
-                        if let err = createError {
-                            Text(err).font(.caption).foregroundColor(.red)
-                        }
+                        .padding(16)
                     }
+    
+                    // Botón
+                    Divider()
+                    Button {
+                        guard canSubmit, let uc = createMeetup else { return }
+                        submitting = true
+                        createError = nil
+                        let req = CreateMeetupRequest(
+                            schoolId: schoolId.trimmingCharacters(in: .whitespaces),
+                            name: name.trimmingCharacters(in: .whitespaces),
+                            description: prefill?.description,
+                            discipline: discipline,
+                            privacy: privacy,
+                            memberLimit: {
+                                guard !limitText.isEmpty, let n = Int32(limitText) else { return nil }
+                                return KotlinInt(int: n)
+                            }(),
+                            photoUrl: photoUrl,
+                            days: selectedDays.sorted()
+                        )
+                        Task {
+                            do {
+                                let meetup = try await uc.execute(req: req)
+                                submitting = false
+                                onCreated(meetup.id)
+                            } catch {
+                                let msg = error.localizedDescription
+                                if let off = FeatureOff.notice(from: error) {
+                                    paused = off   // el servidor acaba de decir que está en pausa
+                                } else if msg.contains("GENDER_REQUIRED") {
+                                    showGenderGate = true   // RC3: diálogo explicativo
+                                } else {
+                                    createError = msg
+                                }
+                                submitting = false
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            if submitting { ProgressView().scaleEffect(0.8).tint(.white) }
+                            else { Text(NSLocalizedString("create_meetup_create", comment: "")).fontWeight(.bold) }
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Cumbre.terra)
+                    .disabled(!canSubmit)
                     .padding(16)
+                    .background(Cumbre.bg)
                 }
-
-                // Botón
-                Divider()
-                Button {
-                    guard canSubmit, let uc = createMeetup else { return }
-                    submitting = true
-                    createError = nil
-                    let req = CreateMeetupRequest(
-                        schoolId: schoolId.trimmingCharacters(in: .whitespaces),
-                        name: name.trimmingCharacters(in: .whitespaces),
-                        description: prefill?.description,
-                        discipline: discipline,
-                        privacy: privacy,
-                        memberLimit: {
-                            guard !limitText.isEmpty, let n = Int32(limitText) else { return nil }
-                            return KotlinInt(int: n)
-                        }(),
-                        photoUrl: photoUrl,
-                        days: selectedDays.sorted()
-                    )
-                    Task {
-                        do {
-                            let meetup = try await uc.execute(req: req)
-                            submitting = false
-                            onCreated(meetup.id)
-                        } catch {
-                            let msg = error.localizedDescription
-                            if msg.contains("GENDER_REQUIRED") {
-                                showGenderGate = true   // RC3: diálogo explicativo
-                            } else {
-                                createError = msg
-                            }
-                            submitting = false
-                        }
-                    }
-                } label: {
-                    HStack {
-                        if submitting { ProgressView().scaleEffect(0.8).tint(.white) }
-                        else { Text(NSLocalizedString("create_meetup_create", comment: "")).fontWeight(.bold) }
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(Cumbre.terra)
-                .disabled(!canSubmit)
-                .padding(16)
-                .background(Cumbre.bg)
             }
             .navigationBarHidden(true)
             .onAppear {

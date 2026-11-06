@@ -67,6 +67,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.CreateMeetupRequest
+import com.meteomontana.android.domain.model.FeatureKey
+import com.meteomontana.android.ui.components.FeatureOffNotice
+import com.meteomontana.android.ui.components.LocalFeatureFlags
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
@@ -94,6 +97,10 @@ fun CreateMeetupScreen(
         GenderGateDialog(onEditProfile = onEditProfile, onDismiss = { viewModel.clearGenderGate() })
     }
     val uploadingPhoto by viewModel.uploadingPhoto.collectAsStateWithLifecycle()
+    // Crear quedada en pausa (interruptor del servidor, o un 503 acabado de recibir): aviso en vez del formulario.
+    val flags = LocalFeatureFlags.current
+    val createPaused by viewModel.createPaused.collectAsStateWithLifecycle()
+    val paused = if (!flags.isEnabled(FeatureKey.MEETUP_CREATE)) FeatureNotice(flags.messageFor(FeatureKey.MEETUP_CREATE)) else createPaused
     val dayScores by viewModel.dayScores.collectAsStateWithLifecycle()
 
     // rememberSaveable: el formulario sobrevive a que el SO mate el proceso
@@ -157,6 +164,11 @@ fun CreateMeetupScreen(
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         }
         HorizontalDivider()
+
+        if (paused != null) {
+            FeatureOffNotice(paused.message, Modifier.padding(Spacing.md))
+            return@Column
+        }
 
         Column(
             modifier = Modifier

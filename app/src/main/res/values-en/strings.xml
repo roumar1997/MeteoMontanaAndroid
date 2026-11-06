@@ -1851,4 +1851,6 @@
     <string name="report_sent_body">The Cumbre team will review it and let you know once it has been reviewed. Meanwhile you will not see it.</string>
     <string name="report_ok">GOT IT</string>
     <string name="notif_team_title">Cumbre team</string>
+    <string name="feature_off_eyebrow">PAUSED</string>
+    <string name="feature_off_message">This feature is paused for a moment. We\'re fixing it — try again shortly.</string>
 </resources>

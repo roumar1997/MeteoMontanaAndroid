@@ -72,11 +72,18 @@ class IosDependencyContainer(
      * esperaba el timeout completo de Ktor aunque el sistema ya supiera que
      * no hay red en absoluto.
      */
-    val networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor? = null
+    val networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor? = null,
+    /** Almacén clave-valor (NSUserDefaults en iOS) para recordar los interruptores de funciones. */
+    keyValueStore: com.meteomontana.android.domain.port.KeyValueStore? = null
 ) {
     private val httpClient = buildApiHttpClient(baseUrl) {
         authService?.currentIdToken(false)
     }
+
+    // Interruptores de funciones del servidor (módulo aparte para no engordar este fichero).
+    private val featureFlags = FeatureFlagsModule(httpClient, keyValueStore)
+    val observeFeatureFlags = featureFlags.observeFeatureFlags
+    val refreshFeatureFlags = featureFlags.refreshFeatureFlags
 
     // Público: iOS lo usa para el buscador global de vías/bloques.
     val schoolApi = KtorSchoolApi(httpClient)

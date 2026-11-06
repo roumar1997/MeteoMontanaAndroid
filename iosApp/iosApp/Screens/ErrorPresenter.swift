@@ -73,6 +73,8 @@ final class ErrorPresenter: ObservableObject {
     /// conexión; cualquier otra cosa → el mensaje de contexto que pasa la
     /// vista ("No se pudo enviar el comentario", etc.).
     nonisolated static func friendly(_ error: Error, fallback: String) -> String {
+        // 503 FEATURE_DISABLED: el servidor tiene esa función en pausa → su aviso (o el de siempre), no el error genérico.
+        if let off = FeatureOff.notice(from: error) { return FeatureOff.text(off.message) }
         let ns = error as NSError
         if ns.domain == NSURLErrorDomain { return L("Sin conexión. Inténtalo de nuevo.") }
         let text = String(describing: error).lowercased()

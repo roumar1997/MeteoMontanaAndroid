@@ -117,7 +117,7 @@ enum JournalTicker {
                 try await container.publishFeedPost.invoke(
                     blockId: ref.blockId, lineId: lineId, kind: kind, discipline: discipline,
                     caption: caption)
-            }) else { return }
+            }) else { return }   // `reporting` enseña el aviso de «en pausa» si el servidor devuelve 503 FEATURE_DISABLED
             guard let photo else { return }
             guard let data = feedPhotoJPEGData(photo) else {
                 await showFeedPhotoUploadFailedAlert()

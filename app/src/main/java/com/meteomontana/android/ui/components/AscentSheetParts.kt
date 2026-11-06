@@ -1,10 +1,12 @@
 package com.meteomontana.android.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -98,3 +100,39 @@ internal fun AscentHeightRow(
 }
 
 internal const val HEIGHT_GUIDE = "ascent_height"
+
+/**
+ * Lo que vale el interruptor «Compartir en Comunidad» de verdad: si el servidor ha puesto en pausa publicar
+ * (interruptor `feed_publish`), nunca está encendido aunque la persona lo hubiera dejado así. Guardar en el diario sigue igual.
+ */
+internal fun effectiveShare(share: Boolean, publishEnabled: Boolean): Boolean = share && publishEnabled
+
+/**
+ * Fila del interruptor «Compartir en Comunidad». Con la función en pausa ([enabled] = false) el interruptor queda
+ * apagado y sin respuesta, y debajo sale el aviso de «en pausa».
+ */
+@Composable
+internal fun AscentShareRow(share: Boolean, enabled: Boolean, offMessage: String?, onChange: (Boolean) -> Unit) {
+    val shape = RoundedCornerShape(12.dp)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            Modifier.fillMaxWidth()
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, shape)
+                .clickable(enabled = enabled) { onChange(!share) }.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(stringResource(R.string.ascent_share_title), fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground)
+                Text(stringResource(R.string.ascent_share_sub), fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            androidx.compose.material3.Switch(
+                checked = share && enabled, onCheckedChange = onChange, enabled = enabled,
+                colors = androidx.compose.material3.SwitchDefaults.colors(checkedTrackColor = Terra))
+        }
+        if (!enabled) FeatureOffNotice(offMessage)
+    }
+}

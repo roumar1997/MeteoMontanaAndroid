@@ -1,6 +1,7 @@
 package com.meteomontana.android
 
 import com.meteomontana.android.data.api.dto.BlockDto
+import com.meteomontana.android.data.api.dto.FeatureFlagsDto
 import com.meteomontana.android.data.api.dto.ForecastDto
 import com.meteomontana.android.data.api.dto.JournalSessionDto
 import com.meteomontana.android.data.api.dto.MeetupDto
@@ -35,7 +36,7 @@ import org.junit.Test
  * campo que el backend no manda, falla aquí.
  *
  * Endpoints: GET schools, schools/{id}/blocks, schools/{id}/forecast,
- * journal/me, me, meetups.
+ * journal/me, me, meetups, feature-flags.
  *
  * Si cambias un DTO o el backend: actualiza el MISMO json en los dos repos.
  * Campo nuevo nullable = aditivo; renombrar/borrar/cambiar tipo rompe las apps
@@ -238,5 +239,21 @@ class ApiContractTest {
         assertNull(n.members.single().username)
         assertNull(n.members.single().gearJson)
         assertDtoKeysInGolden("meetups.json", ser)
+    }
+
+    // ── GET feature-flags (público) ─────────────────────────────────────────
+
+    @Test fun interruptoresDeFunciones() {
+        val ser = FeatureFlagsDto.serializer()
+        val f = parse("feature-flags.json", "full", ser)
+        assertEquals(300, f.refreshAfterSeconds)
+        assertFalse(f.flags.getValue("assistant").enabled)
+        assertEquals("Asistente en mantenimiento", f.flags.getValue("assistant").message)
+        assertTrue(f.flags.getValue("feed_publish").enabled)
+
+        val n = parse("feature-flags.json", "nulls", ser)
+        assertTrue(n.flags.getValue("guide_pdf").enabled)
+        assertNull(n.flags.getValue("guide_pdf").message)
+        assertDtoKeysInGolden("feature-flags.json", ser)
     }
 }

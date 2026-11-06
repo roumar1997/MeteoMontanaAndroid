@@ -118,6 +118,7 @@ private fun buildClient(
             })
         }
         install(authPlugin)
+        installFeatureDisabledMapping()
         install(HttpTimeout) {
             connectTimeoutMillis = CONNECT_TIMEOUT_MS
             requestTimeoutMillis = REQUEST_TIMEOUT_MS

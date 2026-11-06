@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.components
 
 import com.meteomontana.android.util.CalendarLabels
+import com.meteomontana.android.domain.model.FeatureKey
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import com.meteomontana.android.data.local.saveCelebrationToGallery
@@ -237,7 +238,11 @@ internal fun AscentSheet(
     var vote by remember { mutableStateOf<String?>(null) }
     var pendingVote by remember { mutableStateOf<String?>(null) }
     var showAllGrades by remember { mutableStateOf(false) }
-    var share by remember { mutableStateOf(initialShare) }
+    var shareChoice by remember { mutableStateOf(initialShare) }
+    // Si el servidor ha puesto en pausa publicar, el interruptor no se puede encender; guardar en el diario sigue igual.
+    val flags = LocalFeatureFlags.current
+    val publishEnabled = flags.isEnabled(FeatureKey.FEED_PUBLISH)
+    val share = effectiveShare(shareChoice, publishEnabled)
     var showDatePicker by remember { mutableStateOf(false) }
     // Descripción opcional del autor (viaja como "caption", max 500).
     var caption by remember { mutableStateOf("") }
@@ -381,7 +386,7 @@ internal fun AscentSheet(
                 }
             }
             Spacer(Modifier.height(16.dp))
-            AscentShareRow(share) { share = it }
+            AscentShareRow(share, publishEnabled, flags.messageFor(FeatureKey.FEED_PUBLISH)) { shareChoice = it }
             if (share) {
                 Spacer(Modifier.height(10.dp))
                 com.meteomontana.android.ui.components.MentionSuggestions(
@@ -406,7 +411,7 @@ internal fun AscentSheet(
                     .clip(RoundedCornerShape(12.dp))
                     .background(terraFillColor())
                     .clickable {
-                        com.meteomontana.android.data.local.FeedSharePref.set(photoCtx, share)
+                        if (publishEnabled) com.meteomontana.android.data.local.FeedSharePref.set(photoCtx, share)
                         onSave(AscentChoice(
                             sessionDate = sessionDate, aVista = aVista, alFlash = alFlash,
                             gradeVote = vote, publish = share,
@@ -521,28 +526,6 @@ private fun AscentGradeButton(g: String, selected: Boolean, modifier: Modifier, 
     ) {
         Text(g, style = EyebrowTextStyle.copy(fontSize = 12.sp), maxLines = 1,
             color = if (selected) (if (style.dark) Color.Black else Color.White) else accent)
-    }
-}
-
-@androidx.compose.runtime.Composable
-private fun AscentShareRow(share: Boolean, onChange: (Boolean) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-            .clickable { onChange(!share) }.padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(stringResource(R.string.ascent_share_title), fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground)
-            Text(stringResource(R.string.ascent_share_sub), fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        androidx.compose.material3.Switch(
-            checked = share, onCheckedChange = onChange,
-            colors = androidx.compose.material3.SwitchDefaults.colors(checkedTrackColor = Terra))
     }
 }
 

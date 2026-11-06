@@ -19,6 +19,8 @@ struct SchoolBlocksExplorerView: View {
     /// Restricciones en vigor (las da la ficha): "!" en el sector y en cada vía afectada.
     @Environment(\.schoolRestrictions) private var restrictionsUI
     @State private var overviewOpen = false
+    // El servidor puede poner el PDF en pausa (interruptor `guide_pdf`): botón apagado y aviso debajo.
+    @ObservedObject private var featureFlags = FeatureFlagsModel.shared
     /// Mapa de la escuela desplegado en la guía (plegado al entrar).
     @State private var mapExpanded = false
 
@@ -345,7 +347,11 @@ struct SchoolBlocksExplorerView: View {
                 .frame(maxWidth: .infinity).padding(.vertical, 10)
                 .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
             }
-            .disabled(model.makingPDF)
+            .disabled(model.makingPDF || !featureFlags.isEnabled(FeatureKey.shared.GUIDE_PDF))
+            .opacity(featureFlags.isEnabled(FeatureKey.shared.GUIDE_PDF) ? 1 : 0.5)
+            if !featureFlags.isEnabled(FeatureKey.shared.GUIDE_PDF) {
+                FeatureOffNotice(message: featureFlags.message(FeatureKey.shared.GUIDE_PDF))
+            }
         }
         .padding(.horizontal, 16).padding(.top, 12)
     }

@@ -2,6 +2,7 @@ package com.meteomontana.android.ui.screens.detail
 
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.BlockLine
+import com.meteomontana.android.domain.model.FeatureDisabledException
 import com.meteomontana.android.domain.model.FileRef
 import com.meteomontana.android.domain.port.FileReader
 import com.meteomontana.android.domain.usecase.feed.FeedKind
@@ -36,7 +37,9 @@ class TickFeedPublisher @Inject constructor(
         /** Aviso discreto si la foto no se pudo subir (el post queda sin foto). */
         onPhotoUploadFailed: (() -> Unit)? = null,
         /** El POST del post fallo: el ascenso quedo en el diario pero NO publicado. */
-        onPublishFailed: (() -> Unit)? = null
+        onPublishFailed: (() -> Unit)? = null,
+        /** El servidor tiene publicar en pausa (503 FEATURE_DISABLED): el ascenso queda en el diario; recibe el aviso del servidor. */
+        onFeatureOff: ((String?) -> Unit)? = null
     ) {
         val kind = if (wasProject) FeedKind.PROJECT_DONE else FeedKind.TICK
         // Modalidad de la piedra (misma distinción Bloque/Vía del detalle).
@@ -45,7 +48,11 @@ class TickFeedPublisher @Inject constructor(
             publishFeedPost(
                 block.id, line.id.takeIf { it.isNotBlank() }, kind, discipline, caption
             )
-        }.getOrElse {
+        }.getOrElse { error ->
+            if (error is FeatureDisabledException && onFeatureOff != null) {
+                onFeatureOff(error.message)
+                return
+            }
             // P11: fallar EN SILENCIO escondio un bug real (secuencias de
             // staging) durante horas. El fallo ahora avisa siempre.
             onPublishFailed?.invoke()

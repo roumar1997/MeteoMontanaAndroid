@@ -17,11 +17,14 @@ struct AssistantBubble: View {
     /// Quedada que el asistente dejó preparada: se abre "Nueva quedada" ya rellena al cerrarse el chat.
     @State private var meetupPrefill: AssistantViewModel.MeetupRequest?
     @State private var showMeetup = false
+    /// El servidor puede apagar el asistente para todos (interruptor «assistant»).
+    @ObservedObject private var featureFlags = FeatureFlagsModel.shared
 
-    /// La burbuja solo existe para quien tiene el asistente (admin, abierto a todos o activado a mano por un admin).
+    /// La burbuja solo existe para quien tiene el asistente (admin, abierto a todos o activado a mano por un admin)
+    /// y mientras el servidor no lo tenga en pausa.
     var body: some View {
         Group {
-            if assistant.hasAccess { bubble }
+            if assistant.hasAccess && featureFlags.isEnabled(FeatureKey.shared.ASSISTANT) { bubble }
         }
     }
 

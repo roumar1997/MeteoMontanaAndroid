@@ -112,6 +112,9 @@ fun MainScreen(
     // La burbuja solo existe para quien tiene el asistente (admin, abierto a todos o activado a mano por un admin). Se
     // vuelve a preguntar al volver a la app, para notar si se lo han activado o quitado sin reinstalar.
     val hasAssistantAccess by assistantVm.hasAccess.collectAsStateWithLifecycle()
+    // Además del acceso de la cuenta, el servidor puede apagar el asistente para todos (interruptor «assistant»).
+    val assistantSwitchedOn = com.meteomontana.android.ui.components.LocalFeatureFlags.current
+        .isEnabled(com.meteomontana.android.domain.model.FeatureKey.ASSISTANT)
     val accessLifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
     androidx.compose.runtime.DisposableEffect(accessLifecycle) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
@@ -534,7 +537,7 @@ fun MainScreen(
                         }
                         // Burbuja del asistente: abajo a la derecha, por encima de las pestañas y de lo que se abra
                         // encima (también se ve en la ficha de una escuela). Se esconde en los chats, donde estorba.
-                        if (!sheetShowsChat && !onboardingActive && hasAssistantAccess) {
+                        if (!sheetShowsChat && !onboardingActive && hasAssistantAccess && assistantSwitchedOn) {
                             com.meteomontana.android.ui.assistant.AssistantBubble(
                                 viewModel = assistantVm,
                                 onOpenTarget = { schoolId, viaId -> openSheet(Routes.schoolDetail(schoolId, viaId = viaId)) },

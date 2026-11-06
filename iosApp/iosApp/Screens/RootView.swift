@@ -50,6 +50,11 @@ struct RootView: View {
     // fallo de red NUNCA bloquea la app).
     @State private var forceUpdateUrl: String? = nil
 
+    // Interruptores de funciones del servidor (asistente, publicar, quedadas, PDF): se piden al arrancar y al
+    // volver a primer plano. Las vistas leen `FeatureFlagsModel.shared`.
+    @ObservedObject private var featureFlags = FeatureFlagsModel.shared
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some View {
         Group {
             if let url = forceUpdateUrl {
@@ -79,6 +84,10 @@ struct RootView: View {
             if build > 0 && build < Int(dto.minIosBuild) {
                 forceUpdateUrl = dto.iosUrl ?? "https://api.climbingteams.com/app"
             }
+        }
+        .task { await featureFlags.refresh() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await featureFlags.refresh() } }
         }
         .task(id: session.user?.uid) {
             guard session.user != nil else { return }

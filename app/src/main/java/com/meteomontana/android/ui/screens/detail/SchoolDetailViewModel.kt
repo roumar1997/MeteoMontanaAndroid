@@ -177,11 +177,12 @@ class SchoolDetailViewModel @Inject constructor(
         caption: String? = null,
         photoUri: String? = null,
         onPhotoUploadFailed: (() -> Unit)? = null,
-        onPublishFailed: (() -> Unit)? = null
+        onPublishFailed: (() -> Unit)? = null,
+        onFeatureOff: ((String?) -> Unit)? = null
     ) {
         viewModelScope.launch {
             tickFeed.publish(block, line, wasProject, caption, photoUri,
-                onPhotoUploadFailed, onPublishFailed)
+                onPhotoUploadFailed, onPublishFailed, onFeatureOff)
         }
     }
 

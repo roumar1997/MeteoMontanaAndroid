@@ -111,6 +111,9 @@ internal fun PendingTickSheet(pt: PendingTick, viewModel: com.meteomontana.andro
                         viewModel.publishTickToFeed(
                             pt.block, pt.line, pt.wasProject, choice.caption,
                             photoUri = choice.photoUri?.toString(),
+                            onFeatureOff = { msg ->
+                                com.meteomontana.android.ui.components.showFeatureOffToast(fichaCtx, msg)
+                            },
                             onPublishFailed = {
                                 android.widget.Toast.makeText(
                                     fichaCtx,

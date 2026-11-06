@@ -105,6 +105,9 @@ internal fun SchoolGuideHost(
                     if (choice.publish) {
                         viewModel.publishTickToFeed(
                             block, line, wasProject, choice.caption, photoUri = choice.photoUri?.toString(),
+                            onFeatureOff = { msg ->
+                                com.meteomontana.android.ui.components.showFeatureOffToast(ctx, msg)
+                            },
                             onPublishFailed = {
                                 android.widget.Toast.makeText(ctx, AppText.get(R.string.school_map_v3_no_se_pudo_publicar_el),
                                     android.widget.Toast.LENGTH_LONG).show()

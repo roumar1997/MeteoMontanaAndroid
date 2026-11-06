@@ -70,7 +70,12 @@ struct AscentSheet: View {
     // «Prefiero no decirlo»: la PRIMERA vez que apuntas algo se vuelve a ofrecer, con el porqué (una sola vez).
     @State private var nudgeHeight = false
     private var heightGuideUsed: Bool { UserDefaults.standard.bool(forKey: GuideStore.usedKey("ascent_height")) }
-    @State private var share = FeedSharePref.enabled
+    @State private var shareChoice = FeedSharePref.enabled
+    // Si el servidor ha puesto en pausa publicar (interruptor `feed_publish`), el interruptor no se puede encender;
+    // guardar en el diario sigue igual. Espejo de `effectiveShare` de Android.
+    @ObservedObject private var featureFlags = FeatureFlagsModel.shared
+    private var publishEnabled: Bool { featureFlags.isEnabled(FeatureKey.shared.FEED_PUBLISH) }
+    private var share: Bool { shareChoice && publishEnabled }
     // Descripción opcional del autor (viaja como "caption", max 500).
     @State private var caption = ""
     @State private var showDatePicker = false
@@ -119,7 +124,7 @@ struct AscentSheet: View {
         let text = caption.trimmingCharacters(in: .whitespacesAndNewlines)
         let photo = share ? photoStore.image(for: lineLabel) : nil
         CapturedPhotoStore.forget()   // consumida (o descartada): no re-adoptar después
-        FeedSharePref.enabled = share
+        if publishEnabled { FeedSharePref.enabled = share }
         onSave(AscentChoice(sessionDate: sessionDate, aVista: aVista, alFlash: alFlash,
                             gradeVote: vote, publish: share,
                             caption: share && !text.isEmpty ? text : nil, photo: photo))
@@ -361,16 +366,20 @@ struct AscentSheet: View {
     // MARK: - Comunidad
 
     private var shareRow: some View {
-        Toggle(isOn: $share) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Compartir en Comunidad").font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
-                Text("Lo verá quien te sigue en el feed").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+        VStack(spacing: 8) {
+            Toggle(isOn: Binding(get: { share }, set: { shareChoice = $0 })) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Compartir en Comunidad").font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                    Text("Lo verá quien te sigue en el feed").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                }
             }
+            .toggleStyle(SwitchToggleStyle(tint: Cumbre.terra))
+            .disabled(!publishEnabled)
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Cumbre.paper))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
+            if !publishEnabled { FeatureOffNotice(message: featureFlags.message(FeatureKey.shared.FEED_PUBLISH)) }
         }
-        .toggleStyle(SwitchToggleStyle(tint: Cumbre.terra))
-        .padding(12)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Cumbre.paper))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.rule, lineWidth: 1))
     }
 
     /// Descripción y foto de celebración: solo si vas a publicar.

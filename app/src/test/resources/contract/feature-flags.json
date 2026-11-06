@@ -1,0 +1,15 @@
+{
+  "full": {
+    "flags": {
+      "assistant": { "enabled": false, "message": "Asistente en mantenimiento" },
+      "feed_publish": { "enabled": true, "message": "Aviso" }
+    },
+    "refreshAfterSeconds": 300
+  },
+  "nulls": {
+    "flags": {
+      "guide_pdf": { "enabled": true, "message": null }
+    },
+    "refreshAfterSeconds": 300
+  }
+}

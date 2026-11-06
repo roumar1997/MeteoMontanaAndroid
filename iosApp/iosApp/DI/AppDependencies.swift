@@ -80,7 +80,8 @@ final class AppDependencies {
             database: db,
             chatService: chat,
             schoolChatService: schoolChat,
-            networkMonitor: IosNetworkMonitor()
+            networkMonitor: IosNetworkMonitor(),
+            keyValueStore: UserDefaultsKeyValueStore(defaults: .standard)
         )
     }
 }
