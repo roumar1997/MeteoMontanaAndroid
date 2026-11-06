@@ -2,10 +2,7 @@ package com.meteomontana.android.di
 
 import com.meteomontana.android.data.api.KtorAssistantApi
 import com.meteomontana.android.data.repository.KtorAssistantRepository
-import com.meteomontana.android.domain.repository.AdminRepository
 import com.meteomontana.android.domain.repository.AssistantRepository
-import com.meteomontana.android.domain.usecase.admin.GetUserAssistantAccessUseCase
-import com.meteomontana.android.domain.usecase.admin.SetUserAssistantAccessUseCase
 import com.meteomontana.android.domain.usecase.assistant.AskAssistantUseCase
 import com.meteomontana.android.domain.usecase.assistant.GetAssistantAccessUseCase
 import dagger.Module
@@ -29,11 +26,4 @@ object AssistantModule {
 
     @Provides @Singleton
     fun provideGetAssistantAccessUseCase(repo: AssistantRepository) = GetAssistantAccessUseCase(repo)
-
-    // Admin: activar el asistente a un usuario concreto desde su perfil.
-    @Provides @Singleton
-    fun provideGetUserAssistantAccessUseCase(repo: AdminRepository) = GetUserAssistantAccessUseCase(repo)
-
-    @Provides @Singleton
-    fun provideSetUserAssistantAccessUseCase(repo: AdminRepository) = SetUserAssistantAccessUseCase(repo)
 }

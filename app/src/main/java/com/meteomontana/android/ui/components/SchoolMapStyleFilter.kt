@@ -140,10 +140,8 @@ internal fun matchesStyleFilter(b: Block, styleFilter: Set<String>): Boolean {
         else -> true
     }
 }
-
-/** Texto tras enviar desde el mapa: admin y personas de confianza publican directo; el resto espera revisión. */
-internal fun submitSuccessText(isAdmin: Boolean): String = when {
-    isAdmin -> AppText.get(R.string.school_map_v3_publicado_en_el_mapa)
+/** Texto tras enviar desde el mapa: las personas de confianza publican directo; el resto espera revisión. */
+internal fun submitSuccessText(): String = when {
     com.meteomontana.android.domain.usecase.contributions.ContributionOutcome.publishedDirectly ->
         AppText.get(R.string.school_map_v3_publicado_de_confianza)
     else -> AppText.get(R.string.school_map_v3_propuesta_enviada_un_admin_la)

@@ -30,7 +30,6 @@ import org.junit.Test
  *  - carga en paralelo perfil+stats → Success
  *  - sin red cae a la caché local (offline=true); si no hay caché, arma un perfil
  *    mínimo desde Firebase Auth en vez de dar error (la pantalla nunca queda rota)
- *  - pendingReview solo se cuenta para admin
  *  - addBlock sube el grado tope del perfil solo si el nuevo es MAYOR (gradeRank)
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -41,8 +40,6 @@ class ProfileViewModelTest {
     private lateinit var getMyProfile: com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
     private lateinit var getStats: com.meteomontana.android.domain.usecase.journal.GetMyJournalStatsUseCase
     private lateinit var createJournal: com.meteomontana.android.domain.usecase.journal.CreateJournalEntryUseCase
-    private lateinit var getPendingSubs: com.meteomontana.android.domain.usecase.admin.GetPendingSubmissionsUseCase
-    private lateinit var getPendingContribs: com.meteomontana.android.domain.usecase.admin.GetPendingContributionsUseCase
     private lateinit var getFollowStatus: com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase
     private lateinit var updateMyProfile: com.meteomontana.android.domain.usecase.profile.UpdateMyProfileUseCase
     private lateinit var cache: ProfileCache
@@ -59,7 +56,7 @@ class ProfileViewModelTest {
     @Before fun setUp() {
         Dispatchers.setMain(d)
         getMyProfile = mockk(); getStats = mockk(); createJournal = mockk(relaxed = true)
-        getPendingSubs = mockk(); getPendingContribs = mockk(); getFollowStatus = mockk()
+        getFollowStatus = mockk()
         updateMyProfile = mockk(relaxed = true); cache = mockk(relaxed = true)
         deleteAccount = mockk(relaxed = true)
         auth = mockk(relaxed = true) { every { currentPhotoUrl() } returns null }
@@ -69,7 +66,7 @@ class ProfileViewModelTest {
     @After fun tearDown() = Dispatchers.resetMain()
 
     private fun vm() = ProfileViewModel(
-        getMyProfile, getStats, createJournal, getPendingSubs, getPendingContribs,
+        getMyProfile, getStats, createJournal,
         getFollowStatus, updateMyProfile, cache, deleteAccount, auth,
         mockk(relaxed = true), mockk(relaxed = true))
 
@@ -81,17 +78,6 @@ class ProfileViewModelTest {
         assertEquals(10, s.followers)
         assertEquals(5, s.following)
         assertEquals(3, s.projectCount)
-        assertEquals(0, s.pendingReview) // no admin
-    }
-
-    @Test fun `pendingReview cuenta subs mas contribs solo si admin`() = runTest {
-        coEvery { getMyProfile() } returns profile(admin = true)
-        coEvery { getStats() } returns stats
-        coEvery { getPendingSubs() } returns List(4) { mockk() }
-        coEvery { getPendingContribs() } returns List(3) { mockk() }
-        val vm = vm(); advanceUntilIdle()
-        val s = vm.uiState.value as ProfileUiState.Success
-        assertEquals(7, s.pendingReview)
     }
 
     @Test fun `sin red cae a la cache local con offline true`() = runTest {

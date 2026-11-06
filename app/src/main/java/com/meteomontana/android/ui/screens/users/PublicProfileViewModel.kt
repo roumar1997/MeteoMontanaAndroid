@@ -65,10 +65,7 @@ import com.meteomontana.android.domain.model.FollowStatus
 import com.meteomontana.android.domain.model.JournalStats
 import com.meteomontana.android.domain.model.PublicProfile
 import com.meteomontana.android.domain.model.SchoolStats
-import com.meteomontana.android.domain.usecase.admin.GetUserAssistantAccessUseCase
-import com.meteomontana.android.domain.usecase.admin.SetUserAssistantAccessUseCase
 import com.meteomontana.android.domain.usecase.journal.GetUserStatsUseCase
-import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
 import com.meteomontana.android.domain.usecase.social.FollowUserUseCase
 import com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase
 import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
@@ -101,18 +98,12 @@ class PublicProfileViewModel @Inject constructor(
     private val getFollowStatus: GetFollowStatusUseCase,
     private val getUserStats: GetUserStatsUseCase,
     private val followUser: FollowUserUseCase,
-    private val unfollowUser: UnfollowUserUseCase,
-    private val getMyProfile: GetMyProfileUseCase,
-    private val getUserAssistantAccess: GetUserAssistantAccessUseCase,
-    private val setUserAssistantAccess: SetUserAssistantAccessUseCase
+    private val unfollowUser: UnfollowUserUseCase
 ) : ViewModel() {
     private val uid: String = checkNotNull(savedStateHandle["uid"])
     private val _state = MutableStateFlow<PublicProfileUiState>(PublicProfileUiState.Loading)
     val state: StateFlow<PublicProfileUiState> = _state.asStateFlow()
 
-    /** Interruptor del asistente de IA de ESTE usuario. null = no se enseña (no eres admin, o es tu propio perfil). */
-    private val _adminAssistant = MutableStateFlow<AdminAssistantUi?>(null)
-    val adminAssistant: StateFlow<AdminAssistantUi?> = _adminAssistant.asStateFlow()
 
     init { load() }
 
@@ -135,27 +126,6 @@ class PublicProfileViewModel @Inject constructor(
             } catch (t: Throwable) {
                 PublicProfileUiState.Error(t.toUserMessage())
             }
-            (_state.value as? PublicProfileUiState.Success)?.let { loadAdminAssistant(it.profile.uid) }
-        }
-    }
-
-    /** Solo si quien mira es admin (y no es su propio perfil): lee el interruptor del asistente de IA de este usuario. */
-    private suspend fun loadAdminAssistant(profileUid: String) {
-        _adminAssistant.value = null
-        val me = runCatching { getMyProfile() }.getOrNull() ?: return
-        if (!me.isAdmin || me.uid == profileUid) return
-        runCatching { getUserAssistantAccess(profileUid) }
-            .onSuccess { _adminAssistant.value = AdminAssistantUi(it) }
-    }
-
-    /** Activa o desactiva el asistente de IA de este usuario. Si falla, el interruptor vuelve a su sitio. */
-    fun setAssistantAccess(enabled: Boolean) {
-        val profileUid = (_state.value as? PublicProfileUiState.Success)?.profile?.uid ?: return
-        val before = _adminAssistant.value ?: return
-        _adminAssistant.value = AdminAssistantUi(enabled, saving = true)
-        viewModelScope.launch {
-            _adminAssistant.value = runCatching { setUserAssistantAccess(profileUid, enabled) }
-                .fold({ AdminAssistantUi(it) }, { before })
         }
     }
 

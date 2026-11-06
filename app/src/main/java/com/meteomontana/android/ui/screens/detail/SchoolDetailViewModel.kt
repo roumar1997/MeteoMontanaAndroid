@@ -18,7 +18,6 @@ import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.journal.journalViaKey
 import com.meteomontana.android.domain.usecase.blocks.CreateBlockUseCase
-import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase
 import com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase
@@ -56,23 +55,18 @@ class SchoolDetailViewModel @Inject constructor(
     private val removeFavorite: RemoveFavoriteUseCase,
     private val getBlocks: GetBlocksUseCase,
     private val createBlock: CreateBlockUseCase,
-    private val deleteBlockUseCase: DeleteBlockUseCase,
     private val photoUploader: PhotoUploader,
     private val fileReader: FileReader,
     private val monthlyStatsRepo: MonthlyStatsRepository,
     private val savedSchoolRepo: SavedSchoolRepository,
     private val offlineTiles: com.meteomontana.android.data.map.OfflineTileManager,
     private val cacheFotos: com.meteomontana.android.data.photos.CacheFotosOffline,
-    private val moveSchoolUseCase: com.meteomontana.android.domain.usecase.admin.MoveSchoolUseCase,
-    private val updateBlockUseCase: com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase,
     private val outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository,
     private val voteNoteUseCase: com.meteomontana.android.domain.usecase.notes.VoteNoteUseCase,
     private val networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor,
     private val rateLineUseCase: com.meteomontana.android.domain.usecase.blocks.RateLineUseCase,
     /** Foto de "Enviar piedra" a la espera de que se abra su escuela. */
     private val photoProposal: com.meteomontana.android.ui.screens.schools.PhotoProposalSeed,
-    // Aproximaciones (SOLO ADMIN crea/borra por ahora — docs/APPROACH_DESIGN.md §2.6/§10).
-    private val approaches: ApproachActions,
     private val processionary: ProcessionaryActions,
 ) : ViewModel() {
 
@@ -480,35 +474,6 @@ class SchoolDetailViewModel @Inject constructor(
         schoolId, targetBlockId, targetLineId, targetLat, targetLon, bloque
     )
 
-    // ── Admin / bloques ────────────────────────────────────────────────────
-
-    /** Admin: mueve la escuela directamente. */
-    suspend fun adminMoveSchool(lat: Double, lon: Double): Result<Unit> = runCatching {
-        moveSchoolUseCase(schoolId, lat, lon)
-        load()  // refresca centerLat/Lon
-    }
-
-    /** Admin: edita nombre/descripción/coords de un bloque (mini-ficha del mapa). */
-    suspend fun adminUpdateBlock(
-        blockId: String, req: com.meteomontana.android.data.api.dto.CreateBlockRequest
-    ): Result<Unit> = runCatching {
-        updateBlockUseCase(blockId, req)
-        load()
-    }
-
-    /** Admin: mueve un bloque (piedra/parking/zona) directamente conservando el resto. */
-    suspend fun adminMoveBlock(blockId: String, lat: Double, lon: Double): Result<Unit> = runCatching {
-        val cur = (uiState.value as? SchoolDetailUiState.Success)
-            ?.blocks?.firstOrNull { it.id == blockId }
-            ?: error("Block no encontrado: $blockId")
-        updateBlockUseCase(blockId, com.meteomontana.android.data.api.dto.CreateBlockRequest(
-            type = cur.type, name = cur.name, lat = lat, lon = lon,
-            photoPath = cur.photoPath, description = cur.description,
-            lines = emptyList()
-        ))
-        load()
-    }
-
     fun addBlock(req: CreateBlockRequest) {
         viewModelScope.launch {
             try {
@@ -517,18 +482,6 @@ class SchoolDetailViewModel @Inject constructor(
                 val cur = _uiState.value
                 if (cur is SchoolDetailUiState.Success) _uiState.value = cur.copy(blocks = blocks)
             } catch (_: Throwable) {}
-        }
-    }
-
-    fun deleteBlock(blockId: String, onDone: (Boolean) -> Unit = {}) {
-        viewModelScope.launch {
-            val ok = runCatching { deleteBlockUseCase(blockId) }.isSuccess
-            if (ok) {
-                val blocks = runCatching { getBlocks(schoolId) }.getOrDefault(emptyList())
-                val cur = _uiState.value
-                if (cur is SchoolDetailUiState.Success) _uiState.value = cur.copy(blocks = blocks)
-            }
-            onDone(ok)
         }
     }
 
@@ -541,25 +494,5 @@ class SchoolDetailViewModel @Inject constructor(
     suspend fun unrateLine(blockId: String, lineId: String) = runCatching {
         rateLineUseCase.unrate(blockId, lineId)
     }
-
-    // ── Aproximaciones (SOLO ADMIN por ahora, docs/APPROACH_DESIGN.md §2.6/§10) ──
-
-    /** Refresca solo la lista de aproximaciones (tras grabar/borrar/añadir chincheta). */
-    fun reloadApproaches() {
-        viewModelScope.launch {
-            val list = approaches.load(schoolId)
-            (_uiState.value as? SchoolDetailUiState.Success)?.let { _uiState.value = it.copy(approaches = list) }
-        }
-    }
-
-    suspend fun createApproach(
-        req: com.meteomontana.android.data.api.dto.CreateApproachRequest,
-        pins: List<com.meteomontana.android.data.api.dto.AddApproachPinRequest>
-    ): Result<Unit> = runCatching { approaches.create(schoolId, req, pins); reloadApproaches() }
-
-    suspend fun addApproachPin(approachId: String, req: com.meteomontana.android.data.api.dto.AddApproachPinRequest): Result<Unit> =
-        runCatching { approaches.addPin(approachId, req); reloadApproaches() }
-
-    suspend fun deleteApproach(approachId: String): Result<Unit> = runCatching { approaches.delete(approachId); reloadApproaches() }
 }
 

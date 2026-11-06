@@ -4,7 +4,6 @@ import androidx.lifecycle.SavedStateHandle
 import com.meteomontana.android.data.api.dto.ContributionRequest
 import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.domain.model.FavoriteSchool
-import com.meteomontana.android.domain.model.PrivateProfile
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.Contribution
 import com.meteomontana.android.domain.model.Current
@@ -14,7 +13,6 @@ import com.meteomontana.android.domain.port.PhotoUploader
 import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.usecase.blocks.CreateBlockUseCase
-import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.contributions.SubmitContributionUseCase
 import com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase
@@ -23,7 +21,6 @@ import com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
 import com.meteomontana.android.domain.usecase.notes.CreateNoteUseCase
 import com.meteomontana.android.domain.usecase.notes.GetNotesUseCase
-import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
 import com.meteomontana.android.ui.screens.detail.BoulderBloqueForm
 import com.meteomontana.android.ui.screens.detail.SchoolDetailUiState
@@ -65,16 +62,12 @@ class SchoolDetailViewModelTest {
     private lateinit var removeFavorite: RemoveFavoriteUseCase
     private lateinit var getBlocks: GetBlocksUseCase
     private lateinit var createBlock: CreateBlockUseCase
-    private lateinit var deleteBlockUC: DeleteBlockUseCase
     private lateinit var submitContribution: SubmitContributionUseCase
-    private lateinit var getMyProfile: GetMyProfileUseCase
     private lateinit var photoUploader: PhotoUploader
     private lateinit var fileReader: FileReader
     private lateinit var monthlyStatsRepo: com.meteomontana.android.data.stats.MonthlyStatsRepository
     private lateinit var savedSchoolRepo: com.meteomontana.android.data.saved.SavedSchoolRepository
     private lateinit var offlineTiles: com.meteomontana.android.data.map.OfflineTileManager
-    private lateinit var moveSchoolUseCase: com.meteomontana.android.domain.usecase.admin.MoveSchoolUseCase
-    private lateinit var updateBlockUseCase: com.meteomontana.android.domain.usecase.blocks.UpdateBlockUseCase
     private lateinit var outboxRepo: com.meteomontana.android.data.outbox.OutboxRepository
     private lateinit var networkMonitor: com.meteomontana.android.domain.port.NetworkMonitor
 
@@ -97,11 +90,6 @@ class SchoolDetailViewModelTest {
         hours = emptyList(), days = emptyList(), bestDay = null, bestWindow = null
     )
 
-    private val profile = PrivateProfile(
-        uid = "u1", email = null, username = null, displayName = null, photoUrl = null,
-        bio = null, topGrade = null, isPublic = true, isAdmin = false, isPremium = false
-    )
-
     @Before fun setUp() {
         Dispatchers.setMain(testDispatcher)
         getSchoolById = mockk()
@@ -113,9 +101,7 @@ class SchoolDetailViewModelTest {
         removeFavorite = mockk()
         getBlocks = mockk()
         createBlock = mockk()
-        deleteBlockUC = mockk()
         submitContribution = mockk()
-        getMyProfile = mockk()
         photoUploader = mockk()
         fileReader = mockk()
         monthlyStatsRepo = mockk(relaxed = true)
@@ -125,8 +111,6 @@ class SchoolDetailViewModelTest {
         coEvery { savedSchoolRepo.loadOffline(any()) } returns null
         coEvery { savedSchoolRepo.loadCachedForecast(any()) } returns null
         offlineTiles = mockk(relaxed = true)
-        moveSchoolUseCase = mockk(relaxed = true)
-        updateBlockUseCase = mockk(relaxed = true)
         outboxRepo = mockk(relaxed = true)
         networkMonitor = mockk {
             every { isOnline } returns kotlinx.coroutines.flow.MutableStateFlow(true)
@@ -137,7 +121,6 @@ class SchoolDetailViewModelTest {
         coEvery { getNotes(schoolId) } returns emptyList()
         coEvery { getMyFavorites() } returns emptyList()
         coEvery { getBlocks(schoolId) } returns emptyList()
-        coEvery { getMyProfile() } returns profile
     }
 
     @After fun tearDown() { Dispatchers.resetMain() }
@@ -147,7 +130,7 @@ class SchoolDetailViewModelTest {
     private fun newVm(): SchoolDetailViewModel {
         val loader = com.meteomontana.android.ui.screens.detail.SchoolDetailLoader(
             getSchoolById, getForecast, getNotes, getMyFavorites, getBlocks,
-            getMyProfile, savedSchoolRepo,
+            savedSchoolRepo,
             mockk<com.meteomontana.android.domain.usecase.weather.GetMountainBulletinUseCase>(relaxed = true),
             mockk<com.meteomontana.db.MeteoMontanaDb>(relaxed = true),  // preview: sin catalogo cacheado
             mockk(relaxed = true),   // blockRepo (getCachedBlocks -> null)
@@ -177,16 +160,14 @@ class SchoolDetailViewModelTest {
         return SchoolDetailViewModel(
             savedState(), loader, journal, contributions, tickFeed,
             getNotes, createNote, addFavorite, removeFavorite, getBlocks,
-            createBlock, deleteBlockUC, photoUploader, fileReader,
+            createBlock, photoUploader, fileReader,
             monthlyStatsRepo, savedSchoolRepo, offlineTiles,
             mockk(relaxed = true),  // cacheFotos — fotos de la escuela guardada
-            moveSchoolUseCase,
-            updateBlockUseCase, outboxRepo,
+            outboxRepo,
             mockk<com.meteomontana.android.domain.usecase.notes.VoteNoteUseCase>(relaxed = true),
             networkMonitor,
             mockk(relaxed = true),  // rateLineUseCase
             com.meteomontana.android.ui.screens.schools.PhotoProposalSeed(),
-            com.meteomontana.android.ui.screens.detail.ApproachActions(mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true)),
             com.meteomontana.android.ui.screens.detail.ProcessionaryActions(mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
         )
     }
@@ -202,7 +183,6 @@ class SchoolDetailViewModelTest {
         assertNotNull(s.forecast)
         assertNull(s.forecastError)
         assertFalse(s.isFavorite)
-        assertFalse(s.isCurrentUserAdmin)
     }
 
     @Test fun `load con forecast error mantiene Success y rellena forecastError`() = runTest {
@@ -223,15 +203,6 @@ class SchoolDetailViewModelTest {
         val state = vm.uiState.value
         assertTrue(state is SchoolDetailUiState.Error)
         assertEquals("not found", (state as SchoolDetailUiState.Error).message)
-    }
-
-    @Test fun `load detecta admin desde getMyProfile`() = runTest {
-        coEvery { getMyProfile() } returns profile.copy(isAdmin = true)
-        val vm = newVm()
-        advanceUntilIdle()
-
-        val s = vm.uiState.value as SchoolDetailUiState.Success
-        assertTrue(s.isCurrentUserAdmin)
     }
 
     @Test fun `isFavorite true cuando la escuela está en favoritos`() = runTest {
@@ -364,24 +335,6 @@ class SchoolDetailViewModelTest {
         assertEquals("b1", blocks.first().id)
     }
 
-    @Test fun `deleteBlock borra y refresca lista llamando onDone(true)`() = runTest {
-        coEvery { deleteBlockUC("b1") } just Runs
-        coEvery { getBlocks(schoolId) } returnsMany listOf(
-            listOf(Block("b1", schoolId, "PARKING", "P", 0.0, 0.0, null, null, "u", "t", emptyList())),
-            emptyList()
-        )
-
-        val vm = newVm()
-        advanceUntilIdle()
-        assertEquals(1, (vm.uiState.value as SchoolDetailUiState.Success).blocks.size)
-
-        var doneOk: Boolean? = null
-        vm.deleteBlock("b1") { doneOk = it }
-        advanceUntilIdle()
-
-        assertEquals(true, doneOk)
-        assertTrue((vm.uiState.value as SchoolDetailUiState.Success).blocks.isEmpty())
-    }
 
     private fun dummyContribution() = Contribution(
         id = "c1", type = "BOULDER", status = "PENDING", schoolId = schoolId,

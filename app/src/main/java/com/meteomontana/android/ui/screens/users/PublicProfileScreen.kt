@@ -66,8 +66,6 @@ import com.meteomontana.android.domain.model.FollowStatus
 import com.meteomontana.android.domain.model.JournalStats
 import com.meteomontana.android.domain.model.PublicProfile
 import com.meteomontana.android.domain.model.SchoolStats
-import com.meteomontana.android.domain.usecase.admin.GetUserAssistantAccessUseCase
-import com.meteomontana.android.domain.usecase.admin.SetUserAssistantAccessUseCase
 import com.meteomontana.android.domain.usecase.journal.GetUserStatsUseCase
 import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
 import com.meteomontana.android.domain.usecase.social.FollowUserUseCase
@@ -106,7 +104,6 @@ fun PublicProfileScreen(
     viewModel: PublicProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val adminAssistant by viewModel.adminAssistant.collectAsStateWithLifecycle()
     // Moderación: denunciar / bloquear a este usuario (menú ⋯).
     val moderation: com.meteomontana.android.ui.components.ModerationViewModel =
         hiltViewModel()
@@ -193,8 +190,6 @@ fun PublicProfileScreen(
             }
             is PublicProfileUiState.Success -> Body(
                 s, viewModel::toggleFollow,
-                adminAssistant = adminAssistant,
-                onToggleAssistant = viewModel::setAssistantAccess,
                 onFollowersClick = { onFollowersClick(s.profile.uid) },
                 onFollowingClick = { onFollowingClick(s.profile.uid) },
                 onMessage = { onOpenChat(s.profile.uid) },
@@ -229,8 +224,6 @@ fun PublicProfileScreen(
 internal fun Body(
     s: PublicProfileUiState.Success,
     onToggleFollow: () -> Unit,
-    adminAssistant: AdminAssistantUi? = null,
-    onToggleAssistant: (Boolean) -> Unit = {},
     onFollowersClick: () -> Unit,
     onFollowingClick: () -> Unit,
     onMessage: () -> Unit,
@@ -369,11 +362,6 @@ internal fun Body(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-        }
-        // Solo para admins: activar o desactivar el asistente de IA a este usuario.
-        adminAssistant?.let {
-            Spacer(Modifier.height(24.dp))
-            AdminAssistantAccessCard(state = it, onToggle = onToggleAssistant)
         }
     }
 }

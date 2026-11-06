@@ -96,8 +96,6 @@ fun ProposeContributionFlow(
     onWallUndo: ((() -> Unit) -> Unit) = {},
     /** Registra callback que SchoolMap llamará al pulsar LISTO (cierra el trazado). */
     onWallDone: ((() -> Unit) -> Unit) = {},
-    /** Si true → el admin mueve directamente vía API admin sin pasar por flujo propuesta. */
-    isAdmin: Boolean = false,
     onDismiss: () -> Unit,
     onMyProposals: () -> Unit,
     viewModel: SchoolDetailViewModel
@@ -199,11 +197,7 @@ fun ProposeContributionFlow(
         val newLat = cur.newLat ?: return@onAcceptCorrection
         val newLon = cur.newLon ?: return@onAcceptCorrection
         scope.launch {
-            val result = if (isAdmin && cur.targetType == "SCHOOL") {
-                runCatching { viewModel.adminMoveSchool(newLat, newLon) }
-            } else if (isAdmin && cur.targetId != null) {
-                runCatching { viewModel.adminMoveBlock(cur.targetId, newLat, newLon) }
-            } else {
+            val result = run {
                 viewModel.submitContribution(ContributionRequest(
                     type = "POSITION_CORRECTION",
                     name = cur.targetName,
@@ -570,8 +564,7 @@ fun ProposeContributionFlow(
         }
 
         is ProposeStep.Success -> SuccessDialog(
-            isAdmin = isAdmin,
-            trusted = !isAdmin && !s.queued &&
+            trusted = !s.queued &&
                 com.meteomontana.android.domain.usecase.contributions.ContributionOutcome.publishedDirectly,
             queued = s.queued,
             onClose = onDismiss,

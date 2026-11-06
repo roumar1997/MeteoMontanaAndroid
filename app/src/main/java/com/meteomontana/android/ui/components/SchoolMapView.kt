@@ -144,18 +144,11 @@ internal fun SchoolMapView(
     // Mini-ficha flotante de PARKING/ZONA: se pinta sobre el mapa sin taparlo
     // (la ficha grande queda solo para PIEDRAS, que sí tienen contenido).
     var miniBlock by remember { mutableStateOf<Block?>(null) }
-    var editingMiniBlock by remember { mutableStateOf<Block?>(null) }
-    var confirmDeleteMini by remember { mutableStateOf<Block?>(null) }
     // onDismissBlock es lambda del padre → snapshot para que el listener del
     // factory (registrado una vez) lo lea fresco. bridge/wallEdit no lo
     // necesitan: son objetos @Stable leídos por referencia.
     val onDismissBlockState by androidx.compose.runtime.rememberUpdatedState(onDismissBlock)
 
-    // ¿El usuario actual es admin? → puede borrar piedras/zonas/parkings.
-    val isAdminUser = (viewModel.uiState.collectAsStateWithLifecycle().value
-        as? com.meteomontana.android.ui.screens.detail.SchoolDetailUiState.Success)?.isCurrentUserAdmin == true
-
-    val mapScope = androidx.compose.runtime.rememberCoroutineScope()
     // Sincronizador de anotaciones: estado de instancia (no global).
     val placer = remember { MarkerPlacer() }
 
@@ -521,14 +514,11 @@ internal fun SchoolMapView(
                     stoneCount = blocks.count { it.sectorBlockId == mb.id },
                     collapsed = mb.id in collapsedSectors,
                     userLoc = userLoc,
-                    isAdmin = isAdminUser,
                     onToggleStones = {
                         collapsedSectors =
                             if (mb.id in collapsedSectors) collapsedSectors - mb.id
                             else collapsedSectors + mb.id
                     },
-                    onEdit = { editingMiniBlock = mb },
-                    onDelete = { confirmDeleteMini = mb },
                     onClose = { miniBlock = null },
                     approach = approachTo(mb.id),
                     onFollowApproach = onFollowApproach,
@@ -593,8 +583,4 @@ internal fun SchoolMapView(
         contenidoTrasMapa()
     }
 
-    // Admin desde la mini-ficha de parking/sector: editar o eliminar.
-    MiniBlockAdminDialogs(editingMiniBlock, confirmDeleteMini, viewModel, mapScope,
-        onCloseEdit = { editingMiniBlock = null }, onCloseDelete = { confirmDeleteMini = null },
-        onDone = { editingMiniBlock = null; confirmDeleteMini = null; miniBlock = null })
 }

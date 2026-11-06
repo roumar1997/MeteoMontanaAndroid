@@ -28,8 +28,6 @@ sealed interface ProfileUiState {
         val following: Long = 0,
         /** true cuando los datos vienen de la caché local (sin conexión). */
         val offline: Boolean = false,
-        /** Propuestas + contribuciones pendientes de revisar (solo admin). */
-        val pendingReview: Int = 0,
         /** Nº de vías/bloques marcados como PROYECTO (probando, aún no hecho). */
         val projectCount: Int = 0
     ) : ProfileUiState
@@ -41,8 +39,6 @@ class ProfileViewModel @Inject constructor(
     private val getMyProfile: GetMyProfileUseCase,
     private val getMyJournalStats: GetMyJournalStatsUseCase,
     private val createJournalEntry: CreateJournalEntryUseCase,
-    private val getPendingSubmissions: com.meteomontana.android.domain.usecase.admin.GetPendingSubmissionsUseCase,
-    private val getPendingContributions: com.meteomontana.android.domain.usecase.admin.GetPendingContributionsUseCase,
     private val getFollowStatus: com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase,
     private val updateMyProfile: com.meteomontana.android.domain.usecase.profile.UpdateMyProfileUseCase,
     private val profileCache: com.meteomontana.android.data.local.ProfileCache,
@@ -92,16 +88,12 @@ class ProfileViewModel @Inject constructor(
                     val projectCount = stats.projectCount
                     val follow = runCatching { getFollowStatus(profile.uid) }
                         .getOrDefault(com.meteomontana.android.domain.model.FollowStatus(0, 0, false, false))
-                    // Si soy admin, cuento las propuestas/contribuciones pendientes
-                    // para marcar el botón de admin con un aviso (en paralelo).
-                    val pending = if (profile.isAdmin) {
-                        val subs = async { runCatching { getPendingSubmissions().size }.getOrDefault(0) }
-                        val contribs = async { runCatching { getPendingContributions().size }.getOrDefault(0) }
-                        subs.await() + contribs.await()
-                    } else 0
                     // Cachea para poder ver el perfil SIN conexión la próxima vez.
                     runCatching { profileCache.save(profile, stats, follow.followers, follow.following) }
-                    ProfileUiState.Success(withPhotoFallback(profile), stats, follow.followers, follow.following, pendingReview = pending, projectCount = projectCount)
+                    ProfileUiState.Success(
+                        withPhotoFallback(profile), stats, follow.followers, follow.following,
+                        projectCount = projectCount
+                    )
                 }
             } catch (t: Throwable) {
                 // Sin conexión: cae a la última copia cacheada (si existe). Si nunca

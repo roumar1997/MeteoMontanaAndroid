@@ -197,8 +197,7 @@ fun SchoolDetailScreen(
                             onMyProposals = onMyProposals,
                             onDayClick = onDayClick,
                             mountainBulletin = s.mountainBulletin,
-                            approaches = s.approaches,
-                            isAdmin = s.isCurrentUserAdmin
+                            approaches = s.approaches
                         )
                     }
                 }
@@ -303,13 +302,10 @@ internal fun Content(
     onMyProposals: () -> Unit,
     onDayClick: (Int) -> Unit = {},
     mountainBulletin: com.meteomontana.android.domain.model.MountainBulletin? = null,
-    approaches: List<com.meteomontana.android.domain.model.Approach> = emptyList(),
-    isAdmin: Boolean = false
+    approaches: List<com.meteomontana.android.domain.model.Approach> = emptyList()
 ) {
-    // Aproximaciones (parking → sector) — docs/APPROACH_DESIGN.md, admin-gated.
+    // Aproximaciones (parking → sector) — docs/APPROACH_DESIGN.md (solo lectura).
     var followingApproach by remember { mutableStateOf<com.meteomontana.android.domain.model.Approach?>(null) }
-    var recordingApproach by remember { mutableStateOf(false) }
-    val approachScope = androidx.compose.runtime.rememberCoroutineScope()
     // Columna NO perezosa (paridad con el ScrollView de iOS): toda la pantalla
     // se compone al entrar → los deep-links a piedras/vías (feed, diario,
     // buscador, enlaces) abren la ficha en cuanto cargan los bloques, sin
@@ -384,7 +380,6 @@ internal fun Content(
         // OK: 21 bloques" y el mapa repintando "marcadores=1" sin parar.
         val blocksState = androidx.compose.runtime.rememberUpdatedState(blocks)
         val approachesState = androidx.compose.runtime.rememberUpdatedState(approaches)
-        val isAdminState = androidx.compose.runtime.rememberUpdatedState(isAdmin)
         val blocksSection = androidx.compose.runtime.remember { androidx.compose.runtime.movableContentOf {
             Column {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
@@ -404,10 +399,7 @@ internal fun Content(
                             // Mismo motivo que blocksState: llegan del servidor
                             // DESPUÉS de la primera composición y se capturarían.
                             approaches = approachesState.value,
-                            isAdmin = isAdminState.value,
-                            onFollow = { followingApproach = it },
-                            onRecord = { recordingApproach = true },
-                            onDelete = { a -> approachScope.launch { viewModel.deleteApproach(a.id) } }
+                            onFollow = { followingApproach = it }
                         )
                     }
                 )
@@ -554,27 +546,7 @@ internal fun Content(
         com.meteomontana.android.ui.screens.approach.ApproachFollowScreen(
             approach = a,
             schoolName = school.name,
-            isAdmin = isAdmin,
-            onDismiss = { followingApproach = null },
-            onDeleteApproach = { toDelete ->
-                approachScope.launch { viewModel.deleteApproach(toDelete.id) }
-            },
-            onAddPin = { approachId, req ->
-                approachScope.launch {
-                    viewModel.addApproachPin(approachId, req)
-                    // Refresca la aproximación abierta con la chincheta nueva.
-                    followingApproach = (viewModel.uiState.value as? SchoolDetailUiState.Success)
-                        ?.approaches?.firstOrNull { it.id == approachId }
-                }
-            }
-        )
-    }
-    if (recordingApproach) {
-        com.meteomontana.android.ui.screens.approach.ApproachRecordScreen(
-            school = school,
-            blocks = blocks,
-            onDismiss = { recordingApproach = false },
-            onSave = { req, pins -> viewModel.createApproach(req, pins) }
+            onDismiss = { followingApproach = null }
         )
     }
 }

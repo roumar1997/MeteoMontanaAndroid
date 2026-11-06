@@ -41,20 +41,14 @@ import java.util.Locale
  * Sección APROXIMACIONES de la ficha de escuela — Fase 1+ de
  * docs/APPROACH_DESIGN.md §6.1. Espejo de ApproachesSection.swift (iOS).
  *
- * SOLO LECTURA para cualquier usuario; grabar/borrar es admin-only por ahora
- * (§2.6/§10 — pendiente revisión legal de términos antes de abrirlo a todos).
+ * SOLO LECTURA: grabar y borrar caminos vive en el panel de admin de iOS.
  */
 @Composable
 fun ApproachesSection(
     approaches: List<Approach>,
-    isAdmin: Boolean,
-    onFollow: (Approach) -> Unit,
-    onRecord: () -> Unit,
-    onDelete: (Approach) -> Unit
+    onFollow: (Approach) -> Unit
 ) {
-    if (approaches.isEmpty() && !isAdmin) return
-
-    var deleting by remember { mutableStateOf<Approach?>(null) }
+    if (approaches.isEmpty()) return
 
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.sm)) {
         Text(
@@ -68,56 +62,17 @@ fun ApproachesSection(
         approaches.forEach { a ->
             ApproachCard(
                 approach = a,
-                isAdmin = isAdmin,
                 onFollow = { onFollow(a) },
-                onDelete = { deleting = a },
                 modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs)
             )
         }
-
-        // Visible SOLO para admin por ahora — la pantalla que abre es la
-        // definitiva, la que verá cualquier usuario cuando se active para
-        // todos (ver docs/APPROACH_DESIGN.md §2.6/§10).
-        if (isAdmin) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.md, vertical = Spacing.xs)
-                    .clip(RoundedCornerShape(2.dp))
-                    .border(1.dp, Terra, RoundedCornerShape(2.dp))
-                    .clickable(onClick = onRecord)
-                    .padding(vertical = Spacing.sm),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(stringResource(R.string.approaches_record), style = EyebrowTextStyle, color = Terra)
-            }
-        }
-    }
-
-    deleting?.let { a ->
-        AlertDialog(
-            onDismissRequest = { deleting = null },
-            title = { Text(stringResource(R.string.approaches_delete_confirm_title, a.name ?: stringResource(R.string.approaches_default_name))) },
-            text = { Text(stringResource(R.string.approaches_delete_confirm_body)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    onDelete(a)
-                    deleting = null
-                }) { Text(stringResource(R.string.common_delete_caps), color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = {
-                TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.common_cancel_caps)) }
-            }
-        )
     }
 }
 
 @Composable
 private fun ApproachCard(
     approach: Approach,
-    isAdmin: Boolean,
     onFollow: () -> Unit,
-    onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -135,15 +90,6 @@ private fun ApproachCard(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
             )
-            if (isAdmin) {
-                Box(
-                    modifier = Modifier.padding(start = Spacing.sm)
-                        .clickable(onClick = onDelete),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("🗑", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
         }
         Spacer(Modifier.padding(top = 2.dp))
         Text(

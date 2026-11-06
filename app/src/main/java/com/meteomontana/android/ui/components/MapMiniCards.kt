@@ -236,8 +236,8 @@ internal fun ZoneShapeIcon() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tarjeta flotante de parking/sector sobre el mapa, como la de iOS: insignia P/S, nombre en serif, pastillas de tipo y
-// distancia, X para cerrar, y debajo CÓMO LLEGAR (+ VER/OCULTAR PIEDRAS en un sector con piedras). El admin ve además
-// EDITAR y BORRAR (MOVER es solo de iOS). Desde el parking se ofrecen los sectores, ordenados por lo que queda por andar.
+// distancia, X para cerrar, y debajo CÓMO LLEGAR (+ VER/OCULTAR PIEDRAS en un sector con piedras).
+// Desde el parking se ofrecen los sectores, ordenados por lo que queda por andar.
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
 internal fun MiniBlockCard(
@@ -245,10 +245,7 @@ internal fun MiniBlockCard(
     stoneCount: Int,
     collapsed: Boolean,
     userLoc: com.meteomontana.android.domain.model.UserLocation?,
-    isAdmin: Boolean,
     onToggleStones: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
     onClose: () -> Unit,
     /** Sectores de la escuela para ofrecerlos desde el PARKING, con su distancia DESDE EL PARKING. Vacío = sin fila. */
     sectores: List<SectorCercano> = emptyList(),
@@ -342,16 +339,6 @@ internal fun MiniBlockCard(
                 }
             }
         }
-        if (isAdmin && !isStone) {
-            Column {
-                Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)))
-                Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("ADMIN", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(44.dp))
-                    AdminChip(stringResource(R.string.map_card_edit), Icons.Outlined.Edit, MaterialTheme.colorScheme.onBackground, Modifier.weight(1f), onEdit)
-                    AdminChip(stringResource(R.string.map_card_delete), Icons.Outlined.Delete, MaterialTheme.colorScheme.error, Modifier.weight(1f), onDelete)
-                }
-            }
-        }
     }
 }
 
@@ -376,13 +363,3 @@ private fun CardPill(text: String, icon: androidx.compose.ui.graphics.vector.Ima
     }
 }
 
-@Composable
-private fun AdminChip(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, modifier: Modifier, onClick: () -> Unit) {
-    Row(
-        modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surface).clickable(onClick = onClick).padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(icon, null, tint = tint, modifier = Modifier.size(14.dp))
-        Text(text, color = tint, fontWeight = FontWeight.Medium, fontSize = 13.sp, maxLines = 1)
-    }
-}

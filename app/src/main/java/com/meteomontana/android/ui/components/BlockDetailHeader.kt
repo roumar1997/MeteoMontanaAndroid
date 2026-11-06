@@ -75,17 +75,13 @@ internal fun BlockDetailHeader(
     onShareBlock: () -> Unit,
     onAddLines: (() -> Unit)?,
     onAssignSector: ((sectorBlockId: String) -> Unit)?,
-    onEdit: (() -> Unit)?,
-    onDelete: (() -> Unit)?,
-    onPickSector: () -> Unit,
-    onConfirmDelete: () -> Unit
+    onPickSector: () -> Unit
 ) {
     val context = LocalContext.current
     var optionsOpen by remember { mutableStateOf(false) }
     val hayOpciones = !isProposal && (
         (onAddLines != null && block.type == "BLOCK") ||
-        (onAssignSector != null && block.type == "BLOCK" && !availableSectors.isNullOrEmpty()) ||
-        onEdit != null || onDelete != null)
+        (onAssignSector != null && block.type == "BLOCK" && !availableSectors.isNullOrEmpty()))
     val puedeCompartir = block.type == "BLOCK" && !isProposal && block.lines.isNotEmpty()
     CumbreSheetHeader(
         titulo = block.name,
@@ -149,18 +145,6 @@ internal fun BlockDetailHeader(
                                          else stringResource(R.string.propose_change_sector))
                                 },
                                 onClick = { optionsOpen = false; onPickSector() }
-                            )
-                        }
-                        if (onEdit != null) {
-                            androidx.compose.material3.DropdownMenuItem(
-                                text = { Text(stringResource(R.string.block_detail_dialog_v2_editar)) },
-                                onClick = { optionsOpen = false; onEdit() }
-                            )
-                        }
-                        if (onDelete != null) {
-                            androidx.compose.material3.DropdownMenuItem(
-                                text = { Text(stringResource(R.string.block_detail_dialog_v2_eliminar), color = MaterialTheme.colorScheme.error) },
-                                onClick = { optionsOpen = false; onConfirmDelete() }
                             )
                         }
                     }

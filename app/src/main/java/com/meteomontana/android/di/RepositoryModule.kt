@@ -4,7 +4,6 @@ import android.content.Context
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
-import com.meteomontana.android.data.api.KtorAdminApi
 import com.meteomontana.android.data.api.KtorBlockApi
 import com.meteomontana.android.data.api.KtorContributionApi
 import com.meteomontana.android.data.api.KtorFavoritesApi
@@ -19,7 +18,6 @@ import com.meteomontana.android.data.api.KtorSubmissionApi
 import com.meteomontana.android.data.auth.FirebaseAuthService
 import com.meteomontana.android.data.chat.FirebaseChatService
 import com.meteomontana.android.data.chat.FirebaseSchoolChatService
-import com.meteomontana.android.data.repository.KtorAdminRepository
 import com.meteomontana.android.data.repository.KtorBlockRepository
 import com.meteomontana.android.data.repository.KtorContributionRepository
 import com.meteomontana.android.data.repository.KtorFavoritesRepository
@@ -38,7 +36,6 @@ import com.meteomontana.android.domain.port.ChatService
 import com.meteomontana.android.domain.port.SchoolChatService
 import com.meteomontana.android.domain.port.FileReader
 import com.meteomontana.android.domain.port.PhotoUploader
-import com.meteomontana.android.domain.repository.AdminRepository
 import com.meteomontana.android.domain.repository.BlockRepository
 import com.meteomontana.android.domain.repository.ContributionRepository
 import com.meteomontana.android.domain.repository.FavoritesRepository
@@ -135,10 +132,6 @@ object RepositoryModule {
     @Provides @Singleton
     fun provideNotificationsRepository(api: KtorNotificationApi): NotificationsRepository =
         KtorNotificationsRepository(api)
-
-    @Provides @Singleton
-    fun provideAdminRepository(api: KtorAdminApi): AdminRepository =
-        KtorAdminRepository(api)
 
     @Provides @Singleton
     fun provideMountainRepository(

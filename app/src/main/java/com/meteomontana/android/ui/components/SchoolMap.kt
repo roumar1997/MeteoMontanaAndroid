@@ -337,8 +337,6 @@ fun SchoolMap(
     var borradorEncontrado by remember {
         mutableStateOf<com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.Draft?>(null)
     }
-    val fichaIsAdmin = (viewModel.uiState.collectAsStateWithLifecycle().value
-        as? com.meteomontana.android.ui.screens.detail.SchoolDetailUiState.Success)?.isCurrentUserAdmin == true
 
     // Filtro por grado (docs/BLOCK_SEARCH_DESIGN.md §7): qué vías caen en la
     // selección, para atenuar el resto DENTRO de la ficha (no solo en el mapa).
@@ -421,15 +419,10 @@ fun SchoolMap(
                         sectorBlockId = sectorId
                     )
                     successMessage = if (r.isSuccess)
-                        submitSuccessText(fichaIsAdmin)
+                        submitSuccessText()
                     else
                         AppText.get(R.string.school_map_v3_no_se_pudo_enviar_la, r.exceptionOrNull()?.message ?: "error")
                 }
-            }) else null,
-            onDelete = if (fichaIsAdmin) ({
-                val id = block.id
-                selectedBlock = null
-                viewModel.deleteBlock(id) {}
             }) else null,
             onDismiss = { selectedBlock = null; highlightVia = null }
         )
@@ -514,7 +507,7 @@ fun SchoolMap(
                     com.meteomontana.android.ui.screens.detail.EditBlockDraftStore.clear(fichaCtx, block.id)
                     wallEdit.target = null
                     selectedBlock = null
-                    successMessage = submitSuccessText(fichaIsAdmin)
+                    successMessage = submitSuccessText()
                 }
             )
         }
@@ -553,7 +546,7 @@ fun SchoolMap(
             onSuccess = {
                 wallEdit.editingLine = null
                 selectedBlock = null
-                successMessage = submitSuccessText(fichaIsAdmin)
+                successMessage = submitSuccessText()
             }
         )
     }

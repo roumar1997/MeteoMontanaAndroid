@@ -52,7 +52,6 @@ import androidx.navigation.navArgument
 import com.meteomontana.android.navigation.Routes
 import com.meteomontana.android.navigation.Tab
 import com.meteomontana.android.navigation.mainTabs
-import com.meteomontana.android.ui.screens.admin.AdminScreen
 import com.meteomontana.android.ui.screens.chat.ChatListScreen
 import com.meteomontana.android.ui.screens.chat.ChatScreen
 import com.meteomontana.android.ui.screens.chat.GroupChatScreen

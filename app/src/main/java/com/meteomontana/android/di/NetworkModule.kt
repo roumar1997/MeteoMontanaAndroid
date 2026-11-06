@@ -8,7 +8,6 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.ktx.storage
 import com.meteomontana.android.BuildConfig
-import com.meteomontana.android.data.api.KtorAdminApi
 import com.meteomontana.android.data.api.KtorBlockApi
 import com.meteomontana.android.data.api.KtorModerationApi
 import com.meteomontana.android.data.api.KtorContributionApi
@@ -117,9 +116,6 @@ object NetworkModule {
 
     @Provides @Singleton
     fun provideKtorNotificationApi(client: HttpClient) = KtorNotificationApi(client)
-
-    @Provides @Singleton
-    fun provideKtorAdminApi(client: HttpClient) = KtorAdminApi(client)
 
     @Provides @Singleton
     fun provideKtorSubmissionApi(client: HttpClient) = KtorSubmissionApi(client)

@@ -1,6 +1,5 @@
 package com.meteomontana.android.di
 
-import com.meteomontana.android.domain.repository.AdminRepository
 import com.meteomontana.android.domain.repository.RestrictionRepository
 import com.meteomontana.android.domain.repository.BlockRepository
 import com.meteomontana.android.domain.repository.ContributionRepository
@@ -13,15 +12,6 @@ import com.meteomontana.android.domain.repository.ProfileRepository
 import com.meteomontana.android.domain.repository.SchoolRepository
 import com.meteomontana.android.domain.repository.SocialRepository
 import com.meteomontana.android.domain.repository.SubmissionRepository
-import com.meteomontana.android.domain.usecase.admin.ApproveContributionUseCase
-import com.meteomontana.android.domain.usecase.admin.ApproveSubmissionUseCase
-import com.meteomontana.android.domain.usecase.admin.GetAdminLogsUseCase
-import com.meteomontana.android.domain.usecase.admin.GetAdminStatsUseCase
-import com.meteomontana.android.domain.usecase.admin.GetPendingContributionsUseCase
-import com.meteomontana.android.domain.usecase.admin.GetPendingSubmissionsUseCase
-import com.meteomontana.android.domain.usecase.admin.RejectContributionUseCase
-import com.meteomontana.android.domain.usecase.admin.RejectSubmissionUseCase
-import com.meteomontana.android.domain.usecase.admin.SendPushUseCase
 import com.meteomontana.android.domain.usecase.blocks.CreateBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.ReorderBlocksUseCase

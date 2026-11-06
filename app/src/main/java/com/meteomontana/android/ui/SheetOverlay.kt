@@ -49,7 +49,6 @@ import androidx.navigation.navArgument
 import com.meteomontana.android.navigation.Routes
 import com.meteomontana.android.navigation.Tab
 import com.meteomontana.android.navigation.mainTabs
-import com.meteomontana.android.ui.screens.admin.AdminScreen
 import com.meteomontana.android.ui.screens.chat.ChatListScreen
 import com.meteomontana.android.ui.screens.chat.ChatScreen
 import com.meteomontana.android.ui.screens.chat.GroupChatScreen
@@ -96,7 +95,6 @@ internal fun SheetOverlay(
     sheetNav: androidx.navigation.NavHostController,
     navController: androidx.navigation.NavHostController,
     openSheet: (String) -> Unit,
-    openFullScreen: (String) -> Unit,
     popSheetOrDismiss: () -> Unit,
     bottomInset: androidx.compose.ui.unit.Dp = 0.dp
 ) {
@@ -134,7 +132,6 @@ internal fun SheetOverlay(
                 sheetNav = sheetNav,
                 navController = navController,
                 openSheet = openSheet,
-                openFullScreen = openFullScreen,
                 popSheetOrDismiss = popSheetOrDismiss,
                 bottomInset = bottomInset
             )
@@ -152,7 +149,6 @@ private fun SheetNavHost(
     sheetNav: androidx.navigation.NavHostController,
     navController: androidx.navigation.NavHostController,
     openSheet: (String) -> Unit,
-    openFullScreen: (String) -> Unit,
     popSheetOrDismiss: () -> Unit,
     bottomInset: androidx.compose.ui.unit.Dp = 0.dp
 ) {
@@ -203,7 +199,6 @@ private fun SheetNavHost(
                             onBack = popSheetOrDismiss,
                             onEdit = { sheetNav.navigate(Routes.EDIT_PROFILE) },
                             onSubmissions = { sheetNav.navigate(Routes.MY_SUBMISSIONS) },
-                            onAdmin = { openFullScreen(Routes.ADMIN) },
                             onSavedSchools = { sheetNav.navigate(Routes.SAVED_SCHOOLS) },
                             onWeekendAlert = { sheetNav.navigate(Routes.WEEKEND_ALERT) },
                             onOpenFollowers = {

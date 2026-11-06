@@ -8,7 +8,6 @@ import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.favorites.GetMyFavoritesUseCase
 import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
 import com.meteomontana.android.domain.usecase.notes.GetNotesUseCase
-import com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase
 import com.meteomontana.android.domain.usecase.schools.GetSchoolByIdUseCase
 import com.meteomontana.android.util.toUserMessage
 import kotlinx.coroutines.async
@@ -31,16 +30,8 @@ import com.meteomontana.android.R
  * públicas que no lo necesitan (ver `TOKEN_WAIT_MS` en `ApiHttpClient`, y la
  * medida: el backend responde en ~0,5 s siempre). Arreglada la causa, esperar
  * 1,6 s extra solo servía para disimular errores de verdad.
- */
-private suspend fun <T> retryOnce(block: suspend () -> T): Result<T> {
-    val first = runCatching { block() }
-    if (first.isSuccess) return first
-    delay(400)
-    return runCatching { block() }
-}
-
-/**
- * Como [retryOnce] pero con un intento más (400 ms y 1200 ms).
+ *
+ * Reintenta DOS veces (400 ms y 1200 ms) ante un fallo de red.
  *
  * Solo para los BLOQUES. Son el contenido de la pantalla: si fallan, la
  * escuela sale sin una sola piedra, sin sectores y sin parkings — y encima
@@ -72,7 +63,6 @@ class SchoolDetailLoader @Inject constructor(
     private val getNotes: GetNotesUseCase,
     private val getMyFavorites: GetMyFavoritesUseCase,
     private val getBlocks: GetBlocksUseCase,
-    private val getMyProfile: GetMyProfileUseCase,
     private val savedSchoolRepo: SavedSchoolRepository,
     private val getMountainBulletin: com.meteomontana.android.domain.usecase.weather.GetMountainBulletinUseCase,
     private val db: com.meteomontana.db.MeteoMontanaDb,
@@ -104,7 +94,6 @@ class SchoolDetailLoader @Inject constructor(
             notes = emptyList(),
             isFavorite = false,
             blocks = blocks ?: emptyList(),
-            isCurrentUserAdmin = false,
             // Sin spinner de stats en la preview: la carga real lo gestiona.
             monthlyLoading = false,
             forecastCachedAt = cachedForecast?.second
@@ -158,7 +147,6 @@ class SchoolDetailLoader @Inject constructor(
                         notes = emptyList(),
                         isFavorite = false,
                         blocks = snapshot.blocks.map { savedSchoolRepo.toBlock(it, snapshot.lines, snapshot.faces) },
-                        isCurrentUserAdmin = false,
                         isSavedOffline = true,
                         monthlyLoading = false,
                         offlineSnapshotAt = snapshot.forecastFetchedAt
@@ -213,7 +201,6 @@ class SchoolDetailLoader @Inject constructor(
                         }.getOrNull().orEmpty()
                     }
                 }
-                val isAdminD = async { retryOnce { getMyProfile().isAdmin }.getOrDefault(false) }
                 val isSavedD = async { runCatching { savedSchoolRepo.loadOffline(schoolId) != null }.getOrDefault(false) }
                 // Aproximaciones (parking → sector): lectura, admin-gated en
                 // la UI (docs/APPROACH_DESIGN.md §2.6/§10 — pendiente revisión legal).
@@ -242,7 +229,6 @@ class SchoolDetailLoader @Inject constructor(
                     forecastError = if (forecast == null)
                         forecastResult.exceptionOrNull()?.toUserMessage() else null,
                     notes = notesD.await(), isFavorite = isFavD.await(), blocks = blocksD.await(),
-                    isCurrentUserAdmin = isAdminD.await(),
                     isSavedOffline = isSavedD.await(),
                     monthlyLoading = true,
                     forecastCachedAt = forecastCachedAt,

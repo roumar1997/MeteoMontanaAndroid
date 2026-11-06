@@ -75,42 +75,6 @@ internal fun BlockLinePickerDialog(
     )
 }
 
-/** Confirmación de borrado de un bloque (piedra/parking/sector). */
-@Composable
-internal fun BlockDeleteConfirmDialog(
-    block: Block,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    val typeLabel = when (block.type) {
-        "PARKING" -> "parking"
-        "ZONE"    -> "sector"
-        else      -> "piedra"
-    }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.block_detail_pickers_delete_confirm_title, typeLabel)) },
-        text = {
-            Text(
-                if (block.type == "BLOCK")
-                    stringResource(R.string.block_detail_pickers_v3_se_borrara_y_todas_sus, block.name)
-                else
-                    stringResource(R.string.block_detail_pickers_v3_se_borrara_esta_accion_no, block.name)
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(stringResource(R.string.block_detail_pickers_si_borrar), color = MaterialTheme.colorScheme.error)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.common_cancel))
-            }
-        }
-    )
-}
-
 /** Picker de sector para "ASIGNAR / CAMBIAR SECTOR". */
 @Composable
 internal fun BlockSectorPickerDialog(

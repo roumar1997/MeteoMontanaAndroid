@@ -35,7 +35,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
-import com.meteomontana.android.data.api.dto.AddApproachPinRequest
 import com.meteomontana.android.data.map.MapStyles
 import com.meteomontana.android.domain.model.Approach
 import com.meteomontana.android.domain.model.ApproachPin
@@ -67,7 +66,7 @@ import com.meteomontana.android.R
  * docs/APPROACH_DESIGN.md §6.3/§6.4. Espejo de ApproachFollowView.swift (iOS).
  *
  * Sin navegación giro a giro: solo la línea y el punto azul del usuario.
- * "+ CHINCHETA" y borrar el camino son SOLO ADMIN por ahora (§2.6/§10).
+ * Solo lectura (grabar caminos y chinchetas vive en el panel de admin de iOS).
  *
  * Nota de implementación: MapLibre annotations no soporta un trazo con guiones
  * de verdad (eso exige LineLayer de estilo), así que "sin verificar" se marca
@@ -78,17 +77,11 @@ import com.meteomontana.android.R
 fun ApproachFollowScreen(
     approach: Approach,
     schoolName: String,
-    isAdmin: Boolean,
-    onDismiss: () -> Unit,
-    onDeleteApproach: (Approach) -> Unit,
-    onAddPin: (String, AddApproachPinRequest) -> Unit
+    onDismiss: () -> Unit
 ) {
     val userLoc = rememberUserLocation()
     var selectedPin by remember { mutableStateOf<ApproachPin?>(null) }
     var fullPhoto by remember { mutableStateOf<String?>(null) }
-    var placingPin by remember { mutableStateOf(false) }
-    var newPinCoord by remember { mutableStateOf<Pair<Double, Double>?>(null) }
-    var confirmDelete by remember { mutableStateOf(false) }
 
     val pathCoords = remember(approach.pathJson) { parseWallPath(approach.pathJson) }
 
@@ -100,7 +93,7 @@ fun ApproachFollowScreen(
             val mapViewRef = remember { mutableStateOf<MapView?>(null) }
             MapViewLifecycleEffect(mapViewRef)
 
-            androidx.compose.runtime.key(approach.id, placingPin) {
+            androidx.compose.runtime.key(approach.id) {
                 AndroidView(
                     modifier = Modifier.fillMaxSize(),
                     factory = { context ->
@@ -168,12 +161,6 @@ fun ApproachFollowScreen(
                                         val pin = markerToPin[marker]
                                         if (pin != null) { selectedPin = pin; true } else false
                                     }
-                                    map.addOnMapClickListener { point ->
-                                        if (placingPin) {
-                                            newPinCoord = point.latitude to point.longitude
-                                            true
-                                        } else false
-                                    }
                                 }
                                 map.uiSettings.isRotateGesturesEnabled = true
                                 map.uiSettings.isTiltGesturesEnabled = false
@@ -197,33 +184,6 @@ fun ApproachFollowScreen(
             ) {
                 Text("←", style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface)
-            }
-
-            // Admin: borrar + añadir chincheta
-            if (isAdmin) {
-                Row(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.md),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                ) {
-                    Box(
-                        modifier = Modifier.size(40.dp).clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.background)
-                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                            .clickable { confirmDelete = true },
-                        contentAlignment = Alignment.Center
-                    ) { Text("🗑") }
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(if (placingPin) MaterialTheme.colorScheme.onSurfaceVariant else Terra)
-                            .clickable { placingPin = !placingPin }
-                            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(if (placingPin) stringResource(R.string.approach_follow_screen_v3_toca_el_mapa) else stringResource(R.string.approach_follow_screen_v3_chincheta),
-                            style = EyebrowTextStyle, color = Color.White)
-                    }
-                }
             }
 
             // Cabecera con nombre + verificación
@@ -251,8 +211,7 @@ fun ApproachFollowScreen(
                     .padding(Spacing.md)
             ) {
                 Text(
-                    if (placingPin) stringResource(R.string.approach_follow_screen_v3_toca_el_mapa_donde_quieras)
-                    else stringResource(R.string.approach_follow_screen_v3_sigue_la_linea_si_te),
+                    stringResource(R.string.approach_follow_screen_v3_sigue_la_linea_si_te),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -296,34 +255,6 @@ fun ApproachFollowScreen(
 
     fullPhoto?.let { url ->
         FullScreenPhotoDialog(photoUrl = url, onDismiss = { fullPhoto = null })
-    }
-
-    // Alta de chincheta (admin, mientras se sigue una aproximación ya publicada).
-    newPinCoord?.let { (lat, lon) ->
-        NewApproachPinDialog(
-            onDismiss = { newPinCoord = null },
-            onSave = { req ->
-                onAddPin(approach.id, req.copy(lat = lat, lon = lon))
-                placingPin = false
-                newPinCoord = null
-            }
-        )
-    }
-
-    if (confirmDelete) {
-        AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text(stringResource(R.string.approach_follow_screen_v2_borrar_1_s, approach.name ?: stringResource(R.string.approaches_default_name))) },
-            text = { Text(stringResource(R.string.approach_follow_screen_v2_se_borra_el_camino_y)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmDelete = false
-                    onDeleteApproach(approach)
-                    onDismiss()
-                }) { Text(stringResource(R.string.approach_follow_screen_v2_borrar), color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.approach_follow_screen_v2_cancelar)) } }
-        )
     }
 }
 

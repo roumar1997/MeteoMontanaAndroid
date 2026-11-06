@@ -35,8 +35,8 @@ import kotlinx.coroutines.launch
 // Piezas de la ficha de piedra (reparto del antiguo BlockDetailDialog.kt de
 // 787 líneas): desplegable OPCIONES, estrellas de valoración y compartir vía.
 
-/** Desplegable "OPCIONES": agrupa editar vías / cambiar sector / editar (admin)
- *  / eliminar para no apilar 4 botones. */
+/** Desplegable "OPCIONES": agrupa editar vías y cambiar sector para
+ *  no apilar botones. */
 @Composable
 internal fun BlockOptionsSection(
     block: Block,
@@ -46,15 +46,12 @@ internal fun BlockOptionsSection(
     onAddLines: (() -> Unit)?,
     availableSectors: List<Block>?,
     onOpenSectorPicker: (() -> Unit)?,
-    onEdit: (() -> Unit)?,
-    onRequestDelete: (() -> Unit)?,
     /** N10: compartir la PIEDRA entera (portada + todas sus vias). */
     onShareBlock: (() -> Unit)? = null
 ) {
     val hasOptions = !isProposal && (
         (onAddLines != null && block.type == "BLOCK") ||
-        (onOpenSectorPicker != null && block.type == "BLOCK" && !availableSectors.isNullOrEmpty()) ||
-        onEdit != null || onRequestDelete != null)
+        (onOpenSectorPicker != null && block.type == "BLOCK" && !availableSectors.isNullOrEmpty()))
     if (hasOptions) {
         Spacer(Modifier.height(Spacing.sm))
         Row(
@@ -139,40 +136,6 @@ internal fun BlockOptionsSection(
     }
     // (El antiguo botón "✎ CORREGIR VÍA" por vía se quitó: el editor por
     // cara de arriba ("EDITAR / CORREGIR VÍAS") ya corrige las existentes.)
-
-    // Botón "EDITAR" — admin: mover posición, renombrar, editar líneas
-    if (optionsOpen && onEdit != null && !isProposal) {
-        Spacer(Modifier.height(Spacing.sm))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(2.dp))
-                .border(1.dp, MaterialTheme.colorScheme.onBackground, RoundedCornerShape(2.dp))
-                .clickable(onClick = onEdit)
-                .padding(vertical = Spacing.md),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(stringResource(R.string.block_detail_extras_v2_editar), style = EyebrowTextStyle,
-                color = MaterialTheme.colorScheme.onBackground)
-        }
-    }
-
-    // Botón "BORRAR" — solo si el caller lo permite (admins) y no es propuesta
-    if (optionsOpen && onRequestDelete != null && !isProposal) {
-        Spacer(Modifier.height(Spacing.sm))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(2.dp))
-                .border(1.dp, MaterialTheme.colorScheme.error, RoundedCornerShape(2.dp))
-                .clickable(onClick = onRequestDelete)
-                .padding(vertical = Spacing.md),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(stringResource(R.string.block_detail_extras_borrar), style = EyebrowTextStyle,
-                color = MaterialTheme.colorScheme.error)
-        }
-    }
 }
 
 /**

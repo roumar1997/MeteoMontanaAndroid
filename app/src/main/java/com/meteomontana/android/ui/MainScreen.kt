@@ -53,7 +53,6 @@ import androidx.navigation.navArgument
 import com.meteomontana.android.navigation.Routes
 import com.meteomontana.android.navigation.Tab
 import com.meteomontana.android.navigation.mainTabs
-import com.meteomontana.android.ui.screens.admin.AdminScreen
 import com.meteomontana.android.ui.screens.chat.ChatListScreen
 import com.meteomontana.android.ui.screens.chat.ChatScreen
 import com.meteomontana.android.ui.screens.chat.GroupChatScreen
@@ -190,11 +189,6 @@ fun MainScreen(
             dismissSheet()
         }
     }
-    // Cierra el sheet y abre una pantalla completa (las que viven por debajo).
-    val openFullScreen: (String) -> Unit = { route ->
-        navController.navigate(route)
-        dismissSheet()
-    }
 
     // Consume el deep link entrante del push. Las pantallas overlay se abren en
     // el sheet; el detalle de escuela es pantalla completa.
@@ -215,10 +209,6 @@ fun MainScreen(
                 // Enlace de invitación a una quedada: abre su detalle (el join
                 // usará el token pendiente si lo hay).
                 "meetup" -> deepLink.targetId?.let { openSheet(Routes.meetupDetail(it)) }
-                // Push de denuncia nueva → abre el panel de admin.
-                "admin_reports" -> openFullScreen(Routes.ADMIN)
-                // Push de propuesta nueva (a admins) → panel de admin (abre en PROPUESTAS).
-                "admin_contributions" -> openFullScreen(Routes.ADMIN)
                 "submission", "contribution" -> openSheet(Routes.MY_SUBMISSIONS)
                 // Push de actividad del feed Comunidad → detalle del post.
                 "feed_post" -> deepLink.targetId?.let { openSheet(Routes.feedPost(it)) }
@@ -430,7 +420,6 @@ fun MainScreen(
                         visible = selectedTab == Tab.Profile.route && !sheetVisible,
                         onEdit = { openSheet(Routes.EDIT_PROFILE) },
                         onSubmissions = { openSheet(Routes.MY_SUBMISSIONS) },
-                        onAdmin = { openFullScreen(Routes.ADMIN) },
                         onSavedSchools = { openSheet(Routes.SAVED_SCHOOLS) },
                         onWeekendAlert = { openSheet(Routes.WEEKEND_ALERT) },
                         onOpenFollowers = {
@@ -536,7 +525,6 @@ fun MainScreen(
                             sheetNav = sheetNav,
                             navController = navController,
                             openSheet = openSheet,
-                            openFullScreen = openFullScreen,
                             popSheetOrDismiss = popSheetOrDismiss,
                             // Lo que el Box de arriba ya le reservó: las pantallas
                             // con teclado se lo descuentan al imePadding para
@@ -558,15 +546,6 @@ fun MainScreen(
                         }
                     }
                     }
-                }
-                composable(Routes.ADMIN) {
-                    AdminScreen(onBack = { navController.popBackStack() },
-                        // El detalle de escuela vive ahora en el overlay del host
-                        // de pestañas: salimos de admin (full screen) y lo abrimos.
-                        onOpenSchool = { id -> navController.popBackStack(); openSheet(Routes.schoolDetail(id)) },
-                        onOpenUser = { uid -> openSheet(Routes.publicProfile(uid)) },
-                        onOpenMeetup = { id -> openSheet(Routes.meetupDetail(id)) },
-                        onOpenFeedPost = { id -> openSheet(Routes.feedPost(id)) })
                 }
                 composable(
                     route = Routes.TOPO_EDITOR,

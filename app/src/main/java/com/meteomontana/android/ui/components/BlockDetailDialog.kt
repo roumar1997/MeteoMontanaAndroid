@@ -99,8 +99,6 @@ fun BlockDetailDialog(
     initiallyProjects: Set<String> = emptySet(),
     /** Valorar una vía (1-5 estrellas). null = no mostrar estrellas. */
     onRateLine: ((lineId: String, stars: Int) -> Unit)? = null,
-    onEdit: (() -> Unit)? = null,
-    onDelete: (() -> Unit)? = null,
     /** Sectores (ZONE) disponibles para "ASIGNAR SECTOR". null = no mostrar el botón. */
     availableSectors: List<Block>? = null,
     onAssignSector: ((sectorBlockId: String) -> Unit)? = null,
@@ -169,7 +167,6 @@ fun BlockDetailDialog(
         }
     }
 
-    var showDeleteConfirm by remember { mutableStateOf(false) }
     var showSectorPicker by remember { mutableStateOf(false) }
     // "OPCIONES" plegado: la ficha ya tiene muchos botones; solo CÓMO LLEGAR
     // queda a la vista y el resto (editar vías, sector, eliminar) va dentro.
@@ -225,8 +222,8 @@ fun BlockDetailDialog(
             BlockDetailHeader(
                 block, isProposal, availableSectors, onDismiss,
                 onShareBlock = { block.lines.firstOrNull()?.let { shareLine(it, withSetterGrade = false) } },
-                onAddLines = onAddLines, onAssignSector = onAssignSector, onEdit = onEdit, onDelete = onDelete,
-                onPickSector = { showSectorPicker = true }, onConfirmDelete = { showDeleteConfirm = true }
+                onAddLines = onAddLines, onAssignSector = onAssignSector,
+                onPickSector = { showSectorPicker = true }
             )
             // Restricción en vigor de esta piedra o sector: aviso fijo arriba (no se pierde con el scroll).
             LocalSchoolRestrictions.current?.let { ui ->
@@ -552,13 +549,6 @@ fun BlockDetailDialog(
         BlockLinePickerDialog(block,
             onPick = { showLinePicker = false; onEditLine(it) },
             onDismiss = { showLinePicker = false })
-    }
-
-    // Dialog de confirmacion de borrado
-    if (showDeleteConfirm && onDelete != null) {
-        BlockDeleteConfirmDialog(block,
-            onConfirm = { showDeleteConfirm = false; onDelete() },
-            onDismiss = { showDeleteConfirm = false })
     }
 
     // Picker de sector para "ASIGNAR SECTOR"

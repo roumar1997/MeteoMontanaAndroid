@@ -1,6 +1,5 @@
 package com.meteomontana.android.di
 
-import com.meteomontana.android.domain.repository.AdminRepository
 import com.meteomontana.android.domain.repository.RestrictionRepository
 import com.meteomontana.android.domain.repository.BlockRepository
 import com.meteomontana.android.domain.repository.ContributionRepository
@@ -13,15 +12,6 @@ import com.meteomontana.android.domain.repository.ProfileRepository
 import com.meteomontana.android.domain.repository.SchoolRepository
 import com.meteomontana.android.domain.repository.SocialRepository
 import com.meteomontana.android.domain.repository.SubmissionRepository
-import com.meteomontana.android.domain.usecase.admin.ApproveContributionUseCase
-import com.meteomontana.android.domain.usecase.admin.ApproveSubmissionUseCase
-import com.meteomontana.android.domain.usecase.admin.GetAdminLogsUseCase
-import com.meteomontana.android.domain.usecase.admin.GetAdminStatsUseCase
-import com.meteomontana.android.domain.usecase.admin.GetPendingContributionsUseCase
-import com.meteomontana.android.domain.usecase.admin.GetPendingSubmissionsUseCase
-import com.meteomontana.android.domain.usecase.admin.RejectContributionUseCase
-import com.meteomontana.android.domain.usecase.admin.RejectSubmissionUseCase
-import com.meteomontana.android.domain.usecase.admin.SendPushUseCase
 import com.meteomontana.android.domain.usecase.blocks.CreateBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.DeleteBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.ReorderBlocksUseCase
@@ -80,7 +70,7 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 
-/** Casos de uso de la persona: perfil, altura, restricciones, recompensas, logros, objetivo, notificaciones, admin, diario y envíos. (antes todo en un UseCasesModule de 773 líneas). */
+/** Casos de uso de la persona: perfil, altura, restricciones, recompensas, logros, objetivo, notificaciones, diario y envíos. */
 @Module
 @InstallIn(SingletonComponent::class)
 object ProfileUseCasesModule {
@@ -204,46 +194,6 @@ object ProfileUseCasesModule {
     @Provides @Singleton
     fun provideDeleteAllNotificationsUseCase(repo: NotificationsRepository) =
         com.meteomontana.android.domain.usecase.notifications.DeleteAllNotificationsUseCase(repo)
-
-    // Admin
-    @Provides @Singleton
-    fun provideGetAdminStatsUseCase(repo: AdminRepository) = GetAdminStatsUseCase(repo)
-
-    @Provides @Singleton
-    fun provideGetPendingSubmissionsUseCase(repo: AdminRepository) =
-        GetPendingSubmissionsUseCase(repo)
-
-    @Provides @Singleton
-    fun provideGetPendingContributionsUseCase(repo: AdminRepository) =
-        GetPendingContributionsUseCase(repo)
-
-    @Provides @Singleton
-    fun provideGetAdminLogsUseCase(repo: AdminRepository) = GetAdminLogsUseCase(repo)
-
-    @Provides @Singleton
-    fun provideApproveSubmissionUseCase(repo: AdminRepository) = ApproveSubmissionUseCase(repo)
-
-    @Provides @Singleton
-    fun provideRejectSubmissionUseCase(repo: AdminRepository) = RejectSubmissionUseCase(repo)
-
-    @Provides @Singleton
-    fun provideApproveContributionUseCase(repo: AdminRepository) =
-        ApproveContributionUseCase(repo)
-
-    @Provides @Singleton
-    fun provideRejectContributionUseCase(repo: AdminRepository) =
-        RejectContributionUseCase(repo)
-
-    @Provides @Singleton
-    fun provideSendPushUseCase(repo: AdminRepository) = SendPushUseCase(repo)
-
-    @Provides @Singleton
-    fun provideGetPendingReportsUseCase(repo: AdminRepository) =
-        com.meteomontana.android.domain.usecase.admin.GetPendingReportsUseCase(repo)
-
-    @Provides @Singleton
-    fun provideResolveReportUseCase(repo: AdminRepository) =
-        com.meteomontana.android.domain.usecase.admin.ResolveReportUseCase(repo)
 
     // Journal
     @Provides @Singleton

@@ -34,7 +34,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.AdminPanelSettings
 import androidx.compose.material.icons.outlined.Backpack
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Share
@@ -88,7 +87,6 @@ fun ProfileScreen(
     showClose: Boolean = true,
     onEdit: () -> Unit = {},
     onSubmissions: () -> Unit = {},
-    onAdmin: () -> Unit = {},
     onSavedSchools: () -> Unit = {},
     onWeekendAlert: () -> Unit = {},
     onOpenFollowers: () -> Unit = {},
@@ -214,9 +212,7 @@ fun ProfileScreen(
                 onBack = onBack,
                 onGear = successState?.let { { gearOpen = true } },
                 onShare = successState?.let { s -> { shareProfile(ctx, scope, s.profile, s.stats) } },
-                onSettings = successState?.let { { settingsOpen = true } },
-                onAdmin = successState?.takeIf { it.profile.isAdmin }?.let { { onAdmin() } },
-                pendingReview = successState?.pendingReview ?: 0
+                onSettings = successState?.let { { settingsOpen = true } }
             )
         }
     }
@@ -251,44 +247,18 @@ internal fun ProfileTopBar(
     onGear: (() -> Unit)? = null,
     onShare: (() -> Unit)?,
     onSettings: (() -> Unit)?,
-    onAdmin: (() -> Unit)? = null,
-    pendingReview: Int = 0
 ) {
     Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
         Text(title, style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.align(Alignment.Center))
-        // Izquierda: "? AYUDA" (ya es una pastilla: NO se mete dentro de otra, se veía el borde doble y no le cabía)
-        // y, solo para admins, el acceso al panel con el nº de pendientes en SU pastilla.
+        // Izquierda: "? AYUDA".
         Row(
             modifier = Modifier.align(Alignment.CenterStart),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             com.meteomontana.android.ui.components.HelpButton(topicKey = "profile")
-            if (onAdmin != null) com.meteomontana.android.ui.components.CumbrePillGroup {
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .clickable(onClick = onAdmin)
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(Icons.Outlined.AdminPanelSettings, contentDescription = stringResource(R.string.profile_screen_v2_panel_de_admin),
-                        tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-                    if (pendingReview > 0) {
-                        Box(
-                            Modifier.clip(RoundedCornerShape(20.dp))
-                                .background(MaterialTheme.colorScheme.primary)
-                                .padding(horizontal = 6.dp, vertical = 1.dp)
-                        ) {
-                            Text("$pendingReview", color = Color.White,
-                                style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
         }
         // Derecha: compartir + ajustes, también en pastilla (en iOS son las dos
         // que van juntas arriba a la derecha).
