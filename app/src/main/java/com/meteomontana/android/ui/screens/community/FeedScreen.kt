@@ -227,12 +227,11 @@ fun FeedScreen(
         com.meteomontana.android.ui.components.ReportDialog(
             title = stringResource(R.string.feed_report_post),
             authorLabel = post.author.displayName ?: post.author.username?.let { "@$it" },
-            onReport = { reason, alsoBlock ->
+            onReport = { reason, alsoBlock, details ->
                 moderation.report(
-                    "FEED_POST", post.id.toString(), reason,
+                    "FEED_POST", post.id.toString(), reason, details = details,
                     alsoBlockUid = if (alsoBlock) post.author.uid else null
                 )
-                reportPost = null
             },
             onDismiss = { reportPost = null }
         )

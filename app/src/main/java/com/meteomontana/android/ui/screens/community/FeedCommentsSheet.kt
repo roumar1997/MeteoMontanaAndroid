@@ -265,12 +265,11 @@ internal fun FeedCommentsSheet(
         com.meteomontana.android.ui.components.ReportDialog(
             title = stringResource(R.string.feed_report_comment),
             authorLabel = c.author?.displayName ?: c.author?.username?.let { "@$it" },
-            onReport = { reason, alsoBlock ->
+            onReport = { reason, alsoBlock, details ->
                 moderation.report(
-                    "FEED_COMMENT", c.id, reason,
+                    "FEED_COMMENT", c.id, reason, details = details,
                     alsoBlockUid = if (alsoBlock) (c.author?.uid ?: c.uid) else null
                 )
-                reportComment = null
             },
             onDismiss = { reportComment = null }
         )

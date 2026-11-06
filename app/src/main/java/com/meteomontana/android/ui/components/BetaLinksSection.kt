@@ -364,9 +364,8 @@ fun BetaLinksThread(
         ReportDialog(
             title = stringResource(R.string.beta_report_title),
             authorLabel = null,
-            onReport = { reason, _ ->
-                moderation.report("BETA_LINK", l.id, reason)
-                reportTarget = null
+            onReport = { reason, _, details ->
+                moderation.report("BETA_LINK", l.id, reason, details = details)
             },
             onDismiss = { reportTarget = null }
         )

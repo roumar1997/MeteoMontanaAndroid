@@ -18,17 +18,19 @@ data class ContentReportDto(
     val id: String,
     val targetType: String,          // COMMENT / NOTE / USER
     val targetId: String,
-    val reason: String,              // SPAM / OFFENSIVE / FALSE_INFO / OTHER
+    val reason: String,              // SPAM / OFFENSIVE / FALSE_INFO / OTHER / HARASSMENT / INAPPROPRIATE_PHOTO / OFFENSIVE_NAME
     val snapshot: String? = null,    // copia del contenido denunciado
     val authorUid: String? = null,
     val reporterUid: String = "",
     val status: String = "PENDING",
     val resolution: String? = null,
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    /** Lo que contó quien denuncia (opcional). */
+    val details: String? = null
 )
 
 @Serializable
-data class ReportRequest(val targetType: String, val targetId: String, val reason: String)
+data class ReportRequest(val targetType: String, val targetId: String, val reason: String, val details: String? = null)
 
 /** Fila de denuncia en el historial de moderación de un usuario. */
 @Serializable
@@ -73,11 +75,11 @@ class KtorModerationApi(private val client: HttpClient) {
     // cruzar a Swift (y en Android caía en un catch mudo). Todas estas
     // acciones son idempotentes, así que tragamos el error: denunciar/bloquear
     // dos veces = ya estaba hecho.
-    suspend fun report(targetType: String, targetId: String, reason: String) {
+    suspend fun report(targetType: String, targetId: String, reason: String, details: String? = null) {
         try {
             client.post("reports") {
                 contentType(ContentType.Application.Json)
-                setBody(ReportRequest(targetType, targetId, reason))
+                setBody(ReportRequest(targetType, targetId, reason, details?.takeIf { it.isNotBlank() }))
             }
         } catch (_: Throwable) { /* ya denunciado / sin red: idempotente */ }
     }
@@ -174,6 +176,19 @@ class KtorModerationApi(private val client: HttpClient) {
                 setBody(mapOf("reason" to (reason ?: "")))
             }.body()
         } catch (_: Throwable) { null }
+
+    /** Mensaje del «Equipo Cumbre» (no del admin): le llega por push y se queda en su campana. null si falla. */
+    suspend fun sendTeamMessage(uid: String, body: String): UserModerationDto? =
+        try {
+            client.post("admin/users/$uid/message") {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf("body" to body))
+            }.body()
+        } catch (_: Throwable) { null }
+
+    /** Cambia un nombre de usuario que no cumple las normas por uno neutro y se le explica. null si falla. */
+    suspend fun resetUsername(uid: String): UserModerationDto? =
+        try { client.post("admin/users/$uid/reset-username").body() } catch (_: Throwable) { null }
 
     suspend fun unbanUser2(uid: String, reason: String? = null): UserModerationDto? =
         try {

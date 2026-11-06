@@ -258,10 +258,9 @@ fun LineCommentsThread(
         ReportDialog(
             title = stringResource(R.string.line_comments_section_v2_denunciar_comentario),
             authorLabel = c.author,
-            onReport = { reason, alsoBlock ->
-                moderation.report("COMMENT", c.id, reason,
+            onReport = { reason, alsoBlock, details ->
+                moderation.report("COMMENT", c.id, reason, details = details,
                     alsoBlockUid = if (alsoBlock) c.uid else null)
-                reportTarget = null
             },
             onDismiss = { reportTarget = null }
         )

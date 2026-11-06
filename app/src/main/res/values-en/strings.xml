@@ -2095,4 +2095,18 @@
     <string name="sguide_pdf_to_sector">↑ SECTOR START</string>
     <string name="sguide_pdf_continued">Boulder %1$s · continued from page %2$d</string>
     <string name="sguide_pdf_file">Guide %1$s%2$s</string>
+    <string name="report_why">What is wrong?</string>
+    <string name="report_reason_spam">Spam or advertising</string>
+    <string name="report_reason_offensive">Offensive or insulting</string>
+    <string name="report_reason_harassment">Harassment</string>
+    <string name="report_reason_photo">Inappropriate photo</string>
+    <string name="report_reason_name">Offensive name or username</string>
+    <string name="report_reason_false_info">False or dangerous information</string>
+    <string name="report_reason_other">Other reason</string>
+    <string name="report_details_hint">Tell us what happened (optional)</string>
+    <string name="report_send">SEND</string>
+    <string name="report_sent_title">Thanks for letting us know</string>
+    <string name="report_sent_body">The Cumbre team will review it and let you know once it has been reviewed. Meanwhile you will not see it.</string>
+    <string name="report_ok">GOT IT</string>
+    <string name="notif_team_title">Cumbre team</string>
 </resources>

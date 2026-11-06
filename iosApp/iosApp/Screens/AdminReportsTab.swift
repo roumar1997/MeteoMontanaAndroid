@@ -101,6 +101,10 @@ struct AdminReportsTab: View {
                 .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
                 .padding(10).frame(maxWidth: .infinity, alignment: .leading)
                 .background(Cumbre.bg, in: RoundedRectangle(cornerRadius: 9))
+            // Lo que contó quien denuncia (desde 2026-11-06; opcional).
+            if let d = r.details, !d.isEmpty {
+                Text("«\(d)»").font(.system(size: 13).italic()).foregroundStyle(Cumbre.ink2)
+            }
             if r.targetType == "FEED_POST" || r.targetType == "FEED_COMMENT" {
                 AdminButton(title: "VER POST", symbol: "arrow.up.right.square") { feedPostTarget = FeedPostTarget(postId: r.targetId) }
             }
@@ -156,7 +160,8 @@ struct AdminReportsTab: View {
         switch r.uppercased() {
         case "SPAM": return "Spam"; case "OFFENSIVE": return "Ofensivo"
         case "FALSE_INFO": return "Info falsa"; case "HARASSMENT": return "Acoso"
-        case "INAPPROPRIATE": return "Inapropiado"; default: return "Otro" }
+        case "INAPPROPRIATE", "INAPPROPRIATE_PHOTO": return "Foto inapropiada"
+        case "OFFENSIVE_NAME": return "Nombre ofensivo"; default: return "Otro" }
     }
 }
 
@@ -204,20 +209,25 @@ struct UserModerationSheet: View {
                         // Acciones ya aplicadas (auditoría con motivo).
                         if !m.actions.isEmpty {
                             Divider().overlay(Cumbre.rule)
-                            Text("ACCIONES APLICADAS")
+                            Text("HISTORIAL (LO QUE LE HA HECHO EL EQUIPO)")
                                 .font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
-                            ForEach(Array(m.actions.prefix(8).enumerated()), id: \.offset) { _, act in
+                            ForEach(Array(m.actions.enumerated()), id: \.offset) { _, act in
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(actionLabel(act.action) + (act.createdAt.map { " · " + String($0.prefix(10)) } ?? ""))
                                         .font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink)
                                     if let rs = act.reason, !rs.isEmpty {
-                                        Text("Motivo: \(rs)").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                                        Text(act.action == "MESSAGE" ? rs : "Motivo: \(rs)").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                                     }
                                     if let s = act.snapshot, !s.isEmpty {
                                         Text(s).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(2)
                                     }
                                 }
                             }
+                        }
+
+                        Divider().overlay(Cumbre.rule)
+                        AdminTeamMessageSection(uid: uid, username: m.username) { updated in
+                            if let updated { mod = updated } else { Task { await reload() } }
                         }
 
                         Divider().overlay(Cumbre.rule)
@@ -280,7 +290,11 @@ struct UserModerationSheet: View {
         case "WARN": return "Aviso"; case "SUSPEND": return "Suspensión"
         case "BAN": return "Baneo"; case "UNBAN": return "Desbaneo"
         case "DELETE_NOTE": return "Nota borrada"; case "DELETE_COMMENT": return "Comentario borrado"
-        case "DELETE_MEETUP": return "Quedada borrada"; default: return a }
+        case "DELETE_MEETUP": return "Quedada borrada"
+        case "MESSAGE": return "Mensaje del Equipo Cumbre"; case "RESET_USERNAME": return "Nombre de usuario restablecido"
+        case "DELETE_FEED_POST": return "Publicación borrada"; case "DELETE_FEED_COMMENT": return "Comentario de Comunidad borrado"
+        case "DELETE_BETA_LINK": return "Enlace de beta borrado"
+        default: return a }
     }
 
     private func reload() async {

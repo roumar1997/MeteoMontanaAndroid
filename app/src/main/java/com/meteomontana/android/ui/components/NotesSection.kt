@@ -141,10 +141,9 @@ fun NotesSection(
         ReportDialog(
             title = stringResource(R.string.notes_section_v2_denunciar_nota),
             authorLabel = n.author ?: stringResource(R.string.notes_section_v3_este_usuario),
-            onReport = { reason, alsoBlock ->
-                moderation.report("NOTE", n.id, reason,
+            onReport = { reason, alsoBlock, details ->
+                moderation.report("NOTE", n.id, reason, details = details,
                     alsoBlockUid = if (alsoBlock) n.uid else null)
-                reportTarget = null
             },
             onDismiss = { reportTarget = null }
         )

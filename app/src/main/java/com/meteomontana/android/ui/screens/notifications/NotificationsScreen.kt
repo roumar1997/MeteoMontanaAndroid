@@ -273,7 +273,18 @@ private fun NotificationRow(n: Notification, onClick: () -> Unit) {
     ) {
         Box(modifier = Modifier.size(8.dp).clip(CircleShape)
             .background(if (unread) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant))
+        // Mensaje del equipo (no de una persona): logo de Cumbre delante, para que se distinga a la primera.
+        if (n.type == "TEAM_MESSAGE") {
+            androidx.compose.foundation.Image(
+                androidx.compose.ui.res.painterResource(R.drawable.logo_cumbre), contentDescription = null,
+                modifier = Modifier.size(36.dp).clip(CircleShape)
+            )
+        }
         Column(modifier = Modifier.weight(1f)) {
+            if (n.type == "TEAM_MESSAGE") {
+                Text(stringResource(R.string.notif_team_title).uppercase(), style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
+                    color = MaterialTheme.colorScheme.primary)
+            }
             Text(n.title, style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground)
             n.body?.let {

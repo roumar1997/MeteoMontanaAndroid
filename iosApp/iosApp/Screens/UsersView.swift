@@ -618,8 +618,8 @@ struct PublicProfileView: View {
         }
         .sheet(isPresented: $showReport) {
             ReportSheet(title: L("DENUNCIAR USUARIO"),
-                        authorLabel: vm.profile?.username.map { "@" + $0 } ?? "usuario") { reason, alsoBlock in
-                moderation.report(targetType: "USER", targetId: realUid, reason: reason,
+                        authorLabel: vm.profile?.username.map { "@" + $0 } ?? "usuario") { reason, alsoBlock, details in
+                moderation.report(targetType: "USER", targetId: realUid, reason: reason, details: details,
                                   alsoBlockUid: alsoBlock ? realUid : nil)
             }
         }

@@ -22,11 +22,11 @@ final class ModerationStore: ObservableObject {
         }
     }
 
-    func report(targetType: String, targetId: String, reason: String,
+    func report(targetType: String, targetId: String, reason: String, details: String? = nil,
                 alsoBlockUid: String? = nil) {
         hiddenIds.insert("\(targetType):\(targetId)")
         Task {
-            try? await api.report(targetType: targetType, targetId: targetId, reason: reason)
+            try? await api.report(targetType: targetType, targetId: targetId, reason: reason, details: details)
             if let uid = alsoBlockUid {
                 try? await api.blockUser(uid: uid)
                 blocked.insert(uid)
@@ -49,69 +49,110 @@ final class ModerationStore: ObservableObject {
     }
 }
 
-/// Hoja de denuncia (maqueta A): motivos de un toque + bloquear de paso.
+
+/// Hoja de denuncia: eliges el motivo, cuentas qué pasa si quieres, puedes bloquear al autor de paso y ENVIAR. Después
+/// se dice qué pasa ahora (lo revisa el equipo y te avisamos). Igual que ReportDialog de Android.
 struct ReportSheet: View {
     let title: String
     /// @nombre del autor (para la opción de bloquear); nil = sin esa opción.
     var authorLabel: String? = nil
-    let onReport: (_ reason: String, _ alsoBlock: Bool) -> Void
+    let onReport: (_ reason: String, _ alsoBlock: Bool, _ details: String?) -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var reason: String?
+    @State private var details = ""
     @State private var alsoBlock = false
+    @State private var sent = false
 
+    /// El código lo entiende el servidor; los tres nuevos desde 2026-11-06.
     private let reasons: [(String, String)] = [
         ("SPAM", L("Spam o publicidad")),
-        ("OFFENSIVE", L("Ofensivo o acoso")),
+        ("OFFENSIVE", L("Ofensivo o insultante")),
+        ("HARASSMENT", L("Acoso")),
+        ("INAPPROPRIATE_PHOTO", L("Foto inapropiada")),
+        ("OFFENSIVE_NAME", L("Nombre o usuario ofensivo")),
         ("FALSE_INFO", L("Información falsa o peligrosa")),
         ("OTHER", L("Otro motivo"))
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(Cumbre.mono(11, .bold)).tracking(1.4)
-                .foregroundStyle(Cumbre.ink3)
-                .padding(.top, 18)
-            ForEach(reasons, id: \.0) { code, label in
-                Button {
-                    onReport(code, alsoBlock)
-                    dismiss()
-                } label: {
-                    Text(label).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 12).padding(.vertical, 10)
-                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.rule, lineWidth: 1))
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 8) {
+                if sent { sentView } else { form }
             }
-            if let author = authorLabel {
-                Button { alsoBlock.toggle() } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: alsoBlock ? "checkmark.square.fill" : "square")
-                            .foregroundStyle(alsoBlock ? Cumbre.terra : Cumbre.ink3)
-                        Text(L("TAMBIÉN BLOQUEAR A %@", author.uppercased()))
-                            .font(Cumbre.mono(11, .bold)).tracking(0.6)
-                            .foregroundStyle(alsoBlock ? Cumbre.terra : Cumbre.ink3)
-                    }
+            .padding(.horizontal, 16).padding(.top, 18).padding(.bottom, 20)
+        }
+        .presentationDetents([.large])
+        .background(Cumbre.bg)
+    }
+
+    private var sentView: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(L("Gracias por avisar")).font(.system(size: 18, weight: .semibold)).foregroundStyle(Cumbre.ink)
+            Text(L("Lo revisará el equipo de Cumbre y te avisaremos cuando esté revisado. Mientras tanto, ya no lo verás."))
+                .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+            pill(L("ENTENDIDO"), filled: true) { dismiss() }
+        }
+    }
+
+    @ViewBuilder private var form: some View {
+        Text(title).font(Cumbre.mono(11, .bold)).tracking(1.4).foregroundStyle(Cumbre.ink3)
+        Text(L("¿Qué pasa?")).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+        ForEach(reasons, id: \.0) { code, label in
+            let on = reason == code
+            Button { reason = code } label: {
+                Text(label).font(.system(size: 15)).foregroundStyle(on ? Cumbre.terra : Cumbre.ink)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 12).padding(.vertical, 10)
-                    .overlay(RoundedRectangle(cornerRadius: 4)
-                        .stroke(alsoBlock ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                    .background(on ? Cumbre.terra.opacity(0.12) : Color.clear, in: RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
                     .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
             }
-            Text("Un admin lo revisará. El contenido denunciado deja de mostrarse para ti al instante.")
-                .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-            Button("CANCELAR") { dismiss() }
-                .font(Cumbre.mono(12, .bold))
-                .foregroundStyle(Cumbre.ink3)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .buttonStyle(.plain)
-            Spacer()
+            .buttonStyle(.plain)
         }
-        .padding(.horizontal, 16)
-        .presentationDetents([.medium])
-        .background(Cumbre.bg)
+        if reason != nil {
+            TextField(L("Cuéntanos qué pasa (opcional)"), text: $details, axis: .vertical)
+                .lineLimit(2...4)
+                .padding(10)
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.rule, lineWidth: 1))
+                .onChange(of: details) { _, v in if v.count > 500 { details = String(v.prefix(500)) } }
+        }
+        if let author = authorLabel {
+            Button { alsoBlock.toggle() } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: alsoBlock ? "checkmark.square.fill" : "square")
+                        .foregroundStyle(alsoBlock ? Cumbre.terra : Cumbre.ink3)
+                    Text(L("TAMBIÉN BLOQUEAR A %@", author.uppercased()))
+                        .font(Cumbre.mono(11, .bold)).tracking(0.6)
+                        .foregroundStyle(alsoBlock ? Cumbre.terra : Cumbre.ink3)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 6)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        Text("Un admin lo revisará. El contenido denunciado deja de mostrarse para ti al instante.")
+            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+        HStack(spacing: 10) {
+            pill(L("CANCELAR"), filled: false) { dismiss() }
+            pill(L("ENVIAR"), filled: true, enabled: reason != nil) {
+                guard let r = reason else { return }
+                let text = details.trimmingCharacters(in: .whitespacesAndNewlines)
+                onReport(r, alsoBlock, text.isEmpty ? nil : text)
+                withAnimation { sent = true }
+            }
+        }
+    }
+
+    private func pill(_ text: String, filled: Bool, enabled: Bool = true, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(text).font(Cumbre.mono(12, .bold))
+                .foregroundStyle(filled ? .white : Cumbre.ink3)
+                .frame(maxWidth: .infinity).padding(.vertical, 11)
+                .background(filled ? Cumbre.terraFill.opacity(enabled ? 1 : 0.35) : Color.clear, in: Capsule())
+                .overlay(Capsule().stroke(filled ? Color.clear : Cumbre.rule, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
     }
 }

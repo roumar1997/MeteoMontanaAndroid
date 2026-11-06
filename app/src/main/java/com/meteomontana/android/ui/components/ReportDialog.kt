@@ -67,10 +67,10 @@ class ModerationViewModel @Inject constructor(
     }
 
     fun report(targetType: String, targetId: String, reason: String,
-               alsoBlockUid: String? = null) {
+               details: String? = null, alsoBlockUid: String? = null) {
         _hiddenIds.value = _hiddenIds.value + "$targetType:$targetId"
         viewModelScope.launch {
-            runCatching { api.report(targetType, targetId, reason) }
+            runCatching { api.report(targetType, targetId, reason, details) }
             alsoBlockUid?.let { uid ->
                 runCatching { api.blockUser(uid) }
                 _blocked.value = _blocked.value + uid
@@ -91,83 +91,123 @@ class ModerationViewModel @Inject constructor(
     }
 }
 
+
+/** Motivos de denuncia (el código lo entiende el servidor; los tres nuevos desde 2026-11-06). */
+private val REPORT_REASONS = listOf(
+    "SPAM" to R.string.report_reason_spam,
+    "OFFENSIVE" to R.string.report_reason_offensive,
+    "HARASSMENT" to R.string.report_reason_harassment,
+    "INAPPROPRIATE_PHOTO" to R.string.report_reason_photo,
+    "OFFENSIVE_NAME" to R.string.report_reason_name,
+    "FALSE_INFO" to R.string.report_reason_false_info,
+    "OTHER" to R.string.report_reason_other
+)
+
 /**
- * Hoja de denuncia (maqueta A aprobada): motivos de un toque + opción de
- * bloquear al autor de paso.
+ * Hoja de denuncia: eliges el motivo, cuentas qué pasa si quieres, puedes bloquear al autor de paso y ENVIAR. Después
+ * se dice qué pasa ahora (lo revisa el equipo y te avisamos). Igual que ReportSheet de iOS.
  */
 @Composable
 fun ReportDialog(
     title: String,
     /** @nombre del autor (para el botón de bloquear); null = sin esa opción. */
     authorLabel: String?,
-    onReport: (reason: String, alsoBlock: Boolean) -> Unit,
+    onReport: (reason: String, alsoBlock: Boolean, details: String?) -> Unit,
     onDismiss: () -> Unit
 ) {
+    var reason by remember { mutableStateOf<String?>(null) }
+    var details by remember { mutableStateOf("") }
     var alsoBlock by remember { mutableStateOf(false) }
+    var sent by remember { mutableStateOf(false) }
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(4.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.surface)
-                .border(1.dp, MaterialTheme.colorScheme.onSurface, RoundedCornerShape(4.dp))
-                .padding(Spacing.md)
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
+                .padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(title, style = EyebrowTextStyle,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(Spacing.sm))
-            listOf(
-                "SPAM" to stringResource(R.string.report_dialog_v3_spam_o_publicidad),
-                "OFFENSIVE" to stringResource(R.string.report_dialog_v3_ofensivo_o_acoso),
-                "FALSE_INFO" to stringResource(R.string.report_dialog_v3_informacion_falsa_o_peligrosa),
-                "OTHER" to stringResource(R.string.report_dialog_v3_otro_motivo)
-            ).forEach { (code, label) ->
+            if (sent) {
+                Text(stringResource(R.string.report_sent_title), style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface)
+                Text(stringResource(R.string.report_sent_body), style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(Spacing.xs))
+                ReportButton(stringResource(R.string.report_ok), filled = true, onClick = onDismiss)
+                return@Column
+            }
+            Text(title, style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(stringResource(R.string.report_why), style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface)
+            REPORT_REASONS.forEach { (code, label) ->
+                val on = reason == code
                 Box(
                     modifier = Modifier.fillMaxWidth()
-                        .padding(vertical = 3.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
-                        .clickable { onReport(code, alsoBlock) }
-                        .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (on) Terra.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface)
+                        .border(1.dp, if (on) Terra else MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+                        .clickable { reason = code }
+                        .padding(horizontal = Spacing.md, vertical = 10.dp)
                 ) {
-                    Text(label, style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface)
+                    Text(stringResource(label), style = MaterialTheme.typography.bodyMedium,
+                        color = if (on) Terra else MaterialTheme.colorScheme.onSurface)
                 }
             }
+            if (reason != null) {
+                androidx.compose.material3.OutlinedTextField(
+                    value = details, onValueChange = { details = it.take(500) },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text(stringResource(R.string.report_details_hint)) },
+                    minLines = 2, maxLines = 4
+                )
+            }
             if (authorLabel != null) {
-                Spacer(Modifier.height(4.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth()
-                        .clip(RoundedCornerShape(4.dp))
-                        .border(1.dp, if (alsoBlock) Terra else MaterialTheme.colorScheme.outline,
-                            RoundedCornerShape(4.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .clickable { alsoBlock = !alsoBlock }
-                        .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                        .padding(vertical = Spacing.xs),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     Text(if (alsoBlock) "☑" else "☐",
                         color = if (alsoBlock) Terra else MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(stringResource(R.string.report_dialog_also_block, authorLabel),
-                        style = EyebrowTextStyle,
+                        style = MaterialTheme.typography.bodySmall,
                         color = if (alsoBlock) Terra else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            Spacer(Modifier.height(Spacing.sm))
             Text(stringResource(R.string.report_dialog_un_admin_lo_revisara),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(Spacing.sm))
-            Box(
-                modifier = Modifier.fillMaxWidth()
-                    .clip(RoundedCornerShape(4.dp))
-                    .clickable(onClick = onDismiss)
-                    .padding(vertical = Spacing.sm),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(stringResource(R.string.report_dialog_v2_cancelar), style = EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                ReportButton(stringResource(R.string.report_dialog_v2_cancelar), filled = false,
+                    modifier = Modifier.weight(1f), onClick = onDismiss)
+                ReportButton(stringResource(R.string.report_send), filled = true, enabled = reason != null,
+                    modifier = Modifier.weight(1f)) {
+                    reason?.let { onReport(it, alsoBlock, details.trim().ifBlank { null }); sent = true }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun ReportButton(text: String, filled: Boolean, modifier: Modifier = Modifier.fillMaxWidth(),
+                         enabled: Boolean = true, onClick: () -> Unit) {
+    val clear = androidx.compose.ui.graphics.Color.Transparent
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .background(if (filled) Terra.copy(alpha = if (enabled) 1f else 0.35f) else clear)
+            .border(1.dp, if (filled) clear else MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 11.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text, style = EyebrowTextStyle,
+            color = if (filled) androidx.compose.ui.graphics.Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

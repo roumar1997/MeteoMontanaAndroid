@@ -216,10 +216,9 @@ fun PublicProfileScreen(
         com.meteomontana.android.ui.components.ReportDialog(
             title = stringResource(R.string.public_profile_screen_v2_denunciar_usuario),
             authorLabel = profileName,
-            onReport = { reason, alsoBlock ->
-                moderation.report("USER", profileUid, reason,
+            onReport = { reason, alsoBlock, details ->
+                moderation.report("USER", profileUid, reason, details = details,
                     alsoBlockUid = if (alsoBlock) profileUid else null)
-                showReport = false
             },
             onDismiss = { showReport = false }
         )

@@ -2154,4 +2154,18 @@
     <string name="sguide_pdf_to_sector">↑ INICIO DEL SECTOR</string>
     <string name="sguide_pdf_continued">Piedra %1$s · viene de la página %2$d</string>
     <string name="sguide_pdf_file">Guía %1$s%2$s</string>
+    <string name="report_why">¿Qué pasa?</string>
+    <string name="report_reason_spam">Spam o publicidad</string>
+    <string name="report_reason_offensive">Ofensivo o insultante</string>
+    <string name="report_reason_harassment">Acoso</string>
+    <string name="report_reason_photo">Foto inapropiada</string>
+    <string name="report_reason_name">Nombre o usuario ofensivo</string>
+    <string name="report_reason_false_info">Información falsa o peligrosa</string>
+    <string name="report_reason_other">Otro motivo</string>
+    <string name="report_details_hint">Cuéntanos qué pasa (opcional)</string>
+    <string name="report_send">ENVIAR</string>
+    <string name="report_sent_title">Gracias por avisar</string>
+    <string name="report_sent_body">Lo revisará el equipo de Cumbre y te avisaremos cuando esté revisado. Mientras tanto, ya no lo verás.</string>
+    <string name="report_ok">ENTENDIDO</string>
+    <string name="notif_team_title">Equipo Cumbre</string>
 </resources>

@@ -111,12 +111,11 @@ struct FeedCommentsSheet: View {
             ReportSheet(
                 title: L("DENUNCIAR COMENTARIO"),
                 authorLabel: feedAuthorLabel(c.author)
-            ) { reason, alsoBlock in
+            ) { reason, alsoBlock, details in
                 let blockUid = c.author?.uid ?? c.uid
                 moderation.report(
-                    targetType: "FEED_COMMENT", targetId: c.id, reason: reason,
+                    targetType: "FEED_COMMENT", targetId: c.id, reason: reason, details: details,
                     alsoBlockUid: alsoBlock ? blockUid : nil)
-                reportComment = nil
             }
         }
     }

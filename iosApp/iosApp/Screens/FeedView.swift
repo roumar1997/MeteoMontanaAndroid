@@ -363,11 +363,10 @@ struct FeedView: View {
             ReportSheet(
                 title: L("DENUNCIAR PUBLICACIÓN"),
                 authorLabel: feedAuthorLabel(post.author)
-            ) { reason, alsoBlock in
+            ) { reason, alsoBlock, details in
                 moderation.report(
-                    targetType: "FEED_POST", targetId: String(post.id), reason: reason,
+                    targetType: "FEED_POST", targetId: String(post.id), reason: reason, details: details,
                     alsoBlockUid: alsoBlock ? post.author.uid : nil)
-                reportPost = nil
             }
         }
         .sheet(isPresented: $showSearchUsers) { SearchUsersView() }

@@ -196,7 +196,15 @@ private struct NotificationRow: View {
                 .fill(n.readAt == nil ? Cumbre.terra : Color.clear)
                 .frame(width: 8, height: 8)
                 .padding(.top, 6)
+            // Mensaje del equipo (no de una persona): logo de Cumbre delante, para que se distinga a la primera.
+            if n.type == "TEAM_MESSAGE" {
+                Image("logo_cumbre").resizable().scaledToFill()
+                    .frame(width: 36, height: 36).clipShape(Circle())
+            }
             VStack(alignment: .leading, spacing: 3) {
+                if n.type == "TEAM_MESSAGE" {
+                    Text(L("EQUIPO CUMBRE")).font(Cumbre.mono(10, .bold)).tracking(1.4).foregroundStyle(Cumbre.terra)
+                }
                 Text(n.title)
                     .font(.system(size: 15, weight: n.readAt == nil ? .semibold : .regular))
                     .foregroundStyle(Cumbre.ink)

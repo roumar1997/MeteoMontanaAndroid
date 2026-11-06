@@ -213,8 +213,8 @@ struct BetaLinksThreadView: View {
             }
         }
         .sheet(item: $reportTarget) { l in
-            ReportSheet(title: L("DENUNCIAR ENLACE DE BETA")) { reason, _ in
-                moderation.report(targetType: "BETA_LINK", targetId: l.id, reason: reason)
+            ReportSheet(title: L("DENUNCIAR ENLACE DE BETA")) { reason, _, details in
+                moderation.report(targetType: "BETA_LINK", targetId: l.id, reason: reason, details: details)
             }
         }
     }

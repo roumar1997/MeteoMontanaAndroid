@@ -171,8 +171,8 @@ struct LineCommentsThreadView: View {
             }
         }
         .sheet(item: $reportTarget) { c in
-            ReportSheet(title: L("DENUNCIAR COMENTARIO"), authorLabel: c.author) { reason, alsoBlock in
-                moderation.report(targetType: "COMMENT", targetId: c.id, reason: reason,
+            ReportSheet(title: L("DENUNCIAR COMENTARIO"), authorLabel: c.author) { reason, alsoBlock, details in
+                moderation.report(targetType: "COMMENT", targetId: c.id, reason: reason, details: details,
                                   alsoBlockUid: alsoBlock ? c.uid : nil)
             }
         }

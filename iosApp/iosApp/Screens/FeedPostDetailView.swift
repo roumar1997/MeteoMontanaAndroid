@@ -130,9 +130,9 @@ struct FeedPostDetailView: View {
                 ReportSheet(
                     title: L("DENUNCIAR PUBLICACIÓN"),
                     authorLabel: feedAuthorLabel(post.author)
-                ) { reason, alsoBlock in
+                ) { reason, alsoBlock, details in
                     moderation.report(
-                        targetType: "FEED_POST", targetId: String(post.id), reason: reason,
+                        targetType: "FEED_POST", targetId: String(post.id), reason: reason, details: details,
                         alsoBlockUid: alsoBlock ? post.author.uid : nil)
                 }
             }
@@ -141,12 +141,11 @@ struct FeedPostDetailView: View {
             ReportSheet(
                 title: L("DENUNCIAR COMENTARIO"),
                 authorLabel: feedAuthorLabel(c.author)
-            ) { reason, alsoBlock in
+            ) { reason, alsoBlock, details in
                 let blockUid = c.author?.uid ?? c.uid
                 moderation.report(
-                    targetType: "FEED_COMMENT", targetId: c.id, reason: reason,
+                    targetType: "FEED_COMMENT", targetId: c.id, reason: reason, details: details,
                     alsoBlockUid: alsoBlock ? blockUid : nil)
-                reportComment = nil
             }
         }
     }
