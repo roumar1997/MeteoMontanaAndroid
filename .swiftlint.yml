@@ -1,4 +1,4 @@
-# SwiftLint para la app iOS. Lo que ya existía está en .swiftlint-baseline.json:
+# SwiftLint para la app iOS. Lo que ya existía está en swiftlint-baseline.json:
 # el CI solo falla por problemas NUEVOS. El baseline solo puede encoger.
 included:
   - iosApp/iosApp
