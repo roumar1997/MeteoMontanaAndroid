@@ -200,7 +200,7 @@ struct JournalRow: View {
     /// nº de piedra + sector resueltos en vivo del catálogo (no se guardan).
     var info: ViaCatalogInfo? = nil
     /// «Editar ascenso»: fecha + estilo de la entrada (nil = no editable, diario ajeno).
-    var onEdit: ((_ date: String, _ style: AscentStyle) -> Void)? = nil
+    var onEdit: ((_ date: String, _ style: AscentStyle) -> Void)?
     /// nil → fila de solo lectura (diario de otro usuario, no se puede borrar).
     var onDelete: (() -> Void)? = nil
     @State private var showEditSheet = false
@@ -428,7 +428,6 @@ struct JournalRow: View {
     private func closeSwipe() {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { swipeOffset = 0 }
         swipeBase = 0
-    }
     }
 }
 
