@@ -1,0 +1,18 @@
+{
+  "full": [
+    {
+      "id": "j-1", "schoolId": "zarzalejo", "schoolName": "Zarzalejo", "sector": "Norte",
+      "blockName": "La ola", "grade": "7a", "notes": "Por fin", "date": "2026-07-19",
+      "createdAt": "2026-07-19T10:30:15", "discipline": "BOULDER", "lineId": "line-7",
+      "status": "DONE", "aVista": true, "alFlash": false
+    }
+  ],
+  "nulls": [
+    {
+      "id": "j-2", "schoolId": null, "schoolName": null, "sector": null,
+      "blockName": "Vía suelta", "grade": null, "notes": null, "date": "2026-07-20",
+      "createdAt": "2026-07-20T09:00:00", "discipline": "ROUTE", "lineId": null,
+      "status": "PROJECT", "aVista": false, "alFlash": false
+    }
+  ]
+}

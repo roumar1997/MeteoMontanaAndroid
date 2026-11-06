@@ -1,0 +1,46 @@
+{
+  "full": [
+    {
+      "id": "block-9", "schoolId": "zarzalejo", "type": "BLOCK", "name": "Piedra 15",
+      "lat": 40.5701, "lon": -4.1702, "photoPath": "topos/p15.jpg",
+      "description": "Bloque grande junto al camino", "createdByUid": "uid123",
+      "createdAt": "2026-07-19T10:30:15",
+      "lines": [
+        {"id": "line-7", "name": "La ola", "grade": "7a", "startType": "SIT",
+         "linePath": "[{\"x\":0.1,\"y\":0.9}]", "sortOrder": 0, "photoPath": "topos/p15.jpg",
+         "faceOrder": 0, "avgStars": 4.5, "myStars": 3, "description": "Salida sentado",
+         "variant": "directa"}
+      ],
+      "sectorBlockId": "zone-1", "discipline": "BOULDER", "geometry": "LINE",
+      "path": "[{\"x\":0.1,\"y\":0.2}]", "direction": "RTL",
+      "faces": [
+        {"photoPath": "topos/p15.jpg", "sortOrder": 0,
+         "lines": [
+           {"id": "line-7", "name": "La ola", "grade": "7a", "startType": "SIT",
+            "linePath": "[{\"x\":0.1,\"y\":0.9}]", "sortOrder": 0, "photoPath": "topos/p15.jpg",
+            "faceOrder": 0, "avgStars": 4.5, "myStars": 3, "description": "Salida sentado",
+            "variant": "directa"}
+         ]}
+      ],
+      "sectorDisciplines": ["BOULDER", "ROUTE"]
+    }
+  ],
+  "nulls": [
+    {
+      "id": "zone-1", "schoolId": "zarzalejo", "type": "ZONE", "name": "Sector Norte",
+      "lat": 40.57, "lon": -4.17, "photoPath": null, "description": null,
+      "createdByUid": "uid123", "createdAt": "2026-07-19T10:30:15",
+      "lines": [
+        {"id": "line-8", "name": "Sin datos", "grade": null, "startType": null,
+         "linePath": null, "sortOrder": 1, "photoPath": null, "faceOrder": 0,
+         "avgStars": null, "myStars": null, "description": null, "variant": null}
+      ],
+      "sectorBlockId": null, "discipline": "ROUTE", "geometry": "POINT",
+      "path": null, "direction": "LTR",
+      "faces": [
+        {"photoPath": null, "sortOrder": 0, "lines": []}
+      ],
+      "sectorDisciplines": null
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "full": [
+    {
+      "id": "zarzalejo", "name": "Zarzalejo", "location": "Madrid", "region": "Madrid",
+      "style": "BOULDER", "rockType": "Granito", "lat": 40.5667, "lon": -4.1667,
+      "source": "manual", "country": "ES",
+      "hasKnownProcessionary": true,
+      "processionaryActiveUntilMillis": 4102444800000,
+      "processionaryAlertActive": true,
+      "processionaryActiveNowSet": true
+    }
+  ],
+  "nulls": [
+    {
+      "id": "sin-datos", "name": "Sin datos", "location": null, "region": null,
+      "style": null, "rockType": null, "lat": 41.0, "lon": -3.5,
+      "source": null, "country": null,
+      "hasKnownProcessionary": false,
+      "processionaryActiveUntilMillis": null,
+      "processionaryAlertActive": false,
+      "processionaryActiveNowSet": false
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "full": {
+    "schoolId": "zarzalejo", "schoolName": "Zarzalejo", "lat": 40.5667, "lon": -4.1667,
+    "current": {
+      "time": "2026-11-06T10:00", "temperature": 12.5, "humidity": 55.0, "windSpeed": 9.5,
+      "precipitation": 0.5, "precipitationProbability": 20, "cloudCover": 40, "dewPoint": 3.5,
+      "precip24h": 1.5, "precip72h": 4.5, "dryRock": false, "score": 72, "scoreLabel": "Bueno",
+      "factors": [{"name": "TEMPERATURA", "display": "12°", "passes": true}],
+      "drying": {"wet": true, "dryingHours": 12, "message": "Seca en ~12 h"}
+    },
+    "hours": [
+      {"time": "2026-11-06T11:00", "temperature": 13.5, "humidity": 50.0, "windSpeed": 10.5,
+       "precipitation": 0.0, "precipitationProbability": 10, "cloudCover": 30, "dewPoint": 2.5,
+       "score": 80, "scoreLabel": "Muy bueno", "weatherCode": 3}
+    ],
+    "days": [
+      {"date": "2026-11-06", "tempMax": 16.5, "tempMin": 4.5, "precipitationTotal": 0.5,
+       "avgScore": 70, "scoreLabel": "Bueno"}
+    ],
+    "bestDay": {"date": "2026-11-08", "score": 90, "label": "Excelente", "daysFromToday": 2},
+    "bestWindow": {"start": "2026-11-06T10:00", "end": "2026-11-06T14:00", "avgScore": 85}
+  },
+  "nulls": {
+    "schoolId": "zarzalejo", "schoolName": "Zarzalejo", "lat": 40.5667, "lon": -4.1667,
+    "current": {
+      "time": "2026-11-06T10:00", "temperature": 12.5, "humidity": 55.0, "windSpeed": 9.5,
+      "precipitation": 0.0, "precipitationProbability": 0, "cloudCover": 0, "dewPoint": null,
+      "precip24h": 0.0, "precip72h": 0.0, "dryRock": true, "score": 50, "scoreLabel": "Regular",
+      "factors": [],
+      "drying": {"wet": false, "dryingHours": null, "message": null}
+    },
+    "hours": [
+      {"time": "2026-11-06T11:00", "temperature": 13.5, "humidity": 50.0, "windSpeed": 10.5,
+       "precipitation": 0.0, "precipitationProbability": 10, "cloudCover": 30, "dewPoint": null,
+       "score": 80, "scoreLabel": "Muy bueno", "weatherCode": 0}
+    ],
+    "days": [],
+    "bestDay": null,
+    "bestWindow": null
+  }
+}

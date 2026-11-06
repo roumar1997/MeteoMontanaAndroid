@@ -1,0 +1,13 @@
+{
+  "full": {
+    "uid": "uid123", "email": "ana@example.com", "username": "ana_escaladora",
+    "displayName": "Ana", "photoUrl": "https://x/foto.jpg", "bio": "Bloque y vía",
+    "topGrade": "7a", "isPublic": true, "isAdmin": false, "isPremium": true,
+    "gender": "WOMAN", "gearJson": "{\"cuerda\":true,\"cintas\":12}"
+  },
+  "nulls": {
+    "uid": "uid456", "email": null, "username": null, "displayName": null,
+    "photoUrl": null, "bio": null, "topGrade": null, "isPublic": false,
+    "isAdmin": true, "isPremium": false, "gender": null, "gearJson": null
+  }
+}
