@@ -252,7 +252,8 @@
       "version": "7.2",
       "name": "Reestructuración interna (arquitectura, ficheros partidos)",
       "ios": "hecho",
-      "android": "probado"
+      "android": "probado",
+      "iosTest": "i1–i4"
     },
     {
       "version": "7.2",
@@ -264,43 +265,53 @@
       "version": "7.2",
       "name": "Denuncias nuevas (7 motivos + texto + gracias)",
       "ios": "hecho",
-      "android": "probado"
+      "android": "probado",
+      "iosTest": "i3"
     },
     {
       "version": "7.2",
       "name": "Sin admin en Android",
       "ios": "no aplica",
-      "android": "hecho"
+      "android": "hecho",
+      "androidTest": "a4"
     },
     {
       "version": "7.2",
       "name": "Interruptor remoto («EN PAUSA»)",
       "ios": "hecho",
-      "android": "probado"
+      "android": "probado",
+      "iosTest": "i12",
+      "androidTest": "a3"
     },
     {
       "version": "7.2",
       "name": "Editar ascenso (fecha + estilo) y etiqueta solo del estilo marcado",
       "ios": "hecho",
-      "android": "hecho"
+      "android": "hecho",
+      "iosTest": "i5–i7",
+      "androidTest": "a1"
     },
     {
       "version": "7.2",
       "name": "Avisos con fecha legible",
       "ios": "hecho",
-      "android": "probado"
+      "android": "probado",
+      "iosTest": "i8",
+      "androidTest": "a2"
     },
     {
       "version": "7.2",
       "name": "«0 escuelas» al abrir arreglado",
       "ios": "hecho",
-      "android": "probado"
+      "android": "probado",
+      "iosTest": "i1"
     },
     {
       "version": "7.2",
       "name": "Error de inicio de sesión traducido",
       "ios": "hecho",
-      "android": "probado"
+      "android": "probado",
+      "iosTest": "i13"
     },
     {
       "version": "7.2",
