@@ -71,167 +71,254 @@
     {
       "name": "Buscador por grado (Vías/Bloques)",
       "ios": "publicado",
-      "android": "publicado"
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Iconos vía/bloque",
       "ios": "publicado",
-      "android": "publicado"
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Escuelas en tarjetas + diario «⋯»",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Hadas y dragones",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Hoja de ascenso nueva",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Asistente como iOS (Cumbri, MI CASA…)",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Guía de la escuela (pestaña GUÍA)",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "PDF de la guía ligero y con enlaces",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "PDF sin pastillas de vídeo/personas",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "PDF compacto (foto vertical con vías al lado)",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "«¿Qué piedra es esta?» en el mapa",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Filtro de Cara (hoja)",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Hueco del sector mientras carga",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Sectores desde aquí (parking)",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "TU ALTURA en la hoja de ascenso",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Pastillas de vídeo por altura",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Pastillas solo «N de ±1,70»",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Filtro ALTURA en Escuelas y guía",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "QUÉ BUSCAS (vídeo / encadenes)",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Volver a la piedra al cerrarla",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Enlaces del PDF que dejan de saltar (Android)",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Android se ve demasiado grande",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Ofrecer poner tu altura al marcar (se guarda en el perfil)",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Quitar boletín de montaña AEMET",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Pantalla de carga con el logo de Cumbre",
       "ios": "publicado",
-      "android": "probado"
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Perfil más corto (sin correo, nivel en la hoja del título)",
-      "ios": "probado",
-      "android": "probado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Mensaje del Equipo Cumbre (admin)",
-      "ios": "hecho",
-      "android": "publicado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Restablecer usuario y nombre (admin)",
-      "ios": "hecho",
-      "android": "publicado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Historial completo en la ficha de moderación (admin)",
-      "ios": "hecho",
-      "android": "publicado"
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
     },
     {
       "name": "Denuncias renovadas (motivos, texto, gracias, aviso al resolver)",
+      "ios": "publicado",
+      "android": "publicado",
+      "version": "7.1.4"
+    },
+    {
+      "version": "7.2",
+      "name": "Reestructuración interna (arquitectura, ficheros partidos)",
       "ios": "hecho",
+      "android": "probado"
+    },
+    {
+      "version": "7.2",
+      "name": "Admin: mensaje del equipo, restablecer nombre, historial",
+      "ios": "hecho",
+      "android": "no aplica"
+    },
+    {
+      "version": "7.2",
+      "name": "Denuncias nuevas (7 motivos + texto + gracias)",
+      "ios": "hecho",
+      "android": "probado"
+    },
+    {
+      "version": "7.2",
+      "name": "Sin admin en Android",
+      "ios": "no aplica",
       "android": "hecho"
     },
     {
+      "version": "7.2",
       "name": "Interruptor remoto («EN PAUSA»)",
       "ios": "hecho",
       "android": "probado"
     },
     {
-      "name": "Editar ascenso (fecha + estilo)",
+      "version": "7.2",
+      "name": "Editar ascenso (fecha + estilo) y etiqueta solo del estilo marcado",
+      "ios": "hecho",
+      "android": "hecho"
+    },
+    {
+      "version": "7.2",
+      "name": "Avisos con fecha legible",
       "ios": "hecho",
       "android": "probado"
     },
     {
-      "name": "Avisos con fecha legible",
+      "version": "7.2",
+      "name": "«0 escuelas» al abrir arreglado",
       "ios": "hecho",
       "android": "probado"
+    },
+    {
+      "version": "7.2",
+      "name": "Error de inicio de sesión traducido",
+      "ios": "hecho",
+      "android": "probado"
+    },
+    {
+      "version": "7.2",
+      "name": "Roca mojada en todas las puntuaciones (servidor)",
+      "ios": "publicado",
+      "android": "publicado"
     }
-  ]
+  ],
+  "versions": {
+    "published": {
+      "name": "7.1.4",
+      "ios": "build 348",
+      "android": "vc123"
+    },
+    "next": {
+      "name": "7.2",
+      "ios": "TestFlight 350",
+      "android": "vc124 · AAB firmado, sin subir"
+    }
+  }
 }
