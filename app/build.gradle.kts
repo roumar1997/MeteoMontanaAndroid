@@ -75,6 +75,20 @@ android {
             )
             signingConfig = signingConfigs.getByName("release")
             buildConfigField("String", "API_BASE_URL", "\"https://api.climbingteams.com/api/\"")
+            // El AAB real SÍ sube el mapping (crashes legibles). Para comprobaciones locales de release
+            // (p. ej. compileReleaseArtProfile) se puede apagar con -PskipCrashlyticsMapping=true.
+            configure<com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension> {
+                mappingFileUploadEnabled = project.findProperty("skipCrashlyticsMapping") != "true"
+            }
+        }
+        // Variantes del perfil base (las crea el plugin baselineprofile a partir de release): firma debug
+        // (no necesitan el keystore) y NUNCA suben mapping a Crashlytics.
+        configureEach {
+            if (name.startsWith("benchmark") || name.startsWith("nonMinified")) {
+                configure<com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension> {
+                    mappingFileUploadEnabled = false
+                }
+            }
         }
     }
     compileOptions {
@@ -99,6 +113,17 @@ android {
             isReturnDefaultValues = true
             // Robolectric (capturas de pantalla) necesita los recursos y el manifiesto de la app.
             isIncludeAndroidResources = true
+        }
+    }
+}
+
+// Las variantes del perfil base copian la firma de release al crearse: se cambia aquí, por variante,
+// a la firma debug (no necesitan el keystore). El release real no se toca.
+androidComponents {
+    onVariants { variant ->
+        val bt = variant.buildType ?: return@onVariants
+        if (bt.startsWith("benchmark") || bt.startsWith("nonMinified")) {
+            variant.signingConfig.setConfig(android.signingConfigs.getByName("debug"))
         }
     }
 }

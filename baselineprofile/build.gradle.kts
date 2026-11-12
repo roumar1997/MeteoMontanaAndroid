@@ -1,8 +1,8 @@
 // Genera el perfil base de la app (arranque, lista de escuelas, ficha y guía) con Macrobenchmark.
 // Se lanza a mano con un emulador o móvil conectado (API 28+), por ejemplo el Pixel_7:
 //   ./gradlew.bat :app:generateReleaseBaselineProfile
-// El resultado se copia solo a app/src/release/generated/baselineProfiles/. Necesita KEYSTORE_PASSWORD y
-// KEY_PASSWORD como un build de release. No entra en assembleDebug ni en los tests normales.
+// El resultado se copia solo a app/src/release/generated/baselineProfiles/. Firma debug (no necesita el keystore) y
+// no sube mapping a Crashlytics. No entra en assembleDebug ni en los tests normales.
 plugins {
     alias(libs.plugins.android.test)
     alias(libs.plugins.kotlin.android)
