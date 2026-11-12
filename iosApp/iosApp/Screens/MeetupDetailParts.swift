@@ -127,7 +127,7 @@ struct MeetupAvatarCircle: View {
         ZStack {
             Circle().fill(Cumbre.ink.opacity(0.08))
             if let u = url, let imgUrl = URL(string: u) {
-                AsyncImage(url: imgUrl) { img in img.resizable().scaledToFill() }
+                CachedImage(url: imgUrl) { img in img.resizable().scaledToFill() }
                     placeholder: { Color.clear }
                     .clipShape(Circle())
             } else {

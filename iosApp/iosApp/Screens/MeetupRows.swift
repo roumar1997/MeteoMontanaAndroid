@@ -20,7 +20,7 @@ struct MeetupRowView: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 2).fill(Cumbre.ink.opacity(0.06))
                 if let url = photo.flatMap({ URL(string: $0) }) {
-                    AsyncImage(url: url) { img in img.resizable().scaledToFill() }
+                    CachedImage(url: url) { img in img.resizable().scaledToFill() }
                         placeholder: { Color.clear }
                         .clipped()
                 } else {

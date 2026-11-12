@@ -128,7 +128,7 @@ struct EditLinesSheet: View {
             Image(uiImage: img).resizable().scaledToFill()
         } else if let p = facePhotos.indices.contains(i) ? facePhotos[i] : nil,
                   !p.isEmpty, let u = URL(string: p) {
-            AsyncImage(url: u) { $0.resizable().scaledToFill() } placeholder: {
+            CachedImage(url: u) { $0.resizable().scaledToFill() } placeholder: {
                 Cumbre.paper.overlay(ProgressView().scaleEffect(0.6))
             }
         } else {
