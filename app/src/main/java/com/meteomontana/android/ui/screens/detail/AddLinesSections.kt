@@ -76,7 +76,7 @@ internal fun EditWallSection(
         ) {
             Text(
                 when {
-                    hasTrace -> stringResource(R.string.add_lines_wall_traced, tracedPath!!.size)
+                    hasTrace -> stringResource(R.string.add_lines_wall_traced, tracedPath?.size ?: 0)
                     hasCurrent -> stringResource(R.string.add_lines_wall_retrace)
                     else -> stringResource(R.string.add_lines_wall_trace)
                 },

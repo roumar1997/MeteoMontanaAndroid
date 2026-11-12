@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.schools
 
+import com.meteomontana.android.data.map.withMapLibre
+
 import com.meteomontana.android.util.CatalogLabels
 import com.meteomontana.android.data.map.MapStyles
 
@@ -286,7 +288,10 @@ internal fun MapBody(
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { context ->
-                MapView(context, org.maplibre.android.maps.MapLibreMapOptions.createFromAttributes(context).textureMode(true)).apply {
+                MapView(
+                    context.withMapLibre(),
+                    org.maplibre.android.maps.MapLibreMapOptions.createFromAttributes(context).textureMode(true)
+                ).apply {
                     onCreate(null)
                     mapViewRef.value = this
                     setOnTouchListener { v, event ->

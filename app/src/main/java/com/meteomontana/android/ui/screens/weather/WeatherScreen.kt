@@ -151,7 +151,7 @@ private fun FavoriteChips(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item { CumbreChip(stringResource(R.string.weather_your_location), selectedId == null, { onSelect(null) }) }
-        items(favorites) { fav ->
+        items(favorites, key = { it.id }) { fav ->
             CumbreChip(fav.name, fav.id == selectedId, { onSelect(fav.id) })
         }
     }

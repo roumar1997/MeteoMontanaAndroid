@@ -340,7 +340,7 @@ private fun AlertSchoolPickerDialog(
                 )
                 if (results.isNotEmpty()) {
                     LazyColumn(modifier = Modifier.heightIn(max = 240.dp)) {
-                        items(results) { school ->
+                        items(results, key = { it.id }) { school ->
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()

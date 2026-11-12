@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.data.map.withMapLibre
+
 import com.meteomontana.android.util.AppText
 import com.meteomontana.android.data.map.MapStyles
 
@@ -248,7 +250,10 @@ internal fun MeetupsMapView(
     }
 
     val mapView = remember {
-        MapView(context, org.maplibre.android.maps.MapLibreMapOptions.createFromAttributes(context).textureMode(true)).apply {
+        MapView(
+            context.withMapLibre(),
+            org.maplibre.android.maps.MapLibreMapOptions.createFromAttributes(context).textureMode(true)
+        ).apply {
             setOnTouchListener { v, event ->
                 when (event.action) {
                     android.view.MotionEvent.ACTION_DOWN ->

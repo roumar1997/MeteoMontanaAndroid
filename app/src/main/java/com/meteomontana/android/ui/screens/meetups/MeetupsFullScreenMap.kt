@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.data.map.withMapLibre
+
 import com.meteomontana.android.util.AppText
 import com.meteomontana.android.data.map.MapStyles
 import android.graphics.Bitmap
@@ -112,7 +114,10 @@ internal fun FullScreenMeetupsMap(
     }
 
     val mapView = remember {
-        MapView(context, org.maplibre.android.maps.MapLibreMapOptions.createFromAttributes(context).textureMode(true)).apply {
+        MapView(
+            context.withMapLibre(),
+            org.maplibre.android.maps.MapLibreMapOptions.createFromAttributes(context).textureMode(true)
+        ).apply {
             getMapAsync { map ->
                 mapRef = map
                 applyStyle(map, true)

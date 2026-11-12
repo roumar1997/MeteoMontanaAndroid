@@ -103,7 +103,6 @@ import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Ok
 import com.meteomontana.android.ui.theme.terraFillColor
 import kotlin.math.roundToInt
-import kotlinx.coroutines.delay
 
 /**
  * Pestaña BLOQUES/VÍAS de la ficha de una escuela, en forma de GUÍA (espejo de `SchoolBlocksExplorerView` de iOS):
@@ -129,7 +128,8 @@ fun SchoolBlocksTab(
     val anchors = remember { HashMap<String, Float>() }
     LaunchedEffect(Unit) {
         viewModel.jumps.collect { j ->
-            delay(160)   // que se pinte el sector recién desplegado antes de medir
+            // Que se componga y mida el sector recién desplegado (2 fotogramas) antes de leer su posición; antes, delay(160).
+            repeat(2) { androidx.compose.runtime.withFrameNanos { } }
             val key = when (j) {
                 is SchoolBlocksViewModel.Jump.Sector -> "s:${j.key}"
                 is SchoolBlocksViewModel.Jump.Block -> "b:${j.blockId}"
@@ -139,7 +139,9 @@ fun SchoolBlocksTab(
     }
     // Al volver a la pestaña (de la piedra, del mapa…) se salta a la última piedra tocada, como un marcapáginas.
     val ready = state.guideView != null
-    LaunchedEffect(ready) { if (ready) viewModel.jumpToBookmark() }
+    // Una vez por entrada: si la guía se recalcula (filtros) no vuelve a tirar de la pantalla hacia el marcapáginas.
+    var bookmarkDone by remember { androidx.compose.runtime.mutableStateOf(false) }
+    LaunchedEffect(ready) { if (ready && !bookmarkDone) { bookmarkDone = true; viewModel.jumpToBookmark() } }
 
     // El PDF listo → hoja de compartir del sistema (guardar, WhatsApp, imprimir…).
     val ctx = LocalContext.current

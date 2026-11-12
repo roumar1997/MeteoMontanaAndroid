@@ -49,7 +49,7 @@ class AndroidLocationProvider @Inject constructor(
             val freshEnough = last != null &&
                     (System.currentTimeMillis() - last.time) < 60_000 &&
                     last.accuracy <= 100f
-            if (freshEnough) return UserLocation(last!!.latitude, last.longitude)
+            if (freshEnough && last != null) return UserLocation(last.latitude, last.longitude)
 
             val priority = if (hasFine()) Priority.PRIORITY_HIGH_ACCURACY
                            else Priority.PRIORITY_BALANCED_POWER_ACCURACY

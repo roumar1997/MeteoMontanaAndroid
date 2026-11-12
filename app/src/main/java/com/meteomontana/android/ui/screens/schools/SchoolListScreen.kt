@@ -548,12 +548,12 @@ fun SchoolListScreen(
                 is SchoolListUiState.Success -> {
                     itemsIndexed(s.schools, key = { _, it -> it.id }) { index, school ->
                         val score = scores[school.id]
-                        // animateItem(): cuando llegan los scores y la lista se
+                        // animateItem(): cuando llegan (solo deslizamiento, sin fundidos) los scores y la lista se
                         // re-ordena, las cards se deslizan a su sitio en vez de
                         // teletransportarse.
                         // Tarjetas separadas (propuesta A, Álvaro 2026-10-19): sin divisor, con hueco entre ellas.
                         Column(
-                            modifier = Modifier.animateItem()
+                            modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null)
                                 .padding(horizontal = 12.dp)
                                 .padding(top = if (index == 0) 12.dp else 0.dp, bottom = 10.dp)
                                 .guideTarget("schools.score", enabled = index == 0)

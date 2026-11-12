@@ -89,12 +89,12 @@ fun MySubmissionsScreen(
                 } else {
                     LazyColumn {
                         if (showContributions) {
-                            items(s.contributions) { c ->
+                            items(s.contributions, key = { "c:" + it.id }) { c ->
                                 ContributionRow(c)
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                             }
                         } else {
-                            items(s.submissions) { sub ->
+                            items(s.submissions, key = { "s:" + it.id }) { sub ->
                                 SubmissionRow(sub)
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                             }

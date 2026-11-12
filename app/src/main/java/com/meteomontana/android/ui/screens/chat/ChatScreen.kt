@@ -101,7 +101,8 @@ fun ChatScreen(
         val miUid = state.myUid ?: state.myProfile?.uid
         val esMio = ultimo.fromUid == miUid
         if (esMio || listState.firstVisibleItemIndex <= 1) {
-            listState.animateScrollToItem(0)
+            // Desde muy arriba se salta sin animar (animar cientos de mensajes atasca); cerca, con animación.
+            if (listState.firstVisibleItemIndex > 10) listState.scrollToItem(0) else listState.animateScrollToItem(0)
         }
     }
 

@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.components
 
+import com.meteomontana.android.data.map.withMapLibre
+
 import com.meteomontana.android.util.AppText
 import com.meteomontana.android.ui.theme.terraFillColor
 
@@ -365,7 +367,10 @@ internal fun SchoolMapView(
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { context ->
-                    MapView(context, org.maplibre.android.maps.MapLibreMapOptions.createFromAttributes(context).textureMode(true)).apply {
+                    MapView(
+                        context.withMapLibre(),
+                        org.maplibre.android.maps.MapLibreMapOptions.createFromAttributes(context).textureMode(true)
+                    ).apply {
                         onCreate(null)
                         mapViewRef.value = this
                         setOnTouchListener { v, event ->

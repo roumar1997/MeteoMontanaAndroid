@@ -161,7 +161,9 @@ private fun SectorHoursRow(s: SectorHours, dryRock: Boolean, rainHours: Set<Int>
         // Tira de 8 a 20 h: color = nota de esa hora para ESTA pared; la mejor franja con borde; punto blanco = sol.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             s.hours.forEach { h ->
-                val inBest = dryRock && s.bestFrom != null && h.hour in s.bestFrom!!..s.bestTo!!
+                val from = s.bestFrom
+                val to = s.bestTo
+                val inBest = dryRock && from != null && to != null && h.hour in from..to
                 val rainy = h.hour in rainHours
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(

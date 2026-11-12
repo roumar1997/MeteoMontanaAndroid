@@ -818,3 +818,7 @@ trabajar contigo"*. Resultado de la revisión:
 3. Los VMs no conocen idiomas ni `Ktor*Api`: solo use cases y eventos tipados.
 4. Endpoint nuevo = puerto + use case + `@Valid` + un test de contrato.
 5. Feature nueva en `shared/` = test en `commonTest` en el mismo PR.
+
+## Pendiente suelto: ficha de escuela y guía en LazyColumn (Android, 2026-11-12)
+
+Se decidió NO hacerlo antes de la 7.2 por el riesgo para los usuarios reales. La ficha (`SchoolDetailScreen.Content`) es una `Column` no perezosa a propósito: el mapa vive en `movableContentOf` y los enlaces directos a piedras necesitan que exista desde el principio. Idea para retomarlo: hacer perezosa solo la pestaña BLOQUES (sectores y piedras con `key`) y saltar con `animateScrollToItem`.
