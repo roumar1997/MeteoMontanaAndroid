@@ -64,7 +64,7 @@ los dos entornos. `climbingteams.com` lo sirve **Cloudflare Pages** (push a `mai
 ## Estado actual
 
 - **Publicada: 7.1.4** en las dos tiendas, y es la versión mínima en Railway.
-- **iOS 349** (tren 2.25.11): herramientas de admin y denuncias nuevas, de camino a TestFlight.
+- **TestFlight 351** (rama `feature/7.3-optimiza-lola`): 7.2 + optimización iOS/Android + efectos desde el servidor (Furgo Lola). Pendiente: pruebas i1–i15 de Álvaro → «sí, fusiona» → tiendas.
 - **Antes de la 7.2** (orden acordado el 2026-11-06):
   1. normas y memorias;
   2. mods «Taller» y «Pruebas»;
@@ -76,7 +76,7 @@ los dos entornos. `climbingteams.com` lo sirve **Cloudflare Pages** (push a `mai
   8. pruebas y publicar.
 - **Siempre que se toque algo**: pasar a `shared` la lógica de negocio que esté copiada en Swift.
 - **Después de la 7.2**: partir Android en módulos por funcionalidad y medir la fluidez (Álvaro nota Android algo más lento que iOS).
-- Backend en PRODUCCIÓN (main cd0f425, V98) con el interruptor remoto (todo encendido). Staging = copia de producción (2026-11-06).
+- Backend en PRODUCCIÓN (main a639f6d, V99): interruptor remoto + catálogo de efectos (`/api/title-effects`). Efectos nuevos se añaden sin release (ver `docs/efectos/README.md`).
 
 ## Trampas vigentes
 
