@@ -150,6 +150,8 @@ dependencies {
 
     // Imágenes
     implementation(libs.coil.compose)
+    // Instala el perfil base (src/main/baseline-prof.txt) al instalar desde fuera de Play: arranque y listas más fluidos.
+    implementation(libs.androidx.profileinstaller)
     // Leer las coordenadas que la camara guarda dentro de la foto (EXIF).
     implementation(libs.androidx.exifinterface)
 
