@@ -246,9 +246,8 @@ struct TopoEditorView: View {
                 Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra) } }
         }
         .task {
-            if photo == nil, let photoUrl, let url = URL(string: photoUrl),
-               let (data, _) = try? await URLSession.shared.data(from: url) {
-                loaded = UIImage(data: data)
+            if photo == nil, let photoUrl {
+                loaded = await ImageCache.image(photoUrl, maxPixel: ImageCache.editorMaxPixel)
             }
         }
     }

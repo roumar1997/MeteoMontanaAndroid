@@ -452,7 +452,7 @@ struct GuideTopo: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .task(id: photo) { if !photo.isEmpty { image = await ImageCache.image(photo) } }
+        .task(id: photo) { if !photo.isEmpty { image = await ImageCache.image(photo, maxPixel: ImageCache.displayMaxPixel) } }
     }
 }
 
@@ -532,7 +532,7 @@ struct GuideHeroPhoto: View {
                 if let image { Image(uiImage: image).resizable().scaledToFill() }
             }
             .clipped()
-            .task(id: path) { image = await ImageCache.image(path) }
+            .task(id: path) { image = await ImageCache.image(path, maxPixel: ImageCache.displayMaxPixel) }
     }
 }
 

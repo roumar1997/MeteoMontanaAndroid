@@ -11,6 +11,8 @@ import ImageIO
 enum ImageCache {
     /// Lado mayor para fotos que solo se muestran en pantalla.
     static let displayMaxPixel = 1200
+    /// Topos y editor de líneas: se puede ampliar, así que algo más de detalle.
+    static let editorMaxPixel = 2048
 
     private static let dir: URL = {
         let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
@@ -87,7 +89,8 @@ enum ImageCache {
         try? data.write(to: local)
     }
 
-    private static func decode(_ data: Data, maxPixel: Int?) -> UIImage? {
+    /// Decodifica unos bytes (reducidos si hay `maxPixel`). Llamar fuera del hilo principal.
+    static func decode(_ data: Data, maxPixel: Int?) -> UIImage? {
         guard let maxPixel else { return UIImage(data: data) }
         let opts = [kCGImageSourceShouldCache: false] as CFDictionary
         guard let src = CGImageSourceCreateWithData(data as CFData, opts) else { return UIImage(data: data) }

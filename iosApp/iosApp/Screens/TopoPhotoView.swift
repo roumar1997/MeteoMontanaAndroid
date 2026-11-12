@@ -149,7 +149,7 @@ struct TopoPhotoView: View {
 
     private func load() async {
         // Caché en disco: se ve sin conexión si la escuela se guardó offline.
-        if let img = await ImageCache.image(photoUrl) {
+        if let img = await ImageCache.image(photoUrl, maxPixel: ImageCache.editorMaxPixel) {
             await MainActor.run {
                 withAnimation(.easeOut(duration: 0.3)) { image = img }
                 let w = img.size.width, h = img.size.height
