@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.approach
 
+import com.meteomontana.android.data.map.withMapLibre
+
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -97,7 +99,7 @@ fun ApproachFollowScreen(
                 AndroidView(
                     modifier = Modifier.fillMaxSize(),
                     factory = { context ->
-                        MapView(context.also { com.meteomontana.android.data.map.MapLibreInit.ensure(it) }, org.maplibre.android.maps.MapLibreMapOptions
+                        MapView(context.withMapLibre(), org.maplibre.android.maps.MapLibreMapOptions
                             .createFromAttributes(context).textureMode(true)).apply {
                             onCreate(null)
                             mapViewRef.value = this

@@ -19,3 +19,6 @@ object MapLibreInit {
         }
     }
 }
+
+/** Contexto con MapLibre ya arrancado, para crear un MapView. */
+fun Context.withMapLibre(): Context = also { MapLibreInit.ensure(it) }
