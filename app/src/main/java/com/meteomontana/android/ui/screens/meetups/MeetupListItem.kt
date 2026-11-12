@@ -245,7 +245,7 @@ internal fun MeetupSchoolFilterDialog(
                 )
                 if (results.isNotEmpty()) {
                     LazyColumn(modifier = Modifier.heightIn(max = 240.dp)) {
-                        items(results, key = { it.id }) { school ->
+                        items(results.distinctBy { it.id }, key = { it.id }) { school ->
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()

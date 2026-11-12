@@ -88,7 +88,7 @@ fun SavedSchoolsScreen(
         }
 
         LazyColumn(Modifier.fillMaxSize()) {
-            items(list, key = { it.id }) { e ->
+            items(list.distinctBy { it.id }, key = { it.id }) { e ->
                 Row(
                     modifier = Modifier.fillMaxWidth()
                         .clickable { onOpen(e.id) }

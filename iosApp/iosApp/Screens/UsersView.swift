@@ -462,7 +462,7 @@ struct AvatarCircle: View {
         .task(id: url) {
             image = nil
             guard let url, !url.isEmpty else { return }
-            if let img = await ImageCache.image(url) { image = img }
+            if let img = await ImageCache.image(url, maxPixel: max(300, Int(size * 3))) { image = img }
         }
     }
 }

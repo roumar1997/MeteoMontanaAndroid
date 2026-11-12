@@ -202,7 +202,8 @@ final class SchoolBlocksExplorerModel: ObservableObject {
     private var sectorMapsInFlight: Set<String> = []
     nonisolated(unsafe) private var memoryWarning: NSObjectProtocol?
 
-    /// Suelta las fotos aéreas (al salir de la guía o si el sistema pide memoria); se vuelven a generar al verlas.
+    /// Suelta las fotos aéreas cuando el sistema avisa de poca memoria (al salir de la escuela se van con el
+    /// modelo); se vuelven a generar al verlas.
     func releaseSectorMaps() {
         sectorMaps = [:]
         sectorMapsTried = []
