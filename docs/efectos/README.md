@@ -5,7 +5,7 @@ Las apps lo guardan en disco y pintan cualquier efecto con esos datos (`TitleEff
 
 ## Pasos
 
-1. **Sprites**: PNG con fondo transparente, unos 480 px de ancho, menos de 1 MB. Indica si la figura mira a la derecha.
+1. **Sprites**: solo PNG, con fondo transparente, unos 480 px de ancho (máx. 1024 px de lado), menos de 1 MB. Indica si la figura mira a la derecha.
 2. **Subirlos al CDN** (`photos.climbingteams.com`, bucket R2) con un token de admin de Firebase:
    ```bash
    curl -X POST "https://<api>/api/admin/title-effects/<efecto>/sprites" \
@@ -26,6 +26,7 @@ Las apps lo guardan en disco y pintan cualquier efecto con esos datos (`TitleEff
    - `orientation`: `FACE_PHOTO` (miran a la foto, como hadas y dragones) u `ORBIT` (tangentes, ruedas hacia la foto).
    - `particleStyle`: `SPARKLE` (estrellitas) o `EMBER` (brasas).
    - `motion`: órbita y tamaño en radios de la foto; `speed` en rad/s; `staticAngles`/`staticSize` = foto pequeña quieta.
+   - Colores solo `#RRGGBB`. Las `url` tienen que ser `https://`.
    - `asset` solo si el PNG va empaquetado en las apps (respaldo sin red). Para efectos nuevos basta `url`.
    - `active:false` lo esconde del selector y de las fotos sin borrarlo.
 4. En iOS (admin) aparece solo en «EFECTO ALREDEDOR DE LA FOTO». Las apps refrescan el catálogo como mucho cada hora
