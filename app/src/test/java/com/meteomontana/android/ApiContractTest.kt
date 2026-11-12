@@ -256,4 +256,21 @@ class ApiContractTest {
         assertNull(n.flags.getValue("guide_pdf").message)
         assertDtoKeysInGolden("feature-flags.json", ser)
     }
+
+    // ── GET title-effects (público) ─────────────────────────────────────────
+
+    @Test fun catalogoDeEfectos() {
+        val ser = com.meteomontana.android.data.api.dto.TitleEffectsDto.serializer()
+        val f = parse("title-effects.json", "full", ser)
+        assertEquals(3600, f.refreshAfterSeconds)
+        val lola = f.effects.single()
+        assertEquals("ORBIT", lola.orientation)
+        assertEquals("effect_van1", lola.sprites.single().asset)
+        assertEquals(1.5f, lola.motion.orbit)
+
+        val n = parse("title-effects.json", "nulls", ser)
+        assertNull(n.effects.single().sprites.single().url)
+        assertTrue(n.effects.single().motion.staticAngles.isEmpty())
+        assertDtoKeysInGolden("title-effects.json", ser)
+    }
 }

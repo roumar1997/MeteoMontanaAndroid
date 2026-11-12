@@ -85,6 +85,11 @@ class IosDependencyContainer(
     val observeFeatureFlags = featureFlags.observeFeatureFlags
     val refreshFeatureFlags = featureFlags.refreshFeatureFlags
 
+    // Catálogo de efectos de título (aureola animada), con copia en disco.
+    private val titleEffects = TitleEffectsModule(httpClient, keyValueStore)
+    val observeTitleEffects = titleEffects.observeTitleEffects
+    val refreshTitleEffects = titleEffects.refreshTitleEffects
+
     // Público: iOS lo usa para el buscador global de vías/bloques.
     val schoolApi = KtorSchoolApi(httpClient)
     private val forecastApi = KtorForecastApi(httpClient)

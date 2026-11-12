@@ -232,6 +232,11 @@
       "name": "Avisos con fecha legible",
       "ios": "hecho",
       "android": "probado"
+    },
+    {
+      "name": "Efectos de título desde el servidor + Furgo Lola",
+      "ios": "hecho",
+      "android": "hecho"
     }
   ]
 }

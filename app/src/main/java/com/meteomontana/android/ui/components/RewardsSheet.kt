@@ -205,10 +205,12 @@ internal fun titleInfoText(r: com.meteomontana.android.domain.model.UserRewards)
     val special = r.specialTitle
     if (!special.isNullOrBlank()) {
         val base = stringResource(R.string.title_info_special, special)
-        return when (TitleEffectKind.from(r.titleEffect)) {
-            TitleEffectKind.FAIRIES -> base + " " + stringResource(R.string.title_info_fairies)
-            TitleEffectKind.DRAGONS -> base + " " + stringResource(R.string.title_info_dragons)
+        val effect = rememberTitleEffectCatalog().find(r.titleEffect)
+        return when (effect?.key) {
             null -> base
+            "FAIRIES" -> base + " " + stringResource(R.string.title_info_fairies)
+            "DRAGONS" -> base + " " + stringResource(R.string.title_info_dragons)
+            else -> base + " " + stringResource(R.string.title_info_effect, effect?.name.orEmpty())
         }
     }
     if (r.titleLevel <= 0) return stringResource(R.string.title_info_starter, rewardTitle(0))

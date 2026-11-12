@@ -1,0 +1,46 @@
+{
+  "full": {
+    "effects": [
+      {
+        "key": "LOLA",
+        "name": "Furgo Lola",
+        "orientation": "ORBIT",
+        "figureCount": 2,
+        "sprites": [
+          { "url": "https://photos.climbingteams.com/effects/lola/effect_van1.png", "asset": "effect_van1", "facesRight": true }
+        ],
+        "ringColors": ["#7CCBF5", "#1E9BE0", "#0E6FB0"],
+        "glowColor": "#1E9BE0",
+        "highlightColor": "#7CCBF5",
+        "particleColor": "#CFEFFF",
+        "particleStyle": "SPARKLE",
+        "motion": { "orbit": 1.5, "size": 0.62, "speed": 0.45, "staticAngles": [-2.2], "staticSize": 0.45 },
+        "sortOrder": 30,
+        "active": true
+      }
+    ],
+    "refreshAfterSeconds": 3600
+  },
+  "nulls": {
+    "effects": [
+      {
+        "key": "FAIRIES",
+        "name": "Hadas",
+        "orientation": "FACE_PHOTO",
+        "figureCount": 4,
+        "sprites": [
+          { "url": null, "asset": "effect_fairy1", "facesRight": true }
+        ],
+        "ringColors": ["#D4A21C"],
+        "glowColor": "#D4A21C",
+        "highlightColor": "#FFECAA",
+        "particleColor": "#FFECAA",
+        "particleStyle": "EMBER",
+        "motion": { "orbit": 1.72, "size": 1.25, "speed": 0.42, "staticAngles": [], "staticSize": 0.62 },
+        "sortOrder": 10,
+        "active": true
+      }
+    ],
+    "refreshAfterSeconds": 3600
+  }
+}

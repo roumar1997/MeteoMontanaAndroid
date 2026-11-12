@@ -119,10 +119,11 @@ struct AvatarRing: View {
     let badge: UserBadge?
     let size: CGFloat
     @State private var spin = false
+    @ObservedObject private var effects = TitleEffectsModel.shared
 
     var body: some View {
-        if let b = badge, !b.titleHidden, let effect = TitleEffectKind(b.titleEffect) {
-            // Hadas o dragones (los pone un admin): animados en el perfil (foto grande), quietos en el resto.
+        if let b = badge, !b.titleHidden, let effect = effects.find(b.titleEffect) {
+            // Efecto del catálogo del servidor (lo pone un admin): animado en el perfil (foto grande), quieto en el resto.
             TitleEffectHalo(effect: effect, size: size, animated: size >= 60)
         } else if let b = badge, !b.titleHidden, let style = ringStyle(b) {
             let width = max(2, size * 0.07)
