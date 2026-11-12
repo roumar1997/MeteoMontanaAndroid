@@ -14,9 +14,12 @@ struct TitleEffectHalo: View {
     let animated: Bool
 
     init(effect: TitleEffectSpec, size: CGFloat, animated: Bool) {
-        self.style = TitleEffectStyle(effect)
+        let style = TitleEffectStyle(effect)
+        self.style = style
         self.size = size
         self.animated = animated
+        // Las empaquetadas ya desde el primer pintado (como antes): en el feed y los chats no aparecen «un instante después».
+        _images = State(initialValue: TitleEffectHalo.bundled(style))
     }
 
     @Environment(\.scenePhase) private var scenePhase
@@ -47,9 +50,14 @@ struct TitleEffectHalo: View {
         .task(id: style.key) { await loadSprites() }
     }
 
+    /// Las figuras que vienen dentro de la app (nil = esa figura solo existe en el CDN).
+    private static func bundled(_ style: TitleEffectStyle) -> [UIImage?] {
+        style.assets.map { name in name.flatMap { UIImage(named: $0) } }
+    }
+
     /// Primero las empaquetadas (al momento); luego las del CDN, con la caché en disco de las fotos.
     private func loadSprites() async {
-        images = style.assets.map { name in name.flatMap { UIImage(named: $0) } }
+        images = TitleEffectHalo.bundled(style)
         for (i, url) in style.urls.enumerated() {
             guard let url, !url.isEmpty, let img = await ImageCache.image(url) else { continue }
             if i < images.count { images[i] = img }
