@@ -8,7 +8,6 @@ import com.meteomontana.android.data.outbox.OutboxFlusher
 import com.meteomontana.android.data.photos.CacheFotosOffline
 import com.meteomontana.android.data.saved.SavedSchoolsSync
 import dagger.hilt.android.HiltAndroidApp
-import org.maplibre.android.MapLibre
 import java.io.File
 import javax.inject.Inject
 
@@ -27,9 +26,13 @@ class MeteoMontanaApp : Application(), ImageLoaderFactory {
         super.onCreate()
         com.meteomontana.android.util.AppText.init(this)
         com.meteomontana.android.data.api.ApiLanguage.code = com.meteomontana.android.util.AppLanguage.effective(this)
-        MapLibre.getInstance(this)
-        outboxFlusher.start()
-        savedSchoolsSync.start()
+        // Lo que no hace falta para pintar la primera pantalla espera a que el hilo principal quede libre.
+        android.os.Looper.myQueue().addIdleHandler {
+            com.meteomontana.android.data.map.MapLibreInit.ensure(this)
+            outboxFlusher.start()
+            savedSchoolsSync.start()
+            false
+        }
     }
 
     /**
@@ -58,5 +61,13 @@ class MeteoMontanaApp : Application(), ImageLoaderFactory {
             }
             // Las fotos entran con un fundido (esqueletos de carga, 2026-10): nada aparece de golpe.
             .crossfade(250)
+            // Cachés explícitas: 20 % de la RAM de la app para fotos ya decodificadas y 250 MB en disco.
+            .memoryCache { coil.memory.MemoryCache.Builder(this).maxSizePercent(0.20).build() }
+            .diskCache {
+                coil.disk.DiskCache.Builder()
+                    .directory(cacheDir.resolve("image_cache"))
+                    .maxSizeBytes(250L * 1024 * 1024)
+                    .build()
+            }
             .build()
 }

@@ -365,7 +365,7 @@ internal fun SchoolMapView(
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { context ->
-                    MapView(context, org.maplibre.android.maps.MapLibreMapOptions.createFromAttributes(context).textureMode(true)).apply {
+                    MapView(context.also { com.meteomontana.android.data.map.MapLibreInit.ensure(it) }, org.maplibre.android.maps.MapLibreMapOptions.createFromAttributes(context).textureMode(true)).apply {
                         onCreate(null)
                         mapViewRef.value = this
                         setOnTouchListener { v, event ->

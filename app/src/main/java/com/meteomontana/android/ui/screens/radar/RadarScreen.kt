@@ -246,6 +246,7 @@ fun RadarScreen(
                 // queda su último frame "fantasma" hasta que la nueva pantalla
                 // termina de componer. Con TextureView el mapa se compone como
                 // una vista normal y la transición es limpia.
+                com.meteomontana.android.data.map.MapLibreInit.ensure(context)
                 val opts = org.maplibre.android.maps.MapLibreMapOptions
                     .createFromAttributes(context).textureMode(true)
                 MapView(context, opts).apply {

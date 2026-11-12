@@ -112,7 +112,7 @@ internal fun FullScreenMeetupsMap(
     }
 
     val mapView = remember {
-        MapView(context, org.maplibre.android.maps.MapLibreMapOptions.createFromAttributes(context).textureMode(true)).apply {
+        MapView(context.also { com.meteomontana.android.data.map.MapLibreInit.ensure(it) }, org.maplibre.android.maps.MapLibreMapOptions.createFromAttributes(context).textureMode(true)).apply {
             getMapAsync { map ->
                 mapRef = map
                 applyStyle(map, true)
