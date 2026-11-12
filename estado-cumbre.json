@@ -320,16 +320,20 @@
       "android": "publicado"
     },
     {
-      "version": "7.3",
+      "version": "7.2",
       "name": "Efectos de título desde el servidor + Furgo Lola",
       "ios": "hecho",
-      "android": "hecho"
+      "android": "probado",
+      "iosTest": "i14",
+      "androidTest": "Maestro 20/20"
     },
     {
-      "version": "7.3",
+      "version": "7.2",
       "name": "Optimización iOS y Android (guía sin saltos, fotos, arranque, batería)",
       "ios": "hecho",
-      "android": "hecho"
+      "android": "probado",
+      "iosTest": "i3–i5, i13, i15",
+      "androidTest": "Maestro 20/20"
     }
   ],
   "versions": {
@@ -340,7 +344,7 @@
     },
     "next": {
       "name": "7.2",
-      "ios": "TestFlight 350",
+      "ios": "TestFlight 351 (7.2 + optimización + Lola)",
       "android": "vc124 · AAB firmado, sin subir"
     }
   }
