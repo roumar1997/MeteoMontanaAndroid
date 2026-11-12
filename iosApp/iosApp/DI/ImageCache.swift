@@ -53,17 +53,24 @@ enum ImageCache {
         let mk = memoryKey(url, maxPixel)
         if let hit = memory.object(forKey: mk) { return hit }
         let local = fileURL(url)
-        var data = await Task.detached(priority: .userInitiated) { try? Data(contentsOf: local) }.value
-        if data == nil {
-            guard let u = URL(string: url), let (fresh, _) = try? await URLSession.shared.data(from: u) else { return nil }
-            data = fresh
+        let fromDisk = await Task.detached(priority: .userInitiated) { diskImage(local, maxPixel: maxPixel) }.value
+        if let fromDisk {
+            memory.setObject(fromDisk, forKey: mk, cost: cost(fromDisk))
+            return fromDisk
         }
-        guard let bytes = data else { return nil }
-        let img = await Task.detached(priority: .userInitiated) { decode(bytes, maxPixel: maxPixel) }.value
+        // Sin copia en disco, o copia dañada (escritura a medias): se baja de nuevo y se sustituye.
+        guard let u = URL(string: url), let (fresh, _) = try? await URLSession.shared.data(from: u) else { return nil }
+        let img = await Task.detached(priority: .userInitiated) { decode(fresh, maxPixel: maxPixel) }.value
         guard let img else { return nil }
-        if !FileManager.default.fileExists(atPath: local.path) { try? bytes.write(to: local) }
+        try? fresh.write(to: local, options: .atomic)
         memory.setObject(img, forKey: mk, cost: cost(img))
         return img
+    }
+
+    /// La copia en disco ya decodificada, o nil si no existe o no se puede leer como imagen.
+    private static func diskImage(_ local: URL, maxPixel: Int?) -> UIImage? {
+        guard let data = try? Data(contentsOf: local) else { return nil }
+        return decode(data, maxPixel: maxPixel)
     }
 
     /// Pre-descarga (al guardar offline) para que luego se vean sin red. Varias a la vez, con límite.
@@ -86,7 +93,7 @@ enum ImageCache {
         let local = fileURL(url)
         guard let u = URL(string: url), let (data, _) = try? await URLSession.shared.data(from: u),
               UIImage(data: data) != nil else { return }
-        try? data.write(to: local)
+        try? data.write(to: local, options: .atomic)
     }
 
     /// Decodifica unos bytes (reducidos si hay `maxPixel`). Llamar fuera del hilo principal.
