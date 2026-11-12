@@ -1,5 +1,8 @@
 package com.meteomontana.android.push
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -98,7 +101,7 @@ class PushService : FirebaseMessagingService() {
 
     /** Logo de Cumbre (a color) como icono grande por defecto de las notificaciones. */
     private fun appLogoBitmap(): android.graphics.Bitmap? = runCatching {
-        val src = android.graphics.BitmapFactory.decodeResource(resources, R.drawable.logo_cumbre)
+        val src = decodeSampled { o -> BitmapFactory.decodeResource(resources, R.drawable.logo_cumbre, o) }
             ?: return null
         toCircle(src)
     }.getOrNull()
@@ -109,11 +112,24 @@ class PushService : FirebaseMessagingService() {
             val conn = java.net.URL(url).openConnection() as java.net.HttpURLConnection
             conn.connectTimeout = 4000
             conn.readTimeout = 4000
-            val src = conn.inputStream.use { android.graphics.BitmapFactory.decodeStream(it) }
+            val bytes = conn.inputStream.use { it.readBytes() }
+            val src = decodeSampled { o -> BitmapFactory.decodeByteArray(bytes, 0, bytes.size, o) }
                 ?: return null
             toCircle(src)
         }.onFailure { log.w("No se pudo cargar avatar de push: ${it.message}") }
             .getOrNull()
+    }
+
+    /**
+     * Decodifica a tamaño de icono grande (~64 dp): primero solo mide y luego decodifica con inSampleSize.
+     * Antes se decodificaba la foto entera (varios MB en memoria para pintar un círculo de 64 dp).
+     */
+    private fun decodeSampled(decode: (BitmapFactory.Options) -> Bitmap?): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        decode(bounds)
+        var sample = 1
+        while (minOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= LARGE_ICON_PX) sample *= 2
+        return decode(BitmapFactory.Options().apply { inSampleSize = sample })
     }
 
     /** Recorta el bitmap a un círculo centrado (formato estándar de avatar). */
@@ -140,5 +156,8 @@ class PushService : FirebaseMessagingService() {
         }
     }
 
-    companion object { private const val CHANNEL_ID = "meteomontana_general" }
+    companion object {
+        private const val CHANNEL_ID = "meteomontana_general"
+        private const val LARGE_ICON_PX = 192
+    }
 }
