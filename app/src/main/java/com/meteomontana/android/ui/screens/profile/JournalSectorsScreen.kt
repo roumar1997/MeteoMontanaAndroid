@@ -114,8 +114,8 @@ class JournalSectorsViewModel @Inject constructor(
                 val entries = all.filter { it.schoolName?.equals(schoolName, ignoreCase = true) == true }
                 val viaInfo = runCatching { getJournalViaInfo(entries) }.getOrDefault(emptyMap())
 
-                val bySector = entries.filter { !viaInfo[it.id]?.sector.isNullOrBlank() }
-                    .groupBy { viaInfo[it.id]!!.sector!! }
+                val bySector = entries.mapNotNull { e -> viaInfo[e.id]?.sector?.takeIf { it.isNotBlank() }?.let { it to e } }
+                    .groupBy({ it.first }, { it.second })
                 val calc = com.meteomontana.android.domain.usecase.journal.JournalStatsCalculator
                 val sectors = bySector.entries.map { (name, list) ->
                     val gradeOf = { e: JournalSession -> viaInfo[e.id]?.grade ?: e.grade }

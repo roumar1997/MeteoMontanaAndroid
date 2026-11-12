@@ -37,8 +37,8 @@ object PdfFinisher {
         // ISO-8859-1: un carácter por byte, así las posiciones del texto son posiciones del fichero.
         val text = Latin1(pdf)
         val trailer = text.substring(text.lastIndexOf("trailer"))
-        val size = Regex("/Size\\s+(\\d+)").find(trailer)!!.groupValues[1].toInt()
-        val root = Regex("/Root\\s+(\\d+)\\s+0\\s+R").find(trailer)!!.groupValues[1].toInt()
+        val size = Regex("/Size\\s+(\\d+)").find(trailer)?.groupValues?.get(1)?.toInt() ?: error("trailer incompleto")
+        val root = Regex("/Root\\s+(\\d+)\\s+0\\s+R").find(trailer)?.groupValues?.get(1)?.toInt() ?: error("trailer incompleto")
         val info = Regex("/Info\\s+(\\d+)\\s+0\\s+R").find(trailer)?.groupValues?.get(1)?.toInt()
 
         // Dónde empieza cada objeto (de la tabla xref) y su trozo de fichero completo.

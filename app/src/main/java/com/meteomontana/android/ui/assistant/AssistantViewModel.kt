@@ -454,7 +454,7 @@ class AssistantViewModel @Inject constructor(
             }
         }
         if ((kind == "LOG_DONE" || kind == "LOG_PROJECT") && (u?.logItems?.size ?: 0) > 1) {
-            proposeSeveralLogs(u!!.logItems, answer, chips)
+            proposeSeveralLogs(u?.logItems.orEmpty(), answer, chips)
             return
         }
         if (kind != "LOG_DONE" && kind != "LOG_PROJECT") {
