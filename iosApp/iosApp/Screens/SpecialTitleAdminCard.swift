@@ -97,7 +97,7 @@ struct SpecialTitleAdminCard: View {
             UserBadgeStore.shared.refresh(uid)
             effectSaved = effect.isEmpty ? "Efecto quitado." : "Guardado. Ya se ve en su foto."
         } else {
-            effectSaved = "No se pudo guardar (revisa la conexión)."
+            effectSaved = "No se pudo guardar: sin conexión o el servidor lo ha rechazado."
         }
     }
 
@@ -111,7 +111,7 @@ struct SpecialTitleAdminCard: View {
             UserBadgeStore.shared.refresh(uid)
             saved = hasSpecial ? "Guardado. Ya lo ve en su perfil." : "Título especial quitado."
         } else {
-            saved = "No se pudo guardar (revisa la conexión)."
+            saved = "No se pudo guardar: sin conexión o el servidor lo ha rechazado."
         }
     }
 }
