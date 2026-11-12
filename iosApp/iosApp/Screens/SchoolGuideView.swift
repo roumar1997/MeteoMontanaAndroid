@@ -438,8 +438,15 @@ struct GuideTopo: View {
     init(face: GuideFace, maxHeight: CGFloat = 240) {
         self.face = face
         self.maxHeight = maxHeight
-        let cached = face.photo.flatMap { ImageCache.cached($0, maxPixel: ImageCache.displayMaxPixel) }
+        let limit = GuideTopo.maxPixel(maxHeight)
+        let cached = face.photo.flatMap { ImageCache.cached($0, maxPixel: limit) }
         _image = State(initialValue: cached)
+    }
+
+    /// En la tarjeta sobra con el tamaño de pantalla; a pantalla completa (sin tope de alto) se amplía con el
+    /// pellizco, así que se decodifica con más detalle.
+    private static func maxPixel(_ maxHeight: CGFloat) -> Int {
+        maxHeight.isFinite ? ImageCache.displayMaxPixel : ImageCache.editorMaxPixel
     }
 
     var body: some View {
@@ -464,8 +471,9 @@ struct GuideTopo: View {
         .task(id: photo) {
             guard !photo.isEmpty else { return }
             // Ya en memoria (al volver a pasar por la piedra): sin hueco intermedio.
-            if let hit = ImageCache.cached(photo, maxPixel: ImageCache.displayMaxPixel) { image = hit; return }
-            image = await ImageCache.image(photo, maxPixel: ImageCache.displayMaxPixel)
+            let limit = GuideTopo.maxPixel(maxHeight)
+            if let hit = ImageCache.cached(photo, maxPixel: limit) { image = hit; return }
+            image = await ImageCache.image(photo, maxPixel: limit)
         }
     }
 }
