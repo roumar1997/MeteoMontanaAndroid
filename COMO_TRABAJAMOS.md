@@ -58,6 +58,11 @@ documento**: los demás enlazan aquí, no la copian.
 
 - **Primero pruebo yo**: tests, capturas automáticas y recorridos en el Xiaomi.
   A Álvaro solo le llega lo que no puedo comprobar.
+- **Android antes que TestFlight.** Antes de lanzar un build de iOS: todo se
+  prueba en Android (emulador: Maestro + a mano). Cada fallo que salga se
+  arregla en Android **y se busca y corrige el mismo en iOS**. Solo cuando
+  Android está en verde se lanza el TestFlight, y a Álvaro le llega solo lo
+  propio del iPhone (avisando de lo corregido en iOS «por espejo»).
 - La ronda se carga en el panel **«Pruebas»**, separada en **🍎 iPhone (i1, i2…)** y **🤖 Android (a1, a2…)**; cada punto: «Haz» (paso a paso) y «Debe pasar».
 - Álvaro contesta **por audio en el chat** citando números. Claude resume lo que dijo en cada tarjeta (bien / a medias / falla), arregla con ese resumen y, en la ronda siguiente, el punto vuelve con **«Antes falló: …»**.
 - Basta con decir lo que falla o va a medias; las capturas, en el chat con su número.
