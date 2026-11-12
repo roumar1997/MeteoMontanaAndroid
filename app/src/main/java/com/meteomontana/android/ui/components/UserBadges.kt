@@ -49,6 +49,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -69,13 +70,28 @@ class UserBadgeStore @Inject constructor(
     private val prefs = context.getSharedPreferences(CACHE_PREFS, Context.MODE_PRIVATE)
     /** Uids de más antiguo a más reciente, para recortar la copia cuando crece. */
     private val order = ArrayDeque<String>()
-    private val _badges = MutableStateFlow(loadCache())
+    private val _badges = MutableStateFlow<Map<String, UserBadge>>(emptyMap())
     val badges: StateFlow<Map<String, UserBadge>> = _badges.asStateFlow()
     private val asked = mutableSetOf<String>()
     private val pending = mutableSetOf<String>()
     private var flushing = false
+    private var cacheLoaded = false
 
-    private fun loadCache(): Map<String, UserBadge> = runCatching {
+    init {
+        // Leer y descifrar la copia FUERA del hilo principal (antes se hacía al pintar la primera foto).
+        scope.launch {
+            val (cached, cachedOrder) = withContext(Dispatchers.IO) { loadCache() }
+            val fresh = order.toList()
+            order.clear()
+            cachedOrder.filter { it !in fresh }.forEach { order.addLast(it) }
+            fresh.forEach { order.addLast(it) }
+            _badges.value = cached + _badges.value
+            cacheLoaded = true
+            if (fresh.isNotEmpty()) saveCache()
+        }
+    }
+
+    private fun loadCache(): Pair<Map<String, UserBadge>, List<String>> = runCatching {
         val arr = JSONArray(prefs.getString(CACHE_KEY, "[]"))
         val map = LinkedHashMap<String, UserBadge>()
         for (i in 0 until arr.length()) {
@@ -88,22 +104,25 @@ class UserBadgeStore @Inject constructor(
                 if (o.isNull("color")) null else o.getString("color"),
                 if (o.isNull("effect")) null else o.getString("effect")
             )
-            order.addLast(uid)
         }
-        map as Map<String, UserBadge>
-    }.getOrDefault(emptyMap())
+        Pair<Map<String, UserBadge>, List<String>>(map, map.keys.toList())
+    }.getOrDefault(Pair(emptyMap(), emptyList()))
 
     private fun saveCache() {
-        val arr = JSONArray()
-        for (uid in order) {
-            val b = _badges.value[uid] ?: continue
-            arr.put(JSONObject()
-                .put("uid", b.uid).put("verified", b.verified).put("level", b.titleLevel).put("hidden", b.titleHidden)
-                .put("title", b.specialTitle ?: JSONObject.NULL)
-                .put("color", b.specialColor ?: JSONObject.NULL)
-                .put("effect", b.titleEffect ?: JSONObject.NULL))
+        if (!cacheLoaded) return  // aún no se ha leído la copia: se guarda al leerla
+        // Foto fija en el hilo principal; el JSON y la escritura, fuera.
+        val snapshot = order.mapNotNull { _badges.value[it] }
+        scope.launch(Dispatchers.IO) {
+            val arr = JSONArray()
+            for (b in snapshot) {
+                arr.put(JSONObject()
+                    .put("uid", b.uid).put("verified", b.verified).put("level", b.titleLevel).put("hidden", b.titleHidden)
+                    .put("title", b.specialTitle ?: JSONObject.NULL)
+                    .put("color", b.specialColor ?: JSONObject.NULL)
+                    .put("effect", b.titleEffect ?: JSONObject.NULL))
+            }
+            prefs.edit().putString(CACHE_KEY, arr.toString()).apply()
         }
-        prefs.edit().putString(CACHE_KEY, arr.toString()).apply()
     }
 
     fun want(uid: String?) {
