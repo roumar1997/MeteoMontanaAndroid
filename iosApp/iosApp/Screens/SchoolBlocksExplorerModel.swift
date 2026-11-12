@@ -31,13 +31,16 @@ final class SchoolBlocksExplorerModel: ObservableObject {
         height == BetaHeights.shared.TALL ? "+1,70" : "−1,70"
     }
 
-    @Published private(set) var all: [LineSearchHit] = []
+    // Los `didSet` de los datos y filtros recalculan la guía y las destacadas (ver `recompute`).
+    @Published private(set) var all: [LineSearchHit] = [] { didSet { recompute() } }
     /// Caras marcadas (N/E/S/O). Vale para la lista y la guía.
-    @Published var faces: Set<String> = []
+    @Published var faces: Set<String> = [] { didSet { if faces != oldValue { recompute() } } }
     /// Solo lo que NO tienes hecho en tu diario. Vale para la lista y la guía.
-    @Published var onlyNotDone = false
+    @Published var onlyNotDone = false { didSet { if onlyNotDone != oldValue { recompute() } } }
     /// Vías hechas / en proyecto según TU diario (local del móvil). Se releen al volver a la pestaña.
-    @Published private(set) var doneIds: Set<String> = []
+    @Published private(set) var doneIds: Set<String> = [] {
+        didSet { if onlyNotDone && doneIds != oldValue { recompute() } }
+    }
     @Published private(set) var projectIds: Set<String> = []
     /// Sectores DESPLEGADOS de la guía (al cargar, solo el primero).
     @Published var guideOpen: Set<String> = []
@@ -45,16 +48,18 @@ final class SchoolBlocksExplorerModel: ObservableObject {
     @Published private(set) var failed = false
     /// Vías de la escuela cuyo grado parte la altura (lineId → los dos grados): se pintan en dos colores en las listas.
     @Published private(set) var splits: [String: GradeSplitInfo] = [:]
-    @Published var query = ""
-    @Published var grades: Set<String> = []
+    @Published var query = "" { didSet { if query != oldValue { recompute() } } }
+    @Published var grades: Set<String> = [] { didSet { if grades != oldValue { recompute() } } }
     /// Alturas de beta marcadas. Vacío = sin filtrar; las dos = cualquier vía con beta.
-    @Published var betas: Set<String> = []
-    @Published private(set) var betaLineIds: [String: Set<String>] = [:]
+    @Published var betas: Set<String> = [] { didSet { if betas != oldValue { recompute() } } }
+    @Published private(set) var betaLineIds: [String: Set<String>] = [:] {
+        didSet { if betaLineIds != oldValue { recompute() } }
+    }
     /// Qué cuenta en la altura: "" = vídeo o encadenes, "_VIDEO" = solo vídeo, "_SENDS" = solo encadenes (el servidor).
     @Published var betaSource: String = "" { didSet { if betaSource != oldValue { betaLineIds = [:] } } }
     /// Cambia al tocar una altura o lo que se busca: la vista vuelve a pedir las vías.
     var betaTaskKey: String { betas.sorted().joined() + betaSource }
-    @Published var order: Order = .repeated
+    @Published var order: Order = .repeated { didSet { if order != oldValue { recompute() } } }
     /// Panel de filtros (grado, beta, orden): plegado por defecto para que se vea antes la lista.
     @Published var filtersOpen = false
 
@@ -65,6 +70,8 @@ final class SchoolBlocksExplorerModel: ObservableObject {
     init(container: IosDependencyContainer = AppDependencies.shared.container) {
         loadSchoolLines = container.loadSchoolLines
         loadBetaLineIds = container.loadBetaLineIds
+        recompute()
+        observeMemoryWarnings()
     }
 
     // MARK: - Lo que pinta la vista (todo calculado por shared)
@@ -80,13 +87,23 @@ final class SchoolBlocksExplorerModel: ObservableObject {
     }
 
     /// Destacadas (más repetidas / mejor valoradas, según `order`) con los mismos filtros; nil = bajando beta.
-    var highlights: [LineSearchHit]? {
-        SchoolLinesExplorer.shared.highlights(lines: all, filter: filter, betaLineIds: betaLineIds, limit: 10)
-    }
+    /// Se recalculan solo cuando cambian los datos o los filtros (no en cada pintado).
+    @Published private(set) var highlights: [LineSearchHit]?
 
     /// La guía con los mismos filtros; nil = bajando beta.
-    var guideView: GuideView? {
-        SchoolGuide.shared.view(lines: all, filter: filter, betaLineIds: betaLineIds)
+    @Published private(set) var guideView: GuideView?
+
+    /// Inicio de cada sector de la guía (vías agrupadas por grado), precalculado junto con la guía.
+    private(set) var sectorIntros: [String: GuideSectorIntro] = [:]
+
+    private func recompute() {
+        let f = filter
+        highlights = SchoolLinesExplorer.shared.highlights(lines: all, filter: f, betaLineIds: betaLineIds, limit: 10)
+        let g = SchoolGuide.shared.view(lines: all, filter: f, betaLineIds: betaLineIds)
+        var intros: [String: GuideSectorIntro] = [:]
+        for s in g?.sectors ?? [] { intros[s.key] = GuideSectorIntro(s) }
+        sectorIntros = intros
+        guideView = g
     }
 
     // MARK: - Marcapáginas
@@ -156,13 +173,38 @@ final class SchoolBlocksExplorerModel: ObservableObject {
 
     /// Genera (o lee de disco) la foto aérea de un sector con SUS piedras.
     func loadSectorMap(schoolId: String, sector s: GuideSector) async {
-        guard sectorMaps[s.key] == nil else { return }
+        // `inFlight`: si ya se está haciendo (la tarjeta y el PDF a la vez), no se lanza otra.
+        guard sectorMaps[s.key] == nil, !sectorMapsInFlight.contains(s.key) else { return }
+        sectorMapsInFlight.insert(s.key)
+        defer { sectorMapsInFlight.remove(s.key) }
         let ids = Set(s.blocks.map(\.blockId))
         let stones = overviewBlocks.filter { ids.contains($0.id) }
+        // `sectorMap` no está atada al hilo principal: la foto se pide y se pinta fuera de él.
         if let img = await GuideOverviewStore.sectorMap(schoolId: schoolId, key: s.key, stones: stones) {
             sectorMaps[s.key] = img
         }
         sectorMapsTried.insert(s.key)
+    }
+
+    private var sectorMapsInFlight: Set<String> = []
+    nonisolated(unsafe) private var memoryWarning: NSObjectProtocol?
+
+    /// Suelta las fotos aéreas (al salir de la guía o si el sistema pide memoria); se vuelven a generar al verlas.
+    func releaseSectorMaps() {
+        sectorMaps = [:]
+        sectorMapsTried = []
+    }
+
+    private func observeMemoryWarnings() {
+        memoryWarning = NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.releaseSectorMaps() }
+        }
+    }
+
+    deinit {
+        if let memoryWarning { NotificationCenter.default.removeObserver(memoryWarning) }
     }
 
     /// Genera el PDF (con los filtros de ahora) y abre la hoja de compartir. `sectorKey` nil = toda la guía.
