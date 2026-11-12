@@ -77,7 +77,7 @@ struct MeetupDetailView: View {
                         VStack(alignment: .leading, spacing: 0) {
                             // ── Photo ──
                             if let urlStr = meetup.photoUrl, let url = URL(string: urlStr) {
-                                AsyncImage(url: url) { img in
+                                CachedImage(url: url) { img in
                                     img.resizable().scaledToFill()
                                 } placeholder: { Color(Cumbre.ink.opacity(0.06)) }
                                 .frame(maxWidth: .infinity, maxHeight: 200)

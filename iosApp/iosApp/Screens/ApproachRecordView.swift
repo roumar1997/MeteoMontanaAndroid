@@ -103,7 +103,11 @@ struct ApproachRecordView: View {
                 }
             }
         }
-        .onDisappear { AppDependencies.shared.locationBridge.stopStream() }
+        .onDisappear {
+            timer?.invalidate()
+            timer = nil
+            AppDependencies.shared.locationBridge.stopStream()
+        }
     }
 
     @ViewBuilder

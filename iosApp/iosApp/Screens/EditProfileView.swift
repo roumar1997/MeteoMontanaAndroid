@@ -241,7 +241,7 @@ struct EditProfileView: View {
                 if let img = vm.pickedImage {
                     Image(uiImage: img).resizable().scaledToFill()
                 } else if let u = vm.photoUrl.flatMap({ URL(string: $0) }) {
-                    AsyncImage(url: u) { $0.resizable().scaledToFill() } placeholder: {
+                    CachedImage(url: u) { $0.resizable().scaledToFill() } placeholder: {
                         Image(systemName: "person.crop.circle.fill").resizable().foregroundStyle(Cumbre.ink3)
                     }
                 } else {

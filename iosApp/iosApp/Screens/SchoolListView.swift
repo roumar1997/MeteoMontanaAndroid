@@ -554,6 +554,6 @@ struct MiniTopoThumbnail: View {
                 }
             }
         }
-        .task(id: photoUrl) { image = await ImageCache.image(photoUrl) }
+        .task(id: photoUrl) { image = await ImageCache.image(photoUrl, maxPixel: ImageCache.displayMaxPixel) }
     }
 }

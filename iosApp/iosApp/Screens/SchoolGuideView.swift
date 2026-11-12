@@ -57,9 +57,8 @@ struct SchoolGuideView: View {
         let open = model.guideOpen.contains(s.key)
         return VStack(spacing: 0) {
             Button {
-                withAnimation(.snappy(duration: 0.25)) {
-                    if open { model.guideOpen.remove(s.key) } else { model.guideOpen.insert(s.key) }
-                }
+                // Sin animación del bloque entero (hacía «sube y baja»): solo gira la flecha.
+                if open { model.guideOpen.remove(s.key) } else { model.guideOpen.insert(s.key) }
             } label: { sectorHeader(s, open: open) }
             .buttonStyle(.plain)
             if open {
@@ -91,6 +90,7 @@ struct SchoolGuideView: View {
         return HStack(spacing: 10) {
             Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink3)
                 .rotationEffect(.degrees(open ? 90 : 0))
+                .animation(.snappy(duration: 0.25), value: open)
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(s.unknownFace ? L("Sin orientación votada") : (s.sector ?? L("Sin sector")))
@@ -117,28 +117,29 @@ struct SchoolGuideView: View {
             Image(uiImage: map).resizable().aspectRatio(contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
-        } else if !model.sectorMapsTried.contains(s.key) && !model.overviewBlocks.isEmpty {
-            // Mientras se hace la foto aérea, un hueco con brillo (antes salía una foto de piedra y de golpe el mapa).
+        } else if !model.sectorMapsTried.contains(s.key) {
+            // Mientras se hace la foto aérea, un hueco con brillo del MISMO tamaño que tendrá (1100×520): nada salta.
             Bone(height: 160).shimmer()
                 .aspectRatio(1100.0 / 520.0, contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
                 .task(id: model.overviewBlocks.count) { await model.loadSectorMap(schoolId: schoolId, sector: s) }
         } else if let photo = s.blocks.lazy.flatMap({ $0.faces }).compactMap({ $0.photo }).first {
+            // Sin foto aérea (sin red y sin copia): la de una piedra, en el mismo hueco por si luego llega el mapa.
             GuideHeroPhoto(path: photo)
                 .task(id: model.overviewBlocks.count) { await model.loadSectorMap(schoolId: schoolId, sector: s) }
-                .frame(height: 160).frame(maxWidth: .infinity)
+                .aspectRatio(1100.0 / 520.0, contentMode: .fit)
+                .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
         }
-        let pairs = s.blocks.flatMap { b in b.lines.map { GuideChip(block: b, hit: $0) } }
-        let grades = Array(Set(pairs.map { $0.hit.grade ?? "?" })).sorted { GradeOrder.score($0) < GradeOrder.score($1) }
+        let intro = model.sectorIntros[s.key] ?? GuideSectorIntro(s)
         VStack(alignment: .leading, spacing: 8) {
             Text(L("TODAS LAS VÍAS · TOCA UNA PARA IR A SU PIEDRA")).eyebrow()
-            ForEach(grades, id: \.self) { g in
+            ForEach(intro.grades, id: \.self) { g in
                 HStack(alignment: .top, spacing: 8) {
                     GradePill(grade: g, split: nil).frame(width: 46, alignment: .leading)
                     GuideFlowLayout(spacing: 5) {
-                        ForEach(pairs.filter { ($0.hit.grade ?? "?") == g }) { c in
+                        ForEach(intro.chipsByGrade[g] ?? []) { c in
                             let b = c.block, h = c.hit
                             Button {
                                 mark(b.blockId)
@@ -434,6 +435,13 @@ struct GuideTopo: View {
     var maxHeight: CGFloat = 240
     @State private var image: UIImage?
 
+    init(face: GuideFace, maxHeight: CGFloat = 240) {
+        self.face = face
+        self.maxHeight = maxHeight
+        let cached = face.photo.flatMap { ImageCache.cached($0, maxPixel: ImageCache.displayMaxPixel) }
+        _image = State(initialValue: cached)
+    }
+
     var body: some View {
         let photo = face.photo ?? ""
         Group {
@@ -448,11 +456,17 @@ struct GuideTopo: View {
                     .aspectRatio(image.size.width / max(image.size.height, 1), contentMode: .fit)
                     .frame(maxHeight: maxHeight)
             } else {
-                Cumbre.rule.opacity(0.25).frame(height: min(180, maxHeight))
+                // Reserva ya la altura con la que suele quedar la foto (el tope), para que la lista no dé saltos.
+                Cumbre.rule.opacity(0.25).frame(height: maxHeight.isFinite ? maxHeight : 180)
             }
         }
         .frame(maxWidth: .infinity)
-        .task(id: photo) { if !photo.isEmpty { image = await ImageCache.image(photo) } }
+        .task(id: photo) {
+            guard !photo.isEmpty else { return }
+            // Ya en memoria (al volver a pasar por la piedra): sin hueco intermedio.
+            if let hit = ImageCache.cached(photo, maxPixel: ImageCache.displayMaxPixel) { image = hit; return }
+            image = await ImageCache.image(photo, maxPixel: ImageCache.displayMaxPixel)
+        }
     }
 }
 
@@ -532,7 +546,7 @@ struct GuideHeroPhoto: View {
                 if let image { Image(uiImage: image).resizable().scaledToFill() }
             }
             .clipped()
-            .task(id: path) { image = await ImageCache.image(path) }
+            .task(id: path) { image = await ImageCache.image(path, maxPixel: ImageCache.displayMaxPixel) }
     }
 }
 

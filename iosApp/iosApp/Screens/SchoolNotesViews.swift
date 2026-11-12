@@ -203,7 +203,7 @@ private struct NoteRowView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let url = note.photoUrl, let u = URL(string: url) {
                 Button(action: onPhotoTap) {
-                    AsyncImage(url: u) { img in
+                    CachedImage(url: u) { img in
                         img.resizable().scaledToFill()
                     } placeholder: {
                         Rectangle().fill(Cumbre.paper)
@@ -259,7 +259,7 @@ private struct NotePhotoSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     if let url = note.photoUrl, let u = URL(string: url) {
-                        AsyncImage(url: u) { img in
+                        CachedImage(url: u) { img in
                             img.resizable().scaledToFit()
                         } placeholder: { Bone(height: 220).shimmer() }
                     }

@@ -526,13 +526,20 @@ enum RadarFrameCache {
     static func png(radar: String, ts: String) async -> UIImage? {
         let f = file(radar: radar, ts: ts)
         if let data = try? Data(contentsOf: f), !data.isEmpty {
-            return UIImage(data: data)
+            return await decoded(data)
         }
         guard let bytes = try? await AppDependencies.shared.container.radarApi
             .getFramePng(radar: radar, ts: ts) else { return nil }
         let data = bytes.toData()
         try? data.write(to: f)
-        return UIImage(data: data)
+        return await decoded(data)
+    }
+
+    /// Decodifica el frame reducido y fuera del hilo principal.
+    private static func decoded(_ data: Data) async -> UIImage? {
+        await Task.detached(priority: .userInitiated) {
+            ImageCache.decode(data, maxPixel: ImageCache.displayMaxPixel)
+        }.value
     }
 
     /// Borra frames de hace más de 2 días (retención del backend).
