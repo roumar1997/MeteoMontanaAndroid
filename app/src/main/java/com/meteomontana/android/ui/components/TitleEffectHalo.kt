@@ -131,8 +131,11 @@ private fun DrawScope.drawFigures(
     for (i in 0 until n) {
         val angle = if (animated) figureAngle(spec, i, t) else spec.motion.staticAngles[i]
         if (animated) drawTrail(spec, p, c, r, i, t)
-        val img = images.getOrNull(i % images.size) ?: continue
-        val facesRight = spec.sprites[i % spec.sprites.size].facesRight
+        // ORBIT: siempre una figura que mire a la derecha (sentido horario); voltearla pondría el rótulo en espejo.
+        val si = (if (spec.orbits) spec.sprites.indexOfFirst { it.facesRight }.takeIf { it >= 0 } else null)
+            ?: (i % spec.sprites.size)
+        val img = images.getOrNull(si % images.size) ?: continue
+        val facesRight = spec.sprites[si].facesRight
         val pos = figurePos(spec, c, r, angle, i, t, animated)
         val h = r * (if (animated) spec.motion.size else spec.motion.staticSize)
         val w = h * img.width / img.height

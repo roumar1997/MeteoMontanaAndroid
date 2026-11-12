@@ -142,8 +142,10 @@ struct TitleEffectHalo: View {
         for i in 0..<count {
             let angle = animated ? figureAngle(i, t) : style.staticAngles[i]
             if animated { drawTrail(&ctx, c: c, r: r, i: i, t: t) }
-            guard let ui = sprites[i % sprites.count] else { continue }
-            let facesRight = style.facesRight[i % style.facesRight.count]
+            // ORBIT: siempre una figura que mire a la derecha (sentido horario); voltearla pondría el rótulo en espejo.
+            let si = (style.orbits ? style.facesRight.firstIndex(of: true) : nil) ?? (i % style.facesRight.count)
+            guard let ui = sprites[si % sprites.count] else { continue }
+            let facesRight = style.facesRight[si]
             let pos = figurePosition(c: c, r: r, angle: angle, i: i, t: t)
             let h = r * (animated ? style.size : style.staticSize)
             let ratio = ui.size.height > 0 ? ui.size.width / ui.size.height : 1
