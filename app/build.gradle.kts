@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
     alias(libs.plugins.roborazzi)
+    alias(libs.plugins.baselineprofile)
 }
 
 // Sello de compilacion (hora local) que se ensena en Ajustes.
@@ -152,6 +153,7 @@ dependencies {
     implementation(libs.coil.compose)
     // Instala el perfil base (src/main/baseline-prof.txt) al instalar desde fuera de Play: arranque y listas más fluidos.
     implementation(libs.androidx.profileinstaller)
+    baselineProfile(project(":baselineprofile"))
     // Leer las coordenadas que la camara guarda dentro de la foto (EXIF).
     implementation(libs.androidx.exifinterface)
 

@@ -12,6 +12,8 @@ plugins {
     alias(libs.plugins.firebase.crashlytics) apply false
     alias(libs.plugins.detekt) apply false
     alias(libs.plugins.roborazzi) apply false
+    alias(libs.plugins.android.test) apply false
+    alias(libs.plugins.baselineprofile) apply false
 }
 
 // Análisis de código (detekt): solo falla por problemas NUEVOS; lo que ya había está en
