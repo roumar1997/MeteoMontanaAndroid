@@ -553,7 +553,7 @@ fun SchoolListScreen(
                         // teletransportarse.
                         // Tarjetas separadas (propuesta A, Álvaro 2026-10-19): sin divisor, con hueco entre ellas.
                         Column(
-                            modifier = Modifier.animateItem()
+                            modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null) // solo el deslizamiento: sin fundidos al llegar las notas
                                 .padding(horizontal = 12.dp)
                                 .padding(top = if (index == 0) 12.dp else 0.dp, bottom = 10.dp)
                                 .guideTarget("schools.score", enabled = index == 0)
