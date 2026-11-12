@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.schools
 
+import androidx.compose.ui.platform.testTag
+
 import com.meteomontana.android.ui.components.SkeletonList
 import com.meteomontana.android.ui.components.SkeletonSchoolRow
 import com.meteomontana.android.util.CalendarLabels
@@ -557,6 +559,7 @@ fun SchoolListScreen(
                                 .padding(horizontal = 12.dp)
                                 .padding(top = if (index == 0) 12.dp else 0.dp, bottom = 10.dp)
                                 .guideTarget("schools.score", enabled = index == 0)
+                                .testTag("school_card")
                         ) {
                             SchoolListItem(
                                 school = school,

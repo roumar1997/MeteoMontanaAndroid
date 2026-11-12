@@ -3,6 +3,10 @@
 //   ./gradlew.bat :app:generateReleaseBaselineProfile
 // El resultado se copia solo a app/src/release/generated/baselineProfiles/. Firma debug (no necesita el keystore) y
 // no sube mapping a Crashlytics. No entra en assembleDebug ni en los tests normales.
+// Lo útil (ficha y guía) va detrás del login. Para perfilarlo: lanzar una vez con
+//   -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true
+// iniciar sesión a mano en la app que queda instalada y volver a lanzar con el mismo parámetro (sin él, la tarea
+// desinstala la app al acabar y se pierde la sesión). Sin sesión el perfil solo cubre el arranque.
 plugins {
     alias(libs.plugins.android.test)
     alias(libs.plugins.kotlin.android)

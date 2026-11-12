@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.detail
 
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -75,6 +76,7 @@ fun SchoolTabBar(
                     .background(if (active) terraFillColor() else MaterialTheme.colorScheme.surface)
                     .border(1.dp, if (active) terraFillColor() else MaterialTheme.colorScheme.outline, CircleShape)
                     .clickable { onSelect(tab) }
+                    .testTag("detail_tab_${tab.name}")
                     .padding(vertical = 9.dp),
                 contentAlignment = Alignment.Center
             ) {

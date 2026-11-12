@@ -1,5 +1,10 @@
 package com.meteomontana.android
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
+
 import android.content.Context
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.content.Intent
@@ -49,6 +54,7 @@ class MainActivity : ComponentActivity() {
         super.attachBaseContext(com.meteomontana.android.util.AppLanguage.wrap(newBase))
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         // Splash Screen API: pinta fondo papel + montaña al instante en vez de
         // pantalla en blanco mientras la app inicializa. Debe ir antes de super.
@@ -82,7 +88,12 @@ class MainActivity : ComponentActivity() {
                 com.meteomontana.android.ui.components.CumbreChromeHost(
                     deseado = com.meteomontana.android.ui.theme.ChromeTreatment.CRISTAL
                 ) {
-                    AppRoot(deepLink = pendingDeepLink.value, onDeepLinkConsumed = { pendingDeepLink.value = null })
+                    // testTag → resourceId: el generador del perfil base (UiAutomator) encuentra las tarjetas por id. Sin efecto visual.
+                    androidx.compose.foundation.layout.Box(
+                        androidx.compose.ui.Modifier.fillMaxSize().semantics { testTagsAsResourceId = true }
+                    ) {
+                        AppRoot(deepLink = pendingDeepLink.value, onDeepLinkConsumed = { pendingDeepLink.value = null })
+                    }
                 }
             }
         }

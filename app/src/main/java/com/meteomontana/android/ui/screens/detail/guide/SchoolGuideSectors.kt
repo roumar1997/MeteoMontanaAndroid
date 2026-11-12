@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.detail.guide
 
+import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.aspectRatio
 import android.content.Intent
 import android.net.Uri
@@ -213,7 +214,7 @@ private fun SectorHeader(s: GuideSector, state: SchoolBlocksViewModel.UiState, o
     val pieces = if (s.blocks.size == 1) stringResource(R.string.sguide_blocks_one) else stringResource(R.string.sguide_blocks, s.blocks.size)
     val lines = if (total == 1) stringResource(R.string.sguide_lines_one) else stringResource(R.string.sguide_lines, total)
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(12.dp),
+        Modifier.fillMaxWidth().testTag("guide_sector").clickable(onClick = onToggle).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null,
