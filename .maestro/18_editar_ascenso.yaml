@@ -1,0 +1,65 @@
+# Diario (Perfil → BLOQUES): «⋯» → Editar ascenso → ESTILO «Al flash» → GUARDAR; comprueba la etiqueta
+# en la fila y lo deja otra vez SIN estilo (datos intactos). Además, deslizar una fila: Editar y Borrar (sin borrar).
+# Supone que «Push up» (el ascenso más reciente) no tiene estilo al empezar.
+appId: com.meteomontana.android
+---
+- launchApp:
+    clearState: false
+    stopApp: true
+- tapOn: "Perfil"
+- extendedWaitUntil:
+    visible: "SEGUIDORES"
+    timeout: 15000
+- tapOn:
+    text: "BLOQUES"
+    index: 0
+- extendedWaitUntil:
+    visible: "Push up"
+    timeout: 40000
+# Sin estilo no hay etiqueta en la fila: solo queda la del filtro de arriba.
+- assertNotVisible:
+    text: "AL FLASH"
+    index: 1
+- tapOn:
+    text: "Más opciones"
+    index: 0
+- tapOn: "Editar ascenso"
+- extendedWaitUntil:
+    visible: "EDITAR ASCENSO"
+    timeout: 15000
+- tapOn: "Al flash"
+- tapOn: "GUARDAR"
+- extendedWaitUntil:
+    visible:
+      text: "AL FLASH"
+      index: 1
+    timeout: 30000
+- takeScreenshot: 18_con_flash
+# Vuelve a dejarlo como estaba.
+- tapOn:
+    text: "Más opciones"
+    index: 0
+- tapOn: "Editar ascenso"
+- extendedWaitUntil:
+    visible: "EDITAR ASCENSO"
+    timeout: 15000
+- tapOn: "Ninguno"
+- tapOn: "GUARDAR"
+- extendedWaitUntil:
+    notVisible: "EDITAR ASCENSO"
+    timeout: 30000
+- assertNotVisible:
+    text: "AL FLASH"
+    index: 1
+# Deslizar una fila a la izquierda: aparecen Editar y Borrar (no se pulsa ninguno).
+- swipe:
+    start: "90%,55%"
+    end: "15%,55%"
+- extendedWaitUntil:
+    visible: "Borrar"
+    timeout: 10000
+- assertVisible: "Editar"
+- takeScreenshot: 18_deslizar
+- swipe:
+    start: "30%,55%"
+    end: "90%,55%"

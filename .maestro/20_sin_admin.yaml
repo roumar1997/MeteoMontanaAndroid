@@ -1,0 +1,36 @@
+# Sin admin en Android: ni escudo ni «Panel Admin» en Perfil/Ajustes, ni «SOLO ADMIN» en el perfil de otra persona.
+appId: com.meteomontana.android
+---
+- launchApp:
+    clearState: false
+    stopApp: true
+- tapOn: "Perfil"
+- extendedWaitUntil:
+    visible: "SEGUIDORES"
+    timeout: 15000
+- assertNotVisible: ".*[Pp]anel [Aa]dmin.*"
+- assertNotVisible: "Administración"
+- assertNotVisible: ".*SOLO ADMIN.*"
+- tapOn: "Ajustes"
+- extendedWaitUntil:
+    visible: "Editar perfil"
+    timeout: 15000
+- assertNotVisible: ".*[Pp]anel [Aa]dmin.*"
+- assertNotVisible: ".*[Aa]dmin.*"
+- back
+- extendedWaitUntil:
+    visible: "SEGUIDORES"
+    timeout: 15000
+- tapOn: "SEGUIDORES"
+- extendedWaitUntil:
+    visible: "@gus"
+    timeout: 30000
+- tapOn:
+    text: "@gus"
+- extendedWaitUntil:
+    visible: "MENSAJE"
+    timeout: 30000
+- assertNotVisible: ".*SOLO ADMIN.*"
+- assertNotVisible: ".*[Pp]anel [Aa]dmin.*"
+- takeScreenshot: 20_perfil_otro
+- back
