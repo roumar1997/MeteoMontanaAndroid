@@ -234,7 +234,7 @@ private fun NotePhotoDialog(note: Note, onDismiss: () -> Unit) {
             verticalArrangement = Arrangement.Center
         ) {
             AsyncImage(
-                model = note.photoUrl,
+                model = rememberListImageRequest(note.photoUrl),
                 contentDescription = stringResource(R.string.notes_section_v2_foto_de_la_nota),
                 modifier = Modifier.fillMaxWidth(),
                 contentScale = ContentScale.FillWidth

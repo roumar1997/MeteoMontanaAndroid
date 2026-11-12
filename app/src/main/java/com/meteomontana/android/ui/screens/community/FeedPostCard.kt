@@ -228,7 +228,7 @@ internal fun FeedPostCard(
         } else if (celebrationUrl != null) {
             // Sin topo: la foto de celebración ES la imagen principal.
             AsyncImage(
-                model = celebrationUrl,
+                model = com.meteomontana.android.ui.components.rememberListImageRequest(celebrationUrl),
                 contentDescription = stringResource(R.string.feed_celebration_photo),
                 contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
                 modifier = Modifier.fillMaxWidth().clickable { fullPhoto = celebrationUrl }
