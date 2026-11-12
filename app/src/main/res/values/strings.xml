@@ -1794,6 +1794,7 @@
     <string name="title_info_special">«%1$s» es un título especial que le ha dado el equipo de Cumbre.</string>
     <string name="title_info_fairies">Lleva una aureola de hadas.</string>
     <string name="title_info_dragons">Lleva una aureola de dragones.</string>
+    <string name="title_info_effect">Lleva la aureola «%1$s».</string>
     <string name="title_info_starter">«%1$s» es el título con el que empieza todo el mundo. Se suben de nivel aportando piedras, vías y correcciones que aprueba el equipo.</string>
     <string name="title_info_level">«%1$s» se consigue con %2$d aportaciones aprobadas (piedras, vías y correcciones que revisa el equipo). Lleva %3$d.</string>
     <string name="profile_photo_title">Foto de perfil</string>

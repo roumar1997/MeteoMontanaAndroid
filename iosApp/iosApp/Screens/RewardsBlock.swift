@@ -276,10 +276,12 @@ struct RewardsBlock: View {
         if r.titleHidden { return nil }
         if let special = r.specialTitle, !special.isEmpty {
             var text = L("«%@» es un título especial que le ha dado el equipo de Cumbre.", special)
-            switch TitleEffectKind(r.titleEffect) {
-            case .fairies: text += " " + L("Lleva una aureola de hadas.")
-            case .dragons: text += " " + L("Lleva una aureola de dragones.")
-            case nil: break
+            if let effect = TitleEffectsModel.shared.find(r.titleEffect) {
+                switch effect.key {
+                case "FAIRIES": text += " " + L("Lleva una aureola de hadas.")
+                case "DRAGONS": text += " " + L("Lleva una aureola de dragones.")
+                default: text += " " + L("Lleva la aureola «%@».", effect.name)
+                }
             }
             return text
         }

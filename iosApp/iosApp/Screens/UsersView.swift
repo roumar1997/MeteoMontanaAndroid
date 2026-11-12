@@ -438,7 +438,7 @@ struct AvatarCircle: View {
     /// Lleva hadas o dragones animados (foto grande con efecto y título visible).
     private var effectRoom: Bool {
         guard size >= 60, let b = uid.flatMap({ badges.badges[$0] }), !b.titleHidden else { return false }
-        return TitleEffectKind(b.titleEffect) != nil
+        return TitleEffectsModel.shared.find(b.titleEffect) != nil
     }
     var body: some View {
         Group {

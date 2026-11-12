@@ -31,6 +31,7 @@ class SwiftBoundaryThrowsTest {
         "data/api/KtorChatPushApi.kt", "data/api/KtorBlockApi.kt",
         "data/api/KtorMeetupApi.kt", "data/api/KtorModerationApi.kt",
         "data/api/KtorFeatureFlagApi.kt", "domain/usecase/featureflags/FeatureFlagUseCases.kt",
+        "data/api/KtorTitleEffectApi.kt", "domain/usecase/titleeffects/TitleEffectUseCases.kt",
         // ── Use cases expuestos como val público ──
         "domain/usecase/meetups/MeetupUseCases.kt",
         "domain/usecase/profile/WeekendAlertUseCases.kt",

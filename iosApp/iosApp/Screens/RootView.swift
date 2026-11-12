@@ -86,8 +86,12 @@ struct RootView: View {
             }
         }
         .task { await featureFlags.refresh() }
+        .task { await TitleEffectsModel.shared.refresh() }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await featureFlags.refresh() } }
+            if phase == .active {
+                Task { await featureFlags.refresh() }
+                Task { await TitleEffectsModel.shared.refresh() }
+            }
         }
         .task(id: session.user?.uid) {
             guard session.user != nil else { return }

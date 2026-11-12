@@ -54,22 +54,27 @@ struct SpecialTitleAdminCard: View {
         }
     }
 
-    // MARK: - Efecto animado (hadas / dragones)
+    // MARK: - Efecto animado (catálogo del servidor)
 
-    /// "" = ninguno, "FAIRIES" o "DRAGONS".
+    /// "" = ninguno; si no, la clave del catálogo («FAIRIES», «DRAGONS», «LOLA»...).
     @State private var effect = ""
+    @ObservedObject private var effects = TitleEffectsModel.shared
     @State private var effectSaved: String?
 
     private var effectPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
             Divider().overlay(Cumbre.rule).padding(.vertical, 4)
             Text("EFECTO ALREDEDOR DE LA FOTO").font(Cumbre.mono(10, .bold)).tracking(1.4).foregroundStyle(Cumbre.terra)
-            Text("Hadas o dragones dando vueltas en su perfil (quietos en el feed y los chats). Sustituye a la aureola normal.")
+            Text("Figuras dando vueltas en su perfil (quietas en el feed y los chats). Sustituye a la aureola normal. La lista llega del servidor: los efectos nuevos aparecen aquí sin actualizar la app.")
                 .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-            HStack(spacing: 8) {
-                effectChip("Ninguno", value: "")
-                effectChip("Hadas", value: "FAIRIES")
-                effectChip("Dragones", value: "DRAGONS")
+            // Fila que se desliza: el catálogo puede crecer y no debe partir la pantalla estrecha.
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    effectChip("Ninguno", value: "")
+                    ForEach(effects.catalog.effects, id: \.key) { spec in
+                        effectChip(spec.name, value: spec.key)
+                    }
+                }
             }
             if let effectSaved { Text(effectSaved).font(.system(size: 12)).foregroundStyle(Cumbre.ok) }
         }

@@ -318,6 +318,18 @@
       "name": "Roca mojada en todas las puntuaciones (servidor)",
       "ios": "publicado",
       "android": "publicado"
+    },
+    {
+      "version": "7.3",
+      "name": "Efectos de título desde el servidor + Furgo Lola",
+      "ios": "hecho",
+      "android": "hecho"
+    },
+    {
+      "version": "7.3",
+      "name": "Optimización iOS y Android (guía sin saltos, fotos, arranque, batería)",
+      "ios": "hecho",
+      "android": "hecho"
     }
   ],
   "versions": {

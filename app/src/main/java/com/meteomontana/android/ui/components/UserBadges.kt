@@ -209,7 +209,8 @@ private fun ringStyle(b: UserBadge): Pair<Color, Boolean>? {
 fun Modifier.userRing(uid: String?, size: Dp): Modifier {
     val badge = rememberUserBadge(uid)
     // Hadas o dragones (los pone un admin): animados en el perfil (foto grande), quietos en el resto.
-    val effect = badge?.takeIf { !it.titleHidden }?.let { TitleEffectKind.from(it.titleEffect) }
+    val catalog = rememberTitleEffectCatalog()
+    val effect = badge?.takeIf { !it.titleHidden }?.let { catalog.find(it.titleEffect) }
     if (effect != null) return this.titleEffectHalo(effect, size, animated = size >= 60.dp)
     val style = badge?.let { ringStyle(it) } ?: return this
     val (color, shiny) = style
