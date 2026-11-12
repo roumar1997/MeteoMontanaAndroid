@@ -142,14 +142,21 @@ final class SchoolBlocksExplorerModel: ObservableObject {
         if overview == nil { overview = GuideOverviewStore.cached(schoolId: schoolId) }
         // Sin red, `getBlocks` devuelve las piedras guardadas, pero el fondo del mapa no se puede pedir:
         // en ese caso se queda la copia de disco.
-        guard let blocks = try? await AppDependencies.shared.container.getBlocks.invoke(schoolId: schoolId) else { return }
+        guard let blocks = try? await AppDependencies.shared.container.getBlocks.invoke(schoolId: schoolId) else {
+            overviewLoaded = true
+            return
+        }
         overviewBlocks = blocks
+        overviewLoaded = true
         guard let fresh = await GuideOverviewStore.generate(schoolId: schoolId, blocks: blocks) else { return }
         overview = fresh
     }
 
     /// Piedras, parkings y sectores de la escuela, para el mapa general EN VIVO (pantalla completa con red).
     @Published private(set) var overviewBlocks: [Block] = []
+    /// Las piedras del resumen ya se pidieron (llegaran o no). Hasta entonces, la foto aérea de un sector
+    /// sin copia en disco no se da por fallida: se queda el hueco con brillo, nunca una foto intermedia.
+    @Published private(set) var overviewLoaded = false
 
     /// Con red, el mapa general a pantalla completa es un mapa real (se acerca de verdad); sin red, la imagen.
     var isOnline: Bool { AppDependencies.shared.container.networkMonitor?.isOnlineNow() ?? true }
@@ -178,12 +185,18 @@ final class SchoolBlocksExplorerModel: ObservableObject {
         sectorMapsInFlight.insert(s.key)
         defer { sectorMapsInFlight.remove(s.key) }
         let ids = Set(s.blocks.map(\.blockId))
-        let stones = overviewBlocks.filter { ids.contains($0.id) }
-        // `sectorMap` no está atada al hilo principal: la foto se pide y se pinta fuera de él.
-        if let img = await GuideOverviewStore.sectorMap(schoolId: schoolId, key: s.key, stones: stones) {
-            sectorMaps[s.key] = img
+        // Si las piedras llegan mientras se intentaba sin ellas, se repite una vez ya con ellas.
+        while sectorMaps[s.key] == nil {
+            let ready = overviewLoaded
+            let stones = overviewBlocks.filter { ids.contains($0.id) }
+            // `sectorMap` no está atada al hilo principal: la foto se pide y se pinta fuera de él.
+            if let img = await GuideOverviewStore.sectorMap(schoolId: schoolId, key: s.key, stones: stones) {
+                sectorMaps[s.key] = img
+            }
+            // Sin las piedras aún, un fallo no es definitivo: se queda el hueco hasta que lleguen.
+            if sectorMaps[s.key] != nil || ready { sectorMapsTried.insert(s.key); return }
+            if !overviewLoaded || Task.isCancelled { return }
         }
-        sectorMapsTried.insert(s.key)
     }
 
     private var sectorMapsInFlight: Set<String> = []

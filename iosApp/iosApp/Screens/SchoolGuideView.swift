@@ -123,11 +123,10 @@ struct SchoolGuideView: View {
                 .aspectRatio(1100.0 / 520.0, contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
-                .task(id: model.overviewBlocks.count) { await model.loadSectorMap(schoolId: schoolId, sector: s) }
+                .task(id: model.overviewLoaded) { await model.loadSectorMap(schoolId: schoolId, sector: s) }
         } else if let photo = s.blocks.lazy.flatMap({ $0.faces }).compactMap({ $0.photo }).first {
-            // Sin foto aérea (sin red y sin copia): la de una piedra, en el mismo hueco por si luego llega el mapa.
+            // Solo si la foto aérea falló de verdad (piedras ya pedidas): la de una piedra, en el mismo hueco.
             GuideHeroPhoto(path: photo)
-                .task(id: model.overviewBlocks.count) { await model.loadSectorMap(schoolId: schoolId, sector: s) }
                 .aspectRatio(1100.0 / 520.0, contentMode: .fit)
                 .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
