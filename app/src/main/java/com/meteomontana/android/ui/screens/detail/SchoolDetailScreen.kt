@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -104,11 +105,11 @@ fun SchoolDetailScreen(
                 onOpenChat = onOpenChat,
                 onOpenSchoolChat = { onOpenSchoolChat(s.school.name) },
                 refreshKey = presenceRefreshKey,
-                leading = { BackPill(onBack) },
-                tileCount = if (s.school.processionaryAlertActive || s.school.processionaryActiveNowSet) 7 else 6,
-                trailing = { tile ->
+                leading = { item -> BackPill(onBack, item) },
+                tileCount = 8,
+                trailing = { item ->
                     HeaderActions(
-                        tile = tile,
+                        item = item,
                         isFavorite = s.isFavorite,
                         onToggleFavorite = viewModel::toggleFavorite,
                         isSavedOffline = s.isSavedOffline,
@@ -137,13 +138,12 @@ fun SchoolDetailScreen(
                             }
                         },
                         processionaryAlertActive = s.school.processionaryAlertActive,
-                        processionaryActiveNow = s.school.processionaryActiveNowSet,
                         onOpenProcessionary = { processionaryOpen = true }
                     )
                 }
             )
         } else {
-            Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.sm)) { BackPill(onBack) }
+            Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.sm)) { BackPill(onBack, Modifier.width(44.dp)) }
         }
         androidx.compose.material3.pulltorefresh.PullToRefreshBox(
             isRefreshing = isRefreshing,

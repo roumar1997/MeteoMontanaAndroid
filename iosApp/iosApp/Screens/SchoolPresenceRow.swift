@@ -87,12 +87,11 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
     /// otra vez quién hay — sin caché, es información en vivo (Álvaro,
     /// 2026-09-04: mejor a demanda que sondear sola cada X segundos).
     var refreshTrigger: Int = 0
-    /// La cabecera de la ficha (volver + nombre | iconos) se pinta AQUÍ, en la misma fila que el chat de la escuela
-    /// y el botón "Aquí": así no hace falta una fila fija extra (2026-10-14, para ganar altura).
-    let leading: Leading
-    /// Cuántas baldosas pinta la fila en total (Chat, Aquí y las de `trailing`): para repartir el ancho a partes iguales.
+    /// Iconos antes del chat (en la ficha, «volver»); recibe el ancho que debe tener cada uno.
+    let leading: (CGFloat) -> Leading
+    /// Cuántos iconos pinta la fila en total (`leading`, chat, Aquí y los de `trailing`): para repartir el ancho a partes iguales.
     let tileCount: Int
-    /// Baldosas de la ficha tras Chat y Aquí; recibe el ancho que debe tener cada una.
+    /// Iconos de la ficha tras Chat y Aquí; recibe el ancho que debe tener cada uno.
     let trailing: (CGFloat) -> Trailing
     @StateObject private var vm: SchoolPresenceViewModel
     @State private var openChatFor: ChatTarget?
@@ -100,12 +99,12 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
     @State private var showAllPresent = false
 
     init(schoolId: String, schoolName: String, myUid: String?, refreshTrigger: Int = 0, tileCount: Int = 2,
-         @ViewBuilder leading: () -> Leading, @ViewBuilder trailing: @escaping (CGFloat) -> Trailing) {
+         @ViewBuilder leading: @escaping (CGFloat) -> Leading, @ViewBuilder trailing: @escaping (CGFloat) -> Trailing) {
         self.schoolId = schoolId
         self.schoolName = schoolName
         self.myUid = myUid
         self.refreshTrigger = refreshTrigger
-        self.leading = leading()
+        self.leading = leading
         self.tileCount = tileCount
         self.trailing = trailing
         _vm = StateObject(wrappedValue: SchoolPresenceViewModel(schoolId: schoolId, myUid: myUid))
@@ -113,14 +112,10 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Fila de cabecera: «Volver» pequeño a la izquierda y, a su lado, Chat · Aquí · el resto de acciones, todas
-            // baldosas del mismo ancho repartidas por todo el ancho. Si no caben (iPhone estrecho o letra grande) la
-            // fila se desliza: no se esconde ninguna ni se encoge el nombre.
-            HStack(alignment: .top, spacing: 5) {
-                leading
-                ActionTileRow(count: tileCount, minTile: 50, gap: 5) { w in actionsRow(w) }
-            }
-            .padding(.horizontal, 12).padding(.vertical, 8)
+            // Fila de iconos, solo icono y repartidos por todo el ancho: Volver · Chat · Aquí · el resto de acciones.
+            // Si no caben (iPhone estrecho o letra grande) la fila se desliza: no se esconde ninguna ni encoge el toque.
+            IconActionRow(count: tileCount) { w in actionsRow(w) }
+                .padding(.horizontal, 12).padding(.vertical, 4)
             // Quién hay ahora mismo: solo ocupa una fila cuando de verdad hay gente.
             if !vm.people.isEmpty || vm.iAmHere {
                 peopleBar
@@ -211,11 +206,11 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
         .presentationDetents([.medium, .large])
     }
 
-    /// Chat de la escuela + «Aquí» + las acciones de la ficha (`trailing`), todo en baldosas con nombre.
+    /// `leading` + chat de la escuela + «Aquí» + las acciones de la ficha (`trailing`), todo en iconos sin texto.
     /// «Aquí» también se puede marcar desde dentro del chat.
     @ViewBuilder private func actionsRow(_ w: CGFloat) -> some View {
-        ActionTile(label: L("bar_chat"), symbol: "bubble.left.and.bubble.right",
-                   a11y: L("Chat de la escuela")) { showSchoolChat = true }
+        leading(w)
+        IconAction(symbol: "bubble.left.and.bubble.right", a11y: L("Chat de la escuela")) { showSchoolChat = true }
             .frame(width: w)
         PresenceHereTile(vm: vm).frame(width: w).guideTarget("detail.here")
         trailing(w)
@@ -253,14 +248,14 @@ struct PresenceMarkButton: View {
     private var privacySheet: some View { PresencePrivacySheet { showPrivacyNote = false; vm.toggle() } }
 }
 
-/// «Aquí» de la cabecera de la ficha: baldosa con nombre, terracota cuando estás aquí. Mismo flujo que
+/// «Aquí» de la cabecera de la ficha: icono sin texto, terracota cuando estás aquí. Mismo flujo que
 /// `PresenceMarkButton` (aviso de privacidad al marcar; tocar de nuevo lo quita).
 struct PresenceHereTile: View {
     @ObservedObject var vm: SchoolPresenceViewModel
     @State private var showPrivacyNote = false
 
     var body: some View {
-        ActionTile(label: L("bar_here"), symbol: "mappin.and.ellipse", a11y: L("Aquí"), active: vm.iAmHere) {
+        IconAction(symbol: "mappin.and.ellipse", a11y: L("Aquí"), active: vm.iAmHere) {
             guard !vm.loading else { return }
             if vm.iAmHere { vm.toggle() } else { showPrivacyNote = true }
         }

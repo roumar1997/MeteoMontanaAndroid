@@ -126,11 +126,11 @@ fun SchoolPresenceRow(
     // otra vez quién hay — sin caché, es información en vivo (Álvaro,
     // 2026-09-04: mejor a demanda que sondear sola cada X segundos).
     refreshKey: Int = 0,
-    /** La cabecera de la ficha (volver | iconos) se pinta AQUÍ, en la misma fila que el chat y "Aquí" (2026-10-14). */
-    leading: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
-    /** Cuántas baldosas pinta la fila en total (Chat, Aquí y las de [trailing]): para repartir el ancho a partes iguales. */
+    /** Iconos antes del chat (en la ficha, «volver»); cada uno recibe el modificador de ancho de la fila. */
+    leading: @Composable androidx.compose.foundation.layout.RowScope.(item: Modifier) -> Unit = {},
+    /** Cuántos iconos pinta la fila en total (leading, chat, Aquí y los de [trailing]): para repartir el ancho a partes iguales. */
     tileCount: Int = 2,
-    trailing: @Composable androidx.compose.foundation.layout.RowScope.(tile: Modifier) -> Unit = {},
+    trailing: @Composable androidx.compose.foundation.layout.RowScope.(item: Modifier) -> Unit = {},
     viewModel: SchoolPresenceViewModel = hiltViewModel()
 ) {
     var showPrivacyNote by remember { mutableStateOf(false) }
@@ -141,35 +141,30 @@ fun SchoolPresenceRow(
     }
 
     Column {
-        // Fila de cabecera: el "atrás" a la izquierda, chat + "Aquí" y, a la derecha, las acciones de la escuela.
-        Row(
+        // Fila de iconos, solo icono y repartidos por todo el ancho: Volver · Chat · Aquí · Llegar · Enviar · Favorita ·
+        // Guardar · Oruga. Si no caben (pantalla estrecha o letra grande) la fila se desliza: el área de toque no encoge.
+        IconActionRow(
+            count = tileCount,
             modifier = Modifier
-                .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-            Row(verticalAlignment = Alignment.Top) { leading() }
-            // Chat · Aquí · Llegar · Enviar · Favorita · Guardar (· Oruga): baldosas del mismo ancho repartidas por todo el
-            // ancho. Si no caben (pantalla estrecha o letra grande) la fila se desliza: nunca se encoge el nombre.
-            ActionTileRow(count = tileCount, modifier = Modifier.weight(1f), minTile = 50.dp, gap = 5.dp) { tile ->
-                ActionTile(
-                    label = stringResource(R.string.bar_chat), onClick = onOpenSchoolChat, modifier = tile,
-                    icon = Icons.AutoMirrored.Outlined.Chat,
-                    description = stringResource(R.string.school_presence_row_v2_chat_de_la_escuela)
-                )
-                com.meteomontana.android.ui.screens.detail.HereTile(
-                    iAmHere = viewModel.iAmHere,
-                    loading = viewModel.loading,
-                    onClick = {
-                        if (viewModel.iAmHere) viewModel.toggle(schoolId, myUid)
-                        else showPrivacyNote = true
-                    },
-                    modifier = tile.guideTarget("detail.here")
-                )
-                trailing(tile)
-            }
+                .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+        ) { item ->
+            leading(item)
+            IconAction(
+                onClick = onOpenSchoolChat, modifier = item,
+                icon = Icons.AutoMirrored.Filled.Chat,
+                description = stringResource(R.string.school_presence_row_v2_chat_de_la_escuela)
+            )
+            com.meteomontana.android.ui.screens.detail.HereTile(
+                iAmHere = viewModel.iAmHere,
+                loading = viewModel.loading,
+                onClick = {
+                    if (viewModel.iAmHere) viewModel.toggle(schoolId, myUid)
+                    else showPrivacyNote = true
+                },
+                modifier = item.guideTarget("detail.here")
+            )
+            trailing(item)
         }
         // Quién hay ahora mismo: solo ocupa una fila cuando de verdad hay gente.
         if (viewModel.people.isNotEmpty()) {

@@ -32,8 +32,8 @@ import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.PhotoCamera
-import com.meteomontana.android.ui.components.ActionTile
-import com.meteomontana.android.ui.components.ActionTileRow
+import com.meteomontana.android.ui.components.IconAction
+import com.meteomontana.android.ui.components.IconActionRow
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.GridView
@@ -146,14 +146,14 @@ internal fun SchoolsHeader(
         }
     }
     // Gente · Chats · Noche · Avisos: cuatro baldosas iguales repartidas por todo el ancho.
-    ActionTileRow(count = 4) { tile ->
-        ActionTile(label = stringResource(R.string.bar_people), onClick = onSearchUsers, modifier = tile,
-            icon = Icons.Outlined.PersonSearch, description = stringResource(R.string.search_users_title))
-        ActionTile(label = stringResource(R.string.bar_chats), onClick = onChats, modifier = tile,
-            icon = Icons.AutoMirrored.Outlined.Chat, badge = chatUnread, description = stringResource(R.string.chat_title))
-        ThemeToggleButton(tile)
-        ActionTile(label = stringResource(R.string.bar_alerts), onClick = onNotifications, modifier = tile,
-            icon = Icons.Outlined.Notifications, badge = unread, description = stringResource(R.string.notifications_title))
+    IconActionRow(count = 4) { item ->
+        IconAction(onClick = onSearchUsers, modifier = item,
+            icon = Icons.Filled.PersonSearch, description = stringResource(R.string.search_users_title))
+        IconAction(onClick = onChats, modifier = item,
+            icon = Icons.AutoMirrored.Filled.Chat, badge = chatUnread, description = stringResource(R.string.chat_title))
+        ThemeToggleButton(item)
+        IconAction(onClick = onNotifications, modifier = item,
+            icon = Icons.Filled.Notifications, badge = unread, description = stringResource(R.string.notifications_title))
     }
     }
     if (helpOpen) com.meteomontana.android.ui.components.HelpSheet(topicKey = "schools", onDismiss = { helpOpen = false })
@@ -181,11 +181,10 @@ internal fun ThemeToggleButton(modifier: Modifier = Modifier) {
         com.meteomontana.android.ui.theme.ThemeMode.LIGHT -> false
         com.meteomontana.android.ui.theme.ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
     }
-    ActionTile(
-        label = stringResource(R.string.bar_night),
+    IconAction(
         onClick = vm::toggle,
         modifier = modifier,
-        icon = if (isDark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+        icon = if (isDark) Icons.Filled.LightMode else Icons.Filled.DarkMode,
         active = isDark,
         description = stringResource(R.string.a11y_toggle_theme)
     )

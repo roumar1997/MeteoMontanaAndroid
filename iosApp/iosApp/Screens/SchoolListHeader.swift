@@ -50,7 +50,7 @@ struct CompareBar: View {
 
 // MARK: - Header
 
-/// Las cuatro baldosas de la cabecera de Escuelas: Gente · Chats · Noche · Avisos, iguales y repartidas por todo el
+/// Los cuatro iconos de la cabecera de Escuelas: Gente · Chats · Noche · Avisos, iguales y repartidos por todo el
 /// ancho. Espejo de `SchoolsHeader` en Android. Si no caben (iPhone estrecho o letra grande) la fila se desliza.
 struct TopIconsRow: View {
     var unreadCount: Int = 0
@@ -62,18 +62,18 @@ struct TopIconsRow: View {
     @ObservedObject private var theme = ThemeManager.shared
 
     var body: some View {
-        ActionTileRow(count: 4) { w in
-            ActionTile(label: L("bar_people"), symbol: "person.crop.circle.badge.magnifyingglass",
+        IconActionRow(count: 4) { w in
+            IconAction(symbol: "person.crop.circle.badge.magnifyingglass",
                        a11y: L("search_users_title")) { showSearch = true }
                 .frame(width: w)
-            ActionTile(label: L("bar_chats"), symbol: "bubble.left.and.bubble.right", a11y: L("chat_title"),
+            IconAction(symbol: "bubble.left.and.bubble.right", a11y: L("chat_title"),
                        badge: chatUnread) { showChats = true }
                 .frame(width: w)
             // Encendido (terracota) = modo noche. El icono es el del modo en que estás.
-            ActionTile(label: L("bar_night"), symbol: theme.mode == .dark ? "sun.max" : "moon",
+            IconAction(symbol: theme.mode == .dark ? "sun.max" : "moon",
                        a11y: L("bar_night"), active: theme.mode == .dark) { theme.cycle() }
                 .frame(width: w)
-            ActionTile(label: L("bar_alerts"), symbol: "bell", a11y: L("notifications_title"),
+            IconAction(symbol: "bell", a11y: L("notifications_title"),
                        badge: unreadCount) { showNotifications = true }
                 .frame(width: w)
         }
@@ -84,7 +84,7 @@ struct TopIconsRow: View {
 }
 
 /// Cabecera de Escuelas: arriba «? AYUDA» a la izquierda y "Aportar" (píldora terracota con cámara) a la derecha;
-/// debajo, cuatro baldosas iguales (Gente · Chats · Noche · Avisos). Sin el título "Escuelas": ya lo dice la pestaña.
+/// debajo, cuatro iconos iguales (Gente · Chats · Noche · Avisos). Sin el título "Escuelas": ya lo dice la pestaña.
 struct HeaderEscuelas: View {
     var unreadCount: Int = 0
     var chatUnread: Int = 0

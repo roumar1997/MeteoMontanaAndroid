@@ -64,9 +64,9 @@ struct SchoolDetailView: View {
             SchoolPresenceRow(schoolId: school.id, schoolName: school.name,
                               myUid: AppDependencies.shared.authBridge.currentUid(),
                               refreshTrigger: presenceRefreshTrigger,
-                              tileCount: SchoolDetailHeaderActions.showsCaterpillar(vm) ? 7 : 6,
-                              leading: {
-                                  SchoolDetailHeaderTitle { dismiss() }
+                              tileCount: 8,
+                              leading: { w in
+                                  SchoolDetailHeaderTitle(width: w) { dismiss() }
                               },
                               trailing: { w in
                                   SchoolDetailHeaderActions(vm: vm, school: school, tile: w,
