@@ -274,7 +274,8 @@ struct SchoolDetailView: View {
                     factorsExpanded: $factorsExpanded,
                     onSelectDay: { selectedDay = $0 },
                     tabsSlot: AnyView(tabbedContent(f)),
-                    hoyOpen: hoyOpen
+                    hoyOpen: hoyOpen,
+                    showsHoy: tab != .blocks
                 )
             } else {
                 // Sin previsión: las pestañas van igualmente (el tiempo no tiene nada que enseñar).

@@ -47,7 +47,7 @@ import com.meteomontana.android.ui.theme.Serif
  * que ahora vive en la pestaña TIEMPO).
  */
 @Composable
-fun HoyCard(forecast: Forecast, modifier: Modifier = Modifier) {
+fun HoyCard(forecast: Forecast, modifier: Modifier = Modifier, showsHoy: Boolean = true) {
     var open by rememberSaveable { mutableStateOf(false) }
     var factorsOpen by rememberSaveable { mutableStateOf(false) }
     val cur = forecast.current
@@ -57,7 +57,8 @@ fun HoyCard(forecast: Forecast, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(10.dp)
 
     Column {
-    Column(
+    // En GUÍA no va la tarjeta HOY (Álvaro, 2026-11-14): allí se busca la roca; queda la mejor hora por sector.
+    if (showsHoy) Column(
         modifier
             .padding(horizontal = 12.dp, vertical = 6.dp)
             .fillMaxWidth()

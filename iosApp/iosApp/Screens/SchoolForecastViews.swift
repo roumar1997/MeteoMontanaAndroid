@@ -23,6 +23,8 @@ struct ForecastBodyView: View {
     var tabsSlot: AnyView? = nil
     /// Tarjeta HOY plegable de la ficha con pestañas (nil = la ficha de siempre). La ficha la abre sola en TIEMPO.
     var hoyOpen: Binding<Bool>? = nil
+    /// En GUÍA no se enseña la tarjeta HOY (Álvaro, 2026-11-14): allí se busca la roca; queda la mejor hora por sector.
+    var showsHoy: Bool = true
 
     var body: some View {
         let f = forecast
@@ -30,8 +32,10 @@ struct ForecastBodyView: View {
             if let tabsSlot {
                 // Ficha de escuela: UNA tarjeta HOY (SÍ/NO, índice, roca, óptimo) que se despliega con las 16 horas
                 // y el "por qué"; así las pestañas y el mapa empiezan mucho más arriba.
-                HoyCard(forecast: f, open: hoyOpen ?? .constant(false), factorsExpanded: $factorsExpanded)
+                if showsHoy {
+                    HoyCard(forecast: f, open: hoyOpen ?? .constant(false), factorsExpanded: $factorsExpanded)
                     .guideTarget("detail.hoy")
+                }
                 SectorHoursSection(schoolId: f.schoolId, dryRock: f.current.dryRock, dryingMessage: f.current.drying?.message,
                                    rainHours: todayRainHours(f.hours))
                 tabsSlot

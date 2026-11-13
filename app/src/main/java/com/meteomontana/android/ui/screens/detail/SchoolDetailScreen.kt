@@ -425,8 +425,8 @@ internal fun Content(
         LaunchedEffect(tab) { if (tab != SchoolTab.MAP) returnToGuide = false }
 
         if (forecast != null) {
-            HoyCard(forecast)
-        } else if (forecastError != null) {
+            HoyCard(forecast, showsHoy = tab != SchoolTab.BLOCKS)
+        } else if (forecastError != null && tab != SchoolTab.BLOCKS) {
             Box(modifier = Modifier
                 .fillMaxWidth()
                 .padding(Spacing.lg)
@@ -443,7 +443,7 @@ internal fun Content(
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-        } else {
+        } else if (tab != SchoolTab.BLOCKS) {
             // Forecast aún cargando: hueco discreto en su zona.
             Row(
                 modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
