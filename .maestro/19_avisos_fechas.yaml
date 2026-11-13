@@ -13,7 +13,7 @@ appId: com.meteomontana.android
     visible: "Cerrar"
     timeout: 20000
 - assertNotVisible: ".*20[0-9][0-9]-[0-9][0-9]-[0-9][0-9].*"
-- assertVisible: "(hace .*|Ayer|[0-9]{1,2} [a-z]{3,5}[.]?)"
+- assertVisible: ".*(hace .*|Ayer|[0-9]{1,2} [a-z]{3,5}[.]?)"
 - takeScreenshot: 19_fechas
 - tapOn: "Cerrar"
 - extendedWaitUntil:

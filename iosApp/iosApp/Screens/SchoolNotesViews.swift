@@ -24,6 +24,10 @@ struct NotesSectionView: View {
     var onVote: (Note, Int) -> Void = { _, _ in }
     /// Ficha de escuela con pestañas: las notas SIEMPRE abiertas (la pestaña ya es el desplegable).
     var alwaysOpen = false
+    /// Nombre de la escuela, para el texto de la caja de escribir.
+    var schoolName: String? = nil
+    @State private var myPhoto: String?
+    @State private var myName: String?
 
     @State private var draft = ""
     @State private var photoNote: Note?
@@ -66,7 +70,7 @@ struct NotesSectionView: View {
                 HStack(spacing: 8) {
                     Text("NOTAS COMUNITARIAS").eyebrow()
                     if !notes.isEmpty {
-                        Text("\(notes.count)")
+                        Text(notes.count == 1 ? L("1 nota") : L("%@ notas", notes.count))
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Cumbre.ink)
                             .padding(.horizontal, 7).padding(.vertical, 2)
@@ -86,6 +90,57 @@ struct NotesSectionView: View {
             .padding(.top, 8)
 
             if expanded || alwaysOpen {
+            // Composer: mi avatar, cámara redonda y enviar redondo terracota
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    AvatarCircle(url: myPhoto, size: 32, uid: Auth.auth().currentUser?.uid)
+                    TextField(schoolName.map { L("Escribe una nota sobre %@…", $0) } ?? NSLocalizedString("detail_write_note", comment: ""),
+                              text: $draft, axis: .vertical)
+                        .lineLimit(1...5)
+                        .guideTarget("detail_notes.write")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Cumbre.ink)
+                    PhotosPicker(selection: $pickerItem, matching: .images) {
+                        Image(systemName: "camera").font(.system(size: 16)).foregroundStyle(Cumbre.ink)
+                            .frame(width: 36, height: 36).background(Cumbre.paper2).clipShape(Circle())
+                    }
+                    .accessibilityLabel(L("Añadir foto"))
+                    Button {
+                        let text = draft; let img = pickedImage
+                        draft = ""; pickedImage = nil; pickerItem = nil
+                        onPublish(text, img)
+                    } label: {
+                        Group {
+                            if publishing { ProgressView().tint(.white) }
+                            else { Image(systemName: "paperplane.fill").font(.system(size: 15)).foregroundStyle(.white) }
+                        }
+                        .frame(width: 36, height: 36)
+                        .background(canPublish ? Cumbre.terra : Cumbre.terra.opacity(0.35))
+                        .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canPublish)
+                    .accessibilityLabel(L("Enviar nota"))
+                }
+                .padding(8)
+                .background(Cumbre.paper)
+                .clipShape(RoundedRectangle(cornerRadius: 28))
+                .overlay(RoundedRectangle(cornerRadius: 28).stroke(Cumbre.rule, lineWidth: 1))
+
+                // Vista previa de la foto elegida (con opción de quitarla).
+                if let img = pickedImage {
+                    HStack(spacing: 8) {
+                        Image(uiImage: img).resizable().scaledToFill()
+                            .frame(width: 56, height: 56).clipShape(RoundedRectangle(cornerRadius: 8))
+                        Button { pickedImage = nil; pickerItem = nil } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(Cumbre.ink3)
+                        }.buttonStyle(.plain)
+                        Spacer()
+                    }
+                }
+            }
+            .padding(.top, 8)
+
             if notes.count > 1 {
                 orderMenu
                     .guideTarget("detail_notes.order")
@@ -102,60 +157,18 @@ struct NotesSectionView: View {
                                 onVote: { v in onVote(n, v) },
                                 canReport: Auth.auth().currentUser?.uid != n.uid,
                                 onReport: { reportNote = n })
-                    Divider().overlay(Cumbre.rule)
                 }
             }
 
-            // Composer
-            VStack(alignment: .trailing, spacing: 8) {
-                TextField(NSLocalizedString("detail_write_note", comment: ""), text: $draft, axis: .vertical)
-                    .lineLimit(1...4)
-                    .guideTarget("detail_notes.write")
-                    .font(.system(size: 15))
-                    .foregroundStyle(Cumbre.ink)
-                    .padding(10)
-                    .background(Cumbre.paper)
-                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-
-                // Vista previa de la foto elegida (con opción de quitarla).
-                if let img = pickedImage {
-                    HStack(spacing: 8) {
-                        Image(uiImage: img).resizable().scaledToFill()
-                            .frame(width: 56, height: 56).clipShape(RoundedRectangle(cornerRadius: 4))
-                        Button { pickedImage = nil; pickerItem = nil } label: {
-                            Image(systemName: "xmark.circle.fill").foregroundStyle(Cumbre.ink3)
-                        }.buttonStyle(.plain)
-                        Spacer()
-                    }
-                }
-
-                HStack(spacing: 10) {
-                    PhotosPicker(selection: $pickerItem, matching: .images) {
-                        Image(systemName: "camera").font(.system(size: 16)).foregroundStyle(Cumbre.terra)
-                            .frame(width: 34, height: 34).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                    }
-                    Spacer()
-                    Button {
-                        let text = draft; let img = pickedImage
-                        draft = ""; pickedImage = nil; pickerItem = nil
-                        onPublish(text, img)
-                    } label: {
-                        HStack(spacing: 6) {
-                            if publishing { ProgressView().tint(.white) }
-                            Text("PUBLICAR").font(Cumbre.mono(12, .bold)).tracking(0.8)
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 16).padding(.vertical, 10)
-                        .background(canPublish ? Cumbre.terra : Cumbre.ink3)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!canPublish)
-                }
-            }
-            .padding(.top, 8)
             }   // fin if expanded
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
+        .task {
+            guard myPhoto == nil, let uid = Auth.auth().currentUser?.uid else { return }
+            if let p = try? await AppDependencies.shared.container.getPublicProfile.invoke(uid: uid) {
+                myPhoto = p.photoUrl; myName = p.displayName ?? p.username
+            }
+        }
         .onChange(of: pickerItem) { _, item in
             guard let item else { return }
             Task {
@@ -179,6 +192,7 @@ struct NotesSectionView: View {
     }
 }
 
+/// Una nota con el aspecto de una publicación del feed: autor, texto, foto y votos de utilidad.
 private struct NoteRowView: View {
     let note: Note
     let onPhotoTap: () -> Void
@@ -187,19 +201,28 @@ private struct NoteRowView: View {
     var onReport: () -> Void = {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(note.author ?? L("Anónimo"))
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Cumbre.ink)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                AvatarCircle(url: note.authorPhotoUrl, size: 36, uid: note.uid)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text(note.author ?? L("Anónimo"))
+                            .font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink).lineLimit(1)
+                        VerifiedCheck(uid: note.uid, size: 13)
+                    }
+                    Text((note.authorUsername.map { "@" + $0 + " · " } ?? "") + feedRelativeTime(note.createdAt))
+                        .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3).lineLimit(1)
+                }
                 Spacer()
-                Text(shortDate(note.createdAt))
-                    .font(Cumbre.mono(11))
-                    .foregroundStyle(Cumbre.ink3)
+                if canReport {
+                    Button(action: onReport) {
+                        Image(systemName: "flag").font(.system(size: 13))
+                            .foregroundStyle(Cumbre.ink3.opacity(0.7)).padding(10).contentShape(Rectangle())
+                    }.buttonStyle(.plain)
+                }
             }
             Text(note.text)
-                .font(.system(size: 15))
-                .foregroundStyle(Cumbre.ink)
+                .font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if let url = note.photoUrl, let u = URL(string: url) {
                 Button(action: onPhotoTap) {
@@ -208,31 +231,23 @@ private struct NoteRowView: View {
                     } placeholder: {
                         Rectangle().fill(Cumbre.paper)
                     }
-                    .frame(height: 120)
+                    .frame(height: 180)
                     .frame(maxWidth: .infinity)
-                    .clipped()
-                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .buttonStyle(.plain)
             }
             // Voto de utilidad: tocar de nuevo tu voto lo retira.
             HStack(spacing: 6) {
-                if canReport {
-                    Button(action: onReport) {
-                        Image(systemName: "flag")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Cumbre.ink3.opacity(0.7))
-                            .padding(10)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-                Spacer()
                 voteChip("▲ \(note.upvotesCount)", active: note.myVote == 1) { onVote(1) }
                 voteChip("▼ \(note.downvotesCount)", active: note.myVote == -1) { onVote(-1) }
+                Spacer()
             }
         }
-        .padding(.vertical, 8)
+        .padding(12)
+        .background(Cumbre.paper)
+        .clipShape(RoundedRectangle(cornerRadius: 2))
+        .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
     }
 
     private func voteChip(_ label: String, active: Bool, action: @escaping () -> Void) -> some View {

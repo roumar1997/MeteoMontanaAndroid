@@ -193,7 +193,8 @@ struct SchoolDetailView: View {
                     publishing: vm.publishing,
                     onPublish: { text, image in Task { await vm.publishNote(schoolId: school.id, text: text, image: image) } },
                     onVote: { note, v in Task { await vm.voteNote(note, value: v) } },
-                    alwaysOpen: true
+                    alwaysOpen: true,
+                    schoolName: school.name
                 )
             }
         }

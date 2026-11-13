@@ -12,19 +12,67 @@ final class NotificationsViewModel: ObservableObject {
     private let markAllRead: MarkAllNotificationsReadUseCase
     private let deleteOne: DeleteNotificationUseCase
     private let deleteAllUC: DeleteAllNotificationsUseCase
+    private let followUser: FollowUserUseCase
+    private let unfollowUser: UnfollowUserUseCase
+    private let getFollowStatus: GetFollowStatusUseCase
+
+    /// Lo que he tocado en los botones de seguir (uid → estado); si no, manda lo que dijo el servidor.
+    @Published var followOverrides: [String: NotifFollowState] = [:]
+
+    /// Avisos agrupados (varios me gusta del mismo objeto en uno) y repartidos en HOY / ESTA SEMANA / ANTES.
+    var groups: [NotificationGroup] { NotificationGrouping.shared.group(items: items) }
 
     init(
         getMyNotifications: GetMyNotificationsUseCase = AppDependencies.shared.container.getMyNotifications,
         markRead: MarkNotificationReadUseCase = AppDependencies.shared.container.markNotificationRead,
         markAllRead: MarkAllNotificationsReadUseCase = AppDependencies.shared.container.markAllNotificationsRead,
         deleteOne: DeleteNotificationUseCase = AppDependencies.shared.container.deleteNotification,
-        deleteAllUC: DeleteAllNotificationsUseCase = AppDependencies.shared.container.deleteAllNotifications
+        deleteAllUC: DeleteAllNotificationsUseCase = AppDependencies.shared.container.deleteAllNotifications,
+        followUser: FollowUserUseCase = AppDependencies.shared.container.followUser,
+        unfollowUser: UnfollowUserUseCase = AppDependencies.shared.container.unfollowUser,
+        getFollowStatus: GetFollowStatusUseCase = AppDependencies.shared.container.getFollowStatus
     ) {
+        self.followUser = followUser
+        self.unfollowUser = unfollowUser
+        self.getFollowStatus = getFollowStatus
         self.getMyNotifications = getMyNotifications
         self.markRead = markRead
         self.markAllRead = markAllRead
         self.deleteOne = deleteOne
         self.deleteAllUC = deleteAllUC
+    }
+
+    func followState(_ n: Shared.Notification) -> NotifFollowState {
+        if let uid = n.actorUid, let s = followOverrides[uid] { return s }
+        if n.iFollowActor { return .following }
+        return n.followRequested ? .requested : .none
+    }
+
+    /// Seguir / dejar de seguir a quien me acaba de seguir, sin salir de la bandeja.
+    func toggleFollow(_ n: Shared.Notification) {
+        guard let uid = n.actorUid else { return }
+        let current = followState(n)
+        if current == .requested { return }
+        if current == .following {
+            followOverrides[uid] = NotifFollowState.none
+            Task {
+                do { try await unfollowUser.invoke(uid: uid) } catch { followOverrides[uid] = .following }
+            }
+        } else {
+            followOverrides[uid] = .following
+            Task {
+                do {
+                    try await followUser.invoke(uid: uid)
+                    let st = try await getFollowStatus.invoke(uid: uid)
+                    followOverrides[uid] = st.iFollowThem ? .following : (st.requestPending ? .requested : NotifFollowState.none)
+                } catch { followOverrides[uid] = NotifFollowState.none }
+            }
+        }
+    }
+
+    /// Borra un grupo de avisos (uno o varios me gusta fundidos) y lo sincroniza.
+    func delete(_ g: NotificationGroup) {
+        for n in g.members { delete(n) }
     }
 
     /// Borra una notificación (optimista) y lo sincroniza.
@@ -63,9 +111,11 @@ final class NotificationsViewModel: ObservableObject {
 
     /// Marca leída (si no lo estaba). Devuelve el destino de navegación según el
     /// targetType (espejo de NotificationsScreen.kt: "user"→perfil, "school"→detalle).
-    func tap(_ n: Shared.Notification) -> NotifTarget? {
-        if n.readAt == nil {
-            Task { try? await markRead.invoke(id: n.id); await load() }
+    func tap(_ g: NotificationGroup) -> NotifTarget? {
+        let n = g.lead
+        let unreadIds = g.members.filter { $0.readAt == nil }.map { $0.id }
+        if !unreadIds.isEmpty {
+            Task { for id in unreadIds { try? await markRead.invoke(id: id) }; await load() }
         }
         // Solicitud de seguimiento → a la lista de solicitudes (aceptar/rechazar).
         if n.targetType == "follow_request" { return .followRequests }
@@ -127,16 +177,29 @@ struct NotificationsView: View {
                     )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
+                    let groups = vm.groups
                     List {
-                        ForEach(vm.items, id: \.id) { n in
-                            NotificationRow(n: n)
+                        ForEach(Array(groups.enumerated()), id: \.element.id) { idx, g in
+                            if idx == 0 || groups[idx - 1].section != g.section {
+                                Text(notificationSectionTitle(g.section))
+                                    .font(Cumbre.mono(10, .bold)).tracking(1.4).foregroundStyle(Cumbre.ink3)
+                                    .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 4)
+                                    .listRowInsets(EdgeInsets())
+                                    .listRowBackground(Cumbre.bg)
+                                    .listRowSeparator(.hidden)
+                            }
+                            NotificationRowView(
+                                g: g, follow: vm.followState(g.lead),
+                                onToggleFollow: { vm.toggleFollow(g.lead) },
+                                onOpen: { target = vm.tap(g) }
+                            )
                                 .contentShape(Rectangle())
-                                .onTapGesture { target = vm.tap(n) }
+                                .onTapGesture { target = vm.tap(g) }
                                 .listRowInsets(EdgeInsets())
                                 .listRowBackground(Cumbre.bg)
-                                .listRowSeparatorTint(Cumbre.rule)
+                                .listRowSeparator(.hidden)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) { vm.delete(n) } label: {
+                                    Button(role: .destructive) { vm.delete(g) } label: {
                                         Label("Borrar", systemImage: "trash")
                                     }
                                 }
@@ -185,39 +248,6 @@ struct NotificationsView: View {
             // Al cerrar la bandeja se consideran vistas → se limpia el badge.
             .onDisappear { Task { await vm.markAllSilent() } }
         }
-    }
-}
-
-private struct NotificationRow: View {
-    let n: Shared.Notification
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Circle()
-                .fill(n.readAt == nil ? Cumbre.terra : Color.clear)
-                .frame(width: 8, height: 8)
-                .padding(.top, 6)
-            // Mensaje del equipo (no de una persona): logo de Cumbre delante, para que se distinga a la primera.
-            if n.type == "TEAM_MESSAGE" {
-                Image("logo_cumbre").resizable().scaledToFill()
-                    .frame(width: 36, height: 36).clipShape(Circle())
-            }
-            VStack(alignment: .leading, spacing: 3) {
-                if n.type == "TEAM_MESSAGE" {
-                    Text(L("EQUIPO CUMBRE")).font(Cumbre.mono(10, .bold)).tracking(1.4).foregroundStyle(Cumbre.terra)
-                }
-                Text(n.title)
-                    .font(.system(size: 15, weight: n.readAt == nil ? .semibold : .regular))
-                    .foregroundStyle(Cumbre.ink)
-                if let b = n.body, !b.isEmpty {
-                    Text(b).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
-                }
-                Text(notificationDateLabel(n.createdAt))
-                    .font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 16).padding(.vertical, 12)
-        .contentShape(Rectangle())
     }
 }
 
