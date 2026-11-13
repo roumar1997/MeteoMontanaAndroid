@@ -56,9 +56,9 @@ extension SchoolMapSection {
                     if active { styleFilter.remove(opt) } else { styleFilter.insert(opt) }
                 } label: {
                     HStack(spacing: 5) {
-                        // Vía = mosquetón/cuerda (eslabón); Bloque = piedra/crashpad (cubo).
-                        Image(systemName: opt == "Vía" ? "link" : "cube")
-                            .font(.system(size: 11, weight: .bold))
+                        // Los mismos dibujos de la app: mosquetón (vía) y crashpad (bloque), como en la lista de escuelas.
+                        Image(opt == "Vía" ? "kind_route" : "kind_boulder")
+                            .renderingMode(.template).resizable().scaledToFit().frame(height: 14)
                         Text(L(opt).uppercased()).font(Cumbre.mono(11, .bold)).tracking(0.5)
                             .lineLimit(1).minimumScaleFactor(0.8)
                     }

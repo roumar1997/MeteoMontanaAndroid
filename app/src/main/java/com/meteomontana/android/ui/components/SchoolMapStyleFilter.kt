@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.outlined.Link
-import androidx.compose.material.icons.outlined.ViewInAr
 import com.meteomontana.android.ui.theme.CumbrePillShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -118,7 +116,14 @@ internal fun StyleFilterRow(
                 horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 // Vía = mosquetón/cuerda (eslabón); Bloque = piedra/crashpad (cubo).
-                Icon(if (i == 0) Icons.Outlined.Link else Icons.Outlined.ViewInAr, null, Modifier.size(14.dp), tint = fg)
+                // Los mismos dibujos de la app: mosquetón (vía) y crashpad (bloque), como en la lista de escuelas y el mapa.
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(if (i == 0) com.meteomontana.android.R.drawable.kind_route else com.meteomontana.android.R.drawable.kind_boulder),
+                    contentDescription = null,
+                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(fg),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                    modifier = Modifier.height(14.dp),
+                )
                 Text(opt.uppercase(), style = EyebrowTextStyle, color = fg, maxLines = 1)
             }
         }
