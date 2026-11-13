@@ -1859,4 +1859,17 @@
     <string name="notif_team_title">Cumbre team</string>
     <string name="feature_off_eyebrow">PAUSED</string>
     <string name="feature_off_message">This feature is paused for a moment. We\'re fixing it — try again shortly.</string>
+    <string name="bar_help">Help</string>
+    <string name="bar_people">People</string>
+    <string name="bar_chats">Chats</string>
+    <string name="bar_night">Night</string>
+    <string name="bar_alerts">Alerts</string>
+    <string name="bar_chat">Chat</string>
+    <string name="bar_here">Here</string>
+    <string name="bar_directions">Route</string>
+    <string name="bar_share">Share</string>
+    <string name="bar_favorite">Favorite</string>
+    <string name="bar_save">Save</string>
+    <string name="bar_caterpillar">Caterpillar</string>
+    <string name="bar_contribute">Contribute</string>
 </resources>

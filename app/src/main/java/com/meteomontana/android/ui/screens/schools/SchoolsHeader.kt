@@ -26,7 +26,13 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.PersonSearch
+import androidx.compose.material.icons.filled.PhotoCamera
+import com.meteomontana.android.ui.components.ActionCircle
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
@@ -75,7 +81,7 @@ import com.meteomontana.android.ui.components.CumbreSheetShape
 import com.meteomontana.android.ui.components.cumbreSheetSurface
 import kotlinx.coroutines.flow.first
 
-// Cabecera de Escuelas (AYUDA, iconos con insignia, tema claro/oscuro y «Aportar»).
+// Cabecera de Escuelas (círculos con nombre: ayuda, gente, chats, noche, avisos; y «Aportar»).
 
 /**
  * Cabecera de Escuelas en UNA fila (como iOS): "? AYUDA" a la izquierda, los iconos en cápsula y "+ Aportar" relleno
@@ -94,6 +100,8 @@ internal fun SchoolsHeader(
     onSubmitBlockPhoto: () -> Unit
 ) {
     var aportando by remember { mutableStateOf(false) }
+    var helpOpen by remember { mutableStateOf(false) }
+    val guides = com.meteomontana.android.ui.guide.LocalGuideController.current
     if (aportando) {
         AportarSheet(
             onDismiss = { aportando = false },
@@ -103,45 +111,49 @@ internal fun SchoolsHeader(
     }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.Top
     ) {
-        com.meteomontana.android.ui.components.HelpButton(topicKey = "schools")
-        Spacer(Modifier.weight(1f))
-        com.meteomontana.android.ui.components.CumbrePillGroup {
-            IconButton(onClick = onSearchUsers, modifier = Modifier.size(38.dp)) {
-                Icon(Icons.Outlined.PersonSearch, contentDescription = stringResource(R.string.search_users_title),
-                    tint = MaterialTheme.colorScheme.onBackground)
+        // Cinco círculos con su nombre (Ayuda · Gente · Chats · Noche · Avisos). Si la pantalla es muy estrecha o la
+        // letra muy grande, la fila se desliza en vez de esconder nada.
+        Row(
+            Modifier.weight(1f).horizontalScroll(androidx.compose.foundation.rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            com.meteomontana.android.ui.guide.GuideCircle("schools") {
+                if (!guides.start("schools")) { guides.markUsed("schools"); helpOpen = true }
             }
-            IconButton(onClick = onChats, modifier = Modifier.size(38.dp)) {
-                BadgedIcon(chatUnread) {
-                    Icon(Icons.Outlined.ChatBubbleOutline, contentDescription = stringResource(R.string.chat_title),
-                        tint = MaterialTheme.colorScheme.onBackground)
-                }
-            }
-            // Tema ANTES que la campana: es el orden de iOS (buscar, chats, luna, campana).
+            ActionCircle(label = stringResource(R.string.bar_people), onClick = onSearchUsers,
+                icon = Icons.Filled.PersonSearch, description = stringResource(R.string.search_users_title))
+            ActionCircle(label = stringResource(R.string.bar_chats), onClick = onChats, icon = Icons.AutoMirrored.Filled.Chat,
+                badge = chatUnread, description = stringResource(R.string.chat_title))
+            // Tema ANTES que la campana: es el orden de iOS (ayuda, gente, chats, luna, campana).
             ThemeToggleButton()
-            IconButton(onClick = onNotifications, modifier = Modifier.size(38.dp)) {
-                BadgedIcon(unread) {
-                    Icon(Icons.Outlined.Notifications, contentDescription = stringResource(R.string.notifications_title),
-                        tint = MaterialTheme.colorScheme.onBackground)
-                }
-            }
+            ActionCircle(label = stringResource(R.string.bar_alerts), onClick = onNotifications,
+                icon = Icons.Filled.Notifications, badge = unread, description = stringResource(R.string.notifications_title))
         }
         // UN solo botón, con la palabra y relleno: es la acción principal de la cabecera. Las dos formas de aportar
         // viven en la hoja, donde cada una cabe con su explicación.
-        Text(
-            stringResource(R.string.schools_contribute),
-            color = Color.White,
-            style = com.meteomontana.android.ui.theme.EyebrowTextStyle.copy(fontSize = 12.sp, letterSpacing = 0.5.sp),
-            maxLines = 1,
-            modifier = Modifier
+        Row(
+            Modifier
+                .padding(top = 2.dp)
                 .clip(androidx.compose.foundation.shape.CircleShape)
                 .background(terraFillColor())
                 .clickable { aportando = true }
-                .padding(horizontal = 12.dp, vertical = 11.dp)
-        )
+                .padding(horizontal = 12.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Icon(Icons.Filled.PhotoCamera, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+            Text(
+                stringResource(R.string.bar_contribute),
+                color = Color.White,
+                style = com.meteomontana.android.ui.theme.EyebrowTextStyle.copy(fontSize = 12.sp, letterSpacing = 0.5.sp),
+                maxLines = 1
+            )
+        }
     }
+    if (helpOpen) com.meteomontana.android.ui.components.HelpSheet(topicKey = "schools", onDismiss = { helpOpen = false })
 }
 
 /** Icono con la insignia de no leídos (número o "9+"). */
@@ -166,13 +178,13 @@ internal fun ThemeToggleButton() {
         com.meteomontana.android.ui.theme.ThemeMode.LIGHT -> false
         com.meteomontana.android.ui.theme.ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
     }
-    IconButton(onClick = vm::toggle, modifier = Modifier.size(38.dp)) {
-        Icon(
-            imageVector = if (isDark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
-            contentDescription = stringResource(R.string.a11y_toggle_theme),
-            tint = MaterialTheme.colorScheme.onBackground
-        )
-    }
+    ActionCircle(
+        label = stringResource(R.string.bar_night),
+        onClick = vm::toggle,
+        icon = if (isDark) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+        active = isDark,
+        description = stringResource(R.string.a11y_toggle_theme)
+    )
 }
 
 @dagger.hilt.android.lifecycle.HiltViewModel

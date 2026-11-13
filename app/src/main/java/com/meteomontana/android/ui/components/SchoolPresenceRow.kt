@@ -6,6 +6,8 @@ import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -142,26 +144,34 @@ fun SchoolPresenceRow(
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) { leading() }
-            Row(
-                Modifier.guideTarget("detail.here"),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                PresenceChatButton(onClick = onOpenSchoolChat)
-                PresenceMarkButton(
-                    iAmHere = viewModel.iAmHere,
-                    loading = viewModel.loading,
-                    onClick = {
-                        if (viewModel.iAmHere) viewModel.toggle(schoolId, myUid)
-                        else showPrivacyNote = true
-                    }
-                )
+            Row(verticalAlignment = Alignment.Top) { leading() }
+            // Chat · Aquí · el resto de acciones, todos círculos con nombre. Si no caben (pantalla estrecha o letra
+            // grande) la fila se desliza: nunca se esconde ninguno. Pegada a la derecha cuando sobra sitio.
+            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                Row(
+                    Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    ActionCircle(
+                        label = stringResource(R.string.bar_chat), onClick = onOpenSchoolChat,
+                        icon = Icons.AutoMirrored.Filled.Chat,
+                        description = stringResource(R.string.school_presence_row_v2_chat_de_la_escuela)
+                    )
+                    com.meteomontana.android.ui.screens.detail.HereCircle(
+                        iAmHere = viewModel.iAmHere,
+                        loading = viewModel.loading,
+                        onClick = {
+                            if (viewModel.iAmHere) viewModel.toggle(schoolId, myUid)
+                            else showPrivacyNote = true
+                        },
+                        modifier = Modifier.guideTarget("detail.here")
+                    )
+                    trailing()
+                }
             }
-            trailing()
         }
         // Quién hay ahora mismo: solo ocupa una fila cuando de verdad hay gente.
         if (viewModel.people.isNotEmpty()) {
@@ -273,22 +283,6 @@ private fun PresenceAvatar(url: String?, size: androidx.compose.ui.unit.Dp, uid:
             modifier = Modifier.size(size).clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         )
-    }
-}
-
-@Composable
-private fun PresenceChatButton(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(38.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(Icons.Outlined.Chat, contentDescription = stringResource(R.string.school_presence_row_v2_chat_de_la_escuela),
-            tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(19.dp))
     }
 }
 

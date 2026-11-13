@@ -1954,3 +1954,18 @@
 "Esta función está en pausa un momento. Lo estamos arreglando; vuelve a probar en un rato." = "This feature is paused for a moment. We're fixing it — try again shortly.";
 "Editar ascenso" = "Edit ascent";
 "EDITAR ASCENSO" = "EDIT ASCENT";
+
+/* Cabeceras: acciones con nombre */
+"bar_help" = "Help";
+"bar_people" = "People";
+"bar_chats" = "Chats";
+"bar_night" = "Night";
+"bar_alerts" = "Alerts";
+"bar_chat" = "Chat";
+"bar_here" = "Here";
+"bar_directions" = "Route";
+"bar_share" = "Share";
+"bar_favorite" = "Favorite";
+"bar_save" = "Save";
+"bar_caterpillar" = "Caterpillar";
+"bar_contribute" = "Contribute";

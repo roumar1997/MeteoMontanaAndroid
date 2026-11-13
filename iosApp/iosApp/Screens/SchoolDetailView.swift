@@ -15,6 +15,12 @@ import FirebaseAuth
 /// hay conexión en absoluto — cae directo al `catch` genérico (Álvaro, 2026-09-30).
 struct KnownOfflineError: Error {}
 
+/// Posición (en el scroll) de la barra de pestañas de verdad: cuando sube por encima de 0 se fija una copia arriba.
+private struct TabsTopKey: PreferenceKey {
+    static let defaultValue: CGFloat = .greatestFiniteMagnitude
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+}
+
 struct SchoolDetailView: View {
     let school: School
     /// Si se indica, al abrir se despliega el mapa y se abre la piedra que
@@ -30,6 +36,8 @@ struct SchoolDetailView: View {
     @State private var presenceRefreshTrigger = 0
     @State private var showProcessionary = false
     @State private var showHelp = false
+    /// La barra de pestañas se ha pasado por arriba del scroll: una copia se queda fija debajo de la cabecera.
+    @State private var tabsStuck = false
     /// Pestaña activa (opción B del rediseño, 2026-10-13). El mapa va por defecto.
     @State private var tab: SchoolTab = .map
     /// Vía que debe abrir el mapa al mostrarse: la del deep-link, o la que se toca en la pestaña BLOQUES.
@@ -142,6 +150,9 @@ struct SchoolDetailView: View {
         VStack(alignment: .leading, spacing: 0) {
             SchoolTabBar(selection: $tab, schoolStyle: school.style)
                 .guideTarget("detail.tabs")
+                .background(GeometryReader { g in
+                    Color.clear.preference(key: TabsTopKey.self, value: g.frame(in: .named("detailScroll")).minY)
+                })
             switch tab {
             case .map:
                 // Boletín de montaña AEMET QUITADO (Álvaro, 2026-11-05): unas veces llega y otras no.
@@ -204,13 +215,17 @@ struct SchoolDetailView: View {
             if let ui = restrictionsModel.ui {
                 RestrictionsPill(ui: ui) { showRestrictions = true }
             }
-            GuidePill(topicKey: "detail") {
+            ActionCircle(label: nil, symbol: "questionmark", a11y: L("bar_help"), pulseKey: "detail") {
                 if !GuideStore.shared.startScreenAndTab(screen: "detail", tab: tab.guideKey) { showHelp = true }
             }
             SchoolPhotoButton(finder: photoFinder, school: school)
         }
         .padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 2)
     }
+
+    /// Ancla de los saltos a sector o piedra: un poco por debajo del borde de arriba, para que la barra de pestañas fija
+    /// (unos 54 pt) no tape el título.
+    private static let belowTabs = UnitPoint(x: 0.5, y: 0.09)
 
     private var scrollContent: some View {
         ScrollViewReader { proxy in
@@ -261,6 +276,22 @@ struct SchoolDetailView: View {
             }
             }
         }
+        .coordinateSpace(name: "detailScroll")
+        .onPreferenceChange(TabsTopKey.self) { top in
+            let stuck = top < 0
+            if stuck != tabsStuck { tabsStuck = stuck }
+        }
+        // PESTAÑAS FIJAS: pasada su posición en el scroll, una copia de la barra se queda pegada arriba para poder
+        // cambiar de pestaña estando abajo del todo en la guía. La de verdad sigue en su sitio.
+        .overlay(alignment: .top) {
+            if tabsStuck {
+                VStack(spacing: 0) {
+                    SchoolTabBar(selection: $tab, schoolStyle: school.style)
+                    Rectangle().fill(Cumbre.rule).frame(height: 1)
+                }
+                .background(Cumbre.bg)
+            }
+        }
         // Deslizar hacia abajo recarga el tiempo Y pide otra vez quién hay en
         // "Estoy aquí" (Álvaro, 2026-09-04: mejor a demanda que sondear sola).
         .refreshable {
@@ -275,14 +306,14 @@ struct SchoolDetailView: View {
             guard let key else { return }
             blocksModel.scrollToSector = nil
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo(GuideAnchor.sector(key), anchor: .top) }
+                withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo(GuideAnchor.sector(key), anchor: Self.belowTabs) }
             }
         }
         // Vía tocada en el listado del inicio de sector: baja a la tarjeta de su piedra.
         .onChange(of: blocksModel.scrollToBlock) { id in
             guard let id else { return }
             blocksModel.scrollToBlock = nil
-            withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo(GuideAnchor.id(id), anchor: .top) }
+            withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo(GuideAnchor.id(id), anchor: Self.belowTabs) }
         }
         }
     }

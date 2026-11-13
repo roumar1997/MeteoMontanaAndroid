@@ -1,4 +1,4 @@
-# Ayuda: el botón AYUDA arranca la guía paso a paso (1/3), SIGUIENTE avanza y SALIR la cierra.
+# Ayuda: el botón Ayuda arranca la guía paso a paso (1/3), SIGUIENTE avanza y SALIR la cierra.
 appId: com.meteomontana.android
 ---
 - launchApp:
@@ -7,7 +7,7 @@ appId: com.meteomontana.android
 - extendedWaitUntil:
     visible: "VER MAPA"
     timeout: 20000
-- tapOn: "AYUDA"
+- tapOn: "Ayuda"
 - extendedWaitUntil:
     visible: "1/3"
     timeout: 10000

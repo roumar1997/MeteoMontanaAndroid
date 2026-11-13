@@ -120,12 +120,8 @@ struct SchoolPhotoButton: View {
             Button { takePhoto() } label: { Label(L("Hacer una foto"), systemImage: "camera") }
             Button { pickPhoto() } label: { Label(L("Elegir de la galería"), systemImage: "photo.on.rectangle") }
         } label: {
-            Image(systemName: "camera.viewfinder")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Cumbre.terra)
-                .frame(width: 34, height: 34)
-                .background(Cumbre.terra.opacity(0.10), in: Circle())
-                .overlay(Circle().stroke(Cumbre.terra, lineWidth: 1.2))
+            // Círculo terracota con la cámara (sin nombre), como el resto de acciones de la cabecera.
+            ActionCircleFace(label: nil, symbol: "camera.fill", active: true)
         }
         .accessibilityLabel(L("¿Qué piedra es esta?"))
         .guideTarget("detail.photo")

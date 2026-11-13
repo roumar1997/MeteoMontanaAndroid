@@ -261,3 +261,18 @@
 "rock_basalt" = "Basalto";
 "rock_conglomerate" = "Conglomerado";
 "rock_slate" = "Pizarra";
+
+/* Cabeceras: acciones con nombre */
+"bar_help" = "Ayuda";
+"bar_people" = "Gente";
+"bar_chats" = "Chats";
+"bar_night" = "Noche";
+"bar_alerts" = "Avisos";
+"bar_chat" = "Chat";
+"bar_here" = "Aquí";
+"bar_directions" = "Llegar";
+"bar_share" = "Compartir";
+"bar_favorite" = "Favorita";
+"bar_save" = "Guardar";
+"bar_caterpillar" = "Oruga";
+"bar_contribute" = "Aportar";

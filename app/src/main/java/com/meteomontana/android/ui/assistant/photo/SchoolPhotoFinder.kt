@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.CircularProgressIndicator
@@ -134,7 +135,7 @@ class SchoolPhotoFinderViewModel @Inject constructor(
     }
 }
 
-/** Icono de cámara junto al botón AYUDA del título de la escuela: menú con «Hacer una foto» y «Elegir de la galería». */
+/** Círculo de cámara junto al botón de ayuda del título de la escuela: menú con «Hacer una foto» y «Elegir de la galería». */
 @Composable
 fun SchoolPhotoButton(school: School, viewModel: SchoolPhotoFinderViewModel, modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -142,13 +143,11 @@ fun SchoolPhotoButton(school: School, viewModel: SchoolPhotoFinderViewModel, mod
     val source = rememberStonePhotoSource(onError = { viewModel.fail(words.cannotOpen) }) { photo -> viewModel.identify(photo, school) }
     var open by remember { mutableStateOf(false) }
     Box(modifier) {
-        Box(
-            Modifier.size(34.dp).clip(CircleShape).background(Terra.copy(alpha = 0.10f))
-                .border(1.2.dp, Terra, CircleShape)
-                .clickable { open = true }
-                .semantics { contentDescription = words.title },
-            contentAlignment = Alignment.Center
-        ) { Icon(Icons.Outlined.PhotoCamera, null, tint = Terra, modifier = Modifier.size(17.dp)) }
+        // Círculo terracota con la cámara (sin nombre), como el resto de acciones de la cabecera.
+        com.meteomontana.android.ui.components.ActionCircle(
+            label = null, onClick = { open = true }, icon = Icons.Filled.PhotoCamera, active = true,
+            description = words.title
+        )
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(
                 text = { Text(words.takePhoto) },

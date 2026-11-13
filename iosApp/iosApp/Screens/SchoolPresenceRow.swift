@@ -109,12 +109,15 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Fila de cabecera: el nombre se queda con el hueco sobrante y puede encogerse.
-            HStack(spacing: 6) {
-                leading.frame(maxWidth: .infinity, alignment: .leading)
-                presenceControls
-                    .guideTarget("detail.here")
-                trailing
+            // Fila de cabecera: «Volver» a la izquierda y, a la derecha, Chat · Aquí · el resto de acciones, todos círculos
+            // con nombre. Si no caben (iPhone estrecho o letra grande) la fila se desliza: no se esconde ninguno.
+            HStack(alignment: .top, spacing: 8) {
+                leading
+                ViewThatFits(in: .horizontal) {
+                    actionsRow
+                    ScrollView(.horizontal, showsIndicators: false) { actionsRow }
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
             // Quién hay ahora mismo: solo ocupa una fila cuando de verdad hay gente.
@@ -207,21 +210,14 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
         .presentationDetents([.medium, .large])
     }
 
-    /// Chat de la escuela (símbolo) + "Aquí": con el menú "⋯" fuera sobra sitio en la cabecera (Álvaro, 2026-10-14).
-    /// "Aquí" también se puede marcar desde dentro del chat.
-    private var presenceControls: some View {
-        HStack(spacing: 6) {
-            Button { showSchoolChat = true } label: {
-                Image(systemName: "bubble.left.and.bubble.right")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Cumbre.ink)
-                    .frame(width: 40, height: 40)
-                    .background(Cumbre.paper, in: Circle())
-                    .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(L("Chat de la escuela"))
-            PresenceMarkButton(vm: vm)
+    /// Chat de la escuela + «Aquí» + las acciones de la ficha (`trailing`), todo en círculos con nombre.
+    /// «Aquí» también se puede marcar desde dentro del chat.
+    private var actionsRow: some View {
+        HStack(alignment: .top, spacing: 2) {
+            ActionCircle(label: L("bar_chat"), symbol: "bubble.left.and.bubble.right.fill",
+                         a11y: L("Chat de la escuela")) { showSchoolChat = true }
+            PresenceHereCircle(vm: vm).guideTarget("detail.here")
+            trailing
         }
     }
 
@@ -254,17 +250,36 @@ struct PresenceMarkButton: View {
         .sheet(isPresented: $showPrivacyNote) { privacySheet }
     }
 
-    private var privacySheet: some View {
+    private var privacySheet: some View { PresencePrivacySheet { showPrivacyNote = false; vm.toggle() } }
+}
+
+/// «Aquí» de la cabecera de la ficha: círculo con nombre, terracota cuando estás aquí. Mismo flujo que
+/// `PresenceMarkButton` (aviso de privacidad al marcar; tocar de nuevo lo quita).
+struct PresenceHereCircle: View {
+    @ObservedObject var vm: SchoolPresenceViewModel
+    @State private var showPrivacyNote = false
+
+    var body: some View {
+        ActionCircle(label: L("bar_here"), symbol: "mappin", a11y: L("Aquí"), active: vm.iAmHere) {
+            guard !vm.loading else { return }
+            if vm.iAmHere { vm.toggle() } else { showPrivacyNote = true }
+        }
+        .sheet(isPresented: $showPrivacyNote) { PresencePrivacySheet { showPrivacyNote = false; vm.toggle() } }
+    }
+}
+
+/// Aviso de privacidad de «Estoy aquí» (hoja), compartido por el botón del chat y el círculo de la cabecera.
+struct PresencePrivacySheet: View {
+    let onConfirm: () -> Void
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Al marcar \"Estoy aquí\"")
                 .font(.system(size: 20, weight: .bold, design: .serif))
             Text("Cualquiera que abra esta escuela verá que estás aquí y podrá escribirte por chat — aunque tu perfil sea privado. Nadie podrá ver tu perfil completo si no te sigue. Se desactiva sola pasadas 10 horas, o puedes quitarla tú antes.")
                 .font(.system(size: 15))
                 .foregroundStyle(Cumbre.ink2)
-            Button {
-                showPrivacyNote = false
-                vm.toggle()
-            } label: {
+            Button(action: onConfirm) {
                 Text("Entendido, estoy aquí")
                     .font(.system(size: 15, weight: .bold, design: .serif))
                     .foregroundStyle(.white)

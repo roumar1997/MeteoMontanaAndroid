@@ -1918,4 +1918,17 @@
     <string name="notif_team_title">Equipo Cumbre</string>
     <string name="feature_off_eyebrow">EN PAUSA</string>
     <string name="feature_off_message">Esta función está en pausa un momento. Lo estamos arreglando; vuelve a probar en un rato.</string>
+    <string name="bar_help">Ayuda</string>
+    <string name="bar_people">Gente</string>
+    <string name="bar_chats">Chats</string>
+    <string name="bar_night">Noche</string>
+    <string name="bar_alerts">Avisos</string>
+    <string name="bar_chat">Chat</string>
+    <string name="bar_here">Aquí</string>
+    <string name="bar_directions">Llegar</string>
+    <string name="bar_share">Compartir</string>
+    <string name="bar_favorite">Favorita</string>
+    <string name="bar_save">Guardar</string>
+    <string name="bar_caterpillar">Oruga</string>
+    <string name="bar_contribute">Aportar</string>
 </resources>

@@ -1,35 +1,26 @@
 import SwiftUI
 import Shared
 
-// Cabecera de la ficha de escuela (volver + nombre | favorita, offline, menú). Se pinta DENTRO de la fila de
-// `SchoolPresenceRow` (que añade el chat y el botón "Aquí"), así toda la cabecera ocupa una sola fila.
+// Cabecera de la ficha de escuela: «Volver» a la izquierda y, a la derecha, círculos con su nombre debajo (Chat · Aquí ·
+// Llegar · Compartir · Favorita · Guardar · Oruga). Se pinta DENTRO de la fila de `SchoolPresenceRow` (que añade el chat
+// y «Aquí»), así toda la cabecera ocupa una sola fila. Espejo de `DetailHeaderActions.kt` en Android.
 //
 // Cabecera propia (no la barra nativa de iOS): con varias acciones a la derecha, la barra nativa podía comprimir
 // el título hasta hacerlo desaparecer del todo en nombres cortos como "Proaza" o "Cabo Negro" (Rodrigo, con
-// capturas, 2026-08-21). Android ya resolvía esto con una fila propia donde el título se queda con el hueco
-// sobrante (`weight(1f)` + ellipsis) — mismo patrón aquí.
+// capturas, 2026-08-21).
 
-/// Solo "volver". El nombre de la escuela ya no ocupa sitio fijo en la cabecera: va como título al principio del
-/// contenido (Álvaro, 2026-10-14), y la fila se queda para los iconos.
+/// Solo "volver", en círculo suelto sin nombre. El nombre de la escuela va como título al principio del contenido
+/// (Álvaro, 2026-10-14) y la fila se queda para las acciones.
 struct SchoolDetailHeaderTitle: View {
     let onBack: () -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
-            Button(action: onBack) {
-                Image(systemName: "chevron.left").font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Cumbre.ink)
-                    .frame(width: 40, height: 40)
-            }
-            .background(Cumbre.paper, in: Circle())
-            .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
-            Spacer(minLength: 0)
-        }
+        ActionCircle(label: nil, symbol: "chevron.left", a11y: L("common_back"), action: onBack)
     }
 }
 
-/// Acciones de la escuela: cómo llegar, compartir, favorita, offline y procesionaria, todas a la vista.
-/// La ayuda ("? GUÍA") va junto al nombre de la escuela, no aquí.
+/// Acciones de la escuela, todas a la vista y cada una con su nombre: cómo llegar, compartir, favorita, guardar offline
+/// y oruga (la procesionaria; en rojo si hay alerta). La ayuda y la cámara van junto al nombre de la escuela.
 struct SchoolDetailHeaderActions: View {
     @ObservedObject var vm: SchoolDetailViewModel
     let school: School
@@ -42,54 +33,38 @@ struct SchoolDetailHeaderActions: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            Button { openDirections() } label: {
-                Image(systemName: "arrow.triangle.turn.up.right.diamond").foregroundStyle(Cumbre.ink3)
-                    .font(.system(size: 20)).frame(width: 35, height: 42)
-            }
+        HStack(alignment: .top, spacing: 2) {
+            ActionCircle(label: L("bar_directions"), symbol: "arrow.triangle.turn.up.right.diamond.fill",
+                         a11y: L("bar_directions")) { openDirections() }
             if let f = vm.forecast {
                 ShareLink(item: conditionsShareSummary(f)) {
-                    Image(systemName: "square.and.arrow.up").foregroundStyle(Cumbre.ink3)
-                        .font(.system(size: 20)).frame(width: 35, height: 42)
+                    ActionCircleFace(label: L("bar_share"), symbol: "square.and.arrow.up.fill")
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L("bar_share"))
             }
-            Button { vm.toggleFavorite(schoolId: school.id) } label: {
-                Image(systemName: vm.isFavorite ? "star.fill" : "star")
-                    .foregroundStyle(vm.isFavorite ? Cumbre.terra : Cumbre.ink3)
-                    .font(.system(size: 20)).frame(width: 35, height: 42)
+            ActionCircle(label: L("bar_favorite"), symbol: "star.fill", a11y: L("bar_favorite"), active: vm.isFavorite) {
+                vm.toggleFavorite(schoolId: school.id)
             }
-            if vm.savingOffline {
-                ProgressView().frame(width: 35, height: 42)
-            } else {
-                Button {
-                    Task {
-                        if vm.isSaved { await vm.removeOffline(schoolId: school.id) }
-                        else { await vm.saveOffline(school: school) }
-                    }
-                } label: {
-                    Image(systemName: vm.isSaved ? "arrow.down.circle.fill" : "arrow.down.circle")
-                        .foregroundStyle(vm.isSaved ? Cumbre.terra : Cumbre.ink3)
-                        .font(.system(size: 20)).frame(width: 35, height: 42)
+            // Guardar offline: con el progreso (rueda) mientras baja, y encendido cuando ya está guardada.
+            ActionCircle(label: L("bar_save"), a11y: L("bar_save"), active: vm.isSaved, action: {
+                Task {
+                    if vm.isSaved { await vm.removeOffline(schoolId: school.id) }
+                    else { await vm.saveOffline(school: school) }
                 }
-            }
-            // Procesionaria: siempre a la vista (antes iba tras un menú "⋯" con un solo elemento). Roja si hay alerta.
-            Button(action: onProcessionary) {
-                if vm.processionaryAlertActive {
-                    ProcessionaryIcon(tint: .white)
-                        .frame(width: 18, height: 18)
-                        .frame(width: 32, height: 32)
-                        .background(Cumbre.bad, in: Circle())
-                        .frame(width: 35, height: 42)
+            }, glyph: { tint in
+                if vm.savingOffline {
+                    ProgressView().tint(tint)
                 } else {
-                    ProcessionaryIcon(tint: Cumbre.ink3)
-                        .frame(width: 22, height: 22)
-                        .frame(width: 35, height: 42)
+                    CircleSymbol(name: vm.isSaved ? "checkmark" : "arrow.down", tint: tint)
                 }
-            }
-            .accessibilityLabel(L("Procesionaria"))
+            })
+            .disabled(vm.savingOffline)
+            // Oruga (procesionaria): siempre a la vista para poder avisar en cualquier escuela; roja si hay alerta.
+            ActionCircle(label: L("bar_caterpillar"), a11y: L("bar_caterpillar"), active: vm.processionaryAlertActive,
+                         activeColor: Cumbre.bad, action: onProcessionary, glyph: { tint in
+                ProcessionaryIcon(tint: tint).frame(width: 22, height: 22)
+            })
         }
-        .padding(.horizontal, 2)
-        .background(Cumbre.paper, in: Capsule())
-        .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
     }
 }

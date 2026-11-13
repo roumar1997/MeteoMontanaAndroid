@@ -50,97 +50,46 @@ struct CompareBar: View {
 
 // MARK: - Header
 
+/// Los cinco círculos con nombre de la cabecera de Escuelas: Ayuda · Gente · Chats · Noche · Avisos. Espejo de
+/// `SchoolsHeader` en Android. Si no caben (iPhone estrecho o letra grande) la fila se desliza: no se esconde ninguno.
 struct TopIconsRow: View {
     var unreadCount: Int = 0
     var chatUnread: Int = 0
     var onNotificationsClosed: () -> Void = {}
-    /// Dentro de la fila del título (sin hueco propio ni relleno): iconos un poco más pequeños.
-    var compact = false
-    private var side: CGFloat { compact ? 38 : 44 }
-    @State private var showAccount = false
+    /// "?" de la pantalla: abre su guía o, si no hay, la ayuda de texto.
+    var onHelp: () -> Void = {}
     @State private var showNotifications = false
     @State private var showSearch = false
     @State private var showChats = false
     @ObservedObject private var theme = ThemeManager.shared
 
     var body: some View {
-        HStack(spacing: 4) {
-            if !compact { Spacer() }
-            // Los cinco iconos dentro de una píldora, como en Android
-            // (CumbrePillGroup) — sueltos sobre el fondo ocupaban toda la
-            // cabecera y era lo que hacía que no se pareciera a la de Android
-            // (Rodrigo, 2026-08-21).
-            HStack(spacing: 0) {
-                iconButton("person.crop.circle.badge.magnifyingglass", label: L("search_users_title")) { showSearch = true }
-                chatButton
-                iconButton(theme.iconName) { theme.cycle() }
-                bellButton
-                // El perfil ya no va aquí: tiene su propia pestaña inferior.
-            }
-            .padding(.horizontal, 2)
-            .background(Cumbre.paper, in: Capsule())
-            .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
+        ViewThatFits(in: .horizontal) {
+            circles
+            ScrollView(.horizontal, showsIndicators: false) { circles }
         }
-        .padding(.horizontal, compact ? 0 : 4)
-        .padding(.top, compact ? 0 : 4)
-        .sheet(isPresented: $showAccount) { AccountView() }
         .sheet(isPresented: $showNotifications, onDismiss: onNotificationsClosed) { NotificationsView() }
         .sheet(isPresented: $showSearch) { SearchUsersView() }
         .sheet(isPresented: $showChats) { NavigationStack { ChatListView() } }
     }
 
-    private func iconButton(_ name: String, label: String? = nil, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: name)
-                .font(.system(size: 20))
-                .foregroundStyle(Cumbre.ink)
-                .frame(width: side, height: side)
-                .contentShape(Rectangle())
+    private var circles: some View {
+        HStack(alignment: .top, spacing: 2) {
+            ActionCircle(label: L("bar_help"), symbol: "questionmark", pulseKey: "schools", action: onHelp)
+            ActionCircle(label: L("bar_people"), symbol: "person.2.fill", a11y: L("search_users_title")) { showSearch = true }
+            ActionCircle(label: L("bar_chats"), symbol: "bubble.left.and.bubble.right.fill", a11y: L("chat_title"),
+                         badge: chatUnread) { showChats = true }
+            // Encendido (terracota) = modo noche. El icono es el del modo en que estás.
+            ActionCircle(label: L("bar_night"), symbol: theme.mode == .dark ? "sun.max.fill" : "moon.fill",
+                         a11y: L("bar_night"), active: theme.mode == .dark) { theme.cycle() }
+            ActionCircle(label: L("bar_alerts"), symbol: "bell.fill", a11y: L("notifications_title"),
+                         badge: unreadCount) { showNotifications = true }
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(label ?? name)
-    }
-
-    // Icono de mensajes con badge de chats sin leer (número o "9+").
-    private var chatButton: some View {
-        Button { showChats = true } label: {
-            Image(systemName: "bubble.left")
-                .font(.system(size: 20)).foregroundStyle(Cumbre.ink)
-                .frame(width: side, height: side).contentShape(Rectangle())
-                .overlay(alignment: .topTrailing) {
-                    if chatUnread > 0 {
-                        Text(chatUnread > 9 ? "9+" : "\(chatUnread)")
-                            .font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
-                            .padding(.horizontal, 4).padding(.vertical, 1)
-                            .background(Capsule().fill(Cumbre.bad))
-                            .offset(x: -4, y: 4)
-                    }
-                }
-        }
-        .buttonStyle(.plain)
-    }
-
-    // Campana con badge rojo de no leídas (número o "9+").
-    private var bellButton: some View {
-        Button { showNotifications = true } label: {
-            Image(systemName: "bell")
-                .font(.system(size: 20)).foregroundStyle(Cumbre.ink)
-                .frame(width: side, height: side).contentShape(Rectangle())
-                .overlay(alignment: .topTrailing) {
-                    if unreadCount > 0 {
-                        Text(unreadCount > 9 ? "9+" : "\(unreadCount)")
-                            .font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
-                            .padding(.horizontal, 4).padding(.vertical, 1)
-                            .background(Capsule().fill(Cumbre.bad))
-                            .offset(x: -4, y: 4)
-                    }
-                }
-        }
-        .buttonStyle(.plain)
     }
 }
 
-/// Título + iconos + "+ Aportar" en UNA sola fila (antes eran dos filas más el recuento).
+/// Cabecera de Escuelas en UNA fila: cinco círculos con nombre a la izquierda y "Aportar" (píldora terracota con
+/// cámara) a la derecha. Sin el título "Escuelas": ya lo dice la pestaña de abajo.
 struct HeaderEscuelas: View {
     var unreadCount: Int = 0
     var chatUnread: Int = 0
@@ -160,26 +109,26 @@ struct HeaderEscuelas: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: accion)
     }
     var body: some View {
-        HStack(alignment: .center, spacing: 6) {
-            // Sin el título "Escuelas": ya lo dice la pestaña de abajo, y así los botones respiran y se hacen más grandes.
-            GuidePill(topicKey: "schools") {
-                if !GuideStore.shared.start("schools") { showHelp = true }
-            }
-            Spacer(minLength: 0)
+        HStack(alignment: .top, spacing: 8) {
             TopIconsRow(unreadCount: unreadCount, chatUnread: chatUnread,
-                        onNotificationsClosed: onNotificationsClosed, compact: true)
+                        onNotificationsClosed: onNotificationsClosed,
+                        onHelp: { if !GuideStore.shared.start("schools") { showHelp = true } })
+                .frame(maxWidth: .infinity, alignment: .leading)
             // UN solo botón: corto, entra en cualquier pantalla. Las dos formas
             // de aportar viven en la hoja, donde cada una cabe con su
             // explicación — "enviar piedra" no se entiende a secas.
-            // Con la palabra: el "+" suelto no decía qué se podía hacer (Álvaro, 2026-10-14).
             Button { aportando = true } label: {
-                Text(L("+ Aportar")).font(Cumbre.mono(12, .bold)).tracking(0.5)
-                    .lineLimit(1).fixedSize()
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 12).padding(.vertical, 11)
-                    .background(Cumbre.terraFill, in: Capsule())
+                HStack(spacing: 5) {
+                    Image(systemName: "camera.fill").font(.system(size: 14, weight: .bold))
+                    Text(L("bar_contribute")).font(Cumbre.mono(12, .bold)).tracking(0.5)
+                }
+                .lineLimit(1).fixedSize()
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12).padding(.vertical, 11)
+                .background(Cumbre.terraFill, in: Capsule())
             }
             .buttonStyle(.plain)
+            .padding(.top, 2)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 6)
