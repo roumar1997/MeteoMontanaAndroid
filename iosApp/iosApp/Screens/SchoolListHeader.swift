@@ -63,7 +63,7 @@ struct TopIconsRow: View {
 
     var body: some View {
         IconActionRow(count: 4) { w in
-            IconAction(symbol: "person.crop.circle.badge.magnifyingglass",
+            IconAction(symbol: "person.2",
                        a11y: L("search_users_title")) { showSearch = true }
                 .frame(width: w)
             IconAction(symbol: "bubble.left.and.bubble.right", a11y: L("chat_title"),
