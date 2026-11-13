@@ -240,8 +240,11 @@ object ProfileUseCasesModule {
         com.meteomontana.android.domain.usecase.community.GetSunHoursUseCase(repo)
 
     @Provides
-    fun provideGetGradeVotesUseCase(repo: com.meteomontana.android.domain.repository.CommunityRepository) =
-        com.meteomontana.android.domain.usecase.community.GetGradeVotesUseCase(repo)
+    fun provideGetGradeVotesUseCase(
+        repo: com.meteomontana.android.domain.repository.CommunityRepository,
+        @dagger.hilt.android.qualifiers.ApplicationContext context: android.content.Context,
+    ) = com.meteomontana.android.domain.usecase.community.GetGradeVotesUseCase(
+        repo, com.meteomontana.android.data.local.SharedPrefsKeyValueStore(context))
 
     @Provides
     fun provideVoteGradeUseCase(repo: com.meteomontana.android.domain.repository.CommunityRepository) =

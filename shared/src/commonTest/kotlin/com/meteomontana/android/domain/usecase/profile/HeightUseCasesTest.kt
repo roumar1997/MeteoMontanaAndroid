@@ -98,4 +98,25 @@ class HeightUseCasesTest {
         try { GetMyHeightUseCase(repo, MemoryStore(), MemoryKv())() } catch (e: Exception) { failed = true }
         assertEquals(true, failed)
     }
+
+    @Test
+    fun heightLearnedFromGradeVotesIsAvailableWithoutNetwork() = runTest {
+        val repo = FakeRepo().apply { online = false }
+        val kv = MemoryKv()
+        rememberMyHeight(kv, HeightGroup.parse("TALL"))   // lo que hace GetGradeVotesUseCase con g.myHeight
+        val get = GetMyHeightUseCase(repo, MemoryStore(), kv)
+        assertEquals(HeightGroup.TALL, get.cached())        // instantáneo, sin tocar la red
+        assertEquals(HeightGroup.TALL, get())               // y sin red también cae a local
+    }
+
+    @Test
+    fun cachedPrefersPendingAndIsNullWhenNothingKnown() = runTest {
+        val repo = FakeRepo()
+        val kv = MemoryKv()
+        val store = MemoryStore()
+        assertNull(GetMyHeightUseCase(repo, store, kv).cached())
+        kv.putString(MY_HEIGHT_CACHE_KEY, "SHORT")
+        store.value = HeightGroup.TALL
+        assertEquals(HeightGroup.TALL, GetMyHeightUseCase(repo, store, kv).cached())
+    }
 }

@@ -178,7 +178,7 @@ class IosDependencyContainer(
     val getSunHours =
         com.meteomontana.android.domain.usecase.community.GetSunHoursUseCase(communityRepository)
     val getGradeVotes =
-        com.meteomontana.android.domain.usecase.community.GetGradeVotesUseCase(communityRepository)
+        com.meteomontana.android.domain.usecase.community.GetGradeVotesUseCase(communityRepository, keyValueStore)
     val voteGrade =
         com.meteomontana.android.domain.usecase.community.VoteGradeUseCase(communityRepository)
     val removeGradeVote =

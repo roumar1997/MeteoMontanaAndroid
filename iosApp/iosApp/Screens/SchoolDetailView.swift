@@ -32,6 +32,8 @@ struct SchoolDetailView: View {
     @State private var showHelp = false
     /// Pestaña activa (opción B del rediseño, 2026-10-13). El mapa va por defecto.
     @State private var tab: SchoolTab = .map
+    /// Posición de scroll de cada pestaña (se guarda al salir y se repone al volver).
+    @State private var tabScroll = SchoolTabScrollMemory()
     /// Vía que debe abrir el mapa al mostrarse: la del deep-link, o la que se toca en la pestaña BLOQUES.
     @State private var mapOpenVia: String?
     /// "Ver en mapa" desde la guía: piedra a centrar (sin abrirla).
@@ -76,7 +78,7 @@ struct SchoolDetailView: View {
             // NOTAS. Es un VStack con el bloque arriba y el scroll debajo (no `pinnedViews` ni anclas aproximadas): así
             // no se mueve nunca, ni en el mapa, ni en la guía, ni en tiempo/notas.
             schoolTitle
-            SchoolTabBar(selection: $tab, schoolStyle: school.style)
+            SchoolTabBar(selection: tabSelection, schoolStyle: school.style)
                 .guideTarget("detail.tabs")
             Rectangle().fill(Cumbre.rule).frame(height: 1)
             scrollContent
@@ -99,6 +101,7 @@ struct SchoolDetailView: View {
         }
         // El mapa se recrea al volver a él: sin esto reabriría otra vez la piedra del deep-link o de BLOQUES.
         .onChange(of: tab) { newTab in
+            tabScroll.switchTab(to: newTab)
             if newTab != .map { mapOpenVia = nil; mapFocusBlock = nil }
             // Si el usuario cambia de pestaña a mano, ya no hay "vuelta a la lista" pendiente.
             if newTab != .map { returnToBlocks = false }
@@ -222,10 +225,18 @@ struct SchoolDetailView: View {
     /// está FUERA del ScrollView, así que no hay que descontar su altura.
     private static let belowTabs = UnitPoint.top
 
+    /// Lo que toca la barra de pestañas: otra pestaña la cambia; la que ya está activa sube arriba del todo.
+    private var tabSelection: Binding<SchoolTab> {
+        Binding(get: { tab }, set: { picked in
+            if picked == tab { tabScroll.scrollToTop() } else { tab = picked }
+        })
+    }
+
     private var scrollContent: some View {
         ScrollViewReader { proxy in
         ScrollView {
             VStack(spacing: 0) {
+            ScrollViewGrabber(memory: tabScroll).frame(width: 0, height: 0)
             if vm.loading {
                 SkeletonSchoolDetail()
                     .frame(maxWidth: .infinity, minHeight: 320)

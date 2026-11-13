@@ -105,7 +105,11 @@ class CommunityVoteViewModel @Inject constructor(
 
     /** Mi altura guardada (para saber si hay que pedirla al votar). */
     fun loadMyHeight() {
-        viewModelScope.launch { runCatching { getMyHeightUc() }.onSuccess { if (it != null) _myHeight.value = it } }
+        viewModelScope.launch {
+            // Primero lo guardado en local (instantáneo, vale sin conexión); luego se refresca con el servidor.
+            runCatching { getMyHeightUc.cached() }.onSuccess { if (it != null) _myHeight.value = it }
+            runCatching { getMyHeightUc() }.onSuccess { if (it != null) _myHeight.value = it }
+        }
     }
 
     /** La elijo UNA vez (en la hoja de votar o en la mochilita); sus votos ya hechos pasan a contar en su grupo. */

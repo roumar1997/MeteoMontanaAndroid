@@ -31,9 +31,16 @@ class GetSunHoursUseCase(private val repo: CommunityRepository) {
         repo.getSunHours(blockId, photoIndex)
 }
 
-class GetGradeVotesUseCase(private val repo: CommunityRepository) {
+class GetGradeVotesUseCase(
+    private val repo: CommunityRepository,
+    private val cache: com.meteomontana.android.domain.port.KeyValueStore? = null,
+) {
     @Throws(Exception::class)
-    suspend operator fun invoke(lineId: String): GradeSummary = repo.getGradeVotes(lineId)
+    suspend operator fun invoke(lineId: String): GradeSummary = repo.getGradeVotes(lineId).also {
+        // El servidor manda mi altura con el resumen: se recuerda en local para la hoja de ascenso sin conexión.
+        com.meteomontana.android.domain.usecase.profile.rememberMyHeight(
+            cache, com.meteomontana.android.domain.model.HeightGroup.parse(it.myHeight))
+    }
 }
 
 class VoteGradeUseCase(private val repo: CommunityRepository) {

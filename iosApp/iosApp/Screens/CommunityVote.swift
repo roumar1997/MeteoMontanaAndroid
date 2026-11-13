@@ -106,6 +106,8 @@ final class CommunityVoteStore: ObservableObject {
 
     /// Mi altura guardada (para saber si hay que pedirla al votar).
     func loadMyHeight() async {
+        // Primero lo guardado en local (instantáneo, vale sin conexión); luego se refresca con el servidor.
+        if let h = try? await container.getMyHeight.cached() { myHeight = h }
         if let h = try? await container.getMyHeight.invoke() { myHeight = h }
     }
 

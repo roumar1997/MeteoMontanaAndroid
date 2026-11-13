@@ -276,6 +276,7 @@ internal fun Content(
     val scroll = androidx.compose.foundation.rememberScrollState()
     // Pestaña activa: la barra de pestañas vive en la cabecera fija, fuera del scroll.
     var tab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(SchoolTab.MAP) }
+    val onSelectTab = rememberTabScrollMemory(tab, scroll) { tab = it }
     var viewportTop by remember { mutableStateOf(0f) }
     val guideScope = androidx.compose.runtime.rememberCoroutineScope()
     val topMarginPx = with(androidx.compose.ui.platform.LocalDensity.current) { 8.dp.toPx() }
@@ -331,7 +332,7 @@ internal fun Content(
     Spacer(Modifier.height(6.dp))
     SchoolTabBar(
         selected = tab,
-        onSelect = { tab = it },
+        onSelect = onSelectTab,
         blocksKind = blocksTabKind(school.style),
         modifier = Modifier.guideTarget("detail.tabs")
     )
