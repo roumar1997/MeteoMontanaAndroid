@@ -173,6 +173,7 @@ struct UserModerationSheet: View {
     @State private var mod: UserModerationDto? = nil
     @State private var loading = true
     @State private var reason = ""
+    @State private var pending: PendingSanction? = nil
 
     var body: some View {
         NavigationStack {
@@ -181,81 +182,26 @@ struct UserModerationSheet: View {
                     ProgressView().padding(.top, 40)
                         .frame(maxWidth: .infinity, minHeight: 320)
                 } else if let m = mod {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(m.username.map { "@" + $0 } ?? (m.displayName ?? String(m.uid.prefix(10))))
-                            .font(Cumbre.serif(20, .semibold)).foregroundStyle(Cumbre.ink)
-                        Text(statusLine(m))
-                            .font(.system(size: 12))
-                            .foregroundStyle(m.banned ? Cumbre.bad : Cumbre.ink3)
-
-                        Divider().overlay(Cumbre.rule)
-                        Text("HISTORIAL DE DENUNCIAS")
-                            .font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
-                        if m.reports.isEmpty {
-                            Text("Sin denuncias de contenido registradas.")
-                                .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
-                        } else {
-                            ForEach(Array(m.reports.prefix(8).enumerated()), id: \.offset) { _, rep in
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text("\(rep.type) · \(rep.reason)")
-                                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.bad)
-                                    if let s = rep.snapshot {
-                                        Text(s).font(.system(size: 13)).foregroundStyle(Cumbre.ink).lineLimit(2)
-                                    }
-                                }
-                            }
+                    VStack(alignment: .leading, spacing: 14) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(m.username.map { "@" + $0 } ?? (m.displayName ?? String(m.uid.prefix(10))))
+                                .font(Cumbre.serif(20, .semibold)).foregroundStyle(Cumbre.ink)
+                            Text(statusLine(m))
+                                .font(.system(size: 12))
+                                .foregroundStyle(m.banned ? Cumbre.bad : Cumbre.ink3)
                         }
 
-                        // Acciones ya aplicadas (auditoría con motivo).
-                        if !m.actions.isEmpty {
-                            Divider().overlay(Cumbre.rule)
-                            Text("HISTORIAL (LO QUE LE HA HECHO EL EQUIPO)")
-                                .font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
-                            ForEach(Array(m.actions.enumerated()), id: \.offset) { _, act in
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(actionLabel(act.action) + (act.createdAt.map { " · " + String($0.prefix(10)) } ?? ""))
-                                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink)
-                                    if let rs = act.reason, !rs.isEmpty {
-                                        Text(act.action == "MESSAGE" ? rs : "Motivo: \(rs)").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                                    }
-                                    if let s = act.snapshot, !s.isEmpty {
-                                        Text(s).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(2)
-                                    }
-                                }
+                        // Orden pedido por Álvaro (TestFlight 351): avisar → nombre → sanciones → historial.
+                        section(L("AVISAR")) {
+                            AdminTeamMessageSection(uid: uid) { updated in onUpdated(updated) }
+                        }
+                        section(L("NOMBRE Y USUARIO")) {
+                            AdminNameSection(uid: uid, username: m.username, displayName: m.displayName) { updated in
+                                onUpdated(updated)
                             }
                         }
-
-                        Divider().overlay(Cumbre.rule)
-                        AdminTeamMessageSection(uid: uid, username: m.username, displayName: m.displayName) { updated in
-                            if let updated { mod = updated } else { Task { await reload() } }
-                        }
-
-                        Divider().overlay(Cumbre.rule)
-                        Text("CONSECUENCIAS")
-                            .font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
-                        TextField("Motivo (se guarda para pruebas)", text: $reason, axis: .vertical)
-                            .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
-                            .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                        actionButton("ENVIAR AVISO", Cumbre.terra) {
-                            apply { (try? await api().warnUser(uid: uid, reason: reasonOrNil())) ?? nil }
-                        }
-                        HStack(spacing: 8) {
-                            actionButton("SUSPENDER 7 D", Cumbre.terra) {
-                                apply { (try? await api().suspendUser(uid: uid, days: 7, reason: reasonOrNil())) ?? nil }
-                            }
-                            actionButton("SUSPENDER 30 D", Cumbre.terra) {
-                                apply { (try? await api().suspendUser(uid: uid, days: 30, reason: reasonOrNil())) ?? nil }
-                            }
-                        }
-                        if m.banned {
-                            actionButton("DESBANEAR", Cumbre.terra) {
-                                apply { (try? await api().unbanUser2(uid: uid, reason: reasonOrNil())) ?? nil }
-                            }
-                        } else {
-                            actionButton("BANEAR CUENTA", Cumbre.bad) {
-                                apply { (try? await api().banUser2(uid: uid, reason: reasonOrNil())) ?? nil }
-                            }
-                        }
+                        section(L("SANCIONES"), tint: Cumbre.bad) { sanctions(m) }
+                        section(L("HISTORIAL")) { history(m) }
                     }
                     .padding(16)
                 }
@@ -270,6 +216,109 @@ struct UserModerationSheet: View {
             }
         }
         .task { await reload() }
+        .confirmationDialog(pending?.title ?? "", isPresented: Binding(get: { pending != nil },
+                                                                       set: { if !$0 { pending = nil } }),
+                            titleVisibility: .visible, presenting: pending) { p in
+            Button(p.confirm, role: p.grave ? .destructive : nil) { apply(p.op) }
+            Button(L("Cancelar"), role: .cancel) {}
+        } message: { p in
+            Text(p.message)
+        }
+    }
+
+    /// Una sanción esperando el «sí» del admin.
+    private struct PendingSanction {
+        let title: String
+        let message: String
+        let confirm: String
+        let grave: Bool
+        let op: () async -> UserModerationDto?
+    }
+
+    /// Tarjeta con título de sección (tokens del panel: AdminSectionLabel + adminCard).
+    private func section<Content: View>(_ title: String, tint: Color? = nil,
+                                        @ViewBuilder _ content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            AdminSectionLabel(text: title)
+            VStack(alignment: .leading, spacing: 10) { content() }.adminCard(tint: tint)
+        }
+    }
+
+    @ViewBuilder private func sanctions(_ m: UserModerationDto) -> some View {
+        Text(L("Todas piden confirmación. El motivo se guarda para pruebas."))
+            .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+        AdminField(placeholder: L("Motivo"), text: $reason, axis: .vertical, lines: 1...4)
+        actionButton(L("ENVIAR AVISO"), Cumbre.terra) {
+            ask(L("¿Enviar un aviso?"), L("Le llega un aviso formal y suma en su ficha."), L("Enviar aviso"), grave: false) {
+                (try? await api().warnUser(uid: uid, reason: reasonOrNil())) ?? nil
+            }
+        }
+        HStack(spacing: 8) {
+            ForEach([7, 30], id: \.self) { days in
+                actionButton(L("SUSPENDER %@ D", "\(days)"), Cumbre.bad) {
+                    ask(L("¿Suspender %@ días?", "\(days)"), L("No podrá entrar en la app durante %@ días.", "\(days)"),
+                        L("Suspender"), grave: true) {
+                        (try? await api().suspendUser(uid: uid, days: Int32(days), reason: reasonOrNil())) ?? nil
+                    }
+                }
+            }
+        }
+        if m.banned {
+            actionButton(L("DESBANEAR"), Cumbre.terra) {
+                ask(L("¿Desbanear la cuenta?"), L("Podrá volver a entrar en la app."), L("Desbanear"), grave: false) {
+                    (try? await api().unbanUser2(uid: uid, reason: reasonOrNil())) ?? nil
+                }
+            }
+        } else {
+            actionButton(L("BANEAR CUENTA"), Cumbre.bad, filled: true) {
+                ask(L("¿Banear la cuenta?"), L("No podrá entrar en la app hasta que la desbanees."), L("Banear"), grave: true) {
+                    (try? await api().banUser2(uid: uid, reason: reasonOrNil())) ?? nil
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private func history(_ m: UserModerationDto) -> some View {
+        Text(L("DENUNCIAS")).font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
+        if m.reports.isEmpty {
+            Text(L("Sin denuncias de contenido registradas.")).font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
+        } else {
+            ForEach(Array(m.reports.prefix(8).enumerated()), id: \.offset) { _, rep in
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("\(rep.type) · \(rep.reason)")
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.bad)
+                    if let s = rep.snapshot {
+                        Text(s).font(.system(size: 13)).foregroundStyle(Cumbre.ink).lineLimit(2)
+                    }
+                }
+            }
+        }
+        // Acciones ya aplicadas (auditoría con motivo).
+        if !m.actions.isEmpty {
+            Text(L("LO QUE LE HA HECHO EL EQUIPO")).font(Cumbre.mono(10, .bold)).tracking(1.2)
+                .foregroundStyle(Cumbre.ink3).padding(.top, 6)
+            ForEach(Array(m.actions.enumerated()), id: \.offset) { _, act in
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(actionLabel(act.action) + (act.createdAt.map { " · " + String($0.prefix(10)) } ?? ""))
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                    if let rs = act.reason, !rs.isEmpty {
+                        Text(act.action == "MESSAGE" ? rs : "Motivo: \(rs)").font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    }
+                    if let s = act.snapshot, !s.isEmpty {
+                        Text(s).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(2)
+                    }
+                }
+            }
+        }
+    }
+
+    private func ask(_ title: String, _ message: String, _ confirm: String, grave: Bool,
+                     _ op: @escaping () async -> UserModerationDto?) {
+        pending = PendingSanction(title: title, message: message, confirm: confirm, grave: grave, op: op)
+    }
+
+    private func onUpdated(_ updated: UserModerationDto?) {
+        if let updated { mod = updated } else { Task { await reload() } }
     }
 
     private func statusLine(_ m: UserModerationDto) -> String {
@@ -292,7 +341,7 @@ struct UserModerationSheet: View {
         case "DELETE_NOTE": return "Nota borrada"; case "DELETE_COMMENT": return "Comentario borrado"
         case "DELETE_MEETUP": return "Quedada borrada"
         case "MESSAGE": return "Mensaje del Equipo Cumbre"; case "RESET_USERNAME": return "Nombre de usuario restablecido"
-        case "RESET_NAME": return "Nombre restablecido"
+        case "RESET_NAME": return "Nombre restablecido"; case "RENAME_USER": return "Nombre cambiado por el equipo"
         case "DELETE_FEED_POST": return "Publicación borrada"; case "DELETE_FEED_COMMENT": return "Comentario de Comunidad borrado"
         case "DELETE_BETA_LINK": return "Enlace de beta borrado"
         default: return a }
@@ -311,12 +360,14 @@ struct UserModerationSheet: View {
         }
     }
 
-    @ViewBuilder private func actionButton(_ label: String, _ color: Color,
+    @ViewBuilder private func actionButton(_ label: String, _ color: Color, filled: Bool = false,
                                            _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(label).font(Cumbre.mono(11, .bold)).tracking(0.5).foregroundStyle(color)
+            Text(label).font(Cumbre.mono(11, .bold)).tracking(0.5).foregroundStyle(filled ? Color.white : color)
+                .lineLimit(1).minimumScaleFactor(0.7)
                 .frame(maxWidth: .infinity).padding(.vertical, 10)
-                .overlay(Rectangle().stroke(color, lineWidth: 1))
+                .background(filled ? color : Color.clear, in: Capsule())
+                .overlay(Capsule().stroke(color, lineWidth: 1))
         }.buttonStyle(.plain)
     }
 }

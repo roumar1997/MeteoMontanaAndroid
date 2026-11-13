@@ -1,25 +1,21 @@
 import SwiftUI
 import Shared
 
-/// Solo admin, dentro de la ficha de moderación de un usuario: escribirle como «Equipo Cumbre» (no con tu cuenta),
-/// con plantillas para lo más habitual, y restablecer un nombre de usuario que no cumple las normas. Le llega por push
-/// y se queda en su campana; queda apuntado en el historial de esta ficha.
+/// Solo admin, sección «AVISAR» de la ficha de moderación: escribirle como «Equipo Cumbre» (no con tu cuenta),
+/// con mensajes rápidos para lo más habitual. Le llega por push y se queda en su campana; queda apuntado en el
+/// historial de esta ficha.
 struct AdminTeamMessageSection: View {
     let uid: String
-    let username: String?
-    let displayName: String?
     /// La ficha actualizada que devuelve el servidor tras cada acción (para refrescar el historial).
     let onUpdated: (UserModerationDto?) -> Void
 
     @State private var text = ""
     @State private var sending = false
-    @State private var confirmReset = false
-    @State private var confirmResetName = false
     @State private var sentNote: String?
 
     private var api: KtorModerationApi { AppDependencies.shared.container.moderationApi }
 
-    /// Plantillas: se cargan en el cuadro y se pueden retocar antes de enviar.
+    /// Mensajes rápidos: se cargan en el cuadro y se pueden retocar antes de enviar.
     private var templates: [(String, String)] {
         [
             (L("Cambiar nombre"), L("Hola. Tu nombre de usuario no cumple las normas de la comunidad. Por favor, cámbialo desde tu perfil (Editar perfil). Si no, lo cambiaremos nosotros. Gracias.")),
@@ -30,7 +26,6 @@ struct AdminTeamMessageSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(L("MENSAJE DEL EQUIPO CUMBRE")).font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
             Text(L("Le llega firmado como «Equipo Cumbre», no con tu cuenta. Por notificación y en su campana."))
                 .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
             ScrollView(.horizontal, showsIndicators: false) {
@@ -59,37 +54,6 @@ struct AdminTeamMessageSection: View {
             if let note = sentNote {
                 Text(note).font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ok)
             }
-
-            Divider().overlay(Cumbre.rule).padding(.vertical, 4)
-            Text(L("NOMBRE Y USUARIO")).font(Cumbre.mono(10, .bold)).tracking(1.2).foregroundStyle(Cumbre.ink3)
-            Text(L("Si no lo cambia: se le pone uno neutro («Escalador» o escalador_1234) y se le explica por qué."))
-                .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-            Button { confirmReset = true } label: {
-                Text(L("RESTABLECER @%@", username ?? "…"))
-                    .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.bad)
-                    .frame(maxWidth: .infinity).padding(.vertical, 11)
-                    .overlay(Capsule().stroke(Cumbre.bad, lineWidth: 1))
-            }
-            .buttonStyle(.plain)
-            Button { confirmResetName = true } label: {
-                Text(L("RESTABLECER NOMBRE «%@»", displayName ?? "…"))
-                    .font(Cumbre.mono(12, .bold)).foregroundStyle(Cumbre.bad)
-                    .frame(maxWidth: .infinity).padding(.vertical, 11)
-                    .overlay(Capsule().stroke(Cumbre.bad, lineWidth: 1))
-            }
-            .buttonStyle(.plain)
-        }
-        .confirmationDialog(L("¿Restablecer el nombre?"), isPresented: $confirmResetName, titleVisibility: .visible) {
-            Button(L("Restablecer"), role: .destructive) { resetName() }
-            Button(L("Cancelar"), role: .cancel) {}
-        } message: {
-            Text(L("Se le cambiará «%@» por «Escalador» y le llegará un mensaje del Equipo Cumbre explicándolo.", displayName ?? ""))
-        }
-        .confirmationDialog(L("¿Restablecer el nombre de usuario?"), isPresented: $confirmReset, titleVisibility: .visible) {
-            Button(L("Restablecer"), role: .destructive) { resetUsername() }
-            Button(L("Cancelar"), role: .cancel) {}
-        } message: {
-            Text(L("Se le cambiará @%@ por uno neutro y le llegará un mensaje del Equipo Cumbre explicándolo.", username ?? ""))
         }
     }
 
@@ -103,22 +67,6 @@ struct AdminTeamMessageSection: View {
             sending = false
             if let updated { text = ""; sentNote = L("Mensaje enviado."); onUpdated(updated) }
             else { sentNote = L("No se pudo enviar. Inténtalo otra vez.") }
-        }
-    }
-
-    private func resetName() {
-        Task {
-            let updated = try? await api.resetDisplayName(uid: uid)
-            sentNote = updated == nil ? L("No se pudo restablecer. Inténtalo otra vez.") : L("Nombre restablecido.")
-            onUpdated(updated ?? nil)
-        }
-    }
-
-    private func resetUsername() {
-        Task {
-            let updated = try? await api.resetUsername(uid: uid)
-            sentNote = updated == nil ? L("No se pudo restablecer. Inténtalo otra vez.") : L("Nombre de usuario restablecido.")
-            onUpdated(updated ?? nil)
         }
     }
 }

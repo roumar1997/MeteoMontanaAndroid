@@ -1,6 +1,7 @@
 package com.meteomontana.android.data.api
 
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.ResponseException
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
@@ -68,6 +69,9 @@ data class UserModerationDto(
  * Moderación UGC (requisito App Store): denunciar comentarios/notas/usuarios,
  * bloquear usuarios, y la cola de revisión del admin.
  */
+/** Resultado de renombrar desde admin: [moderation] si ha ido bien, si no [error] (taken / invalid / failed). */
+data class AdminRenameResult(val moderation: UserModerationDto?, val error: String?)
+
 class KtorModerationApi(private val client: HttpClient) {
 
     // OJO Kotlin/Native: con expectSuccess=true, un 409 (ya denunciado / ya
@@ -189,6 +193,21 @@ class KtorModerationApi(private val client: HttpClient) {
     /** Cambia un nombre de usuario que no cumple las normas por uno neutro y se le explica. null si falla. */
     suspend fun resetUsername(uid: String): UserModerationDto? =
         try { client.post("admin/users/$uid/reset-username").body() } catch (_: Throwable) { null }
+
+    /**
+     * El admin pone el nombre visible y/o el usuario que elija (null o vacío = no se toca). Nunca lanza (Swift):
+     * devuelve la ficha actualizada o el motivo del fallo («taken» = usuario ya cogido, «invalid» = formato, «failed»).
+     */
+    suspend fun renameUser(uid: String, username: String?, displayName: String?): AdminRenameResult =
+        try {
+            val m: UserModerationDto = client.post("admin/users/$uid/rename") {
+                contentType(ContentType.Application.Json)
+                setBody(mapOf("username" to (username ?: ""), "displayName" to (displayName ?: "")))
+            }.body()
+            AdminRenameResult(m, null)
+        } catch (e: ResponseException) {
+            AdminRenameResult(null, when (e.response.status.value) { 409 -> "taken"; 400 -> "invalid"; else -> "failed" })
+        } catch (_: Throwable) { AdminRenameResult(null, "failed") }
 
     /** Cambia un nombre visible que no cumple las normas por uno neutro y se le explica. null si falla. */
     suspend fun resetDisplayName(uid: String): UserModerationDto? =
