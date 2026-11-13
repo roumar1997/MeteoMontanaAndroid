@@ -90,12 +90,15 @@ Elijo el modelo de cada tarea:
 
 | Trabajo | Modelo |
 |---|---|
-| Búsquedas y cambios mecánicos | Haiku |
+| Búsquedas, leer código, pasar pruebas, cambios mecánicos | Haiku |
+| Programar arreglos y funciones (Chopper, Brook, Robin, Franky) | Sonnet 5.5 |
 | Tests, revisiones y documentos | Sonnet 5.5 |
 | Arquitectura y errores difíciles | Opus 5.5 en alto |
 | Conversación y coordinación | Opus 5.5 en bajo o medio |
 
 **Tripulación Mugiwara** (cómo nos llamamos): Álvaro es **Luffy** (capitán); Claude es **Zoro** (coordina y revisa). Ayudantes, por oficio: **Sanji** (arquitectura y decisiones difíciles, Opus alto), **Nami** (investigar y planear), **Robin** (leer código, inventarios, auditorías, docs), **Chopper** (arreglar fallos con su test), **Franky** (CI, frenos, Gradle, herramientas), **Usopp** (pruebas: Maestro, capturas), **Brook** (funciones nuevas de pantallas), **Jinbe** (despliegues y publicaciones). Cada ayudante se lanza con su nombre delante («Chopper: …») y así sale en el Taller.
+
+**Opus solo para mí (Zoro) y para Sanji o una revisión final.** Si lanzo un ayudante con Opus, lo digo antes y por qué. Lo normal es que en el Taller Sonnet y Haiku se lleven la mayor parte del gasto (2026-11-13: Álvaro vio un 100 % de Opus por lanzar todos los ayudantes con Opus).
 
 El mod «Taller» enseña qué se está usando. El resumen de cada tarea dice qué usé y por qué.
 
