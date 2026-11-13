@@ -10,6 +10,9 @@ appId: com.meteomontana.android
     text: "FILTROS.*"
 - tapOn: "MÍN"
 - tapOn: "6a"
+# Cerrar el panel de filtros: con la cabecera de baldosas, el resultado queda debajo y fuera de pantalla
+- tapOn:
+    text: "FILTROS.*"
 - extendedWaitUntil:
     visible: ".* vías?/bloques? encontrados?"
     timeout: 30000
