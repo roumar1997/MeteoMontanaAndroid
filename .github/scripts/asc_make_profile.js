@@ -38,8 +38,14 @@ async function api(method, p, body) {
 (async () => {
   // 1. Certificado de distribución del equipo.
   const certs = await api('GET', '/v1/certificates?limit=200');
-  const dist = (certs.json.data || []).find(c => (c.attributes || {}).certificateType === 'DISTRIBUTION');
-  if (!dist) throw new Error('No hay certificado de DISTRIBUTION en la cuenta.');
+  const all = certs.json.data || [];
+  // Apple llama al de distribución DISTRIBUTION (Apple Distribution) o IOS_DISTRIBUTION (el antiguo).
+  const dist = all.find(c => ['DISTRIBUTION', 'IOS_DISTRIBUTION'].includes((c.attributes || {}).certificateType));
+  if (!dist) {
+    console.log('Certificados en la cuenta:', JSON.stringify(all.map(c => ({ type: c.attributes?.certificateType, name: c.attributes?.name, expira: c.attributes?.expirationDate }))));
+    if (certs.status && certs.status >= 400) console.log('Respuesta de la API:', certs.status, JSON.stringify(certs.json).slice(0, 500));
+    throw new Error('No hay certificado de DISTRIBUTION en la cuenta.');
+  }
   console.log('Cert distribución:', dist.id, (dist.attributes || {}).name);
 
   // 2. Id interno del bundle id.
