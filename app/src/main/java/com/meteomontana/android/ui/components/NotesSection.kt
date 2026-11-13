@@ -27,6 +27,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.runtime.getValue
@@ -54,8 +56,12 @@ fun NotesSection(
     notes: List<Note>,
     onPublish: (String, FileRef?) -> Unit,
     onVote: (Note, Int) -> Unit = { _, _ -> },
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    schoolName: String? = null
 ) {
+    val avatarVm: MyAvatarViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val myAvatar by avatarVm.photoUrl.collectAsStateWithLifecycle()
+    val myName by avatarVm.name.collectAsStateWithLifecycle()
     // Nota cuya foto se está viendo a pantalla completa (null = ninguna).
     var photoNote by remember { mutableStateOf<Note?>(null) }
     // Orden por utilidad (▲ − ▼): más votadas primero por defecto; el orden vive en shared (NoteOrdering).
@@ -87,13 +93,19 @@ fun NotesSection(
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                         .padding(horizontal = 7.dp, vertical = 2.dp)
                 ) {
-                    Text("${notes.size}", style = MaterialTheme.typography.labelMedium,
+                    Text(if (notes.size == 1) stringResource(R.string.notes_count_one)
+                         else stringResource(R.string.notes_count_many, notes.size),
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
+        Spacer(Modifier.height(12.dp))
+        Box(Modifier.guideTarget("detail_notes.write")) {
+            NoteComposer(schoolName, myAvatar, myName, myUid, onPublish)
+        }
         if (notes.size > 1) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
             // Orden por votos: más votadas ⇄ menos votadas.
             Text(
                 (if (mostVotedFirst) stringResource(R.string.notes_order_most_voted) else stringResource(R.string.notes_order_least_voted)) + " ⇅",
@@ -118,18 +130,15 @@ fun NotesSection(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(12.dp))
             } else {
                 // Ordenadas por utilidad (▲ − ▼) según el selector. Las denunciadas por ti se ocultan al instante.
                 ordered.filter { "NOTE:${it.id}" !in hiddenIds }.forEach { n ->
-                    NoteRow(n, onPhotoClick = { photoNote = n }, onVote = { v -> onVote(n, v) },
+                    NoteCard(n, onPhotoClick = { photoNote = n }, onVote = { v -> onVote(n, v) },
                         canReport = myUid != null && myUid != n.uid,
                         onReport = { reportTarget = n })
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+                    Spacer(Modifier.height(10.dp))
                 }
-                Spacer(Modifier.height(12.dp))
             }
-            Box(Modifier.guideTarget("detail_notes.write")) { ComposerRow(onPublish = onPublish) }
         }
     }
 
@@ -147,77 +156,6 @@ fun NotesSection(
             },
             onDismiss = { reportTarget = null }
         )
-    }
-}
-
-@Composable
-private fun NoteRow(n: Note, onPhotoClick: () -> Unit, onVote: (Int) -> Unit,
-                    canReport: Boolean = false, onReport: () -> Unit = {}) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Text(n.text, style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground)
-        n.photoUrl?.let { url ->
-            Spacer(Modifier.height(6.dp))
-            AsyncImage(
-                model = url,
-                contentDescription = stringResource(R.string.notes_section_v2_foto_de_la_nota_tocar),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                    .clickable(onClick = onPhotoClick),
-                contentScale = ContentScale.Crop
-            )
-        }
-        Spacer(Modifier.height(4.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                Text(
-                    n.author ?: stringResource(R.string.notes_section_anonimo),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (canReport) {
-                    androidx.compose.material3.Icon(
-                        Icons.Outlined.Flag,
-                        contentDescription = stringResource(R.string.notes_section_v2_denunciar),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
-                        // Zona de toque amplia (~40dp): con 15dp costaba acertar.
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(2.dp))
-                            .clickable(onClick = onReport)
-                            .padding(11.dp)
-                            .size(18.dp))
-                }
-            }
-            // Voto de utilidad: tocar de nuevo tu voto lo retira.
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                VoteChip("▲ ${n.upvotesCount}", active = n.myVote == 1) { onVote(1) }
-                VoteChip("▼ ${n.downvotesCount}", active = n.myVote == -1) { onVote(-1) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun VoteChip(label: String, active: Boolean, onClick: () -> Unit) {
-    val terra = MaterialTheme.colorScheme.primary
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (active) terra.copy(alpha = 0.14f) else Color.Transparent)
-            .border(1.dp, if (active) terra else MaterialTheme.colorScheme.outline,
-                RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 9.dp)
-    ) {
-        Text(label, style = MaterialTheme.typography.labelMedium,
-            color = if (active) terra else MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -255,87 +193,20 @@ private fun NotePhotoDialog(note: Note, onDismiss: () -> Unit) {
     }
 }
 
-@Composable
-private fun ComposerRow(onPublish: (String, FileRef?) -> Unit) {
-    var text by remember { mutableStateOf("") }
-    var photoUri by remember { mutableStateOf<android.net.Uri?>(null) }
-    val photoLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri -> if (uri != null) photoUri = uri }
+/** Mi foto y mi nombre para la caja de escribir (con cache offline del perfil publico). */
+@dagger.hilt.android.lifecycle.HiltViewModel
+class MyAvatarViewModel @javax.inject.Inject constructor(
+    getPublicProfile: com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
+) : androidx.lifecycle.ViewModel() {
+    private val _photo = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    val photoUrl: kotlinx.coroutines.flow.StateFlow<String?> = _photo
+    private val _name = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    val name: kotlinx.coroutines.flow.StateFlow<String?> = _name
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        OutlinedTextField(
-            value = text, onValueChange = { text = it },
-            placeholder = { Text(stringResource(R.string.notes_section_comparte_algo_util_orientacion)) },
-            modifier = Modifier.fillMaxWidth().height(80.dp)
-        )
-        Spacer(Modifier.height(8.dp))
-
-        photoUri?.let { uri ->
-            Box {
-                AsyncImage(
-                    model = uri,
-                    contentDescription = stringResource(R.string.notes_section_v2_foto_adjunta),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                        .clip(RoundedCornerShape(2.dp)),
-                    contentScale = ContentScale.Crop
-                )
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(4.dp)
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .clickable { photoUri = null },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("✕", color = Color.White, style = MaterialTheme.typography.labelLarge)
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(
-                modifier = Modifier
-                    .height(40.dp)
-                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(2.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                    .clickable { photoLauncher.launch("image/*") }
-                    .padding(horizontal = 12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    if (photoUri == null) stringResource(R.string.notes_section_v3_foto) else "📷 CAMBIAR",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.labelLarge
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(40.dp)
-                    .background(
-                        if (text.isBlank()) MaterialTheme.colorScheme.surfaceVariant else inkButtonColor(),
-                        RoundedCornerShape(2.dp)
-                    )
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                    .clickable(enabled = text.isNotBlank()) {
-                        onPublish(text.trim(), photoUri?.let { FileRef(it.toString()) })
-                        text = ""
-                        photoUri = null
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    stringResource(R.string.notes_section_v2_publicar),
-                    color = if (text.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else Color.White,
-                    style = MaterialTheme.typography.labelLarge
-                )
-            }
+    init {
+        val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+        if (uid != null) viewModelScope.launch {
+            runCatching { getPublicProfile(uid) }.onSuccess { _photo.value = it.photoUrl; _name.value = it.displayName ?: it.username }
         }
     }
 }

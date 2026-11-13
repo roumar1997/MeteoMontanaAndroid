@@ -42,7 +42,14 @@ data class NotificationDto(
     val targetType: String? = null,
     val targetId: String? = null,
     val readAt: String? = null,
-    val createdAt: String
+    val createdAt: String,
+    val actorUid: String? = null,
+    val actorName: String? = null,
+    val actorPhotoUrl: String? = null,
+    val thumbUrl: String? = null,
+    val subject: String? = null,
+    val iFollowActor: Boolean = false,
+    val followRequested: Boolean = false
 )
 
 @Serializable

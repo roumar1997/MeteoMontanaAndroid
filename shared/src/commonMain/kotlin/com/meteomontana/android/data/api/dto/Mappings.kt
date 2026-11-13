@@ -133,7 +133,8 @@ fun BlockFaceDto.toDomain(coverPhoto: String? = null): BlockFace {
 }
 
 // Note
-fun NoteDto.toDomain() = Note(id, schoolId, text, author, uid, createdAt, upvotesCount, downvotesCount, myVote = myVote, photoUrl = photoUrl)
+fun NoteDto.toDomain() = Note(id, schoolId, text, author, uid, createdAt, upvotesCount, downvotesCount, myVote = myVote, photoUrl = photoUrl,
+    authorUsername = authorUsername, authorPhotoUrl = authorPhotoUrl)
 
 // Favorites
 fun FavoriteSchoolDto.toDomain() = FavoriteSchool(id, name, region, rockType, isFavorite)
@@ -146,7 +147,10 @@ fun PrivateProfileDto.toDomain() = PrivateProfile(uid, email, username, displayN
 fun PublicProfileDto.toDomain() = PublicProfile(uid, username, displayName, photoUrl, bio, topGrade, locked, isPublic)
 fun FollowStatusDto.toDomain() = FollowStatus(followers, following, iFollowThem, theyFollowMe, requestPending)
 fun TopContributorDto.toDomain() = TopContributor(uid, username, displayName, photoUrl, approvedCount)
-fun NotificationDto.toDomain() = Notification(id, type, title, body, targetType, targetId, readAt, createdAt)
+fun NotificationDto.toDomain() = Notification(
+    id, type, title, body, targetType, targetId, readAt, createdAt,
+    actorUid, actorName, actorPhotoUrl, thumbUrl, subject, iFollowActor, followRequested
+)
 fun InboxDto.toDomain() = Inbox(unreadCount, items.map { it.toDomain() })
 
 // Admin

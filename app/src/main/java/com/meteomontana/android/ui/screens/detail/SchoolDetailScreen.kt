@@ -480,7 +480,7 @@ internal fun Content(
                 )
             }
             SchoolTab.NOTES -> {
-                NotesSection(notes = notes, onPublish = onPublishNote,
+                NotesSection(notes = notes, onPublish = onPublishNote, schoolName = school.name,
                     onVote = { n, v -> viewModel.voteNote(n, v) })
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
                 // (Guardar offline movido al toolbar superior, como en iOS.)

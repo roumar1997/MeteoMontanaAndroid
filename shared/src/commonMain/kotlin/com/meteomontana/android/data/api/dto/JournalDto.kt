@@ -78,7 +78,10 @@ data class NoteDto(
     /** Voto del usuario que consulta: 1, -1 o 0. */
     val myVote: Int = 0,
     /** URL pública de la foto adjunta (Firebase Storage). Null si no hay foto. */
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
+    /** Datos del autor para dibujar la nota como una publicacion del feed (aditivos). */
+    val authorUsername: String? = null,
+    val authorPhotoUrl: String? = null
 )
 
 @Serializable

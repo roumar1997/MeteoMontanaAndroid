@@ -70,8 +70,35 @@ class NotificationsViewModel @Inject constructor(
     private val markNotificationRead: MarkNotificationReadUseCase,
     private val markAllNotificationsRead: MarkAllNotificationsReadUseCase,
     private val deleteNotification: com.meteomontana.android.domain.usecase.notifications.DeleteNotificationUseCase,
-    private val deleteAllNotifications: com.meteomontana.android.domain.usecase.notifications.DeleteAllNotificationsUseCase
+    private val deleteAllNotifications: com.meteomontana.android.domain.usecase.notifications.DeleteAllNotificationsUseCase,
+    private val followUser: com.meteomontana.android.domain.usecase.social.FollowUserUseCase,
+    private val unfollowUser: com.meteomontana.android.domain.usecase.social.UnfollowUserUseCase,
+    private val getFollowStatus: com.meteomontana.android.domain.usecase.social.GetFollowStatusUseCase
 ) : ViewModel() {
+    /** Lo que he tocado en los botones de seguir (uid -> estado); si no, manda lo que dijo el servidor. */
+    private val _follow = MutableStateFlow<Map<String, FollowUi>>(emptyMap())
+    val follow: StateFlow<Map<String, FollowUi>> = _follow.asStateFlow()
+
+    /** Seguir / dejar de seguir a quien me acaba de seguir, sin salir de la bandeja. */
+    internal fun toggleFollow(uid: String, current: FollowUi) {
+        fun set(v: FollowUi) { _follow.value = _follow.value + (uid to v) }
+        if (current == FollowUi.REQUESTED) return
+        if (current == FollowUi.FOLLOWING) {
+            set(FollowUi.NONE)
+            viewModelScope.launch { runCatching { unfollowUser(uid) }.onFailure { set(FollowUi.FOLLOWING) } }
+        } else {
+            set(FollowUi.FOLLOWING)
+            viewModelScope.launch {
+                runCatching { followUser(uid); getFollowStatus(uid) }
+                    .onSuccess { st -> set(when { st.iFollowThem -> FollowUi.FOLLOWING; st.requestPending -> FollowUi.REQUESTED; else -> FollowUi.NONE }) }
+                    .onFailure { set(FollowUi.NONE) }
+            }
+        }
+    }
+
+    /** Borra varios avisos de golpe (un grupo de me gusta) y lo sincroniza. */
+    fun deleteMany(ids: List<String>) { ids.forEach(::delete) }
+
     private val _state = MutableStateFlow<NotificationsUiState>(NotificationsUiState.Loading)
     val state: StateFlow<NotificationsUiState> = _state.asStateFlow()
 
@@ -215,12 +242,21 @@ fun NotificationsScreen(
                         message = stringResource(R.string.notifications_screen_v3_aqui_te_avisaremos_de_nuevos)
                     )
                 } else {
+                    val groups = remember(s.inbox.items) {
+                        com.meteomontana.android.domain.usecase.notifications.NotificationGrouping.group(s.inbox.items)
+                    }
+                    val followMap by viewModel.follow.collectAsStateWithLifecycle()
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(s.inbox.items, key = { it.id }) { n ->
+                        items(groups.size, key = { groups[it].id }) { idx ->
+                            val g = groups[idx]
+                            val n = g.lead
+                            if (idx == 0 || groups[idx - 1].section != g.section) {
+                                NotificationSectionHeader(stringResource(sectionLabelRes(g.section)))
+                            }
                             val dismissState = rememberSwipeToDismissBoxState(
                                 confirmValueChange = { target ->
                                     if (target != SwipeToDismissBoxValue.Settled) {
-                                        viewModel.delete(n.id); true
+                                        viewModel.deleteMany(g.memberIds); true
                                     } else false
                                 }
                             )
@@ -236,8 +272,10 @@ fun NotificationsScreen(
                                     }
                                 }
                             ) {
-                                NotificationRow(n) {
-                                    viewModel.onItemClick(n.id)
+                                val follow = n.actorUid?.let { followMap[it] }
+                                    ?: if (n.iFollowActor) FollowUi.FOLLOWING else if (n.followRequested) FollowUi.REQUESTED else FollowUi.NONE
+                                NotificationRow(g, follow, onToggleFollow = { n.actorUid?.let { viewModel.toggleFollow(it, follow) } }) {
+                                    g.memberIds.forEach(viewModel::onItemClick)
                                     val tid = n.targetId
                                     when (n.targetType) {
                                         "user"          -> tid?.let(onOpenUser)
@@ -251,50 +289,10 @@ fun NotificationsScreen(
                                     }
                                 }
                             }
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                         }
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun NotificationRow(n: Notification, onClick: () -> Unit) {
-    val unread = n.readAt == null
-    Row(
-        modifier = Modifier.fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Box(modifier = Modifier.size(8.dp).clip(CircleShape)
-            .background(if (unread) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant))
-        // Mensaje del equipo (no de una persona): logo de Cumbre delante, para que se distinga a la primera.
-        if (n.type == "TEAM_MESSAGE") {
-            androidx.compose.foundation.Image(
-                androidx.compose.ui.res.painterResource(R.drawable.logo_cumbre), contentDescription = null,
-                modifier = Modifier.size(36.dp).clip(CircleShape)
-            )
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            if (n.type == "TEAM_MESSAGE") {
-                Text(stringResource(R.string.notif_team_title).uppercase(), style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.primary)
-            }
-            Text(n.title, style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground)
-            n.body?.let {
-                Text(it, style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            // Fecha: faltaba en Android (NotificationsView.swift sí la pinta,
-            // n.createdAt.prefix(10)) — Álvaro, 2026-08-24, paridad con iOS.
-            Text(notificationDateLabel(n.createdAt), style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

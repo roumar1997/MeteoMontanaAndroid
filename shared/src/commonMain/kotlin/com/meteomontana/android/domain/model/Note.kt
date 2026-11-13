@@ -12,5 +12,7 @@ data class Note(
     /** Mi voto en esta nota: 1, -1 o 0. */
     val myVote: Int = 0,
     /** URL pública de la foto adjunta. Null si la nota no tiene foto. */
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
+    val authorUsername: String? = null,
+    val authorPhotoUrl: String? = null
 )

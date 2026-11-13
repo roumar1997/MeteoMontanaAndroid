@@ -53,7 +53,17 @@ data class Notification(
     val targetType: String?,
     val targetId: String?,
     val readAt: String?,
-    val createdAt: String
+    val createdAt: String,
+    /** Quien provoca el aviso (null en avisos antiguos o del equipo). */
+    val actorUid: String? = null,
+    val actorName: String? = null,
+    val actorPhotoUrl: String? = null,
+    /** Miniatura del ascenso/publicacion al que se refiere (me gusta, comentarios). */
+    val thumbUrl: String? = null,
+    /** Nombre de la via/piedra/quedada del aviso. */
+    val subject: String? = null,
+    val iFollowActor: Boolean = false,
+    val followRequested: Boolean = false
 )
 
 data class Inbox(val unreadCount: Long, val items: List<Notification>)
