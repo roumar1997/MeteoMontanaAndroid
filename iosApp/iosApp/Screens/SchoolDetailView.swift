@@ -270,9 +270,6 @@ struct SchoolDetailView: View {
             await blocksModel.loadIfNeeded(schoolId: school.id, schoolName: school.name, force: true)
             await blocksModel.loadOverview(schoolId: school.id)
         }
-        // Marcapáginas de la guía: al volver a BLOQUES (o cuando acaba de cargar) salta a la última piedra tocada.
-        .onChange(of: tab) { t in if t == .blocks { jumpToBookmark(proxy) } }
-        .onChange(of: blocksModel.loading) { l in if !l && tab == .blocks { jumpToBookmark(proxy) } }
         // Sector tocado en el mapa general de la guía.
         .onChange(of: blocksModel.scrollToSector) { key in
             guard let key else { return }
@@ -287,13 +284,6 @@ struct SchoolDetailView: View {
             blocksModel.scrollToBlock = nil
             withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo(GuideAnchor.id(id), anchor: .top) }
         }
-        }
-    }
-
-    private func jumpToBookmark(_ proxy: ScrollViewProxy) {
-        guard let id = blocksModel.openBookmarkedSector() else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            withAnimation(.easeInOut(duration: 0.3)) { proxy.scrollTo(GuideAnchor.id(id), anchor: .top) }
         }
     }
 }

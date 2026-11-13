@@ -27,6 +27,8 @@ class OutboxSyncService(
     private val deleteJournalEntry: suspend (String) -> Unit,
     private val addFavorite: suspend (String) -> Unit,
     private val removeFavorite: suspend (String) -> Unit,
+    // Altura elegida sin red: se sube al drenar (tiene su propio almacén pendiente).
+    private val flushPendingHeight: suspend () -> Unit = {},
 ) {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
@@ -264,6 +266,7 @@ class OutboxSyncService(
                 else -> {}
             }
         }
+        runCatching { flushPendingHeight() }
     }
 }
 

@@ -80,12 +80,22 @@ object ProfileUseCasesModule {
 
     // Mi altura (más o menos de 1,70 m), para agrupar mis votos de grado.
     @Provides @Singleton
-    fun provideGetMyHeightUseCase(repo: ProfileRepository) =
-        com.meteomontana.android.domain.usecase.profile.GetMyHeightUseCase(repo)
+    fun provideGetMyHeightUseCase(repo: ProfileRepository, pending: com.meteomontana.android.domain.port.PendingHeightStore) =
+        com.meteomontana.android.domain.usecase.profile.GetMyHeightUseCase(repo, pending)
+
+    // Sin red la altura se guarda en la cola offline y la sube el OutboxFlusher al volver la conexión.
+    @Provides @Singleton
+    fun provideSetMyHeightUseCase(repo: ProfileRepository, pending: com.meteomontana.android.domain.port.PendingHeightStore) =
+        com.meteomontana.android.domain.usecase.profile.SetMyHeightUseCase(repo, pending)
 
     @Provides @Singleton
-    fun provideSetMyHeightUseCase(repo: ProfileRepository) =
-        com.meteomontana.android.domain.usecase.profile.SetMyHeightUseCase(repo)
+    fun providePendingHeightStore(outbox: com.meteomontana.android.data.outbox.OutboxRepository):
+        com.meteomontana.android.domain.port.PendingHeightStore =
+        com.meteomontana.android.data.outbox.OutboxPendingHeightStore(outbox)
+
+    @Provides @Singleton
+    fun provideFlushPendingHeightUseCase(repo: ProfileRepository, pending: com.meteomontana.android.domain.port.PendingHeightStore) =
+        com.meteomontana.android.domain.usecase.profile.FlushPendingHeightUseCase(repo, pending)
 
     // Restricciones de escalada ("!" en sectores y bloques).
     @Provides @Singleton

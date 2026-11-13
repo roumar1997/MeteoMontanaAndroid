@@ -1783,7 +1783,6 @@
     <string name="schools_card_no_score">Sin nota</string>
     <string name="schools_card_best_now">Mejor hora: ahora (%1$d)</string>
     <string name="schools_card_best_at">Mejor hora: a las %1$d h (%2$d)</string>
-    <string name="journal_swipe_edit">Editar</string>
     <string name="journal_more_options">Más opciones</string>
     <string name="journal_edit_ascent">Editar ascenso</string>
     <string name="journal_edit_ascent_title">EDITAR ASCENSO</string>

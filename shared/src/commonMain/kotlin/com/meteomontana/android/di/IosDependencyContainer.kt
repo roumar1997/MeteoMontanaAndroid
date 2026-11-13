@@ -232,8 +232,10 @@ class IosDependencyContainer(
     // Perfil privado (JIT provisioning en el primer getMyProfile).
     val getMyProfile = GetMyProfileUseCase(profileRepository)
     // Mi altura (más o menos de 1,70 m): agrupa mis votos de grado. Privada.
-    val getMyHeight = com.meteomontana.android.domain.usecase.profile.GetMyHeightUseCase(profileRepository)
-    val setMyHeight = com.meteomontana.android.domain.usecase.profile.SetMyHeightUseCase(profileRepository)
+    // Sin red se guarda en la cola offline y se sube sola al volver (drenado de outboxSync).
+    private val pendingHeight by lazy { com.meteomontana.android.data.outbox.OutboxPendingHeightStore(outbox) }
+    val getMyHeight by lazy { com.meteomontana.android.domain.usecase.profile.GetMyHeightUseCase(profileRepository, pendingHeight) }
+    val setMyHeight by lazy { com.meteomontana.android.domain.usecase.profile.SetMyHeightUseCase(profileRepository, pendingHeight) }
 
     // Restricciones de escalada (cierres por nidificación…): "!" en sectores y bloques; CRUD del admin.
     private val restrictionRepository = com.meteomontana.android.data.repository.KtorRestrictionRepository(
@@ -465,6 +467,9 @@ class IosDependencyContainer(
         deleteJournalEntry = { deleteJournalEntry(it) },
         addFavorite = { addFavorite(it) },
         removeFavorite = { removeFavorite(it) },
+        flushPendingHeight = {
+            com.meteomontana.android.domain.usecase.profile.FlushPendingHeightUseCase(profileRepository, pendingHeight)()
+        },
     )
 
     @Throws(Exception::class)

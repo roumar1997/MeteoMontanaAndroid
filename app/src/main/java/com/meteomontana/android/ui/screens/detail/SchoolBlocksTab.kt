@@ -137,11 +137,7 @@ fun SchoolBlocksTab(
             anchors[key]?.let(scroller::bringToTop)
         }
     }
-    // Al volver a la pestaña (de la piedra, del mapa…) se salta a la última piedra tocada, como un marcapáginas.
-    val ready = state.guideView != null
-    // Una vez por entrada: si la guía se recalcula (filtros) no vuelve a tirar de la pantalla hacia el marcapáginas.
-    var bookmarkDone by remember { androidx.compose.runtime.mutableStateOf(false) }
-    LaunchedEffect(ready) { if (ready && !bookmarkDone) { bookmarkDone = true; viewModel.jumpToBookmark() } }
+    // Al entrar en la guía todos los sectores salen cerrados: solo se abren al tocarlos (sin marcapáginas).
 
     // El PDF listo → hoja de compartir del sistema (guardar, WhatsApp, imprimir…).
     val ctx = LocalContext.current

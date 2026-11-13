@@ -1,5 +1,5 @@
 # Diario (Perfil → BLOQUES): «⋯» → Editar ascenso → ESTILO «Al flash» → GUARDAR; comprueba la etiqueta
-# en la fila y lo deja otra vez SIN estilo (datos intactos). Además, deslizar una fila: Editar y Borrar (sin borrar).
+# en la fila y lo deja otra vez SIN estilo (datos intactos). Además, el «⋯» ofrece Borrar (sin borrar).
 # Supone que «Push up» (el ascenso más reciente) no tiene estilo al empezar.
 appId: com.meteomontana.android
 ---
@@ -51,15 +51,14 @@ appId: com.meteomontana.android
 - assertNotVisible:
     text: "AL FLASH"
     index: 1
-# Deslizar una fila a la izquierda: aparecen Editar y Borrar (no se pulsa ninguno).
-- swipe:
-    start: "90%,55%"
-    end: "15%,55%"
+# Sin deslizar (2026-11-13): el «⋯» tiene también «Borrar del diario» (no se pulsa: se cierra el menú).
+- tapOn:
+    text: "Más opciones"
+    index: 0
 - extendedWaitUntil:
-    visible: "Borrar"
+    visible: "Borrar del diario"
     timeout: 10000
-- assertVisible: "Editar"
-- takeScreenshot: 18_deslizar
-- swipe:
-    start: "30%,55%"
-    end: "90%,55%"
+- assertVisible: "Editar ascenso"
+- takeScreenshot: 18_menu
+- pressKey: back
+- assertNotVisible: "Borrar del diario"

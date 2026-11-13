@@ -257,7 +257,6 @@ final class SchoolBlocksExplorerModel: ObservableObject {
             all = try await loadSchoolLines.invoke(schoolId: schoolId, schoolName: schoolName)
             loadedSchool = schoolId
             refreshJournal(schoolId: schoolId)
-            if let first = SchoolGuide.shared.sectors(lines: all).first { guideOpen = [first.key] }
             bookmarkBlockId = UserDefaults.standard.string(forKey: Self.bookmarkKey(schoolId))
             // Los grados partidos por altura son un extra: si falla, las listas salen con el grado de siempre.
             if let map = try? await AppDependencies.shared.container.getSchoolGradeSplits.invoke(schoolId: schoolId) {

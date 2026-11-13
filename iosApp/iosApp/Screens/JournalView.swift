@@ -206,10 +206,6 @@ struct JournalRow: View {
     @State private var showEditSheet = false
     /// Borrar pide confirmación: un toque sin querer en el cubo no se lleva la entrada (Álvaro, 2026-10-19).
     @State private var confirmDelete = false
-    /// Deslizar la fila a la izquierda descubre EDITAR y BORRAR (Álvaro, 2026-10-19). Las listas del diario son
-    /// ScrollView, no List, así que el `swipeActions` nativo no existe aquí: gesto propio, solo en horizontal.
-    @State private var swipeOffset: CGFloat = 0
-    @State private var swipeBase: CGFloat = 0
     /// Grados partidos por altura (se piden juntos para todas las filas visibles).
     @ObservedObject private var gradeSplits = GradeSplitsStore.shared
 
@@ -223,7 +219,7 @@ struct JournalRow: View {
         return parts.joined(separator: " · ")
     }
 
-    /// «12 oct» (la fecha ya no es un botón escondido: se cambia desde «⋯» o deslizando).
+    /// «12 oct» (la fecha ya no es un botón escondido: se cambia desde «⋯»).
     private var shortDate: String {
         let iso = String(entry.date.prefix(10))
         let p = DateFormatter(); p.dateFormat = "yyyy-MM-dd"; p.locale = Locale(identifier: "en_US_POSIX")
@@ -233,9 +229,6 @@ struct JournalRow: View {
     }
 
     private var canEdit: Bool { onEdit != nil || onDelete != nil }
-    /// Ancho de los botones que descubre el deslizar.
-    private var actionsWidth: CGFloat { (onEdit != nil ? 76 : 0) + (onDelete != nil ? 76 : 0) }
-
     private func splitHalf(_ g: String) -> some View {
         Text(g).font(Cumbre.mono(9, .bold))
             .foregroundStyle(GradeColor.chipStyle(g).dark ? Color.black : Color.white)
@@ -299,21 +292,8 @@ struct JournalRow: View {
     }
 
     var body: some View {
-        ZStack(alignment: .trailing) {
-            if canEdit && swipeOffset < 0 { swipeActions }
-            rowContent
-                .background(Cumbre.bg)
-                .offset(x: swipeOffset)
-                // Con la fila abierta, tocarla la cierra (en vez de abrir la piedra).
-                .overlay {
-                    if swipeOffset < 0 {
-                        Color.clear.contentShape(Rectangle())
-                            .onTapGesture { closeSwipe() }
-                    }
-                }
-        }
-        .clipped()
-        .simultaneousGesture(canEdit ? swipeGesture : nil)
+        rowContent
+            .background(Cumbre.bg)
         .sheet(isPresented: $showEditSheet) {
             EditAscentSheet(initialDate: entry.date,
                             initialStyle: AscentStyle(aVista: entry.aVista, alFlash: entry.alFlash),
@@ -376,58 +356,6 @@ struct JournalRow: View {
                 .contentShape(Circle())
         }
         .accessibilityLabel(L("Más opciones"))
-    }
-
-    /// Lo que descubre el deslizar: EDITAR (gris) y BORRAR (rojo).
-    private var swipeActions: some View {
-        HStack(spacing: 0) {
-            if onEdit != nil {
-                swipeButton(L("Editar"), icon: "pencil", color: Cumbre.ink3) { closeSwipe(); showEditSheet = true }
-            }
-            if onDelete != nil {
-                swipeButton(L("Borrar"), icon: "trash", color: Cumbre.bad) { closeSwipe(); confirmDelete = true }
-            }
-        }
-        .frame(maxHeight: .infinity)
-    }
-
-    private func swipeButton(_ title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: icon).font(.system(size: 17, weight: .semibold))
-                Text(title).font(.system(size: 12, weight: .semibold))
-            }
-            .foregroundStyle(.white)
-            .frame(width: 76)
-            .frame(maxHeight: .infinity)
-            .background(color)
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// Solo cuenta si el gesto es claramente horizontal: el scroll vertical de la lista no se toca.
-    private var swipeGesture: some Gesture {
-        DragGesture(minimumDistance: 18)
-            .onChanged { v in
-                guard abs(v.translation.width) > abs(v.translation.height) * 1.4 else { return }
-                swipeOffset = min(0, max(-actionsWidth - 24, swipeBase + v.translation.width))
-            }
-            .onEnded { v in
-                guard abs(v.translation.width) > abs(v.translation.height) * 1.4 else {
-                    withAnimation(.spring(response: 0.3)) { swipeOffset = swipeBase }
-                    return
-                }
-                let open = swipeBase + v.translation.width < -actionsWidth / 2
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                    swipeOffset = open ? -actionsWidth : 0
-                }
-                swipeBase = swipeOffset
-            }
-    }
-
-    private func closeSwipe() {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { swipeOffset = 0 }
-        swipeBase = 0
     }
 }
 

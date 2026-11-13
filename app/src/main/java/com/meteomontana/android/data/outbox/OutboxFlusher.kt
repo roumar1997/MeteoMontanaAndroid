@@ -37,7 +37,8 @@ class OutboxFlusher @Inject constructor(
     private val deleteJournalEntry: DeleteJournalEntryUseCase,
     private val addFavorite: com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase,
     private val removeFavorite: com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase,
-    private val photoUploader: com.meteomontana.android.domain.port.PhotoUploader
+    private val photoUploader: com.meteomontana.android.domain.port.PhotoUploader,
+    private val flushPendingHeight: com.meteomontana.android.domain.usecase.profile.FlushPendingHeightUseCase
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val log = Logger.withTag("Outbox")
@@ -186,6 +187,8 @@ class OutboxFlusher @Inject constructor(
                     }
                     OutboxType.FAVORITE -> addFavorite(row.schoolId)
                     OutboxType.FAVORITE_DELETE -> removeFavorite(row.schoolId)
+                    // Altura elegida sin red: la sube su caso de uso (y él mismo limpia la fila).
+                    OutboxType.HEIGHT -> { flushPendingHeight(); return@forEach }
                     else -> log.w("Tipo desconocido en outbox: ${row.type}")
                 }
             }

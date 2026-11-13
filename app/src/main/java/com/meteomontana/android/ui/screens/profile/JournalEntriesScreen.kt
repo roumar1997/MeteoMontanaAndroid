@@ -6,26 +6,19 @@ import androidx.compose.foundation.layout.height
 
 import androidx.compose.ui.unit.sp
 
-import kotlin.math.roundToInt
 
 import androidx.compose.material.icons.filled.MoreHoriz
 
 import androidx.compose.material.icons.outlined.Edit
 import com.meteomontana.android.domain.model.AscentStyle
 
-import androidx.compose.foundation.layout.fillMaxHeight
 
-import androidx.compose.foundation.layout.offset
 
-import androidx.compose.ui.draw.clipToBounds
 
-import androidx.compose.ui.input.pointer.pointerInput
 
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 
 import androidx.compose.material.icons.outlined.Search
 
-import androidx.compose.foundation.layout.width
 import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.util.AppText
 import androidx.compose.runtime.setValue
@@ -80,7 +73,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @Composable
@@ -304,52 +296,15 @@ internal fun EntryRow(
             onDismiss = { showEditSheet = false }
         )
     }
-    // Deslizar la fila a la izquierda descubre EDITAR y BORRAR; el «⋯» hace lo mismo con nombre (Álvaro, 2026-10-19,
-    // espejo de JournalRow de iOS). Solo cuenta el arrastre horizontal: el scroll de la lista no se toca.
+    // Sin deslizar (Álvaro, 2026-11-13): «Editar» al deslizar no respondía y a veces abría la piedra.
+    // Todo va por el «⋯» (Editar ascenso / Borrar del diario), igual que en iOS.
     val canEdit = canDelete || onEdit != null
-    val actionsWidth = (if (onEdit != null) 76.dp else 0.dp) + (if (canDelete) 76.dp else 0.dp)
-    val actionsPx = with(androidx.compose.ui.platform.LocalDensity.current) { actionsWidth.toPx() }
-    val swipe = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
-    val scope = androidx.compose.runtime.rememberCoroutineScope()
-    val closeSwipe: () -> Unit = { scope.launch { swipe.animateTo(0f) } }
     var menuOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
-    Box(
-        Modifier.fillMaxWidth()
-            .height(androidx.compose.foundation.layout.IntrinsicSize.Min)
-            .clipToBounds()
-    ) {
-        if (canEdit && swipe.value < 0f) {
-            Row(Modifier.align(Alignment.CenterEnd).fillMaxHeight()) {
-                if (onEdit != null) {
-                    SwipeAction(stringResource(R.string.journal_swipe_edit), Icons.Outlined.Edit,
-                        com.meteomontana.android.ui.theme.Ink3) { closeSwipe(); showEditSheet = true }
-                }
-                if (canDelete) {
-                    SwipeAction(stringResource(R.string.journal_entries_screen_v2_borrar), Icons.Outlined.Delete,
-                        MaterialTheme.colorScheme.error) { closeSwipe(); confirmDelete = true }
-                }
-            }
-        }
         Row(
             modifier = Modifier.fillMaxWidth()
-                .offset { androidx.compose.ui.unit.IntOffset(swipe.value.roundToInt(), 0) }
                 .background(MaterialTheme.colorScheme.background)
-                .then(if (canEdit) Modifier.pointerInput(actionsPx) {
-                    detectHorizontalDragGestures(
-                        onDragEnd = {
-                            scope.launch { swipe.animateTo(if (swipe.value < -actionsPx / 2) -actionsPx else 0f) }
-                        },
-                        onHorizontalDrag = { change, dx ->
-                            change.consume()
-                            scope.launch { swipe.snapTo((swipe.value + dx).coerceIn(-actionsPx - 60f, 0f)) }
-                        }
-                    )
-                } else Modifier)
-                // Con la fila abierta, tocarla la cierra (en vez de abrir la piedra).
-                .clickable(enabled = swipe.value < 0f || e.schoolId != null) {
-                    if (swipe.value < 0f) closeSwipe() else onClick()
-                }
+                .clickable(enabled = e.schoolId != null) { onClick() }
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -451,22 +406,6 @@ internal fun EntryRow(
                 )
             }
         }
-    }
-}
-
-/** Botón que descubre el deslizar (FECHA gris / BORRAR rojo). */
-@Composable
-internal fun SwipeAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector,
-                        color: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
-    Column(
-        Modifier.width(76.dp).fillMaxHeight().background(color).clickable(onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(icon, contentDescription = null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(20.dp))
-        Text(label, color = androidx.compose.ui.graphics.Color.White, fontSize = 12.sp,
-            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
-    }
 }
 
 /** «2026-10-12» → «12 oct» (en el idioma del móvil, sin el punto de la abreviatura). */

@@ -29,6 +29,7 @@ object OutboxType {
     const val JOURNAL_DELETE_ID = "JOURNAL_DELETE_ID" // entrada de diario borrada sin red (payload = uid de la entrada)
     const val FAVORITE        = "FAVORITE"        // escuela marcada favorita sin red (schoolId = id)
     const val FAVORITE_DELETE = "FAVORITE_DELETE" // escuela desmarcada favorita sin red (schoolId = id)
+    const val HEIGHT          = "HEIGHT"          // mi altura elegida sin red (payload = HeightGroup.apiValue)
 }
 
 class OutboxRepository(

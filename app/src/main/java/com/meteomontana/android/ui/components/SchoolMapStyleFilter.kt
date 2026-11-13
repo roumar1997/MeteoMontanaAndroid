@@ -96,10 +96,12 @@ internal fun StyleFilterRow(
     onToggle: (String) -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        // Centrado y con aire arriba y abajo (Álvaro, 2026-11-13: iba pegado a la izquierda).
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
     ) {
-        listOf(stringResource(R.string.school_map_v3_via), "Bloque").forEach { opt ->
+        // Mismas etiquetas que styleLabelForDiscipline (antes "Bloque" fijo: en inglés no casaba).
+        listOf(stringResource(R.string.w_route), stringResource(R.string.w_boulder)).forEach { opt ->
             val active = opt in selected
             Box(
                 modifier = Modifier

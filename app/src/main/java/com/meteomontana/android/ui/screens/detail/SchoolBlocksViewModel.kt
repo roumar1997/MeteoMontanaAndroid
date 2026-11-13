@@ -134,12 +134,8 @@ class SchoolBlocksViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val lines = loadLines(schoolId)
-                val first = if (loaded) null else SchoolGuide.sectors(lines).firstOrNull()?.key
                 loaded = true
-                _state.update {
-                    it.copy(all = lines, loading = false, failed = false,
-                        guideOpen = if (first != null) setOf(first) else it.guideOpen)
-                }
+                _state.update { it.copy(all = lines, loading = false, failed = false) }
                 applyJournal()
             } catch (e: CancellationException) {
                 throw e
@@ -254,16 +250,8 @@ class SchoolBlocksViewModel @Inject constructor(
 
     // ── Marcapáginas ──
 
-    /** Última piedra con la que hiciste algo en la guía; al volver a la pestaña se salta a ella. Por escuela. */
+    /** Última piedra con la que hiciste algo en la guía (por escuela). Ya NO abre su sector al entrar. */
     fun setBookmark(blockId: String) = prefs.edit().putString(schoolId, blockId).apply()
-
-    /** Despliega el sector de la piedra marcada (si sale con los filtros de ahora) y pide bajar hasta ella. */
-    fun jumpToBookmark() {
-        val id = prefs.getString(schoolId, null) ?: return
-        val s = _state.value.guideView?.sectors?.firstOrNull { sec -> sec.blocks.any { it.blockId == id } } ?: return
-        _state.update { it.copy(guideOpen = it.guideOpen + s.key) }
-        _jumps.trySend(Jump.Block(id))
-    }
 
     /** Los enlaces de beta viven en el servidor: se piden por altura y se guardan. */
     fun toggleBeta(height: String) {

@@ -62,9 +62,10 @@ extension SchoolMapSection {
                         .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
                 }.buttonStyle(.plain)
             }
-            Spacer()
         }
-        .padding(.horizontal, 4)
+        // Centrado y con aire arriba y abajo (Álvaro, 2026-11-13: iba pegado a la izquierda).
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.horizontal, 16).padding(.vertical, 6)
     }
 
     /// "ROUTE" en el backend = estilo "Vía"; "BOULDER" = "Bloque".

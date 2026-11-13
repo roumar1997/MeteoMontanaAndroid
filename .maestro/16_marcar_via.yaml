@@ -2,6 +2,10 @@
 appId: com.meteomontana.android
 ---
 - runFlow: comun/zarzalejo_guia.yaml
+# Los sectores empiezan cerrados (2026-11-13): se abre Alunecer desde el índice.
+- tapOn:
+    text: "Alunecer"
+    index: 0
 - scrollUntilVisible:
     element: "Unos mecos bicho"
     direction: DOWN
