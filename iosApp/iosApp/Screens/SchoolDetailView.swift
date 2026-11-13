@@ -66,7 +66,7 @@ struct SchoolDetailView: View {
                               refreshTrigger: presenceRefreshTrigger,
                               tileCount: 8,
                               leading: { w in
-                                  SchoolDetailHeaderTitle(width: w) { dismiss() }
+                                  SchoolDetailHeaderTitle(onBack: { dismiss() }, width: w)
                               },
                               trailing: { w in
                                   SchoolDetailHeaderActions(vm: vm, school: school, tile: w,
