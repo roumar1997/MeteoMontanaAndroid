@@ -5,7 +5,7 @@ appId: com.meteomontana.android
 # La lista cambia de orden con el tiempo: se llega con el buscador, no por posición.
 # (el hint del buscador no sale en la jerarquía: se toca por posición)
 - tapOn:
-    point: "50%,14%"
+    point: "50%,20%"
 - inputText: "Zarzalejo"
 - hideKeyboard
 - extendedWaitUntil:

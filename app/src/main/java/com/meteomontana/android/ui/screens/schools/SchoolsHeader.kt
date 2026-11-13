@@ -32,7 +32,9 @@ import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.PhotoCamera
-import com.meteomontana.android.ui.components.ActionCircle
+import com.meteomontana.android.ui.components.ActionTile
+import com.meteomontana.android.ui.components.ActionTileRow
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
@@ -109,28 +111,18 @@ internal fun SchoolsHeader(
             onEscuela = { aportando = false; onSubmitSchool() }
         )
     }
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.Top
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Cinco círculos con su nombre (Ayuda · Gente · Chats · Noche · Avisos). Si la pantalla es muy estrecha o la
-        // letra muy grande, la fila se desliza en vez de esconder nada.
-        Row(
-            Modifier.weight(1f).horizontalScroll(androidx.compose.foundation.rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            com.meteomontana.android.ui.guide.GuideCircle("schools") {
-                if (!guides.start("schools")) { guides.markUsed("schools"); helpOpen = true }
-            }
-            ActionCircle(label = stringResource(R.string.bar_people), onClick = onSearchUsers,
-                icon = Icons.Filled.PersonSearch, description = stringResource(R.string.search_users_title))
-            ActionCircle(label = stringResource(R.string.bar_chats), onClick = onChats, icon = Icons.AutoMirrored.Filled.Chat,
-                badge = chatUnread, description = stringResource(R.string.chat_title))
-            // Tema ANTES que la campana: es el orden de iOS (ayuda, gente, chats, luna, campana).
-            ThemeToggleButton()
-            ActionCircle(label = stringResource(R.string.bar_alerts), onClick = onNotifications,
-                icon = Icons.Filled.Notifications, badge = unread, description = stringResource(R.string.notifications_title))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // «? AYUDA» a la izquierda (el mismo botón de siempre) y «Aportar» a la derecha.
+        com.meteomontana.android.ui.guide.GuidePill("schools") {
+            if (!guides.start("schools")) { guides.markUsed("schools"); helpOpen = true }
         }
         // UN solo botón, con la palabra y relleno: es la acción principal de la cabecera. Las dos formas de aportar
         // viven en la hoja, donde cada una cabe con su explicación.
@@ -153,6 +145,17 @@ internal fun SchoolsHeader(
             )
         }
     }
+    // Gente · Chats · Noche · Avisos: cuatro baldosas iguales repartidas por todo el ancho.
+    ActionTileRow(count = 4) { tile ->
+        ActionTile(label = stringResource(R.string.bar_people), onClick = onSearchUsers, modifier = tile,
+            icon = Icons.Outlined.PersonSearch, description = stringResource(R.string.search_users_title))
+        ActionTile(label = stringResource(R.string.bar_chats), onClick = onChats, modifier = tile,
+            icon = Icons.AutoMirrored.Outlined.Chat, badge = chatUnread, description = stringResource(R.string.chat_title))
+        ThemeToggleButton(tile)
+        ActionTile(label = stringResource(R.string.bar_alerts), onClick = onNotifications, modifier = tile,
+            icon = Icons.Outlined.Notifications, badge = unread, description = stringResource(R.string.notifications_title))
+    }
+    }
     if (helpOpen) com.meteomontana.android.ui.components.HelpSheet(topicKey = "schools", onDismiss = { helpOpen = false })
 }
 
@@ -170,7 +173,7 @@ internal fun BadgedIcon(count: Long, icon: @Composable () -> Unit) {
 
 /** Sol / Luna que alterna el tema. Lee el ThemeManager vía hiltViewModel. */
 @Composable
-internal fun ThemeToggleButton() {
+internal fun ThemeToggleButton(modifier: Modifier = Modifier) {
     val vm: ThemeToggleViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val mode by vm.mode.collectAsStateWithLifecycle()
     val isDark = when (mode) {
@@ -178,10 +181,11 @@ internal fun ThemeToggleButton() {
         com.meteomontana.android.ui.theme.ThemeMode.LIGHT -> false
         com.meteomontana.android.ui.theme.ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
     }
-    ActionCircle(
+    ActionTile(
         label = stringResource(R.string.bar_night),
         onClick = vm::toggle,
-        icon = if (isDark) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+        modifier = modifier,
+        icon = if (isDark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
         active = isDark,
         description = stringResource(R.string.a11y_toggle_theme)
     )

@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -143,11 +144,18 @@ fun SchoolPhotoButton(school: School, viewModel: SchoolPhotoFinderViewModel, mod
     val source = rememberStonePhotoSource(onError = { viewModel.fail(words.cannotOpen) }) { photo -> viewModel.identify(photo, school) }
     var open by remember { mutableStateOf(false) }
     Box(modifier) {
-        // Círculo terracota con la cámara (sin nombre), como el resto de acciones de la cabecera.
-        com.meteomontana.android.ui.components.ActionCircle(
-            label = null, onClick = { open = true }, icon = Icons.Filled.PhotoCamera, active = true,
-            description = words.title
-        )
+        // Botón redondo terracota con la cámara (sin nombre), junto al «? AYUDA» del título.
+        Box(
+            Modifier
+                .size(40.dp)
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(com.meteomontana.android.ui.theme.terraFillColor())
+                .clickable(role = androidx.compose.ui.semantics.Role.Button) { open = true }
+                .semantics { contentDescription = words.title },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Filled.PhotoCamera, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+        }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(
                 text = { Text(words.takePhoto) },

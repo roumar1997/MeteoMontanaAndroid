@@ -50,46 +50,41 @@ struct CompareBar: View {
 
 // MARK: - Header
 
-/// Los cinco círculos con nombre de la cabecera de Escuelas: Ayuda · Gente · Chats · Noche · Avisos. Espejo de
-/// `SchoolsHeader` en Android. Si no caben (iPhone estrecho o letra grande) la fila se desliza: no se esconde ninguno.
+/// Las cuatro baldosas de la cabecera de Escuelas: Gente · Chats · Noche · Avisos, iguales y repartidas por todo el
+/// ancho. Espejo de `SchoolsHeader` en Android. Si no caben (iPhone estrecho o letra grande) la fila se desliza.
 struct TopIconsRow: View {
     var unreadCount: Int = 0
     var chatUnread: Int = 0
     var onNotificationsClosed: () -> Void = {}
-    /// "?" de la pantalla: abre su guía o, si no hay, la ayuda de texto.
-    var onHelp: () -> Void = {}
     @State private var showNotifications = false
     @State private var showSearch = false
     @State private var showChats = false
     @ObservedObject private var theme = ThemeManager.shared
 
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            circles
-            ScrollView(.horizontal, showsIndicators: false) { circles }
+        ActionTileRow(count: 4) { w in
+            ActionTile(label: L("bar_people"), symbol: "person.crop.circle.badge.magnifyingglass",
+                       a11y: L("search_users_title")) { showSearch = true }
+                .frame(width: w)
+            ActionTile(label: L("bar_chats"), symbol: "bubble.left.and.bubble.right", a11y: L("chat_title"),
+                       badge: chatUnread) { showChats = true }
+                .frame(width: w)
+            // Encendido (terracota) = modo noche. El icono es el del modo en que estás.
+            ActionTile(label: L("bar_night"), symbol: theme.mode == .dark ? "sun.max" : "moon",
+                       a11y: L("bar_night"), active: theme.mode == .dark) { theme.cycle() }
+                .frame(width: w)
+            ActionTile(label: L("bar_alerts"), symbol: "bell", a11y: L("notifications_title"),
+                       badge: unreadCount) { showNotifications = true }
+                .frame(width: w)
         }
         .sheet(isPresented: $showNotifications, onDismiss: onNotificationsClosed) { NotificationsView() }
         .sheet(isPresented: $showSearch) { SearchUsersView() }
         .sheet(isPresented: $showChats) { NavigationStack { ChatListView() } }
     }
-
-    private var circles: some View {
-        HStack(alignment: .top, spacing: 2) {
-            ActionCircle(label: L("bar_help"), symbol: "questionmark", pulseKey: "schools", action: onHelp)
-            ActionCircle(label: L("bar_people"), symbol: "person.2.fill", a11y: L("search_users_title")) { showSearch = true }
-            ActionCircle(label: L("bar_chats"), symbol: "bubble.left.and.bubble.right.fill", a11y: L("chat_title"),
-                         badge: chatUnread) { showChats = true }
-            // Encendido (terracota) = modo noche. El icono es el del modo en que estás.
-            ActionCircle(label: L("bar_night"), symbol: theme.mode == .dark ? "sun.max.fill" : "moon.fill",
-                         a11y: L("bar_night"), active: theme.mode == .dark) { theme.cycle() }
-            ActionCircle(label: L("bar_alerts"), symbol: "bell.fill", a11y: L("notifications_title"),
-                         badge: unreadCount) { showNotifications = true }
-        }
-    }
 }
 
-/// Cabecera de Escuelas en UNA fila: cinco círculos con nombre a la izquierda y "Aportar" (píldora terracota con
-/// cámara) a la derecha. Sin el título "Escuelas": ya lo dice la pestaña de abajo.
+/// Cabecera de Escuelas: arriba «? AYUDA» a la izquierda y "Aportar" (píldora terracota con cámara) a la derecha;
+/// debajo, cuatro baldosas iguales (Gente · Chats · Noche · Avisos). Sin el título "Escuelas": ya lo dice la pestaña.
 struct HeaderEscuelas: View {
     var unreadCount: Int = 0
     var chatUnread: Int = 0
@@ -109,11 +104,12 @@ struct HeaderEscuelas: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: accion)
     }
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            TopIconsRow(unreadCount: unreadCount, chatUnread: chatUnread,
-                        onNotificationsClosed: onNotificationsClosed,
-                        onHelp: { if !GuideStore.shared.start("schools") { showHelp = true } })
-                .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(spacing: 8) {
+        HStack(alignment: .center, spacing: 8) {
+            GuidePill(topicKey: "schools") {
+                if !GuideStore.shared.start("schools") { showHelp = true }
+            }
+            Spacer(minLength: 8)
             // UN solo botón: corto, entra en cualquier pantalla. Las dos formas
             // de aportar viven en la hoja, donde cada una cabe con su
             // explicación — "enviar piedra" no se entiende a secas.
@@ -128,7 +124,9 @@ struct HeaderEscuelas: View {
                 .background(Cumbre.terraFill, in: Capsule())
             }
             .buttonStyle(.plain)
-            .padding(.top, 2)
+        }
+        TopIconsRow(unreadCount: unreadCount, chatUnread: chatUnread,
+                    onNotificationsClosed: onNotificationsClosed)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 6)

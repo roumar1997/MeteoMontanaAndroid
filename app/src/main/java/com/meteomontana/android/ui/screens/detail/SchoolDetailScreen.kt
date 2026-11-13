@@ -105,8 +105,10 @@ fun SchoolDetailScreen(
                 onOpenSchoolChat = { onOpenSchoolChat(s.school.name) },
                 refreshKey = presenceRefreshKey,
                 leading = { BackPill(onBack) },
-                trailing = {
+                tileCount = if (s.school.processionaryAlertActive || s.school.processionaryActiveNowSet) 7 else 6,
+                trailing = { tile ->
                     HeaderActions(
+                        tile = tile,
                         isFavorite = s.isFavorite,
                         onToggleFavorite = viewModel::toggleFavorite,
                         isSavedOffline = s.isSavedOffline,
@@ -135,6 +137,7 @@ fun SchoolDetailScreen(
                             }
                         },
                         processionaryAlertActive = s.school.processionaryAlertActive,
+                        processionaryActiveNow = s.school.processionaryActiveNowSet,
                         onOpenProcessionary = { processionaryOpen = true }
                     )
                 }
@@ -271,24 +274,73 @@ internal fun Content(
     ) {
     // El scroll de la ficha, a mano: la GUÍA baja hasta un sector o una piedra (índice, marcapáginas).
     val scroll = androidx.compose.foundation.rememberScrollState()
-    // Pestaña activa: aquí fuera porque la barra de pestañas se queda FIJA arriba al bajar (ver más abajo).
+    // Pestaña activa: la barra de pestañas vive en la cabecera fija, fuera del scroll.
     var tab by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(SchoolTab.MAP) }
-    // Dónde está la barra dentro del contenido y cuánto mide: cuando el scroll la pasa, una copia se pega arriba.
-    var tabsTopPx by remember { mutableStateOf(Float.MAX_VALUE) }
-    var tabsHeightPx by remember { mutableStateOf(0) }
-    val stuckPadPx = with(androidx.compose.ui.platform.LocalDensity.current) { 13.dp.toPx() }
     var viewportTop by remember { mutableStateOf(0f) }
     val guideScope = androidx.compose.runtime.rememberCoroutineScope()
     val topMarginPx = with(androidx.compose.ui.platform.LocalDensity.current) { 8.dp.toPx() }
     val guideScroller = remember(scroll) {
         com.meteomontana.android.ui.screens.detail.guide.GuideScroller { y ->
-            guideScope.launch { scroll.animateScrollTo((scroll.value + (y - viewportTop - topMarginPx - tabsHeightPx - stuckPadPx)).toInt().coerceAtLeast(0)) }
+            guideScope.launch { scroll.animateScrollTo((scroll.value + (y - viewportTop - topMarginPx)).toInt().coerceAtLeast(0)) }
         }
     }
-    Box(Modifier.fillMaxSize()) {
+    // Estado que comparten la cabecera fija y el contenido que se desliza.
+    var showHelp by remember { mutableStateOf(false) }
+    val guides = com.meteomontana.android.ui.guide.LocalGuideController.current
+    val photoFinder: com.meteomontana.android.ui.assistant.photo.SchoolPhotoFinderViewModel = hiltViewModel()
+    Column(Modifier.fillMaxSize()) {
+    // ── CABECERA FIJA (fuera del scroll): nombre + «? AYUDA» + cámara, y las pestañas MAPA · GUÍA · TIEMPO · NOTAS.
+    // Va ANTES del scroll, no pegada encima: así no se mueve nunca (ni en el mapa, ni en la guía, ni en tiempo/notas).
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            school.name,
+            modifier = Modifier.weight(1f).padding(end = 10.dp),
+            style = androidx.compose.ui.text.TextStyle(
+                fontFamily = com.meteomontana.android.ui.theme.Serif,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                fontSize = 26.sp
+            ),
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 2, overflow = TextOverflow.Ellipsis
+        )
+        // "! 2 CERRADOS" junto al nombre: solo DENTRO de la escuela (nunca en la lista), toca y ves el detalle.
+        restrictionsUi?.let {
+            com.meteomontana.android.ui.components.RestrictionsPill(it.restrictions) { showRestrictions = true }
+            Spacer(Modifier.size(8.dp))
+        }
+        // UN solo botón de ayuda que reconoce pantalla y pestaña: la 1ª vez cuenta la pantalla y encadena la de
+        // la pestaña; luego solo la de la pestaña. Sin guía, la ayuda de texto de siempre.
+        com.meteomontana.android.ui.guide.GuidePill("detail") {
+            if (!guides.startScreenAndTab("detail", tab.guideKey)) {
+                guides.markUsed("detail")
+                showHelp = true
+            }
+        }
+        // «¿Qué piedra es esta?»: una foto y dice cuál de las de ESTA escuela es (todo en el móvil).
+        Spacer(Modifier.size(6.dp))
+        com.meteomontana.android.ui.assistant.photo.SchoolPhotoButton(school, photoFinder, Modifier.guideTarget("detail.photo"))
+    }
+    if (showHelp) com.meteomontana.android.ui.components.HelpSheet(topicKey = "detail", onDismiss = { showHelp = false })
+    com.meteomontana.android.ui.assistant.photo.SchoolPhotoSheet(photoFinder, school.name) { blockId ->
+        photoFinder.cancel()
+        onBlockClick(blockId)
+    }
+    Spacer(Modifier.height(6.dp))
+    SchoolTabBar(
+        selected = tab,
+        onSelect = { tab = it },
+        blocksKind = blocksTabKind(school.style),
+        modifier = Modifier.guideTarget("detail.tabs")
+    )
+    Spacer(Modifier.height(8.dp))
+    HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .weight(1f)
+            .fillMaxWidth()
             .onGloballyPositioned { viewportTop = it.positionInWindow().y }
             .verticalScroll(scroll)
     ) {
@@ -358,9 +410,6 @@ internal fun Content(
                 )
             }
         } }
-        // ── Título + "? AYUDA", tarjeta HOY y pestañas (MAPA · BLOQUES · TIEMPO · NOTAS), como en iOS ──
-        var showHelp by remember { mutableStateOf(false) }
-        val guides = com.meteomontana.android.ui.guide.LocalGuideController.current
         val blocksVm: SchoolBlocksViewModel = hiltViewModel()
         // Piedra abierta desde la GUÍA: al cerrar su ficha se vuelve a la GUÍA (y el marcapáginas baja hasta ella).
         var returnToGuide by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
@@ -373,46 +422,6 @@ internal fun Content(
         }
         // Salir del MAPA a otra pestaña a mano cancela la vuelta automática.
         LaunchedEffect(tab) { if (tab != SchoolTab.MAP) returnToGuide = false }
-        val photoFinder: com.meteomontana.android.ui.assistant.photo.SchoolPhotoFinderViewModel = hiltViewModel()
-
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // El nombre ya no ocupa cabecera fija: va aquí, como título, y se va con el scroll.
-            Text(
-                school.name,
-                modifier = Modifier.weight(1f).padding(end = 10.dp),
-                style = androidx.compose.ui.text.TextStyle(
-                    fontFamily = com.meteomontana.android.ui.theme.Serif,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                    fontSize = 26.sp
-                ),
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 2, overflow = TextOverflow.Ellipsis
-            )
-            // "! 2 CERRADOS" junto al nombre: solo DENTRO de la escuela (nunca en la lista), toca y ves el detalle.
-            restrictionsUi?.let {
-                com.meteomontana.android.ui.components.RestrictionsPill(it.restrictions) { showRestrictions = true }
-                Spacer(Modifier.size(8.dp))
-            }
-            // UN solo botón de ayuda que reconoce pantalla y pestaña: la 1ª vez cuenta la pantalla y encadena la de
-            // la pestaña; luego solo la de la pestaña. Sin guía, la ayuda de texto de siempre.
-            com.meteomontana.android.ui.guide.GuideCircle("detail", named = false) {
-                if (!guides.startScreenAndTab("detail", tab.guideKey)) {
-                    guides.markUsed("detail")
-                    showHelp = true
-                }
-            }
-            // «¿Qué piedra es esta?»: una foto y dice cuál de las de ESTA escuela es (todo en el móvil).
-            Spacer(Modifier.size(2.dp))
-            com.meteomontana.android.ui.assistant.photo.SchoolPhotoButton(school, photoFinder, Modifier.guideTarget("detail.photo"))
-        }
-        if (showHelp) com.meteomontana.android.ui.components.HelpSheet(topicKey = "detail", onDismiss = { showHelp = false })
-        com.meteomontana.android.ui.assistant.photo.SchoolPhotoSheet(photoFinder, school.name) { blockId ->
-            photoFinder.cancel()
-            onBlockClick(blockId)
-        }
 
         if (forecast != null) {
             HoyCard(forecast)
@@ -451,16 +460,6 @@ internal fun Content(
             }
         }
         Spacer(Modifier.height(12.dp))
-        SchoolTabBar(
-            selected = tab,
-            onSelect = { tab = it },
-            blocksKind = blocksTabKind(school.style),
-            modifier = Modifier.guideTarget("detail.tabs").onGloballyPositioned {
-                tabsTopPx = it.positionInParent().y
-                tabsHeightPx = it.size.height
-            }
-        )
-        Spacer(Modifier.height(8.dp))
 
         when (tab) {
             // Piedras y mapa disponibles YA, con el tiempo cargando o caído.
@@ -489,18 +488,6 @@ internal fun Content(
             }
         }
         Spacer(Modifier.height(40.dp))
-    }
-    // PESTAÑAS FIJAS: pasada su posición en el scroll, una copia de la barra se queda pegada arriba para poder cambiar
-    // de pestaña estando abajo del todo en la guía. La de verdad sigue en su sitio (no cambia el diseño del contenido).
-    if (scroll.value > tabsTopPx) {
-        Column(
-            Modifier.align(Alignment.TopStart).fillMaxWidth().background(MaterialTheme.colorScheme.background)
-        ) {
-            Spacer(Modifier.height(6.dp))
-            SchoolTabBar(selected = tab, onSelect = { tab = it }, blocksKind = blocksTabKind(school.style))
-            Spacer(Modifier.height(6.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
-        }
     }
     }
     }

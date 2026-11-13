@@ -90,34 +90,35 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
     /// La cabecera de la ficha (volver + nombre | iconos) se pinta AQUÍ, en la misma fila que el chat de la escuela
     /// y el botón "Aquí": así no hace falta una fila fija extra (2026-10-14, para ganar altura).
     let leading: Leading
-    let trailing: Trailing
+    /// Cuántas baldosas pinta la fila en total (Chat, Aquí y las de `trailing`): para repartir el ancho a partes iguales.
+    let tileCount: Int
+    /// Baldosas de la ficha tras Chat y Aquí; recibe el ancho que debe tener cada una.
+    let trailing: (CGFloat) -> Trailing
     @StateObject private var vm: SchoolPresenceViewModel
     @State private var openChatFor: ChatTarget?
     @State private var showSchoolChat = false
     @State private var showAllPresent = false
 
-    init(schoolId: String, schoolName: String, myUid: String?, refreshTrigger: Int = 0,
-         @ViewBuilder leading: () -> Leading, @ViewBuilder trailing: () -> Trailing) {
+    init(schoolId: String, schoolName: String, myUid: String?, refreshTrigger: Int = 0, tileCount: Int = 2,
+         @ViewBuilder leading: () -> Leading, @ViewBuilder trailing: @escaping (CGFloat) -> Trailing) {
         self.schoolId = schoolId
         self.schoolName = schoolName
         self.myUid = myUid
         self.refreshTrigger = refreshTrigger
         self.leading = leading()
-        self.trailing = trailing()
+        self.tileCount = tileCount
+        self.trailing = trailing
         _vm = StateObject(wrappedValue: SchoolPresenceViewModel(schoolId: schoolId, myUid: myUid))
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Fila de cabecera: «Volver» a la izquierda y, a la derecha, Chat · Aquí · el resto de acciones, todos círculos
-            // con nombre. Si no caben (iPhone estrecho o letra grande) la fila se desliza: no se esconde ninguno.
-            HStack(alignment: .top, spacing: 8) {
+            // Fila de cabecera: «Volver» pequeño a la izquierda y, a su lado, Chat · Aquí · el resto de acciones, todas
+            // baldosas del mismo ancho repartidas por todo el ancho. Si no caben (iPhone estrecho o letra grande) la
+            // fila se desliza: no se esconde ninguna ni se encoge el nombre.
+            HStack(alignment: .top, spacing: 5) {
                 leading
-                ViewThatFits(in: .horizontal) {
-                    actionsRow
-                    ScrollView(.horizontal, showsIndicators: false) { actionsRow }
-                }
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                ActionTileRow(count: tileCount, minTile: 50, gap: 5) { w in actionsRow(w) }
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
             // Quién hay ahora mismo: solo ocupa una fila cuando de verdad hay gente.
@@ -210,15 +211,14 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
         .presentationDetents([.medium, .large])
     }
 
-    /// Chat de la escuela + «Aquí» + las acciones de la ficha (`trailing`), todo en círculos con nombre.
+    /// Chat de la escuela + «Aquí» + las acciones de la ficha (`trailing`), todo en baldosas con nombre.
     /// «Aquí» también se puede marcar desde dentro del chat.
-    private var actionsRow: some View {
-        HStack(alignment: .top, spacing: 2) {
-            ActionCircle(label: L("bar_chat"), symbol: "bubble.left.and.bubble.right.fill",
-                         a11y: L("Chat de la escuela")) { showSchoolChat = true }
-            PresenceHereCircle(vm: vm).guideTarget("detail.here")
-            trailing
-        }
+    @ViewBuilder private func actionsRow(_ w: CGFloat) -> some View {
+        ActionTile(label: L("bar_chat"), symbol: "bubble.left.and.bubble.right",
+                   a11y: L("Chat de la escuela")) { showSchoolChat = true }
+            .frame(width: w)
+        PresenceHereTile(vm: vm).frame(width: w).guideTarget("detail.here")
+        trailing(w)
     }
 
     private var peopleLabel: String {
@@ -253,14 +253,14 @@ struct PresenceMarkButton: View {
     private var privacySheet: some View { PresencePrivacySheet { showPrivacyNote = false; vm.toggle() } }
 }
 
-/// «Aquí» de la cabecera de la ficha: círculo con nombre, terracota cuando estás aquí. Mismo flujo que
+/// «Aquí» de la cabecera de la ficha: baldosa con nombre, terracota cuando estás aquí. Mismo flujo que
 /// `PresenceMarkButton` (aviso de privacidad al marcar; tocar de nuevo lo quita).
-struct PresenceHereCircle: View {
+struct PresenceHereTile: View {
     @ObservedObject var vm: SchoolPresenceViewModel
     @State private var showPrivacyNote = false
 
     var body: some View {
-        ActionCircle(label: L("bar_here"), symbol: "mappin", a11y: L("Aquí"), active: vm.iAmHere) {
+        ActionTile(label: L("bar_here"), symbol: "mappin.and.ellipse", a11y: L("Aquí"), active: vm.iAmHere) {
             guard !vm.loading else { return }
             if vm.iAmHere { vm.toggle() } else { showPrivacyNote = true }
         }
@@ -268,7 +268,7 @@ struct PresenceHereCircle: View {
     }
 }
 
-/// Aviso de privacidad de «Estoy aquí» (hoja), compartido por el botón del chat y el círculo de la cabecera.
+/// Aviso de privacidad de «Estoy aquí» (hoja), compartido por el botón del chat y la baldosa de la cabecera.
 struct PresencePrivacySheet: View {
     let onConfirm: () -> Void
 

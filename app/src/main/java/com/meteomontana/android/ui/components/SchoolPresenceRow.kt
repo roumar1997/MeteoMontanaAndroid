@@ -8,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -127,7 +128,9 @@ fun SchoolPresenceRow(
     refreshKey: Int = 0,
     /** La cabecera de la ficha (volver | iconos) se pinta AQUÍ, en la misma fila que el chat y "Aquí" (2026-10-14). */
     leading: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
-    trailing: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
+    /** Cuántas baldosas pinta la fila en total (Chat, Aquí y las de [trailing]): para repartir el ancho a partes iguales. */
+    tileCount: Int = 2,
+    trailing: @Composable androidx.compose.foundation.layout.RowScope.(tile: Modifier) -> Unit = {},
     viewModel: SchoolPresenceViewModel = hiltViewModel()
 ) {
     var showPrivacyNote by remember { mutableStateOf(false) }
@@ -145,32 +148,27 @@ fun SchoolPresenceRow(
                 .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Row(verticalAlignment = Alignment.Top) { leading() }
-            // Chat · Aquí · el resto de acciones, todos círculos con nombre. Si no caben (pantalla estrecha o letra
-            // grande) la fila se desliza: nunca se esconde ninguno. Pegada a la derecha cuando sobra sitio.
-            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                Row(
-                    Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    ActionCircle(
-                        label = stringResource(R.string.bar_chat), onClick = onOpenSchoolChat,
-                        icon = Icons.AutoMirrored.Filled.Chat,
-                        description = stringResource(R.string.school_presence_row_v2_chat_de_la_escuela)
-                    )
-                    com.meteomontana.android.ui.screens.detail.HereCircle(
-                        iAmHere = viewModel.iAmHere,
-                        loading = viewModel.loading,
-                        onClick = {
-                            if (viewModel.iAmHere) viewModel.toggle(schoolId, myUid)
-                            else showPrivacyNote = true
-                        },
-                        modifier = Modifier.guideTarget("detail.here")
-                    )
-                    trailing()
-                }
+            // Chat · Aquí · Llegar · Enviar · Favorita · Guardar (· Oruga): baldosas del mismo ancho repartidas por todo el
+            // ancho. Si no caben (pantalla estrecha o letra grande) la fila se desliza: nunca se encoge el nombre.
+            ActionTileRow(count = tileCount, modifier = Modifier.weight(1f), minTile = 50.dp, gap = 5.dp) { tile ->
+                ActionTile(
+                    label = stringResource(R.string.bar_chat), onClick = onOpenSchoolChat, modifier = tile,
+                    icon = Icons.AutoMirrored.Outlined.Chat,
+                    description = stringResource(R.string.school_presence_row_v2_chat_de_la_escuela)
+                )
+                com.meteomontana.android.ui.screens.detail.HereTile(
+                    iAmHere = viewModel.iAmHere,
+                    loading = viewModel.loading,
+                    onClick = {
+                        if (viewModel.iAmHere) viewModel.toggle(schoolId, myUid)
+                        else showPrivacyNote = true
+                    },
+                    modifier = tile.guideTarget("detail.here")
+                )
+                trailing(tile)
             }
         }
         // Quién hay ahora mismo: solo ocupa una fila cuando de verdad hay gente.

@@ -271,27 +271,6 @@ fun GuidePill(topicKey: String, modifier: Modifier = Modifier, onClick: () -> Un
     }
 }
 
-/**
- * El mismo "?" de ayuda que [GuidePill], en círculo con su nombre debajo (cabeceras de Escuelas y de la ficha):
- * misma lógica de parpadeo en las primeras visitas y se apaga al pulsarlo.
- */
-@Composable
-fun GuideCircle(topicKey: String, modifier: Modifier = Modifier, named: Boolean = true, onClick: () -> Unit) {
-    val controller = LocalGuideController.current
-    var pulsing by remember { mutableStateOf(false) }
-    LaunchedEffect(topicKey) { pulsing = controller.registerVisitAndShouldPulse(topicKey) }
-    val used = controller.usedVersion
-    LaunchedEffect(used) { if (controller.isUsed(topicKey)) pulsing = false }
-    com.meteomontana.android.ui.components.ActionCircle(
-        label = if (named) stringResource(R.string.bar_help) else null,
-        description = stringResource(R.string.bar_help),
-        onClick = onClick,
-        modifier = modifier,
-        icon = Icons.AutoMirrored.Filled.Help,
-        pulsing = pulsing
-    )
-}
-
 /** Anillo que se expande y se desvanece detrás del botón. Solo existe (y anima) mientras toca parpadear. */
 internal fun Modifier.pulseRing(): Modifier = composed {
     val ring = rememberInfiniteTransition(label = "guide-pulse")
