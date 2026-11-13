@@ -449,6 +449,7 @@ private struct SchoolPickerSheet: View {
         NavigationStack {
             VStack(spacing: 0) {
                 TextField("Ej. Zarzalejo, Pedriza…", text: $query)
+                    .dismissKeyboardOnSubmit()
                     .padding(10)
                     .background(Cumbre.paper)
                     .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))

@@ -1,6 +1,8 @@
 package com.meteomontana.android.ui.components
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -29,4 +31,25 @@ fun rememberKeyboardDismisser(): () -> Unit {
             keyboard?.hide()
         }
     }
+}
+
+/**
+ * Oculta el teclado en cuanto el usuario empieza a hacer scroll en la lista (paridad con
+ * `.scrollDismissesKeyboard(.interactively)` de iOS). No consume el scroll.
+ */
+@Composable
+fun Modifier.dismissKeyboardOnScroll(): Modifier {
+    val dismiss = rememberKeyboardDismisser()
+    val connection = remember(dismiss) {
+        object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+            override fun onPreScroll(
+                available: androidx.compose.ui.geometry.Offset,
+                source: androidx.compose.ui.input.nestedscroll.NestedScrollSource
+            ): androidx.compose.ui.geometry.Offset {
+                if (available.y != 0f) dismiss()
+                return androidx.compose.ui.geometry.Offset.Zero
+            }
+        }
+    }
+    return this.nestedScroll(connection)
 }

@@ -71,7 +71,7 @@ struct TopIconsRow: View {
             // cabecera y era lo que hacía que no se pareciera a la de Android
             // (Rodrigo, 2026-08-21).
             HStack(spacing: 0) {
-                iconButton("magnifyingglass") { showSearch = true }
+                iconButton("person.crop.circle.badge.magnifyingglass", label: L("search_users_title")) { showSearch = true }
                 chatButton
                 iconButton(theme.iconName) { theme.cycle() }
                 bellButton
@@ -89,7 +89,7 @@ struct TopIconsRow: View {
         .sheet(isPresented: $showChats) { NavigationStack { ChatListView() } }
     }
 
-    private func iconButton(_ name: String, action: @escaping () -> Void) -> some View {
+    private func iconButton(_ name: String, label: String? = nil, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: name)
                 .font(.system(size: 20))
@@ -98,6 +98,7 @@ struct TopIconsRow: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(label ?? name)
     }
 
     // Icono de mensajes con badge de chats sin leer (número o "9+").
@@ -267,6 +268,7 @@ struct SearchField: View {
                 .foregroundStyle(Cumbre.ink)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                .dismissKeyboardOnSubmit()
             if !text.isEmpty {
                 Button { text = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(Cumbre.ink3)

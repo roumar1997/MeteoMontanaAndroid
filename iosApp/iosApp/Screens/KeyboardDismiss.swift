@@ -15,3 +15,14 @@ extension View {
             }
     }
 }
+
+extension View {
+    /// Cierra el teclado al tocar fuera del campo (sin comerse el toque: los botones y filas siguen funcionando).
+    func dismissKeyboardOnTap() -> some View {
+        simultaneousGesture(TapGesture().onEnded {
+            UIApplication.shared.sendAction(
+                #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil
+            )
+        })
+    }
+}

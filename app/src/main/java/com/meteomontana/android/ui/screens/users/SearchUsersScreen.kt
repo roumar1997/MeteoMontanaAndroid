@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.users
 
+import com.meteomontana.android.ui.components.dismissKeyboardOnScroll
 import com.meteomontana.android.ui.components.userRing
 import com.meteomontana.android.ui.components.VerifiedCheck
 import androidx.compose.foundation.background
@@ -193,7 +194,7 @@ fun SearchUsersScreen(
                 Text(stringResource(R.string.search_users_screen_v3_escribe_al_menos_2_letras),
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            q.trim().length < 2 -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            q.trim().length < 2 -> LazyColumn(Modifier.dismissKeyboardOnScroll(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (suggested.isNotEmpty()) {
                     item { SectionLabel(stringResource(R.string.search_users_suggested)) }
                     items(suggested, key = { "s_" + it.uid }) { card(it) }
@@ -209,7 +210,7 @@ fun SearchUsersScreen(
             results.isEmpty() -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                 Text(stringResource(R.string.search_users_screen_v3_sin_resultados), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            else -> LazyColumn(Modifier.dismissKeyboardOnScroll(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item { SectionLabel(stringResource(R.string.search_users_count, results.size)) }
                 items(results, key = { it.uid }) { card(it) }
                 item { Spacer(Modifier.padding(bottom = 16.dp)) }

@@ -1,6 +1,7 @@
 package com.meteomontana.android.ui.screens.chat
 
 
+import com.meteomontana.android.ui.components.dismissKeyboardOnScroll
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.border
@@ -218,7 +219,7 @@ private fun NewChatDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 12.dp))
             } else {
-                LazyColumn(Modifier.heightIn(max = 360.dp)) {
+                LazyColumn(Modifier.heightIn(max = 360.dp).dismissKeyboardOnScroll()) {
                     items(filtered, key = { it.uid }) { p ->
                         Row(
                             Modifier.fillMaxWidth().clickable { closeKeyboard(); onPick(p.uid) }

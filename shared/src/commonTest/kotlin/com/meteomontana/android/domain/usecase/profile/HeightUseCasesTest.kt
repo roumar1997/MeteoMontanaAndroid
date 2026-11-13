@@ -5,6 +5,7 @@ import com.meteomontana.android.data.api.dto.UpdateProfileRequest
 import com.meteomontana.android.domain.model.HeightGroup
 import com.meteomontana.android.domain.model.PrivateProfile
 import com.meteomontana.android.domain.model.WeekendAlert
+import com.meteomontana.android.domain.port.KeyValueStore
 import com.meteomontana.android.domain.port.PendingHeightStore
 import com.meteomontana.android.domain.repository.ProfileRepository
 import kotlinx.coroutines.test.runTest
@@ -60,5 +61,41 @@ class HeightUseCasesTest {
         SetMyHeightUseCase(repo, store)(HeightGroup.TALL)
         assertEquals(HeightGroup.TALL, repo.saved)
         assertNull(store.value)
+    }
+
+    private class MemoryKv : KeyValueStore {
+        val map = mutableMapOf<String, String>()
+        override fun getString(key: String): String? = map[key]
+        override fun putString(key: String, value: String) { map[key] = value }
+    }
+
+    @Test
+    fun knownHeightIsRememberedAndUsedOffline() = runTest {
+        val repo = FakeRepo().apply { saved = HeightGroup.TALL }
+        val get = GetMyHeightUseCase(repo, MemoryStore(), MemoryKv())
+
+        assertEquals(HeightGroup.TALL, get())   // con red la guarda
+        repo.online = false
+        assertEquals(HeightGroup.TALL, get())   // sin red la lee de local: no hay que pedirla
+    }
+
+    @Test
+    fun heightChosenOfflineIsStillKnownAfterItUploads() = runTest {
+        val repo = FakeRepo().apply { online = false }
+        val store = MemoryStore()
+        val kv = MemoryKv()
+        SetMyHeightUseCase(repo, store, kv)(HeightGroup.SHORT)
+        repo.online = true
+        FlushPendingHeightUseCase(repo, store)()
+        repo.online = false
+        assertEquals(HeightGroup.SHORT, GetMyHeightUseCase(repo, store, kv)())
+    }
+
+    @Test
+    fun offlineWithNothingKnownStillFails() = runTest {
+        val repo = FakeRepo().apply { online = false }
+        var failed = false
+        try { GetMyHeightUseCase(repo, MemoryStore(), MemoryKv())() } catch (e: Exception) { failed = true }
+        assertEquals(true, failed)
     }
 }

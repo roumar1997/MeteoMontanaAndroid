@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.ViewInAr
+import com.meteomontana.android.ui.theme.CumbrePillShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -101,21 +104,22 @@ internal fun StyleFilterRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
     ) {
         // Mismas etiquetas que styleLabelForDiscipline (antes "Bloque" fijo: en inglés no casaba).
-        listOf(stringResource(R.string.w_route), stringResource(R.string.w_boulder)).forEach { opt ->
+        listOf(stringResource(R.string.w_route), stringResource(R.string.w_boulder)).forEachIndexed { i, opt ->
             val active = opt in selected
-            Box(
+            val fg = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+            Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(if (active) Terra else MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
+                    .clip(CumbrePillShape)
+                    .background(if (active) Terra else MaterialTheme.colorScheme.surface, CumbrePillShape)
+                    .border(1.dp, if (active) Terra else MaterialTheme.colorScheme.outline, CumbrePillShape)
                     .clickable { onToggle(opt) }
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                contentAlignment = Alignment.Center
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
-                Text(
-                    opt.uppercase(), style = EyebrowTextStyle,
-                    color = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                // Vía = mosquetón/cuerda (eslabón); Bloque = piedra/crashpad (cubo).
+                Icon(if (i == 0) Icons.Outlined.Link else Icons.Outlined.ViewInAr, null, Modifier.size(14.dp), tint = fg)
+                Text(opt.uppercase(), style = EyebrowTextStyle, color = fg, maxLines = 1)
             }
         }
     }

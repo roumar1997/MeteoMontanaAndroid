@@ -191,6 +191,7 @@ struct SearchUsersView: View {
                 .foregroundStyle(Cumbre.ink)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
+                .dismissKeyboardOnSubmit()
                 .onChange(of: vm.query) { _, _ in Task { await vm.search() } }
         }
         .padding(.horizontal, 14).padding(.vertical, 10)

@@ -472,6 +472,7 @@ struct MeetupSchoolFilterSheet: View {
                         .foregroundColor(Cumbre.ink.opacity(0.5))
                     TextField("Ej. Zarzalejo, Pedriza…", text: $query)
                         .autocorrectionDisabled()
+                        .dismissKeyboardOnSubmit()
                     if !query.isEmpty {
                         Button { query = ""; results = [] } label: {
                             Image(systemName: "xmark.circle.fill")

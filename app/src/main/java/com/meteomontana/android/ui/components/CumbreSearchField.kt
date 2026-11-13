@@ -44,6 +44,7 @@ fun CumbreSearchField(
     modifier: Modifier = Modifier,
     onSearch: () -> Unit = {}
 ) {
+    val closeKeyboard = rememberKeyboardDismisser()
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val ink = MaterialTheme.colorScheme.onSurface
     Row(
@@ -62,7 +63,7 @@ fun CumbreSearchField(
                 textStyle = TextStyle(color = ink, fontSize = 17.sp),
                 cursorBrush = SolidColor(ink),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+                keyboardActions = KeyboardActions(onSearch = { closeKeyboard(); onSearch() }),
                 modifier = Modifier.fillMaxWidth()
             )
         }

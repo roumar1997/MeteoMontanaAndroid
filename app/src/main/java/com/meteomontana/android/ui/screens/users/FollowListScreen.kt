@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.users
 
+import com.meteomontana.android.ui.components.dismissKeyboardOnScroll
 import com.meteomontana.android.ui.components.SkeletonList
 import com.meteomontana.android.ui.components.SkeletonPersonRow
 import com.meteomontana.android.ui.components.VerifiedCheck
@@ -241,7 +242,7 @@ fun FollowListScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
-                    LazyColumn {
+                    LazyColumn(Modifier.dismissKeyboardOnScroll()) {
                         items(visible, key = { it.uid }) { u ->
                             UserRow(
                                 u = u,

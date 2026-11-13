@@ -87,6 +87,8 @@ struct SchoolListView: View {
                 if phase == .active { Task { await vm.refreshLocationIfNeeded() } }
             }
             .refreshable { await vm.refresh() }
+            .scrollDismissesKeyboard(.interactively)
+            .dismissKeyboardOnTap()
         }
     }
 

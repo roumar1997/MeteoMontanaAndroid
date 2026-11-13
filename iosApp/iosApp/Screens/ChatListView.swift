@@ -162,6 +162,7 @@ struct ChatListView: View {
                 TextField(L("Buscar en tus conversaciones"), text: $query)
                     .foregroundStyle(Cumbre.ink)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    .dismissKeyboardOnSubmit()
                 if !query.isEmpty {
                     Button { query = "" } label: {
                         Image(systemName: "xmark.circle.fill").foregroundStyle(Cumbre.ink3)

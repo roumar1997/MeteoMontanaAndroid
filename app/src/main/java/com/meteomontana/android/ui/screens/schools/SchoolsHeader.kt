@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.PersonSearch
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Notifications
@@ -109,7 +110,7 @@ internal fun SchoolsHeader(
         Spacer(Modifier.weight(1f))
         com.meteomontana.android.ui.components.CumbrePillGroup {
             IconButton(onClick = onSearchUsers, modifier = Modifier.size(38.dp)) {
-                Icon(Icons.Outlined.Search, contentDescription = stringResource(R.string.search_users_title),
+                Icon(Icons.Outlined.PersonSearch, contentDescription = stringResource(R.string.search_users_title),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
             IconButton(onClick = onChats, modifier = Modifier.size(38.dp)) {

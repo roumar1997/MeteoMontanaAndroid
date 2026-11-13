@@ -80,13 +80,19 @@ object ProfileUseCasesModule {
 
     // Mi altura (más o menos de 1,70 m), para agrupar mis votos de grado.
     @Provides @Singleton
-    fun provideGetMyHeightUseCase(repo: ProfileRepository, pending: com.meteomontana.android.domain.port.PendingHeightStore) =
-        com.meteomontana.android.domain.usecase.profile.GetMyHeightUseCase(repo, pending)
+    fun provideGetMyHeightUseCase(
+        repo: ProfileRepository, pending: com.meteomontana.android.domain.port.PendingHeightStore,
+        @dagger.hilt.android.qualifiers.ApplicationContext context: android.content.Context
+    ) = com.meteomontana.android.domain.usecase.profile.GetMyHeightUseCase(
+        repo, pending, com.meteomontana.android.data.local.SharedPrefsKeyValueStore(context))
 
     // Sin red la altura se guarda en la cola offline y la sube el OutboxFlusher al volver la conexión.
     @Provides @Singleton
-    fun provideSetMyHeightUseCase(repo: ProfileRepository, pending: com.meteomontana.android.domain.port.PendingHeightStore) =
-        com.meteomontana.android.domain.usecase.profile.SetMyHeightUseCase(repo, pending)
+    fun provideSetMyHeightUseCase(
+        repo: ProfileRepository, pending: com.meteomontana.android.domain.port.PendingHeightStore,
+        @dagger.hilt.android.qualifiers.ApplicationContext context: android.content.Context
+    ) = com.meteomontana.android.domain.usecase.profile.SetMyHeightUseCase(
+        repo, pending, com.meteomontana.android.data.local.SharedPrefsKeyValueStore(context))
 
     @Provides @Singleton
     fun providePendingHeightStore(outbox: com.meteomontana.android.data.outbox.OutboxRepository):

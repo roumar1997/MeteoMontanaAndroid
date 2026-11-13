@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.schools
 
+import com.meteomontana.android.ui.components.dismissKeyboardOnScroll
 import androidx.compose.ui.platform.testTag
 
 import com.meteomontana.android.ui.components.SkeletonList
@@ -327,7 +328,7 @@ fun SchoolListScreen(
         }
         LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().dismissKeyboardOnScroll(),
         // Hueco al final para que la ultima escuela no quede debajo de la capsula.
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
             bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)

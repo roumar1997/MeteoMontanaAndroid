@@ -234,8 +234,8 @@ class IosDependencyContainer(
     // Mi altura (más o menos de 1,70 m): agrupa mis votos de grado. Privada.
     // Sin red se guarda en la cola offline y se sube sola al volver (drenado de outboxSync).
     private val pendingHeight by lazy { com.meteomontana.android.data.outbox.OutboxPendingHeightStore(outbox) }
-    val getMyHeight by lazy { com.meteomontana.android.domain.usecase.profile.GetMyHeightUseCase(profileRepository, pendingHeight) }
-    val setMyHeight by lazy { com.meteomontana.android.domain.usecase.profile.SetMyHeightUseCase(profileRepository, pendingHeight) }
+    val getMyHeight by lazy { com.meteomontana.android.domain.usecase.profile.GetMyHeightUseCase(profileRepository, pendingHeight, keyValueStore) }
+    val setMyHeight by lazy { com.meteomontana.android.domain.usecase.profile.SetMyHeightUseCase(profileRepository, pendingHeight, keyValueStore) }
 
     // Restricciones de escalada (cierres por nidificación…): "!" en sectores y bloques; CRUD del admin.
     private val restrictionRepository = com.meteomontana.android.data.repository.KtorRestrictionRepository(

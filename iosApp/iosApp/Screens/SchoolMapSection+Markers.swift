@@ -55,11 +55,17 @@ extension SchoolMapSection {
                 Button {
                     if active { styleFilter.remove(opt) } else { styleFilter.insert(opt) }
                 } label: {
-                    Text(L(opt).uppercased()).font(Cumbre.mono(11, .bold)).tracking(0.5)
-                        .foregroundStyle(active ? .white : Cumbre.ink2)
-                        .padding(.horizontal, 12).padding(.vertical, 6)
-                        .background(active ? Cumbre.terra : Cumbre.paper)
-                        .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+                    HStack(spacing: 5) {
+                        // Vía = mosquetón/cuerda (eslabón); Bloque = piedra/crashpad (cubo).
+                        Image(systemName: opt == "Vía" ? "link" : "cube")
+                            .font(.system(size: 11, weight: .bold))
+                        Text(L(opt).uppercased()).font(Cumbre.mono(11, .bold)).tracking(0.5)
+                            .lineLimit(1).minimumScaleFactor(0.8)
+                    }
+                    .foregroundStyle(active ? .white : Cumbre.ink2)
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .background(active ? Cumbre.terra : Cumbre.paper, in: Capsule())
+                    .overlay(Capsule().stroke(active ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
                 }.buttonStyle(.plain)
             }
         }

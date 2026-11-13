@@ -68,6 +68,8 @@ struct MeteoMontanaApp: App {
             // RootView hace de gate: sin sesión → LoginView, con sesión →
             // MainTabView (igual que AppRoot.kt en Android).
             RootView()
+                // Teclado: se oculta al hacer scroll en cualquier lista o formulario de la app.
+                .scrollDismissesKeyboard(.interactively)
                 .environmentObject(session)
                 .environmentObject(assistant)
                 // La conversación del asistente es de una cuenta: se recupera al entrar y se borra al salir.
