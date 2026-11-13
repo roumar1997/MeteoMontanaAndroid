@@ -63,6 +63,11 @@ final class SchoolMapViewModel: ObservableObject {
     /// Recarga y devuelve el bloque fresco de [selectedId] si sigue existiendo
     /// (para refrescar la ficha abierta, p.ej. nueva foto).
     func reloadBlocks(school: School, selectedId: String?) async -> Block? {
+        // Primero lo guardado en el móvil (al momento) y luego lo de la red (Álvaro, 2026-11-13:
+        // los bloques tardaban ~15 s en salir la primera vez). Mismo patrón que la ficha en Android.
+        if blocks.isEmpty, let cached = container.getBlocks.cached(schoolId: school.id), !cached.isEmpty {
+            blocks = cached
+        }
         blocks = await loadBlocksOnlineOrOffline(school: school)
         guard let selectedId else { return nil }
         return blocks.first(where: { $0.id == selectedId })
@@ -91,7 +96,9 @@ final class SchoolMapViewModel: ObservableObject {
             if let repo = container.savedSchools,
                (try? await repo.loadOffline(id: school.id)) != nil {
                 try? await repo.saveOffline(school: school, blocks: online, forecast: nil)
-                await ImageCache.prefetch(FotosDeEscuela.shared.urlsParaGuardar(blocks: online))
+                // Fotos en SEGUNDO PLANO: antes se esperaba a bajarlas todas antes de pintar los bloques.
+                let urls = FotosDeEscuela.shared.urlsParaGuardar(blocks: online)
+                Task.detached(priority: .utility) { await ImageCache.prefetch(urls) }
             }
             return online
         }
