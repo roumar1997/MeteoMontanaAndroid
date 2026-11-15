@@ -14,6 +14,8 @@ final class ChatVM: ObservableObject {
     @Published var canLoadMore = false
     /// Mensaje al que estoy respondiendo (cita), o nil.
     @Published var replyingTo: ChatServiceChatMessage?
+    /// Foto del otro (para el avatar con su aureola en la cabecera); se pide al abrir.
+    @Published var otherPhotoUrl: String?
 
     private let chat = AppDependencies.shared.container.chatService
     private let chatPush = AppDependencies.shared.container.chatPushApi
@@ -37,6 +39,14 @@ final class ChatVM: ObservableObject {
     }
 
     func start() {
+        if otherPhotoUrl == nil {
+            Task { [weak self] in
+                guard let self else { return }
+                if let p = try? await AppDependencies.shared.container.getPublicProfile.invoke(uid: self.otherUid) {
+                    self.otherPhotoUrl = p.photoUrl
+                }
+            }
+        }
         guard convTask == nil, let chat else { if chat == nil { loading = false }; return }
         let cid = convId
         subscribeMessages()
@@ -268,8 +278,12 @@ struct ChatView: View {
             // Nombre del chat → abre el perfil del otro usuario.
             ToolbarItem(placement: .principal) {
                 NavigationLink(destination: PublicProfileView(uid: vm.otherUid)) {
-                    Text(vm.otherName.isEmpty ? L("Chat") : vm.otherName)
-                        .font(Cumbre.serif(17, .semibold)).foregroundStyle(Cumbre.ink)
+                    HStack(spacing: 8) {
+                        AvatarCircle(url: vm.otherPhotoUrl, size: 30, uid: vm.otherUid)
+                        Text(vm.otherName.isEmpty ? L("Chat") : vm.otherName)
+                            .font(Cumbre.serif(17, .semibold)).foregroundStyle(Cumbre.ink)
+                            .lineLimit(1)
+                    }
                         // Zona de toque generosa: costaba acertar al nombre.
                         .padding(.horizontal, 24).padding(.vertical, 10)
                         .contentShape(Rectangle())

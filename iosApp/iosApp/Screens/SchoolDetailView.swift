@@ -93,10 +93,11 @@ struct SchoolDetailView: View {
         }
         .sheet(isPresented: $showHelp) { HelpSheet(topicKey: "detail") }
         .sheet(isPresented: $showViaSearch) {
-            SchoolViaSearchSheet(school: school) { id in
-                // Se abre la piedra en el mapa, como al tocarla en la lista de bloques.
-                mapOpenVia = id
-                mapFocusBlock = nil
+            SchoolViaSearchSheet(school: school) { id, isPlace in
+                // Vía/piedra: se abre en el mapa, como al tocarla en la lista de bloques. Sector/parking: el mapa lo
+                // enfoca y enseña su mini-tarjeta (el mismo flujo que «Ver en mapa» de la guía).
+                mapOpenVia = isPlace ? nil : id
+                mapFocusBlock = isPlace ? id : nil
                 returnToBlocks = false
                 tab = .map
             }

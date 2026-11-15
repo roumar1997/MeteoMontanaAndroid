@@ -106,6 +106,7 @@ struct SchoolChatView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 10) {
+                        if notMarkedHere && !vm.messages.isEmpty { markNotice(compact: true) }
                         ForEach(vm.messages, id: \.id) { m in
                             bubble(m)
                         }
@@ -121,6 +122,9 @@ struct SchoolChatView: View {
             }
             inputBar
         }
+        .overlay {
+            if notMarkedHere && vm.messages.isEmpty { markNotice(compact: false) }
+        }
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationBarHidden(true)
         .task { vm.start(); await presence.load() }
@@ -130,6 +134,21 @@ struct SchoolChatView: View {
         .navigationDestination(item: $openChatFor) { target in
             ChatView(otherUid: target.uid, otherName: target.name)
         }
+    }
+
+    /// Sin marcar «Aquí» el chat y el recuento de gente no van contigo: aviso con el botón grande que te marca.
+    private var notMarkedHere: Bool { presence.loaded && !presence.iAmHere }
+
+    private func markNotice(compact: Bool) -> some View {
+        VStack(spacing: 10) {
+            Image(systemName: "mappin").font(.system(size: compact ? 22 : 40)).foregroundStyle(Cumbre.terra)
+            Text(L("Pulsa «Aquí» para participar en el chat y ver cuánta gente hay en la escuela"))
+                .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+                .multilineTextAlignment(.center)
+            PresenceMarkButton(vm: presence, visibleWhenHere: false, big: true)
+        }
+        .padding(.horizontal, 16).padding(.vertical, compact ? 8 : 0)
+        .frame(maxWidth: .infinity)
     }
 
     private var header: some View {
@@ -143,7 +162,7 @@ struct SchoolChatView: View {
                     .font(.system(size: 17, weight: .bold, design: .serif))
                     .foregroundStyle(Cumbre.ink)
                 Spacer()
-                PresenceMarkButton(vm: presence)
+                PresenceMarkButton(vm: presence, visibleWhenHere: true)
             }
             Text("se borra solo pasados unos días")
                 .font(.system(size: 9, design: .monospaced))

@@ -11,6 +11,8 @@ final class SchoolPresenceViewModel: ObservableObject {
     @Published var people: [SchoolPresence] = []
     @Published var iAmHere = false
     @Published var loading = false
+    /// false hasta la primera respuesta de presencia: evita enseñar «Pulsa Aquí» antes de saber si ya estás marcado.
+    @Published var loaded = false
     // Antes se tragaba cualquier fallo con `try?` sin decir nada — "Ya no
     // estoy" parecía no hacer nada y no había forma de saber por qué
     // (Álvaro, 2026-09-03). Ahora, si algo falla de verdad, se ve en pantalla.
@@ -33,6 +35,7 @@ final class SchoolPresenceViewModel: ObservableObject {
             let list = try await getPresence.execute(schoolId: schoolId)
             people = list
             iAmHere = myUid.map { uid in list.contains { $0.uid == uid } } ?? false
+            loaded = true
         } catch is CancellationError {
             // Cancelada (p.ej. al salir de la pantalla a mitad) — no es un
             // fallo real, no hay nada que avisar.
@@ -224,24 +227,37 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
 /// vez). Vive DENTRO del chat de la escuela; la fila de la ficha solo enseña un símbolo que lleva al chat.
 struct PresenceMarkButton: View {
     @ObservedObject var vm: SchoolPresenceViewModel
+    /// nil = siempre visible; true = solo si ya estás marcado (quitarte); false = solo si NO lo estás (marcarte).
+    var visibleWhenHere: Bool? = nil
+    /// Botón grande a todo el ancho (aviso central del chat) en vez de la píldora pequeña.
+    var big: Bool = false
     @State private var showPrivacyNote = false
 
+    private var visible: Bool { visibleWhenHere == nil || visibleWhenHere == vm.iAmHere }
+
     var body: some View {
+        Group {
+            if visible { button }
+        }
+        .sheet(isPresented: $showPrivacyNote) { privacySheet }
+    }
+
+    private var button: some View {
         Button {
             if vm.iAmHere { vm.toggle() } else { showPrivacyNote = true }
         } label: {
-            HStack(spacing: 3) {
-                Image(systemName: "mappin.circle.fill").font(.system(size: 14))
+            HStack(spacing: big ? 6 : 3) {
+                Image(systemName: "mappin.circle.fill").font(.system(size: big ? 20 : 14))
                 Text(vm.iAmHere ? L("Ya no") : L("Aquí"))
-                    .font(.system(size: 14, weight: .bold, design: .serif))
+                    .font(.system(size: big ? 17 : 14, weight: .bold, design: .serif))
                     .lineLimit(1).fixedSize()
             }
             .foregroundStyle(.white)
-            .padding(.horizontal, 10).padding(.vertical, 10)
+            .padding(.horizontal, 10).padding(.vertical, big ? 0 : 10)
+            .frame(maxWidth: big ? .infinity : nil, minHeight: big ? 52 : 0)
             .background(vm.iAmHere ? Cumbre.ink3 : Cumbre.terraFill, in: Capsule())
         }
         .disabled(vm.loading)
-        .sheet(isPresented: $showPrivacyNote) { privacySheet }
     }
 
     private var privacySheet: some View { PresencePrivacySheet { showPrivacyNote = false; vm.toggle() } }
