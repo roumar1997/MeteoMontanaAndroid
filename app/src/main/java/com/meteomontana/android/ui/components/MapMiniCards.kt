@@ -166,12 +166,12 @@ internal fun SchoolViaSearchBar(
                                         .background(com.meteomontana.android.ui.theme.gradeChipColor(g), CircleShape)
                                         .padding(horizontal = 9.dp, vertical = 2.dp))
                             }
-                            Spacer(Modifier.weight(1f))
-                            // Derecha: «Sector»/«Parking» en gris, o el número de vías de la piedra.
+                            Spacer(Modifier.weight(0.001f))
+                            // Derecha: «Sector»/«Parking» en gris, o el nombre de su piedra (como iOS).
                             val right = when (h.kind) {
                                 SchoolSearchKind.SECTOR -> stringResource(R.string.school_search_kind_sector)
                                 SchoolSearchKind.PARKING -> stringResource(R.string.school_search_kind_parking)
-                                else -> if (h.lineCount > 0) h.lineCount.toString() else null
+                                else -> h.parentName ?: if (h.lineCount > 0) h.lineCount.toString() else null
                             }
                             if (right != null) {
                                 Spacer(Modifier.width(8.dp))
