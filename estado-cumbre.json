@@ -1,9 +1,9 @@
 {
   "_ayuda": "Lo lee el panel Estado Cumbre. Estados: pendiente (no hecho), hecho (programado, sin probar), probado (validado por Álvaro), publicado (en la tienda). Claude lo actualiza al terminar cada cosa.",
   "builds": {
-    "ios": "7.1.4 (build 348) PUBLICADA · 349 (admin + denuncias) en TestFlight",
-    "android": "7.1.4 (vc123) PUBLICADA en Play",
-    "note": "7.1.4 publicada en las dos tiendas y fijada como mínima en Railway"
+    "ios": "7.2 LISTA PARA DISTRIBUCIÓN (build 358) · 7.2.2 (build 359) en revisión de Apple",
+    "android": "7.2.1 (vc127) · AAB firmado en Desktop/AABs Play, lo sube Álvaro a Play",
+    "note": "main 7a53acc5 (2026-11-15, «sí, fusiona»). Backend prod 2789b41 (V100–V102 avisos con autor)."
   },
   "steps": [
     {
@@ -59,12 +59,32 @@
       "done": true
     },
     {
-      "name": "Plan 7.2 · 8. Ronda de pruebas cargada en el panel; falta TestFlight + AAB cuando Álvaro diga «vamos con la 7.2»",
-      "done": false
+      "name": "Plan 7.2 · 8. Pruebas y publicar: 7.2 → iOS lista; 7.2.1/7.2.2 enviada",
+      "done": true
     },
     {
       "name": "Staging refrescado con copia de producción (2026-11-06)",
       "done": true
+    },
+    {
+      "name": "Backend a producción: avisos con foto de quien interactúa (V100–V102)",
+      "done": true
+    },
+    {
+      "name": "7.2 fusionada a main y TestFlight 358 (GUÍA sin tiempo)",
+      "done": true
+    },
+    {
+      "name": "7.2.1 / 7.2.2 fusionada a main (7a53acc5), iOS 359 en revisión",
+      "done": true
+    },
+    {
+      "name": "Subir AAB vc127 a Play (Álvaro)",
+      "done": false
+    },
+    {
+      "name": "Llevar a main la nota de HISTORIAL del 2026-11-15 (próxima fusión)",
+      "done": false
     }
   ],
   "features": [
@@ -251,20 +271,20 @@
     {
       "version": "7.2",
       "name": "Reestructuración interna (arquitectura, ficheros partidos)",
-      "ios": "hecho",
+      "ios": "probado",
       "android": "probado",
       "iosTest": "i1–i4"
     },
     {
       "version": "7.2",
       "name": "Admin: mensaje del equipo, restablecer nombre, historial",
-      "ios": "hecho",
+      "ios": "probado",
       "android": "no aplica"
     },
     {
       "version": "7.2",
       "name": "Denuncias nuevas (7 motivos + texto + gracias)",
-      "ios": "hecho",
+      "ios": "probado",
       "android": "probado",
       "iosTest": "i3"
     },
@@ -278,7 +298,7 @@
     {
       "version": "7.2",
       "name": "Interruptor remoto («EN PAUSA»)",
-      "ios": "hecho",
+      "ios": "probado",
       "android": "probado",
       "iosTest": "i12",
       "androidTest": "a3"
@@ -286,7 +306,7 @@
     {
       "version": "7.2",
       "name": "Editar ascenso (fecha + estilo) y etiqueta solo del estilo marcado",
-      "ios": "hecho",
+      "ios": "probado",
       "android": "hecho",
       "iosTest": "i5–i7",
       "androidTest": "a1"
@@ -294,7 +314,7 @@
     {
       "version": "7.2",
       "name": "Avisos con fecha legible",
-      "ios": "hecho",
+      "ios": "probado",
       "android": "probado",
       "iosTest": "i8",
       "androidTest": "a2"
@@ -302,14 +322,14 @@
     {
       "version": "7.2",
       "name": "«0 escuelas» al abrir arreglado",
-      "ios": "hecho",
+      "ios": "probado",
       "android": "probado",
       "iosTest": "i1"
     },
     {
       "version": "7.2",
       "name": "Error de inicio de sesión traducido",
-      "ios": "hecho",
+      "ios": "probado",
       "android": "probado",
       "iosTest": "i13"
     },
@@ -322,7 +342,7 @@
     {
       "version": "7.2",
       "name": "Efectos de título desde el servidor + Furgo Lola",
-      "ios": "hecho",
+      "ios": "probado",
       "android": "probado",
       "iosTest": "i14",
       "androidTest": "Maestro 20/20"
@@ -330,22 +350,150 @@
     {
       "version": "7.2",
       "name": "Optimización iOS y Android (guía sin saltos, fotos, arranque, batería)",
-      "ios": "hecho",
+      "ios": "probado",
       "android": "probado",
       "iosTest": "i3–i5, i13, i15",
       "androidTest": "Maestro 20/20"
+    },
+    {
+      "version": "7.2",
+      "name": "Avisos con foto redonda, aureola, Seguir y tramos Hoy/Semana/Antes",
+      "ios": "probado",
+      "android": "probado",
+      "iosTest": "357 i1–i2",
+      "androidTest": "emulador"
+    },
+    {
+      "version": "7.2",
+      "name": "Notas de escuela como publicaciones del feed",
+      "ios": "probado",
+      "android": "probado",
+      "iosTest": "357 i3",
+      "androidTest": "emulador"
+    },
+    {
+      "version": "7.2",
+      "name": "Iconos Vía/Bloque reales (mosquetón y crashpad) en el selector",
+      "ios": "probado",
+      "android": "probado",
+      "iosTest": "357 i4",
+      "androidTest": "emulador"
+    },
+    {
+      "version": "7.2",
+      "name": "Cada pestaña de la ficha recuerda su scroll",
+      "ios": "probado",
+      "android": "probado",
+      "iosTest": "357 i5",
+      "androidTest": "emulador"
+    },
+    {
+      "version": "7.2",
+      "name": "Altura sin conexión",
+      "ios": "probado",
+      "android": "probado",
+      "iosTest": "357 i6",
+      "androidTest": "emulador"
+    },
+    {
+      "version": "7.2",
+      "name": "GUÍA sin la tarjeta del tiempo (queda mejor hora por sector)",
+      "ios": "probado",
+      "android": "probado",
+      "iosTest": "358 i1–i2",
+      "androidTest": "emulador"
+    },
+    {
+      "version": "7.2.1",
+      "name": "Lupa junto al nombre: vías, bloques, sectores y parkings",
+      "ios": "probado",
+      "android": "probado",
+      "iosTest": "359 i2",
+      "androidTest": "emulador (vc127)"
+    },
+    {
+      "version": "7.2.1",
+      "name": "Fila de la ficha sin «Estoy aquí»",
+      "ios": "probado",
+      "android": "probado",
+      "iosTest": "359 i1",
+      "androidTest": "emulador"
+    },
+    {
+      "version": "7.2.1",
+      "name": "Vía/Bloque en la línea de «Filtrar por grado»",
+      "ios": "probado",
+      "android": "probado",
+      "iosTest": "359 i3",
+      "androidTest": "emulador"
+    },
+    {
+      "version": "7.2.1",
+      "name": "Mapa encuadra solo piedras y re-encuadra al filtrar",
+      "ios": "probado",
+      "android": "probado",
+      "iosTest": "359 i4",
+      "androidTest": "emulador"
+    },
+    {
+      "version": "7.2.1",
+      "name": "Chat de escuela: «Aquí» obligatorio para escribir y ver quién está",
+      "ios": "probado",
+      "android": "probado",
+      "iosTest": "359 i5–i6",
+      "androidTest": "emulador"
+    },
+    {
+      "version": "7.2.1",
+      "name": "Aureolas en chats con personas",
+      "ios": "probado",
+      "android": "probado",
+      "iosTest": "359 i7",
+      "androidTest": "emulador"
+    },
+    {
+      "version": "7.2.1",
+      "name": "Perfil público idéntico a iOS (barra, 2×3, sin scroll)",
+      "ios": "probado",
+      "android": "probado",
+      "iosTest": "—",
+      "androidTest": "emulador"
+    },
+    {
+      "version": "7.2.1",
+      "name": "Iconos de línea fina como iOS y «S» de sector en el mapa (Android)",
+      "ios": "probado",
+      "android": "probado",
+      "iosTest": "—",
+      "androidTest": "emulador"
+    },
+    {
+      "version": "7.2.1",
+      "name": "Menús «⋯» sin lila (Android)",
+      "ios": "probado",
+      "android": "probado",
+      "iosTest": "—",
+      "androidTest": "emulador"
+    },
+    {
+      "version": "7.2.1",
+      "name": "Toques que atravesaban pantallas superpuestas (Android)",
+      "ios": "probado",
+      "android": "probado",
+      "iosTest": "—",
+      "androidTest": "emulador + Maestro 20/20"
     }
   ],
   "versions": {
     "published": {
       "name": "7.1.4",
-      "ios": "build 348",
+      "ios": "build 348 (7.2 aprobada, lista para distribución)",
       "android": "vc123"
     },
     "next": {
-      "name": "7.2",
-      "ios": "TestFlight 351 (7.2 + optimización + Lola)",
-      "android": "vc124 · AAB firmado, sin subir"
+      "name": "7.2.1 / iOS 7.2.2",
+      "ios": "build 359 · en revisión",
+      "android": "vc127 · AAB listo para subir"
     }
   }
 }

@@ -63,9 +63,10 @@ los dos entornos. `climbingteams.com` lo sirve **Cloudflare Pages** (push a `mai
 
 ## Estado actual
 
-- **Publicada: 7.1.4** en las dos tiendas, y es la versión mínima en Railway.
-- **TestFlight 351** (rama `feature/7.3-optimiza-lola`): 7.2 + optimización iOS/Android + efectos desde el servidor (Furgo Lola). Pendiente: pruebas i1–i15 de Álvaro → «sí, fusiona» → tiendas.
-- **Antes de la 7.2** (orden acordado el 2026-11-06):
+- **Publicada: 7.1.4** en Play (y mínima en Railway). En App Store, la **7.2** (build 358) está aprobada y lista para distribución.
+- **Enviada (2026-11-15)**: iOS **7.2.2** (build 359) en revisión de Apple; Android **7.2.1 vc127** (`Desktop/AABs Play/cumbre-7.2.1-vc127.aab`), lo sube Álvaro. Todo en `main` (7a53acc5). Lleva: lupa (vías, bloques, sectores, parkings), encuadre de piedras, chat de escuela con «Aquí» obligatorio, perfil público igual que iOS, aureolas en chats, avisos con foto (backend V100–V102 en prod).
+- **Pendiente**: la nota de `HISTORIAL.md` del 2026-11-15 está en la rama `feature/7.3-optimiza-lola` y entra en `main` con la próxima fusión.
+- **Plan de la 7.2** (orden acordado el 2026-11-06; hecho salvo el 6, publicación por fases y alertas de Crashlytics):
   1. normas y memorias;
   2. mods «Taller» y «Pruebas»;
   3. reglas automáticas: detekt + SwiftLint, deuda del servidor (aportaciones sin puerto), tests de contrato servidor↔apps;
