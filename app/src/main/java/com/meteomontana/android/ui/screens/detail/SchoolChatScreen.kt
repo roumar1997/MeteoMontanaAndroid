@@ -165,7 +165,10 @@ fun SchoolChatScreen(
     viewModel: SchoolChatViewModel = hiltViewModel()
 ) {
     var showAllPresent by remember { mutableStateOf(false) }
-    val notMarkedHere = viewModel.presenceLoaded && viewModel.presentList.none { it.uid == myUid }
+    // Mismo ViewModel que usan los botones «Aquí»/«Ya no»: reacciona al instante al marcarte o quitarte.
+    val presenceVm: com.meteomontana.android.ui.components.SchoolPresenceViewModel = hiltViewModel()
+    LaunchedEffect(schoolId, myUid) { presenceVm.load(schoolId, myUid) }
+    val notMarkedHere = presenceVm.loaded && !presenceVm.iAmHere
     LaunchedEffect(schoolId) { viewModel.start(schoolId, myUid) }
     val listState = rememberLazyListState()
     LaunchedEffect(viewModel.messages.size) {
@@ -209,7 +212,7 @@ fun SchoolChatScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = Spacing.md)
             )
-            if (viewModel.presentList.isNotEmpty()) {
+            if (viewModel.presentList.isNotEmpty() && !notMarkedHere) {
                 Row(
                     modifier = Modifier
                         .clickable { showAllPresent = true }
@@ -251,14 +254,14 @@ fun SchoolChatScreen(
             modifier = Modifier.weight(1f).fillMaxWidth()
         ) {
         if (notMarkedHere && viewModel.messages.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { MarkHereNotice(compact = false, schoolId = schoolId, myUid = myUid, onChanged = { viewModel.refreshPresence(schoolId) }) }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { MarkHereNotice(compact = false) }
         }
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.md)
         ) {
-            if (notMarkedHere && viewModel.messages.isNotEmpty()) item { MarkHereNotice(compact = true, schoolId = schoolId, myUid = myUid, onChanged = { viewModel.refreshPresence(schoolId) }) }
+            if (notMarkedHere && viewModel.messages.isNotEmpty()) item { MarkHereNotice(compact = true) }
             items(viewModel.messages) { m ->
                 MessageBubble(
                     message = m,
@@ -277,7 +280,18 @@ fun SchoolChatScreen(
         }
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
-        Row(
+        // Sin marcar «Aquí» no se puede escribir: el botón grande ocupa el sitio de la caja.
+        if (notMarkedHere) Box(
+            Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+        ) {
+            com.meteomontana.android.ui.components.PresenceMarkControl(
+                schoolId = schoolId, myUid = myUid,
+                onChanged = { viewModel.refreshPresence(schoolId) },
+                visibleWhenHere = false, big = true
+            )
+        }
+        else Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background)
@@ -375,7 +389,7 @@ fun SchoolChatScreen(
 
 /** Aviso cuando el usuario no ha marcado «Aquí»: el chat y el recuento de gente dependen de esa marca. */
 @Composable
-private fun MarkHereNotice(compact: Boolean, schoolId: String, myUid: String, onChanged: () -> Unit) {
+private fun MarkHereNotice(compact: Boolean) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(Spacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -388,11 +402,6 @@ private fun MarkHereNotice(compact: Boolean, schoolId: String, myUid: String, on
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
-        Spacer(Modifier.size(Spacing.xs))
-        com.meteomontana.android.ui.components.PresenceMarkControl(
-            schoolId = schoolId, myUid = myUid, onChanged = onChanged,
-            visibleWhenHere = false, big = true
         )
     }
 }

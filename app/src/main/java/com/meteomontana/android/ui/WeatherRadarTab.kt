@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui
 
+import com.meteomontana.android.ui.components.blockTouchesBelow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
@@ -106,6 +107,7 @@ internal fun WeatherRadarTab(
             Modifier.fillMaxSize()
                 .zIndex(if (!weatherShowsRadar) 1f else 0f)
                 .graphicsLayer { alpha = if (!weatherShowsRadar) 1f else 0f }
+                .blockTouchesBelow()
         ) {
             com.meteomontana.android.ui.guide.GuideHost("weather") {
             androidx.compose.foundation.layout.Column(Modifier.fillMaxSize()) {
@@ -130,6 +132,7 @@ internal fun WeatherRadarTab(
                 Modifier.fillMaxSize()
                     .zIndex(if (weatherShowsRadar) 1f else 0f)
                     .graphicsLayer { alpha = if (weatherShowsRadar) 1f else 0f }
+                    .blockTouchesBelow()
             ) {
                 RadarScreen(onSchoolDetail = { id ->
                     openSheet(Routes.schoolDetail(id))

@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui
 
+import com.meteomontana.android.ui.components.blockTouchesBelow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
@@ -347,6 +348,8 @@ fun MainScreen(
                                 Box(
                                     Modifier.fillMaxSize()
                                         .zIndex(if (sel) 1f else 0f)
+                                        // La pestaña a la vista tapa a las demás también al tacto.
+                                        .blockTouchesBelow()
                                         .graphicsLayer {
                                             alpha = if (sel) 1f else 0f
                                             // Al abrir algo encima, esta pantalla
@@ -506,6 +509,7 @@ fun MainScreen(
                                     .height(reservaAbajo)
                                     .zIndex(1.5f)
                                     .background(MaterialTheme.colorScheme.background)
+                                    .blockTouchesBelow()
                             )
                         }
                         //

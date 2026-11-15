@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.onboarding
 
+import com.meteomontana.android.ui.components.blockTouchesBelow
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -72,6 +73,7 @@ fun OnboardingOverlay(onFinish: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .blockTouchesBelow()
             // Entre las barras del sistema: el botón no puede quedar bajo la barra de navegación.
             .systemBarsPadding()
             .padding(Spacing.xl)

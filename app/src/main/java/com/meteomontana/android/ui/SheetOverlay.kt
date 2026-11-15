@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui
 
+import com.meteomontana.android.ui.components.blockTouchesBelow
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -107,6 +108,8 @@ internal fun SheetOverlay(
         Box(
             Modifier.fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
+                // Las pantallas que se abren encima (chat, avisos, perfiles, ajustes…) no dejan pasar toques a Escuelas.
+                .blockTouchesBelow()
         ) {
             // Navega al destino pendiente una vez el NavHost interno está
             // compuesto (grafo registrado).

@@ -73,23 +73,28 @@ class SchoolPresenceViewModel @Inject constructor(
         private set
     var loading by mutableStateOf(false)
         private set
+    /** true tras la primera respuesta (o fallo) de presencia: hasta entonces no se sabe si estás marcado. */
+    var loaded by mutableStateOf(false)
+        private set
     // Antes se tragaba cualquier fallo en silencio — "Ya no estoy" parecía no
     // hacer nada y no había forma de saber por qué. Si algo falla, se ve.
     var errorText by mutableStateOf<String?>(null)
         private set
 
-    fun load(schoolId: String, myUid: String?) {
+    fun load(schoolId: String, myUid: String?, updateSelf: Boolean = true) {
         viewModelScope.launch {
             try {
                 val list = getPresence.execute(schoolId)
                 people = list
-                iAmHere = myUid != null && list.any { it.uid == myUid }
+                if (updateSelf) iAmHere = myUid != null && list.any { it.uid == myUid }
+                loaded = true
             } catch (e: Exception) {
                 // El mensaje técnico ("Socket timeout has expired...") no le
                 // dice nada al usuario — se registra para depurar y se
                 // muestra uno normal (Álvaro, 2026-09-04).
                 android.util.Log.w("SchoolPresence", "No se pudo cargar la presencia", e)
                 errorText = AppText.get(R.string.school_presence_row_v4_no_se_pudo_cargar_quien)
+                loaded = true
             }
         }
     }
@@ -99,14 +104,19 @@ class SchoolPresenceViewModel @Inject constructor(
         loading = true
         errorText = null
         viewModelScope.launch {
+            var ok = true
             try {
                 if (iAmHere) clearPresence.execute(schoolId) else markPresence.execute(schoolId)
             } catch (e: Exception) {
                 android.util.Log.w("SchoolPresence", "No se pudo marcar/quitar la presencia", e)
                 errorText = AppText.get(if (iAmHere) R.string.presence_error_remove else R.string.presence_error_mark)
+                ok = false
             }
             loading = false
-            load(schoolId, myUid)
+            // Al instante: lo que acabas de hacer manda; la lista del servidor solo refresca quién más hay (puede ir
+            // un poco por detrás y devolverte al estado anterior).
+            if (ok) iAmHere = !iAmHere
+            load(schoolId, myUid, updateSelf = !ok)
         }
     }
 }
