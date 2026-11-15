@@ -153,7 +153,7 @@ internal fun OrientationMenu(
                 tint = tint, modifier = Modifier.size(14.dp)
             )
         }
-        androidx.compose.material3.DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        com.meteomontana.android.ui.components.CumbreDropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             androidx.compose.material3.DropdownMenuItem(
                 text = { Text((if (selected == null) "✓ " else "") + stringResource(R.string.w_all_caps)) },
                 onClick = { open = false; onSelect(null) }

@@ -270,7 +270,7 @@ private fun DropdownField(
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier.menuAnchor().fillMaxWidth()
             )
-            DropdownMenu(
+            com.meteomontana.android.ui.components.CumbreDropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {

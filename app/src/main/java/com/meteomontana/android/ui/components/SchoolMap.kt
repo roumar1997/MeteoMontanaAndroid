@@ -196,9 +196,7 @@ fun SchoolMap(
         //
         // El fallo de fondo NO esta resuelto: ver project_bug_mapa_no_cierra.
         run {
-            // Buscador de vías/bloques de ESTA escuela: solo con el mapa
-            // abierto (como iOS). Elegir un resultado abre su piedra.
-            SchoolViaSearchBar(blocks = blocks, viewModel = viewModel)
+            // (El buscador de vías/bloques ya no es una barra fija: se abre con la lupa junto al nombre de la escuela.)
             // Filtro por orientación (consenso comunitario): filtra la lista
             // de marcadores del mapa. Piedras sin votos → solo en TODAS.
             val orientationVm: OrientationFilterViewModel =
@@ -249,6 +247,17 @@ fun SchoolMap(
                 // los sectores/parkings (que van ANTES) viven dentro del mapa.
                 filtersContent = {
                     GradeFilterBar(
+                        trailing = {
+                            // Vía/Bloque en la misma línea que «Filtrar por grado» (solo si la escuela tiene ambos).
+                            if (schoolHasBothStyles) {
+                                StyleFilterRow(
+                                    selected = styleFilter,
+                                    onToggle = { opt ->
+                                        styleFilter = if (opt in styleFilter) styleFilter - opt else styleFilter + opt
+                                    }
+                                )
+                            }
+                        },
                         selectedGrades = selectedGrades,
                         onSelectedGradesChange = { selectedGrades = it },
                         availableGrades = availableGrades,
@@ -257,14 +266,6 @@ fun SchoolMap(
                             visibleBlocks.firstOrNull { it.id == match.blockId }?.let { selectedBlock = it }
                         }
                     )
-                    if (schoolHasBothStyles) {
-                        StyleFilterRow(
-                            selected = styleFilter,
-                            onToggle = { opt ->
-                                styleFilter = if (opt in styleFilter) styleFilter - opt else styleFilter + opt
-                            }
-                        )
-                    }
                 },
                 // El filtro de orientación es un solo botón sobre el mapa (a la izquierda de PROPONER).
                 orientationControl = {

@@ -379,7 +379,7 @@ internal fun EntryRow(
                         Icon(Icons.Filled.MoreHoriz, contentDescription = stringResource(R.string.journal_more_options),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                     }
-                    androidx.compose.material3.DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    com.meteomontana.android.ui.components.CumbreDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         if (onEdit != null) {
                             androidx.compose.material3.DropdownMenuItem(
                                 text = { Text(stringResource(R.string.journal_edit_ascent)) },

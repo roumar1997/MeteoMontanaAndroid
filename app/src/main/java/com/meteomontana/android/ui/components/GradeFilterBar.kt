@@ -59,7 +59,9 @@ fun GradeFilterBar(
     onSelectedGradesChange: (Set<String>) -> Unit,
     availableGrades: List<String>,
     result: GradeFilterResult,
-    onSelectLine: (GradeMatch) -> Unit
+    onSelectLine: (GradeMatch) -> Unit,
+    /** A la derecha de la fila de cabecera (p. ej. los botones Vía/Bloque de la escuela). */
+    trailing: @Composable () -> Unit = {}
 ) {
     var expanded by remember { mutableStateOf(false) }
     var openGroups by remember { mutableStateOf(setOf<String>()) }
@@ -77,17 +79,20 @@ fun GradeFilterBar(
                 tint = if (isActive) Terra else Ink3, modifier = Modifier.width(16.dp))
             Spacer(Modifier.width(6.dp))
             Text(stringResource(R.string.grade_filter_bar_v2_filtrar_por_grado), style = EyebrowTextStyle.copy(fontSize = 10.sp),
-                color = if (isActive) Terra else Ink3)
-            Spacer(Modifier.weight(1f))
-            if (isActive) {
-                Text(stringResource(R.string.grade_filter_bar_v2_quitar_todo), style = EyebrowTextStyle.copy(fontSize = 9.sp), color = Ink3,
-                    modifier = Modifier.clickable { onSelectedGradesChange(emptySet()) })
-                Spacer(Modifier.width(10.dp))
-            }
+                color = if (isActive) Terra else Ink3, maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false))
             Icon(
                 if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
                 contentDescription = null, tint = Ink3
             )
+            Spacer(Modifier.weight(1f))
+            if (isActive) {
+                Text(stringResource(R.string.grade_filter_bar_v2_quitar_todo), style = EyebrowTextStyle.copy(fontSize = 9.sp), color = Ink3,
+                    maxLines = 1, modifier = Modifier.clickable { onSelectedGradesChange(emptySet()) })
+                Spacer(Modifier.width(8.dp))
+            }
+            trailing()
         }
 
         if (expanded) {

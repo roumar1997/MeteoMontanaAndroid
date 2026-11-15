@@ -406,7 +406,7 @@ private fun GradeDropdown(
                 )
             }
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        com.meteomontana.android.ui.components.CumbreDropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(text = { Text(stringResource(R.string.explore_sin_filtro)) }, onClick = { onPick(null); open = false })
             EXPLORE_GRADE_LADDER.forEach { g ->
                 DropdownMenuItem(text = { Text(g) }, onClick = { onPick(g); open = false })

@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -42,8 +43,12 @@ fun CumbreSearchField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     modifier: Modifier = Modifier,
-    onSearch: () -> Unit = {}
+    onSearch: () -> Unit = {},
+    /** Pone el cursor y el teclado en el campo nada más aparecer (buscador que se abre a propósito). */
+    autoFocus: Boolean = false
 ) {
+    val focus = androidx.compose.runtime.remember { androidx.compose.ui.focus.FocusRequester() }
+    if (autoFocus) androidx.compose.runtime.LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     val closeKeyboard = rememberKeyboardDismisser()
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val ink = MaterialTheme.colorScheme.onSurface
@@ -64,7 +69,7 @@ fun CumbreSearchField(
                 cursorBrush = SolidColor(ink),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { closeKeyboard(); onSearch() }),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().focusRequester(focus)
             )
         }
         if (value.isNotEmpty()) {

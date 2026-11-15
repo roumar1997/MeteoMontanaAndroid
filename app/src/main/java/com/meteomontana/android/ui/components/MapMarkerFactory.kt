@@ -256,7 +256,7 @@ internal fun zoneBitmap(): Bitmap {
         color = android.graphics.Color.WHITE
         textSize = 26f; textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD
     }
-    c.drawText("Z", cx, cy + 9f, txt)
+    c.drawText("S", cx, cy + 9f, txt)
     return bmp
 }
 

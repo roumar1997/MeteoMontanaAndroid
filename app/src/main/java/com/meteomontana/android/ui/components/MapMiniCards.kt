@@ -109,13 +109,15 @@ import com.meteomontana.android.domain.util.Geo
 @Composable
 internal fun SchoolViaSearchBar(
     blocks: List<Block>,
-    viewModel: SchoolDetailViewModel
+    viewModel: SchoolDetailViewModel,
+    /** Se llama al elegir un resultado (para cerrar el buscador que lo contiene). */
+    onPicked: () -> Unit = {}
 ) {
     var query by remember { mutableStateOf("") }
     val closeKeyboard = rememberKeyboardDismisser()
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         CumbreSearchField(query, { query = it }, stringResource(R.string.map_mini_cards_buscar_vias_bloques),
-            onSearch = { closeKeyboard() })
+            onSearch = { closeKeyboard() }, autoFocus = true)
         val q = query.trim()
         if (q.length >= 2) {
             data class Hit(val label: String, val sub: String, val lineId: String?, val name: String)
@@ -148,6 +150,7 @@ internal fun SchoolViaSearchBar(
                                     closeKeyboard()
                                     viewModel.openVia(h.lineId, h.name)
                                     query = ""
+                                    onPicked()
                                 }
                                 .padding(horizontal = 12.dp, vertical = 10.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -220,7 +223,7 @@ internal fun StoneShapeIcon() {
     }
 }
 
-/** Círculo verde con Z — la forma real del marcador de zona/sector. */
+/** Círculo verde con S — la forma real del marcador de zona/sector. */
 @Composable
 internal fun ZoneShapeIcon() {
     Box(
@@ -229,7 +232,7 @@ internal fun ZoneShapeIcon() {
             .background(Color(0xFF3F6B4A)),
         contentAlignment = Alignment.Center
     ) {
-        Text("Z", color = Color.White, style = MaterialTheme.typography.labelSmall,
+        Text("S", color = Color.White, style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold)
     }
 }

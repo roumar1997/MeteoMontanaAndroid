@@ -262,6 +262,9 @@ internal fun SchoolMapView(
         viewModel.consumeFocusBlock()
     }
 
+    // Filtros (grado, vía/bloque, orientación): re-encuadra las piedras que quedan visibles.
+    ReframeOnFilterChange(mapRef, blocks, gradeDimmedBlockIds)
+
     // Preview de muro activo: el del editor si está trazando, si no el del flujo crear.
     val activePreview = if (wallEdit.tracing) wallEdit.preview else bridge.wallPreview
 
@@ -403,7 +406,7 @@ internal fun SchoolMapView(
                                     map.cameraPosition = restored
                                     savedCamera = null
                                 } else {
-                                    fitSchoolBoundsCameraUpdate(visibleMarkers, userLoc)?.let { update ->
+                                    fitSchoolBoundsCameraUpdate(visibleMarkers, userLoc, gradeDimmedBlockIds)?.let { update ->
                                         runCatching { map.moveCamera(update) }
                                     }
                                 }
@@ -503,7 +506,7 @@ internal fun SchoolMapView(
             if (!bridge.waitingMapTap && !bridge.correctionMode && !bridge.wallTracing) {
                 SchoolMapSideButtons(
                     hiddenTypes = hiddenTypes,
-                    onRecenter = { mapRef.value?.let { map -> fitSchoolBoundsCameraUpdate(visibleMarkers, null)?.let { runCatching { map.animateCamera(it) } } } },
+                    onRecenter = { mapRef.value?.let { map -> fitSchoolBoundsCameraUpdate(visibleMarkers, null, gradeDimmedBlockIds)?.let { runCatching { map.animateCamera(it) } } } },
                     onToggleStyle = { applyStyle(if (currentStyle == MapStyleOption.SATELLITE) MapStyleOption.TOPO else MapStyleOption.SATELLITE) },
                     onToggleLayer = { toggleLayer(it) },
                     onGoToMe = userLoc?.let { loc -> { mapRef.value?.let { map -> runCatching { map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(loc.lat, loc.lon), 15.5)) } } } },

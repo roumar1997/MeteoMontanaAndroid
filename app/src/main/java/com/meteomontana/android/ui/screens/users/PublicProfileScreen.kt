@@ -161,7 +161,7 @@ fun PublicProfileScreen(
                             contentDescription = stringResource(R.string.public_profile_screen_v2_opciones),
                             tint = MaterialTheme.colorScheme.onBackground)
                     }
-                    androidx.compose.material3.DropdownMenu(
+                    com.meteomontana.android.ui.components.CumbreDropdownMenu(
                         expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         androidx.compose.material3.DropdownMenuItem(
                             text = { Text(stringResource(R.string.public_profile_screen_v2_denunciar_usuario_2)) },

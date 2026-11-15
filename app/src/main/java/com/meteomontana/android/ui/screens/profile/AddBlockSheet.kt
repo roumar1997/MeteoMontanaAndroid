@@ -346,7 +346,7 @@ fun AddBlockSheet(
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = gradeMenuExpanded) },
                     modifier = Modifier.menuAnchor().fillMaxWidth()
                 )
-                DropdownMenu(
+                com.meteomontana.android.ui.components.CumbreDropdownMenu(
                     expanded = gradeMenuExpanded,
                     onDismissRequest = { gradeMenuExpanded = false }
                 ) {

@@ -156,7 +156,7 @@ fun SchoolPhotoButton(school: School, viewModel: SchoolPhotoFinderViewModel, mod
         ) {
             Icon(Icons.Filled.PhotoCamera, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        com.meteomontana.android.ui.components.CumbreDropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(
                 text = { Text(words.takePhoto) },
                 leadingIcon = { Icon(Icons.Outlined.PhotoCamera, null) },

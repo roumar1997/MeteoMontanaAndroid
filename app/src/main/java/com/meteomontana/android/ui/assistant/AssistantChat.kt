@@ -358,7 +358,7 @@ internal fun Header(vm: AssistantViewModel, state: AssistantUiState, words: Chat
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
             Box {
                 ToolbarIcon(Icons.Outlined.MoreHoriz, words.assistantSettings) { menuOpen = true }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                com.meteomontana.android.ui.components.CumbreDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     Text(words.spokenAnswers, color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = Mono, fontWeight = FontWeight.Bold,
                         fontSize = 10.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
                     listOf(

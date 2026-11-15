@@ -168,7 +168,13 @@ internal fun BoulderAdvancedOptions(
                 )
                 ExposedDropdownMenu(
                     expanded = sectorExpanded,
-                    onDismissRequest = { sectorExpanded = false }
+                    onDismissRequest = { sectorExpanded = false },
+                    // Mismo aspecto que CumbreDropdownMenu: papel, borde 1 dp, esquinas 10 dp, sin tinte lila.
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    shape = com.meteomontana.android.ui.components.CumbreMenuShape,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 2.dp,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.boulder_form_dialog_v2_sin_sector),

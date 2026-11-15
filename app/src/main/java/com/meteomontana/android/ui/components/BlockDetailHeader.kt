@@ -117,17 +117,9 @@ internal fun BlockDetailHeader(
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    androidx.compose.material3.DropdownMenu(
+                    com.meteomontana.android.ui.components.CumbreDropdownMenu(
                         expanded = optionsOpen,
-                        onDismissRequest = { optionsOpen = false },
-                        // Con el contenedor por defecto el menú salía
-                        // BLANCO, ajeno al resto de la app (Álvaro,
-                        // 2026-08-24). Papel de Cumbre + borde, como
-                        // cualquier otra superficie.
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        shape = androidx.compose.material3.MaterialTheme.shapes.small,
-                        border = androidx.compose.foundation.BorderStroke(
-                            1.dp, MaterialTheme.colorScheme.outline)
+                        onDismissRequest = { optionsOpen = false }
                     ) {
                         if (onAddLines != null && block.type == "BLOCK") {
                             androidx.compose.material3.DropdownMenuItem(

@@ -42,6 +42,8 @@ import androidx.compose.material.icons.outlined.PersonSearch
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
@@ -148,12 +150,12 @@ internal fun SchoolsHeader(
     // Gente · Chats · Noche · Avisos: cuatro baldosas iguales repartidas por todo el ancho.
     IconActionRow(count = 4) { item ->
         IconAction(onClick = onSearchUsers, modifier = item,
-            icon = Icons.Filled.PersonSearch, description = stringResource(R.string.search_users_title))
+            icon = Icons.Outlined.People, description = stringResource(R.string.search_users_title))
         IconAction(onClick = onChats, modifier = item,
-            icon = Icons.AutoMirrored.Filled.Chat, badge = chatUnread, description = stringResource(R.string.chat_title))
+            icon = Icons.Outlined.Forum, badge = chatUnread, description = stringResource(R.string.chat_title))
         ThemeToggleButton(item)
         IconAction(onClick = onNotifications, modifier = item,
-            icon = Icons.Filled.Notifications, badge = unread, description = stringResource(R.string.notifications_title))
+            icon = Icons.Outlined.Notifications, badge = unread, description = stringResource(R.string.notifications_title))
     }
     }
     if (helpOpen) com.meteomontana.android.ui.components.HelpSheet(topicKey = "schools", onDismiss = { helpOpen = false })
@@ -184,7 +186,7 @@ internal fun ThemeToggleButton(modifier: Modifier = Modifier) {
     IconAction(
         onClick = vm::toggle,
         modifier = modifier,
-        icon = if (isDark) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+        icon = if (isDark) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
         active = isDark,
         description = stringResource(R.string.a11y_toggle_theme)
     )

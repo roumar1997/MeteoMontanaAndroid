@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
@@ -96,11 +97,8 @@ internal fun StyleFilterRow(
     selected: Set<String>,
     onToggle: (String) -> Unit
 ) {
-    Row(
-        // Centrado y con aire arriba y abajo (Álvaro, 2026-11-13: iba pegado a la izquierda).
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
-    ) {
+    // Compactos y SIN fila propia: van a la derecha de la fila «FILTRAR POR GRADO» (paridad con iOS, Álvaro 2026-11-15).
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         // Mismas etiquetas que styleLabelForDiscipline (antes "Bloque" fijo: en inglés no casaba).
         listOf(stringResource(R.string.w_route), stringResource(R.string.w_boulder)).forEachIndexed { i, opt ->
             val active = opt in selected
@@ -111,9 +109,9 @@ internal fun StyleFilterRow(
                     .background(if (active) Terra else MaterialTheme.colorScheme.surface, CumbrePillShape)
                     .border(1.dp, if (active) Terra else MaterialTheme.colorScheme.outline, CumbrePillShape)
                     .clickable { onToggle(opt) }
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                    .padding(horizontal = 9.dp, vertical = 5.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 // Vía = mosquetón/cuerda (eslabón); Bloque = piedra/crashpad (cubo).
                 // Los mismos dibujos de la app: mosquetón (vía) y crashpad (bloque), como en la lista de escuelas y el mapa.
@@ -122,9 +120,9 @@ internal fun StyleFilterRow(
                     contentDescription = null,
                     colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(fg),
                     contentScale = androidx.compose.ui.layout.ContentScale.Fit,
-                    modifier = Modifier.height(14.dp),
+                    modifier = Modifier.height(12.dp),
                 )
-                Text(opt.uppercase(), style = EyebrowTextStyle, color = fg, maxLines = 1)
+                Text(opt.uppercase(), style = EyebrowTextStyle.copy(fontSize = 9.sp), color = fg, maxLines = 1)
             }
         }
     }

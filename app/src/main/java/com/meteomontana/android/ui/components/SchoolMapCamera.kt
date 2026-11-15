@@ -115,22 +115,31 @@ internal const val ZOOM_SECTOR = 16.5
 internal const val ZOOM_PIEDRA = 17.0
 
 /**
- * Encuadre inicial del mapa: TODOS los elementos de la escuela (parkings,
- * sectores, piedras), por muy separados que estén — antes era zoom fijo 15
- * centrado en la escuela, que dejaba fuera sectores a kilómetros. La
- * ubicación del usuario se incluye SOLO si ya está razonablemente cerca.
+ * Encuadre del mapa: SOLO las piedras/muros visibles ([dimmedIds] = las que el filtro de grado atenua no cuentan),
+ * nunca parkings ni sectores — la lógica de qué puntos cuentan vive en shared ([MapGeometry.boundsForVisibleBlocks])
+ * para que iOS la reutilice. Sin ninguna piedra: con [fallbackToAll] encuadra todos los marcadores (entrar en una
+ * escuela vacía); sin él devuelve null (al filtrar, no se mueve la cámara). La ubicación del usuario se incluye SOLO
+ * si ya está razonablemente cerca.
  */
 internal fun fitSchoolBoundsCameraUpdate(
     markers: List<Block>,
     userLoc: com.meteomontana.android.domain.model.UserLocation?,
-    padding: Int = 90
+    dimmedIds: Set<String> = emptySet(),
+    fallbackToAll: Boolean = true,
+    padding: Int = 120
 ): org.maplibre.android.camera.CameraUpdate? {
-    if (markers.isEmpty()) return null
+    val stones = com.meteomontana.android.domain.usecase.map.MapGeometry.boundsForVisibleBlocks(markers, dimmedIds)
+    val points: List<Pair<Double, Double>> = when {
+        stones != null -> listOf(stones.south to stones.west, stones.north to stones.east)
+        fallbackToAll -> markers.map { it.lat to it.lon }
+        else -> emptyList()
+    }
+    if (points.isEmpty()) return null
     val boundsBuilder = LatLngBounds.Builder()
-    markers.forEach { boundsBuilder.include(LatLng(it.lat, it.lon)) }
+    points.forEach { boundsBuilder.include(LatLng(it.first, it.second)) }
     if (userLoc != null) {
-        val avgLat = markers.map { it.lat }.average()
-        val avgLon = markers.map { it.lon }.average()
+        val avgLat = points.map { it.first }.average()
+        val avgLon = points.map { it.second }.average()
         val distKm = Geo.haversineKm(userLoc.lat, userLoc.lon, avgLat, avgLon)
         if (distKm <= MAX_USER_LOCATION_INCLUDE_KM) {
             boundsBuilder.include(LatLng(userLoc.lat, userLoc.lon))
@@ -140,8 +149,30 @@ internal fun fitSchoolBoundsCameraUpdate(
         CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), padding)
     } catch (_: Exception) {
         // Un único punto (o todos coincidentes) → bounds degenerado, cae a zoom fijo.
-        val first = markers.first()
-        CameraUpdateFactory.newLatLngZoom(LatLng(first.lat, first.lon), 15.0)
+        CameraUpdateFactory.newLatLngZoom(LatLng(points.first().first, points.first().second), ZOOM_SECTOR)
+    }
+}
+
+/**
+ * Al cambiar el filtro de grado, Vía/Bloque u orientación, vuelve a encuadrar (con animación) las piedras que
+ * quedan visibles. Si no queda ninguna, no mueve la cámara. La primera composición no anima: el encuadre de entrada
+ * ya lo hizo el mapa al crearse (y al volver de pantalla completa se respeta la cámara del usuario).
+ */
+@Composable
+internal fun ReframeOnFilterChange(
+    mapRef: androidx.compose.runtime.State<MapLibreMap?>,
+    blocks: List<Block>,
+    dimmedIds: Set<String>
+) {
+    val bounds = remember(blocks, dimmedIds) {
+        com.meteomontana.android.domain.usecase.map.MapGeometry.boundsForVisibleBlocks(blocks, dimmedIds)
+    }
+    var first by remember { mutableStateOf(true) }
+    androidx.compose.runtime.LaunchedEffect(bounds) {
+        if (first) { first = false; return@LaunchedEffect }
+        val map = mapRef.value ?: return@LaunchedEffect
+        fitSchoolBoundsCameraUpdate(blocks, null, dimmedIds, fallbackToAll = false)
+            ?.let { runCatching { map.animateCamera(it) } }
     }
 }
 

@@ -47,6 +47,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloseFullscreen
 import androidx.compose.material.icons.outlined.GpsFixed
+import androidx.compose.material.icons.outlined.NearMe
 import androidx.compose.material.icons.outlined.OpenInFull
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Map
@@ -125,8 +126,12 @@ internal fun SchoolMapSideButtons(
             onClick = { onToggleLayer("ZONE") }) { ZoneShapeIcon() }
         if (onGoToMe != null) {
             SideMapButton(active = true, onClick = onGoToMe) {
-                Text("◎", color = Color(0xFF1A56DB),
-                    style = MaterialTheme.typography.titleMedium)
+                // Flecha de navegación (como la de iOS) en vez del circulito «◎».
+                androidx.compose.material3.Icon(
+                    androidx.compose.material.icons.Icons.Outlined.NearMe,
+                    contentDescription = null,
+                    tint = Color(0xFF1A56DB),
+                    modifier = Modifier.size(20.dp))
             }
         }
     }

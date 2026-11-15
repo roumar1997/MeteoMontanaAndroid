@@ -3,13 +3,12 @@ package com.meteomontana.android.ui.screens.detail
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Directions
-import androidx.compose.material.icons.filled.DownloadDone
-import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.ChevronLeft
+import androidx.compose.material.icons.outlined.Directions
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.IosShare
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -24,15 +23,8 @@ import com.meteomontana.android.ui.components.ProcessionaryIcon
 /** Volver: icono sin nombre, el primero de la fila de acciones (a la izquierda). */
 @Composable
 internal fun BackPill(onBack: () -> Unit, modifier: Modifier = Modifier) {
-    IconAction(onClick = onBack, modifier = modifier, icon = Icons.AutoMirrored.Filled.ArrowBack,
+    IconAction(onClick = onBack, modifier = modifier, icon = Icons.Outlined.ChevronLeft,
         description = stringResource(R.string.common_back))
-}
-
-/** Aquí (estoy aquí): activo = terracota. El estado de presencia vive en `SchoolPresenceRow`. */
-@Composable
-fun HereTile(iAmHere: Boolean, loading: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    IconAction(onClick = onClick, modifier = modifier, icon = Icons.Filled.Place, active = iAmHere, enabled = !loading,
-        description = stringResource(R.string.presence_here_short))
 }
 
 /**
@@ -52,9 +44,9 @@ internal fun RowScope.HeaderActions(
     processionaryAlertActive: Boolean,
     onOpenProcessionary: () -> Unit
 ) {
-    IconAction(onClick = onDirections, modifier = item, icon = Icons.Filled.Directions,
+    IconAction(onClick = onDirections, modifier = item, icon = Icons.Outlined.Directions,
         description = stringResource(R.string.common_directions))
-    IconAction(onClick = onShare, modifier = item, icon = Icons.Filled.Share,
+    IconAction(onClick = onShare, modifier = item, icon = Icons.Outlined.IosShare,
         description = stringResource(R.string.common_share))
     IconAction(
         onClick = onToggleFavorite, modifier = item, icon = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder, active = isFavorite,
@@ -63,7 +55,7 @@ internal fun RowScope.HeaderActions(
     )
     IconAction(
         onClick = onToggleSaveOffline, modifier = item,
-        icon = if (isSavedOffline) Icons.Filled.DownloadDone else Icons.Filled.FileDownload,
+        icon = if (isSavedOffline) Icons.Outlined.Check else Icons.Outlined.FileDownload,
         active = isSavedOffline,
         description = if (isSavedOffline) stringResource(R.string.detail_saved_offline) else stringResource(R.string.detail_save_offline),
         iconContent = savingProgress?.let { p ->

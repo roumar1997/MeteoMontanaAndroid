@@ -233,7 +233,7 @@ internal fun StoneCameraButton(vm: AssistantViewModel, enabled: Boolean, words: 
                 .semantics { contentDescription = stoneWords.menuCd },
             contentAlignment = Alignment.Center
         ) { Icon(Icons.Outlined.PhotoCamera, null, tint = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.outline) }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        com.meteomontana.android.ui.components.CumbreDropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(
                 text = { Text(stoneWords.takePhoto) },
                 leadingIcon = { Icon(Icons.Outlined.PhotoCamera, null) },

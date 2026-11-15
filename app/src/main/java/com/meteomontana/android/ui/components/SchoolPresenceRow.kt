@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -141,7 +142,7 @@ fun SchoolPresenceRow(
     }
 
     Column {
-        // Fila de iconos, solo icono y repartidos por todo el ancho: Volver · Chat · Aquí · Llegar · Enviar · Favorita ·
+        // Fila de iconos, solo icono y repartidos por todo el ancho: Volver · Chat · Llegar · Enviar · Favorita ·
         // Guardar · Oruga. Si no caben (pantalla estrecha o letra grande) la fila se desliza: el área de toque no encoge.
         IconActionRow(
             count = tileCount,
@@ -152,17 +153,8 @@ fun SchoolPresenceRow(
             leading(item)
             IconAction(
                 onClick = onOpenSchoolChat, modifier = item,
-                icon = Icons.AutoMirrored.Filled.Chat,
+                icon = Icons.Outlined.Forum,
                 description = stringResource(R.string.school_presence_row_v2_chat_de_la_escuela)
-            )
-            com.meteomontana.android.ui.screens.detail.HereTile(
-                iAmHere = viewModel.iAmHere,
-                loading = viewModel.loading,
-                onClick = {
-                    if (viewModel.iAmHere) viewModel.toggle(schoolId, myUid)
-                    else showPrivacyNote = true
-                },
-                modifier = item.guideTarget("detail.here")
             )
             trailing(item)
         }

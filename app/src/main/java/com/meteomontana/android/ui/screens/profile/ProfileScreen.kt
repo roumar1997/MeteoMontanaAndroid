@@ -427,7 +427,7 @@ internal fun Header(
                     )
                 }
             }
-            androidx.compose.material3.DropdownMenu(expanded = photoMenu, onDismissRequest = { photoMenu = false }) {
+            com.meteomontana.android.ui.components.CumbreDropdownMenu(expanded = photoMenu, onDismissRequest = { photoMenu = false }) {
                 androidx.compose.material3.DropdownMenuItem(
                     text = { Text(stringResource(R.string.profile_photo_change)) },
                     onClick = { photoMenu = false; openPicker() }

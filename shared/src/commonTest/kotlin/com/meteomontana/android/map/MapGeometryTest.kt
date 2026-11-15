@@ -75,4 +75,29 @@ class MapGeometryTest {
         assertTrue(MapGeometry.paintRank("ZONE") < MapGeometry.paintRank("SCHOOL"))
         assertEquals(MapGeometry.paintRank("block"), MapGeometry.paintRank("BLOCK")) // case-insensitive
     }
+
+    private fun stone(id: String, type: String, lat: Double, lon: Double) = Block(
+        id = id, schoolId = "s", type = type, name = id, lat = lat, lon = lon, photoPath = null,
+        description = null, createdByUid = "", createdAt = "", lines = emptyList()
+    )
+
+    @Test
+    fun `el encuadre solo usa piedras, no parkings ni sectores`() {
+        val b = MapGeometry.boundsForVisibleBlocks(listOf(
+            stone("a", "BLOCK", 40.0, -3.0), stone("b", "BLOCK", 40.2, -3.4),
+            stone("p", "PARKING", 41.0, -9.0), stone("z", "ZONE", 30.0, 5.0)
+        ))!!
+        assertEquals(40.0, b.south); assertEquals(40.2, b.north)
+        assertEquals(-3.4, b.west); assertEquals(-3.0, b.east)
+    }
+
+    @Test
+    fun `las piedras atenuadas por el filtro no cuentan y sin piedras es null`() {
+        val blocks = listOf(stone("a", "BLOCK", 40.0, -3.0), stone("b", "BLOCK", 40.2, -3.4), stone("p", "PARKING", 41.0, -9.0))
+        val b = MapGeometry.boundsForVisibleBlocks(blocks, dimmedIds = setOf("b"))!!
+        assertTrue(b.isDegenerate)
+        assertEquals(40.0, b.north)
+        assertNull(MapGeometry.boundsForVisibleBlocks(blocks, dimmedIds = setOf("a", "b")))
+        assertNull(MapGeometry.boundsForVisibleBlocks(emptyList()))
+    }
 }

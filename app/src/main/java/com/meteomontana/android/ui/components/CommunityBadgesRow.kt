@@ -84,7 +84,7 @@ private fun VideoBadge(b: CommunityBadge.Video) {
         Badge(Icons.Outlined.PlayArrow, listOfNotNull(label, height).joinToString(" "), VideoTint) {
             if (b.videos.size == 1) play(b.videos.first()) else open = true
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        com.meteomontana.android.ui.components.CumbreDropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             b.videos.forEachIndexed { i, v ->
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.badge_video_n, i + 1, host(v.url))) },

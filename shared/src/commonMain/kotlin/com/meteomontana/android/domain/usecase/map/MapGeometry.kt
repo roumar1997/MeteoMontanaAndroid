@@ -10,6 +10,12 @@ import kotlinx.serialization.json.jsonPrimitive
 /** Punto geográfico neutro (sin depender de MapLibre/CoreLocation). */
 data class GeoPoint(val lat: Double, val lon: Double)
 
+/** Rectángulo geográfico neutro: esquina suroeste (south, west) y noreste (north, east). */
+data class GeoBounds(val south: Double, val west: Double, val north: Double, val east: Double) {
+    /** Todos los puntos coinciden (una sola piedra): no se puede encuadrar un rectángulo sin área. */
+    val isDegenerate: Boolean get() = south == north && west == east
+}
+
 /**
  * Geometría PURA de los mapas de escuela: parseo del trazado de un muro y orden
  * de pintado de los marcadores. Extraído de MarkerPlacer/SchoolMapView para
@@ -69,5 +75,20 @@ object MapGeometry {
         blocks: List<Block>, lat: Double, lon: Double, km: Double, excludeId: String? = null
     ): List<Block> = blocks.filter {
         it.id != excludeId && Geo.haversineKm(lat, lon, it.lat, it.lon) <= km
+    }
+
+    /**
+     * Qué encuadra el mapa de una escuela: SOLO las piedras/muros (type BLOCK), nunca parkings, sectores ni
+     * aproximaciones (una piedra lejana de un parking estiraba el zoom y dejaba las piedras diminutas).
+     * [dimmedIds] = piedras que el filtro de grado deja atenuadas: no cuentan. null si no queda ninguna
+     * (el que llama decide: al entrar cae a encuadrar todo; al filtrar no mueve la cámara).
+     */
+    fun boundsForVisibleBlocks(blocks: List<Block>, dimmedIds: Set<String> = emptySet()): GeoBounds? {
+        val stones = blocks.filter { it.type.uppercase() == "BLOCK" && it.id !in dimmedIds }
+        if (stones.isEmpty()) return null
+        return GeoBounds(
+            south = stones.minOf { it.lat }, west = stones.minOf { it.lon },
+            north = stones.maxOf { it.lat }, east = stones.maxOf { it.lon }
+        )
     }
 }

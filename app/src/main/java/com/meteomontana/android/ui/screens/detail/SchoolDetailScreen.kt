@@ -106,7 +106,7 @@ fun SchoolDetailScreen(
                 onOpenSchoolChat = { onOpenSchoolChat(s.school.name) },
                 refreshKey = presenceRefreshKey,
                 leading = { item -> BackPill(onBack, item) },
-                tileCount = 8,
+                tileCount = 7,
                 trailing = { item ->
                     HeaderActions(
                         item = item,
@@ -287,6 +287,7 @@ internal fun Content(
     }
     // Estado que comparten la cabecera fija y el contenido que se desliza.
     var showHelp by remember { mutableStateOf(false) }
+    var searchOpen by remember { mutableStateOf(false) }
     val guides = com.meteomontana.android.ui.guide.LocalGuideController.current
     val photoFinder: com.meteomontana.android.ui.assistant.photo.SchoolPhotoFinderViewModel = hiltViewModel()
     Column(Modifier.fillMaxSize()) {
@@ -312,6 +313,9 @@ internal fun Content(
             com.meteomontana.android.ui.components.RestrictionsPill(it.restrictions) { showRestrictions = true }
             Spacer(Modifier.size(8.dp))
         }
+        // Lupa: abre el buscador de vías/bloques de la escuela (antes, barra fija sobre el mapa).
+        SchoolViaSearchButton(onClick = { searchOpen = true })
+        Spacer(Modifier.size(6.dp))
         // UN solo botón de ayuda que reconoce pantalla y pestaña: la 1ª vez cuenta la pantalla y encadena la de
         // la pestaña; luego solo la de la pestaña. Sin guía, la ayuda de texto de siempre.
         com.meteomontana.android.ui.guide.GuidePill("detail") {
@@ -324,6 +328,11 @@ internal fun Content(
         Spacer(Modifier.size(6.dp))
         com.meteomontana.android.ui.assistant.photo.SchoolPhotoButton(school, photoFinder, Modifier.guideTarget("detail.photo"))
     }
+    if (searchOpen) SchoolViaSearchDialog(
+        blocks = blocks, viewModel = viewModel,
+        onPicked = { searchOpen = false; onSelectTab(SchoolTab.MAP) },
+        onDismiss = { searchOpen = false }
+    )
     if (showHelp) com.meteomontana.android.ui.components.HelpSheet(topicKey = "detail", onDismiss = { showHelp = false })
     com.meteomontana.android.ui.assistant.photo.SchoolPhotoSheet(photoFinder, school.name) { blockId ->
         photoFinder.cancel()

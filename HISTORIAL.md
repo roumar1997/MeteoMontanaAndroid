@@ -392,3 +392,4 @@ topos (líneas sobre foto), tema visual Cumbre, autenticación Firebase.
 
 - 2026-11-14 · Backend a prod (main 2789b41: V100 actor_uid + V101/V102 relleno de avisos). Maestro 20/20 en emulador limpio. TestFlight 357 subido (avisos con foto, notas tipo feed, iconos Vía/Bloque, scroll por pestaña, altura offline, icono buscar gente).
 - 2026-11-14 · «sí, fusiona»: apps main 946fb7fa (7.2). iOS 358 enviado a revisión por Álvaro. AAB 7.2 vc124 firmado en Desktop\AABs Play\cumbre-7.2-vc124.aab; pendiente probarlo en el Xiaomi (release, producción).
+- 2026-11-15 · Android (ronda mapa, sin iOS aún): quitado «Estoy aquí» de la fila de la ficha, lupa junto al nombre abre el buscador de vías, Vía/Bloque en la fila de grado, encuadre solo con piedras + re-encuadre al filtrar (shared MapGeometry.boundsForVisibleBlocks), iconos outlined como iPhone, «S» de sector, flecha de navegación, CumbreDropdownMenu (adiós al lila). Pendiente: espejo en iOS y probar en móvil.

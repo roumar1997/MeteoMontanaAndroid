@@ -151,7 +151,7 @@ fun StatsScreen(
                 var gradeMenuOpen by remember { mutableStateOf(false) }
                 Box {
                     VotableChip(text = state.grade?.uppercase() ?: stringResource(R.string.w_grade_caps)) { gradeMenuOpen = true }
-                    DropdownMenu(expanded = gradeMenuOpen, onDismissRequest = { gradeMenuOpen = false }) {
+                    com.meteomontana.android.ui.components.CumbreDropdownMenu(expanded = gradeMenuOpen, onDismissRequest = { gradeMenuOpen = false }) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.stats_screen_v2_todos)) },
                             onClick = { viewModel.setGrade(null); gradeMenuOpen = false })
                         state.availableGrades.forEach { g ->
@@ -163,7 +163,7 @@ fun StatsScreen(
                 }
                 Box {
                     VotableChip(text = state.year ?: stringResource(R.string.w_all_caps2)) { yearMenuOpen = true }
-                    DropdownMenu(expanded = yearMenuOpen, onDismissRequest = { yearMenuOpen = false }) {
+                    com.meteomontana.android.ui.components.CumbreDropdownMenu(expanded = yearMenuOpen, onDismissRequest = { yearMenuOpen = false }) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.stats_screen_v2_todo)) },
                             onClick = { viewModel.setYear(null); yearMenuOpen = false })
                         state.availableYears.forEach { y ->
