@@ -198,7 +198,9 @@ fun SchoolChatScreen(
                 // "Estoy aquí" también se marca desde dentro del chat (Álvaro, 2026-10-14; igual que en iOS).
                 com.meteomontana.android.ui.components.PresenceMarkControl(
                     schoolId = schoolId, myUid = myUid,
-                    onChanged = { viewModel.refreshPresence(schoolId) }
+                    onChanged = { viewModel.refreshPresence(schoolId) },
+                    // Sin marcar, el botón grande del centro hace de «Aquí»: arriba solo queda el de quitarte.
+                    visibleWhenHere = true
                 )
             }
             Text(
@@ -249,14 +251,14 @@ fun SchoolChatScreen(
             modifier = Modifier.weight(1f).fillMaxWidth()
         ) {
         if (notMarkedHere && viewModel.messages.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { MarkHereNotice(compact = false) }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { MarkHereNotice(compact = false, schoolId = schoolId, myUid = myUid, onChanged = { viewModel.refreshPresence(schoolId) }) }
         }
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.md)
         ) {
-            if (notMarkedHere && viewModel.messages.isNotEmpty()) item { MarkHereNotice(compact = true) }
+            if (notMarkedHere && viewModel.messages.isNotEmpty()) item { MarkHereNotice(compact = true, schoolId = schoolId, myUid = myUid, onChanged = { viewModel.refreshPresence(schoolId) }) }
             items(viewModel.messages) { m ->
                 MessageBubble(
                     message = m,
@@ -373,7 +375,7 @@ fun SchoolChatScreen(
 
 /** Aviso cuando el usuario no ha marcado «Aquí»: el chat y el recuento de gente dependen de esa marca. */
 @Composable
-private fun MarkHereNotice(compact: Boolean) {
+private fun MarkHereNotice(compact: Boolean, schoolId: String, myUid: String, onChanged: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(Spacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -386,6 +388,11 @@ private fun MarkHereNotice(compact: Boolean) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        Spacer(Modifier.size(Spacing.xs))
+        com.meteomontana.android.ui.components.PresenceMarkControl(
+            schoolId = schoolId, myUid = myUid, onChanged = onChanged,
+            visibleWhenHere = false, big = true
         )
     }
 }

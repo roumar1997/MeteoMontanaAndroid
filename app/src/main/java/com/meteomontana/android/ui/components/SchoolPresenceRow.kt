@@ -236,6 +236,10 @@ fun PresenceMarkControl(
     schoolId: String,
     myUid: String?,
     onChanged: () -> Unit = {},
+    /** null = siempre visible; true = solo si ya estás marcado (quitarte); false = solo si NO lo estás (marcarte). */
+    visibleWhenHere: Boolean? = null,
+    /** Botón grande a todo el ancho (aviso central del chat) en vez de la píldora pequeña. */
+    big: Boolean = false,
     viewModel: SchoolPresenceViewModel = hiltViewModel()
 ) {
     var showPrivacyNote by remember { mutableStateOf(false) }
@@ -245,11 +249,11 @@ fun PresenceMarkControl(
     androidx.compose.runtime.LaunchedEffect(viewModel.iAmHere) {
         if (first) first = false else onChanged()
     }
-    PresenceMarkButton(
-        iAmHere = viewModel.iAmHere,
-        loading = viewModel.loading,
-        onClick = { if (viewModel.iAmHere) viewModel.toggle(schoolId, myUid) else showPrivacyNote = true }
-    )
+    val onClick = { if (viewModel.iAmHere) viewModel.toggle(schoolId, myUid) else showPrivacyNote = true }
+    if (visibleWhenHere == null || visibleWhenHere == viewModel.iAmHere) {
+        if (big) PresenceBigButton(loading = viewModel.loading, onClick = onClick)
+        else PresenceMarkButton(iAmHere = viewModel.iAmHere, loading = viewModel.loading, onClick = onClick)
+    }
     if (showPrivacyNote) {
         PresencePrivacySheet(
             onConfirm = { showPrivacyNote = false; viewModel.toggle(schoolId, myUid) },
@@ -268,6 +272,25 @@ private fun PresenceAvatar(url: String?, size: androidx.compose.ui.unit.Dp, uid:
             modifier = Modifier.size(size).clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
         )
+    }
+}
+
+/** «Aquí» grande, terra, a todo el ancho: marca tu presencia desde el aviso central del chat. */
+@Composable
+private fun PresenceBigButton(loading: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().height(52.dp)
+            .clip(CircleShape)
+            .background(com.meteomontana.android.ui.theme.terraFillColor())
+            .clickable(enabled = !loading, onClick = onClick),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Outlined.Place, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.padding(start = 6.dp))
+        Text(stringResource(R.string.presence_here_short),
+            style = MaterialTheme.typography.titleMedium.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
+            color = Color.White, maxLines = 1)
     }
 }
 

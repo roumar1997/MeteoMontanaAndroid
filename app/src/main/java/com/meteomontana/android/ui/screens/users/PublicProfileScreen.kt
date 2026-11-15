@@ -22,6 +22,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material.icons.outlined.ChevronLeft
+import androidx.compose.material.icons.outlined.MoreHoriz
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -118,15 +121,22 @@ fun PublicProfileScreen(
     val myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
 
     Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
-                    tint = MaterialTheme.colorScheme.onBackground)
+        // Como iOS: volver redondo flotante, título centrado y compartir + ⋯ en una píldora; sin línea debajo.
+        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
+            Box(
+                Modifier.align(Alignment.CenterStart).size(44.dp)
+                    .shadow(4.dp, CircleShape, clip = false)
+                    .clip(CircleShape).background(MaterialTheme.colorScheme.surface)
+                    .clickable(onClick = onBack),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Outlined.ChevronLeft, contentDescription = stringResource(R.string.common_back),
+                    tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(28.dp))
             }
-            Text(stringResource(R.string.public_profile_screen_v2_perfil), style = MaterialTheme.typography.headlineMedium,
+            Text(stringResource(R.string.public_profile_screen_v2_perfil), style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.weight(1f))
+                modifier = Modifier.align(Alignment.Center))
+            com.meteomontana.android.ui.components.CumbrePillGroup(modifier = Modifier.align(Alignment.CenterEnd)) {
             // Compartir perfil (también el propio): enlace /s/u/ que abre la app.
             val profileHandle = (state as? PublicProfileUiState.Success)?.profile
                 ?.let { it.username ?: it.uid }
@@ -157,7 +167,7 @@ fun PublicProfileScreen(
             if (profileUid != null && profileUid != myUid) {
                 androidx.compose.foundation.layout.Box {
                     IconButton(onClick = { menuOpen = true }) {
-                        Icon(Icons.Outlined.MoreVert,
+                        Icon(Icons.Outlined.MoreHoriz,
                             contentDescription = stringResource(R.string.public_profile_screen_v2_opciones),
                             tint = MaterialTheme.colorScheme.onBackground)
                     }
@@ -180,8 +190,8 @@ fun PublicProfileScreen(
                     }
                 }
             }
+            }
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         when (val s = state) {
             PublicProfileUiState.Loading -> SkeletonProfile()
@@ -246,7 +256,7 @@ internal fun Body(
         com.meteomontana.android.ui.components.FullScreenPhotoDialog(url) { zoomPhoto = null }
     }
     val scroll = rememberScrollState()
-    val topPadPx = with(androidx.compose.ui.platform.LocalDensity.current) { 8.dp.roundToPx() }
+    val topPadPx = with(androidx.compose.ui.platform.LocalDensity.current) { 4.dp.roundToPx() }
     // El avatar va en una capa por encima del scroll: su efecto de título (dragones) no se corta al subir.
     com.meteomontana.android.ui.components.UnclippedAvatarHost(
         slotOffsetPx = { topPadPx - scroll.value },
@@ -266,12 +276,12 @@ internal fun Body(
     ) { avatarSlot ->
     Column(modifier = Modifier.fillMaxSize()
         .verticalScroll(scroll)
-        .padding(horizontal = 16.dp, vertical = 8.dp)) {
+        .padding(horizontal = 16.dp, vertical = 4.dp)) {
         // Cabecera centrada, igual que el perfil propio.
         Column(modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(Modifier.height(avatarSlot))
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(p.displayName ?: p.username ?: stringResource(R.string.w_user),
                     fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp,
@@ -280,7 +290,7 @@ internal fun Body(
                 VerifiedCheck(p.uid, 18.dp)
             }
             Text("@${p.username ?: p.displayName?.lowercase()?.replace(" ", "_") ?: "usuario"}",
-                style = MaterialTheme.typography.titleSmall,
+                fontFamily = com.meteomontana.android.ui.theme.Mono, fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             // Título, insignias y viero/bloquero de esta persona.
             com.meteomontana.android.ui.components.RewardsBlock(uid = p.uid)
@@ -294,7 +304,7 @@ internal fun Body(
             }
             // El grado tope ya NO es manual: se muestra automático desde el
             // diario en la fila de stats (TOPE BLOQUE / TOPE VÍA más abajo).
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
                 FollowCount(s.status.followers, stringResource(R.string.profile_followers).uppercase(),
                     if (locked) ({}) else onFollowersClick)
@@ -317,7 +327,7 @@ internal fun Body(
                 }
             }
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(modifier = Modifier.weight(1f)) {
                 FollowButton(
@@ -339,15 +349,13 @@ internal fun Body(
                     androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Filled.ChatBubble, null,
                         tint = com.meteomontana.android.ui.theme.Terra, modifier = Modifier.size(15.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.chat_message), style = MaterialTheme.typography.labelLarge,
+                    Text(stringResource(R.string.chat_message).uppercase(), style = MaterialTheme.typography.labelLarge.copy(fontFamily = com.meteomontana.android.ui.theme.Mono, fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
                         color = com.meteomontana.android.ui.theme.Terra)
                 }
             }
         }
         if (!locked && s.stats != null) {
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
             ActivityStatsRow(
                 stats = s.stats,
                 onBlocksClick = onOpenBoulders,
@@ -392,15 +400,18 @@ internal fun ActivityStatsRow(
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // ESTADÍSTICAS arriba, como en tu perfil: que se vea sin bajar (Álvaro, 2026-10-19).
         com.meteomontana.android.ui.components.StatsEntryButton(onClick = onStatsClick)
-        // Las seis cifras en UNA sola fila compacta (antes dos filas): PUBLICACIONES se ve sin hacer scroll.
         Row(modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            StatBox(stringResource(R.string.profile_blocks), stats.boulderCount.toString(), Modifier.weight(1f), onBlocksClick, compact = true)
-            StatBox(stringResource(R.string.profile_routes), stats.routeCount.toString(), Modifier.weight(1f), onRoutesClick, compact = true)
-            StatBox(stringResource(R.string.profile_schools), stats.schoolCount.toString(), Modifier.weight(1f), onSchoolsClick, compact = true)
-            StatBox(stringResource(R.string.profile_max_boulder), stats.maxBoulderGrade ?: "—", Modifier.weight(1f), onMaxClick, compact = true)
-            StatBox(stringResource(R.string.profile_max_route), stats.maxRouteGrade ?: "—", Modifier.weight(1f), onMaxClick, compact = true)
-            StatBox(stringResource(R.string.profile_projects), stats.projectCount.toString(), Modifier.weight(1f), onProjectsClick, compact = true)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatBox(stringResource(R.string.profile_blocks), stats.boulderCount.toString(), Modifier.weight(1f), onBlocksClick)
+            StatBox(stringResource(R.string.profile_routes), stats.routeCount.toString(), Modifier.weight(1f), onRoutesClick)
+            StatBox(stringResource(R.string.profile_schools), stats.schoolCount.toString(), Modifier.weight(1f), onSchoolsClick)
+        }
+        // Grados tope (del diario) y proyectos en UNA fila de tres, como en iOS.
+        Row(modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatBox(stringResource(R.string.profile_max_boulder), stats.maxBoulderGrade ?: "—", Modifier.weight(1f), onMaxClick)
+            StatBox(stringResource(R.string.profile_max_route), stats.maxRouteGrade ?: "—", Modifier.weight(1f), onMaxClick)
+            StatBox(stringResource(R.string.profile_projects), stats.projectCount.toString(), Modifier.weight(1f), onProjectsClick)
         }
         // Publicaciones: una fila fina en vez de otra celda grande.
         Row(
@@ -418,20 +429,20 @@ internal fun ActivityStatsRow(
 }
 
 @Composable
-internal fun StatBox(label: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit, compact: Boolean = false) {
+internal fun StatBox(label: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     // Mismo estilo que el StatCell del perfil propio (fondo surface + borde + serif).
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(if (compact) 12.dp else 16.dp))
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(if (compact) 12.dp else 16.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(if (compact) 12.dp else 16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 2.dp, vertical = if (compact) 7.dp else 9.dp),
+            .padding(horizontal = 4.dp, vertical = 9.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(value, fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold,
-            fontSize = if (compact) 16.sp else 20.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
-        Text(label, style = MaterialTheme.typography.labelSmall.let { if (compact) it.copy(fontSize = 8.sp, lineHeight = 10.sp, letterSpacing = 0.sp) else it }, maxLines = 2,
+            fontSize = 20.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
+        Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 2,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -505,6 +516,6 @@ internal fun FollowButton(iFollow: Boolean, requestPending: Boolean, onClick: ()
     ) {
         androidx.compose.material3.Icon(icon, null, tint = fg, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
-        Text(text, style = MaterialTheme.typography.labelLarge, color = fg)
+        Text(text.uppercase(), style = MaterialTheme.typography.labelLarge.copy(fontFamily = com.meteomontana.android.ui.theme.Mono, fontWeight = FontWeight.Bold, fontSize = 11.5.sp), color = fg)
     }
 }
