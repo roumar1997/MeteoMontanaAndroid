@@ -10,7 +10,7 @@ enum class SchoolSearchKind { ROUTE, BOULDER, SECTOR, PARKING }
 
 data class SchoolSearchHit(
     val kind: SchoolSearchKind,
-    /** Texto principal: nombre (y grado si es una vía). */
+    /** Texto principal: el nombre. */
     val label: String,
     /** Id de la vía, solo si el resultado es una vía concreta. */
     val lineId: String?,
@@ -20,8 +20,10 @@ data class SchoolSearchHit(
     val blockId: String,
     /** Nombre de la piedra que contiene la vía; null si el resultado ES una piedra, sector o parking. */
     val parentName: String?,
-    /** Vías de la piedra cuando el resultado es una piedra (para «N vías»); 0 en el resto. */
-    val lineCount: Int
+    /** Vías de la piedra a la que pertenece el resultado (vía o piedra); 0 en sectores y parkings. */
+    val lineCount: Int,
+    /** Grado de la vía (para el chip de color); null si no es una vía o no lo tiene. */
+    val grade: String? = null
 )
 
 const val SCHOOL_SEARCH_MIN_CHARS = 2
@@ -44,8 +46,8 @@ fun searchSchool(blocks: List<Block>, query: String, limit: Int = 10): List<Scho
         b.lines.forEach { l ->
             if (l.name.contains(q, ignoreCase = true)) hits += SchoolSearchHit(
                 kind = b.stoneKind(),
-                label = l.name + (l.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
-                lineId = l.id, name = l.name, blockId = b.id, parentName = b.name, lineCount = 0
+                label = l.name, grade = l.grade?.takeIf { it.isNotBlank() },
+                lineId = l.id, name = l.name, blockId = b.id, parentName = b.name, lineCount = b.lines.size
             )
         }
         if (b.matches()) hits += SchoolSearchHit(

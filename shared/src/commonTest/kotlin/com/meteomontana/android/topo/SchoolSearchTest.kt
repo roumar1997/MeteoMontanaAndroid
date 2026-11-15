@@ -39,7 +39,8 @@ class SchoolSearchTest {
     @Test fun `las vias llevan grado y tipo segun la disciplina de su piedra`() {
         val hits = searchSchool(blocks, "fisura")
         assertEquals(1, hits.size)
-        assertEquals("Fisura norte · 7A+", hits[0].label)
+        assertEquals("Fisura norte", hits[0].label)
+        assertEquals("7A+", hits[0].grade)
         assertEquals(SchoolSearchKind.ROUTE, hits[0].kind)
         assertEquals("Muro", hits[0].parentName)
     }

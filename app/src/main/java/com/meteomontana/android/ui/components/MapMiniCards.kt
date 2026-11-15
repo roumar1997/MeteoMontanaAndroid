@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.components
 
+import androidx.compose.material3.HorizontalDivider
 import com.meteomontana.android.ui.theme.terraFillColor
 
 import androidx.compose.foundation.background
@@ -152,20 +153,33 @@ internal fun SchoolViaSearchBar(
                         ) {
                             SearchKindBadge(h.kind)
                             Spacer(Modifier.width(10.dp))
-                            Text(h.label, style = MaterialTheme.typography.bodyMedium,
+                            Text(h.label, style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurface, maxLines = 1,
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f))
-                            val sub = h.parentName
-                                ?: if (h.lineCount > 0) stringResource(R.string.grade_filter_bar_v3_vias, h.lineCount) else null
-                            if (sub != null) {
+                                modifier = Modifier.weight(1f, fill = false))
+                            // Chip del grado con el color de grado de la app (como iOS).
+                            h.grade?.let { g ->
                                 Spacer(Modifier.width(8.dp))
-                                Text(sub, style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
-                                    modifier = Modifier.widthIn(max = 120.dp),
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                Text(g.lowercase(), color = Color.White, maxLines = 1,
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    modifier = Modifier
+                                        .background(com.meteomontana.android.ui.theme.gradeChipColor(g), CircleShape)
+                                        .padding(horizontal = 9.dp, vertical = 2.dp))
+                            }
+                            Spacer(Modifier.weight(1f))
+                            // Derecha: «Sector»/«Parking» en gris, o el número de vías de la piedra.
+                            val right = when (h.kind) {
+                                SchoolSearchKind.SECTOR -> stringResource(R.string.school_search_kind_sector)
+                                SchoolSearchKind.PARKING -> stringResource(R.string.school_search_kind_parking)
+                                else -> if (h.lineCount > 0) h.lineCount.toString() else null
+                            }
+                            if (right != null) {
+                                Spacer(Modifier.width(8.dp))
+                                Text(right, style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                             }
                         }
+                        if (h !== hits.last()) HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                     }
                 }
             }
@@ -176,7 +190,8 @@ internal fun SchoolViaSearchBar(
 /** Etiqueta de tipo del resultado: icono de vía/bloque, o la misma S verde / P azul de los chips del mapa. */
 @Composable
 private fun SearchKindBadge(kind: SchoolSearchKind) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(44.dp)) {
+    // Sin palabra debajo: el tipo se reconoce por el icono (y «Sector»/«Parking» van a la derecha).
+    Box(Modifier.width(28.dp), contentAlignment = Alignment.Center) {
         Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) {
             when (kind) {
                 SchoolSearchKind.SECTOR -> ZoneShapeIcon()
@@ -185,22 +200,11 @@ private fun SearchKindBadge(kind: SchoolSearchKind) {
                     painter = androidx.compose.ui.res.painterResource(
                         if (kind == SchoolSearchKind.ROUTE) R.drawable.kind_route else R.drawable.kind_boulder),
                     contentDescription = null,
-                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant),
-                    modifier = Modifier.height(16.dp)
+                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(com.meteomontana.android.ui.theme.Terra),
+                    modifier = Modifier.height(18.dp)
                 )
             }
         }
-        Text(
-            when (kind) {
-                SchoolSearchKind.ROUTE -> stringResource(R.string.w_route)
-                SchoolSearchKind.BOULDER -> stringResource(R.string.w_boulder)
-                SchoolSearchKind.SECTOR -> stringResource(R.string.school_search_kind_sector)
-                SchoolSearchKind.PARKING -> stringResource(R.string.school_search_kind_parking)
-            },
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-        )
     }
 }
 
