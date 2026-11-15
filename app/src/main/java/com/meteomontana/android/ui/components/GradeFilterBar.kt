@@ -61,38 +61,46 @@ fun GradeFilterBar(
     result: GradeFilterResult,
     onSelectLine: (GradeMatch) -> Unit,
     /** A la derecha de la fila de cabecera (p. ej. los botones Vía/Bloque de la escuela). */
-    trailing: @Composable () -> Unit = {}
+    trailing: @Composable (compact: Boolean) -> Unit = {}
 ) {
     var expanded by remember { mutableStateOf(false) }
     var openGroups by remember { mutableStateOf(setOf<String>()) }
     val isActive = selectedGrades.isNotEmpty()
 
     Column(Modifier.fillMaxWidth().animateContentSize()) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clickable { expanded = !expanded }
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-        ) {
-            Icon(Icons.Outlined.Tune, contentDescription = null,
-                tint = if (isActive) Terra else Ink3, modifier = Modifier.width(16.dp))
-            Spacer(Modifier.width(6.dp))
-            Text(stringResource(R.string.grade_filter_bar_v2_filtrar_por_grado), style = EyebrowTextStyle.copy(fontSize = 10.sp),
-                color = if (isActive) Terra else Ink3, maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false))
-            Icon(
-                if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                contentDescription = null, tint = Ink3
-            )
-            Spacer(Modifier.weight(1f))
-            if (isActive) {
-                Text(stringResource(R.string.grade_filter_bar_v2_quitar_todo), style = EyebrowTextStyle.copy(fontSize = 9.sp), color = Ink3,
-                    maxLines = 1, modifier = Modifier.clickable { onSelectedGradesChange(emptySet()) })
-                Spacer(Modifier.width(8.dp))
+        // En pantallas estrechas los chips Vía/Bloque pasan a solo icono: el rótulo «FILTRAR POR GRADO» nunca se corta.
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val compact = maxWidth < 480.dp
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Icon(Icons.Outlined.Tune, contentDescription = null,
+                    tint = if (isActive) Terra else Ink3, modifier = Modifier.width(16.dp))
+                Spacer(Modifier.width(6.dp))
+                // Sin weight ni elipsis: el rótulo mide primero y el resto (quitar + chips) se reparte lo que sobre.
+                Text(stringResource(R.string.grade_filter_bar_v2_filtrar_por_grado), style = EyebrowTextStyle.copy(fontSize = 10.sp),
+                    color = if (isActive) Terra else Ink3, maxLines = 1, softWrap = false)
+                Icon(
+                    if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                    contentDescription = null, tint = Ink3
+                )
+                Row(
+                    Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    if (isActive) {
+                        Text(stringResource(R.string.grade_filter_bar_v2_quitar_todo), style = EyebrowTextStyle.copy(fontSize = 9.sp), color = Ink3,
+                            maxLines = 1, softWrap = false, modifier = Modifier.clickable { onSelectedGradesChange(emptySet()) })
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    trailing(compact)
+                }
             }
-            trailing()
         }
 
         if (expanded) {

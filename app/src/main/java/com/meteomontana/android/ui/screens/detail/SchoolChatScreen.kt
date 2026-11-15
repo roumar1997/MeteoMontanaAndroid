@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -79,6 +80,9 @@ class SchoolChatViewModel @Inject constructor(
     var text by mutableStateOf("")
     var sending by mutableStateOf(false)
         private set
+    /** false hasta la primera respuesta de presencia: evita enseñar «Pulsa Aquí» antes de saber si ya estás marcado. */
+    var presenceLoaded by mutableStateOf(false)
+        private set
     private var memberNames = mutableMapOf<String, String>()
     var namesVersion by mutableStateOf(0)
         private set
@@ -106,6 +110,7 @@ class SchoolChatViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 presentList = getPresence.execute(schoolId)
+                presenceLoaded = true
             } catch (_: Exception) {
             }
         }
@@ -160,6 +165,7 @@ fun SchoolChatScreen(
     viewModel: SchoolChatViewModel = hiltViewModel()
 ) {
     var showAllPresent by remember { mutableStateOf(false) }
+    val notMarkedHere = viewModel.presenceLoaded && viewModel.presentList.none { it.uid == myUid }
     LaunchedEffect(schoolId) { viewModel.start(schoolId, myUid) }
     val listState = rememberLazyListState()
     LaunchedEffect(viewModel.messages.size) {
@@ -242,11 +248,15 @@ fun SchoolChatScreen(
             },
             modifier = Modifier.weight(1f).fillMaxWidth()
         ) {
+        if (notMarkedHere && viewModel.messages.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { MarkHereNotice(compact = false) }
+        }
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.md)
         ) {
+            if (notMarkedHere && viewModel.messages.isNotEmpty()) item { MarkHereNotice(compact = true) }
             items(viewModel.messages) { m ->
                 MessageBubble(
                     message = m,
@@ -358,6 +368,25 @@ fun SchoolChatScreen(
                 }
             }
         }
+    }
+}
+
+/** Aviso cuando el usuario no ha marcado «Aquí»: el chat y el recuento de gente dependen de esa marca. */
+@Composable
+private fun MarkHereNotice(compact: Boolean) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(Spacing.md),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(Spacing.sm)
+    ) {
+        Icon(Icons.Outlined.LocationOn, contentDescription = null, tint = Terra,
+            modifier = Modifier.size(if (compact) 22.dp else 40.dp))
+        Text(
+            stringResource(R.string.school_chat_mark_here_notice),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
     }
 }
 

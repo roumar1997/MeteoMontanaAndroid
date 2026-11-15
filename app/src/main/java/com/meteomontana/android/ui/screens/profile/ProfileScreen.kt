@@ -311,7 +311,21 @@ internal fun Content(
     onOpenStats: () -> Unit = {},
     onPhotoChanged: () -> Unit = {}
 ) {
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val headerIndex = if (offline) 1 else 0
+    com.meteomontana.android.ui.components.UnclippedAvatarHost(
+        slotOffsetPx = {
+            // Y del hueco del avatar: la cabecera + el margen superior de la lista + su propio padding.
+            val info = listState.layoutInfo
+            info.visibleItemsInfo.firstOrNull { it.index == headerIndex }
+                ?.let { it.offset + info.beforeContentPadding + with(density) { 8.dp.roundToPx() } }
+        },
+        avatar = { ProfileAvatar(profile, canChangePhoto = !offline, onPhotoChanged = onPhotoChanged) },
+        modifier = Modifier.fillMaxSize()
+    ) { avatarSlot ->
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         // Sin esto no se llega al boton de anadir bloque/via.
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
@@ -335,11 +349,12 @@ internal fun Content(
         // y seguidores). El grado máx vive solo en las stats (decisión de Rodrigo).
         item { Header(profile, followers = followers, following = following,
             onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing,
-            canChangePhoto = !offline, onPhotoChanged = onPhotoChanged) }
+            avatarSlot = avatarSlot) }
         item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects, onOpenMyPosts, onOpenStats) }
         // Admin ya no va aquí: es un botón arriba a la izquierda (junto al "?").
         // La lista de escuelas tampoco (ya vive en la pestaña Diario).
         item { Spacer(Modifier.height(24.dp)) }
+    }
     }
 }
 
@@ -351,95 +366,14 @@ internal fun Header(
     onClickFollowers: () -> Unit = {},
     onClickFollowing: () -> Unit = {},
     /** false sin conexión: el toque solo amplía la foto, como antes. */
-    canChangePhoto: Boolean = true,
-    onPhotoChanged: () -> Unit = {}
+    avatarSlot: androidx.compose.ui.unit.Dp = 76.dp
 ) {
-    // Foto a pantalla completa con zoom al tocar el avatar.
-    var zoomPhoto by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
-    zoomPhoto?.let { url ->
-        com.meteomontana.android.ui.components.FullScreenPhotoDialog(url) { zoomPhoto = null }
-    }
-    // Tocar tu foto: menú «Cambiar foto / Ver foto» → selector → recorte → se sube (Álvaro, 2026-10-23; espejo de iOS).
-    val photoVm: ProfilePhotoViewModel = androidx.hilt.navigation.compose.hiltViewModel()
-    val uploading by photoVm.uploading.collectAsStateWithLifecycle()
-    val photoFailed by photoVm.failed.collectAsStateWithLifecycle()
-    var photoMenu by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-    val openPicker = rememberProfilePhotoPicker { uri -> photoVm.change(uri, onPhotoChanged) }
-    if (photoFailed) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = photoVm::dismissError,
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = photoVm::dismissError) { Text(stringResource(android.R.string.ok)) }
-            },
-            title = { Text(stringResource(R.string.profile_photo_error_title)) },
-            text = { Text(stringResource(R.string.profile_photo_error_body)) }
-        )
-    }
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Avatar centrado (algo más pequeño: que el diario y ESTADÍSTICAS se vean sin bajar).
-        val onAvatarTap = {
-            if (canChangePhoto) photoMenu = true else if (p.photoUrl != null) zoomPhoto = p.photoUrl
-        }
-        Box {
-            if (p.photoUrl != null) {
-                androidx.compose.runtime.key(p.photoUrl) {
-                    AsyncImage(
-                        model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
-                            .data(p.photoUrl)
-                            .memoryCachePolicy(coil.request.CachePolicy.WRITE_ONLY)
-                            .crossfade(200)
-                            .build(),
-                        contentDescription = stringResource(R.string.profile_photo_title),
-                        modifier = Modifier.userRing(p.uid, 76.dp).size(76.dp).clip(CircleShape)
-                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                            .clickable(onClick = onAvatarTap)
-                    )
-                }
-            } else {
-                Image(
-                    painter = painterResource(R.drawable.logo_cumbre),
-                    contentDescription = stringResource(R.string.profile_photo_title),
-                    modifier = Modifier.size(76.dp).clip(CircleShape)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                        .clickable(enabled = canChangePhoto, onClick = onAvatarTap)
-                )
-            }
-            if (uploading) {
-                Box(
-                    Modifier.size(76.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.35f)),
-                    contentAlignment = Alignment.Center
-                ) { CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(24.dp)) }
-            }
-            if (canChangePhoto) {
-                // Icono de cámara: que se vea que la foto se puede tocar.
-                Box(
-                    Modifier.align(Alignment.BottomEnd).size(24.dp)
-                        .clip(CircleShape).background(MaterialTheme.colorScheme.background)
-                        .padding(2.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    androidx.compose.material3.Icon(
-                        androidx.compose.material.icons.Icons.Filled.PhotoCamera, contentDescription = null,
-                        tint = Color.White, modifier = Modifier.size(12.dp)
-                    )
-                }
-            }
-            com.meteomontana.android.ui.components.CumbreDropdownMenu(expanded = photoMenu, onDismissRequest = { photoMenu = false }) {
-                androidx.compose.material3.DropdownMenuItem(
-                    text = { Text(stringResource(R.string.profile_photo_change)) },
-                    onClick = { photoMenu = false; openPicker() }
-                )
-                if (p.photoUrl != null) {
-                    androidx.compose.material3.DropdownMenuItem(
-                        text = { Text(stringResource(R.string.profile_photo_view)) },
-                        onClick = { photoMenu = false; zoomPhoto = p.photoUrl }
-                    )
-                }
-            }
-        }
+        // Hueco del avatar: el avatar real se dibuja por encima del scroll (ProfileAvatar) para que su efecto no se corte.
+        Spacer(Modifier.height(avatarSlot))
         Spacer(Modifier.height(8.dp))
         // Nombre grande serif.
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {

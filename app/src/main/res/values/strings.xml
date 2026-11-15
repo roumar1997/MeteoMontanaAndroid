@@ -549,7 +549,7 @@
     <string name="help_sheet_escribe_aqui">Escribe aquí…</string>
     <string name="line_comments_section_se_el_primero_en">Sé el primero en comentar.</string>
     <string name="school_search_lines_cd">Buscar vías y bloques</string>
-    <string name="map_mini_cards_buscar_vias_bloques">Buscar vías/bloques…</string>
+    <string name="map_mini_cards_buscar_vias_bloques">Buscar vías, sectores, parkings…</string>
     <string name="map_mini_cards_como_llegar">CÓMO LLEGAR</string>
     <string name="monthly_stats_section_mejor_temporada">✓ MEJOR TEMPORADA</string>
     <string name="mountain_bulletin_section_boletin_de_montana_aemet">BOLETÍN DE MONTAÑA · AEMET</string>
@@ -1958,4 +1958,7 @@
     <string name="notes_add_photo">Añadir foto</string>
     <string name="notes_send">Enviar nota</string>
     <string name="notes_useful">Útil</string>
+    <string name="school_chat_mark_here_notice">Pulsa «Aquí» para participar en el chat y ver cuánta gente hay en la escuela</string>
+    <string name="school_search_kind_sector">Sector</string>
+    <string name="school_search_kind_parking">Parking</string>
 </resources>

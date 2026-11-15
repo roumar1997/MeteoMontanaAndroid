@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.widthIn
+import com.meteomontana.android.domain.util.SchoolSearchKind
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -120,18 +122,7 @@ internal fun SchoolViaSearchBar(
             onSearch = { closeKeyboard() }, autoFocus = true)
         val q = query.trim()
         if (q.length >= 2) {
-            data class Hit(val label: String, val sub: String, val lineId: String?, val name: String)
-            val hits = buildList {
-                blocks.filter { it.type == "BLOCK" }.forEach { b ->
-                    b.lines.forEach { l ->
-                        if (l.name.contains(q, ignoreCase = true)) add(Hit(
-                            label = l.name + (l.grade?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
-                            sub = b.name, lineId = l.id, name = l.name))
-                    }
-                    if (b.name.contains(q, ignoreCase = true)) add(Hit(
-                        label = b.name, sub = stringResource(R.string.grade_filter_bar_v3_vias, b.lines.size), lineId = null, name = b.name))
-                }
-            }.take(8)
+            val hits = remember(blocks, q) { com.meteomontana.android.domain.util.searchSchool(blocks, q) }
             if (hits.isEmpty()) {
                 Text(stringResource(R.string.map_mini_cards_v2_sin_resultados_en_esta_escuela),
                     style = MaterialTheme.typography.labelMedium,
@@ -148,24 +139,68 @@ internal fun SchoolViaSearchBar(
                             modifier = Modifier.fillMaxWidth()
                                 .clickable {
                                     closeKeyboard()
-                                    viewModel.openVia(h.lineId, h.name)
+                                    when (h.kind) {
+                                        // Sector/parking: la pestaña MAPA se centra en él y enseña su mini-ficha.
+                                        SchoolSearchKind.SECTOR, SchoolSearchKind.PARKING -> viewModel.focusBlock(h.blockId)
+                                        else -> viewModel.openVia(h.lineId, h.name)
+                                    }
                                     query = ""
                                     onPicked()
                                 }
                                 .padding(horizontal = 12.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            SearchKindBadge(h.kind)
+                            Spacer(Modifier.width(10.dp))
                             Text(h.label, style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface, maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f))
-                            Text(h.sub, style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                            val sub = h.parentName
+                                ?: if (h.lineCount > 0) stringResource(R.string.grade_filter_bar_v3_vias, h.lineCount) else null
+                            if (sub != null) {
+                                Spacer(Modifier.width(8.dp))
+                                Text(sub, style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+                                    modifier = Modifier.widthIn(max = 120.dp),
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                            }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+/** Etiqueta de tipo del resultado: icono de vía/bloque, o la misma S verde / P azul de los chips del mapa. */
+@Composable
+private fun SearchKindBadge(kind: SchoolSearchKind) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(44.dp)) {
+        Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) {
+            when (kind) {
+                SchoolSearchKind.SECTOR -> ZoneShapeIcon()
+                SchoolSearchKind.PARKING -> ParkingShapeIcon()
+                else -> androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(
+                        if (kind == SchoolSearchKind.ROUTE) R.drawable.kind_route else R.drawable.kind_boulder),
+                    contentDescription = null,
+                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(MaterialTheme.colorScheme.onSurfaceVariant),
+                    modifier = Modifier.height(16.dp)
+                )
+            }
+        }
+        Text(
+            when (kind) {
+                SchoolSearchKind.ROUTE -> stringResource(R.string.w_route)
+                SchoolSearchKind.BOULDER -> stringResource(R.string.w_boulder)
+                SchoolSearchKind.SECTOR -> stringResource(R.string.school_search_kind_sector)
+                SchoolSearchKind.PARKING -> stringResource(R.string.school_search_kind_parking)
+            },
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+        )
     }
 }
 

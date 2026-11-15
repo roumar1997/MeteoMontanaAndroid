@@ -247,10 +247,11 @@ fun SchoolMap(
                 // los sectores/parkings (que van ANTES) viven dentro del mapa.
                 filtersContent = {
                     GradeFilterBar(
-                        trailing = {
+                        trailing = { compact ->
                             // Vía/Bloque en la misma línea que «Filtrar por grado» (solo si la escuela tiene ambos).
                             if (schoolHasBothStyles) {
                                 StyleFilterRow(
+                                    compact = compact,
                                     selected = styleFilter,
                                     onToggle = { opt ->
                                         styleFilter = if (opt in styleFilter) styleFilter - opt else styleFilter + opt

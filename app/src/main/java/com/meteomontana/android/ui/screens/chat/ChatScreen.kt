@@ -63,6 +63,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.ui.components.userRing
 import coil.compose.AsyncImage
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.port.ChatService
@@ -114,6 +115,7 @@ fun ChatScreen(
         ChatSheetHeader(
             name = state.otherProfile?.username ?: state.otherProfile?.displayName ?: stringResource(R.string.w_user),
             avatarUrl = state.otherProfile?.photoUrl,
+            userUid = state.otherUid,
             onClose = onBack,
             onOpenProfile = { onOpenProfile(state.otherUid) }
         )
@@ -253,7 +255,7 @@ internal fun LoadOlderRow(onClick: () -> Unit) {
 
 /** Cabecera de sheet del chat: avatar + nombre centrados (tap → perfil) + "Cerrar". */
 @Composable
-private fun ChatSheetHeader(name: String, avatarUrl: String?, onClose: () -> Unit, onOpenProfile: () -> Unit = {}) {
+private fun ChatSheetHeader(name: String, avatarUrl: String?, userUid: String?, onClose: () -> Unit, onOpenProfile: () -> Unit = {}) {
     com.meteomontana.android.ui.components.SheetHeader(onClose = onClose) {
         Row(
             modifier = Modifier.align(Alignment.Center)
@@ -265,7 +267,10 @@ private fun ChatSheetHeader(name: String, avatarUrl: String?, onClose: () -> Uni
         ) {
             if (avatarUrl != null) {
                 AsyncImage(model = avatarUrl, contentDescription = null,
-                    modifier = Modifier.size(32.dp).clip(CircleShape)
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.padding(3.dp)
+                        .userRing(userUid, 32.dp)
+                        .size(32.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
             } else {
                 androidx.compose.foundation.Image(

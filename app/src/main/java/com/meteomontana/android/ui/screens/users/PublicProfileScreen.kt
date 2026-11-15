@@ -245,12 +245,12 @@ internal fun Body(
     zoomPhoto?.let { url ->
         com.meteomontana.android.ui.components.FullScreenPhotoDialog(url) { zoomPhoto = null }
     }
-    Column(modifier = Modifier.fillMaxSize()
-        .verticalScroll(rememberScrollState())
-        .padding(horizontal = 16.dp, vertical = 8.dp)) {
-        // Cabecera centrada, igual que el perfil propio.
-        Column(modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally) {
+    val scroll = rememberScrollState()
+    val topPadPx = with(androidx.compose.ui.platform.LocalDensity.current) { 8.dp.roundToPx() }
+    // El avatar va en una capa por encima del scroll: su efecto de título (dragones) no se corta al subir.
+    com.meteomontana.android.ui.components.UnclippedAvatarHost(
+        slotOffsetPx = { topPadPx - scroll.value },
+        avatar = {
             if (p.photoUrl != null) {
                 AsyncImage(model = p.photoUrl, contentDescription = stringResource(R.string.a11y_zoom_photo),
                     modifier = Modifier.userRing(p.uid, 76.dp).size(76.dp).clip(CircleShape)
@@ -261,6 +261,16 @@ internal fun Body(
                     modifier = Modifier.size(76.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
             }
+        },
+        modifier = Modifier.fillMaxSize()
+    ) { avatarSlot ->
+    Column(modifier = Modifier.fillMaxSize()
+        .verticalScroll(scroll)
+        .padding(horizontal = 16.dp, vertical = 8.dp)) {
+        // Cabecera centrada, igual que el perfil propio.
+        Column(modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally) {
+            Spacer(Modifier.height(avatarSlot))
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(p.displayName ?: p.username ?: stringResource(R.string.w_user),
@@ -364,6 +374,7 @@ internal fun Body(
             }
         }
     }
+    }
 }
 
 @Composable
@@ -381,18 +392,15 @@ internal fun ActivityStatsRow(
         verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // ESTADÍSTICAS arriba, como en tu perfil: que se vea sin bajar (Álvaro, 2026-10-19).
         com.meteomontana.android.ui.components.StatsEntryButton(onClick = onStatsClick)
+        // Las seis cifras en UNA sola fila compacta (antes dos filas): PUBLICACIONES se ve sin hacer scroll.
         Row(modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatBox(stringResource(R.string.profile_blocks), stats.boulderCount.toString(), Modifier.weight(1f), onBlocksClick)
-            StatBox(stringResource(R.string.profile_routes), stats.routeCount.toString(), Modifier.weight(1f), onRoutesClick)
-            StatBox(stringResource(R.string.profile_schools), stats.schoolCount.toString(), Modifier.weight(1f), onSchoolsClick)
-        }
-        // Grados tope (del diario) y proyectos en UNA fila de tres, como en iOS.
-        Row(modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatBox(stringResource(R.string.profile_max_boulder), stats.maxBoulderGrade ?: "—", Modifier.weight(1f), onMaxClick)
-            StatBox(stringResource(R.string.profile_max_route), stats.maxRouteGrade ?: "—", Modifier.weight(1f), onMaxClick)
-            StatBox(stringResource(R.string.profile_projects), stats.projectCount.toString(), Modifier.weight(1f), onProjectsClick)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            StatBox(stringResource(R.string.profile_blocks), stats.boulderCount.toString(), Modifier.weight(1f), onBlocksClick, compact = true)
+            StatBox(stringResource(R.string.profile_routes), stats.routeCount.toString(), Modifier.weight(1f), onRoutesClick, compact = true)
+            StatBox(stringResource(R.string.profile_schools), stats.schoolCount.toString(), Modifier.weight(1f), onSchoolsClick, compact = true)
+            StatBox(stringResource(R.string.profile_max_boulder), stats.maxBoulderGrade ?: "—", Modifier.weight(1f), onMaxClick, compact = true)
+            StatBox(stringResource(R.string.profile_max_route), stats.maxRouteGrade ?: "—", Modifier.weight(1f), onMaxClick, compact = true)
+            StatBox(stringResource(R.string.profile_projects), stats.projectCount.toString(), Modifier.weight(1f), onProjectsClick, compact = true)
         }
         // Publicaciones: una fila fina en vez de otra celda grande.
         Row(
@@ -410,20 +418,20 @@ internal fun ActivityStatsRow(
 }
 
 @Composable
-internal fun StatBox(label: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+internal fun StatBox(label: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit, compact: Boolean = false) {
     // Mismo estilo que el StatCell del perfil propio (fondo surface + borde + serif).
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(if (compact) 12.dp else 16.dp))
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(if (compact) 12.dp else 16.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(if (compact) 12.dp else 16.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 9.dp),
+            .padding(horizontal = 2.dp, vertical = if (compact) 7.dp else 9.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(value, fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold,
-            fontSize = 20.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
-        Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 2,
+            fontSize = if (compact) 16.sp else 20.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
+        Text(label, style = MaterialTheme.typography.labelSmall.let { if (compact) it.copy(fontSize = 8.sp, lineHeight = 10.sp, letterSpacing = 0.sp) else it }, maxLines = 2,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

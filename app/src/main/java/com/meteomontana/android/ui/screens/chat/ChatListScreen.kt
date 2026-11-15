@@ -52,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.meteomontana.android.ui.components.userRing
 import coil.compose.AsyncImage
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
@@ -170,6 +171,7 @@ fun ChatListScreen(
                         val otherUid = conv.participants.firstOrNull { it != myUid } ?: return@items
                         SwipeableConvRow(
                             avatarUrl = other?.photoUrl,
+                            userUid = otherUid,
                             isGroup = false,
                             name = other?.username ?: other?.displayName ?: otherUid.take(6),
                             lastMessage = conv.lastMessage ?: "",
@@ -254,6 +256,8 @@ private fun NewChatDialog(
 @Composable
 private fun SwipeableConvRow(
     avatarUrl: String?,
+    /** Uid de la otra persona: con él la foto lleva su aureola/efecto de título, como en el feed. */
+    userUid: String? = null,
     name: String,
     lastMessage: String,
     unread: Long,
@@ -290,7 +294,7 @@ private fun SwipeableConvRow(
             }
         }
     ) {
-        ConvRow(avatarUrl = avatarUrl, name = name, lastMessage = lastMessage,
+        ConvRow(avatarUrl = avatarUrl, userUid = userUid, name = name, lastMessage = lastMessage,
             unread = unread, onClick = onClick, isGroup = isGroup, date = date)
     }
 }
@@ -318,6 +322,7 @@ private fun SwipeBg(
 @Composable
 private fun ConvRow(
     avatarUrl: String?,
+    userUid: String? = null,
     name: String,
     lastMessage: String,
     unread: Long,
@@ -340,8 +345,11 @@ private fun ConvRow(
                     tint = MaterialTheme.colorScheme.primary)
             }
         } else if (avatarUrl != null) {
+            // Margen para que la aureola (se dibuja por fuera de la foto) no se corte.
             AsyncImage(model = avatarUrl, contentDescription = null,
-                modifier = Modifier.size(44.dp).clip(CircleShape)
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.padding(3.dp)
+                    .userRing(userUid, 44.dp).size(44.dp).clip(CircleShape)
                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
         } else {
             androidx.compose.foundation.Image(
