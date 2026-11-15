@@ -12,6 +12,8 @@ struct GradeFilterBar: View {
     let availableGrades: [String]
     let result: GradeFilterResult
     let onSelectLine: (GradeMatch) -> Void
+    /// A la derecha de la cabecera (p. ej. los botones Vía/Bloque de la escuela); recibe `compact` = solo icono.
+    var trailing: ((_ compact: Bool) -> AnyView)? = nil
 
     @State private var expanded = false
     /// Grados con su grupo de resultados desplegado. Se conserva mientras la
@@ -20,8 +22,19 @@ struct GradeFilterBar: View {
 
     private var isActive: Bool { !selectedGrades.isEmpty }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+    /// Cabecera: «FILTRAR POR GRADO» (abre/cierra) a la izquierda y, a la derecha, `trailing` (Vía/Bloque). Si todo no
+    /// cabe (iPhone estrecho, letra grande) se prueba una versión compacta con los botones solo icono: el texto del
+    /// filtro nunca se corta.
+    private var header: some View {
+        ViewThatFits(in: .horizontal) {
+            headerRow(compact: false)
+            headerRow(compact: true)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 8)
+    }
+
+    private func headerRow(compact: Bool) -> some View {
+        HStack(spacing: 8) {
             Button {
                 withAnimation(.easeInOut(duration: 0.15)) { expanded.toggle() }
             } label: {
@@ -32,24 +45,32 @@ struct GradeFilterBar: View {
                     Text("FILTRAR POR GRADO")
                         .font(Cumbre.mono(10, .bold)).tracking(1.4)
                         .foregroundStyle(isActive ? Cumbre.terra : Cumbre.ink3)
-                    Spacer()
-                    if isActive {
-                        Button {
-                            selectedGrades = []
-                        } label: {
-                            Text("QUITAR TODO")
-                                .font(Cumbre.mono(9, .bold)).tracking(1)
-                                .foregroundStyle(Cumbre.ink3)
-                        }.buttonStyle(.plain)
-                    }
+                        .lineLimit(1).fixedSize(horizontal: true, vertical: false)
                     Image(systemName: expanded ? "chevron.up" : "chevron.down")
                         .font(.system(size: 12))
                         .foregroundStyle(Cumbre.ink3)
                 }
-                .padding(.horizontal, 16).padding(.vertical, 8)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            Spacer(minLength: 4)
+            if isActive {
+                Button {
+                    selectedGrades = []
+                } label: {
+                    Text("QUITAR TODO")
+                        .font(Cumbre.mono(9, .bold)).tracking(1)
+                        .foregroundStyle(Cumbre.ink3)
+                        .lineLimit(1).fixedSize(horizontal: true, vertical: false)
+                }.buttonStyle(.plain)
+            }
+            trailing?(compact)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            header
 
             if expanded {
                 if availableGrades.isEmpty {

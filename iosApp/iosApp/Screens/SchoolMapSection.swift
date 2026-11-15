@@ -103,6 +103,8 @@ struct SchoolMapSection: View {
     /// Margen mínimo del encuadre (grados de lat). Los sectores lo bajan.
     @State var focusMargenMinimo: Double = 0.004
     @State var focusToken = 0
+    /// El encuadre de entrada (solo piedras) ya se hizo: al volver de pantalla completa no se repite.
+    @State var didInitialFit = false
     // Encuadre de bounds (parking + su zona) — tiene prioridad sobre focusCoord.
     @State var focusFit: [CLLocationCoordinate2D] = []
     // Capas ocultas por el usuario (leyenda pulsable): PARKING/BLOCK/ZONE.
@@ -143,8 +145,8 @@ struct SchoolMapSection: View {
                         if let b = vm.blocks.first(where: { $0.id == match.blockId }) {
                             selectedBlock = b
                         }
-                    })
-                if schoolHasBothStyles { styleFilterRow }
+                    },
+                    trailing: styleFilterTrailing)
                 if !fullscreenMap {
                     mapArea(height: mapHeight)
                 }
@@ -160,6 +162,7 @@ struct SchoolMapSection: View {
             if vm.blocks.isEmpty {
                 _ = await vm.reloadBlocks(school: school, selectedId: nil)
             }
+            frameInitially()
             maybeAutoOpen()
             maybeFocusBlock()
             approachesLoader.load(schoolId: school.id)
@@ -208,7 +211,11 @@ struct SchoolMapSection: View {
         // caché puede traer los mismos N bloques SIN sus vías: el auto-abrir
         // fallaba (abría la escuela a secas) y como el count no cambiaba al
         // llegar los datos reales, no se reintentaba (a la 2ª vez ya iba).
-        .onChange(of: vm.blocks.reduce(0) { $0 + 1 + $1.lines.count }) { _ in maybeAutoOpen(); maybeFocusBlock() }
+        .onChange(of: vm.blocks.reduce(0) { $0 + 1 + $1.lines.count }) { _ in frameInitially(); maybeAutoOpen(); maybeFocusBlock() }
+        // Cambia el filtro de grado, Vía/Bloque u orientación: se re-encuadran las piedras que quedan.
+        .onChange(of: framingSignature) { _ in reframeAfterFilterChange() }
+        // Entrar/salir de pantalla completa recrea el mapa: sin esto reaplicaría el último encuadre y pisaría su cámara.
+        .onChange(of: fullscreenMap) { _ in focusFit = []; focusCoord = nil }
         // Pull-to-refresh de la ficha: vuelve a pedir las piedras (el `.task(id:
         // expanded)` de arriba solo carga si `vm.blocks` está vacío).
         .task(id: refreshTrigger) {

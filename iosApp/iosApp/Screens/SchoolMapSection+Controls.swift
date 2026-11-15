@@ -113,15 +113,9 @@ extension SchoolMapSection {
         }
     }
 
-    /// Vuelve al encuadre inicial de la escuela (todos los marcadores).
+    /// Vuelve al encuadre inicial de la escuela: las piedras (todos los marcadores si aún no hay ninguna).
     func recenterOnSchool() {
-        var coords = [CLLocationCoordinate2D(latitude: school.lat, longitude: school.lon)]
-        coords += vm.blocks.map { CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon) }
-        if coords.count >= 2 { focusFit = coords } else {
-            focusFit = []
-            focusCoord = coords[0]
-        }
-        focusToken += 1
+        if !frameVisibleStones() { recenterOnAllMarkers() }
     }
 
     /// Botón circular de la botonera lateral; apagado = capa oculta.

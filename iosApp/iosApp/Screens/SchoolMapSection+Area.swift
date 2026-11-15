@@ -21,12 +21,10 @@ extension SchoolMapSection {
                         zoom: savedZoom ?? 12.5,
                         markers: markers,
                         style: mapStyle,
-                        // Encuadre inicial con TODOS los elementos (parkings/sectores/
-                        // piedras), por muy separados que estén — antes el mapa abría
-                        // fijo en zoom 14 sobre la escuela, dejando fuera sectores a
-                        // km. Mi ubicación solo entra en el encuadre si ya está cerca
-                        // (ver userMarkerIfNearby en MapLibreView.swift).
-                        autoFitToMarkers: savedZoom == nil,
+                        // Sin autoencuadre de todos los marcadores: el encuadre (solo piedras, con margen, y de nuevo
+                        // al cambiar un filtro) lo hace `frameInitially` / `reframeAfterFilterChange` con la geometría
+                        // de shared. Antes entraban parkings y aproximaciones y las piedras salían diminutas.
+                        autoFitToMarkers: false,
                         onZoomChange: { mapZoom = $0 },
                         onCameraChange: { c, z in savedCenter = c; savedZoom = z },
                         onTapMarker: { id in

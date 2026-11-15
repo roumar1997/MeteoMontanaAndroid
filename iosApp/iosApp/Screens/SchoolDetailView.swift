@@ -49,6 +49,8 @@ struct SchoolDetailView: View {
     @State private var hoyManual = false
     /// "¿Qué piedra es esta?": foto de una piedra de ESTA escuela (botón de cámara junto a AYUDA).
     @StateObject private var photoFinder = SchoolPhotoFinder()
+    /// Lupa junto al nombre: buscador de vías y bloques de la escuela.
+    @State private var showViaSearch = false
     private var hoyOpen: Binding<Bool> {
         Binding(get: { hoyManual || tab == .weather }, set: { hoyManual = $0 })
     }
@@ -62,11 +64,11 @@ struct SchoolDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Fijo, fuera del scroll (Álvaro, 2026-09-03: si no, nadie sabe que hay alguien ahí). Desde 2026-10-14 la
-            // misma fila lleva la cabecera (nombre + iconos), el chat de la escuela y el botón "Aquí".
+            // misma fila lleva la cabecera (nombre + iconos) y el chat de la escuela.
             SchoolPresenceRow(schoolId: school.id, schoolName: school.name,
                               myUid: AppDependencies.shared.authBridge.currentUid(),
                               refreshTrigger: presenceRefreshTrigger,
-                              tileCount: 8,
+                              tileCount: 7,
                               leading: { w in
                                   SchoolDetailHeaderTitle(onBack: { dismiss() }, width: w)
                               },
@@ -90,6 +92,15 @@ struct SchoolDetailView: View {
             DayDetailView(day: d, allHours: vm.forecast?.hours ?? [])
         }
         .sheet(isPresented: $showHelp) { HelpSheet(topicKey: "detail") }
+        .sheet(isPresented: $showViaSearch) {
+            SchoolViaSearchSheet(school: school) { id in
+                // Se abre la piedra en el mapa, como al tocarla en la lista de bloques.
+                mapOpenVia = id
+                mapFocusBlock = nil
+                returnToBlocks = false
+                tab = .map
+            }
+        }
         .sheet(isPresented: $photoFinder.showSheet) {
             SchoolPhotoSheet(finder: photoFinder, schoolName: school.name) { lineId in
                 // Se abre la piedra en el mapa de la escuela, como al tocarla en la lista de bloques.
@@ -214,6 +225,7 @@ struct SchoolDetailView: View {
             if let ui = restrictionsModel.ui {
                 RestrictionsPill(ui: ui) { showRestrictions = true }
             }
+            SchoolViaSearchButton { showViaSearch = true }
             GuidePill(topicKey: "detail") {
                 if !GuideStore.shared.startScreenAndTab(screen: "detail", tab: tab.guideKey) { showHelp = true }
             }

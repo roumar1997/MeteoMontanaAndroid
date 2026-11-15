@@ -48,30 +48,43 @@ extension SchoolMapSection {
         Set(school.style?.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) } ?? []).count > 1
     }
 
-    var styleFilterRow: some View {
-        HStack(spacing: 8) {
+    /// Lo que va a la derecha de «FILTRAR POR GRADO»: Vía/Bloque, solo si la escuela tiene ambos estilos.
+    var styleFilterTrailing: ((_ compact: Bool) -> AnyView)? {
+        guard schoolHasBothStyles else { return nil }
+        return { compact in AnyView(styleFilterChips(compact: compact)) }
+    }
+
+    /// Vía/Bloque en la MISMA línea que «FILTRAR POR GRADO» (a la derecha), compactos. `compact` = solo icono, para
+    /// cuando no cabe con texto (iPhone SE, letra grande).
+    func styleFilterChips(compact: Bool) -> some View {
+        HStack(spacing: 6) {
             ForEach(["Vía", "Bloque"], id: \.self) { opt in
                 let active = styleFilter.contains(opt)
                 Button {
                     if active { styleFilter.remove(opt) } else { styleFilter.insert(opt) }
                 } label: {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 4) {
                         // Los mismos dibujos de la app: mosquetón (vía) y crashpad (bloque), como en la lista de escuelas.
                         Image(opt == "Vía" ? "kind_route" : "kind_boulder")
-                            .renderingMode(.template).resizable().scaledToFit().frame(height: 14)
-                        Text(L(opt).uppercased()).font(Cumbre.mono(11, .bold)).tracking(0.5)
-                            .lineLimit(1).minimumScaleFactor(0.8)
+                            .renderingMode(.template).resizable().scaledToFit().frame(height: 12)
+                        if !compact {
+                            Text(L(opt).uppercased()).font(Cumbre.mono(10, .bold)).tracking(0.4)
+                                .lineLimit(1).fixedSize()
+                        }
                     }
                     .foregroundStyle(active ? .white : Cumbre.ink2)
-                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .padding(.horizontal, compact ? 9 : 10).padding(.vertical, 5)
                     .background(active ? Cumbre.terra : Cumbre.paper, in: Capsule())
                     .overlay(Capsule().stroke(active ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-                }.buttonStyle(.plain)
+                    .frame(minWidth: compact ? 32 : 0, minHeight: 28)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L(opt))
+                .accessibilityAddTraits(active ? .isSelected : [])
             }
         }
-        // Centrado y con aire arriba y abajo (Álvaro, 2026-11-13: iba pegado a la izquierda).
-        .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.horizontal, 16).padding(.vertical, 6)
+        .fixedSize()
     }
 
     /// "ROUTE" en el backend = estilo "Vía"; "BOULDER" = "Bloque".

@@ -89,9 +89,9 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
     var refreshTrigger: Int = 0
     /// Iconos antes del chat (en la ficha, «volver»); recibe el ancho que debe tener cada uno.
     let leading: (CGFloat) -> Leading
-    /// Cuántos iconos pinta la fila en total (`leading`, chat, Aquí y los de `trailing`): para repartir el ancho a partes iguales.
+    /// Cuántos iconos pinta la fila en total (`leading`, chat y los de `trailing`): para repartir el ancho a partes iguales.
     let tileCount: Int
-    /// Iconos de la ficha tras Chat y Aquí; recibe el ancho que debe tener cada uno.
+    /// Iconos de la ficha tras el chat; recibe el ancho que debe tener cada uno.
     let trailing: (CGFloat) -> Trailing
     @StateObject private var vm: SchoolPresenceViewModel
     @State private var openChatFor: ChatTarget?
@@ -112,7 +112,7 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Fila de iconos, solo icono y repartidos por todo el ancho: Volver · Chat · Aquí · el resto de acciones.
+            // Fila de iconos, solo icono y repartidos por todo el ancho: Volver · Chat · el resto de acciones.
             // Si no caben (iPhone estrecho o letra grande) la fila se desliza: no se esconde ninguna ni encoge el toque.
             IconActionRow(count: tileCount) { w in actionsRow(w) }
                 .padding(.horizontal, 12).padding(.vertical, 4)
@@ -206,13 +206,12 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
         .presentationDetents([.medium, .large])
     }
 
-    /// `leading` + chat de la escuela + «Aquí» + las acciones de la ficha (`trailing`), todo en iconos sin texto.
-    /// «Aquí» también se puede marcar desde dentro del chat.
+    /// `leading` + chat de la escuela + las acciones de la ficha (`trailing`), todo en iconos sin texto.
+    /// «Aquí» se marca desde dentro del chat de la escuela (`PresenceMarkButton`): ya no tiene icono en esta fila.
     @ViewBuilder private func actionsRow(_ w: CGFloat) -> some View {
         leading(w)
         IconAction(symbol: "bubble.left.and.bubble.right", a11y: L("Chat de la escuela")) { showSchoolChat = true }
             .frame(width: w)
-        PresenceHereTile(vm: vm).frame(width: w).guideTarget("detail.here")
         trailing(w)
     }
 
@@ -248,22 +247,7 @@ struct PresenceMarkButton: View {
     private var privacySheet: some View { PresencePrivacySheet { showPrivacyNote = false; vm.toggle() } }
 }
 
-/// «Aquí» de la cabecera de la ficha: icono sin texto, terracota cuando estás aquí. Mismo flujo que
-/// `PresenceMarkButton` (aviso de privacidad al marcar; tocar de nuevo lo quita).
-struct PresenceHereTile: View {
-    @ObservedObject var vm: SchoolPresenceViewModel
-    @State private var showPrivacyNote = false
-
-    var body: some View {
-        IconAction(symbol: "mappin.and.ellipse", a11y: L("Aquí"), active: vm.iAmHere) {
-            guard !vm.loading else { return }
-            if vm.iAmHere { vm.toggle() } else { showPrivacyNote = true }
-        }
-        .sheet(isPresented: $showPrivacyNote) { PresencePrivacySheet { showPrivacyNote = false; vm.toggle() } }
-    }
-}
-
-/// Aviso de privacidad de «Estoy aquí» (hoja), compartido por el botón del chat y la baldosa de la cabecera.
+/// Aviso de privacidad de «Estoy aquí» (hoja) del botón «Aquí» del chat de la escuela.
 struct PresencePrivacySheet: View {
     let onConfirm: () -> Void
 
