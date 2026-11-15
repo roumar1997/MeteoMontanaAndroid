@@ -153,6 +153,7 @@ internal fun SchoolViaSearchBar(
                         ) {
                             SearchKindBadge(h.kind)
                             Spacer(Modifier.width(10.dp))
+                            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                             Text(h.label, style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurface, maxLines = 1,
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -166,7 +167,7 @@ internal fun SchoolViaSearchBar(
                                         .background(com.meteomontana.android.ui.theme.gradeChipColor(g), CircleShape)
                                         .padding(horizontal = 9.dp, vertical = 2.dp))
                             }
-                            Spacer(Modifier.weight(0.001f))
+                            }
                             // Derecha: «Sector»/«Parking» en gris, o el nombre de su piedra (como iOS).
                             val right = when (h.kind) {
                                 SchoolSearchKind.SECTOR -> stringResource(R.string.school_search_kind_sector)
