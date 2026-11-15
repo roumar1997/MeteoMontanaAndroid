@@ -274,7 +274,7 @@ internal fun ProfileTopBar(
                 )
             }
             if (onShare != null) IconButton(onClick = onShare) {
-                Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.profile_screen_v2_compartir_perfil),
+                Icon(androidx.compose.ui.res.painterResource(R.drawable.ic_share_ios), contentDescription = stringResource(R.string.profile_screen_v2_compartir_perfil),
                     tint = MaterialTheme.colorScheme.primary)
             }
             if (onSettings != null) IconButton(onClick = onSettings) {

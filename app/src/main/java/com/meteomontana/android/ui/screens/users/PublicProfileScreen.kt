@@ -126,7 +126,7 @@ fun PublicProfileScreen(
             Box(
                 Modifier.align(Alignment.CenterStart).size(44.dp)
                     .shadow(4.dp, CircleShape, clip = false)
-                    .clip(CircleShape).background(MaterialTheme.colorScheme.surface)
+                    .clip(CircleShape).background(MaterialTheme.colorScheme.background)
                     .clickable(onClick = onBack),
                 contentAlignment = Alignment.Center
             ) {
@@ -158,7 +158,7 @@ fun PublicProfileScreen(
                         )
                     }
                 }) {
-                    Icon(androidx.compose.material.icons.Icons.Outlined.Share,
+                    Icon(androidx.compose.ui.res.painterResource(R.drawable.ic_share_ios),
                         contentDescription = stringResource(R.string.public_profile_screen_v2_compartir_perfil),
                         tint = MaterialTheme.colorScheme.onBackground)
                 }
@@ -442,7 +442,7 @@ internal fun StatBox(label: String, value: String, modifier: Modifier = Modifier
     ) {
         Text(value, fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold,
             fontSize = 20.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
-        Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 2,
+        Text(label, fontFamily = com.meteomontana.android.ui.theme.Mono, fontSize = 10.sp, letterSpacing = 1.4.sp, maxLines = 2,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

@@ -134,7 +134,7 @@ internal fun StatCell(label: String, value: String, modifier: Modifier = Modifie
     ) {
         Text(value, fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold,
             fontSize = 20.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
-        Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 2,
+        Text(label, fontFamily = com.meteomontana.android.ui.theme.Mono, fontSize = 10.sp, letterSpacing = 1.4.sp, maxLines = 2,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
