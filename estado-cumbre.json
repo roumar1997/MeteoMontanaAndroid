@@ -2,7 +2,7 @@
   "_ayuda": "Lo lee el panel Estado Cumbre. Estados: pendiente (no hecho), hecho (programado, sin probar), probado (validado por Álvaro), publicado (en la tienda). Claude lo actualiza al terminar cada cosa.",
   "builds": {
     "ios": "7.2 LISTA PARA DISTRIBUCIÓN (build 358) · 7.2.2 (build 359) en revisión de Apple",
-    "android": "7.2.1 (vc127) · AAB firmado en Desktop/AABs Play, lo sube Álvaro a Play",
+    "android": "7.2.1 (vc127) subida a Play · en revisión",
     "note": "main 7a53acc5 (2026-11-15, «sí, fusiona»). Backend prod 2789b41 (V100–V102 avisos con autor)."
   },
   "steps": [
@@ -80,11 +80,11 @@
     },
     {
       "name": "Subir AAB vc127 a Play (Álvaro)",
-      "done": false
+      "done": true
     },
     {
       "name": "Llevar a main la nota de HISTORIAL del 2026-11-15 (próxima fusión)",
-      "done": false
+      "done": true
     }
   ],
   "features": [
@@ -493,7 +493,7 @@
     "next": {
       "name": "7.2.1 / iOS 7.2.2",
       "ios": "build 359 · en revisión",
-      "android": "vc127 · AAB listo para subir"
+      "android": "vc127 · en revisión en Play"
     }
   }
 }
