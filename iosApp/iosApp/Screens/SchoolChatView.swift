@@ -106,7 +106,6 @@ struct SchoolChatView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 10) {
-                        if notMarkedHere && !vm.messages.isEmpty { markNotice(compact: true) }
                         ForEach(vm.messages, id: \.id) { m in
                             bubble(m)
                         }
@@ -120,11 +119,13 @@ struct SchoolChatView: View {
                 }
                 .refreshable { await vm.refreshPresence() }
             }
-            inputBar
+            // Sin marcar «Aquí» no se escribe: la caja se sustituye por el botón grande que te marca.
+            if notMarkedHere { markBar } else { inputBar }
         }
         .overlay {
-            if notMarkedHere && vm.messages.isEmpty { markNotice(compact: false) }
+            if notMarkedHere && vm.messages.isEmpty { markNotice }
         }
+        .contentShape(Rectangle())
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationBarHidden(true)
         .task { vm.start(); await presence.load() }
@@ -139,16 +140,25 @@ struct SchoolChatView: View {
     /// Sin marcar «Aquí» el chat y el recuento de gente no van contigo: aviso con el botón grande que te marca.
     private var notMarkedHere: Bool { presence.loaded && !presence.iAmHere }
 
-    private func markNotice(compact: Bool) -> some View {
+    /// Sin mensajes y sin marcar: en el centro solo el icono y el aviso (el botón está abajo, en el sitio del input).
+    private var markNotice: some View {
         VStack(spacing: 10) {
-            Image(systemName: "mappin").font(.system(size: compact ? 22 : 40)).foregroundStyle(Cumbre.terra)
+            Image(systemName: "mappin").font(.system(size: 40)).foregroundStyle(Cumbre.terra)
             Text(L("Pulsa «Aquí» para participar en el chat y ver cuánta gente hay en la escuela"))
                 .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
                 .multilineTextAlignment(.center)
-            PresenceMarkButton(vm: presence, visibleWhenHere: false, big: true)
         }
-        .padding(.horizontal, 16).padding(.vertical, compact ? 8 : 0)
+        .padding(.horizontal, 32)
         .frame(maxWidth: .infinity)
+        .allowsHitTesting(false)
+    }
+
+    private var markBar: some View {
+        PresenceMarkButton(vm: presence, visibleWhenHere: false, big: true)
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(Cumbre.bg)
+            .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .top)
     }
 
     private var header: some View {
@@ -167,7 +177,7 @@ struct SchoolChatView: View {
             Text("se borra solo pasados unos días")
                 .font(.system(size: 9, design: .monospaced))
                 .foregroundStyle(Cumbre.ink3)
-            if !vm.presentList.isEmpty {
+            if !vm.presentList.isEmpty && !notMarkedHere {
                 Button { showAllPresent = true } label: {
                     HStack(spacing: 6) {
                         Circle().fill(Cumbre.terraFill).frame(width: 7, height: 7)
