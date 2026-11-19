@@ -48,7 +48,9 @@ struct NotificationRowView: View {
         let age = Text(" · " + notificationDateLabel(n.createdAt)).foregroundColor(Cumbre.ink3)
         guard n.type != "TEAM_MESSAGE", let who = n.actorName else {
             var t = Text(n.title).fontWeight(.bold)
-            if let b = n.body, !b.isEmpty { t += Text(" · " + b) }
+            // Text no admite `+=` (no es FloatingPoint): se suma con `+` y se avisa a SwiftLint.
+            // swiftlint:disable:next shorthand_operator
+            if let b = n.body, !b.isEmpty { t = t + Text(" · " + b) }
             return t + age
         }
         let many = g.others > 0
