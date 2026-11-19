@@ -213,6 +213,8 @@ dependencies {
 
     // kotlinx-serialization (Json) — outbox y deserialización de payloads
     implementation(libs.kotlinx.serialization.json)
+    // kotlinx-datetime: el Instant de FilterGymsUseCase (rocódromos, "abierto ahora") aparece en su firma.
+    implementation(libs.kotlinx.datetime)
 
     // Widget "Favoritas hoy" en la pantalla de inicio
     implementation(libs.androidx.glance.appwidget)

@@ -78,6 +78,9 @@ data class Gym(
     fun isOpenAt(instant: kotlinx.datetime.Instant): Boolean? = GymOpeningHours.isOpenAt(this, instant)
 
     fun openStatusAt(instant: kotlinx.datetime.Instant): GymOpenStatus = GymOpeningHours.statusAt(this, instant)
+
+    /** Estado de apertura ahora mismo (hora de Madrid). Para las pantallas, que no manejan `Instant`. */
+    fun openStatusNow(): GymOpenStatus = openStatusAt(kotlinx.datetime.Clock.System.now())
 }
 
 /** Rocodromo cercano a un punto (Plan B), con la distancia en km ya calculada por el servidor. */

@@ -326,7 +326,7 @@ private fun PresenceMarkButton(iAmHere: Boolean, loading: Boolean, onClick: () -
 }
 
 @Composable
-private fun PresencePrivacySheet(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+internal fun PresencePrivacySheet(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(
             modifier = Modifier
