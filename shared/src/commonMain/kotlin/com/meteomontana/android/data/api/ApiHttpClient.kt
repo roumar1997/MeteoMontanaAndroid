@@ -34,6 +34,10 @@ import kotlinx.serialization.json.Json
  */
 internal const val TOKEN_WAIT_MS = 1_500L
 
+/** Cabecera con las capacidades de esta app. Las versiones <= 7.2.2 no la mandan. */
+const val CLIENT_FEATURES_HEADER = "X-Client-Features"
+const val CLIENT_FEATURES = "gyms"
+
 /** Timeouts de red. Sin ellos, una red que traga sin responder (portal wifi,
  *  cobertura fantasma) deja la petición colgada indefinidamente. */
 private const val CONNECT_TIMEOUT_MS = 10_000L
@@ -128,6 +132,8 @@ private fun buildClient(
             url(baseUrl)
             contentType(ContentType.Application.Json)
             header("Accept-Language", ApiLanguage.code)
+            // Avisa de que esta app sabe pintar quedadas de rocodromo (schoolId null): docs/rocodromos/COMPAT.md.
+            header(CLIENT_FEATURES_HEADER, CLIENT_FEATURES)
         }
     }
     return if (engine != null) HttpClient(engine, config) else HttpClient(config)
