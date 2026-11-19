@@ -117,3 +117,15 @@ fun scoreColor(score: Int): Color = when {
 // El número del score se pinta SIEMPRE en blanco (igual que iOS). Antes los
 // scores 40-79 usaban texto casi negro, que sobre el naranja (40-59) no se leía.
 fun scoreTextColor(score: Int): Color = Color.White
+
+// =============================================================================
+// Rocódromos: un color por tipo (marcadores, iconos y etiquetas). Comercial usa el terracota de siempre
+// (Terra / terraFillColor), así que solo hacen falta el azul municipal y el verde de "gratis".
+// Contraste del blanco sobre el relleno: municipal 5.7:1, gratis 6.2:1 (claro y oscuro). Como TEXTO sobre el
+// fondo oscuro el azul se aclara, igual que Terra → TerraDark.
+// =============================================================================
+val GymMunicipal         = Color(0xFF2563C7)
+val GymMunicipalFillDark = Color(0xFF2B64C4)
+val GymMunicipalTextDark = Color(0xFF7BA3EE)
+val GymFree              = Ok
+val GymFreeFillDark      = Color(0xFF3F6B4A)
