@@ -67,9 +67,9 @@ class GymFormattingTest {
     }
 
     @Test fun amountsDropDecimalsOnlyWhenWhole() {
-        assertEquals("12", GymPrice.amountText(12.0, ','))
-        assertEquals("12,50", GymPrice.amountText(12.5, ','))
-        assertEquals("9.90", GymPrice.amountText(9.9, '.'))
+        assertEquals("12", GymPrice.amountText(12.0, ","))
+        assertEquals("12,50", GymPrice.amountText(12.5, ","))
+        assertEquals("9.90", GymPrice.amountText(9.9, "."))
     }
 
     @Test fun linksAcceptAnyForm() {

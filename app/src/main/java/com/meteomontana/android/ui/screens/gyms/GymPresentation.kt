@@ -124,7 +124,7 @@ object GymPresentation {
 
     /** 12.0 → "12"; 12.5 → "12,50" (coma en español, punto en inglés). */
     internal fun formatAmount(v: Double): String =
-        GymPrice.amountText(v, java.text.DecimalFormatSymbols.getInstance(Locale.getDefault()).decimalSeparator)
+        GymPrice.amountText(v, java.text.DecimalFormatSymbols.getInstance(Locale.getDefault()).decimalSeparator.toString())
 
     private fun formatDate(iso: String): String? = runCatching {
         LocalDate.parse(iso).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))

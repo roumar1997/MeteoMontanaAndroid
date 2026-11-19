@@ -49,6 +49,11 @@ class FindGymsNearUseCase(private val repo: GymRepository) {
         radiusKm: Double = ShouldSuggestGymsUseCase.RADIUS_KM,
         limit: Int = ShouldSuggestGymsUseCase.LIMIT
     ): List<GymNear> = repo.findNear(lat, lon, radiusKm, limit)
+
+    /** Plan B con el radio y el limite de siempre (30 km, 5): Swift no ve los parametros por defecto. */
+    @Throws(Exception::class)
+    suspend fun executeNearby(lat: Double, lon: Double): List<GymNear> =
+        repo.findNear(lat, lon, ShouldSuggestGymsUseCase.RADIUS_KM, ShouldSuggestGymsUseCase.LIMIT)
 }
 
 /** Filtra y ordena el catalogo (logica pura, igual en iOS y Android). */
@@ -60,6 +65,14 @@ class FilterGymsUseCase {
         favoriteIds: Set<Long> = emptySet(),
         now: Instant = Clock.System.now()
     ): List<GymListItem> = GymFilterEngine.apply(gyms, filters, origin, favoriteIds, now)
+
+    /** Igual que [invoke] con el instante de ahora: Swift no ve los parametros por defecto ni construye `Instant`. */
+    fun filterNow(
+        gyms: List<Gym>,
+        filters: GymFilters,
+        origin: GymOrigin?,
+        favoriteIds: Set<Long>
+    ): List<GymListItem> = GymFilterEngine.apply(gyms, filters, origin, favoriteIds, Clock.System.now())
 
     fun chains(gyms: List<Gym>, mode: GymMode): List<String> = GymFilterEngine.chains(gyms, mode)
 }

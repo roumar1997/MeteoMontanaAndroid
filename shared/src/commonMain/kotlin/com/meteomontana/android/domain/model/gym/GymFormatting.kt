@@ -91,7 +91,7 @@ data class GymPrice(
         }
 
         /** 12.0 -> "12"; 12.5 -> "12,50" con el separador decimal que pide la plataforma (coma en ES, punto en EN). */
-        fun amountText(v: Double, decimalSeparator: Char): String {
+        fun amountText(v: Double, decimalSeparator: String): String {
             if (v == v.toLong().toDouble()) return v.toLong().toString()
             val cents = (v * 100).roundToInt()
             val whole = cents / 100
