@@ -2,6 +2,7 @@ package com.meteomontana.android.domain.usecase.gym
 
 import com.meteomontana.android.domain.model.SchoolPresence
 import com.meteomontana.android.domain.model.gym.Gym
+import com.meteomontana.android.domain.model.gym.GymAdminEdit
 import com.meteomontana.android.domain.model.gym.GymClusterer
 import com.meteomontana.android.domain.model.gym.GymCorrection
 import com.meteomontana.android.domain.model.gym.GymFilterEngine
@@ -13,6 +14,7 @@ import com.meteomontana.android.domain.model.gym.GymNear
 import com.meteomontana.android.domain.model.gym.GymOrigin
 import com.meteomontana.android.domain.model.gym.GymReport
 import com.meteomontana.android.domain.model.gym.NewGymDraft
+import com.meteomontana.android.domain.repository.GymAdminRepository
 import com.meteomontana.android.domain.repository.GymFavoriteRepository
 import com.meteomontana.android.domain.repository.GymPresenceRepository
 import com.meteomontana.android.domain.repository.GymReportRepository
@@ -109,4 +111,26 @@ class MarkGymPresenceUseCase(private val repo: GymPresenceRepository) {
 class ClearGymPresenceUseCase(private val repo: GymPresenceRepository) {
     @Throws(Exception::class)
     suspend fun execute(gymId: Long) = repo.clearPresence(gymId)
+}
+
+// Admin (solo iOS): cola de reportes pendientes y edicion de fichas.
+
+class ListPendingGymReportsUseCase(private val repo: GymAdminRepository) {
+    @Throws(Exception::class)
+    suspend fun execute(): List<GymReport> = repo.pendingReports()
+}
+
+class ApplyGymReportUseCase(private val repo: GymAdminRepository) {
+    @Throws(Exception::class)
+    suspend fun execute(id: Long): GymReport = repo.applyReport(id)
+}
+
+class RejectGymReportUseCase(private val repo: GymAdminRepository) {
+    @Throws(Exception::class)
+    suspend fun execute(id: Long): GymReport = repo.rejectReport(id)
+}
+
+class AdminEditGymUseCase(private val repo: GymAdminRepository) {
+    @Throws(Exception::class)
+    suspend fun execute(id: Long, edit: GymAdminEdit): Gym = repo.editGym(id, edit)
 }

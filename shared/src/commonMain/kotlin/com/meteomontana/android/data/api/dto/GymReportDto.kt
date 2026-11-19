@@ -72,3 +72,26 @@ fun GymReportDto.toDomain() = GymReport(
     },
     status = GymReportStatus.parse(status), createdAt = createdAt
 )
+
+/** Cuerpo de `PUT /api/admin/gyms/{id}`: lo que va a null no se toca. */
+@Serializable
+data class GymAdminUpdateDto(
+    val kind: String? = null,
+    val discipline: String? = null,
+    val verification: String? = null,
+    val openingHours: List<OpeningSlotDto>? = null,
+    val priceSingleEur: Double? = null,
+    val pricePassEur: Double? = null,
+    val pricePassLabel: String? = null,
+    val priceUpdatedAt: String? = null,
+    val website: String? = null,
+    val instagram: String? = null,
+    val hidden: Boolean? = null
+)
+
+fun com.meteomontana.android.domain.model.gym.GymAdminEdit.toDto() = GymAdminUpdateDto(
+    kind = kind?.name, discipline = discipline?.name, verification = verification?.name,
+    openingHours = openingHours?.map { OpeningSlotDto(it.days, it.open, it.close) },
+    priceSingleEur = priceSingleEur, pricePassEur = pricePassEur, pricePassLabel = pricePassLabel,
+    priceUpdatedAt = priceUpdatedAt, website = website, instagram = instagram, hidden = hidden
+)

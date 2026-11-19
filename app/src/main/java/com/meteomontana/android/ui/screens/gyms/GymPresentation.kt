@@ -2,9 +2,13 @@ package com.meteomontana.android.ui.screens.gyms
 
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.gym.Gym
+import com.meteomontana.android.domain.model.gym.GymDayLabels
 import com.meteomontana.android.domain.model.gym.GymDiscipline
+import com.meteomontana.android.domain.model.gym.GymDistance
+import com.meteomontana.android.domain.model.gym.GymHoursFormatter
 import com.meteomontana.android.domain.model.gym.GymKind
 import com.meteomontana.android.domain.model.gym.GymOpenStatus
+import com.meteomontana.android.domain.model.gym.GymPrice
 import com.meteomontana.android.domain.model.gym.GymVerification
 import com.meteomontana.android.domain.model.gym.OpeningSlot
 import com.meteomontana.android.util.AppText
@@ -14,7 +18,6 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
-import kotlin.math.roundToInt
 
 /**
  * Textos derivados de una ficha de rocódromo (etiquetas, horario, precio con su fecha). Funciones puras sobre
@@ -52,10 +55,8 @@ object GymPresentation {
     }
 
     /** "850 m" por debajo del kilómetro, "18 km" por encima; null sin ubicación. */
-    fun distanceText(km: Double?): String? = when {
-        km == null -> null
-        km < 1.0 -> AppText.get(R.string.gym_distance_m, (km * 1000).roundToInt().coerceAtLeast(1))
-        else -> AppText.get(R.string.gym_distance_km, km.roundToInt())
+    fun distanceText(km: Double?): String? = GymDistance.of(km)?.let {
+        AppText.get(if (it.inMeters) R.string.gym_distance_m else R.string.gym_distance_km, it.value)
     }
 
     /** "Abierto · hasta 23:00", "Cerrado · abre a las 10:00", "Cerrado"; null si no hay horario (no se afirma nada). */
@@ -82,34 +83,18 @@ object GymPresentation {
 
     // ── Horario ──
 
-    /** Una línea por tramo ("L–V 10:00–23:00"); vacío si la ficha no trae horario. */
+    /** Una línea por tramo ("L–V 10:00–23:00"); vacío si la ficha no trae horario. La agrupación de días es de shared. */
     fun hoursLines(slots: List<OpeningSlot>?): List<String> =
-        slots.orEmpty().map { AppText.get(R.string.gym_hours_line, daysLabel(it.days), it.open, displayTime(it.close)) }
+        GymHoursFormatter.entries(slots, dayLabels()).map { AppText.get(R.string.gym_hours_line, it.daysLabel, it.open, it.close) }
 
-    private fun displayTime(t: String) = if (t == "24:00") "00:00" else t
+    internal fun daysLabel(raw: String): String = GymHoursFormatter.daysLabel(raw, dayLabels())
 
-    private val FULL = mapOf(
-        "MON" to DayOfWeek.MONDAY, "TUE" to DayOfWeek.TUESDAY, "WED" to DayOfWeek.WEDNESDAY,
-        "THU" to DayOfWeek.THURSDAY, "FRI" to DayOfWeek.FRIDAY, "SAT" to DayOfWeek.SATURDAY, "SUN" to DayOfWeek.SUNDAY
+    private fun dayLabels() = GymDayLabels(
+        monFri = AppText.get(R.string.gym_hours_mon_fri), satSun = AppText.get(R.string.gym_hours_sat_sun),
+        sat = AppText.get(R.string.gym_hours_sat), sun = AppText.get(R.string.gym_hours_sun),
+        daily = AppText.get(R.string.gym_hours_daily),
+        shortNames = DayOfWeek.entries.map { it.getDisplayName(TextStyle.SHORT, Locale.getDefault()) }
     )
-
-    /** "MON-FRI" → "L–V", "SAT,SUN" → "S–D", "MON-SUN" → "Todos los días"; el resto, nombres cortos del idioma. */
-    internal fun daysLabel(raw: String): String {
-        val compact = raw.uppercase().replace(" ", "")
-        return when (compact) {
-            "MON-FRI" -> AppText.get(R.string.gym_hours_mon_fri)
-            "SAT-SUN", "SAT,SUN" -> AppText.get(R.string.gym_hours_sat_sun)
-            "MON-SUN", "SAT-FRI" -> AppText.get(R.string.gym_hours_daily)
-            "SAT" -> AppText.get(R.string.gym_hours_sat)
-            "SUN" -> AppText.get(R.string.gym_hours_sun)
-            else -> compact.split(',').joinToString(", ") { token ->
-                token.split('-').joinToString("–") { shortDay(it) }
-            }
-        }
-    }
-
-    private fun shortDay(token: String): String =
-        FULL[token]?.getDisplayName(TextStyle.SHORT, Locale.getDefault()) ?: token
 
     // ── Precio ──
 
@@ -121,29 +106,25 @@ object GymPresentation {
      * dice "Entrada gratuita" sin fecha.
      */
     fun priceInfo(gym: Gym): PriceInfo {
-        if (gym.isFree) return PriceInfo(listOf(AppText.get(R.string.gym_price_free)), null)
-        val date = gym.priceUpdatedAt?.let(::formatDate)
-        val single = gym.priceSingleEur
-        val pass = gym.pricePassEur
-        if (date == null || (single == null && pass == null)) return PriceInfo(emptyList(), null)
+        val price = GymPrice.of(gym) ?: return PriceInfo(emptyList(), null)
+        if (price.isFree) return PriceInfo(listOf(AppText.get(R.string.gym_price_free)), null)
+        val date = price.reviewedAtIso?.let(::formatDate) ?: return PriceInfo(emptyList(), null)
         val lines = buildList {
-            single?.let { add(AppText.get(R.string.gym_price_single, formatAmount(it))) }
-            pass?.let {
-                val label = gym.pricePassLabel?.takeIf(String::isNotBlank) ?: AppText.get(R.string.gym_price_pass_default)
-                add(AppText.get(R.string.gym_price_pass, label, formatAmount(it)))
+            price.singleEur?.let { add(AppText.get(R.string.gym_price_single, formatAmount(it))) }
+            price.passEur?.let {
+                add(AppText.get(R.string.gym_price_pass, price.passLabel ?: AppText.get(R.string.gym_price_pass_default), formatAmount(it)))
             }
         }
         val note = buildString {
             append(AppText.get(R.string.gym_price_asof, date))
-            if (gym.verification == GymVerification.UNCONFIRMED) append(' ').append(AppText.get(R.string.gym_price_unverified))
+            if (price.unverified) append(' ').append(AppText.get(R.string.gym_price_unverified))
         }
         return PriceInfo(lines, note)
     }
 
     /** 12.0 → "12"; 12.5 → "12,50" (coma en español, punto en inglés). */
     internal fun formatAmount(v: Double): String =
-        if (v == v.toLong().toDouble()) v.toLong().toString()
-        else String.format(Locale.getDefault(), "%.2f", v)
+        GymPrice.amountText(v, java.text.DecimalFormatSymbols.getInstance(Locale.getDefault()).decimalSeparator)
 
     private fun formatDate(iso: String): String? = runCatching {
         LocalDate.parse(iso).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))

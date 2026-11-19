@@ -1,14 +1,18 @@
 package com.meteomontana.android.data.repository
 
+import com.meteomontana.android.data.api.KtorGymAdminApi
 import com.meteomontana.android.data.api.KtorGymApi
 import com.meteomontana.android.data.api.KtorGymPresenceApi
 import com.meteomontana.android.data.api.KtorGymReportApi
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.api.dto.toDto
 import com.meteomontana.android.domain.model.SchoolPresence
+import com.meteomontana.android.domain.model.gym.Gym
+import com.meteomontana.android.domain.model.gym.GymAdminEdit
 import com.meteomontana.android.domain.model.gym.GymCorrection
 import com.meteomontana.android.domain.model.gym.GymReport
 import com.meteomontana.android.domain.model.gym.NewGymDraft
+import com.meteomontana.android.domain.repository.GymAdminRepository
 import com.meteomontana.android.domain.repository.GymFavoriteRepository
 import com.meteomontana.android.domain.repository.GymPresenceRepository
 import com.meteomontana.android.domain.repository.GymReportRepository
@@ -39,4 +43,12 @@ class KtorGymPresenceRepository(private val api: KtorGymPresenceApi) : GymPresen
     override suspend fun markPresence(gymId: Long): SchoolPresence = api.markPresence(gymId).toDomain()
 
     override suspend fun clearPresence(gymId: Long) = api.clearPresence(gymId)
+}
+
+/** Revision de reportes y edicion de fichas (admin, solo iOS). Sin cache. */
+class KtorGymAdminRepository(private val api: KtorGymAdminApi) : GymAdminRepository {
+    override suspend fun pendingReports(): List<GymReport> = api.pendingReports().map { it.toDomain() }
+    override suspend fun applyReport(id: Long): GymReport = api.applyReport(id).toDomain()
+    override suspend fun rejectReport(id: Long): GymReport = api.rejectReport(id).toDomain()
+    override suspend fun editGym(id: Long, edit: GymAdminEdit): Gym = api.editGym(id, edit.toDto()).toDomain()
 }

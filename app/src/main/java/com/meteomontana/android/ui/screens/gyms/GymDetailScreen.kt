@@ -156,10 +156,7 @@ private fun openUrl(ctx: Context, url: String) {
     runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
 }
 
-internal fun webUrl(raw: String): String = raw.trim().let { if (it.startsWith("http", ignoreCase = true)) it else "https://$it" }
+internal fun webUrl(raw: String): String = com.meteomontana.android.domain.model.gym.GymLinks.webUrl(raw)
 
 /** Acepta «@nombre», «nombre» o la URL entera. */
-internal fun instagramUrl(raw: String): String {
-    val t = raw.trim()
-    return if (t.startsWith("http", ignoreCase = true)) t else "https://instagram.com/" + t.removePrefix("@").trim('/')
-}
+internal fun instagramUrl(raw: String): String = com.meteomontana.android.domain.model.gym.GymLinks.instagramUrl(raw)

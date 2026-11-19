@@ -2,6 +2,7 @@ package com.meteomontana.android.domain.repository
 
 import com.meteomontana.android.domain.model.SchoolPresence
 import com.meteomontana.android.domain.model.gym.Gym
+import com.meteomontana.android.domain.model.gym.GymAdminEdit
 import com.meteomontana.android.domain.model.gym.GymCorrection
 import com.meteomontana.android.domain.model.gym.GymNear
 import com.meteomontana.android.domain.model.gym.GymReport
@@ -48,4 +49,12 @@ interface GymPresenceRepository {
     suspend fun getActivePresence(gymId: Long): List<SchoolPresence>
     suspend fun markPresence(gymId: Long): SchoolPresence
     suspend fun clearPresence(gymId: Long)
+}
+
+/** Revision de reportes y edicion de fichas por un admin (solo iOS; Android no tiene panel de admin). */
+interface GymAdminRepository {
+    suspend fun pendingReports(): List<GymReport>
+    suspend fun applyReport(id: Long): GymReport
+    suspend fun rejectReport(id: Long): GymReport
+    suspend fun editGym(id: Long, edit: GymAdminEdit): Gym
 }
