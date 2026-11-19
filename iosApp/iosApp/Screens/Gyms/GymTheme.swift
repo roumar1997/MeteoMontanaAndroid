@@ -64,6 +64,22 @@ struct GymKindBadge: View {
     }
 }
 
+/// Estrella de favorito (rellena y terracota si lo es) con zona de toque de 40 pt; la lista y la tarjeta del mapa la comparten.
+struct GymFavoriteStar: View {
+    let isFavorite: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: isFavorite ? "star.fill" : "star").font(.system(size: 20))
+                .foregroundStyle(isFavorite ? Cumbre.terra : Cumbre.ink2)
+                .frame(width: 40, height: 40).contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(L(isFavorite ? "gym_favorite_remove" : "gym_favorite_add"))
+    }
+}
+
 /// Etiqueta pequeña: píldora de fondo suave y texto del mismo color.
 struct GymTag: View {
     let text: String
@@ -92,7 +108,10 @@ struct GymTags: View {
             if let tag = GymPresentation.priceTag(gym) {
                 GymTag(text: tag, color: gym.isFree ? Cumbre.ok : GymTone.colors(.commercial).text)
             }
-            if let open = GymPresentation.openStatusText(status) {
+            // Un cerrado definitivamente dice solo «Cerrado»: su horario ya no vale.
+            if gym.closed {
+                GymTag(text: L("gym_closed_tag"), color: Cumbre.bad)
+            } else if let open = GymPresentation.openStatusText(status) {
                 GymTag(text: open, color: status is GymOpenStatus.Open ? Cumbre.ok : Cumbre.ink2)
             }
         }

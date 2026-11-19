@@ -13,7 +13,7 @@ struct SchoolListView: View {
     @StateObject private var vm = SchoolListViewModel()
     /// Pestaña «Vías/Bloques» (separada de la lista el 2026-11-05).
     @StateObject private var explore = ExploreLinesViewModel()
-    /// Rocódromos: el selector «Roca · Rocódromos · Muros gratis» y su capa (oculto con gyms_enabled apagado).
+    /// Rocódromos: el selector «Roca | Rocódromos» y su capa (oculto con gyms_enabled apagado).
     @StateObject private var gyms = GymsViewModel()
     @ObservedObject private var featureFlags = FeatureFlagsModel.shared
     @State private var gymTarget: GymNavTarget?

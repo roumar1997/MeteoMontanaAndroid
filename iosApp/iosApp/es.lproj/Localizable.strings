@@ -281,12 +281,10 @@
 /* Rocódromos · Selector y vistas */
 "gym_layer_rock" = "Roca";
 "gym_layer_gyms" = "Rocódromos";
-"gym_layer_free" = "Muros gratis";
 "gym_view_map" = "Mapa";
 "gym_view_list" = "Lista";
 "gym_search_hint" = "Busca rocódromo, ciudad o cadena";
 "gym_count_gyms" = "%1$@ rocódromos";
-"gym_count_free" = "%1$@ muros gratis";
 "gym_empty" = "Ningún resultado con estos filtros";
 "gym_clear_filters" = "Quitar filtros";
 "gym_load_error" = "No se pudieron cargar los rocódromos. Comprueba la conexión.";
@@ -304,10 +302,32 @@
 "gym_filter_distance_any" = "Distancia";
 "gym_filter_distance_any_option" = "Sin límite";
 
+/* Rocódromos · Ronda 2026-11-19 (calle, favoritos, cerrados, entrenos, perfil) */
+"gym_filter_street" = "De calle (gratis)";
+"gym_filter_closed" = "Incluir cerrados";
+"gym_filter_show" = "Mostrar";
+"gym_favs_chip" = "FAVORITOS";
+"gym_favs_chip_desc" = "Ver solo tus rocódromos favoritos";
+"gym_closed_tag" = "Cerrado";
+"gym_train_today" = "He entrenado aquí hoy";
+"gym_train_done" = "Entreno de hoy apuntado";
+"gym_train_undo" = "Quitar";
+"gym_stats_title" = "Rocódromo";
+"gym_stats_week" = "Esta semana";
+"gym_stats_month" = "Este mes";
+"gym_stats_year" = "Este año";
+"gym_stats_top" = "Más visitado";
+"gym_stats_top_value" = "%1$@ · %2$@ veces";
+"gym_stats_streak" = "Racha";
+"gym_stats_streak_one" = "1 semana";
+"gym_stats_streak_many" = "%1$@ semanas";
+"gym_stats_empty" = "Aún no has apuntado ningún entreno. Abre un rocódromo y pulsa «He entrenado aquí hoy».";
+"gym_admin_closed" = "Cerrado definitivamente";
+
 /* Rocódromos · Tipo, modalidad y estado */
 "gym_kind_commercial" = "Comercial";
 "gym_kind_municipal" = "Municipal";
-"gym_kind_free" = "Muro gratis";
+"gym_kind_free" = "Muro de calle";
 "gym_pay" = "De pago";
 "gym_free_badge" = "GRATIS";
 "gym_free_tag" = "Gratis";
@@ -393,7 +413,7 @@
 "gym_new_name_hint" = "Muro del parque…";
 "gym_new_place_note" = "Se coloca en el centro del mapa · se publica tras revisión";
 "gym_new_place_here" = "Ubicación: %1$@";
-"gym_new_kind_free" = "Muro gratis";
+"gym_new_kind_free" = "Muro de calle";
 "gym_new_kind_municipal" = "Municipal";
 "gym_new_kind_commercial" = "Comercial";
 "gym_new_title" = "Añadir un muro";

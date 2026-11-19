@@ -1,7 +1,7 @@
-package com.meteomontana.android.ui.screens.gyms
+package com.meteomontana.android.domain.model.gym
 
 /** Un marcador suelto en pantalla (píxeles): su base está en ([x], [y]) y su nombre mide [nameChars] letras. */
-internal data class LabelCandidate(
+data class LabelCandidate(
     val id: String,
     val x: Float,
     val y: Float,
@@ -10,8 +10,8 @@ internal data class LabelCandidate(
     val priority: Boolean = false
 )
 
-/** Reparto de nombres bajo los marcadores del mapa (lógica pura: se prueba sin móvil). */
-internal object GymLabelPlanner {
+/** Reparto de nombres (en shared: iOS y Android reparten igual) bajo los marcadores del mapa (lógica pura: se prueba sin móvil). */
+object GymLabelPlanner {
 
     /** Zoom mínimo para enseñar nombres; por debajo mandan los grupos y los puntos sueltos sin texto. */
     const val MIN_ZOOM = 10.5

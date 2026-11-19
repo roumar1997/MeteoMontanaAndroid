@@ -1,7 +1,7 @@
 package com.meteomontana.android.gyms
 
-import com.meteomontana.android.ui.screens.gyms.GymLabelPlanner
-import com.meteomontana.android.ui.screens.gyms.LabelCandidate
+import com.meteomontana.android.domain.model.gym.GymLabelPlanner
+import com.meteomontana.android.domain.model.gym.LabelCandidate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

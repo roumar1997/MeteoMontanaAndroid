@@ -11,6 +11,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.annotation.DrawableRes
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.gym.GymKind
+import com.meteomontana.android.domain.model.gym.GymLabelPlanner
 import com.meteomontana.android.ui.theme.gymFillArgb
 import org.maplibre.android.annotations.Icon
 import org.maplibre.android.annotations.IconFactory

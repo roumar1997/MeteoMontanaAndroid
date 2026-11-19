@@ -12,6 +12,8 @@ final class GymDetailViewModel: ObservableObject {
     @Published var iAmHere = false
     @Published var presenceBusy = false
     @Published var presenceError = false
+    /// Ya hay entreno apuntado hoy en este rocódromo.
+    @Published var trainedToday = false
 
     private let gymId: Int64
     private let c = AppDependencies.shared.container.gyms
@@ -19,6 +21,7 @@ final class GymDetailViewModel: ObservableObject {
     init(gymId: Int64) {
         self.gymId = gymId
         gym = c.getCachedGyms.invoke().first { $0.id == gymId }
+        trainedToday = c.recordGymSession.hasSessionToday(gymId: gymId)
     }
 
     func load() async {
@@ -64,6 +67,28 @@ final class GymDetailViewModel: ObservableObject {
         }
         presenceBusy = false
         await loadPresence(myUid: myUid)
+        // Marcar «Aquí» ya apunta el entreno en el servidor (PRESENCE): se relee para que el botón lo refleje.
+        if !presenceError && !here {
+            try? await c.recordGymSession.refresh()
+            trainedToday = c.recordGymSession.hasSessionToday(gymId: gymId)
+        }
+    }
+
+    /// «He entrenado aquí hoy»: apunta el día de hoy o, si ya estaba apuntado, lo quita. Funciona sin red.
+    func toggleTraining() {
+        let done = trainedToday
+        trainedToday = !done
+        Task {
+            do {
+                if done {
+                    try await c.recordGymSession.undo(gymId: gymId)
+                } else {
+                    _ = try await c.recordGymSession.execute(gymId: gymId, source: .manual)
+                }
+            } catch {
+                trainedToday = done
+            }
+        }
     }
 
     func toggleFavorite() {
@@ -152,8 +177,17 @@ struct GymDetailView: View {
             actions(gym)
             GymInfoSections(gym: gym)
             GymPresenceSection(vm: vm)
+            GymActionPill(text: L(vm.trainedToday ? "gym_train_done" : "gym_train_today"), primary: !vm.trainedToday) {
+                vm.toggleTraining()
+            }
+            .padding(.top, 8)
+            if vm.trainedToday {
+                Button { vm.toggleTraining() } label: {
+                    Text(L("gym_train_undo")).font(.system(size: 13)).foregroundStyle(Cumbre.ink2).padding(8)
+                }
+                .buttonStyle(.plain).frame(maxWidth: .infinity)
+            }
             GymActionPill(text: L("gym_create_meetup")) { meetupPlace = GymPlace(id: gym.id, name: gym.name) }
-                .padding(.top, 8)
             GymDashedPill(text: L("gym_fix_cta")) { reportOpen = true }.padding(.top, 12)
         }
         .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 32)

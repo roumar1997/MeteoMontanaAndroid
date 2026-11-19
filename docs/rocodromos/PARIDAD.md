@@ -173,9 +173,9 @@ Hoja modal a altura completa (sin media altura), fondo `cumbreSheetSurface`, con
 
 Diferencias conocidas: el mapa de iOS no recuerda el encuadre al cambiar de capa si se destruye la pantalla de Escuelas; «Mi ubicación» reutiliza el texto ya existente; el mapa muestra el punto azul del usuario como el resto de mapas de iOS.
 
-## 9. Ronda del emulador (2026-11-19, Android hecho; iOS por replicar)
+## 9. Ronda del emulador (2026-11-19, Android hecho; iOS hecho el 2026-11-20, pendiente de validar en el iPhone)
 
-Cambios respecto a las secciones 1 a 4. En iOS hay que copiarlos igual (y arreglar `GymMode`, que ya no existe en shared).
+Cambios respecto a las secciones 1 a 4. **iOS ya los lleva** (ver la tabla al final de esta sección).
 
 1. **Selector**: solo `ROCA | ROCÓDROMOS`, dos segmentos de la fila entera con el mismo ancho (mismo control que `ExploreTabSwitcher`). Se quita «Muros gratis». Los muros de calle son el filtro «De calle (gratis)» (`GymFilters.onlyStreet`; `GymMode` borrado de shared) y el tipo se llama **«Muro de calle»** en lista y ficha.
 2. **Mapa = el de Escuelas**: satélite por defecto, botón de capas (satélite/topo) y botón de ubicación arriba a la derecha. Nada de estilo propio.
@@ -185,3 +185,19 @@ Cambios respecto a las secciones 1 a 4. En iOS hay que copiarlos igual (y arregl
 6. **Favoritos**: chip `★ FAVORITOS` en la fila de filtros (filtra) y estrella tocable (40 dp) en la tarjeta de cristal y en cada fila de la lista.
 7. **Cerrados**: `Gym.closed` (campo `closed` de `GymDto`, golden `gyms.json`). Fuera por defecto; el filtro «Incluir cerrados» los enseña con la etiqueta roja «Cerrado» (sin horario).
 8. **Entrenos**: ficha con botón «He entrenado aquí hoy» (pasa a «Entreno de hoy apuntado» + «Quitar»); marcar «Aquí» ya apunta el entreno en el servidor (PRESENCE) y la app solo relee. Tarjeta «Rocódromo» en el perfil propio (semana, mes, año, más visitado, racha en semanas) con `GymStatsCalculator` de shared sobre las sesiones locales + `GET gyms/sessions`; funciona sin red. Contrato: `gym-sessions.json`. `GymStatsDto` y `KtorGymSessionApi.stats` ya existen para el perfil público de otros usuarios (sin pantalla todavía).
+
+### Estado iOS de la ronda (2026-11-20)
+
+| Punto | Estado | Dónde |
+|---|---|---|
+| 1. Selector `ROCA \| ROCÓDROMOS` (dos mitades, sin «Muros gratis»), filtro «De calle (gratis)», tipo «Muro de calle» | hecho | `GymsLayerView.swift`, `GymFilterRow.swift` (`GymSegmentedPair`), `Localizable.strings` |
+| 2. Mapa = el de Escuelas (satélite por defecto, capas, ubicación) | hecho | `GymsMapView.swift`, `GymsViewModel.mapStyle` |
+| 3. Filtros = los de Escuelas (`FILTROS (n)` · N rocódromos, BORRAR, 50 km, panel plegado, orden por cercanía) | hecho | `GymFilterRow.swift`, `GymsViewModel.swift` |
+| 4. Nombre bajo el marcador (`GymLabelPlanner`, ahora en shared) | hecho | `GymMarkerRenderer.swift`, `GymsMapView.labelledIds` |
+| 5. Agrupación nueva (celda 40, sin agrupar desde zoom 11) | hecho (viene de shared) | `GymClusterer` |
+| 6. Favoritos (chip ★ FAVORITOS y estrella en tarjeta y lista) | hecho | `GymFilterRow.swift`, `GymFavoriteStar` |
+| 7. Cerrados (`closed`, «Incluir cerrados», etiqueta «Cerrado»); admin: interruptor «Cerrado definitivamente» | hecho | `GymTags`, `GymAdminEditSheet.swift`, `GymAdminEdit.closed` |
+| 8. Entrenos: «He entrenado aquí hoy»/Quitar en la ficha y tarjeta «Rocódromo» en el perfil (tras `gyms_enabled`) | hecho | `GymDetailView.swift`, `GymStatsCard.swift`, `AccountView.swift` |
+
+Cambios en shared de esta pasada: `GymLabelPlanner` y `LabelCandidate` pasan de `app` a `shared` (públicos); `GymAdminEdit`/`GymAdminUpdateDto` llevan `closed`.
+Diferencia conocida: en iOS el nombre se coloca proyectando a Mercator (mundo de 512 pt a zoom 0), no con la proyección del mapa; el reparto solo usa posiciones relativas, así que coincide con Android.

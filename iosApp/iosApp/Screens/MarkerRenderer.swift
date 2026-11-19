@@ -20,7 +20,9 @@ enum MarkerRenderer {
                                             name: m.showName ? (m.name ?? m.title) : nil)
         case .dot:     return dot(color: m.color)
         case .cluster: return cluster(count: m.score ?? 0, color: m.color)
-        case .gym: return GymMarkerRenderer.pin(glyph: m.glyph, fill: m.color, selected: m.selected, badge: m.badge)
+        case .gym:
+            return GymMarkerRenderer.pin(glyph: m.glyph, fill: m.color, selected: m.selected, badge: m.badge,
+                                         name: m.showName ? (m.name ?? m.title) : nil)
         case .gymCluster: return GymMarkerRenderer.cluster(count: m.score ?? 0, color: m.color)
         }
     }

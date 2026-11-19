@@ -4,7 +4,8 @@ import Shared
 
 /// Mapa de rocódromos (MapLibre): un marcador por ficha o un grupo con su número. La agrupación sale de `shared`
 /// (`GymClusterer`) para que iOS y Android agrupen igual. Tocar un grupo acerca la cámara a sus miembros; tocar un
-/// marcador abre la tarjeta de cristal. Espejo de `GymsMap.kt`.
+/// marcador abre la tarjeta de cristal. Mismo mapa que Escuelas: satélite por defecto, botón de capas y de ubicación.
+/// Bajo cada marcador suelto va su nombre cuando hay zoom y sitio (`GymLabelPlanner` de shared). Espejo de `GymsMap.kt`.
 struct GymsMapView: View {
     @ObservedObject var vm: GymsViewModel
     let userLat: Double?
@@ -32,7 +33,7 @@ struct GymsMapView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             MapLibreView(center: initialCenter, zoom: vm.savedZoom ?? initialZoom, markers: markers,
-                         style: scheme == .dark ? .darkPaper : .osmPaper,
+                         style: vm.mapStyle,
                          onZoomChange: { zoom = $0 },
                          onCameraChange: { center, z in vm.savedCenter = center; vm.savedZoom = z },
                          onTapMarker: tapMarker,
@@ -40,7 +41,7 @@ struct GymsMapView: View {
                          focusCoordinate: focusCoordinate, focusZoom: focusZoom, focusToken: focusToken,
                          focusFitCoordinates: focusFit, compassTopMargin: 56)
             .frame(height: mapHeight)
-            locateButton
+            mapButtons
             bottomCard
         }
         .frame(height: mapHeight)
@@ -55,7 +56,9 @@ struct GymsMapView: View {
 
     private var markers: [CumbreMarker] {
         let dark = scheme == .dark
-        var out: [CumbreMarker] = clusters.map { item in
+        let items = clusters
+        let named = labelledIds(items)
+        var out: [CumbreMarker] = items.map { item in
             let coord = CLLocationCoordinate2D(latitude: item.lat, longitude: item.lon)
             if item.isCluster {
                 return CumbreMarker(id: item.id, coordinate: coord, title: "\(item.count)", kind: .gymCluster,
@@ -67,6 +70,8 @@ struct GymsMapView: View {
             marker.glyph = GymTone.glyph(gym.kind)
             marker.selected = gym.id == selectedId
             marker.badge = gym.kind == .free ? L("gym_free_badge") : nil
+            marker.name = gym.name
+            marker.showName = named.contains(item.id)
             return marker
         }
         if let lat = userLat, let lon = userLon {
@@ -77,6 +82,26 @@ struct GymsMapView: View {
     }
 
     private var clusters: [GymMapItem] { vm.cluster(gyms, zoom: zoom) }
+
+    /// Ids de los marcadores sueltos que enseñan nombre: solo con zoom cercano y sin pisarse (`GymLabelPlanner`).
+    /// Las posiciones en pantalla salen de proyectar a Mercator con el zoom actual (MapLibre: mundo de 512 pt a zoom 0);
+    /// el reparto solo depende de las posiciones relativas, así que no hace falta saber dónde está la cámara.
+    private func labelledIds(_ items: [GymMapItem]) -> Set<String> {
+        guard zoom >= GymLabelPlanner.shared.MIN_ZOOM, !items.isEmpty else { return [] }
+        let world = 512.0 * pow(2.0, zoom)
+        func project(_ item: GymMapItem) -> (x: Double, y: Double) {
+            let latRad = item.lat * .pi / 180
+            return ((item.lon + 180) / 360 * world, (1 - log(tan(latRad) + 1 / cos(latRad)) / .pi) / 2 * world)
+        }
+        let origin = project(items[0])
+        let candidates = items.map { item -> LabelCandidate in
+            let p = project(item)
+            let single: Gym? = item.isCluster ? nil : item.gyms[0]
+            return LabelCandidate(id: item.id, x: Float(p.x - origin.x), y: Float(p.y - origin.y),
+                                  nameChars: Int32(single?.name.count ?? 0), priority: single?.id == selectedId)
+        }
+        return GymLabelPlanner.shared.plan(candidates: candidates, density: 1)
+    }
 
     private var initialCenter: CLLocationCoordinate2D {
         if let c = vm.savedCenter { return c }
@@ -131,10 +156,18 @@ struct GymsMapView: View {
 
     // MARK: - Controles
 
-    private var locateButton: some View {
+    private var mapButtons: some View {
         VStack {
-            HStack {
+            HStack(spacing: 8) {
                 Spacer()
+                Button { vm.mapStyle = vm.mapStyle == .satellite ? .topo : .satellite } label: {
+                    Image(systemName: "square.3.layers.3d")
+                        .font(.system(size: 16)).foregroundStyle(Cumbre.ink)
+                        .frame(width: 34, height: 34).background(Cumbre.bg, in: Circle())
+                        .overlay(Circle().stroke(Cumbre.rule, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L("Satélite"))
                 Button(action: locate) {
                     Image(systemName: needsLocationPermission ? "location.slash" : "location.fill")
                         .font(.system(size: 15)).foregroundStyle(needsLocationPermission ? Cumbre.ink : Cumbre.terra)
@@ -159,7 +192,9 @@ struct GymsMapView: View {
 
     @ViewBuilder private var bottomCard: some View {
         if let selected = vm.items.first(where: { $0.gym.id == selectedId }) {
-            GymMapCard(item: selected, onClose: { selectedId = nil }, onOpen: { onOpenGym(selected.gym.id) })
+            GymMapCard(item: selected, isFavorite: vm.favorites.contains(selected.gym.id),
+                       onToggleFavorite: { vm.toggleFavorite(selected.gym.id) },
+                       onClose: { selectedId = nil }, onOpen: { onOpenGym(selected.gym.id) })
                 .padding(.horizontal, 12).padding(.bottom, 12)
         } else {
             GymDashedPill(text: L("gym_add_missing"), translucent: true, action: onAddWall)

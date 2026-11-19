@@ -16,5 +16,7 @@ data class GymAdminEdit(
     val priceUpdatedAt: String? = null,
     val website: String? = null,
     val instagram: String? = null,
-    val hidden: Boolean? = null
+    val hidden: Boolean? = null,
+    /** Cerrado definitivamente: la ficha sale de la lista salvo con «Incluir cerrados». */
+    val closed: Boolean? = null
 )

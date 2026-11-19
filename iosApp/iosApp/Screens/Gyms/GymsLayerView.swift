@@ -2,29 +2,23 @@ import SwiftUI
 import CoreLocation
 import Shared
 
-/// Selector «Roca · Rocódromos · Muros gratis» de Escuelas. Las cápsulas pasan a otra línea si no caben
-/// (pantalla estrecha o letra grande), en vez de cortar «MUROS GRATIS». Espejo de `SchoolsLayerPicker`.
+/// Selector «Roca | Rocódromos» de Escuelas: dos segmentos que ocupan toda la fila, con el mismo control que
+/// «Escuelas | Vías/Bloques». Espejo de `SchoolsLayerPicker`.
 struct SchoolsLayerPicker: View {
     @ObservedObject var vm: GymsViewModel
 
     var body: some View {
-        FlowLayoutView(spacing: 8) {
-            pill("gym_layer_rock", .rock)
-            pill("gym_layer_gyms", .rocodromos)
-            pill("gym_layer_free", .freeWalls)
-        }
-        .padding(.horizontal, 16).padding(.vertical, 4)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func pill(_ key: String, _ layer: SchoolsLayer) -> some View {
-        Button { vm.setLayer(layer) } label: { GymChip(text: L(key).uppercased(), selected: vm.layer == layer) }
-            .buttonStyle(.plain)
+        GymSegmentedPair(
+            first: L("gym_layer_rock").uppercased(), second: L("gym_layer_gyms").uppercased(),
+            firstSelected: vm.layer == .rock,
+            onFirst: { vm.setLayer(.rock) }, onSecond: { vm.setLayer(.rocodromos) }
+        )
+        .padding(.vertical, 4)
     }
 }
 
-/// Cuerpo de Escuelas cuando el selector está en «Rocódromos» o «Muros gratis» (sustituye a la lista de escuelas y
-/// a su nota del tiempo): buscador, filtros en cápsulas, contador, alternar Mapa/Lista y el contenido.
+/// Cuerpo de Escuelas cuando el selector está en «Rocódromos» (sustituye a la lista de escuelas y a su nota del
+/// tiempo): buscador, «Mapa | Lista», fila plegable «FILTROS (n) · N rocódromos» con su panel y el contenido.
 struct GymsLayerView: View {
     @ObservedObject var vm: GymsViewModel
     let userLat: Double?
@@ -33,12 +27,18 @@ struct GymsLayerView: View {
     let onRequestLocation: () -> Void
     let onOpenGym: (Int64) -> Void
     @State private var addWallOpen = false
+    @State private var filtersOpen = false
 
     var body: some View {
         VStack(spacing: 0) {
             GymSearchField(text: queryBinding)
-            GymFilterBar(vm: vm)
-            counterRow
+            GymSegmentedPair(
+                first: L("gym_view_map").uppercased(), second: L("gym_view_list").uppercased(),
+                firstSelected: vm.viewKind == .map,
+                onFirst: { vm.viewKind = .map }, onSecond: { vm.viewKind = .list }
+            )
+            GymFilterRow(vm: vm, open: $filtersOpen).padding(.top, 8).padding(.bottom, 8)
+            if filtersOpen { GymFiltersPanel(vm: vm) }
             Divider().overlay(Cumbre.rule)
             content
         }
@@ -52,18 +52,6 @@ struct GymsLayerView: View {
 
     private var queryBinding: Binding<String> {
         Binding(get: { vm.filter.query }, set: { vm.filter.query = $0 })
-    }
-
-    private var counterRow: some View {
-        HStack(spacing: 8) {
-            Text(L(vm.isFreeLayer ? "gym_count_free" : "gym_count_gyms", vm.items.count).uppercased())
-                .eyebrow(Cumbre.ink2).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)
-            Button { vm.viewKind = .map } label: { GymChip(text: L("gym_view_map"), selected: vm.viewKind == .map) }
-                .buttonStyle(.plain)
-            Button { vm.viewKind = .list } label: { GymChip(text: L("gym_view_list"), selected: vm.viewKind == .list) }
-                .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 16).padding(.vertical, 8)
     }
 
     /// Carga, error sin copia, lista vacía, mapa con su tarjeta o la lista.
@@ -80,10 +68,8 @@ struct GymsLayerView: View {
         } else {
             LazyVStack(spacing: 0) {
                 ForEach(vm.items, id: \.gym.id) { item in
-                    Button { onOpenGym(item.gym.id) } label: {
-                        GymListRow(item: item, isFavorite: vm.favorites.contains(item.gym.id))
-                    }
-                    .buttonStyle(.plain)
+                    GymListRow(item: item, isFavorite: vm.favorites.contains(item.gym.id),
+                               onOpen: { onOpenGym(item.gym.id) }, onToggleFavorite: { vm.toggleFavorite(item.gym.id) })
                     Divider().overlay(Cumbre.rule)
                 }
                 GymDashedPill(text: L("gym_add_missing")) { addWallOpen = true }.padding(16)
@@ -120,54 +106,5 @@ struct GymSearchField: View {
         .background(Cumbre.paper, in: Capsule())
         .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
         .padding(.horizontal, 16).padding(.vertical, 8)
-    }
-}
-
-/// Filtros en cápsulas: Gratis, Bloque, Cuerda, Abierto ahora, Favoritos, cadena y distancia (se desliza si no caben).
-struct GymFilterBar: View {
-    @ObservedObject var vm: GymsViewModel
-    private static let distanceSteps: [Double] = [10, 25, 50, 100]
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                if !vm.isFreeLayer { toggle("gym_filter_free", \.onlyFree) }
-                toggle("gym_filter_boulder", \.boulder)
-                toggle("gym_filter_rope", \.rope)
-                toggle("gym_filter_open_now", \.openNow)
-                toggle("gym_filter_favorites", \.onlyFavorites)
-                if !vm.chains.isEmpty { chainMenu }
-                distanceMenu
-            }
-            .padding(.horizontal, 16)
-        }
-    }
-
-    private func toggle(_ key: String, _ path: WritableKeyPath<GymFilterState, Bool>) -> some View {
-        Button { vm.filter[keyPath: path].toggle() } label: {
-            GymChip(text: L(key), selected: vm.filter[keyPath: path])
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var chainMenu: some View {
-        Menu {
-            Button(L("gym_filter_chain_all")) { vm.filter.chain = nil }
-            ForEach(vm.chains, id: \.self) { chain in Button(chain) { vm.filter.chain = chain } }
-        } label: {
-            GymChip(text: vm.filter.chain ?? L("gym_filter_chain"), selected: vm.filter.chain != nil, chevron: true)
-        }
-    }
-
-    private var distanceMenu: some View {
-        Menu {
-            Button(L("gym_filter_distance_any_option")) { vm.filter.maxDistanceKm = nil }
-            ForEach(Self.distanceSteps, id: \.self) { km in
-                Button(L("gym_filter_distance", Int(km))) { vm.filter.maxDistanceKm = km }
-            }
-        } label: {
-            GymChip(text: vm.filter.maxDistanceKm.map { L("gym_filter_distance", Int($0)) } ?? L("gym_filter_distance_any"),
-                    selected: vm.filter.maxDistanceKm != nil, chevron: true)
-        }
     }
 }

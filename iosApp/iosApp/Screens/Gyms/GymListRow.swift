@@ -6,29 +6,34 @@ import Shared
 struct GymListRow: View {
     let item: GymListItem
     let isFavorite: Bool
+    let onOpen: () -> Void
+    let onToggleFavorite: () -> Void
 
     var body: some View {
         let gym = item.gym
         HStack(alignment: .top, spacing: 12) {
-            GymKindBadge(kind: gym.kind)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(gym.name).font(Cumbre.serif(18, .bold)).foregroundStyle(Cumbre.ink).lineLimit(2)
-                if let subtitle = GymPresentation.subtitle(gym) {
-                    Text(subtitle).font(.system(size: 13)).foregroundStyle(Cumbre.ink2).lineLimit(2)
+            // La fila entera abre la ficha; la estrella de la derecha es un botón aparte.
+            HStack(alignment: .top, spacing: 12) {
+                GymKindBadge(kind: gym.kind)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(gym.name).font(Cumbre.serif(18, .bold)).foregroundStyle(Cumbre.ink).lineLimit(2)
+                    if let subtitle = GymPresentation.subtitle(gym) {
+                        Text(subtitle).font(.system(size: 13)).foregroundStyle(Cumbre.ink2).lineLimit(2)
+                    }
+                    GymTags(gym: gym, status: gym.openStatusNow(), showKind: false).padding(.top, 3)
                 }
-                GymTags(gym: gym, status: gym.openStatusNow(), showKind: false).padding(.top, 3)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            VStack(alignment: .trailing, spacing: 4) {
+                .frame(maxWidth: .infinity, alignment: .leading)
                 if let distance = GymPresentation.distanceText(item.distanceKm?.doubleValue) {
                     Text(distance).font(.system(size: 13)).foregroundStyle(Cumbre.ink2).lineLimit(1)
                 }
-                if isFavorite { Image(systemName: "star.fill").font(.system(size: 14)).foregroundStyle(Cumbre.terra) }
             }
+            .contentShape(Rectangle())
+            .onTapGesture(perform: onOpen)
+            GymFavoriteStar(isFavorite: isFavorite, action: onToggleFavorite)
         }
-        .padding(.horizontal, 18).padding(.vertical, 14)
+        .padding(.leading, 18).padding(.trailing, 8).padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
+        .accessibilityElement(children: .contain)
     }
 }
 
@@ -36,6 +41,8 @@ struct GymListRow: View {
 /// canto de luz blanco). Dos acciones: «Cómo llegar» (primaria) y «Ver ficha». Espejo de `GymMapCard.kt`.
 struct GymMapCard: View {
     let item: GymListItem
+    let isFavorite: Bool
+    let onToggleFavorite: () -> Void
     let onClose: () -> Void
     let onOpen: () -> Void
 
@@ -52,6 +59,7 @@ struct GymMapCard: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                GymFavoriteStar(isFavorite: isFavorite, action: onToggleFavorite)
                 Button(action: onClose) {
                     Image(systemName: "xmark").font(.system(size: 13, weight: .semibold)).foregroundStyle(Cumbre.ink2)
                         .frame(width: 32, height: 32).background(Cumbre.ink.opacity(0.07), in: Circle())

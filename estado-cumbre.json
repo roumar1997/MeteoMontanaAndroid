@@ -488,7 +488,7 @@
       "name": "Rocódromos v1: selector, mapa, lista, ficha, correcciones, Plan B y admin (iOS)",
       "ios": "hecho",
       "android": "hecho",
-      "iosTest": "—",
+      "iosTest": "ronda del emulador replicada el 2026-11-20 sin Mac: lo valida ios-ci; sin probar en iPhone",
       "androidTest": "tests JVM + capturas; sin probar en móvil (rama feature/rocodromos-v1, sin subir)"
     }
   ],

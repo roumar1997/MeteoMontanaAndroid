@@ -34,7 +34,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.meteomontana.android.R
 import com.meteomontana.android.data.map.withMapLibre
 import com.meteomontana.android.domain.model.gym.Gym
+import com.meteomontana.android.domain.model.gym.GymLabelPlanner
 import com.meteomontana.android.domain.model.gym.GymMapItem
+import com.meteomontana.android.domain.model.gym.LabelCandidate
 import com.meteomontana.android.ui.components.MapViewLifecycleEffect
 import com.meteomontana.android.ui.components.SideMapButton
 import com.meteomontana.android.ui.components.userDotBitmap

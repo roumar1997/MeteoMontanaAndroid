@@ -2001,12 +2001,10 @@
 /* Rocódromos · Selector y vistas */
 "gym_layer_rock" = "Rock";
 "gym_layer_gyms" = "Climbing gyms";
-"gym_layer_free" = "Free walls";
 "gym_view_map" = "Map";
 "gym_view_list" = "List";
 "gym_search_hint" = "Search gym, city or chain";
 "gym_count_gyms" = "%1$@ climbing gyms";
-"gym_count_free" = "%1$@ free walls";
 "gym_empty" = "No results with these filters";
 "gym_clear_filters" = "Clear filters";
 "gym_load_error" = "Could not load the gyms. Check your connection.";
@@ -2024,10 +2022,32 @@
 "gym_filter_distance_any" = "Distance";
 "gym_filter_distance_any_option" = "No limit";
 
+/* Rocódromos · Ronda 2026-11-19 (calle, favoritos, cerrados, entrenos, perfil) */
+"gym_filter_street" = "Street (free)";
+"gym_filter_closed" = "Include closed";
+"gym_filter_show" = "Show";
+"gym_favs_chip" = "FAVORITES";
+"gym_favs_chip_desc" = "Show only your favorite gyms";
+"gym_closed_tag" = "Closed";
+"gym_train_today" = "I trained here today";
+"gym_train_done" = "Today's session logged";
+"gym_train_undo" = "Undo";
+"gym_stats_title" = "Climbing gym";
+"gym_stats_week" = "This week";
+"gym_stats_month" = "This month";
+"gym_stats_year" = "This year";
+"gym_stats_top" = "Most visited";
+"gym_stats_top_value" = "%1$@ · %2$@ times";
+"gym_stats_streak" = "Streak";
+"gym_stats_streak_one" = "1 week";
+"gym_stats_streak_many" = "%1$@ weeks";
+"gym_stats_empty" = "You have not logged any session yet. Open a gym and tap \"I trained here today\".";
+"gym_admin_closed" = "Permanently closed";
+
 /* Rocódromos · Tipo, modalidad y estado */
 "gym_kind_commercial" = "Commercial";
 "gym_kind_municipal" = "Municipal";
-"gym_kind_free" = "Free wall";
+"gym_kind_free" = "Street wall";
 "gym_pay" = "Paid";
 "gym_free_badge" = "FREE";
 "gym_free_tag" = "Free";
@@ -2113,7 +2133,7 @@
 "gym_new_name_hint" = "Park wall…";
 "gym_new_place_note" = "Placed at the map centre · published after review";
 "gym_new_place_here" = "Location: %1$@";
-"gym_new_kind_free" = "Free wall";
+"gym_new_kind_free" = "Street wall";
 "gym_new_kind_municipal" = "Municipal";
 "gym_new_kind_commercial" = "Commercial";
 "gym_new_title" = "Add a wall";

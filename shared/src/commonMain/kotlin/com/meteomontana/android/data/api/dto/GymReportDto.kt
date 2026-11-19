@@ -86,12 +86,13 @@ data class GymAdminUpdateDto(
     val priceUpdatedAt: String? = null,
     val website: String? = null,
     val instagram: String? = null,
-    val hidden: Boolean? = null
+    val hidden: Boolean? = null,
+    val closed: Boolean? = null
 )
 
 fun com.meteomontana.android.domain.model.gym.GymAdminEdit.toDto() = GymAdminUpdateDto(
     kind = kind?.name, discipline = discipline?.name, verification = verification?.name,
     openingHours = openingHours?.map { OpeningSlotDto(it.days, it.open, it.close) },
     priceSingleEur = priceSingleEur, pricePassEur = pricePassEur, pricePassLabel = pricePassLabel,
-    priceUpdatedAt = priceUpdatedAt, website = website, instagram = instagram, hidden = hidden
+    priceUpdatedAt = priceUpdatedAt, website = website, instagram = instagram, hidden = hidden, closed = closed
 )

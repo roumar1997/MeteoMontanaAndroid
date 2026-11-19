@@ -19,6 +19,7 @@ struct GymAdminEditSheet: View {
     @State private var website: String
     @State private var instagram: String
     @State private var hidden: Bool
+    @State private var closed: Bool
     @State private var busy = false
     @State private var error: String?
 
@@ -36,6 +37,7 @@ struct GymAdminEditSheet: View {
         _website = State(initialValue: gym.website ?? "")
         _instagram = State(initialValue: gym.instagram ?? "")
         _hidden = State(initialValue: gym.hidden)
+        _closed = State(initialValue: gym.closed)
     }
 
     var body: some View {
@@ -45,7 +47,7 @@ struct GymAdminEditSheet: View {
                     Picker("Tipo", selection: $kind) {
                         Text("Comercial").tag(GymKind.commercial)
                         Text("Municipal").tag(GymKind.municipal)
-                        Text("Muro gratis").tag(GymKind.free)
+                        Text("Muro de calle").tag(GymKind.free)
                     }
                     Picker("Modalidad", selection: $discipline) {
                         Text("Sin confirmar").tag(GymDiscipline.unknown)
@@ -73,7 +75,10 @@ struct GymAdminEditSheet: View {
                     TextField("Web", text: $website).textInputAutocapitalization(.never).autocorrectionDisabled()
                     TextField("Instagram", text: $instagram).textInputAutocapitalization(.never).autocorrectionDisabled()
                 }
-                Section { Toggle("Ocultar de la app", isOn: $hidden) }
+                Section {
+                    Toggle(L("gym_admin_closed"), isOn: $closed)
+                    Toggle("Ocultar de la app", isOn: $hidden)
+                }
                 if let error { Section { Text(error).foregroundStyle(Cumbre.bad) } }
             }
             .navigationTitle(gym.name)
@@ -134,7 +139,8 @@ struct GymAdminEditSheet: View {
             priceUpdatedAt: sendReview ? review : nil,
             website: changedText(website, gym.website),
             instagram: changedText(instagram, gym.instagram),
-            hidden: Self.diff(hidden, gym.hidden).map { KotlinBoolean(bool: $0) })
+            hidden: Self.diff(hidden, gym.hidden).map { KotlinBoolean(bool: $0) },
+            closed: Self.diff(closed, gym.closed).map { KotlinBoolean(bool: $0) })
     }
 
     private static func diff<T: Equatable>(_ new: T, _ old: T) -> T? { new == old ? nil : new }

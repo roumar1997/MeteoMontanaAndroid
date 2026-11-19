@@ -208,6 +208,8 @@ struct AccountView: View {
     /// false cuando Perfil vive como pestaña (no hay sheet que cerrar).
     var showClose: Bool = true
     @StateObject private var vm = AccountViewModel()
+    /// La tarjeta «Rocódromo» solo existe con el interruptor `gyms_enabled` encendido.
+    @ObservedObject private var featureFlags = FeatureFlagsModel.shared
     @Environment(\.dismiss) private var dismiss
     @State private var showGear = false
     @State private var zoomUrl: String? = nil   // foto de perfil a pantalla completa
@@ -245,6 +247,7 @@ struct AccountView: View {
                     followCounters
                         .guideTarget("profile.follows")
                     diarySection
+                    if featureFlags.flags.isGymsEnabled { GymStatsCard() }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 8)

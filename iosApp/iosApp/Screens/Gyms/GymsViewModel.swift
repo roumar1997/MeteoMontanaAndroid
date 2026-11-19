@@ -2,31 +2,32 @@ import SwiftUI
 import CoreLocation
 import Shared
 
-/// Capa que enseña el selector de Escuelas: la roca de siempre, los rocódromos o los muros gratis.
-enum SchoolsLayer {
-    case rock, rocodromos, freeWalls
-
-    var gymMode: GymMode? {
-        switch self {
-        case .rock: return nil
-        case .rocodromos: return .rocodromos
-        case .freeWalls: return .freeWalls
-        }
-    }
-}
+/// Capa que enseña el selector de Escuelas: la roca de siempre o los rocódromos (los muros de calle son un filtro).
+enum SchoolsLayer { case rock, rocodromos }
 
 enum GymsViewKind { case map, list }
 
-/// Lo que ha tocado el usuario en los filtros (cápsulas y buscador); el modo lo pone la capa.
+/// Lo que ha tocado el usuario en los filtros (panel, chip de favoritos y buscador). Arranca en 50 km, como Escuelas.
 struct GymFilterState: Equatable {
+    /// Radio por defecto, el mismo que Escuelas (`SchoolListViewModel.maxDistanceKm`).
+    static let defaultDistanceKm: Double = 50
+
     var onlyFree = false
+    var onlyStreet = false
+    var showClosed = false
     var boulder = false
     var rope = false
     var openNow = false
     var onlyFavorites = false
     var chain: String?
-    var maxDistanceKm: Double?
+    var maxDistanceKm: Double? = GymFilterState.defaultDistanceKm
     var query = ""
+
+    /// Cuántos filtros se han movido respecto a lo de base (el número de «FILTROS (n)»). Igual que `gymActiveFilterCount`.
+    var activeCount: Int {
+        [maxDistanceKm != Self.defaultDistanceKm, boulder, rope, openNow, onlyFree, onlyStreet, showClosed,
+         chain != nil, onlyFavorites].filter { $0 }.count
+    }
 }
 
 /// Estado de la capa de rocódromos de Escuelas. Solo habla con use cases de `shared`: el filtrado, el orden y el
@@ -43,6 +44,8 @@ final class GymsViewModel: ObservableObject {
     /// Sin red y sin copia local: no hay nada que enseñar.
     @Published private(set) var loadFailed = false
     @Published var filter = GymFilterState() { didSet { recompute() } }
+    /// Satélite por defecto, igual que el mapa de Escuelas (el botón de capas alterna con el topográfico).
+    @Published var mapStyle: MapStyleKind = .satellite
 
     /// Cámara del mapa: sobrevive a alternar Mapa/Lista y a cambiar de capa (la vista se recrea).
     var savedCenter: CLLocationCoordinate2D?
@@ -52,18 +55,9 @@ final class GymsViewModel: ObservableObject {
     private var started = false
     private let c = AppDependencies.shared.container.gyms
 
-    var isFreeLayer: Bool { layer == .freeWalls }
-
     func setLayer(_ new: SchoolsLayer) {
         layer = new
-        guard new.gymMode != nil else { return }
-        // Al cambiar de capa se quitan los filtros que no valen en la otra (p. ej. «Gratis» en Muros gratis).
-        var f = filter
-        f.onlyFree = false
-        f.chain = nil
-        filter = f
-        recompute()
-        ensureLoaded()
+        if new == .rocodromos { ensureLoaded() }
     }
 
     /// Catálogo: primero la copia local (al instante) y luego la red. Se pide una sola vez por proceso.
@@ -104,7 +98,12 @@ final class GymsViewModel: ObservableObject {
         recompute()
     }
 
-    func clearFilters() { filter = GymFilterState() }
+    /// BORRAR: todo como de base (50 km, sin chips); el texto del buscador se respeta.
+    func clearFilters() {
+        var f = GymFilterState()
+        f.query = filter.query
+        filter = f
+    }
 
     /// Agrupación del mapa por zoom (rejilla común con Android).
     func cluster(_ gyms: [Gym], zoom: Double) -> [GymMapItem] { c.clusterGyms.invoke(gyms: gyms, zoom: zoom) }
@@ -128,13 +127,13 @@ final class GymsViewModel: ObservableObject {
     }
 
     private func recompute() {
-        let mode: GymMode = layer.gymMode ?? .rocodromos
         let f = GymFilters(
-            mode: mode, onlyFree: filter.onlyFree, boulder: filter.boulder, rope: filter.rope, openNow: filter.openNow,
-            onlyFavorites: filter.onlyFavorites, chain: filter.chain,
-            maxDistanceKm: filter.maxDistanceKm.map { KotlinDouble(value: $0) }, query: filter.query, sort: .distance)
+            onlyFree: filter.onlyFree, boulder: filter.boulder, rope: filter.rope, openNow: filter.openNow,
+            onlyFavorites: filter.onlyFavorites, onlyStreet: filter.onlyStreet, showClosed: filter.showClosed,
+            chain: filter.chain, maxDistanceKm: filter.maxDistanceKm.map { KotlinDouble(value: $0) },
+            query: filter.query, sort: .distance)
         let favs = Set(favorites.map { KotlinLong(value: $0) })
         items = c.filterGyms.filterNow(gyms: all, filters: f, origin: origin, favoriteIds: favs)
-        chains = c.filterGyms.chains(gyms: all, mode: mode)
+        chains = c.filterGyms.chains(gyms: all)
     }
 }
