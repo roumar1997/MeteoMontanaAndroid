@@ -6,6 +6,8 @@ object FeatureKey {
     const val FEED_PUBLISH = "feed_publish"
     const val MEETUP_CREATE = "meetup_create"
     const val GUIDE_PDF = "guide_pdf"
+    /** Rocodromos. A DIFERENCIA del resto, si el servidor no la manda cuenta como APAGADA (ver [FeatureFlags.isGymsEnabled]). */
+    const val GYMS = "gyms_enabled"
 }
 
 /** Estado de un interruptor: encendido o no, y el aviso (ya traducido por el servidor) si lo hay. */
@@ -18,6 +20,12 @@ data class FeatureFlagState(val enabled: Boolean, val message: String? = null)
 data class FeatureFlags(val flags: Map<String, FeatureFlagState> = emptyMap()) {
 
     fun isEnabled(key: String): Boolean = flags[key]?.enabled ?: true
+
+    /**
+     * Rocodromos: apagado salvo que el servidor diga expresamente que si. Sin red, sin copia o con la copia
+     * caducada (72 h) la funcion NO sale: se enciende solo cuando las tiendas ya tienen la version.
+     */
+    val isGymsEnabled: Boolean get() = flags[FeatureKey.GYMS]?.enabled ?: false
 
     fun messageFor(key: String): String? = flags[key]?.message?.takeIf { it.isNotBlank() }
 
