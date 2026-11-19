@@ -1,6 +1,6 @@
 # Rocódromos: notas de paridad para la fase iOS
 
-> Estado: 2026-11-19. Android v1 hecho (rama `feature/rocodromos-v1`, sin subir). iOS debe quedar **igual** en pantallas,
+> Estado: 2026-11-19. **iOS hecho (fase C, sin compilar en Mac: lo valida ios-ci; ver tabla al final)**. Android v1 hecho (rama `feature/rocodromos-v1`, sin subir). iOS debe quedar **igual** en pantallas,
 > textos y colores. Textos: `TEXTOS.md` (mismas claves, mismos signos). Iconos: `icons/*.svg` (originales con
 > `currentColor`, trazo 2, extremos redondeados, caja 24; en iOS van como assets vectoriales). Lógica común: `shared`
 > (`GymsModule` ya colgado de `IosDependencyContainer.gyms`). **No reimplementes en Swift** nada de lo que aparece como
@@ -154,3 +154,21 @@ Hoja modal a altura completa (sin media altura), fondo `cumbreSheetSurface`, con
 - El horario se interpreta siempre en hora de Madrid (`GymOpeningHours`); un rocódromo en Canarias saldría con una hora de desfase.
 - La agrupación del texto de días de `hoursLines` vive en Android (`GymPresentation`); si iOS la necesita idéntica, pasarla a
   `shared` con las etiquetas inyectadas.
+
+## 10. Estado iOS (fase C)
+
+| Punto | Estado | Dónde |
+|---|---|---|
+| Selector Roca / Rocódromos / Muros gratis (oculta escuelas y su nota) | hecho | `Gyms/GymsLayerView.swift`, `SchoolListView.swift` |
+| Interruptor `gyms_enabled` (apagado = nada de esto existe) | hecho | `FeatureFlagsModel` en selector, Plan B y admin |
+| Mapa con marcadores por tipo, agrupación de shared, tarjeta de cristal | hecho (marcador centrado en su punto, no con la base en el punto) | `GymsMapView.swift`, `GymMarkerRenderer.swift`, `GymListRow.swift` |
+| Lista con filtros, contador, Mapa/Lista, estados vacío/error | hecho (sin pull-to-refresh propio) | `GymsLayerView.swift`, `GymsViewModel.swift` |
+| Ficha completa, favoritos, «Quién va hoy» con aviso de privacidad | hecho | `GymDetailView.swift`, `GymDetailSections.swift` |
+| Corregir y Añadir muro (foto con PhotosPicker, 1,5 s) | hecho | `GymReportSheets.swift`, `GymReportViewModel.swift` |
+| Plan B bajo la tarjeta HOY de la escuela | hecho | `GymsNearbyBanner.swift`, `SchoolForecastViews.swift` |
+| Quedada en rocódromo (crear con gymId, placeName, sin «Ver escuela») | hecho | `CreateMeetupView.swift`, `MeetupRows.swift`, `MeetupDetailView.swift` |
+| Admin: reportes (aplicar/rechazar) y editar ficha | hecho (SOLO iOS) | `AdminGymsView.swift`, `GymAdminEditSheet.swift` |
+| Lógica común movida a shared (horario agrupado, precio, distancia, enlaces) | hecho; Android la usa | `GymFormatting.kt` |
+| Textos ES/EN e iconos | hecho | `Localizable.strings`, `Assets.xcassets/gym_ic_*` |
+
+Diferencias conocidas: el mapa de iOS no recuerda el encuadre al cambiar de capa si se destruye la pantalla de Escuelas; «Mi ubicación» reutiliza el texto ya existente; el mapa muestra el punto azul del usuario como el resto de mapas de iOS.

@@ -456,7 +456,7 @@
       "name": "Perfil público idéntico a iOS (barra, 2×3, sin scroll)",
       "ios": "probado",
       "android": "probado",
-      "iosTest": "—",
+      "iosTest": "escrito sin Mac: lo valida ios-ci; sin probar en iPhone (rama feature/rocodromos-v1, sin subir)",
       "androidTest": "emulador"
     },
     {
@@ -485,8 +485,8 @@
     },
     {
       "version": "7.3",
-      "name": "Rocódromos v1: selector, mapa, lista, ficha, correcciones y Plan B (Android)",
-      "ios": "pendiente",
+      "name": "Rocódromos v1: selector, mapa, lista, ficha, correcciones, Plan B y admin (iOS)",
+      "ios": "hecho",
       "android": "hecho",
       "iosTest": "—",
       "androidTest": "tests JVM + capturas; sin probar en móvil (rama feature/rocodromos-v1, sin subir)"
