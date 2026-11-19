@@ -6,6 +6,8 @@ import com.meteomontana.android.domain.model.gym.GymAdminEdit
 import com.meteomontana.android.domain.model.gym.GymCorrection
 import com.meteomontana.android.domain.model.gym.GymNear
 import com.meteomontana.android.domain.model.gym.GymReport
+import com.meteomontana.android.domain.model.gym.GymSession
+import com.meteomontana.android.domain.model.gym.GymSessionSource
 import com.meteomontana.android.domain.model.gym.NewGymDraft
 
 /** Copia local del catalogo de rocodromos (con el ETag con el que se descargo). Funciona sin conexion. */
@@ -49,6 +51,15 @@ interface GymPresenceRepository {
     suspend fun getActivePresence(gymId: Long): List<SchoolPresence>
     suspend fun markPresence(gymId: Long): SchoolPresence
     suspend fun clearPresence(gymId: Long)
+}
+
+/** Entrenos del usuario en rocodromos (v1.1). Primero en el movil; el servidor se entera cuando puede. */
+interface GymSessionRepository {
+    fun today(): kotlinx.datetime.LocalDate
+    fun sessions(): List<GymSession>
+    suspend fun checkInToday(gymId: Long, source: GymSessionSource): GymSession
+    suspend fun undoToday(gymId: Long)
+    suspend fun refresh(): List<GymSession>
 }
 
 /** Revision de reportes y edicion de fichas por un admin (solo iOS; Android no tiene panel de admin). */

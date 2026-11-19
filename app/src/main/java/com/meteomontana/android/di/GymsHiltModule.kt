@@ -37,4 +37,6 @@ object GymsHiltModule {
     @Provides fun provideGetGymPresence(m: GymsModule) = m.getGymPresence
     @Provides fun provideMarkGymPresence(m: GymsModule) = m.markGymPresence
     @Provides fun provideClearGymPresence(m: GymsModule) = m.clearGymPresence
+    @Provides fun provideRecordGymSession(m: GymsModule) = m.recordGymSession
+    @Provides fun provideGetGymStats(m: GymsModule) = m.getGymStats
 }

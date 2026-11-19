@@ -43,7 +43,7 @@ class GymClustererTest {
         val lejos = GymClusterer.cluster(near, zoom = 4.0).size
         val medio = GymClusterer.cluster(near, zoom = 10.0).size
         assertTrue(lejos <= medio)
-        assertTrue(medio <= GymClusterer.cluster(near, zoom = 13.0).size)
+        assertTrue(medio <= GymClusterer.cluster(near, zoom = 14.0).size)
     }
 
     @Test
@@ -52,6 +52,22 @@ class GymClustererTest {
         val b = GymClusterer.cluster((near + far).reversed(), zoom = 7.0)
         assertEquals(a, b)
         assertEquals(a.map { it.id }, a.map { it.id }.sorted())
+    }
+
+    @Test
+    fun `los tres Sputnik de Madrid ya van sueltos a zoom 11 y se separan antes`() {
+        val sputnik = listOf(
+            gym(10, lat = 40.3920, lon = -3.6990),   // Legazpi
+            gym(11, lat = 40.4370, lon = -3.7040),   // Chamberi
+            gym(12, lat = 40.4310, lon = -3.6650)    // Guindalera
+        )
+        assertTrue(GymClusterer.cluster(sputnik, zoom = GymClusterer.MAX_CLUSTER_ZOOM).none { it.isCluster })
+        assertTrue(GymClusterer.cluster(sputnik, zoom = 10.5).size >= 2)
+    }
+
+    @Test
+    fun `no se agrupa desde zoom 11`() {
+        assertEquals(11.0, GymClusterer.MAX_CLUSTER_ZOOM, 0.0)
     }
 
     @Test

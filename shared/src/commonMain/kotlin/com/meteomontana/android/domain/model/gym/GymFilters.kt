@@ -3,9 +3,6 @@ package com.meteomontana.android.domain.model.gym
 import com.meteomontana.android.domain.util.Geo
 import kotlinx.datetime.Instant
 
-/** Que capa enseña el selector: "Rocodromos" (comerciales y municipales) o "Muros gratis". */
-enum class GymMode { ROCODROMOS, FREE_WALLS }
-
 enum class GymSort { DISTANCE, NAME }
 
 /** Punto desde el que se mide la distancia (ubicacion del usuario). */
@@ -16,13 +13,16 @@ data class GymOrigin(val lat: Double, val lon: Double)
  * Una ficha con el dato desconocido NO entra cuando el filtro lo exige: no se promete lo que no se sabe.
  */
 data class GymFilters(
-    val mode: GymMode = GymMode.ROCODROMOS,
     /** "Gratis": muro gratuito o precio de entrada 0. */
     val onlyFree: Boolean = false,
     val boulder: Boolean = false,
     val rope: Boolean = false,
     val openNow: Boolean = false,
     val onlyFavorites: Boolean = false,
+    /** "De calle (gratis)": solo los muros de calle ([GymKind.FREE]). Antes eran una capa aparte. */
+    val onlyStreet: Boolean = false,
+    /** Los cerrados ([Gym.closed]) no salen salvo que se pida. */
+    val showClosed: Boolean = false,
     val chain: String? = null,
     val maxDistanceKm: Double? = null,
     val query: String = "",
@@ -48,7 +48,8 @@ object GymFilterEngine {
         val q = filters.query.trim()
         val items = gyms.asSequence()
             .filter { !it.hidden }
-            .filter { matchesMode(it, filters.mode) }
+            .filter { filters.showClosed || !it.closed }
+            .filter { !filters.onlyStreet || it.kind == GymKind.FREE }
             .filter { !filters.onlyFree || it.isFree }
             .filter { !filters.boulder || it.discipline.hasBoulder }
             .filter { !filters.rope || it.discipline.hasRope }
@@ -69,17 +70,12 @@ object GymFilterEngine {
         }
     }
 
-    /** Cadenas con al menos una ficha en el modo dado, para el chip de cadena (orden alfabetico). */
-    fun chains(gyms: List<Gym>, mode: GymMode): List<String> =
-        gyms.filter { !it.hidden && matchesMode(it, mode) }
+    /** Cadenas con al menos una ficha, para el chip de cadena (orden alfabetico). */
+    fun chains(gyms: List<Gym>): List<String> =
+        gyms.filter { !it.hidden && !it.closed }
             .mapNotNull { it.chain?.trim()?.takeIf(String::isNotEmpty) }
             .distinctBy { it.lowercase() }
             .sortedBy { it.lowercase() }
-
-    private fun matchesMode(g: Gym, mode: GymMode) = when (mode) {
-        GymMode.ROCODROMOS -> g.kind != GymKind.FREE
-        GymMode.FREE_WALLS -> g.kind == GymKind.FREE
-    }
 
     private fun matchesQuery(g: Gym, q: String): Boolean {
         val needle = fold(q)

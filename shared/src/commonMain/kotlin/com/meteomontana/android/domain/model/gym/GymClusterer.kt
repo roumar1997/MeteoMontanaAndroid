@@ -21,8 +21,8 @@ data class GymMapItem(val id: String, val lat: Double, val lon: Double, val gyms
  */
 object GymClusterer {
 
-    const val CELL_PX = 64.0
-    const val MAX_CLUSTER_ZOOM = 13.0
+    const val CELL_PX = 40.0
+    const val MAX_CLUSTER_ZOOM = 11.0
 
     fun cellSizeDegrees(zoom: Double): Double = 360.0 * CELL_PX / (256.0 * 2.0.pow(zoom))
 

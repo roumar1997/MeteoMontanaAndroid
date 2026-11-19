@@ -20,7 +20,8 @@ internal fun gym(
     hours: List<OpeningSlot>? = null,
     priceSingle: Double? = null,
     hidden: Boolean = false,
-    source: String? = null
+    source: String? = null,
+    closed: Boolean = false
 ) = Gym(
     id = id, slug = "gym-$id", name = name, chain = chain, kind = kind, discipline = discipline,
     region = "Madrid", province = province, city = city, address = null, lat = lat, lon = lon,
@@ -28,5 +29,5 @@ internal fun gym(
     pricePassEur = null, pricePassLabel = null, priceUpdatedAt = null, hasAutobelay = null,
     hasGearRental = null, kidsFriendly = null, beginnerFriendly = null,
     outdoor = kind == GymKind.FREE, verification = GymVerification.UNCONFIRMED, source = source,
-    hidden = hidden, updatedAt = null
+    hidden = hidden, updatedAt = null, closed = closed
 )

@@ -67,7 +67,9 @@ data class Gym(
     val source: String?,
     /** Solo llega a true en respuestas incrementales; el catalogo ya la excluye. */
     val hidden: Boolean,
-    val updatedAt: String?
+    val updatedAt: String?,
+    /** Cerrado de forma permanente. Los cerrados no salen salvo filtro (GymFilters.showClosed). */
+    val closed: Boolean = false
 ) {
     val isFree: Boolean get() = kind == GymKind.FREE || priceSingleEur == 0.0
 

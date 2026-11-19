@@ -9,7 +9,6 @@ import com.meteomontana.android.domain.model.gym.GymFilterEngine
 import com.meteomontana.android.domain.model.gym.GymFilters
 import com.meteomontana.android.domain.model.gym.GymListItem
 import com.meteomontana.android.domain.model.gym.GymMapItem
-import com.meteomontana.android.domain.model.gym.GymMode
 import com.meteomontana.android.domain.model.gym.GymNear
 import com.meteomontana.android.domain.model.gym.GymOrigin
 import com.meteomontana.android.domain.model.gym.GymReport
@@ -74,7 +73,7 @@ class FilterGymsUseCase {
         favoriteIds: Set<Long>
     ): List<GymListItem> = GymFilterEngine.apply(gyms, filters, origin, favoriteIds, Clock.System.now())
 
-    fun chains(gyms: List<Gym>, mode: GymMode): List<String> = GymFilterEngine.chains(gyms, mode)
+    fun chains(gyms: List<Gym>): List<String> = GymFilterEngine.chains(gyms)
 }
 
 /** Agrupa para el mapa segun el zoom (rejilla comun a las dos plataformas). */

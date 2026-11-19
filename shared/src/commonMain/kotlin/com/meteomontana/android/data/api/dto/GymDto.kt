@@ -43,7 +43,9 @@ data class GymDto(
     val verification: String? = null,
     val source: String? = null,
     val hidden: Boolean = false,
-    val updatedAt: String? = null
+    val updatedAt: String? = null,
+    /** Aditivo: el servidor aun no lo manda (ver docs/rocodromos/PARIDAD.md); ausente = abierto. */
+    val closed: Boolean = false
 )
 
 @Serializable
@@ -74,7 +76,7 @@ fun GymDto.toDomain() = Gym(
     hasAutobelay = hasAutobelay, hasGearRental = hasGearRental,
     kidsFriendly = kidsFriendly, beginnerFriendly = beginnerFriendly,
     outdoor = outdoor, verification = GymVerification.parse(verification),
-    source = source, hidden = hidden, updatedAt = updatedAt
+    source = source, hidden = hidden, updatedAt = updatedAt, closed = closed
 )
 
 /** Para guardar la copia local; el reverso exacto de [toDomain]. */
@@ -86,7 +88,7 @@ fun Gym.toDto() = GymDto(
     priceSingleEur = priceSingleEur, pricePassEur = pricePassEur, pricePassLabel = pricePassLabel,
     priceUpdatedAt = priceUpdatedAt, hasAutobelay = hasAutobelay, hasGearRental = hasGearRental,
     kidsFriendly = kidsFriendly, beginnerFriendly = beginnerFriendly, outdoor = outdoor,
-    verification = verification.name, source = source, hidden = hidden, updatedAt = updatedAt
+    verification = verification.name, source = source, hidden = hidden, updatedAt = updatedAt, closed = closed
 )
 
 fun GymNearDto.toDomain() = GymNear(

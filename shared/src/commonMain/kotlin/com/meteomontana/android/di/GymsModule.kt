@@ -4,12 +4,14 @@ import com.meteomontana.android.data.api.KtorGymAdminApi
 import com.meteomontana.android.data.api.KtorGymApi
 import com.meteomontana.android.data.api.KtorGymPresenceApi
 import com.meteomontana.android.data.api.KtorGymReportApi
+import com.meteomontana.android.data.api.KtorGymSessionApi
 import com.meteomontana.android.data.cache.KeyValueGymCatalogCache
 import com.meteomontana.android.data.repository.KtorGymAdminRepository
 import com.meteomontana.android.data.repository.KtorGymFavoriteRepository
 import com.meteomontana.android.data.repository.KtorGymPresenceRepository
 import com.meteomontana.android.data.repository.KtorGymReportRepository
 import com.meteomontana.android.data.repository.KtorGymRepository
+import com.meteomontana.android.data.repository.LocalFirstGymSessionRepository
 import com.meteomontana.android.domain.port.KeyValueStore
 import com.meteomontana.android.domain.usecase.gym.AdminEditGymUseCase
 import com.meteomontana.android.domain.usecase.gym.ApplyGymReportUseCase
@@ -20,10 +22,12 @@ import com.meteomontana.android.domain.usecase.gym.FindGymsNearUseCase
 import com.meteomontana.android.domain.usecase.gym.GetCachedGymsUseCase
 import com.meteomontana.android.domain.usecase.gym.GetGymFavoritesUseCase
 import com.meteomontana.android.domain.usecase.gym.GetGymPresenceUseCase
+import com.meteomontana.android.domain.usecase.gym.GetGymStatsUseCase
 import com.meteomontana.android.domain.usecase.gym.GetGymUseCase
 import com.meteomontana.android.domain.usecase.gym.GetGymsUseCase
 import com.meteomontana.android.domain.usecase.gym.ListPendingGymReportsUseCase
 import com.meteomontana.android.domain.usecase.gym.MarkGymPresenceUseCase
+import com.meteomontana.android.domain.usecase.gym.RecordGymSessionUseCase
 import com.meteomontana.android.domain.usecase.gym.RejectGymReportUseCase
 import com.meteomontana.android.domain.usecase.gym.SetGymFavoriteUseCase
 import com.meteomontana.android.domain.usecase.gym.ShouldSuggestGymsUseCase
@@ -43,6 +47,7 @@ class GymsModule(httpClient: HttpClient, store: KeyValueStore? = null) {
     private val favorites = KtorGymFavoriteRepository(api)
     private val reports = KtorGymReportRepository(KtorGymReportApi(httpClient))
     private val presence = KtorGymPresenceRepository(KtorGymPresenceApi(httpClient))
+    private val sessions = LocalFirstGymSessionRepository(KtorGymSessionApi(httpClient), store ?: InMemoryKeyValueStore())
     private val admin = KtorGymAdminRepository(KtorGymAdminApi(httpClient))
 
     val getCachedGyms = GetCachedGymsUseCase(catalog)
@@ -60,6 +65,9 @@ class GymsModule(httpClient: HttpClient, store: KeyValueStore? = null) {
     val getGymPresence = GetGymPresenceUseCase(presence)
     val markGymPresence = MarkGymPresenceUseCase(presence)
     val clearGymPresence = ClearGymPresenceUseCase(presence)
+
+    val recordGymSession = RecordGymSessionUseCase(sessions)
+    val getGymStats = GetGymStatsUseCase(sessions)
 
     // Admin (solo iOS)
     val listPendingGymReports = ListPendingGymReportsUseCase(admin)

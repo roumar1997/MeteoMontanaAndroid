@@ -4,7 +4,6 @@ import com.meteomontana.android.domain.model.gym.GymDiscipline
 import com.meteomontana.android.domain.model.gym.GymFilterEngine
 import com.meteomontana.android.domain.model.gym.GymFilters
 import com.meteomontana.android.domain.model.gym.GymKind
-import com.meteomontana.android.domain.model.gym.GymMode
 import com.meteomontana.android.domain.model.gym.GymOrigin
 import com.meteomontana.android.domain.model.gym.GymSort
 import com.meteomontana.android.domain.model.gym.OpeningSlot
@@ -27,15 +26,28 @@ class GymFiltersTest {
         GymFilterEngine.apply(all, f, origin, fav, now).map { it.gym.id }
 
     @Test
-    fun `el modo separa rocodromos de muros gratis y oculta las bajas`() {
-        assertEquals(setOf(1L, 2, 3, 4, 6), ids(GymFilters()).toSet())
-        assertEquals(listOf(5L), ids(GymFilters(mode = GymMode.FREE_WALLS)))
+    fun `todo junto en una sola capa, y oculta las bajas`() {
+        assertEquals(setOf(1L, 2, 3, 4, 5, 6), ids(GymFilters()).toSet())
+    }
+
+    @Test
+    fun `de calle deja solo los muros de calle`() {
+        assertEquals(listOf(5L), ids(GymFilters(onlyStreet = true)))
+    }
+
+    @Test
+    fun `los cerrados no salen salvo que se pidan`() {
+        val closed = gym(8, "Cerrado", closed = true)
+        val list = all + closed
+        assertEquals(false, GymFilterEngine.apply(list, GymFilters()).any { it.gym.id == 8L })
+        assertEquals(true, GymFilterEngine.apply(list, GymFilters(showClosed = true)).any { it.gym.id == 8L })
+        assertEquals(false, GymFilterEngine.chains(listOf(gym(9, chain = "X", closed = true))).contains("X"))
     }
 
     @Test
     fun `gratis incluye precio cero`() {
-        assertEquals(listOf(6L), ids(GymFilters(onlyFree = true)))
-        assertEquals(listOf(5L), ids(GymFilters(mode = GymMode.FREE_WALLS, onlyFree = true)))
+        assertEquals(setOf(5L, 6L), ids(GymFilters(onlyFree = true)).toSet())
+        assertEquals(listOf(5L), ids(GymFilters(onlyStreet = true, onlyFree = true)))
     }
 
     @Test
@@ -77,7 +89,7 @@ class GymFiltersTest {
     fun `orden por distancia y radio maximo`() {
         val madrid = GymOrigin(40.4168, -3.7038)
         val r = GymFilterEngine.apply(all, GymFilters(maxDistanceKm = 30.0), madrid)
-        assertEquals(listOf(1L, 6L, 2L), r.map { it.gym.id })
+        assertEquals(listOf(1L, 5L, 6L, 2L), r.map { it.gym.id })
         assertEquals(true, r.all { it.distanceKm!! <= 30.0 })
         assertEquals(true, r.map { it.distanceKm!! }.zipWithNext().all { (a, b) -> a <= b })
     }
@@ -92,6 +104,6 @@ class GymFiltersTest {
     @Test
     fun `cadenas disponibles sin repetir`() {
         val two = listOf(gym(1, chain = "Sputnik"), gym(2, chain = "sputnik"), gym(3, chain = "Bloc"), gym(4, chain = null))
-        assertEquals(listOf("Bloc", "Sputnik"), GymFilterEngine.chains(two, GymMode.ROCODROMOS))
+        assertEquals(listOf("Bloc", "Sputnik"), GymFilterEngine.chains(two))
     }
 }
