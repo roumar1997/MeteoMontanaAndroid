@@ -44,7 +44,9 @@ internal fun GymMapCard(
     onClose: () -> Unit,
     onDirections: () -> Unit,
     onOpen: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isFavorite: Boolean = false,
+    onToggleFavorite: (() -> Unit)? = null
 ) {
     val shape = RoundedCornerShape(24.dp)
     Column(
@@ -69,6 +71,7 @@ internal fun GymMapCard(
                     Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                 }
             }
+            if (onToggleFavorite != null) GymFavoriteStar(isFavorite, onToggleFavorite)
             Row(
                 Modifier.size(32.dp).clip(CircleShape)
                     .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.07f))

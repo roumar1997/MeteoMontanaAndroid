@@ -1,12 +1,16 @@
 package com.meteomontana.android.ui.screens.gyms
 
 import android.content.Context
+import android.graphics.PointF
 import android.view.MotionEvent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.LocationDisabled
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material3.Icon
@@ -36,6 +40,7 @@ import com.meteomontana.android.ui.components.SideMapButton
 import com.meteomontana.android.ui.components.userDotBitmap
 import com.meteomontana.android.ui.screens.schools.DARK_RASTER_STYLE
 import com.meteomontana.android.ui.screens.schools.OSM_RASTER_STYLE
+import com.meteomontana.android.ui.screens.schools.SATELLITE_RASTER_STYLE
 import org.maplibre.android.annotations.IconFactory
 import org.maplibre.android.annotations.Marker
 import org.maplibre.android.annotations.MarkerOptions
@@ -99,7 +104,15 @@ internal fun GymsMap(
                 ).also { mapViewRef.value = it }
             }
         )
-        Box(Modifier.align(Alignment.TopEnd).padding(8.dp)) {
+        // Mismos botones que el mapa de Escuelas: capas (satélite/topográfico) y ubicación.
+        Row(Modifier.align(Alignment.TopEnd).padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SideMapButton(active = true, onClick = { mapState.isSatellite = !mapState.isSatellite }) {
+                Icon(
+                    Icons.Outlined.Layers,
+                    contentDescription = stringResource(R.string.map_topo) + "/" + stringResource(R.string.map_satellite),
+                    tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(20.dp)
+                )
+            }
             LocateButton(userLat, userLon, mapRef.value, zoom, locationPermission, onRequestLocation)
         }
     }
@@ -128,10 +141,10 @@ private fun GymsMapEffects(
     val selectNow by rememberUpdatedState(onSelect)
     val clusterNow by rememberUpdatedState(cluster)
 
-    LaunchedEffect(dark, map) {
+    LaunchedEffect(dark, map, mapState.isSatellite) {
         val m = map ?: return@LaunchedEffect
         val pos = m.cameraPosition
-        m.setStyle(Style.Builder().fromJson(if (dark) DARK_RASTER_STYLE else OSM_RASTER_STYLE)) { styleLoaded() }
+        m.setStyle(Style.Builder().fromJson(gymMapStyle(mapState.isSatellite, dark))) { styleLoaded() }
         m.moveCamera(CameraUpdateFactory.newCameraPosition(pos))
     }
 
@@ -146,7 +159,8 @@ private fun GymsMapEffects(
         }
         val items = clusterNow(gyms, zoom)
         itemsById = items.associateBy { it.id }
-        items.forEach { markers += m.addMarker(markerFor(ctx, it, dark, selectedId, freeLabel)) }
+        val labelled = labelledIds(ctx, m, items, zoom, selectedId)
+        items.forEach { markers += m.addMarker(markerFor(ctx, m, it, dark, selectedId, freeLabel, it.id in labelled)) }
     }
 
     LaunchedEffect(itemsById, map) {
@@ -168,10 +182,37 @@ private fun GymsMapEffects(
     }
 }
 
-private fun markerFor(ctx: Context, item: GymMapItem, dark: Boolean, selectedId: Long?, freeLabel: String): MarkerOptions {
-    val icon = if (item.isCluster) GymMarkerIcons.cluster(ctx, item.count, dark)
-    else item.gyms.first().let { GymMarkerIcons.pin(ctx, it.kind, dark, it.id == selectedId, freeLabel) }
-    return MarkerOptions().position(LatLng(item.lat, item.lon)).icon(icon).snippet(item.id)
+/** Estilo del mapa: el mismo que Escuelas (satélite por defecto; topográfico claro u oscuro según el tema). */
+private fun gymMapStyle(satellite: Boolean, dark: Boolean): String = when {
+    satellite -> SATELLITE_RASTER_STYLE
+    dark -> DARK_RASTER_STYLE
+    else -> OSM_RASTER_STYLE
+}
+
+/** Ids de los marcadores sueltos que enseñan nombre: solo con zoom cercano y sin pisarse (ver [GymLabelPlanner]). */
+private fun labelledIds(ctx: Context, map: MapLibreMap, items: List<GymMapItem>, zoom: Double, selectedId: Long?): Set<String> {
+    if (zoom < GymLabelPlanner.MIN_ZOOM) return emptySet()
+    val candidates = items.map { item ->
+        val p = map.projection.toScreenLocation(LatLng(item.lat, item.lon))
+        val single = if (item.isCluster) null else item.gyms.first()
+        LabelCandidate(item.id, p.x, p.y, single?.name?.length ?: 0, priority = single?.id == selectedId)
+    }
+    return GymLabelPlanner.plan(candidates, ctx.resources.displayMetrics.density)
+}
+
+private fun markerFor(
+    ctx: Context, map: MapLibreMap, item: GymMapItem, dark: Boolean, selectedId: Long?, freeLabel: String, withName: Boolean
+): MarkerOptions {
+    val single = if (item.isCluster) null else item.gyms.first()
+    val icon = if (single == null) GymMarkerIcons.cluster(ctx, item.count, dark)
+    else GymMarkerIcons.pin(ctx, single.kind, dark, single.id == selectedId, freeLabel, if (withName) single.name else null)
+    var pos = LatLng(item.lat, item.lon)
+    if (withName) {
+        // El nombre alarga el bitmap por abajo y MapLibre ancla la base: se baja el punto para que el círculo siga en su sitio.
+        val p = map.projection.toScreenLocation(pos)
+        pos = map.projection.fromScreenLocation(PointF(p.x, p.y + GymLabelPlanner.LABEL_EXTRA_DP * ctx.resources.displayMetrics.density))
+    }
+    return MarkerOptions().position(pos).icon(icon).snippet(item.id)
 }
 
 /** Crea el MapView: estilo, cámara inicial (la guardada, el usuario o España) y avisos de cámara y toques. */
@@ -197,7 +238,7 @@ private fun buildGymsMapView(
         map.uiSettings.isTiltGesturesEnabled = false
         map.uiSettings.isRotateGesturesEnabled = false
         map.uiSettings.isCompassEnabled = false
-        map.setStyle(Style.Builder().fromJson(if (dark) DARK_RASTER_STYLE else OSM_RASTER_STYLE)) {
+        map.setStyle(Style.Builder().fromJson(gymMapStyle(mapState.isSatellite, dark))) {
             val (uLat, uLon) = user()
             // Colocada la cámara (guardada o en el usuario), no se encuadra: se respeta donde estaba el usuario.
             if (placeInitialCamera(map, mapState.savedCamera, uLat, uLon)) mapState.fittedIds = gyms().map { it.id }.toSet()

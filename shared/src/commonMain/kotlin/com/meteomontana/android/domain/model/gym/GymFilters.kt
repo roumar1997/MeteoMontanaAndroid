@@ -46,6 +46,7 @@ object GymFilterEngine {
         now: Instant? = null
     ): List<GymListItem> {
         val q = filters.query.trim()
+        val maxKm = effectiveMaxDistanceKm(gyms, filters.maxDistanceKm, origin)
         val items = gyms.asSequence()
             .filter { !it.hidden }
             .filter { filters.showClosed || !it.closed }
@@ -58,16 +59,23 @@ object GymFilterEngine {
             .filter { q.isEmpty() || matchesQuery(it, q) }
             .filter { !filters.openNow || (now != null && it.isOpenAt(now) == true) }
             .map { GymListItem(it, origin?.let { o -> Geo.haversineKm(o.lat, o.lon, it.lat, it.lon) }) }
-            .filter { item ->
-                val max = filters.maxDistanceKm
-                max == null || item.distanceKm == null || item.distanceKm <= max
-            }
+            .filter { item -> maxKm == null || item.distanceKm == null || item.distanceKm <= maxKm }
             .toList()
         return when {
             filters.sort == GymSort.DISTANCE && origin != null ->
                 items.sortedWith(compareBy<GymListItem> { it.distanceKm }.thenBy { it.gym.name.lowercase() })
             else -> items.sortedBy { it.gym.name.lowercase() }
         }
+    }
+
+    /**
+     * Igual que en Escuelas: un radio que no contiene NINGUN rocodromo del catalogo no sirve de filtro (movil lejisimos,
+     * emulador en otro pais): se ignora en vez de dejar la lista en "0 rocodromos".
+     */
+    fun effectiveMaxDistanceKm(gyms: List<Gym>, maxKm: Double?, origin: GymOrigin?): Double? {
+        if (maxKm == null || origin == null) return maxKm
+        val anyInside = gyms.any { !it.hidden && Geo.haversineKm(origin.lat, origin.lon, it.lat, it.lon) <= maxKm }
+        return if (anyInside) maxKm else null
     }
 
     /** Cadenas con al menos una ficha, para el chip de cadena (orden alfabetico). */

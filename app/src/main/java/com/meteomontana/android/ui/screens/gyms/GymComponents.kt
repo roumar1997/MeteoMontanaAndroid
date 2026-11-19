@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,7 +33,10 @@ import androidx.compose.ui.unit.sp
 import com.meteomontana.android.domain.model.gym.Gym
 import com.meteomontana.android.domain.model.gym.GymKind
 import com.meteomontana.android.domain.model.gym.GymOpenStatus
+import androidx.compose.ui.res.stringResource
+import com.meteomontana.android.R
 import com.meteomontana.android.ui.theme.GymMunicipal
+import com.meteomontana.android.ui.theme.Terra
 import com.meteomontana.android.ui.theme.GymMunicipalTextDark
 import com.meteomontana.android.ui.theme.gymTone
 import androidx.compose.ui.graphics.luminance
@@ -82,9 +88,23 @@ internal fun GymTags(
         GymPresentation.priceTag(gym)?.let { tag ->
             GymTag(tag, if (gym.isFree) ok else gymTone(GymKind.COMMERCIAL).text)
         }
-        GymPresentation.openStatusText(status)?.let { text ->
+        // Un cerrado definitivamente dice solo «Cerrado»: su horario ya no vale.
+        if (gym.closed) GymTag(stringResource(R.string.gym_closed_tag), MaterialTheme.colorScheme.error)
+        else GymPresentation.openStatusText(status)?.let { text ->
             GymTag(text, if (status is GymOpenStatus.Open) ok else MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
+}
+
+/** Estrella de favorito (rellena y terracota si lo es) con zona de toque de 40 dp; la lista y la tarjeta del mapa la comparten. */
+@Composable
+internal fun GymFavoriteStar(isFavorite: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+    val desc = stringResource(if (isFavorite) R.string.gym_favorite_remove else R.string.gym_favorite_add)
+    Box(modifier.size(40.dp).clip(CircleShape).clickable(onClick = onToggle), contentAlignment = Alignment.Center) {
+        Icon(
+            if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder, contentDescription = desc,
+            tint = if (isFavorite) Terra else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp)
+        )
     }
 }
 

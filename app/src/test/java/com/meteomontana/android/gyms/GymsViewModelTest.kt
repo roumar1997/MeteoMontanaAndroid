@@ -3,7 +3,6 @@ package com.meteomontana.android.gyms
 import com.meteomontana.android.domain.model.gym.Gym
 import com.meteomontana.android.domain.model.gym.GymDiscipline
 import com.meteomontana.android.domain.model.gym.GymKind
-import com.meteomontana.android.domain.model.gym.GymMode
 import com.meteomontana.android.domain.model.gym.GymVerification
 import com.meteomontana.android.domain.usecase.gym.ClusterGymsUseCase
 import com.meteomontana.android.domain.usecase.gym.FilterGymsUseCase
@@ -70,13 +69,23 @@ class GymsViewModelTest {
 
     private fun TestScope.observe(vm: GymsViewModel) = backgroundScope.launch { vm.state.collect {} }
 
-    @Test fun `rocodromos separa de los muros gratis`() = runTest(dispatcher) {
+    @Test fun `rocodromos trae todo y De calle deja solo los muros de calle`() = runTest(dispatcher) {
         val vm = vm(); observe(vm)
         vm.setLayer(SchoolsLayer.ROCODROMOS); advanceUntilIdle()
-        assertEquals(setOf(1L, 2L), vm.state.value.items.map { it.gym.id }.toSet())
-        vm.setLayer(SchoolsLayer.FREE_WALLS); advanceUntilIdle()
+        assertEquals(setOf(1L, 2L, 3L), vm.state.value.items.map { it.gym.id }.toSet())
+        vm.toggleStreet(); advanceUntilIdle()
         assertEquals(listOf(3L), vm.state.value.items.map { it.gym.id })
-        assertEquals(GymMode.FREE_WALLS, vm.state.value.filters.mode)
+    }
+
+    @Test fun `la distancia arranca en 50 km como Escuelas y BORRAR la deja en la base`() = runTest(dispatcher) {
+        val vm = vm(); observe(vm)
+        vm.setLayer(SchoolsLayer.ROCODROMOS); advanceUntilIdle()
+        assertEquals(50.0, vm.state.value.filters.maxDistanceKm)
+        assertEquals(0, gymActiveFilterCount(vm.state.value.filters))
+        vm.setMaxDistance(null); vm.toggleStreet(); vm.toggleRope(); advanceUntilIdle()
+        assertEquals(3, gymActiveFilterCount(vm.state.value.filters))
+        vm.clearFilters(); advanceUntilIdle()
+        assertEquals(0, gymActiveFilterCount(vm.state.value.filters))
     }
 
     @Test fun `la capa roca no carga nada`() = runTest(dispatcher) {
@@ -94,13 +103,13 @@ class GymsViewModelTest {
         assertEquals(listOf(1L), vm.state.value.items.map { it.gym.id })
     }
 
-    @Test fun `cambiar de capa quita Gratis y la cadena`() = runTest(dispatcher) {
+    @Test fun `volver a Roca y a Rocodromos conserva los filtros`() = runTest(dispatcher) {
         val vm = vm(); observe(vm)
         vm.setLayer(SchoolsLayer.ROCODROMOS); advanceUntilIdle()
         vm.toggleFree(); vm.setChain("Sputnik"); advanceUntilIdle()
-        vm.setLayer(SchoolsLayer.FREE_WALLS); advanceUntilIdle()
-        assertFalse(vm.state.value.filters.onlyFree)
-        assertEquals(null, vm.state.value.filters.chain)
+        vm.setLayer(SchoolsLayer.ROCK); vm.setLayer(SchoolsLayer.ROCODROMOS); advanceUntilIdle()
+        assertTrue(vm.state.value.filters.onlyFree)
+        assertEquals("Sputnik", vm.state.value.filters.chain)
     }
 
     @Test fun `sin red y sin copia local queda en fallo`() = runTest(dispatcher) {

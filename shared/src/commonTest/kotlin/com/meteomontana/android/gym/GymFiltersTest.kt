@@ -102,6 +102,14 @@ class GymFiltersTest {
     }
 
     @Test
+    fun `un radio sin ningun rocodromo dentro se ignora, como en Escuelas`() {
+        val newYork = GymOrigin(40.71, -74.0)
+        assertEquals(setOf(1L, 2, 3, 4, 5, 6), GymFilterEngine.apply(all, GymFilters(maxDistanceKm = 50.0), newYork).map { it.gym.id }.toSet())
+        val madrid = GymOrigin(40.4168, -3.7038)
+        assertEquals(false, GymFilterEngine.apply(all, GymFilters(maxDistanceKm = 50.0), madrid).any { it.gym.id == 3L })
+    }
+
+    @Test
     fun `cadenas disponibles sin repetir`() {
         val two = listOf(gym(1, chain = "Sputnik"), gym(2, chain = "sputnik"), gym(3, chain = "Bloc"), gym(4, chain = null))
         assertEquals(listOf("Bloc", "Sputnik"), GymFilterEngine.chains(two))

@@ -11,16 +11,42 @@
 |---|---|---|---|
 | `gym_layer_rock` | Roca | Rock | Selector de Escuelas |
 | `gym_layer_gyms` | Rocódromos | Climbing gyms | Selector de Escuelas |
-| `gym_layer_free` | Muros gratis | Free walls | Selector de Escuelas |
 | `gym_view_map` | Mapa | Map | Alterna mapa/lista |
 | `gym_view_list` | Lista | List | Alterna mapa/lista |
 | `gym_search_hint` | Busca rocódromo, ciudad o cadena | Search gym, city or chain | Buscador |
 | `gym_count_gyms` | %1$d rocódromos | %1$d climbing gyms | Contador de la lista (modo Rocódromos) |
-| `gym_count_free` | %1$d muros gratis | %1$d free walls | Contador de la lista (modo Muros gratis) |
 | `gym_empty` | Ningún resultado con estos filtros | No results with these filters | Lista vacía |
 | `gym_clear_filters` | Quitar filtros | Clear filters | Lista vacía |
 | `gym_load_error` | No se pudieron cargar los rocódromos. Comprueba la conexión. | Could not load the gyms. Check your connection. | Error sin copia local |
 | `gym_retry` | Reintentar | Retry | Error |
+
+## Filtros de calle, favoritos, cerrados, entrenos y perfil (ronda 2026-11-19)
+
+| Clave | ES | EN | Dónde |
+|---|---|---|---|
+| `gym_filter_street` | De calle (gratis) | Street (free) | Filtro: solo muros de calle |
+| `gym_filter_closed` | Incluir cerrados | Include closed | Filtro: enseña los cerrados |
+| `gym_filter_show` | Mostrar | Show | Título de sección de filtros |
+| `gym_favs_chip` | FAVORITOS | FAVORITES | Chip de la fila de filtros |
+| `gym_favs_chip_desc` | Ver solo tus rocódromos favoritos | Show only your favorite gyms | Accesibilidad del chip |
+| `gym_closed_tag` | Cerrado | Closed | Etiqueta de rocódromo cerrado definitivamente |
+| `gym_train_today` | He entrenado aquí hoy | I trained here today | Botón de la ficha |
+| `gym_train_done` | Entreno de hoy apuntado | Today's session logged | Botón de la ficha, ya apuntado |
+| `gym_train_undo` | Quitar | Undo | Deshacer el entreno de hoy |
+| `gym_train_prompt_title` | ¿Apuntar el entreno de hoy? | Log today's session? | Aviso tras marcar «Aquí» |
+| `gym_train_prompt_body` | Has marcado «Aquí» en %1$s. ¿Lo cuento como entreno de hoy? | You marked "Here" at %1$s. Count it as today's session? | Aviso tras marcar «Aquí» |
+| `gym_train_prompt_yes` | Sí, apuntar | Yes, log it | Aviso |
+| `gym_train_prompt_no` | Ahora no | Not now | Aviso |
+| `gym_stats_title` | Rocódromo | Climbing gym | Tarjeta del perfil |
+| `gym_stats_week` | Esta semana | This week | Tarjeta del perfil |
+| `gym_stats_month` | Este mes | This month | Tarjeta del perfil |
+| `gym_stats_year` | Este año | This year | Tarjeta del perfil |
+| `gym_stats_top` | Más visitado | Most visited | Tarjeta del perfil |
+| `gym_stats_top_value` | %1$s · %2$d veces | %1$s · %2$d times | Tarjeta del perfil (nombre, visitas) |
+| `gym_stats_streak` | Racha | Streak | Tarjeta del perfil |
+| `gym_stats_streak_one` | 1 semana | 1 week | Tarjeta del perfil |
+| `gym_stats_streak_many` | %1$d semanas | %1$d weeks | Tarjeta del perfil |
+| `gym_stats_empty` | Aún no has apuntado ningún entreno. Abre un rocódromo y pulsa «He entrenado aquí hoy». | You have not logged any session yet. Open a gym and tap "I trained here today". | Tarjeta del perfil vacía |
 
 ## Filtros (cápsulas)
 
@@ -43,7 +69,7 @@
 |---|---|---|---|
 | `gym_kind_commercial` | Comercial | Commercial | Etiqueta de tipo |
 | `gym_kind_municipal` | Municipal | Municipal | Etiqueta de tipo |
-| `gym_kind_free` | Muro gratis | Free wall | Etiqueta de tipo |
+| `gym_kind_free` | Muro de calle | Street wall | Etiqueta de tipo |
 | `gym_pay` | De pago | Paid | Etiqueta de precio |
 | `gym_free_badge` | GRATIS | FREE | Rótulo bajo el marcador verde |
 | `gym_free_tag` | Gratis | Free | Etiqueta de precio |
@@ -138,7 +164,7 @@
 | `gym_new_name_hint` | Muro del parque… | Park wall… | Ejemplo del campo |
 | `gym_new_place_note` | Se coloca en el centro del mapa · se publica tras revisión | Placed at the map centre · published after review | Nota del alta |
 | `gym_new_place_here` | Ubicación: %1$s | Location: %1$s | Coordenadas elegidas |
-| `gym_new_kind_free` | Muro gratis | Free wall | Chip del alta |
+| `gym_new_kind_free` | Muro de calle | Street wall | Chip del alta |
 | `gym_new_kind_municipal` | Municipal | Municipal | Chip del alta |
 | `gym_new_kind_commercial` | Comercial | Commercial | Chip del alta |
 | `gym_new_title` | Añadir un muro | Add a wall | Título de la hoja de alta |

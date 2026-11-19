@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.domain.model.gym.Gym
 import com.meteomontana.android.domain.model.gym.GymFilters
 import com.meteomontana.android.domain.model.gym.GymListItem
-import com.meteomontana.android.domain.model.gym.GymMode
 import com.meteomontana.android.domain.model.gym.GymOrigin
 import com.meteomontana.android.domain.usecase.gym.ClusterGymsUseCase
 import com.meteomontana.android.domain.usecase.gym.FilterGymsUseCase
@@ -23,16 +22,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** Capa que enseña el selector de Escuelas: la roca de siempre, los rocódromos o los muros gratis. */
-enum class SchoolsLayer {
-    ROCK, ROCODROMOS, FREE_WALLS;
-
-    val gymMode: GymMode? get() = when (this) {
-        ROCK -> null
-        ROCODROMOS -> GymMode.ROCODROMOS
-        FREE_WALLS -> GymMode.FREE_WALLS
-    }
-}
+/** Capa que enseña el selector de Escuelas: la roca de siempre o los rocódromos (los muros de calle son un filtro). */
+enum class SchoolsLayer { ROCK, ROCODROMOS }
 
 enum class GymsView { MAP, LIST }
 
@@ -66,7 +57,7 @@ class GymsViewModel @Inject constructor(
     val layer: StateFlow<SchoolsLayer> = _layer
 
     private val _all = MutableStateFlow<List<Gym>>(emptyList())
-    private val _filters = MutableStateFlow(GymFilters())
+    private val _filters = MutableStateFlow(GymFilters(maxDistanceKm = DEFAULT_GYM_DISTANCE_KM))
     private val _origin = MutableStateFlow<GymOrigin?>(null)
     private val _favorites = MutableStateFlow<Set<Long>>(emptySet())
     private val _view = MutableStateFlow(GymsView.MAP)
@@ -75,7 +66,7 @@ class GymsViewModel @Inject constructor(
     private var started = false
 
     private val filtered = combine(_all, _filters, _origin, _favorites) { all, filters, origin, favs ->
-        filterGyms(all, filters, origin, favs) to filterGyms.chains(all, filters.mode)
+        filterGyms(all, filters, origin, favs) to filterGyms.chains(all)
     }
 
     val state: StateFlow<GymsUiState> = combine(filtered, _all, _filters, _favorites, _view) { f, all, filters, favs, view ->
@@ -88,10 +79,7 @@ class GymsViewModel @Inject constructor(
 
     fun setLayer(layer: SchoolsLayer) {
         _layer.value = layer
-        val mode = layer.gymMode ?: return
-        // Al cambiar de capa se quitan los filtros que no valen en la otra (p. ej. "Gratis" en Muros gratis).
-        _filters.update { it.copy(mode = mode, onlyFree = false, chain = null) }
-        ensureLoaded()
+        if (layer != SchoolsLayer.ROCK) ensureLoaded()
     }
 
     /** Catálogo: primero la copia local (al instante) y luego la red. Se pide una sola vez por proceso. */
@@ -132,11 +120,14 @@ class GymsViewModel @Inject constructor(
     fun toggleBoulder() = _filters.update { it.copy(boulder = !it.boulder) }
     fun toggleRope() = _filters.update { it.copy(rope = !it.rope) }
     fun toggleOpenNow() = _filters.update { it.copy(openNow = !it.openNow) }
+    fun toggleStreet() = _filters.update { it.copy(onlyStreet = !it.onlyStreet) }
+    fun toggleClosed() = _filters.update { it.copy(showClosed = !it.showClosed) }
     fun toggleFavorites() = _filters.update { it.copy(onlyFavorites = !it.onlyFavorites) }
     fun setChain(chain: String?) = _filters.update { it.copy(chain = chain) }
     fun setMaxDistance(km: Double?) = _filters.update { it.copy(maxDistanceKm = km) }
 
-    fun clearFilters() = _filters.update { GymFilters(mode = it.mode) }
+    /** BORRAR: todo como de base (50 km, sin chips); el texto del buscador se respeta. */
+    fun clearFilters() = _filters.update { GymFilters(maxDistanceKm = DEFAULT_GYM_DISTANCE_KM, query = it.query) }
 
     fun toggleFavorite(gymId: Long) {
         val now = gymId !in _favorites.value

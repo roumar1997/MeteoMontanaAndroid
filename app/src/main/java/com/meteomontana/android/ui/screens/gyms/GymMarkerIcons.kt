@@ -24,9 +24,10 @@ import org.maplibre.android.annotations.IconFactory
 internal object GymMarkerIcons {
     private val cache = HashMap<String, Icon>()
 
-    fun pin(ctx: Context, kind: GymKind, dark: Boolean, selected: Boolean, freeLabel: String): Icon =
-        cache.getOrPut("pin:$kind:$dark:$selected:$freeLabel") {
-            IconFactory.getInstance(ctx).fromBitmap(pinBitmap(ctx, kind, dark, selected, freeLabel))
+    /** [name] != null añade el nombre (recortado) bajo el icono, con halo blanco como en los marcadores de Escuelas. */
+    fun pin(ctx: Context, kind: GymKind, dark: Boolean, selected: Boolean, freeLabel: String, name: String? = null): Icon =
+        cache.getOrPut("pin:$kind:$dark:$selected:$freeLabel:$name") {
+            IconFactory.getInstance(ctx).fromBitmap(pinBitmap(ctx, kind, dark, selected, freeLabel, name))
         }
 
     fun cluster(ctx: Context, count: Int, dark: Boolean): Icon =
@@ -41,7 +42,7 @@ internal object GymMarkerIcons {
         GymKind.FREE -> R.drawable.ic_free_wall
     }
 
-    internal fun pinBitmap(ctx: Context, kind: GymKind, dark: Boolean, selected: Boolean, freeLabel: String): Bitmap {
+    internal fun pinBitmap(ctx: Context, kind: GymKind, dark: Boolean, selected: Boolean, freeLabel: String, name: String? = null): Bitmap {
         val k = ctx.resources.displayMetrics.density
         val d = (if (selected) 46f else 38f) * k
         val ring = 3f * k
@@ -51,8 +52,15 @@ internal object GymMarkerIcons {
             color = Color.WHITE; textSize = 9f * k; typeface = Typeface.DEFAULT_BOLD; letterSpacing = 0.1f
         }
         val pillW = if (kind == GymKind.FREE) labelPaint.measureText(freeLabel) + 14f * k else 0f
-        val w = maxOf(d, pillW) + pad * 2
-        val h = d + pad * 2 + pill - (if (kind == GymKind.FREE) 4f * k else 0f)
+        val title = name?.let { if (it.length > MAX_NAME) it.take(MAX_NAME - 1).trimEnd() + "…" else it }
+        val haloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE; strokeWidth = 4f * k; color = Color.WHITE
+            textSize = 11f * k; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER
+        }
+        val nameW = title?.let { haloPaint.measureText(it) + 6f * k } ?: 0f
+        val nameH = if (title != null) GymLabelPlanner.LABEL_EXTRA_DP * k else 0f
+        val w = maxOf(d, pillW, nameW) + pad * 2
+        val h = d + pad * 2 + pill - (if (kind == GymKind.FREE) 4f * k else 0f) + nameH
         val bmp = Bitmap.createBitmap(w.toInt(), h.toInt(), Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
         val cx = w / 2f
@@ -79,8 +87,18 @@ internal object GymMarkerIcons {
             val baseline = r.centerY() - (labelPaint.descent() + labelPaint.ascent()) / 2f
             c.drawText(freeLabel, cx - labelPaint.measureText(freeLabel) / 2f, baseline, labelPaint)
         }
+        if (title != null) {
+            val ink = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFF1A1A1A.toInt(); textSize = 11f * k; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER
+            }
+            val y = h - 4f * k
+            c.drawText(title, cx, y, haloPaint)
+            c.drawText(title, cx, y, ink)
+        }
         return bmp
     }
+
+    private const val MAX_NAME = 18
 
     private fun pillHeight(k: Float) = 16f * k
 

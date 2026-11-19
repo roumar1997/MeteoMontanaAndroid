@@ -224,7 +224,7 @@ fun ExploreTabSwitcher(tab: ExploreTab, onTab: (ExploreTab) -> Unit) {
 }
 
 @Composable
-private fun TabButton(label: String, active: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+internal fun TabButton(label: String, active: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(22.dp))
@@ -278,7 +278,8 @@ fun FiltersToggleRow(
     open: Boolean,
     activeCount: Int,
     countText: String?,
-    dayLabel: String,
+    /** null = sin chip de días (rocódromos: no hay previsión por día). */
+    dayLabel: String?,
     daysOpen: Boolean,
     onToggleOpen: () -> Unit,
     onToggleDays: () -> Unit,
@@ -286,6 +287,8 @@ fun FiltersToggleRow(
     /** Estrella FAVS: solo en la pestaña Escuelas (null = no se enseña). */
     favsOn: Boolean? = null,
     onToggleFavs: () -> Unit = {},
+    favsLabel: String = stringResource(R.string.favs_chip),
+    favsDescription: String = stringResource(R.string.favs_chip_desc),
     modifier: Modifier = Modifier
 ) {
     val active = activeCount > 0
@@ -340,8 +343,8 @@ fun FiltersToggleRow(
                 Text(stringResource(R.string.schools_clear_short), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary)
             }
         }
-        if (favsOn != null) FavsChip(favsOn, onToggleFavs)
-        Row(
+        if (favsOn != null) FavsChip(favsOn, onToggleFavs, favsLabel, favsDescription)
+        if (dayLabel != null) Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(50))
                 .background(fill)
@@ -421,7 +424,7 @@ private enum class ShowMode(@androidx.annotation.StringRes val labelRes: Int) {
 }
 
 @Composable
-private fun Section(title: String, content: @Composable () -> Unit) {
+internal fun Section(title: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
             title,
@@ -434,7 +437,7 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun <T> ChipRow(
+internal fun <T> ChipRow(
     items: List<T>,
     isSelected: (T) -> Boolean,
     label: (T) -> String,
@@ -456,10 +459,15 @@ private fun <T> ChipRow(
 
 /** «★ FAVS»: enciende/apaga la comparación de tus favoritas. No filtra la lista (para eso, Mostrar → Favoritos). */
 @Composable
-private fun FavsChip(on: Boolean, onClick: () -> Unit) {
+internal fun FavsChip(
+    on: Boolean,
+    onClick: () -> Unit,
+    label: String = stringResource(R.string.favs_chip),
+    description: String = stringResource(R.string.favs_chip_desc)
+) {
     val fill = com.meteomontana.android.ui.theme.terraFillColor()
     val fg = if (on) androidx.compose.ui.graphics.Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-    val desc = stringResource(R.string.favs_chip_desc)
+    val desc = description
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
@@ -473,6 +481,6 @@ private fun FavsChip(on: Boolean, onClick: () -> Unit) {
     ) {
         Icon(if (on) Icons.Filled.Star else Icons.Outlined.StarBorder, contentDescription = null, tint = fg,
             modifier = Modifier.size(12.dp))
-        Text(stringResource(R.string.favs_chip), style = EyebrowTextStyle, color = fg, maxLines = 1, softWrap = false)
+        Text(label, style = EyebrowTextStyle, color = fg, maxLines = 1, softWrap = false)
     }
 }

@@ -34,7 +34,8 @@ internal fun GymListRow(
     status: GymOpenStatus,
     isFavorite: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onToggleFavorite: (() -> Unit)? = null
 ) {
     val gym = item.gym
     Row(
@@ -58,7 +59,8 @@ internal fun GymListRow(
             GymPresentation.distanceText(item.distanceKm)?.let {
                 Text(it, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
-            if (isFavorite) Icon(Icons.Filled.Star, contentDescription = null, tint = Terra, modifier = Modifier.size(16.dp))
+            if (onToggleFavorite != null) GymFavoriteStar(isFavorite, onToggleFavorite)
+            else if (isFavorite) Icon(Icons.Filled.Star, contentDescription = null, tint = Terra, modifier = Modifier.size(16.dp))
         }
     }
 }
