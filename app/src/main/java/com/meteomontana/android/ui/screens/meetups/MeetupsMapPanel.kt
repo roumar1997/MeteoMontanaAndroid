@@ -113,7 +113,7 @@ fun MeetupsMapPanel(
                 }
             }
         }
-        return filtered.filter { it.schoolLat != null && it.schoolLon != null }
+        return filtered.filter { !it.isGymMeetup && it.schoolLat != null && it.schoolLon != null }
             .groupBy { it.schoolId }
             .map { (schoolId, l) ->
                 SchoolMeetupGroup(

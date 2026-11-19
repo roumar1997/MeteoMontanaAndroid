@@ -73,6 +73,7 @@ import com.meteomontana.android.ui.screens.users.FollowListScreen
 import com.meteomontana.android.ui.screens.users.FollowRequestsScreen
 import com.meteomontana.android.ui.screens.users.PublicProfileScreen
 import com.meteomontana.android.ui.screens.users.SearchUsersScreen
+import com.meteomontana.android.ui.screens.gyms.gymRoutes
 import com.meteomontana.android.ui.screens.meetups.CreateMeetupScreen
 import com.meteomontana.android.ui.screens.meetups.MeetupAlertScreen
 import com.meteomontana.android.ui.screens.meetups.MeetupDetailScreen
@@ -155,6 +156,9 @@ private fun SheetNavHost(
     popSheetOrDismiss: () -> Unit,
     bottomInset: androidx.compose.ui.unit.Dp = 0.dp
 ) {
+                androidx.compose.runtime.CompositionLocalProvider(
+                    com.meteomontana.android.ui.screens.gyms.LocalOpenGym provides { id -> sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.detail(id)) }
+                ) {
                 NavHost(
                     navController = sheetNav,
                     startDestination = SHEET_ROOT,
@@ -532,6 +536,8 @@ private fun SheetNavHost(
                     composable(Routes.MEETUP_ALERT) {
                         MeetupAlertScreen(onBack = popSheetOrDismiss)
                     }
+                    gymRoutes(sheetNav, popSheetOrDismiss)
+                }
                 }
 }
 

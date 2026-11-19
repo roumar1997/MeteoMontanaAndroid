@@ -85,7 +85,8 @@ private val SelectedDaysSaver = androidx.compose.runtime.saveable.listSaver<andr
     restore = { androidx.compose.runtime.mutableStateOf(it.toSet()) }
 )
 
-data class MeetupPrefill(val schoolId: String, val schoolName: String, val day: String?, val name: String, val description: String?)
+data class MeetupPrefill(val schoolId: String, val schoolName: String, val day: String?, val name: String, val description: String?,
+    /** Rocódromo de la quedada (entonces [schoolId] va en blanco). */ val gymId: Long? = null)
 
 /** Pantalla de creación de quedada. Campos: nombre, escuela, días, privacidad,
  *  disciplina y límite de participantes. */
@@ -114,6 +115,7 @@ fun CreateMeetupScreen(
     var name by rememberSaveable { mutableStateOf("") }
     var schoolId by rememberSaveable { mutableStateOf("") }
     var schoolName by rememberSaveable { mutableStateOf("") }
+    var gymId by rememberSaveable { mutableStateOf<Long?>(null) }
     var privacy by rememberSaveable { mutableStateOf("OPEN") }
     var discipline by rememberSaveable { mutableStateOf<String?>(null) }
     var limitText by rememberSaveable { mutableStateOf("") }
@@ -136,6 +138,7 @@ fun CreateMeetupScreen(
         if (name.isEmpty()) name = p.name
         schoolId = p.schoolId
         schoolName = p.schoolName
+        gymId = p.gymId
         p.day?.let { selectedDays.value = selectedDays.value + it }
     }
 
@@ -235,14 +238,14 @@ fun CreateMeetupScreen(
             )
 
             // Escuela — buscador
-            FieldLabel(stringResource(R.string.w_school_caps))
+            FieldLabel(stringResource(if (gymId != null) R.string.gym_meetup_place_label else R.string.w_school_caps))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(4.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
                     .background(MaterialTheme.colorScheme.surface)
-                    .clickable { showSchoolPicker = true }
+                    .clickable(enabled = gymId == null) { showSchoolPicker = true }
                     .padding(horizontal = 12.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -326,7 +329,7 @@ fun CreateMeetupScreen(
             .background(MaterialTheme.colorScheme.surface).padding(Spacing.md)) {
             Button(
                 onClick = {
-                    if (name.isBlank() || schoolId.isBlank() || selectedDays.value.isEmpty()) return@Button
+                    if (name.isBlank() || (schoolId.isBlank() && gymId == null) || selectedDays.value.isEmpty()) return@Button
                     submitting = true
                     val req = CreateMeetupRequest(
                         schoolId = schoolId.trim(),
@@ -336,7 +339,8 @@ fun CreateMeetupScreen(
                         privacy = privacy,
                         memberLimit = limitText.toIntOrNull(),
                         photoUrl = photoUrl,
-                        days = selectedDays.value.sorted()
+                        days = selectedDays.value.sorted(),
+                        gymId = gymId
                     )
                     viewModel.create(req,
                         onSuccess = { meetup -> submitting = false; onCreated(meetup.id) },
@@ -344,7 +348,7 @@ fun CreateMeetupScreen(
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !submitting && name.isNotBlank() && schoolId.isNotBlank() && selectedDays.value.isNotEmpty(),
+                enabled = !submitting && name.isNotBlank() && (schoolId.isNotBlank() || gymId != null) && selectedDays.value.isNotEmpty(),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 if (submitting) CircularProgressIndicator(Modifier.size(18.dp), color = MaterialTheme.colorScheme.onPrimary)

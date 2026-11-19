@@ -408,6 +408,7 @@ fun MainScreen(
                         onNotifications = { openSheet(Routes.NOTIFICATIONS) },
                         onChats = { openSheet(Routes.CHAT_LIST) },
                         onCompare = { ids -> openSheet(Routes.compare(ids)) },
+                        onGymClick = { id -> openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.detail(id)) },
                         onOnboardingActive = { onboardingActive = it }
                     )
                     }

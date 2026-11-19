@@ -435,6 +435,9 @@ internal fun Content(
 
         if (forecast != null) {
             HoyCard(forecast, showsHoy = tab != SchoolTab.BLOCKS)
+            if (tab != SchoolTab.BLOCKS) {
+                com.meteomontana.android.ui.screens.gyms.GymsNearbyBanner(forecast.lat, forecast.lon, forecast.current)
+            }
         } else if (forecastError != null && tab != SchoolTab.BLOCKS) {
             Box(modifier = Modifier
                 .fillMaxWidth()

@@ -138,7 +138,7 @@ fun MeetupsScreen(
 
     // Cargar scores de todas las escuelas visibles para los días que aparecen
     LaunchedEffect(displayedMeetups) {
-        val schoolIds = displayedMeetups.map { it.schoolId }.distinct()
+        val schoolIds = displayedMeetups.map { it.schoolId }.filter { it.isNotBlank() }.distinct()
         val allDays = displayedMeetups.flatMap { it.days }.distinct()
         if (schoolIds.isNotEmpty() && allDays.isNotEmpty()) {
             viewModel.loadAllDayScores(schoolIds, allDays)

@@ -133,7 +133,7 @@ fun MeetupDetailScreen(
             state.meetup?.let { m ->
                 IconButton(onClick = {
                     com.meteomontana.android.ui.share.shareMeetup(
-                        context, m.name, m.schoolName, m.days, m.discipline,
+                        context, m.name, m.placeName ?: m.schoolName, m.days, m.discipline,
                         m.memberCount, m.memberLimit, state.inviteLink)
                 }) {
                     Icon(Icons.Outlined.Share, stringResource(R.string.common_share), tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -290,7 +290,7 @@ fun MeetupDetailScreen(
                                         Text(stringResource(R.string.common_directions), style = MaterialTheme.typography.labelMedium)
                                     }
                                 }
-                                meetup.schoolName?.let { schoolName ->
+                                meetup.schoolName?.takeIf { !meetup.isGymMeetup }?.let { schoolName ->
                                     OutlinedButton(
                                         onClick = { onOpenSchool(meetup.schoolId) },
                                         modifier = Modifier.weight(1f),
@@ -311,8 +311,8 @@ fun MeetupDetailScreen(
                             modifier = Modifier.padding(Spacing.md),
                             verticalArrangement = Arrangement.spacedBy(Spacing.md)
                         ) {
-                            // Escuela
-                            meetup.schoolName?.let { name ->
+                            // Escuela (o rocódromo)
+                            (meetup.placeName ?: meetup.schoolName)?.let { name ->
                                 InfoRow(icon = { Icon(Icons.Outlined.Terrain, null, Modifier.size(18.dp),
                                     tint = MaterialTheme.colorScheme.primary) }) {
                                     Text(name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)

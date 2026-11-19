@@ -110,7 +110,7 @@ fun MeetupListItem(meetup: Meetup, dayScoresMap: Map<String, Int> = emptyMap(),
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             // Escuela + distancia como eyebrow
             val eyebrow = buildString {
-                meetup.schoolName?.let { append(it.uppercase()) }
+                (meetup.placeName ?: meetup.schoolName)?.let { append(it.uppercase()) }
                 if (distanceKm != null) append(" · ${distanceKm.toInt()} KM")
             }
             if (eyebrow.isNotBlank()) {
