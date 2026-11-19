@@ -129,27 +129,27 @@ struct GymFiltersPanel: View {
             section(L("DISTANCIA")) {
                 chipRow(SchoolListViewModel.distanceOptions, id: { $0.map { String(Int($0)) } ?? "all" },
                         isSel: { $0 == vm.filter.maxDistanceKm },
-                        label: { $0 == nil ? NSLocalizedString("schools_filter_all", comment: "") : "\(Int($0!)) km" }) {
-                    vm.filter.maxDistanceKm = $0
-                }
+                        label: { $0 == nil ? NSLocalizedString("schools_filter_all", comment: "") : "\(Int($0!)) km" },
+                        onPick: { vm.filter.maxDistanceKm = $0 })
             }
-            section(L("gym_section_discipline").uppercased()) {
-                chipRow([GymToggle.boulder, .rope], id: { $0.rawValue }, isSel: { vm.filter[keyPath: $0.path] },
-                        label: { L($0.key) }) { vm.filter[keyPath: $0.path].toggle() }
-            }
-            section(L("gym_filter_show").uppercased()) {
-                chipRow([GymToggle.free, .street, .openNow, .closed], id: { $0.rawValue },
-                        isSel: { vm.filter[keyPath: $0.path] }, label: { L($0.key) }) { vm.filter[keyPath: $0.path].toggle() }
-            }
+            section(L("gym_section_discipline").uppercased()) { toggleRow([.boulder, .rope]) }
+            section(L("gym_filter_show").uppercased()) { toggleRow([.free, .street, .openNow, .closed]) }
             if !vm.chains.isEmpty {
                 section(L("gym_filter_chain").uppercased()) {
                     chipRow([String?.none] + vm.chains.map { Optional($0) }, id: { $0 ?? "all" },
                             isSel: { ($0 ?? "").lowercased() == (vm.filter.chain ?? "").lowercased() },
-                            label: { $0 ?? L("gym_filter_chain_all") }) { vm.filter.chain = $0 }
+                            label: { $0 ?? L("gym_filter_chain_all") },
+                            onPick: { vm.filter.chain = $0 })
                 }
             }
         }
         .padding(.vertical, 8)
+    }
+
+    /// Una fila de chips de dos estados: cada uno enciende o apaga su campo de `GymFilterState`.
+    private func toggleRow(_ items: [GymToggle]) -> some View {
+        chipRow(items, id: { $0.rawValue }, isSel: { vm.filter[keyPath: $0.path] }, label: { L($0.key) },
+                onPick: { vm.filter[keyPath: $0.path].toggle() })
     }
 
     private func section<C: View>(_ title: String, @ViewBuilder _ content: () -> C) -> some View {
