@@ -482,6 +482,14 @@
       "android": "probado",
       "iosTest": "—",
       "androidTest": "emulador + Maestro 20/20"
+    },
+    {
+      "version": "7.3",
+      "name": "Rocódromos v1: selector, mapa, lista, ficha, correcciones y Plan B (Android)",
+      "ios": "pendiente",
+      "android": "hecho",
+      "iosTest": "—",
+      "androidTest": "tests JVM + capturas; sin probar en móvil (rama feature/rocodromos-v1, sin subir)"
     }
   ],
   "versions": {
