@@ -228,7 +228,7 @@ struct SchoolPresenceRow<Leading: View, Trailing: View>: View {
 struct PresenceMarkButton: View {
     @ObservedObject var vm: SchoolPresenceViewModel
     /// nil = siempre visible; true = solo si ya estás marcado (quitarte); false = solo si NO lo estás (marcarte).
-    var visibleWhenHere: Bool? = nil
+    var visibleWhenHere: Bool?
     /// Botón grande a todo el ancho (aviso central del chat) en vez de la píldora pequeña.
     var big: Bool = false
     @State private var showPrivacyNote = false

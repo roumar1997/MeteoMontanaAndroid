@@ -54,10 +54,16 @@ struct CumbreMarker: Identifiable {
     }
     private var kindKey: String {
         switch kind {
-        case .parking: return "p"; case .zone: return "z"; case .block: return "b"
-        case .school: return "s"; case .user: return "u"; case .score: return "d"
-        case .dot: return "o"; case .cluster: return "c"
-        case .gym: return "g"; case .gymCluster: return "k"
+        case .parking: return "p"
+        case .zone: return "z"
+        case .block: return "b"
+        case .school: return "s"
+        case .user: return "u"
+        case .score: return "d"
+        case .dot: return "o"
+        case .cluster: return "c"
+        case .gym: return "g"
+        case .gymCluster: return "k"
         }
     }
 }

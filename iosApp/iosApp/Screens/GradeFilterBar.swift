@@ -13,7 +13,7 @@ struct GradeFilterBar: View {
     let result: GradeFilterResult
     let onSelectLine: (GradeMatch) -> Void
     /// A la derecha de la cabecera (p. ej. los botones Vía/Bloque de la escuela); recibe `compact` = solo icono.
-    var trailing: ((_ compact: Bool) -> AnyView)? = nil
+    var trailing: ((_ compact: Bool) -> AnyView)?
 
     @State private var expanded = false
     /// Grados con su grupo de resultados desplegado. Se conserva mientras la

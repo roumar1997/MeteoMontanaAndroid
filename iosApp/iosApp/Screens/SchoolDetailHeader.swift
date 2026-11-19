@@ -51,8 +51,7 @@ struct SchoolDetailHeaderActions: View {
         // Guardar offline: con el progreso (rueda) mientras baja, y encendido cuando ya está guardada.
         IconAction(a11y: L("bar_save"), active: vm.isSaved, action: {
             Task {
-                if vm.isSaved { await vm.removeOffline(schoolId: school.id) }
-                else { await vm.saveOffline(school: school) }
+                if vm.isSaved { await vm.removeOffline(schoolId: school.id) } else { await vm.saveOffline(school: school) }
             }
         }, glyph: { tint in
             if vm.savingOffline {

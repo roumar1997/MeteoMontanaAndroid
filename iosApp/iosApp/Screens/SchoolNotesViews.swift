@@ -25,7 +25,7 @@ struct NotesSectionView: View {
     /// Ficha de escuela con pestañas: las notas SIEMPRE abiertas (la pestaña ya es el desplegable).
     var alwaysOpen = false
     /// Nombre de la escuela, para el texto de la caja de escribir.
-    var schoolName: String? = nil
+    var schoolName: String?
     @State private var myPhoto: String?
     @State private var myName: String?
 
@@ -111,8 +111,7 @@ struct NotesSectionView: View {
                         onPublish(text, img)
                     } label: {
                         Group {
-                            if publishing { ProgressView().tint(.white) }
-                            else { Image(systemName: "paperplane.fill").font(.system(size: 15)).foregroundStyle(.white) }
+                            if publishing { ProgressView().tint(.white) } else { Image(systemName: "paperplane.fill").font(.system(size: 15)).foregroundStyle(.white) }
                         }
                         .frame(width: 36, height: 36)
                         .background(canPublish ? Cumbre.terra : Cumbre.terra.opacity(0.35))

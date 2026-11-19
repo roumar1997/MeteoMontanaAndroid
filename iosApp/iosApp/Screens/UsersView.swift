@@ -313,9 +313,9 @@ struct PublicProfileView: View {
             .presentationDetents([.large])
             // La ficha de moderación cuelga de ESTA hoja (VER / ACTUAR vive dentro): colgada del perfil de debajo,
             // SwiftUI no la abría hasta cerrar la hoja de admin (Álvaro, TestFlight 351).
-            .sheet(isPresented: $showModeration, onDismiss: { Task { await vm.refreshModeration() } }) {
+            .sheet(isPresented: $showModeration, onDismiss: { Task { await vm.refreshModeration() } }, content: {
                 if let u = vm.profile?.uid { UserModerationSheet(uid: u) }
-            }
+            })
         }
         .sheet(isPresented: $showReport) {
             ReportSheet(title: L("DENUNCIAR USUARIO"),

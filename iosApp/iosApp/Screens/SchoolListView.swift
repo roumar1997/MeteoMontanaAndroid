@@ -402,63 +402,16 @@ struct SchoolListView: View {
         }
     }
 
-    /// Cabecera de grupo: nombre de la escuela + su índice de escalabilidad de
-    /// HOY (el mismo score que en la lista de Escuelas) + aviso MOJADA — una
-    /// sola vez por grupo en vez de repetirlo vía a vía (§8.3). Pulsable: se
-    /// minimiza para poder ver el resto de escuelas sin tanto scroll (Álvaro,
-    /// 2026-10-01: "que se minimice y pueda ver el resto").
+    /// Cabecera de grupo de «Vías/Bloques» (la vista vive en ExploreGroupHeader.swift).
     private func exploreGroupHeader(_ g: (schoolId: String, schoolName: String, hits: [LineSearchHit])) -> some View {
-        // Si hay un tramo de días elegido (DaySelectorRow), mostrar el score
-        // COMBINADO del tramo, igual que ya hace la lista de Escuelas — si no,
-        // el índice se quedaba siempre fijo en el de HOY aunque el usuario
-        // marcara varios días (Álvaro, 2026-10-01).
-        let score = vm.scores[g.schoolId]
-        let scoreInt = vm.rangeMode
-            ? vm.rangeScores[g.schoolId].map { Int($0.combinedScore) }
-            : score.map { Int($0.todayScore) }
-        let color = scoreInt.map { Cumbre.score($0) } ?? Cumbre.ink3
-        let collapsed = !expandedGroups.contains(g.schoolId)
-        return VStack(alignment: .leading, spacing: 0) {
-            Button {
-                if collapsed { expandedGroups.insert(g.schoolId) } else { expandedGroups.remove(g.schoolId) }
-            } label: {
-                HStack(spacing: 10) {
-                    Text(scoreInt.map(String.init) ?? "—")
-                        .font(Cumbre.serif(17, .bold))
-                        .foregroundStyle(color)
-                        .frame(width: 34, height: 30)
-                        .background(color.opacity(0.12))
-                        .overlay(Rectangle().stroke(color, lineWidth: 1))
-                    VStack(alignment: .leading, spacing: 1) {
-                        HStack(spacing: 7) {
-                            Text(g.schoolName).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
-                            let kind = SchoolKind(style: vm.schools.first(where: { $0.id == g.schoolId })?.style)
-                            if !kind.isEmpty { SchoolKindIcons(kind: kind, height: 15) }
-                        }
-                        if score?.dryRock == false {
-                            Text(L("● MOJADA")).font(.system(size: 10, weight: .semibold)).tracking(0.6)
-                                .foregroundStyle(Cumbre.bad)
-                        }
-                    }
-                    Spacer()
-                    Text(g.hits.count == 1 ? L("1 vía/bloque") : L("%@ vías/bloques", g.hits.count))
-                        .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                    Image(systemName: collapsed ? "chevron.down" : "chevron.up")
-                        .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)
-                }
-                .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, vm.rangeMode ? 4 : 8)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            // Tramo de días: una puntuación por día (J/V/S…), no la combinada
-            // sola — mismo componente que ya usa la lista de Escuelas (Álvaro,
-            // 2026-10-01: "que salgan las tres puntuaciones... no la suma").
-            if vm.rangeMode, let range = vm.rangeScores[g.schoolId] {
-                DayRangeRow(range: range)
-                    .padding(.horizontal, 16).padding(.bottom, 8)
-            }
+        ExploreGroupHeader(
+            schoolName: g.schoolName, hitCount: g.hits.count, score: vm.scores[g.schoolId],
+            range: vm.rangeScores[g.schoolId], rangeMode: vm.rangeMode,
+            kind: SchoolKind(style: vm.schools.first(where: { $0.id == g.schoolId })?.style),
+            collapsed: !expandedGroups.contains(g.schoolId)
+        ) {
+            if expandedGroups.contains(g.schoolId) { expandedGroups.remove(g.schoolId) } else { expandedGroups.insert(g.schoolId) }
         }
-        .background(Cumbre.paper)
     }
 
     /// Fila de vía: miniatura (§8.4), nombre + grado coloreado, piedra/escuela,

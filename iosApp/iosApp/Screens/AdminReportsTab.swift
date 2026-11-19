@@ -158,10 +158,14 @@ struct AdminReportsTab: View {
     }
     private func reasonLabel(_ r: String) -> String {
         switch r.uppercased() {
-        case "SPAM": return "Spam"; case "OFFENSIVE": return "Ofensivo"
-        case "FALSE_INFO": return "Info falsa"; case "HARASSMENT": return "Acoso"
+        case "SPAM": return "Spam"
+        case "OFFENSIVE": return "Ofensivo"
+        case "FALSE_INFO": return "Info falsa"
+        case "HARASSMENT": return "Acoso"
         case "INAPPROPRIATE", "INAPPROPRIATE_PHOTO": return "Foto inapropiada"
-        case "OFFENSIVE_NAME": return "Nombre ofensivo"; default: return "Otro" }
+        case "OFFENSIVE_NAME": return "Nombre ofensivo"
+        default: return "Otro"
+        }
     }
 }
 
@@ -173,7 +177,7 @@ struct UserModerationSheet: View {
     @State private var mod: UserModerationDto? = nil
     @State private var loading = true
     @State private var reason = ""
-    @State private var pending: PendingSanction? = nil
+    @State private var pending: PendingSanction?
 
     var body: some View {
         NavigationStack {
@@ -336,15 +340,22 @@ struct UserModerationSheet: View {
     }
     private func actionLabel(_ a: String) -> String {
         switch a {
-        case "WARN": return "Aviso"; case "SUSPEND": return "Suspensión"
-        case "BAN": return "Baneo"; case "UNBAN": return "Desbaneo"
-        case "DELETE_NOTE": return "Nota borrada"; case "DELETE_COMMENT": return "Comentario borrado"
+        case "WARN": return "Aviso"
+        case "SUSPEND": return "Suspensión"
+        case "BAN": return "Baneo"
+        case "UNBAN": return "Desbaneo"
+        case "DELETE_NOTE": return "Nota borrada"
+        case "DELETE_COMMENT": return "Comentario borrado"
         case "DELETE_MEETUP": return "Quedada borrada"
-        case "MESSAGE": return "Mensaje del Equipo Cumbre"; case "RESET_USERNAME": return "Nombre de usuario restablecido"
-        case "RESET_NAME": return "Nombre restablecido"; case "RENAME_USER": return "Nombre cambiado por el equipo"
-        case "DELETE_FEED_POST": return "Publicación borrada"; case "DELETE_FEED_COMMENT": return "Comentario de Comunidad borrado"
+        case "MESSAGE": return "Mensaje del Equipo Cumbre"
+        case "RESET_USERNAME": return "Nombre de usuario restablecido"
+        case "RESET_NAME": return "Nombre restablecido"
+        case "RENAME_USER": return "Nombre cambiado por el equipo"
+        case "DELETE_FEED_POST": return "Publicación borrada"
+        case "DELETE_FEED_COMMENT": return "Comentario de Comunidad borrado"
         case "DELETE_BETA_LINK": return "Enlace de beta borrado"
-        default: return a }
+        default: return a
+        }
     }
 
     private func reload() async {

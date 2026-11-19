@@ -48,7 +48,7 @@ struct NotificationRowView: View {
         let age = Text(" · " + notificationDateLabel(n.createdAt)).foregroundColor(Cumbre.ink3)
         guard n.type != "TEAM_MESSAGE", let who = n.actorName else {
             var t = Text(n.title).fontWeight(.bold)
-            if let b = n.body, !b.isEmpty { t = t + Text(" · " + b) }
+            if let b = n.body, !b.isEmpty { t += Text(" · " + b) }
             return t + age
         }
         let many = g.others > 0
