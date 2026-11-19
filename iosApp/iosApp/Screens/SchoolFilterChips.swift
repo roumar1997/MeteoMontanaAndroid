@@ -73,7 +73,25 @@ struct FilterChips: View {
         return parts.joined(separator: " · ")
     }
 
+    // Con un filtro activo sale «BORRAR» y la fila (todo .fixedSize) superaba el ancho del iPhone:
+    // la pantalla entera se ensanchaba (Álvaro, 2026-11-19). ViewThatFits elige la variante que cabe:
+    // completa → sin «N escuelas» → «BORRAR» solo con ✕. Nunca más ancha que la pantalla.
     private var filterToggleRow: some View {
+        ViewThatFits(in: .horizontal) {
+            filterToggleRowContent(showCount: true, compactClear: false)
+            filterToggleRowContent(showCount: false, compactClear: false)
+            filterToggleRowContent(showCount: false, compactClear: true)
+            // Letra muy grande en un iPhone estrecho: se desliza en horizontal antes que ensanchar la pantalla.
+            ScrollView(.horizontal, showsIndicators: false) {
+                filterToggleRowContent(showCount: false, compactClear: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .guideTarget("schools.filters")
+    }
+
+    private func filterToggleRowContent(showCount: Bool, compactClear: Bool) -> some View {
         HStack(spacing: 8) {
             Button { withAnimation(.easeInOut(duration: 0.2)) { open.toggle() } } label: {
                 HStack(spacing: 8) {
@@ -87,9 +105,9 @@ struct FilterChips: View {
                     .overlay(Capsule().stroke(activeCount > 0 ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
                     // Nunca se parte («FILTR / OS / (1)» con BORRAR al lado, captura del 302): cede «N escuelas».
                     .lineLimit(1).fixedSize()
-                    if !vm.loading {
+                    if showCount && !vm.loading {
                         Text(L("%@ escuelas", vm.filtered.count)).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(1)
-                            .minimumScaleFactor(0.8)
+                            .fixedSize()
                     }
                     Spacer(minLength: 0)
                     Image(systemName: open ? "chevron.up" : "chevron.down")
@@ -98,27 +116,28 @@ struct FilterChips: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            clearButton
+            clearButton(compact: compactClear)
             if explore.tab == .schools { favoritesChip }
             dayChip
         }
-        .padding(.horizontal, 12)
-        .guideTarget("schools.filters")
     }
 
     /// «BORRAR FILTROS»: aparece solo cuando hay algún filtro movido y lo deja todo como de base, sin desplegar nada.
-    @ViewBuilder private var clearButton: some View {
+    /// En pantallas estrechas queda solo la ✕ (con su etiqueta de accesibilidad).
+    @ViewBuilder private func clearButton(compact: Bool) -> some View {
         if activeCount > 0 {
             Button { withAnimation(.easeInOut(duration: 0.2)) { resetFilters() } } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "xmark").font(.system(size: 9, weight: .bold))
-                    Text(L("BORRAR")).font(Cumbre.mono(10.5, .bold)).tracking(0.6)
+                    if !compact { Text(L("BORRAR")).font(Cumbre.mono(10.5, .bold)).tracking(0.6) }
                 }
                 .foregroundStyle(Cumbre.terra)
                 .padding(.horizontal, 10).padding(.vertical, 7)
                 .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1))
+                .lineLimit(1).fixedSize()
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(L("BORRAR"))
         }
     }
 
