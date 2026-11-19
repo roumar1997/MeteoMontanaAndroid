@@ -6,6 +6,8 @@ import com.meteomontana.android.data.api.dto.ForecastDto
 import com.meteomontana.android.data.api.dto.GymDto
 import com.meteomontana.android.data.api.dto.GymNearDto
 import com.meteomontana.android.data.api.dto.GymReportDto
+import com.meteomontana.android.data.api.dto.GymSessionDto
+import com.meteomontana.android.data.api.dto.GymStatsDto
 import com.meteomontana.android.data.api.dto.JournalSessionDto
 import com.meteomontana.android.data.api.dto.MeetupDto
 import com.meteomontana.android.data.api.dto.PrivateProfileDto
@@ -64,9 +66,9 @@ class ApiContractTest {
         json.decodeFromString(serializer, golden(file, sample))
 
     /** Cada clave que el DTO conoce debe venir en la muestra del backend. */
-    private fun <T> assertDtoKeysInGolden(file: String, serializer: KSerializer<T>) {
-        val dto = fullJson.encodeToJsonElement(serializer, parse(file, "full", serializer))
-        val sample = json.parseToJsonElement(golden(file, "full"))
+    private fun <T> assertDtoKeysInGolden(file: String, serializer: KSerializer<T>, sampleName: String = "full") {
+        val dto = fullJson.encodeToJsonElement(serializer, parse(file, sampleName, serializer))
+        val sample = json.parseToJsonElement(golden(file, sampleName))
         assertKeysCovered(file, "$", dto, sample)
     }
 
@@ -289,6 +291,18 @@ class ApiContractTest {
         val n = parse("gym-report.json", "nulls", ser)
         assertNull(n.gymId); assertNull(n.gymName); assertNull(n.comment); assertNull(n.photoUrl); assertNull(n.proposed)
         assertDtoKeysInGolden("gym-report.json", ser)
+    }
+
+    // ── POST gyms/{id}/sessions/today, GET users/{u}/gym-stats ─────────────
+
+    @Test fun entrenosDeRocodromo() {
+        val s = parse("gym-sessions.json", "session", GymSessionDto.serializer())
+        assertEquals(5L, s.gymId); assertEquals("2026-11-19", s.date); assertEquals("MANUAL", s.source)
+        assertDtoKeysInGolden("gym-sessions.json", GymSessionDto.serializer(), "session")
+        val st = parse("gym-sessions.json", "stats", GymStatsDto.serializer())
+        assertEquals(31, st.sessionsThisYear); assertEquals("Sputnik Madrid", st.topGym!!.name); assertEquals(3, st.streakWeeks)
+        assertNull(parse("gym-sessions.json", "statsEmpty", GymStatsDto.serializer()).topGym)
+        assertDtoKeysInGolden("gym-sessions.json", GymStatsDto.serializer(), "stats")
     }
 
     // ── GET feature-flags (público) ─────────────────────────────────────────

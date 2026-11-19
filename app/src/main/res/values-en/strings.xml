@@ -1933,10 +1933,6 @@
     <string name="gym_train_today">I trained here today</string>
     <string name="gym_train_done">Today\'s session logged</string>
     <string name="gym_train_undo">Undo</string>
-    <string name="gym_train_prompt_title">Log today\'s session?</string>
-    <string name="gym_train_prompt_body">You marked "Here" at %1$s. Count it as today\'s session?</string>
-    <string name="gym_train_prompt_yes">Yes, log it</string>
-    <string name="gym_train_prompt_no">Not now</string>
     <string name="gym_stats_title">Climbing gym</string>
     <string name="gym_stats_week">This week</string>
     <string name="gym_stats_month">This month</string>

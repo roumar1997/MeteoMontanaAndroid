@@ -12,6 +12,7 @@ import com.meteomontana.android.domain.usecase.gym.GetGymsUseCase
 import com.meteomontana.android.domain.usecase.gym.SetGymFavoriteUseCase
 import com.meteomontana.android.ui.screens.gyms.GymsViewModel
 import com.meteomontana.android.ui.screens.gyms.SchoolsLayer
+import com.meteomontana.android.ui.screens.gyms.gymActiveFilterCount
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -100,7 +101,7 @@ class GymsViewModelTest {
         vm.toggleRope(); advanceUntilIdle()
         assertEquals(listOf(2L), vm.state.value.items.map { it.gym.id })
         vm.toggleRope(); vm.toggleBoulder(); advanceUntilIdle()
-        assertEquals(listOf(1L), vm.state.value.items.map { it.gym.id })
+        assertEquals(listOf(1L, 3L), vm.state.value.items.map { it.gym.id })
     }
 
     @Test fun `volver a Roca y a Rocodromos conserva los filtros`() = runTest(dispatcher) {
@@ -126,7 +127,7 @@ class GymsViewModelTest {
         val vm = vm(); observe(vm)
         vm.setLayer(SchoolsLayer.ROCODROMOS); advanceUntilIdle()
         assertFalse(vm.state.value.loadFailed)
-        assertEquals(2, vm.state.value.items.size)
+        assertEquals(3, vm.state.value.items.size)
     }
 
     @Test fun `favorito se marca y se deshace si el servidor falla`() = runTest(dispatcher) {
@@ -144,7 +145,7 @@ class GymsViewModelTest {
         vm.setLayer(SchoolsLayer.ROCODROMOS)
         vm.setOrigin(40.42, -3.7); advanceUntilIdle()
         val items = vm.state.value.items
-        assertEquals(listOf(2L, 1L), items.map { it.gym.id })
+        assertEquals(listOf(2L, 3L, 1L), items.map { it.gym.id })
         assertTrue(items.all { it.distanceKm != null })
     }
 }

@@ -5,12 +5,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.domain.model.SchoolPresence
 import com.meteomontana.android.domain.model.gym.Gym
+import com.meteomontana.android.domain.model.gym.GymSessionSource
 import com.meteomontana.android.domain.usecase.gym.ClearGymPresenceUseCase
 import com.meteomontana.android.domain.usecase.gym.GetCachedGymsUseCase
 import com.meteomontana.android.domain.usecase.gym.GetGymFavoritesUseCase
 import com.meteomontana.android.domain.usecase.gym.GetGymPresenceUseCase
 import com.meteomontana.android.domain.usecase.gym.GetGymUseCase
 import com.meteomontana.android.domain.usecase.gym.MarkGymPresenceUseCase
+import com.meteomontana.android.domain.usecase.gym.RecordGymSessionUseCase
 import com.meteomontana.android.domain.usecase.gym.SetGymFavoriteUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +28,9 @@ data class GymDetailState(
     val people: List<SchoolPresence> = emptyList(),
     val iAmHere: Boolean = false,
     val presenceBusy: Boolean = false,
-    val presenceError: Boolean = false
+    val presenceError: Boolean = false,
+    /** Ya hay entreno apuntado hoy en este rocódromo. */
+    val trainedToday: Boolean = false
 )
 
 /** Ficha de un rocódromo: la ficha (de la copia local al instante), el favorito y «Quién va hoy». */
@@ -39,12 +43,15 @@ class GymDetailViewModel @Inject constructor(
     private val setFavorite: SetGymFavoriteUseCase,
     private val getPresence: GetGymPresenceUseCase,
     private val markPresence: MarkGymPresenceUseCase,
-    private val clearPresence: ClearGymPresenceUseCase
+    private val clearPresence: ClearGymPresenceUseCase,
+    private val recordSession: RecordGymSessionUseCase
 ) : ViewModel() {
 
     private val gymId: Long = savedStateHandle.get<String>("gymId")?.toLongOrNull() ?: -1L
 
-    private val _state = MutableStateFlow(GymDetailState(gym = getCachedGyms().firstOrNull { it.id == gymId }))
+    private val _state = MutableStateFlow(
+        GymDetailState(gym = getCachedGyms().firstOrNull { it.id == gymId }, trainedToday = recordSession.hasSessionToday(gymId))
+    )
     val state: StateFlow<GymDetailState> = _state
 
     init {
@@ -77,6 +84,18 @@ class GymDetailViewModel @Inject constructor(
             val ok = runCatching { if (here) clearPresence.execute(gymId) else markPresence.execute(gymId) }.isSuccess
             _state.update { it.copy(presenceBusy = false, presenceError = !ok, iAmHere = if (ok) !here else here) }
             loadPresence(myUid)
+            // Marcar «Aquí» ya apunta el entreno en el servidor (PRESENCE): se relee para que el botón lo refleje.
+            if (ok && !here) runCatching { recordSession.refresh() }.onSuccess { _state.update { s -> s.copy(trainedToday = recordSession.hasSessionToday(gymId)) } }
+        }
+    }
+
+    /** «He entrenado aquí hoy»: apunta el día de hoy o, si ya estaba apuntado, lo quita. Funciona sin red. */
+    fun toggleTraining() {
+        val done = _state.value.trainedToday
+        _state.update { it.copy(trainedToday = !done) }
+        viewModelScope.launch {
+            val ok = runCatching { if (done) recordSession.undo(gymId) else recordSession.execute(gymId, GymSessionSource.MANUAL) }.isSuccess
+            if (!ok) _state.update { it.copy(trainedToday = done) }
         }
     }
 

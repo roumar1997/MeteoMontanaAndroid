@@ -26,7 +26,7 @@ class GymFiltersTest {
         GymFilterEngine.apply(all, f, origin, fav, now).map { it.gym.id }
 
     @Test
-    fun `todo junto en una sola capa, y oculta las bajas`() {
+    fun `todo junto en una sola capa, y oculta los cerrados`() {
         assertEquals(setOf(1L, 2, 3, 4, 5, 6), ids(GymFilters()).toSet())
     }
 

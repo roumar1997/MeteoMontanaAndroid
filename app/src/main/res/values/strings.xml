@@ -1992,10 +1992,6 @@
     <string name="gym_train_today">He entrenado aquí hoy</string>
     <string name="gym_train_done">Entreno de hoy apuntado</string>
     <string name="gym_train_undo">Quitar</string>
-    <string name="gym_train_prompt_title">¿Apuntar el entreno de hoy?</string>
-    <string name="gym_train_prompt_body">Has marcado «Aquí» en %1$s. ¿Lo cuento como entreno de hoy?</string>
-    <string name="gym_train_prompt_yes">Sí, apuntar</string>
-    <string name="gym_train_prompt_no">Ahora no</string>
     <string name="gym_stats_title">Rocódromo</string>
     <string name="gym_stats_week">Esta semana</string>
     <string name="gym_stats_month">Este mes</string>

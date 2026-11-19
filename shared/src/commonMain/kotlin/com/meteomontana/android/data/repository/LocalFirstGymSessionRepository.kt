@@ -35,7 +35,7 @@ class LocalFirstGymSessionRepository(
         val session = GymSession(gymId, today(), source)
         save(load().filterNot { it.gymId == gymId && it.date == session.date } + session)
         try {
-            api.checkInToday(gymId, source.name)
+            api.checkInToday(gymId)
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) { /* sin ruta o sin red: queda la copia local */ }
@@ -53,9 +53,9 @@ class LocalFirstGymSessionRepository(
     }
 
     override suspend fun refresh(): List<GymSession> {
-        val since = LocalDate(today().year, 1, 1).toString()
+        val from = LocalDate(today().year, 1, 1).toString()
         val remote = try {
-            api.mine(since).mapNotNull { it.toDomainOrNull() }
+            api.mine(from, today().toString()).mapNotNull { it.toDomainOrNull() }
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {

@@ -33,10 +33,6 @@
 | `gym_train_today` | He entrenado aquí hoy | I trained here today | Botón de la ficha |
 | `gym_train_done` | Entreno de hoy apuntado | Today's session logged | Botón de la ficha, ya apuntado |
 | `gym_train_undo` | Quitar | Undo | Deshacer el entreno de hoy |
-| `gym_train_prompt_title` | ¿Apuntar el entreno de hoy? | Log today's session? | Aviso tras marcar «Aquí» |
-| `gym_train_prompt_body` | Has marcado «Aquí» en %1$s. ¿Lo cuento como entreno de hoy? | You marked "Here" at %1$s. Count it as today's session? | Aviso tras marcar «Aquí» |
-| `gym_train_prompt_yes` | Sí, apuntar | Yes, log it | Aviso |
-| `gym_train_prompt_no` | Ahora no | Not now | Aviso |
 | `gym_stats_title` | Rocódromo | Climbing gym | Tarjeta del perfil |
 | `gym_stats_week` | Esta semana | This week | Tarjeta del perfil |
 | `gym_stats_month` | Este mes | This month | Tarjeta del perfil |

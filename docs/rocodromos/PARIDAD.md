@@ -172,3 +172,16 @@ Hoja modal a altura completa (sin media altura), fondo `cumbreSheetSurface`, con
 | Textos ES/EN e iconos | hecho | `Localizable.strings`, `Assets.xcassets/gym_ic_*` |
 
 Diferencias conocidas: el mapa de iOS no recuerda el encuadre al cambiar de capa si se destruye la pantalla de Escuelas; «Mi ubicación» reutiliza el texto ya existente; el mapa muestra el punto azul del usuario como el resto de mapas de iOS.
+
+## 9. Ronda del emulador (2026-11-19, Android hecho; iOS por replicar)
+
+Cambios respecto a las secciones 1 a 4. En iOS hay que copiarlos igual (y arreglar `GymMode`, que ya no existe en shared).
+
+1. **Selector**: solo `ROCA | ROCÓDROMOS`, dos segmentos de la fila entera con el mismo ancho (mismo control que `ExploreTabSwitcher`). Se quita «Muros gratis». Los muros de calle son el filtro «De calle (gratis)» (`GymFilters.onlyStreet`; `GymMode` borrado de shared) y el tipo se llama **«Muro de calle»** en lista y ficha.
+2. **Mapa = el de Escuelas**: satélite por defecto, botón de capas (satélite/topo) y botón de ubicación arriba a la derecha. Nada de estilo propio.
+3. **Filtros = los de Escuelas**: orden fijo: buscador, `Mapa | Lista` (segmentado), fila plegable `FILTROS (n) · N rocódromos ⌄` + BORRAR + chip `★ FAVORITOS` (sin chip de días). Panel plegado por defecto con secciones DISTANCIA (mismos valores que Escuelas: Todas, 50…500 km; **arranca en 50 km** y, como Escuelas, un radio sin ningún rocódromo dentro se ignora: `GymFilterEngine.effectiveMaxDistanceKm`), MODALIDAD, MOSTRAR (Gratis, De calle, Abierto ahora, Incluir cerrados) y CADENA. Orden: por cercanía. BORRAR vuelve a 50 km y sin chips. El número de «FILTROS (n)» cuenta lo movido respecto a la base (`gymActiveFilterCount`).
+4. **Nombre bajo el marcador**: desde zoom 10,5, texto 11 bold con halo blanco (recortado a 18 letras). Reparto sin solapes: ver `GymLabelPlanner` (un nombre solo sale si su caja no pisa el círculo de otro marcador ni otro nombre; el seleccionado manda). El marcador se baja el alto del nombre para que el círculo siga en su sitio.
+5. **Agrupación** (`GymClusterer`, shared): celda 40 px (antes 64) y sin agrupar desde zoom **11** (antes 13). Tocar un grupo encuadra sus miembros.
+6. **Favoritos**: chip `★ FAVORITOS` en la fila de filtros (filtra) y estrella tocable (40 dp) en la tarjeta de cristal y en cada fila de la lista.
+7. **Cerrados**: `Gym.closed` (campo `closed` de `GymDto`, golden `gyms.json`). Fuera por defecto; el filtro «Incluir cerrados» los enseña con la etiqueta roja «Cerrado» (sin horario).
+8. **Entrenos**: ficha con botón «He entrenado aquí hoy» (pasa a «Entreno de hoy apuntado» + «Quitar»); marcar «Aquí» ya apunta el entreno en el servidor (PRESENCE) y la app solo relee. Tarjeta «Rocódromo» en el perfil propio (semana, mes, año, más visitado, racha en semanas) con `GymStatsCalculator` de shared sobre las sesiones locales + `GET gyms/sessions`; funciona sin red. Contrato: `gym-sessions.json`. `GymStatsDto` y `KtorGymSessionApi.stats` ya existen para el perfil público de otros usuarios (sin pantalla todavía).

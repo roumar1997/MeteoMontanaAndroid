@@ -14,6 +14,9 @@ class RecordGymSessionUseCase(private val repo: GymSessionRepository) {
     @Throws(Exception::class)
     suspend fun undo(gymId: Long) = repo.undoToday(gymId)
 
+    @Throws(Exception::class)
+    suspend fun refresh() { repo.refresh() }
+
     fun hasSessionToday(gymId: Long): Boolean {
         val today = repo.today()
         return repo.sessions().any { it.gymId == gymId && it.date == today }

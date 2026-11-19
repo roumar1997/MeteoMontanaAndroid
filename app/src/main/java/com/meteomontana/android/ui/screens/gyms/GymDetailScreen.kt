@@ -102,7 +102,15 @@ fun GymDetailScreen(
                     onLoad = viewModel::loadPresence, onToggle = viewModel::togglePresence
                 )
                 GymActionPill(
-                    stringResource(R.string.gym_create_meetup), { onCreateMeetup(gym) }, Modifier.fillMaxWidth().padding(top = Spacing.sm)
+                    stringResource(if (state.trainedToday) R.string.gym_train_done else R.string.gym_train_today),
+                    viewModel::toggleTraining, Modifier.fillMaxWidth().padding(top = Spacing.sm), primary = !state.trainedToday
+                )
+                if (state.trainedToday) Text(
+                    stringResource(R.string.gym_train_undo), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.CenterHorizontally).clickable(onClick = viewModel::toggleTraining).padding(Spacing.sm)
+                )
+                GymActionPill(
+                    stringResource(R.string.gym_create_meetup), { onCreateMeetup(gym) }, Modifier.fillMaxWidth()
                 )
                 Box(
                     Modifier.fillMaxWidth().padding(top = Spacing.md).clip(CircleShape)
@@ -117,6 +125,7 @@ fun GymDetailScreen(
         }
     }
     if (reportOpen && gym != null) GymReportSheet(gym = gym, onDismiss = { reportOpen = false })
+
 }
 
 @Composable

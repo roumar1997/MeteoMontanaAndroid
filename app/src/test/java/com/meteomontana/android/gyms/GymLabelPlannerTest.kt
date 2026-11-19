@@ -13,7 +13,7 @@ class GymLabelPlannerTest {
         assertEquals(setOf("a", "b"), r)
     }
 
-    @Test fun `dos marcadores pegados no se pisan: solo uno lleva nombre`() {
+    @Test fun `dos marcadores pegados no se pisan, solo uno lleva nombre`() {
         val r = GymLabelPlanner.plan(listOf(LabelCandidate("a", 100f, 200f, 12), LabelCandidate("b", 120f, 200f, 12)), 1f)
         assertEquals(1, r.size)
     }

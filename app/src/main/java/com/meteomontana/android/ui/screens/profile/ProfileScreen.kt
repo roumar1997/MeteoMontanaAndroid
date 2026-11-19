@@ -314,6 +314,7 @@ internal fun Content(
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
     val density = androidx.compose.ui.platform.LocalDensity.current
     val headerIndex = if (offline) 1 else 0
+    val gymsOn = com.meteomontana.android.ui.components.LocalFeatureFlags.current.isGymsEnabled
     com.meteomontana.android.ui.components.UnclippedAvatarHost(
         slotOffsetPx = {
             // Y del hueco del avatar: la cabecera + el margen superior de la lista + su propio padding.
@@ -351,6 +352,8 @@ internal fun Content(
             onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing,
             avatarSlot = avatarSlot) }
         item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects, onOpenMyPosts, onOpenStats) }
+        // Entrenos en rocódromo (solo con el interruptor `gyms_enabled` encendido).
+        if (gymsOn) item { GymStatsCard() }
         // Admin ya no va aquí: es un botón arriba a la izquierda (junto al "?").
         // La lista de escuelas tampoco (ya vive en la pestaña Diario).
         item { Spacer(Modifier.height(24.dp)) }

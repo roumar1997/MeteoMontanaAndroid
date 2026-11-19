@@ -44,7 +44,6 @@ data class GymDto(
     val source: String? = null,
     val hidden: Boolean = false,
     val updatedAt: String? = null,
-    /** Aditivo: el servidor aun no lo manda (ver docs/rocodromos/PARIDAD.md); ausente = abierto. */
     val closed: Boolean = false
 )
 

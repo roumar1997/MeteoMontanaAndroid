@@ -1,0 +1,15 @@
+{
+  "session": {
+    "id": 11, "gymId": 5, "date": "2026-11-19", "startedAt": "2026-11-19T18:00:00Z", "source": "MANUAL"
+  },
+  "stats": {
+    "year": 2026, "sessionsThisWeek": 1, "sessionsThisMonth": 4, "sessionsThisYear": 31,
+    "topGym": { "gymId": 5, "name": "Sputnik Madrid", "city": "Madrid", "visits": 12 },
+    "streakWeeks": 3, "bestStreakWeeks": 6, "gymDays": 29, "outdoorDays": 14
+  },
+  "statsEmpty": {
+    "year": 2026, "sessionsThisWeek": 0, "sessionsThisMonth": 0, "sessionsThisYear": 0,
+    "topGym": null,
+    "streakWeeks": 0, "bestStreakWeeks": 0, "gymDays": 0, "outdoorDays": 0
+  }
+}
