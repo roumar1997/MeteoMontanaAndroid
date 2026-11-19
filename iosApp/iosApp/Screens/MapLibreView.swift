@@ -10,43 +10,6 @@ import Shared
 // nombre, escuela triángulo, usuario punto azul) y, en la lista, un diamante
 // coloreado por score con el número y el nombre debajo.
 
-// MARK: - Estilo de tiles (topo / satélite)
-
-enum MapStyleKind: String, CaseIterable {
-    case topo
-    case satellite
-
-    var label: String { self == .topo ? L("Topográfico") : L("Satélite") }
-
-    /// JSON de estilo MapLibre v8 escrito a un fichero temporal (MLNMapView pide
-    /// una URL). Espejo exacto de las fuentes que usa Android.
-    func styleURL() -> URL {
-        let json: String
-        switch self {
-        case .topo:
-            json = """
-            { "version": 8, "sources": { "topo": { "type": "raster",
-              "tiles": ["https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
-                        "https://b.tile.opentopomap.org/{z}/{x}/{y}.png",
-                        "https://c.tile.opentopomap.org/{z}/{x}/{y}.png"],
-              "tileSize": 256, "maxzoom": 17, "attribution": "© OpenTopoMap (CC-BY-SA)" } },
-              "layers": [{ "id": "bg", "type": "background", "paint": { "background-color": "#F4F1E9" } }, { "id": "topo", "type": "raster", "source": "topo" }] }
-            """
-        case .satellite:
-            json = """
-            { "version": 8, "sources": { "sat": { "type": "raster",
-              "tiles": ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
-              "tileSize": 256, "maxzoom": 19, "attribution": "Tiles © Esri" } },
-              "layers": [{ "id": "bg", "type": "background", "paint": { "background-color": "#F4F1E9" } }, { "id": "sat", "type": "raster", "source": "sat" }] }
-            """
-        }
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("cumbre-style-\(rawValue).json")
-        try? json.data(using: .utf8)?.write(to: url)
-        return url
-    }
-}
-
 // MARK: - Marcador
 
 enum MarkerKind {
@@ -58,6 +21,8 @@ enum MarkerKind {
     case score        // diamante coloreado por score (lista de escuelas)
     case dot          // puntito por score (radar a zoom país)
     case cluster      // círculo terra con contador (piedras agrupadas por zoom)
+    case gym          // círculo del color del tipo con su icono (rocódromos)
+    case gymCluster   // círculo de tinta de marca con el número (rocódromos agrupados)
 }
 
 /// Marcador del mapa. `kind` decide la forma; `label`, `score` y `name`
@@ -78,16 +43,21 @@ struct CumbreMarker: Identifiable {
     var showName: Bool = false
     /// Solo .block: "BOULDER" (crashpad) o "ROUTE" (mosquetón). nil = polígono de roca clásico.
     var discipline: String? = nil
+    /// Solo .gym: nombre del icono (assets), si está seleccionado y el rótulo bajo el círculo ("GRATIS").
+    var glyph: String?
+    var selected = false
+    var badge: String?
 
     /// Firma estable para cachear/diff (incluye todo lo que afecta al dibujo).
     var drawSignature: String {
-        "\(id)|\(kindKey)|\(color.hexKey)|\(score ?? -1)|\(showName ? (name ?? "") : "")|\(discipline ?? "")"
+        "\(id)|\(kindKey)|\(color.hexKey)|\(score ?? -1)|\(showName ? (name ?? "") : "")|\(discipline ?? "")|\(glyph ?? "")|\(selected)|\(badge ?? "")"
     }
     private var kindKey: String {
         switch kind {
         case .parking: return "p"; case .zone: return "z"; case .block: return "b"
         case .school: return "s"; case .user: return "u"; case .score: return "d"
         case .dot: return "o"; case .cluster: return "c"
+        case .gym: return "g"; case .gymCluster: return "k"
         }
     }
 }

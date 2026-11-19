@@ -1996,3 +1996,129 @@
 "Buscar vías y bloques" = "Search routes and boulders";
 "Buscar vías, sectores, parkings…" = "Search routes, sectors, parking…";
 "Pulsa «Aquí» para participar en el chat y ver cuánta gente hay en la escuela" = "Tap \"Here\" to join the chat and see how many people are at the crag";
+
+
+/* Rocódromos · Selector y vistas */
+"gym_layer_rock" = "Rock";
+"gym_layer_gyms" = "Climbing gyms";
+"gym_layer_free" = "Free walls";
+"gym_view_map" = "Map";
+"gym_view_list" = "List";
+"gym_search_hint" = "Search gym, city or chain";
+"gym_count_gyms" = "%1$@ climbing gyms";
+"gym_count_free" = "%1$@ free walls";
+"gym_empty" = "No results with these filters";
+"gym_clear_filters" = "Clear filters";
+"gym_load_error" = "Could not load the gyms. Check your connection.";
+"gym_retry" = "Retry";
+
+/* Rocódromos · Filtros (cápsulas) */
+"gym_filter_free" = "Free";
+"gym_filter_boulder" = "Bouldering";
+"gym_filter_rope" = "Rope";
+"gym_filter_open_now" = "Open now";
+"gym_filter_favorites" = "Favorites";
+"gym_filter_chain" = "Chain";
+"gym_filter_chain_all" = "All chains";
+"gym_filter_distance" = "%1$@ km";
+"gym_filter_distance_any" = "Distance";
+"gym_filter_distance_any_option" = "No limit";
+
+/* Rocódromos · Tipo, modalidad y estado */
+"gym_kind_commercial" = "Commercial";
+"gym_kind_municipal" = "Municipal";
+"gym_kind_free" = "Free wall";
+"gym_pay" = "Paid";
+"gym_free_badge" = "FREE";
+"gym_free_tag" = "Free";
+"gym_disc_boulder" = "Bouldering";
+"gym_disc_rope" = "Rope";
+"gym_disc_both" = "Bouldering + rope";
+"gym_disc_outdoor" = "Outdoor wall";
+"gym_open_until" = "Open · until %1$@";
+"gym_closed" = "Closed";
+"gym_closed_opens" = "Closed · opens at %1$@";
+"gym_distance_km" = "%1$@ km";
+"gym_distance_m" = "%1$@ m";
+
+/* Rocódromos · Ficha */
+"gym_directions" = "Directions";
+"gym_web" = "Website";
+"gym_instagram" = "Instagram";
+"gym_view_card" = "View details";
+"gym_section_discipline" = "Discipline";
+"gym_section_hours" = "Opening hours";
+"gym_section_price" = "Estimated price";
+"gym_section_services" = "Facilities";
+"gym_section_who" = "Who is going today";
+"gym_hours_unknown" = "Opening hours not confirmed";
+"gym_hours_mon_fri" = "Mon–Fri";
+"gym_hours_sat_sun" = "Sat–Sun";
+"gym_hours_sat" = "Sat";
+"gym_hours_sun" = "Sun";
+"gym_hours_daily" = "Every day";
+"gym_hours_line" = "%1$@ %2$@–%3$@";
+"gym_price_single" = "Single entry ~%1$@ €";
+"gym_price_pass" = "%1$@ ~%2$@ €";
+"gym_price_pass_default" = "Pass";
+"gym_price_free" = "Free entry";
+"gym_price_asof" = "Checked on %1$@";
+"gym_price_unverified" = "(unverified)";
+"gym_price_unknown" = "No price data yet";
+"gym_service_autobelay" = "Auto-belay";
+"gym_service_gear" = "Gear rental";
+"gym_service_kids" = "Kids";
+"gym_service_beginner" = "Beginners";
+"gym_yes" = "Yes";
+"gym_no" = "No";
+"gym_unknown" = "Unconfirmed";
+"gym_verified" = "Confirmed by the community";
+"gym_osm" = "© OpenStreetMap";
+"gym_favorite_add" = "Add to favorites";
+"gym_favorite_remove" = "Remove from favorites";
+
+/* Rocódromos · Quién va hoy y quedadas */
+"gym_here_now" = "%1$@ here now";
+"gym_here_none" = "Nobody has marked “Here” yet";
+"gym_here_join" = "Join";
+"gym_here_leave" = "I left";
+"gym_here_error" = "Could not update “Here”";
+"gym_create_meetup" = "Create meetup here";
+"gym_meetup_default_name" = "Meetup at %1$@";
+"gym_meetup_place_label" = "Climbing gym";
+
+/* Rocódromos · Corregir y añadir */
+"gym_fix_cta" = "Something wrong? Fix it";
+"gym_fix_title" = "Fix details";
+"gym_fix_what" = "What is not correct?";
+"gym_issue_free" = "It is free";
+"gym_issue_paid" = "It is paid";
+"gym_issue_boulder" = "It has bouldering";
+"gym_issue_rope" = "It has ropes";
+"gym_issue_closed" = "It is closed";
+"gym_issue_location" = "Wrong location";
+"gym_issue_other" = "Other";
+"gym_comment" = "Comment";
+"gym_comment_hint" = "Now there is free entry on Sundays…";
+"gym_add_photo" = "Add photo";
+"gym_change_photo" = "Change photo";
+"gym_optional" = "optional";
+"gym_send" = "Send";
+"gym_review_note" = "An admin will review it";
+"gym_sent" = "Sent. An admin will review it.";
+"gym_send_error" = "Could not send. Try again.";
+"gym_report_need_issue" = "Pick at least one option or write a comment";
+"gym_add_missing" = "Add a missing wall";
+"gym_new_name" = "Name";
+"gym_new_name_hint" = "Park wall…";
+"gym_new_place_note" = "Placed at the map centre · published after review";
+"gym_new_place_here" = "Location: %1$@";
+"gym_new_kind_free" = "Free wall";
+"gym_new_kind_municipal" = "Municipal";
+"gym_new_kind_commercial" = "Commercial";
+"gym_new_title" = "Add a wall";
+
+/* Rocódromos · Plan B */
+"gym_nearby_title" = "Climbing gyms nearby";
+"gym_nearby_subtitle" = "The rock is wet. Indoor plan B.";
+"gym_nearby_row" = "%1$@ · %2$@";

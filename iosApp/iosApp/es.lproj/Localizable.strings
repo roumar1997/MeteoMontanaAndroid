@@ -276,3 +276,129 @@
 "bar_save" = "Guardar";
 "bar_caterpillar" = "Oruga";
 "bar_contribute" = "Aportar";
+
+
+/* Rocódromos · Selector y vistas */
+"gym_layer_rock" = "Roca";
+"gym_layer_gyms" = "Rocódromos";
+"gym_layer_free" = "Muros gratis";
+"gym_view_map" = "Mapa";
+"gym_view_list" = "Lista";
+"gym_search_hint" = "Busca rocódromo, ciudad o cadena";
+"gym_count_gyms" = "%1$@ rocódromos";
+"gym_count_free" = "%1$@ muros gratis";
+"gym_empty" = "Ningún resultado con estos filtros";
+"gym_clear_filters" = "Quitar filtros";
+"gym_load_error" = "No se pudieron cargar los rocódromos. Comprueba la conexión.";
+"gym_retry" = "Reintentar";
+
+/* Rocódromos · Filtros (cápsulas) */
+"gym_filter_free" = "Gratis";
+"gym_filter_boulder" = "Bloque";
+"gym_filter_rope" = "Cuerda";
+"gym_filter_open_now" = "Abierto ahora";
+"gym_filter_favorites" = "Favoritos";
+"gym_filter_chain" = "Cadena";
+"gym_filter_chain_all" = "Todas las cadenas";
+"gym_filter_distance" = "%1$@ km";
+"gym_filter_distance_any" = "Distancia";
+"gym_filter_distance_any_option" = "Sin límite";
+
+/* Rocódromos · Tipo, modalidad y estado */
+"gym_kind_commercial" = "Comercial";
+"gym_kind_municipal" = "Municipal";
+"gym_kind_free" = "Muro gratis";
+"gym_pay" = "De pago";
+"gym_free_badge" = "GRATIS";
+"gym_free_tag" = "Gratis";
+"gym_disc_boulder" = "Bloque";
+"gym_disc_rope" = "Cuerda";
+"gym_disc_both" = "Bloque + cuerda";
+"gym_disc_outdoor" = "Muro al aire libre";
+"gym_open_until" = "Abierto · hasta %1$@";
+"gym_closed" = "Cerrado";
+"gym_closed_opens" = "Cerrado · abre a las %1$@";
+"gym_distance_km" = "%1$@ km";
+"gym_distance_m" = "%1$@ m";
+
+/* Rocódromos · Ficha */
+"gym_directions" = "Cómo llegar";
+"gym_web" = "Web";
+"gym_instagram" = "Instagram";
+"gym_view_card" = "Ver ficha";
+"gym_section_discipline" = "Modalidad";
+"gym_section_hours" = "Horario";
+"gym_section_price" = "Precio orientativo";
+"gym_section_services" = "Servicios";
+"gym_section_who" = "Quién va hoy";
+"gym_hours_unknown" = "Horario sin confirmar";
+"gym_hours_mon_fri" = "L–V";
+"gym_hours_sat_sun" = "S–D";
+"gym_hours_sat" = "S";
+"gym_hours_sun" = "D";
+"gym_hours_daily" = "Todos los días";
+"gym_hours_line" = "%1$@ %2$@–%3$@";
+"gym_price_single" = "Entrada suelta ~%1$@ €";
+"gym_price_pass" = "%1$@ ~%2$@ €";
+"gym_price_pass_default" = "Bono";
+"gym_price_free" = "Entrada gratuita";
+"gym_price_asof" = "Revisado el %1$@";
+"gym_price_unverified" = "(sin verificar)";
+"gym_price_unknown" = "Sin dato de precio todavía";
+"gym_service_autobelay" = "Autoseguro";
+"gym_service_gear" = "Alquiler de material";
+"gym_service_kids" = "Niños";
+"gym_service_beginner" = "Principiantes";
+"gym_yes" = "Sí";
+"gym_no" = "No";
+"gym_unknown" = "Sin confirmar";
+"gym_verified" = "Confirmado por la comunidad";
+"gym_osm" = "© OpenStreetMap";
+"gym_favorite_add" = "Añadir a favoritos";
+"gym_favorite_remove" = "Quitar de favoritos";
+
+/* Rocódromos · Quién va hoy y quedadas */
+"gym_here_now" = "%1$@ en «Aquí» ahora";
+"gym_here_none" = "Nadie ha marcado «Aquí» todavía";
+"gym_here_join" = "Unirme";
+"gym_here_leave" = "Ya no estoy";
+"gym_here_error" = "No se pudo actualizar «Aquí»";
+"gym_create_meetup" = "Crear quedada aquí";
+"gym_meetup_default_name" = "Quedada en %1$@";
+"gym_meetup_place_label" = "Rocódromo";
+
+/* Rocódromos · Corregir y añadir */
+"gym_fix_cta" = "¿Algo no es así? Corregir";
+"gym_fix_title" = "Corregir datos";
+"gym_fix_what" = "¿Qué no es correcto?";
+"gym_issue_free" = "Es gratis";
+"gym_issue_paid" = "Es de pago";
+"gym_issue_boulder" = "Es de bloque";
+"gym_issue_rope" = "Es de cuerda";
+"gym_issue_closed" = "Está cerrado";
+"gym_issue_location" = "Ubicación mal";
+"gym_issue_other" = "Otro";
+"gym_comment" = "Comentario";
+"gym_comment_hint" = "Ahora hay entrada libre los domingos…";
+"gym_add_photo" = "Añadir foto";
+"gym_change_photo" = "Cambiar foto";
+"gym_optional" = "opcional";
+"gym_send" = "Enviar";
+"gym_review_note" = "La revisará un admin";
+"gym_sent" = "Enviado. La revisará un admin.";
+"gym_send_error" = "No se pudo enviar. Inténtalo de nuevo.";
+"gym_report_need_issue" = "Elige al menos una opción o escribe un comentario";
+"gym_add_missing" = "Añadir un muro que falta";
+"gym_new_name" = "Nombre";
+"gym_new_name_hint" = "Muro del parque…";
+"gym_new_place_note" = "Se coloca en el centro del mapa · se publica tras revisión";
+"gym_new_place_here" = "Ubicación: %1$@";
+"gym_new_kind_free" = "Muro gratis";
+"gym_new_kind_municipal" = "Municipal";
+"gym_new_kind_commercial" = "Comercial";
+"gym_new_title" = "Añadir un muro";
+
+/* Rocódromos · Plan B */
+"gym_nearby_title" = "Rocódromos cerca";
+"gym_nearby_subtitle" = "La roca está mojada. Plan B bajo techo.";
+"gym_nearby_row" = "%1$@ · %2$@";
