@@ -2,6 +2,7 @@ package com.meteomontana.android.domain.model
 
 data class Meetup(
     val id: String,
+    /** Vacio en una quedada de rocodromo (mira [gymId]). */
     val schoolId: String,
     val schoolName: String?,
     val schoolLat: Double?,
@@ -22,8 +23,12 @@ data class Meetup(
     val expiresAt: Long,        // epoch millis
     val createdAt: Long,
     val members: List<MeetupMember>,
-    val joined: Boolean
+    val joined: Boolean,
+    val gymId: Long? = null,    // rocodromo; null = escuela
+    val placeName: String? = null
 ) {
+    val isGymMeetup: Boolean get() = gymId != null
+
     val isFull: Boolean get() = memberLimit != null && memberCount >= memberLimit
 
     // Alias para Swift: `description` choca con NSObject.description vía SKIE.
@@ -46,5 +51,6 @@ data class CreateMeetupRequest(
     val privacy: String,
     val memberLimit: Int?,
     val photoUrl: String?,
-    val days: List<String>      // ISO dates
+    val days: List<String>,     // ISO dates
+    val gymId: Long? = null     // rocodromo (entonces schoolId va en blanco)
 )

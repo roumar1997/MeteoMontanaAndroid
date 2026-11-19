@@ -33,7 +33,7 @@ class MeetupCacheRepository(
         meetups.forEach { m ->
             q.upsertMeetup(
                 id = m.id,
-                schoolId = m.schoolId,
+                schoolId = m.schoolId.orEmpty(),
                 schoolName = m.schoolName,
                 name = m.name,
                 discipline = m.discipline,

@@ -5,7 +5,7 @@ import com.meteomontana.android.domain.model.MeetupMember
 
 fun MeetupDto.toDomain(): Meetup = Meetup(
     id = id,
-    schoolId = schoolId,
+    schoolId = schoolId.orEmpty(),
     schoolName = schoolName,
     schoolLat = schoolLat,
     schoolLon = schoolLon,
@@ -25,7 +25,9 @@ fun MeetupDto.toDomain(): Meetup = Meetup(
     expiresAt = isoToEpochMillis(expiresAt),
     createdAt = isoToEpochMillis(createdAt),
     members = members.map { it.toDomain() },
-    joined = joined
+    joined = joined,
+    gymId = gymId,
+    placeName = placeName
 )
 
 fun MeetupMemberDto.toDomain() = MeetupMember(

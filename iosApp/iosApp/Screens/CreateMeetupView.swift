@@ -209,7 +209,8 @@ struct CreateMeetupView: View {
                                 return KotlinInt(int: n)
                             }(),
                             photoUrl: photoUrl,
-                            days: selectedDays.sorted()
+                            days: selectedDays.sorted(),
+                            gymId: nil
                         )
                         Task {
                             do {

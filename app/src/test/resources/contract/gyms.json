@@ -1,0 +1,27 @@
+{
+  "full": [
+    {
+      "id": 5, "slug": "madrid-madrid-sputnik-madrid", "name": "Sputnik Madrid", "chain": "Sputnik",
+      "kind": "COMMERCIAL", "discipline": "BOTH", "region": "Comunidad de Madrid", "province": "Madrid",
+      "city": "Madrid", "address": "Calle Mayor 1", "lat": 40.4168, "lon": -3.7038,
+      "website": "https://www.sputnikclimbing.com", "instagram": "sputnikclimbing",
+      "openingHours": [{"days": "MON-FRI", "open": "10:00", "close": "23:00"}, {"days": "SAT,SUN", "open": "10:00", "close": "21:00"}],
+      "priceSingleEur": 12.5, "pricePassEur": 45, "pricePassLabel": "Bono 10 entradas",
+      "priceUpdatedAt": "2026-11-01", "hasAutobelay": true, "hasGearRental": true,
+      "kidsFriendly": true, "beginnerFriendly": true, "outdoor": false, "verification": "VERIFIED",
+      "source": "OpenStreetMap node1", "hidden": false, "updatedAt": "2026-11-19T10:00:00Z"
+    }
+  ],
+  "nulls": [
+    {
+      "id": 6, "slug": "cadiz-cadiz-muro", "name": "Muro", "chain": null,
+      "kind": "FREE", "discipline": "UNKNOWN", "region": "Andalucía", "province": "Cádiz",
+      "city": "Cádiz", "address": null, "lat": 36.5, "lon": -6.2,
+      "website": null, "instagram": null, "openingHours": null,
+      "priceSingleEur": null, "pricePassEur": null, "pricePassLabel": null,
+      "priceUpdatedAt": null, "hasAutobelay": null, "hasGearRental": null,
+      "kidsFriendly": null, "beginnerFriendly": null, "outdoor": true, "verification": "UNCONFIRMED",
+      "source": null, "hidden": false, "updatedAt": "2026-11-19T10:00:00Z"
+    }
+  ]
+}

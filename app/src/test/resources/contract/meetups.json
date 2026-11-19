@@ -13,7 +13,8 @@
         {"uid": "uid123", "username": "ana_escaladora", "displayName": "Ana",
          "photoUrl": "https://x/foto.jpg", "gearJson": "{\"crashpads\":2}"}
       ],
-      "joined": true
+      "joined": true,
+      "gymId": 12, "placeName": "Zarzalejo"
     }
   ],
   "nulls": [
@@ -29,7 +30,8 @@
       "members": [
         {"uid": "uid456", "username": null, "displayName": null, "photoUrl": null, "gearJson": null}
       ],
-      "joined": false
+      "joined": false,
+      "gymId": null, "placeName": null
     }
   ]
 }

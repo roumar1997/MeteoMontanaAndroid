@@ -86,14 +86,15 @@ class KtorMeetupRepository(
     override suspend fun createMeetup(req: CreateMeetupRequest): Meetup {
         val dto = api.createMeetup(
             CreateMeetupRequestDto(
-                schoolId = req.schoolId,
+                schoolId = req.schoolId.takeIf { it.isNotBlank() },
                 name = req.name,
                 description = req.description,
                 discipline = req.discipline,
                 privacy = req.privacy,
                 memberLimit = req.memberLimit,
                 photoUrl = req.photoUrl,
-                days = req.days
+                days = req.days,
+                gymId = req.gymId
             )
         )
         cache?.saveAll(listOf(dto))

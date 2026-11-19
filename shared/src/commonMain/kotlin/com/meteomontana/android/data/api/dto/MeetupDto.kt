@@ -37,7 +37,8 @@ data class SetAlertRequestDto(
 @Serializable
 data class MeetupDto(
     val id: String,
-    val schoolId: String,
+    /** null en una quedada de rocodromo (V106): las versiones <= 7.2.2 no lo toleran, ver docs/rocodromos/COMPAT.md. */
+    val schoolId: String? = null,
     val schoolName: String? = null,
     val schoolLat: Double? = null,
     val schoolLon: Double? = null,
@@ -57,7 +58,11 @@ data class MeetupDto(
     val expiresAt: String,        // ISO datetime
     val createdAt: String,
     val members: List<MeetupMemberDto> = emptyList(),
-    val joined: Boolean = false
+    val joined: Boolean = false,
+    /** Rocodromo de la quedada; null si es en una escuela. */
+    val gymId: Long? = null,
+    /** Nombre del lugar (escuela o rocodromo) ya resuelto por el servidor. */
+    val placeName: String? = null
 )
 
 @Serializable
@@ -76,12 +81,13 @@ data class UpdateMeetupRequestDto(
 
 @Serializable
 data class CreateMeetupRequestDto(
-    val schoolId: String,
+    val schoolId: String? = null,
     val name: String,
     val description: String? = null,
     val discipline: String? = null,
     val privacy: String,
     val memberLimit: Int? = null,
     val photoUrl: String? = null,
-    val days: List<String>
+    val days: List<String>,
+    val gymId: Long? = null
 )
