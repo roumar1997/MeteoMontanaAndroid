@@ -3,6 +3,9 @@ package com.meteomontana.android
 import com.meteomontana.android.data.api.dto.BlockDto
 import com.meteomontana.android.data.api.dto.FeatureFlagsDto
 import com.meteomontana.android.data.api.dto.ForecastDto
+import com.meteomontana.android.data.api.dto.GymDto
+import com.meteomontana.android.data.api.dto.GymNearDto
+import com.meteomontana.android.data.api.dto.GymReportDto
 import com.meteomontana.android.data.api.dto.JournalSessionDto
 import com.meteomontana.android.data.api.dto.MeetupDto
 import com.meteomontana.android.data.api.dto.PrivateProfileDto
@@ -36,7 +39,7 @@ import org.junit.Test
  * campo que el backend no manda, falla aquí.
  *
  * Endpoints: GET schools, schools/{id}/blocks, schools/{id}/forecast,
- * journal/me, me, meetups, feature-flags.
+ * journal/me, me, meetups, feature-flags, gyms, gyms/near, gyms/{id}/reports.
  *
  * Si cambias un DTO o el backend: actualiza el MISMO json en los dos repos.
  * Campo nuevo nullable = aditivo; renombrar/borrar/cambiar tipo rompe las apps
@@ -242,6 +245,50 @@ class ApiContractTest {
         assertNull(n.members.single().username)
         assertNull(n.members.single().gearJson)
         assertDtoKeysInGolden("meetups.json", ser)
+    }
+
+    // ── GET gyms, gyms/near, POST gyms/{id}/reports ─────────────────────────
+
+    @Test fun catalogoDeRocodromos() {
+        val ser = ListSerializer(GymDto.serializer())
+        val g = parse("gyms.json", "full", ser).single()
+        assertEquals(5L, g.id)
+        assertEquals("COMMERCIAL", g.kind)
+        assertEquals("BOTH", g.discipline)
+        assertEquals(12.5, g.priceSingleEur!!, 0.0)
+        assertEquals("2026-11-01", g.priceUpdatedAt)
+        assertEquals(2, g.openingHours!!.size)
+        assertEquals("MON-FRI", g.openingHours!![0].days)
+        assertEquals(true, g.hasAutobelay)
+        assertEquals("VERIFIED", g.verification)
+
+        val n = parse("gyms.json", "nulls", ser).single()
+        assertNull(n.chain); assertNull(n.address); assertNull(n.website); assertNull(n.instagram)
+        assertNull(n.openingHours); assertNull(n.priceSingleEur); assertNull(n.pricePassEur)
+        assertNull(n.priceUpdatedAt); assertNull(n.hasAutobelay); assertNull(n.hasGearRental)
+        assertNull(n.kidsFriendly); assertNull(n.beginnerFriendly); assertNull(n.source)
+        assertTrue(n.outdoor)
+        assertDtoKeysInGolden("gyms.json", ser)
+    }
+
+    @Test fun rocodromosCerca() {
+        val ser = ListSerializer(GymNearDto.serializer())
+        val g = parse("gyms-near.json", "full", ser).single()
+        assertEquals(1.2, g.distanceKm, 0.0)
+        assertEquals("Sputnik", g.chain)
+        assertNull(parse("gyms-near.json", "nulls", ser).single().chain)
+        assertDtoKeysInGolden("gyms-near.json", ser)
+    }
+
+    @Test fun reporteDeRocodromo() {
+        val ser = GymReportDto.serializer()
+        val r = parse("gym-report.json", "full", ser)
+        assertEquals(listOf("IS_FREE", "CLOSED"), r.issues)
+        assertEquals("FREE", r.proposed!!.kind)
+        assertEquals("PENDING", r.status)
+        val n = parse("gym-report.json", "nulls", ser)
+        assertNull(n.gymId); assertNull(n.gymName); assertNull(n.comment); assertNull(n.photoUrl); assertNull(n.proposed)
+        assertDtoKeysInGolden("gym-report.json", ser)
     }
 
     // ── GET feature-flags (público) ─────────────────────────────────────────

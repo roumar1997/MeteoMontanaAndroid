@@ -85,6 +85,9 @@ class IosDependencyContainer(
     val observeFeatureFlags = featureFlags.observeFeatureFlags
     val refreshFeatureFlags = featureFlags.refreshFeatureFlags
 
+    // Rocodromos (catalogo con copia sin conexion, filtros, mapa, reportes, presencia). Apagado hasta gyms_enabled.
+    val gyms = GymsModule(httpClient, keyValueStore)
+
     // Catálogo de efectos de título (aureola animada), con copia en disco.
     private val titleEffects = TitleEffectsModule(httpClient, keyValueStore)
     val observeTitleEffects = titleEffects.observeTitleEffects

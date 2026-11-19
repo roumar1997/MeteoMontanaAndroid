@@ -21,7 +21,7 @@ class FeatureFlagsModule(httpClient: HttpClient, store: KeyValueStore? = null) {
     val refreshFeatureFlags = RefreshFeatureFlagsUseCase(repository)
 }
 
-private class InMemoryKeyValueStore : KeyValueStore {
+internal class InMemoryKeyValueStore : KeyValueStore {
     private val map = mutableMapOf<String, String>()
     override fun getString(key: String): String? = map[key]
     override fun putString(key: String, value: String) { map[key] = value }
