@@ -35,6 +35,7 @@ struct ForecastBodyView: View {
                 if showsHoy {
                     HoyCard(forecast: f, open: hoyOpen ?? .constant(false), factorsExpanded: $factorsExpanded)
                     .guideTarget("detail.hoy")
+                    if let d = directions { GymsNearbyBanner(lat: d.lat, lon: d.lon, current: f.current) }
                 }
                 SectorHoursSection(schoolId: f.schoolId, dryRock: f.current.dryRock, dryingMessage: f.current.drying?.message,
                                    rainHours: todayRainHours(f.hours))

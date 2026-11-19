@@ -13,7 +13,8 @@ struct AdminHome: View {
     @State private var showDaily = false
     @State private var historyStatus: String?
 
-    enum Dest: Hashable { case users(AdminUsersMode), notes, maintenance, myTitle }
+    enum Dest: Hashable { case users(AdminUsersMode), notes, maintenance, myTitle, gyms }
+    @ObservedObject private var featureFlags = FeatureFlagsModel.shared
 
     private let columns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
 
@@ -26,6 +27,9 @@ struct AdminHome: View {
                     tile(value: "\(pending)", label: "PROPUESTAS", note: "por aprobar", hot: pending > 0) { openTab(.propuestas) }
                     tile(symbol: "flag", label: "DENUNCIAS", note: "contenido y personas") { openTab(.denuncias) }
                     tile(symbol: "text.bubble", label: "SUGERENCIAS", note: "lo que cuentan los usuarios") { openTab(.sugerencias) }
+                    if featureFlags.flags.isGymsEnabled {
+                        tile(symbol: "building.2", label: "ROCÓDROMOS", note: "reportes y fichas") { dest = .gyms }
+                    }
                 }
 
                 header("USUARIOS")
@@ -94,6 +98,7 @@ struct AdminHome: View {
             case .notes: AdminNotesScreen()
             case .maintenance: AdminMaintenanceScreen()
             case .myTitle: AdminMyTitleScreen()
+            case .gyms: AdminGymsView()
             }
         }
         .sheet(isPresented: $showDaily) { DailyActivityView() }

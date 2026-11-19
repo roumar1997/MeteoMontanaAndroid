@@ -15,7 +15,7 @@ func openDirections(lat: Double, lon: Double) {
 func meetupShareText(_ meetup: Meetup, inviteLink: String?) -> String {
     let days = meetup.days.map { detailFormatDayMonth($0) }.joined(separator: ", ")
     var text = L("🧗 Te invito a la quedada *%@*", meetup.name)
-    if let s = meetup.schoolName { text += " en \(s)" }
+    if let s = meetup.placeName ?? meetup.schoolName { text += " en \(s)" }
     if !days.isEmpty { text += " (\(days))" }
     text += "\n"
     if let link = inviteLink, !link.isEmpty {

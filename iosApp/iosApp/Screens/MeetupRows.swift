@@ -34,7 +34,7 @@ struct MeetupRowView: View {
                 // Eyebrow: school + distance
                 let eyebrow: String = {
                     var parts: [String] = []
-                    if let s = meetup.schoolName { parts.append(s.uppercased()) }
+                    if let s = meetup.placeName ?? meetup.schoolName { parts.append(s.uppercased()) }
                     if let km = distanceKm { parts.append("\(Int(km)) KM") }
                     return parts.joined(separator: " \u{00B7} ")
                 }()

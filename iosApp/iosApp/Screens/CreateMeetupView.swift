@@ -8,6 +8,8 @@ struct CreateMeetupView: View {
     /// relleno y el usuario lo revisa y la crea con su botón.
     var prefill: AssistantViewModel.MeetupRequest? = nil
     @State private var prefillApplied = false
+    /// Quedada en un rocódromo: el lugar va fijo (sin buscador de escuela) y se envía gymId.
+    var gym: GymPlace?
 
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
@@ -45,7 +47,7 @@ struct CreateMeetupView: View {
 
     private var canSubmit: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !schoolId.trimmingCharacters(in: .whitespaces).isEmpty &&
+        (!schoolId.trimmingCharacters(in: .whitespaces).isEmpty || gym != nil) &&
         !selectedDays.isEmpty && !submitting
     }
 
@@ -137,7 +139,7 @@ struct CreateMeetupView: View {
     
                             // Escuela
                             VStack(alignment: .leading, spacing: 6) {
-                                FieldLabel(L("ESCUELA"))
+                                FieldLabel(gym != nil ? L("gym_meetup_place_label").uppercased() : L("ESCUELA"))
                                 Button { showSchoolPicker = true } label: {
                                     HStack(spacing: 8) {
                                         Image(systemName: "building.2").foregroundColor(Cumbre.ink.opacity(0.5))
@@ -151,6 +153,7 @@ struct CreateMeetupView: View {
                                     .background(Cumbre.bg)
                                     .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
                                 }
+                                .disabled(gym != nil)
                             }
     
                             // Días
@@ -199,7 +202,7 @@ struct CreateMeetupView: View {
                         submitting = true
                         createError = nil
                         let req = CreateMeetupRequest(
-                            schoolId: schoolId.trimmingCharacters(in: .whitespaces),
+                            schoolId: gym != nil ? "" : schoolId.trimmingCharacters(in: .whitespaces),
                             name: name.trimmingCharacters(in: .whitespaces),
                             description: prefill?.description,
                             discipline: discipline,
@@ -210,7 +213,7 @@ struct CreateMeetupView: View {
                             }(),
                             photoUrl: photoUrl,
                             days: selectedDays.sorted(),
-                            gymId: nil
+                            gymId: gym.map { KotlinLong(value: $0.id) }
                         )
                         Task {
                             do {
@@ -248,6 +251,11 @@ struct CreateMeetupView: View {
             }
             .navigationBarHidden(true)
             .onAppear {
+                if let gym, !prefillApplied {
+                    prefillApplied = true
+                    if name.isEmpty { name = L("gym_meetup_default_name", gym.name) }
+                    schoolName = gym.name
+                }
                 guard let p = prefill, !prefillApplied else { return }
                 prefillApplied = true
                 if name.isEmpty { name = p.name }

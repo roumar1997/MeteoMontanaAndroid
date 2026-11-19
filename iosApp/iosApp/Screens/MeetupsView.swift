@@ -518,7 +518,7 @@ struct MeetupsView: View {
                 Text("Para ver y participar en quedadas No Mixto necesitas indicar tu genero como Mujer en tu perfil.\n\nVe a Perfil -> Editar perfil -> Genero.")
             }
             .onChange(of: displayedMeetups.map { $0.id }.joined()) { _ in
-                let schoolIds = displayedMeetups.map { $0.schoolId }
+                let schoolIds = displayedMeetups.map { $0.schoolId }.filter { !$0.isEmpty }
                 let allDays = displayedMeetups.flatMap { $0.days }
                 if !schoolIds.isEmpty, !allDays.isEmpty {
                     vm.loadAllDayScores(schoolIds: Array(Set(schoolIds)), days: Array(Set(allDays)))
@@ -526,7 +526,7 @@ struct MeetupsView: View {
             }
             .task {
                 // Load scores on first display
-                let schoolIds = displayedMeetups.map { $0.schoolId }
+                let schoolIds = displayedMeetups.map { $0.schoolId }.filter { !$0.isEmpty }
                 let allDays = displayedMeetups.flatMap { $0.days }
                 if !schoolIds.isEmpty, !allDays.isEmpty {
                     vm.loadAllDayScores(schoolIds: Array(Set(schoolIds)), days: Array(Set(allDays)))

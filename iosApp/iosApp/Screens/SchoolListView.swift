@@ -13,6 +13,10 @@ struct SchoolListView: View {
     @StateObject private var vm = SchoolListViewModel()
     /// Pestaña «Vías/Bloques» (separada de la lista el 2026-11-05).
     @StateObject private var explore = ExploreLinesViewModel()
+    /// Rocódromos: el selector «Roca · Rocódromos · Muros gratis» y su capa (oculto con gyms_enabled apagado).
+    @StateObject private var gyms = GymsViewModel()
+    @ObservedObject private var featureFlags = FeatureFlagsModel.shared
+    @State private var gymTarget: GymNavTarget?
     @Environment(\.scenePhase) private var scenePhase
     /// Escuela pedida desde el asistente: se abre aquí dentro, con la barra de pestañas visible.
     @ObservedObject private var router = ShareLinkRouter.shared
@@ -28,6 +32,11 @@ struct SchoolListView: View {
         navTarget = SchoolNavTarget(school: school, via: request.viaId)
     }
 
+    private var gymsOn: Bool { featureFlags.flags.isGymsEnabled }
+
+    /// Ficha de rocódromo a abrir (Int64 no es Identifiable para navigationDestination(item:)).
+    struct GymNavTarget: Identifiable, Hashable { let id: Int64 }
+
     var body: some View {
         NavigationStack {
             listScroll
@@ -40,6 +49,7 @@ struct SchoolListView: View {
                     .onAppear { assistant.contextSchoolId = target.school.id }
                     .onDisappear { assistant.contextSchoolId = nil }
             }
+            .navigationDestination(item: $gymTarget) { target in GymDetailView(gymId: target.id) }
             .onChange(of: router.tabSchoolRequest?.id) { _, _ in consumeAssistantRequest() }
             .onAppear { consumeAssistantRequest() }
             .overlay {
@@ -106,6 +116,22 @@ struct SchoolListView: View {
                                    chatUnread: vm.unreadChats,
                                    onNotificationsClosed: { Task { await vm.refreshUnread() } },
                                    onSubmitBlockPhoto: { eligiendoFoto = true })
+                    if gymsOn { SchoolsLayerPicker(vm: gyms) }
+                    if gymsOn && gyms.layer != .rock {
+                        GymsLayerView(vm: gyms, userLat: vm.userLat, userLon: vm.userLon,
+                                      needsLocationPermission: vm.needsLocationPermission,
+                                      onRequestLocation: { vm.requestLocation() },
+                                      onOpenGym: { gymTarget = GymNavTarget(id: $0) })
+                    } else {
+                        rockBody
+                    }
+                }
+            }
+    }
+
+    /// La capa «Roca» (la de siempre): buscador, mapa, filtros y la lista de escuelas.
+    @ViewBuilder private var rockBody: some View {
+        VStack(spacing: 0) {
                     SearchField(text: $vm.query)
                     if vm.query.trimmingCharacters(in: .whitespaces).count >= 2 {
                         viaHitsSection
@@ -144,8 +170,7 @@ struct SchoolListView: View {
                             schoolsSection(items)
                         }
                     }
-                }
-            }
+        }
     }
 
     /// La lista moderna (Álvaro, 2026-10-19, propuesta A): cada escuela en su tarjeta con el anillo de la nota.

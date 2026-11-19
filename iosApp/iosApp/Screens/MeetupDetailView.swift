@@ -127,7 +127,7 @@ struct MeetupDetailView: View {
                                             .clipShape(RoundedRectangle(cornerRadius: 2))
                                         }
                                     }
-                                    if meetup.schoolName != nil {
+                                    if meetup.schoolName != nil && !meetup.isGymMeetup {
                                         NavigationLink(destination: SchoolLoaderView(schoolId: meetup.schoolId)) {
                                             HStack(spacing: 4) {
                                                 Image(systemName: "mountain.2").font(.caption2)
@@ -147,7 +147,7 @@ struct MeetupDetailView: View {
                             // ── Info rows with icons ──
                             VStack(alignment: .leading, spacing: 14) {
                                 // School
-                                if let school = meetup.schoolName {
+                                if let school = meetup.placeName ?? meetup.schoolName {
                                     DetailInfoRow(icon: "mountain.2") {
                                         Text(school).font(.subheadline).fontWeight(.medium)
                                     }
