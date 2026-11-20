@@ -112,6 +112,8 @@ data class GroupChatUiState(
     val messages: List<ChatService.ChatMessage> = emptyList(),
     /** uid -> nombre para mostrar, para etiquetar quién escribe cada mensaje. */
     val memberNames: Map<String, String> = emptyMap(),
+    /** uid -> foto de perfil, para el avatar junto a cada mensaje. */
+    val memberPhotos: Map<String, String> = emptyMap(),
     val myUid: String = "",
     val canWrite: Boolean = false,
     val loading: Boolean = true,
@@ -155,6 +157,7 @@ class GroupChatViewModel @Inject constructor(
     val state: StateFlow<GroupChatUiState> = _state.asStateFlow()
 
     private val nameCache = mutableMapOf<String, String>()
+    private val photoCache = mutableMapOf<String, String>()
 
     // Ventana en vivo creciente (igual que el chat 1-a-1): empieza en 50 y +50 al
     // pulsar "Mensajes anteriores". Recorta las lecturas de Firestore al abrir.
@@ -197,7 +200,7 @@ class GroupChatViewModel @Inject constructor(
                 _state.value = _state.value.copy(
                     name = conv.name ?: AppText.get(R.string.w_group),
                     canWrite = me in conv.participants,
-                    memberNames = nameCache.toMap()
+                    memberNames = nameCache.toMap(), memberPhotos = photoCache.toMap()
                 )
             }
         }
@@ -207,7 +210,7 @@ class GroupChatViewModel @Inject constructor(
             messageLimit.flatMapLatest { chatService.observeMessages(convId, it) }.collect { msgs ->
                 resolveNames(msgs.map { it.fromUid })
                 _state.value = _state.value.copy(
-                    messages = msgs, memberNames = nameCache.toMap(), loading = false,
+                    messages = msgs, memberNames = nameCache.toMap(), memberPhotos = photoCache.toMap(), loading = false,
                     canLoadMore = msgs.size >= messageLimit.value
                 )
                 runCatching { chatService.markRead(convId) }
@@ -219,6 +222,7 @@ class GroupChatViewModel @Inject constructor(
         uids.distinct().filter { it != me && it !in nameCache }.forEach { uid ->
             val p = runCatching { getPublicProfile(uid) }.getOrNull()
             nameCache[uid] = p?.username ?: p?.displayName ?: uid.take(6)
+            p?.photoUrl?.let { photoCache[uid] = it }
         }
     }
 

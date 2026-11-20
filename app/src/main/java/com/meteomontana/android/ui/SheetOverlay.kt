@@ -453,6 +453,7 @@ private fun SheetNavHost(
                         GroupChatScreen(
                             onBack = popSheetOrDismiss,
                             onOpenMeetup = { meetupId -> sheetNav.navigate(Routes.meetupDetail(meetupId)) },
+                            onOpenProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
                             bottomInset = bottomInset
                         )
                     }
@@ -472,6 +473,7 @@ private fun SheetNavHost(
                             myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "",
                             onBack = popSheetOrDismiss,
                             onOpenChat = { uid, _ -> sheetNav.navigate(Routes.chat(uid)) },
+                            onOpenProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
                             bottomInset = bottomInset
                         )
                     }

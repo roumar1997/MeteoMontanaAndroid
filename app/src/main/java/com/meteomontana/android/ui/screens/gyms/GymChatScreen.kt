@@ -24,6 +24,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.lazy.itemsIndexed
+import com.meteomontana.android.ui.screens.chat.chatRunPositions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -100,6 +102,7 @@ class GymChatViewModel @Inject constructor(
     var presenceBusy by mutableStateOf(false)
         private set
     private val names = mutableMapOf<String, String>()
+    private val photos = mutableMapOf<String, String>()
     private var started = false
 
     fun start(gymId: Long, myUid: String) {
@@ -110,7 +113,9 @@ class GymChatViewModel @Inject constructor(
             chatService.observeMessages(gymChatId(gymId), 100).collect { msgs ->
                 msgs.map { it.fromUid }.toSet().filter { it != myUid && it !in names }.forEach { uid ->
                     runCatching { getPublicProfile.invoke(uid) }.onSuccess {
-                        names[uid] = it.username ?: it.displayName ?: uid.take(6); namesVersion++
+                        names[uid] = it.username ?: it.displayName ?: uid.take(6)
+                        it.photoUrl?.let { url -> photos[uid] = url }
+                        namesVersion++
                     }
                 }
                 messages = msgs
@@ -150,6 +155,8 @@ class GymChatViewModel @Inject constructor(
         }
     }
 
+    fun photoFor(uid: String): String? = photos[uid]
+
     fun nameFor(uid: String, myUid: String): String = if (uid == myUid) "Tú" else (names[uid] ?: uid.take(6))
 
     fun send(gymId: Long) {
@@ -171,6 +178,7 @@ fun GymChatScreen(
     myUid: String,
     onBack: () -> Unit,
     onOpenChat: (uid: String) -> Unit,
+    onOpenProfile: (uid: String) -> Unit = {},
     bottomInset: Dp = 0.dp,
     viewModel: GymChatViewModel = hiltViewModel()
 ) {
@@ -209,10 +217,14 @@ fun GymChatScreen(
             )
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(Spacing.md)) {
                 val dayStarts = chatDayStartIds(viewModel.messages.map { it.id to it.createdAtMillis })
-                items(viewModel.messages, key = { it.id }) { m ->
+                val msgs = viewModel.messages
+                val runs = chatRunPositions(msgs.map { it.fromUid }) { msgs[it].id in dayStarts }
+                itemsIndexed(msgs, key = { _, m -> m.id }) { i, m ->
                     @Suppress("UNUSED_EXPRESSION") viewModel.namesVersion
                     dayStarts[m.id]?.let { ChatDayDivider(it) }
                     MessageBubble(
+                        showName = runs[i].first, showAvatar = runs[i].last,
+                        photoUrl = viewModel.photoFor(m.fromUid), onOpenProfile = { onOpenProfile(m.fromUid) },
                         message = m, isMine = m.fromUid == myUid, isPresent = m.fromUid in presentNow,
                         name = viewModel.nameFor(m.fromUid, myUid), onClick = { onOpenChat(m.fromUid) }
                     )

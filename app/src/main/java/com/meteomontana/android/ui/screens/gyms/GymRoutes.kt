@@ -63,6 +63,7 @@ fun NavGraphBuilder.gymRoutes(sheetNav: NavHostController, popSheetOrDismiss: ()
             myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "",
             onBack = popSheetOrDismiss,
             onOpenChat = { uid -> sheetNav.navigate(Routes.chat(uid)) },
+            onOpenProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
             bottomInset = com.meteomontana.android.ui.components.LocalTabBarInset.current
         )
     }

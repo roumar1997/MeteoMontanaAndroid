@@ -109,6 +109,7 @@ import kotlin.math.roundToInt
 fun GroupChatScreen(
     onBack: () -> Unit,
     onOpenMeetup: (String) -> Unit = {},
+    onOpenProfile: (String) -> Unit = {},
     // Ver ChatScreen/FeedPostDetailScreen: descuenta lo reservado por el host
     // para pegar el campo al teclado.
     bottomInset: androidx.compose.ui.unit.Dp = 0.dp,
@@ -171,7 +172,10 @@ fun GroupChatScreen(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             val dayStarts = chatDayStarts(state.messages)
+            val runs = chatRunPositions(state.messages.map { it.fromUid }) { state.messages[it].id in dayStarts }
+            val indexById = state.messages.withIndex().associate { it.value.id to it.index }
             items(state.messages.reversed(), key = { it.id }) { msg ->
+                val run = runs[indexById[msg.id] ?: 0]
                 // El separador de día va dentro del item, encima de la burbuja (como en el chat 1 a 1).
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     dayStarts[msg.id]?.let { ChatDayDivider(it) }
@@ -179,6 +183,10 @@ fun GroupChatScreen(
                         msg = msg,
                         myUid = state.myUid,
                         senderName = state.memberNames[msg.fromUid] ?: "",
+                        senderPhoto = state.memberPhotos[msg.fromUid],
+                        showName = run.first,
+                        showAvatar = run.last,
+                        onOpenProfile = { onOpenProfile(msg.fromUid) },
                         nameFor = { uid -> if (uid == state.myUid) AppText.get(R.string.school_presence_row_v3_tu) else state.memberNames[uid] ?: "" },
                         onReply = { viewModel.startReply(msg) }
                     )
@@ -245,6 +253,10 @@ internal fun GroupMessageBubble(
     msg: ChatService.ChatMessage,
     myUid: String,
     senderName: String,
+    senderPhoto: String?,
+    showName: Boolean,
+    showAvatar: Boolean,
+    onOpenProfile: () -> Unit,
     nameFor: (String) -> String,
     onReply: (ChatService.ChatMessage) -> Unit
 ) {
@@ -280,7 +292,21 @@ internal fun GroupMessageBubble(
                     .alpha(replyIconAlpha))
         }
         Row(modifier = Modifier.fillMaxWidth().offset { IntOffset(offsetX.value.roundToInt(), 0) },
-            horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start) {
+            horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start,
+            verticalAlignment = Alignment.Bottom) {
+            // Chat de grupo: foto del emisor (solo en el ultimo de su racha) o su hueco para alinear.
+            if (!isMine) {
+                ChatSenderAvatarSlot(showAvatar, senderPhoto, senderName, msg.fromUid, onOpenProfile)
+                Spacer(Modifier.width(6.dp))
+            }
+            Column(horizontalAlignment = if (isMine) Alignment.End else Alignment.Start,
+                modifier = Modifier.weight(1f, fill = false)) {
+            // Nombre encima de la burbuja (solo en el primero de la racha y en mensajes de otros).
+            if (!isMine && showName && senderName.isNotBlank()) {
+                Text(senderName, style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 2.dp))
+            }
             Column(modifier = Modifier
                 .widthIn(max = 280.dp)
                 .clip(chatBubbleShape(isMine))
@@ -288,11 +314,6 @@ internal fun GroupMessageBubble(
                 .border(1.dp, if (isMine) Color.Transparent else MaterialTheme.colorScheme.outline, chatBubbleShape(isMine))
                 .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                // Nombre del emisor (solo en mensajes de otros).
-                if (!isMine && senderName.isNotBlank()) {
-                    Text(senderName, style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary)
-                }
                 val replyText = msg.replyText
                 if (msg.replyToId != null && replyText != null) {
                     val who = nameFor(msg.replyFromUid ?: "")
@@ -320,6 +341,7 @@ internal fun GroupMessageBubble(
                     Text(time, color = fg.copy(alpha = 0.7f),
                         style = MaterialTheme.typography.labelMedium)
                 }
+            }
             }
         }
     }

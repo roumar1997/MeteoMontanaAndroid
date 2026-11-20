@@ -74,6 +74,10 @@ import com.meteomontana.android.ui.screens.chat.chatBubbleShape
 import com.meteomontana.android.ui.screens.chat.ChatTopBar
 import com.meteomontana.android.ui.screens.chat.ChatSubtitle
 import com.meteomontana.android.ui.screens.chat.ChatInitialAvatar
+import com.meteomontana.android.ui.screens.chat.ChatSenderAvatarSlot
+import com.meteomontana.android.ui.screens.chat.chatRunPositions
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.layout.width
 
 @HiltViewModel
 class SchoolChatViewModel @Inject constructor(
@@ -92,6 +96,7 @@ class SchoolChatViewModel @Inject constructor(
     var presenceLoaded by mutableStateOf(false)
         private set
     private var memberNames = mutableMapOf<String, String>()
+    private val memberPhotos = mutableMapOf<String, String>()
     var namesVersion by mutableStateOf(0)
         private set
 
@@ -130,12 +135,15 @@ class SchoolChatViewModel @Inject constructor(
                 try {
                     val p = getPublicProfile.invoke(uid)
                     memberNames[uid] = p.username ?: p.displayName ?: uid.take(6)
+                    p.photoUrl?.let { memberPhotos[uid] = it }
                     namesVersion++
                 } catch (_: Exception) {
                 }
             }
         }
     }
+
+    fun photoFor(uid: String): String? = memberPhotos[uid]
 
     fun nameFor(uid: String, myUid: String): String =
         if (uid == myUid) "Tú" else (memberNames[uid] ?: uid.take(6))
@@ -166,6 +174,7 @@ fun SchoolChatScreen(
     myUid: String,
     onBack: () -> Unit,
     onOpenChat: (uid: String, name: String) -> Unit,
+    onOpenProfile: (uid: String) -> Unit = {},
     // Espacio ya reservado abajo por el host (cápsula de tabs + navbar). Se
     // descuenta del imePadding para que el campo quede PEGADO al teclado, no
     // flotando esa altura por encima — mismo motivo que ChatScreen.kt.
@@ -245,9 +254,14 @@ fun SchoolChatScreen(
         ) {
             if (notMarkedHere && viewModel.messages.isNotEmpty()) item { MarkHereNotice(compact = true) }
             val dayStarts = chatDayStartIds(viewModel.messages.map { it.id to it.createdAtMillis })
-            items(viewModel.messages) { m ->
+            val msgs = viewModel.messages
+            val runs = chatRunPositions(msgs.map { it.fromUid }) { msgs[it].id in dayStarts }
+            itemsIndexed(msgs) { i, m ->
+                @Suppress("UNUSED_EXPRESSION") viewModel.namesVersion
                 dayStarts[m.id]?.let { ChatDayDivider(it) }
                 MessageBubble(
+                    showName = runs[i].first, showAvatar = runs[i].last,
+                    photoUrl = viewModel.photoFor(m.fromUid), onOpenProfile = { onOpenProfile(m.fromUid) },
                     message = m,
                     isMine = m.fromUid == myUid,
                     isPresent = viewModel.presentNow.contains(m.fromUid),
@@ -362,6 +376,10 @@ private fun MarkHereNotice(compact: Boolean) {
 
 @Composable
 internal fun MessageBubble(
+    showName: Boolean,
+    showAvatar: Boolean,
+    photoUrl: String?,
+    onOpenProfile: () -> Unit,
     message: SchoolChatService.Message,
     isMine: Boolean,
     isPresent: Boolean,
@@ -371,14 +389,20 @@ internal fun MessageBubble(
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isMine) androidx.compose.foundation.layout.Arrangement.End
-                                 else androidx.compose.foundation.layout.Arrangement.Start
+                                 else androidx.compose.foundation.layout.Arrangement.Start,
+        verticalAlignment = Alignment.Bottom
     ) {
+        if (!isMine) {
+            ChatSenderAvatarSlot(showAvatar, photoUrl, name, message.fromUid, onOpenProfile)
+            Spacer(Modifier.width(6.dp))
+        }
         Column(
             modifier = Modifier
+                .weight(1f, fill = false)
                 .widthIn(max = 260.dp)
                 .clickable(enabled = !isMine && isPresent, onClick = onClick)
         ) {
-            if (!isMine) {
+            if (!isMine && showName) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         if (isPresent) name + " · " + stringResource(R.string.chat_here_tag) else name,
