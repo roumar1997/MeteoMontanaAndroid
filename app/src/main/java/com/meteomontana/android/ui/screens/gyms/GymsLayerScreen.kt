@@ -133,6 +133,7 @@ private fun GymsLayerHeader(actions: GymsActions, state: GymsUiState) {
     val closeKeyboard = rememberKeyboardDismisser()
     val filters = state.filters
     var filtersOpen by rememberSaveable { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler(enabled = filtersOpen) { filtersOpen = false }
     val active = gymActiveFilterCount(filters)
     Column {
         Box(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.xs)) {

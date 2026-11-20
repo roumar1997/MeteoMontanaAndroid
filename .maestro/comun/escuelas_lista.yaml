@@ -4,6 +4,12 @@ appId: com.meteomontana.android
 - launchApp:
     clearState: false
 - tapOn: "Escuelas"
+# Asegura el modo ROCA (selector ROCA | ROCÓDROMOS) por si quedó en rocódromos.
+- runFlow:
+    when:
+      visible: "ROCA"
+    commands:
+      - tapOn: "ROCA"
 - extendedWaitUntil:
     visible: "VER MAPA"
     timeout: 20000

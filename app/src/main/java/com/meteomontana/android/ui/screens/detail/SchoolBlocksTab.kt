@@ -229,6 +229,7 @@ private fun Header(state: SchoolBlocksViewModel.UiState, vm: SchoolBlocksViewMod
             PillButton(stringResource(R.string.sguide_more), Icons.Outlined.Tune, state.filtersOpen,
                 Modifier.guideTarget("detail_blocks.filters")) { vm.toggleFilters() }
         }
+        androidx.activity.compose.BackHandler(enabled = state.filtersOpen) { vm.toggleFilters() }
         if (state.filtersOpen) FilterPanel(state, vm)
         state.guideView?.let { g ->
             val lines = if (g.lineCount == 1) stringResource(R.string.sguide_count_lines_one) else stringResource(R.string.sguide_count_lines, g.lineCount)

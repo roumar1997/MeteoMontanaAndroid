@@ -106,6 +106,7 @@ fun SchoolListScreen(
     // Filtros y días PLEGADOS por defecto ("demasiadas cosas a la vista", 2026-10-14): se abren al tocar su chip.
     var filtersOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var daysOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler(enabled = filtersOpen || daysOpen) { filtersOpen = false; daysOpen = false }
 
     // ── Pestaña "Vías/Bloques" (docs/BLOCK_SEARCH_DESIGN.md §4.1b) ──
     val exploreTab by explore.tab.collectAsStateWithLifecycle()
@@ -320,7 +321,7 @@ fun SchoolListScreen(
             // El placeholder anuncia que busca ambas cosas, y al escribir salen
             // las dos secciones (aunque una esté vacía) → se aprende solo.
             item {
-                Box(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)) {
+                Box(modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm).testTag("schools_search")) {
                     com.meteomontana.android.ui.components.CumbreSearchField(
                         value = filters.query,
                         onValueChange = viewModel::setQuery,

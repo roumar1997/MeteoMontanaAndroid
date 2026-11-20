@@ -3,9 +3,9 @@ appId: com.meteomontana.android
 ---
 - runFlow: escuelas_lista.yaml
 # La lista cambia de orden con el tiempo: se llega con el buscador, no por posición.
-# (el hint del buscador no sale en la jerarquía: se toca por posición)
+# (el buscador lleva testTag schools_search: no depende de la posición)
 - tapOn:
-    point: "50%,20%"
+    id: "schools_search"
 - inputText: "Zarzalejo"
 - hideKeyboard
 - extendedWaitUntil:
