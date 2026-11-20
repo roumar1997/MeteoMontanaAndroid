@@ -28,6 +28,8 @@ fun UnclippedAvatarHost(
     slotOffsetPx: () -> Int?,
     avatar: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    /** Si no es null, el avatar se alinea a la izquierda con este margen (cabecera compacta); si es null, centrado. */
+    startPadding: Dp? = null,
     content: @Composable (slotHeight: Dp) -> Unit
 ) {
     var heightPx by remember { mutableIntStateOf(0) }
@@ -35,8 +37,8 @@ fun UnclippedAvatarHost(
         content(with(LocalDensity.current) { heightPx.toDp() })
         Box(
             Modifier
-                .align(Alignment.TopCenter)
-                .offset { IntOffset(0, slotOffsetPx() ?: OFF_SCREEN_PX) }
+                .align(if (startPadding != null) Alignment.TopStart else Alignment.TopCenter)
+                .offset { IntOffset(startPadding?.roundToPx() ?: 0, slotOffsetPx() ?: OFF_SCREEN_PX) }
                 .onSizeChanged { heightPx = it.height }
         ) { avatar() }
     }

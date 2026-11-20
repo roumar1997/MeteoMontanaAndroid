@@ -18,6 +18,9 @@ object GymNav {
     const val DETAIL = "gyms/{gymId}"
     fun detail(id: Long) = "gyms/$id"
     const val TRAINING = "gym-training"
+    /** Ascensiones (por rocódromo, grado y mes) de una persona; sin uid, las mías. */
+    const val ASCENTS = "gym-ascents?uid={uid}"
+    fun ascents(uid: String? = null) = if (uid.isNullOrBlank()) "gym-ascents" else "gym-ascents?uid=$uid"
     const val CHAT = "gyms/{gymId}/chat?name={name}"
     fun chat(id: Long, name: String) = "gyms/$id/chat?name=${android.net.Uri.encode(name)}"
     const val MEETUP = "gyms/{gymId}/meetup?name={name}"
@@ -37,6 +40,16 @@ fun NavGraphBuilder.gymRoutes(sheetNav: NavHostController, popSheetOrDismiss: ()
         )
     }
     composable(GymNav.TRAINING) { GymTrainingScreen(onBack = popSheetOrDismiss) }
+    composable(
+        route = GymNav.ASCENTS,
+        arguments = listOf(navArgument("uid") { type = NavType.StringType; nullable = true; defaultValue = null })
+    ) { entry ->
+        com.meteomontana.android.ui.screens.profile.GymAscentsScreen(
+            uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() },
+            onBack = popSheetOrDismiss,
+            onOpenGym = { sheetNav.navigate(GymNav.detail(it)) }
+        )
+    }
     composable(
         route = GymNav.CHAT,
         arguments = listOf(

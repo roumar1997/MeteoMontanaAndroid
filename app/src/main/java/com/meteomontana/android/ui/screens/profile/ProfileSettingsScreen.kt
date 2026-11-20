@@ -76,6 +76,7 @@ import coil.compose.AsyncImage
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.JournalStats
 import com.meteomontana.android.domain.model.PrivateProfile
+import androidx.lifecycle.ViewModel
 
 // Ajustes del perfil: idioma, secciones y filas del menú.
 
@@ -131,6 +132,19 @@ internal fun LanguageRow() {
     }
 }
 
+/** «Mi rocódromo»: la persona lo elige (o lo quita) y sale en su perfil como «Tu rocódromo»; sin elegir, no se muestra. */
+@Composable
+internal fun HomeGymRow(vm: HomeGymViewModel = hiltViewModel()) {
+    var picking by remember { mutableStateOf(false) }
+    val gym = vm.gym
+    MenuRow(Icons.Outlined.Place, stringResource(R.string.settings_home_gym) + (gym?.let { " · " + it.name } ?: "")) { picking = true }
+    if (picking) com.meteomontana.android.ui.screens.gyms.GymPickerSheet(
+        onPick = { g, _ -> picking = false; vm.set(g.id) },
+        onDismiss = { picking = false }
+    )
+    if (gym != null) MenuRow(Icons.Outlined.DeleteOutline, stringResource(R.string.settings_home_gym_clear)) { vm.set(null) }
+}
+
 /**
  * Hoja de ajustes (⚙️): agrupa lo que antes ocupaba el perfil — cuenta, mi
  * actividad, preferencias y sesión. Bottom sheet (paridad iOS).
@@ -176,6 +190,7 @@ internal fun ProfileSettingsScreen(
             SettingsSectionLabel(stringResource(R.string.profile_section_prefs))
             MenuRow(Icons.Outlined.Notifications, stringResource(R.string.profile_weather_alert), onWeekendAlert)
             LanguageRow()
+            if (com.meteomontana.android.ui.components.LocalFeatureFlags.current.isGymsEnabled) HomeGymRow()
             val ctx = LocalContext.current
             MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(R.string.profile_show_hints)) {
                 com.meteomontana.android.ui.components.resetAllHints(ctx)
@@ -282,3 +297,17 @@ internal fun MenuRow(
 }
 
 
+
+@dagger.hilt.android.lifecycle.HiltViewModel
+class HomeGymViewModel @javax.inject.Inject constructor(
+    private val pref: HomeGymPreference,
+    private val cached: com.meteomontana.android.domain.usecase.gym.GetCachedGymsUseCase
+) : ViewModel() {
+    var gym by mutableStateOf(pref.get()?.let { id -> cached().firstOrNull { it.id == id } })
+        private set
+
+    fun set(id: Long?) {
+        pref.set(id)
+        gym = id?.let { i -> cached().firstOrNull { it.id == i } }
+    }
+}

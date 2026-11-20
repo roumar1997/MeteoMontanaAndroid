@@ -1,0 +1,246 @@
+package com.meteomontana.android.ui.screens.profile
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.LocalFireDepartment
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.meteomontana.android.R
+import com.meteomontana.android.domain.model.gym.Gym
+import com.meteomontana.android.ui.screens.gyms.parseHex
+import com.meteomontana.android.ui.theme.CumbreStatCardShape
+import com.meteomontana.android.ui.theme.EyebrowTextStyle
+import com.meteomontana.android.ui.theme.Mono
+import com.meteomontana.android.ui.theme.Serif
+import com.meteomontana.android.ui.theme.gradeChipStyle
+import com.meteomontana.android.ui.theme.terraFillColor
+
+// Piezas del perfil propio y ajeno (maqueta 4): cuatro celdas, filas finas, la tarjeta de degradado con Total / Roca /
+// Rocódromo y la fila «Tu rocódromo». Todo con peso (weight) y texto que puede crecer: nada de anchos fijos.
+
+/** Grado con el color de la paleta de grados de la app, en píldora; sin grado, una raya. */
+@Composable
+internal fun MaxGradePill(grade: String?, modifier: Modifier = Modifier) {
+    if (grade.isNullOrBlank()) {
+        Text("—", fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.onBackground, modifier = modifier)
+        return
+    }
+    val st = gradeChipStyle(grade)
+    Text(
+        grade.uppercase(), fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1,
+        color = if (st.dark) Color(0xFF1B1B1B) else Color.White,
+        modifier = modifier.clip(RoundedCornerShape(10.dp)).background(st.stroke).padding(horizontal = 10.dp, vertical = 3.dp)
+    )
+}
+
+@Composable
+private fun CellShell(label: String, modifier: Modifier, content: @Composable () -> Unit) {
+    Column(
+        modifier.background(MaterialTheme.colorScheme.surface, CumbreStatCardShape).border(1.dp, MaterialTheme.colorScheme.outline, CumbreStatCardShape)
+            .padding(horizontal = 4.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Box(Modifier.height(28.dp), contentAlignment = Alignment.Center) { content() }
+        Text(
+            label, fontFamily = Mono, fontSize = 9.sp, letterSpacing = 1.sp, maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/** Bloques · Vías · Máx. bloque · Máx. vía, con el máximo en píldora del color de su grado. */
+@Composable
+internal fun ProfileCells(
+    boulders: Int, routes: Int, maxBoulder: String?, maxRoute: String?,
+    onBoulders: () -> Unit, onRoutes: () -> Unit, onMax: () -> Unit, modifier: Modifier = Modifier
+) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        CellShell(stringResource(R.string.profile_blocks), Modifier.weight(1f).clickable(onClick = onBoulders)) { CellNumber(boulders) }
+        CellShell(stringResource(R.string.profile_routes), Modifier.weight(1f).clickable(onClick = onRoutes)) { CellNumber(routes) }
+        CellShell(stringResource(R.string.profile_max_boulder), Modifier.weight(1f).clickable(onClick = onMax)) { MaxGradePill(maxBoulder) }
+        CellShell(stringResource(R.string.profile_max_route), Modifier.weight(1f).clickable(onClick = onMax)) { MaxGradePill(maxRoute) }
+    }
+}
+
+@Composable
+private fun CellNumber(n: Int) =
+    Text(n.toString(), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
+
+/** Fila fina con su cuenta y flecha («Mis publicaciones 14 ›»). */
+@Composable
+internal fun ProfileThinRow(label: String, count: Int?, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier.background(MaterialTheme.colorScheme.surface, CumbreStatCardShape).border(1.dp, MaterialTheme.colorScheme.outline, CumbreStatCardShape)
+            .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label.uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, modifier = Modifier.weight(1f))
+        count?.let { Text("$it", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = 6.dp)) }
+        Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
+    }
+}
+
+/**
+ * Tarjeta de degradado (morado, terracota, naranja): tres líneas (Total · Roca · Rocódromo), tres cajas pulsables
+ * (sesiones, rocódromos, ascensiones) y la barra con los colores de lo hecho. Tocar la tarjeta abre Estadísticas.
+ */
+@Composable
+internal fun ClimbGradientCard(
+    state: ProfileClimbState, rockMax: String?, onStats: () -> Unit,
+    onSessions: () -> Unit, onGyms: () -> Unit, onAscents: () -> Unit, modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(22.dp)
+    val s = state.summary
+    Column(
+        modifier.fillMaxWidth().clip(shape)
+            .background(Brush.linearGradient(listOf(Color(0xFF7B3FB0), Color(0xFFC2410C), Color(0xFFE88A3A))), shape)
+            .clickable(onClick = onStats).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.profile_climb_card_title).uppercase(), style = EyebrowTextStyle, color = Color.White.copy(alpha = 0.9f), maxLines = 1, modifier = Modifier.weight(1f))
+            Text(
+                stringResource(R.string.gym_stats_see_all).uppercase() + " ›", style = EyebrowTextStyle, color = Color(0xFF2A2924), maxLines = 1,
+                modifier = Modifier.clip(CircleShape).background(Color.White.copy(alpha = 0.92f)).padding(horizontal = 10.dp, vertical = 5.dp)
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            CardLine(stringResource(R.string.profile_line_total), pluralStringResource(R.plurals.profile_days_climbing, state.totalDays, state.totalDays))
+            CardLine(
+                stringResource(R.string.profile_line_rock),
+                listOfNotNull(
+                    state.rockDays?.let { pluralStringResource(R.plurals.profile_days, it, it) },
+                    rockMax?.let { stringResource(R.string.profile_max_of, it.uppercase()) }
+                ).joinToString(" · ").ifEmpty { "—" }
+            )
+            CardLine(
+                stringResource(R.string.profile_line_gym),
+                listOfNotNull(
+                    pluralStringResource(R.plurals.profile_sessions, s.sessions, s.sessions),
+                    s.maxGrade?.let { stringResource(R.string.profile_max_of, it.uppercase()) }
+                ).joinToString(" · ")
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            CardBox(s.sessions, R.string.gym_train_kpi_sessions, Modifier.weight(1f), onSessions)
+            CardBox(s.gyms, R.string.profile_gyms_label, Modifier.weight(1f), onGyms)
+            CardBox(s.ascents, R.string.profile_ascents_label, Modifier.weight(1f), onAscents)
+        }
+        if (state.segments.isNotEmpty()) Row(Modifier.fillMaxWidth().height(7.dp).clip(CircleShape)) {
+            state.segments.forEach { seg ->
+                Box(Modifier.weight(seg.count.toFloat()).height(7.dp).background(seg.hex?.let { parseHex(it) } ?: gradeChipStyle(seg.grade).stroke))
+            }
+        }
+    }
+}
+
+@Composable
+private fun CardLine(label: String, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(label, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White, maxLines = 1, modifier = Modifier.weight(0.34f))
+        Text(value, fontSize = 13.sp, color = Color.White.copy(alpha = 0.95f), maxLines = 1, modifier = Modifier.weight(0.66f))
+    }
+}
+
+@Composable
+private fun CardBox(value: Int, label: Int, modifier: Modifier, onClick: () -> Unit) {
+    Row(
+        modifier.clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.16f)).clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(value.toString(), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = Color.White, maxLines = 1)
+            Text(stringResource(label), fontSize = 11.sp, color = Color.White.copy(alpha = 0.9f), maxLines = 1)
+        }
+        Text("›", color = Color.White.copy(alpha = 0.8f), fontSize = 16.sp)
+    }
+}
+
+/** «Tu rocódromo» (si lo has elegido) y «Semanas seguidas»; el chip del rocódromo abre su ficha. */
+@Composable
+internal fun HomeGymAndStreak(home: Gym?, streakWeeks: Int, onOpenGym: (Long) -> Unit, modifier: Modifier = Modifier) {
+    if (home == null && streakWeeks <= 0) return
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (home != null) Row(
+            Modifier.weight(1f).clip(CumbreStatCardShape).background(MaterialTheme.colorScheme.surface, CumbreStatCardShape)
+                .border(1.dp, MaterialTheme.colorScheme.outline, CumbreStatCardShape).clickable { onOpenGym(home.id) }.padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(terraFillColor()), contentAlignment = Alignment.Center) {
+                Text(home.name.take(1).uppercase(), color = Color.White, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            }
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.gym_stats_top).uppercase(), fontFamily = Mono, fontSize = 8.sp, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                Text(home.name, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
+            }
+        }
+        if (streakWeeks > 0) Row(
+            Modifier.weight(1f).clip(CumbreStatCardShape).background(MaterialTheme.colorScheme.surface, CumbreStatCardShape)
+                .border(1.dp, MaterialTheme.colorScheme.outline, CumbreStatCardShape).padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Outlined.LocalFireDepartment, null, tint = terraFillColor(), modifier = Modifier.size(24.dp))
+            Column {
+                Text(stringResource(R.string.gym_stats_streak).uppercase(), fontFamily = Mono, fontSize = 8.sp, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                Text(streakWeeks.toString(), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
+            }
+        }
+    }
+}
+
+/** Cabecera compacta: avatar a la izquierda (lo pinta el host sin recortar) y, a su lado, nombre, @usuario y seguidos · seguidores. */
+@Composable
+internal fun CompactProfileHeader(
+    name: String, handle: String, uid: String, followers: Long, following: Long,
+    onFollowers: () -> Unit, onFollowing: () -> Unit, avatarSlot: androidx.compose.ui.unit.Dp,
+    modifier: Modifier = Modifier, trailing: @Composable () -> Unit = {}
+) {
+    Row(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(avatarSlot + 8.dp))
+        Column(Modifier.weight(1f).padding(start = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(name, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 23.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f, fill = false))
+                com.meteomontana.android.ui.components.VerifiedCheck(uid, 18.dp)
+            }
+            Text(handle, fontFamily = Mono, fontSize = 12.sp, maxLines = 1, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.padding(top = 2.dp)) {
+                FollowInline(following, stringResource(R.string.profile_following).lowercase(), onFollowing)
+                FollowInline(followers, stringResource(R.string.profile_followers).lowercase(), onFollowers)
+            }
+        }
+        trailing()
+    }
+}
+
+@Composable
+private fun FollowInline(value: Long, label: String, onClick: () -> Unit) {
+    Row(Modifier.clickable(onClick = onClick), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("$value", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+        Text(label, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+    }
+}

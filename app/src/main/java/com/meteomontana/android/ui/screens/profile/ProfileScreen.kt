@@ -103,6 +103,8 @@ fun ProfileScreen(
     onOpenStats: () -> Unit = {},
     onOpenGymTraining: () -> Unit = {},
     onOpenGym: (Long) -> Unit = {},
+    /** Sesiones, rocódromos o ascensiones de la tarjeta: la pantalla de ascensiones. */
+    onOpenGymAscents: () -> Unit = {},
     /** En la pestaña keep-alive: true cuando la pestaña Perfil está visible.
      *  Recarga al hacerse visible (los ON_RESUME no saltan al cambiar de tab). */
     visible: Boolean = true,
@@ -203,6 +205,7 @@ fun ProfileScreen(
                     onOpenStats = onOpenStats,
                     onOpenGymTraining = onOpenGymTraining,
                     onOpenGym = onOpenGym,
+                    onOpenGymAscents = onOpenGymAscents,
                     visible = visible,
                     onPhotoChanged = viewModel::load
                 )
@@ -316,6 +319,7 @@ internal fun Content(
     onOpenStats: () -> Unit = {},
     onOpenGymTraining: () -> Unit = {},
     onOpenGym: (Long) -> Unit = {},
+    onOpenGymAscents: () -> Unit = {},
     /** Pestaña Perfil visible: la tarjeta de rocódromo se relee cada vez (la pestaña no se recompone al volver). */
     visible: Boolean = true,
     onPhotoChanged: () -> Unit = {}
@@ -324,15 +328,33 @@ internal fun Content(
     val density = androidx.compose.ui.platform.LocalDensity.current
     val headerIndex = if (offline) 1 else 0
     val gymsOn = com.meteomontana.android.ui.components.LocalFeatureFlags.current.isGymsEnabled
+    val climbVm: ProfileClimbViewModel = hiltViewModel()
+    val climb by climbVm.state.collectAsStateWithLifecycle()
+    val myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+    // La pestaña Perfil se queda viva: se relee cada vez que se hace visible.
+    androidx.compose.runtime.LaunchedEffect(visible) { if (visible && gymsOn) climbVm.load(null, myUid) }
+    var refreshing by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = refreshing,
+        onRefresh = {
+            refreshing = true
+            onPhotoChanged()
+            if (gymsOn) climbVm.load(null, myUid)
+            scope.launch { kotlinx.coroutines.delay(900); refreshing = false }
+        },
+        modifier = Modifier.fillMaxSize()
+    ) {
     com.meteomontana.android.ui.components.UnclippedAvatarHost(
         slotOffsetPx = {
             // Y del hueco del avatar: la cabecera + el margen superior de la lista + su propio padding.
             val info = listState.layoutInfo
             info.visibleItemsInfo.firstOrNull { it.index == headerIndex }
-                ?.let { it.offset + info.beforeContentPadding + with(density) { 8.dp.roundToPx() } }
+                ?.let { it.offset + info.beforeContentPadding + with(density) { 10.dp.roundToPx() } }
         },
         avatar = { ProfileAvatar(profile, canChangePhoto = !offline, onPhotoChanged = onPhotoChanged) },
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
+        startPadding = 16.dp
     ) { avatarSlot ->
     LazyColumn(
         state = listState,
@@ -355,17 +377,38 @@ internal fun Content(
                 )
             }
         }
-        // Cabecera centrada (avatar grande, nombre, @usuario, píldoras ADMIN/PREMIUM
-        // y seguidores). El grado máx vive solo en las stats (decisión de Rodrigo).
-        item { Header(profile, followers = followers, following = following,
-            onClickFollowers = onOpenFollowers, onClickFollowing = onOpenFollowing,
-            avatarSlot = avatarSlot) }
-        item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects, onOpenMyPosts, onOpenStats) }
-        // Entrenos en rocódromo (solo con el interruptor `gyms_enabled` encendido).
-        if (gymsOn) item { GymStatsCard(onClick = onOpenGymTraining, onOpenGym = onOpenGym, visible = visible) }
-        // Admin ya no va aquí: es un botón arriba a la izquierda (junto al "?").
-        // La lista de escuelas tampoco (ya vive en la pestaña Diario).
+        // Cabecera compacta (maqueta A): avatar a la izquierda; nombre, @usuario y seguidos · seguidores a su lado. Sin
+        // descripción. Debajo, el título con sus efectos (tocar = elegir título y viero/bloquero).
+        item {
+            Column {
+                CompactProfileHeader(
+                    name = profile.displayName ?: profile.username ?: stringResource(R.string.school_presence_row_v3_tu),
+                    handle = "@${profile.username ?: profile.displayName?.lowercase()?.replace(" ", "_") ?: "tu_username"}",
+                    uid = profile.uid, followers = followers, following = following,
+                    onFollowers = onOpenFollowers, onFollowing = onOpenFollowing, avatarSlot = avatarSlot,
+                    modifier = Modifier.guideTarget("profile.follows")
+                )
+                com.meteomontana.android.ui.components.RewardsBlock(uid = null)
+            }
+        }
+        item {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp).guideTarget("profile.diary"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ProfileCells(stats.boulderCount, stats.routeCount, stats.maxBoulderGrade, stats.maxRouteGrade, onOpenBoulders, onOpenRoutes, onOpenMaxGrade)
+                ProfileThinRow(stringResource(R.string.feed_my_posts_section), null, onOpenMyPosts)
+                // Entrenos en rocódromo (solo con el interruptor `gyms_enabled` encendido).
+                if (gymsOn) {
+                    Box(Modifier.guideTarget("profile.stats")) {
+                        ClimbGradientCard(climb, stats.maxGrade, onStats = onOpenStats, onSessions = onOpenGymAscents, onGyms = onOpenGymAscents, onAscents = onOpenGymAscents)
+                    }
+                    HomeGymAndStreak(climb.homeGym, climb.streakWeeks, onOpenGym)
+                    LogWorkoutButton(onSaved = { climbVm.load(null, myUid) })
+                } else {
+                    Box(Modifier.guideTarget("profile.stats")) { com.meteomontana.android.ui.components.StatsEntryButton(onClick = onOpenStats) }
+                }
+            }
+        }
         item { Spacer(Modifier.height(24.dp)) }
+    }
     }
     }
 }

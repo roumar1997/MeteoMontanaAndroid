@@ -98,6 +98,8 @@ fun PublicProfileScreen(
     onOpenProjects: (String) -> Unit = {},
     /** G: estadísticas completas del usuario (privacidad: la impone el backend). */
     onOpenStats: (String) -> Unit = {},
+    /** Sesiones, rocódromos o ascensiones de su tarjeta: la pantalla de ascensiones de esa persona. */
+    onOpenGymAscents: (String) -> Unit = {},
     /** H: sus publicaciones en pantalla propia (como «Mis publicaciones»). */
     onOpenPosts: (String) -> Unit = {},
     /** Abrir OTRO perfil (autor de un comentario del feed). */
@@ -137,6 +139,12 @@ fun PublicProfileScreen(
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.align(Alignment.Center))
             com.meteomontana.android.ui.components.CumbrePillGroup(modifier = Modifier.align(Alignment.CenterEnd)) {
+            // Mensaje (maqueta B: el botón de chat va arriba con compartir y ⋯).
+            if (profileUid != null && profileUid != myUid && (state as? PublicProfileUiState.Success)?.profile?.locked == false) {
+                IconButton(onClick = { onOpenChat(profileUid) }) {
+                    Icon(Icons.Filled.ChatBubble, contentDescription = stringResource(R.string.chat_message), tint = MaterialTheme.colorScheme.onBackground)
+                }
+            }
             // Compartir perfil (también el propio): enlace /s/u/ que abre la app.
             val profileHandle = (state as? PublicProfileUiState.Success)?.profile
                 ?.let { it.username ?: it.uid }
@@ -210,6 +218,8 @@ fun PublicProfileScreen(
                 onOpenSchoolEntries = { schoolName -> onOpenSchoolEntries(s.profile.uid, schoolName) },
                 onOpenProjects = { onOpenProjects(s.profile.uid) },
                 onOpenStats = { onOpenStats(s.profile.uid) },
+                onOpenGymAscents = { onOpenGymAscents(s.profile.uid) },
+                onRefresh = viewModel::load,
                 onOpenPosts = { onOpenPosts(s.profile.uid) },
                 onOpenUserProfile = onOpenUserProfile,
                 onOpenFeedSchool = onOpenFeedSchool
@@ -230,6 +240,7 @@ fun PublicProfileScreen(
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 internal fun Body(
     s: PublicProfileUiState.Success,
@@ -244,6 +255,8 @@ internal fun Body(
     onOpenSchoolEntries: (String) -> Unit = {},
     onOpenProjects: () -> Unit = {},
     onOpenStats: () -> Unit = {},
+    onOpenGymAscents: () -> Unit = {},
+    onRefresh: () -> Unit = {},
     onOpenPosts: () -> Unit = {},
     onOpenUserProfile: (String) -> Unit = {},
     onOpenFeedSchool: (String, String?, String?, String?) -> Unit = { _, _, _, _ -> }
@@ -256,8 +269,25 @@ internal fun Body(
         com.meteomontana.android.ui.components.FullScreenPhotoDialog(url) { zoomPhoto = null }
     }
     val scroll = rememberScrollState()
-    val topPadPx = with(androidx.compose.ui.platform.LocalDensity.current) { 4.dp.roundToPx() }
+    val topPadPx = with(androidx.compose.ui.platform.LocalDensity.current) { 10.dp.roundToPx() }
+    val gymsOn = com.meteomontana.android.ui.components.LocalFeatureFlags.current.isGymsEnabled
+    val climbVm: com.meteomontana.android.ui.screens.profile.ProfileClimbViewModel = hiltViewModel(key = "climb_${p.uid}")
+    val climb by climbVm.state.collectAsStateWithLifecycle()
+    val myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+    androidx.compose.runtime.LaunchedEffect(p.uid, locked) { if (gymsOn && !locked) climbVm.load(p.uid, myUid) }
+    var refreshing by remember { mutableStateOf(false) }
+    val refreshScope = androidx.compose.runtime.rememberCoroutineScope()
     // El avatar va en una capa por encima del scroll: su efecto de título (dragones) no se corta al subir.
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = refreshing,
+        onRefresh = {
+            refreshing = true
+            onRefresh()
+            if (gymsOn && !locked) climbVm.load(p.uid, myUid)
+            refreshScope.launch { kotlinx.coroutines.delay(900); refreshing = false }
+        },
+        modifier = Modifier.fillMaxSize()
+    ) {
     com.meteomontana.android.ui.components.UnclippedAvatarHost(
         slotOffsetPx = { topPadPx - scroll.value },
         avatar = {
@@ -272,102 +302,55 @@ internal fun Body(
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
             }
         },
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
+        startPadding = 16.dp
     ) { avatarSlot ->
-    Column(modifier = Modifier.fillMaxSize()
-        .verticalScroll(scroll)
-        .padding(horizontal = 16.dp, vertical = 4.dp)) {
-        // Cabecera centrada, igual que el perfil propio.
-        Column(modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally) {
-            Spacer(Modifier.height(avatarSlot))
-            Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(p.displayName ?: p.username ?: stringResource(R.string.w_user),
-                    fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                VerifiedCheck(p.uid, 18.dp)
-            }
-            Text("@${p.username ?: p.displayName?.lowercase()?.replace(" ", "_") ?: "usuario"}",
-                fontFamily = com.meteomontana.android.ui.theme.Mono, fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            // Título, insignias y viero/bloquero de esta persona.
-            com.meteomontana.android.ui.components.RewardsBlock(uid = p.uid)
-            if (!locked) {
-                p.bio?.takeIf { it.isNotBlank() }?.let {
-                    Spacer(Modifier.height(4.dp))
-                    Text(it, style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                }
-            }
-            // El grado tope ya NO es manual: se muestra automático desde el
-            // diario en la fila de stats (TOPE BLOQUE / TOPE VÍA más abajo).
-            Spacer(Modifier.height(6.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                FollowCount(s.status.followers, stringResource(R.string.profile_followers).uppercase(),
-                    if (locked) ({}) else onFollowersClick)
-                FollowCount(s.status.following, stringResource(R.string.profile_following).uppercase(),
-                    if (locked) ({}) else onFollowingClick)
-                // «Te sigue»: una etiqueta clara, no un texto suelto debajo de los botones.
-                if (s.status.theyFollowMe && !locked) {
-                    Row(
-                        Modifier.clip(CircleShape).background(com.meteomontana.android.ui.theme.Ok.copy(alpha = 0.10f))
-                            .border(1.dp, com.meteomontana.android.ui.theme.Ok.copy(alpha = 0.5f), CircleShape)
-                            .padding(horizontal = 9.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Filled.HowToReg, null,
-                            tint = com.meteomontana.android.ui.theme.Ok, modifier = Modifier.size(14.dp))
-                        Text(stringResource(R.string.public_profile_screen_v2_te_sigue).uppercase(),
-                            fontFamily = com.meteomontana.android.ui.theme.Mono, fontWeight = FontWeight.Bold,
-                            fontSize = 9.5.sp, color = com.meteomontana.android.ui.theme.Ok)
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(scroll).padding(bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)) {
+        // Cabecera compacta (maqueta B): sin descripción; seguidos · seguidores junto al nombre y SEGUIR a la derecha.
+        Column {
+            com.meteomontana.android.ui.screens.profile.CompactProfileHeader(
+                name = p.displayName ?: p.username ?: stringResource(R.string.w_user),
+                handle = "@${p.username ?: p.displayName?.lowercase()?.replace(" ", "_") ?: "usuario"}",
+                uid = p.uid, followers = s.status.followers, following = s.status.following,
+                onFollowers = if (locked) ({}) else onFollowersClick, onFollowing = if (locked) ({}) else onFollowingClick,
+                avatarSlot = avatarSlot,
+                modifier = Modifier.padding(top = 4.dp),
+                trailing = {
+                    Box(Modifier.width(112.dp)) {
+                        FollowButton(iFollow = s.status.iFollowThem, requestPending = s.status.requestPending, onClick = onToggleFollow)
                     }
                 }
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(modifier = Modifier.weight(1f)) {
-                FollowButton(
-                    iFollow = s.status.iFollowThem,
-                    requestPending = s.status.requestPending,
-                    onClick = onToggleFollow
-                )
-            }
-            if (!locked) {
-                Row(modifier = Modifier
-                    .weight(1f)
-                    .height(44.dp)
-                    .clip(CircleShape)
-                    .background(com.meteomontana.android.ui.theme.Terra.copy(alpha = 0.08f), CircleShape)
-                    .border(1.dp, com.meteomontana.android.ui.theme.Terra, CircleShape)
-                    .clickable(onClick = onMessage),
-                    horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
+            )
+            // Título (con sus efectos), insignias y viero/bloquero de esta persona.
+            com.meteomontana.android.ui.components.RewardsBlock(uid = p.uid)
+            // «Te sigue»: una etiqueta clara.
+            if (s.status.theyFollowMe && !locked) {
+                Row(
+                    Modifier.padding(horizontal = 16.dp).clip(CircleShape).background(com.meteomontana.android.ui.theme.Ok.copy(alpha = 0.10f))
+                        .border(1.dp, com.meteomontana.android.ui.theme.Ok.copy(alpha = 0.5f), CircleShape)
+                        .padding(horizontal = 9.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Filled.ChatBubble, null,
-                        tint = com.meteomontana.android.ui.theme.Terra, modifier = Modifier.size(15.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.chat_message).uppercase(), style = MaterialTheme.typography.labelLarge.copy(fontFamily = com.meteomontana.android.ui.theme.Mono, fontWeight = FontWeight.Bold, fontSize = 11.5.sp),
-                        color = com.meteomontana.android.ui.theme.Terra)
+                    androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Filled.HowToReg, null,
+                        tint = com.meteomontana.android.ui.theme.Ok, modifier = Modifier.size(14.dp))
+                    Text(stringResource(R.string.public_profile_screen_v2_te_sigue).uppercase(),
+                        fontFamily = com.meteomontana.android.ui.theme.Mono, fontWeight = FontWeight.Bold,
+                        fontSize = 9.5.sp, color = com.meteomontana.android.ui.theme.Ok)
                 }
             }
         }
         if (!locked && s.stats != null) {
-            Spacer(Modifier.height(8.dp))
-            ActivityStatsRow(
-                stats = s.stats,
-                onBlocksClick = onOpenBoulders,
-                onRoutesClick = onOpenRoutes,
-                onSchoolsClick = onOpenSchools,
-                onMaxClick = onOpenMaxGrade,
-                onProjectsClick = onOpenProjects,
-                onStatsClick = onOpenStats,
-                onPostsClick = onOpenPosts
-            )
-            // H: la lista de ESCUELAS ya no va inline (la celda ESCUELAS de
-            // arriba abre su pantalla) — igual que en el perfil propio.
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                com.meteomontana.android.ui.screens.profile.ProfileCells(
+                    s.stats.boulderCount, s.stats.routeCount, s.stats.maxBoulderGrade, s.stats.maxRouteGrade,
+                    onOpenBoulders, onOpenRoutes, onOpenMaxGrade
+                )
+                com.meteomontana.android.ui.screens.profile.ProfileThinRow(stringResource(R.string.feed_posts_section), null, onOpenPosts)
+                if (gymsOn) com.meteomontana.android.ui.screens.profile.ClimbGradientCard(
+                    climb, s.stats.maxGrade, onStats = onOpenStats,
+                    onSessions = onOpenGymAscents, onGyms = onOpenGymAscents, onAscents = onOpenGymAscents
+                ) else com.meteomontana.android.ui.components.StatsEntryButton(onClick = onOpenStats)
+            }
         }
         if (locked) {
             Spacer(Modifier.height(32.dp))
@@ -381,6 +364,7 @@ internal fun Body(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+    }
     }
     }
 }

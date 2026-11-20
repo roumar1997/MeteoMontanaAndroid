@@ -2278,4 +2278,41 @@
     <string name="mw_message">Message</string>
     <string name="mw_message_hint">Tell what you plan (optional)</string>
     <string name="mw_who_joins">Who can join</string>
+    <string name="profile_climb_card_title">Climbing · total</string>
+    <string name="profile_line_total">Total</string>
+    <string name="profile_line_rock">Rock</string>
+    <string name="profile_line_gym">Gym</string>
+    <string name="profile_max_of">max %1$s</string>
+    <string name="profile_gyms_label">gyms</string>
+    <string name="profile_ascents_label">ascents</string>
+    <plurals name="profile_days_climbing">
+        <item quantity="one">%d day climbing</item>
+        <item quantity="other">%d days climbing</item>
+    </plurals>
+    <plurals name="profile_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <plurals name="profile_sessions">
+        <item quantity="one">%d session</item>
+        <item quantity="other">%d sessions</item>
+    </plurals>
+    <string name="gym_by_gym">By gym</string>
+    <string name="gym_by_grade">By grade</string>
+    <string name="gym_by_month">By month</string>
+    <string name="gym_asc_title">Ascents · %1$d</string>
+    <string name="gym_asc_tab_all">All</string>
+    <string name="gym_asc_tab_blocks">Boulders</string>
+    <string name="gym_asc_tab_routes">Routes</string>
+    <string name="gym_asc_tab_boards">Boards</string>
+    <string name="gym_asc_empty">No ascents logged yet</string>
+    <string name="stats_hub_title">Statistics</string>
+    <string name="stats_hub_tab_all">All</string>
+    <string name="stats_hub_tab_rock">Rock</string>
+    <string name="stats_hub_tab_gym">Gym</string>
+    <string name="stats_hub_open_schools">Schools</string>
+    <string name="stats_hub_open_projects">Projects</string>
+    <string name="stats_hub_gym_empty">No gym sessions yet</string>
+    <string name="settings_home_gym">My gym</string>
+    <string name="settings_home_gym_clear">Remove my gym</string>
 </resources>

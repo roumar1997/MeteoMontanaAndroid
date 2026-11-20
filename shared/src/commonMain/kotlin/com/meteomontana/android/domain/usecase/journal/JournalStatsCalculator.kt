@@ -41,6 +41,9 @@ object JournalStatsCalculator {
             .filter { year == null || it.date.startsWith(year) }
             .toList()
 
+    /** Días distintos en que se escaló en roca (solo entradas hechas, no proyectos): la línea «Roca» del perfil. */
+    fun rockDays(entries: List<JournalSession>): Int = entries.filter { it.status == "DONE" }.map { it.date }.distinct().size
+
     fun summary(entries: List<JournalSession>, allEntries: List<JournalSession>, today: String): Summary {
         val days = entries.map { it.date }.distinct()
         val byMonth = entries.groupingBy { it.date.take(7) }.eachCount()

@@ -68,6 +68,8 @@ fun StatsScreen(
     onOpenSchool: (String) -> Unit = {},
     /** Ir a la piedra/vía en su escuela: (schoolId, lineName, lineId). */
     onOpenBlock: (String, String, String?) -> Unit = { _, _, _ -> },
+    /** Dentro de la pestaña «Roca» de Estadísticas: sin volver ni título propios (los pone el contenedor). */
+    embedded: Boolean = false,
     viewModel: StatsViewModel = hiltViewModel()
 ) {
     var showDaysList by remember { mutableStateOf(false) }
@@ -86,9 +88,11 @@ fun StatsScreen(
             val shareCtx = androidx.compose.ui.platform.LocalContext.current
             val shareScope = androidx.compose.runtime.rememberCoroutineScope()
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("‹", fontSize = 26.sp, color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.clickable(onClick = onBack).padding(end = Spacing.sm))
-                Text(stringResource(R.string.stats_screen_mis_estadisticas), style = EyebrowTextStyle, color = Terra)
+                if (!embedded) {
+                    Text("‹", fontSize = 26.sp, color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.clickable(onClick = onBack).padding(end = Spacing.sm))
+                    Text(stringResource(R.string.stats_screen_mis_estadisticas), style = EyebrowTextStyle, color = Terra)
+                }
                 Spacer(Modifier.weight(1f))
                 // C6: compartir como imagen (formato historia, estilo Wrapped).
                 state.summary?.takeIf { state.isOwn }?.let { sum ->

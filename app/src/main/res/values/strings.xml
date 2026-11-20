@@ -2337,4 +2337,41 @@
     <string name="mw_message">Mensaje</string>
     <string name="mw_message_hint">Cuenta qué planeáis (opcional)</string>
     <string name="mw_who_joins">Quién puede unirse</string>
+    <string name="profile_climb_card_title">Escalada · total</string>
+    <string name="profile_line_total">Total</string>
+    <string name="profile_line_rock">Roca</string>
+    <string name="profile_line_gym">Rocódromo</string>
+    <string name="profile_max_of">máx %1$s</string>
+    <string name="profile_gyms_label">rocódromos</string>
+    <string name="profile_ascents_label">ascensiones</string>
+    <plurals name="profile_days_climbing">
+        <item quantity="one">%d día escalando</item>
+        <item quantity="other">%d días escalando</item>
+    </plurals>
+    <plurals name="profile_days">
+        <item quantity="one">%d día</item>
+        <item quantity="other">%d días</item>
+    </plurals>
+    <plurals name="profile_sessions">
+        <item quantity="one">%d sesión</item>
+        <item quantity="other">%d sesiones</item>
+    </plurals>
+    <string name="gym_by_gym">Por rocódromo</string>
+    <string name="gym_by_grade">Por grado</string>
+    <string name="gym_by_month">Por mes</string>
+    <string name="gym_asc_title">Ascensiones · %1$d</string>
+    <string name="gym_asc_tab_all">Todo</string>
+    <string name="gym_asc_tab_blocks">Bloques</string>
+    <string name="gym_asc_tab_routes">Vías</string>
+    <string name="gym_asc_tab_boards">Boards</string>
+    <string name="gym_asc_empty">Aún no hay ascensiones apuntadas</string>
+    <string name="stats_hub_title">Estadísticas</string>
+    <string name="stats_hub_tab_all">Todo</string>
+    <string name="stats_hub_tab_rock">Roca</string>
+    <string name="stats_hub_tab_gym">Rocódromo</string>
+    <string name="stats_hub_open_schools">Escuelas</string>
+    <string name="stats_hub_open_projects">Proyectos</string>
+    <string name="stats_hub_gym_empty">Sin entrenos de rocódromo todavía</string>
+    <string name="settings_home_gym">Mi rocódromo</string>
+    <string name="settings_home_gym_clear">Quitar mi rocódromo</string>
 </resources>
