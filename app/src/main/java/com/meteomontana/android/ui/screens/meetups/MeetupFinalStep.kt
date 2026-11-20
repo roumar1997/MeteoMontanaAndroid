@@ -6,14 +6,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddAPhoto
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -23,19 +24,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import androidx.compose.ui.unit.sp
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.MeetupDraft
+import com.meteomontana.android.ui.components.CumbreChip
+import com.meteomontana.android.ui.theme.terraFillColor
 
-/** Paso 3 de 3: ¿Quién puede unirse? Privacidad, límite de participantes, nombre y foto. */
+/**
+ * Paso 3 de 3: Material y detalles. Baldosas de material (de dos en dos), mensaje, quién puede unirse (tres chips),
+ * nombre con la foto al lado y el resumen. Sin scroll en una pantalla normal. El límite de participantes ya no se
+ * pregunta: «¿Cuántos buscáis?» del paso anterior lo cubre.
+ */
 @Composable
 internal fun MeetupFinalStep(
     draft: MeetupDraft,
@@ -44,59 +46,55 @@ internal fun MeetupFinalStep(
     onPickPhoto: () -> Unit,
     defaultName: String
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         WizardQuestion(stringResource(R.string.mw_step3_q))
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            PrivacyCard("OPEN", R.string.create_meetup_privacy_open, R.string.mw_privacy_open_sub, draft, onDraft)
-            PrivacyCard("FOLLOWERS", R.string.create_meetup_privacy_followers, R.string.mw_privacy_followers_sub, draft, onDraft)
-            PrivacyCard("WOMEN", R.string.create_meetup_privacy_women, R.string.mw_privacy_women_sub, draft, onDraft)
+        if (com.meteomontana.android.domain.model.MeetupGearItem.forPlace(draft.discipline, draft.placeIsGym).isNotEmpty()) {
+            WizardEyebrow(stringResource(R.string.mw_gear_tap))
+            GearTiles(draft, onDraft)
         }
-        WizardEyebrow(stringResource(R.string.mw_limit))
-        WizardStepper(
-            value = draft.memberLimit?.toString() ?: "∞",
-            unit = if (draft.memberLimit != null) stringResource(R.string.mw_limit_max) else stringResource(R.string.create_meetup_no_limit),
-            onMinus = if (draft.memberLimit != null) ({ onDraft(draft.stepLimit(-1)) }) else null,
-            onPlus = if ((draft.memberLimit ?: 0) < MeetupDraft.MAX_LIMIT) ({ onDraft(draft.stepLimit(1)) }) else null
-        )
-        WizardEyebrow(stringResource(R.string.mw_name_label))
+        WizardEyebrow(stringResource(R.string.mw_message))
         OutlinedTextField(
-            value = draft.name, onValueChange = { onDraft(draft.copy(name = it)) },
-            placeholder = { Text(defaultName, maxLines = 1) },
-            modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(16.dp)
+            value = draft.description.orEmpty(), onValueChange = { onDraft(draft.copy(description = it.take(300).ifBlank { null })) },
+            placeholder = { Text(stringResource(R.string.mw_message_hint), maxLines = 1) },
+            modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 3, shape = RoundedCornerShape(16.dp)
         )
-        PhotoBox(draft.photoUrl, uploadingPhoto, onPickPhoto)
+        WizardEyebrow(stringResource(R.string.mw_who_joins))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PrivacyChip("OPEN", R.string.create_meetup_privacy_open, draft, onDraft)
+            PrivacyChip("FOLLOWERS", R.string.create_meetup_privacy_followers, draft, onDraft)
+            PrivacyChip("WOMEN", R.string.create_meetup_privacy_women, draft, onDraft)
+        }
+        WizardEyebrow(stringResource(R.string.mw_name_label))
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = draft.name, onValueChange = { onDraft(draft.copy(name = it)) },
+                placeholder = { Text(defaultName, maxLines = 1) },
+                modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(16.dp)
+            )
+            PhotoButton(draft.photoUrl != null, uploadingPhoto, onPickPhoto)
+        }
+        MeetupSummaryCard(draft)
     }
 }
 
 @Composable
-private fun PrivacyCard(key: String, title: Int, subtitle: Int, draft: MeetupDraft, onDraft: (MeetupDraft) -> Unit) {
-    WizardOptionCard(draft.privacy == key, { onDraft(draft.copy(privacy = key)) }) {
-        WizardCardTitle(stringResource(title), stringResource(subtitle))
-    }
+private fun PrivacyChip(key: String, title: Int, draft: MeetupDraft, onDraft: (MeetupDraft) -> Unit) {
+    CumbreChip(stringResource(title), draft.privacy == key, { onDraft(draft.copy(privacy = key)) })
 }
 
-/** Foto del grupo: recuadro de borde discontinuo y redondeado; con foto, la foto. */
+/** Foto del grupo en un botón cuadrado junto al nombre: vacío con la cámara, con foto un check. */
 @Composable
-private fun PhotoBox(photoUrl: String?, uploading: Boolean, onPick: () -> Unit) {
-    val outline = MaterialTheme.colorScheme.outline
-    val shape = RoundedCornerShape(18.dp)
+private fun PhotoButton(hasPhoto: Boolean, uploading: Boolean, onPick: () -> Unit) {
+    val shape = RoundedCornerShape(16.dp)
     Box(
-        Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(shape).clickable(onClick = onPick)
-            .drawBehind {
-                if (photoUrl == null) drawRoundRect(
-                    outline, size = Size(size.width, size.height), cornerRadius = CornerRadius(18.dp.toPx()),
-                    style = Stroke(2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f)))
-                )
-            },
+        Modifier.size(56.dp).clip(shape).border(1.dp, if (hasPhoto) terraFillColor() else MaterialTheme.colorScheme.outline, shape)
+            .background(MaterialTheme.colorScheme.surface).clickable(onClick = onPick),
         contentAlignment = Alignment.Center
     ) {
-        if (photoUrl != null) AsyncImage(photoUrl, null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-        else Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(Icons.Outlined.AddAPhoto, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(26.dp))
-            Text(stringResource(R.string.mw_photo_add), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        if (uploading) Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)), Alignment.Center) {
-            CircularProgressIndicator(Modifier.size(28.dp))
-        }
+        if (uploading) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+        else Icon(
+            if (hasPhoto) Icons.Outlined.CheckCircle else Icons.Outlined.AddAPhoto, stringResource(R.string.mw_photo_add),
+            tint = if (hasPhoto) terraFillColor() else MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

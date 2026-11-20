@@ -172,4 +172,21 @@ class GymTrainingAndDraftTest {
         assertEquals("Sabado de cuerda", r.name)
         assertTrue(r.requiredGear.isEmpty())
     }
+
+    @Test
+    fun `bloque y via se pueden marcar a la vez y mandan BOTH`() {
+        var d = MeetupDraft().withGym(5L, "Chango").toggleDay("2026-11-28")
+        d = d.toggleBoulder()
+        assertEquals("BOULDER", d.discipline)
+        d = d.toggleRoute()
+        assertEquals("BOTH", d.discipline)
+        assertTrue(d.hasBoulder && d.hasRoute)
+        assertEquals("BOTH", d.toRequest("x").discipline)
+        // En rocodromo con las dos: cuerda y gri-gri; en roca, todo el material.
+        assertEquals(listOf("ROPE", "GRIGRI"), MeetupGearItem.forPlace("BOTH", gym = true))
+        assertEquals(listOf("ROPE", "GRIGRI", "QUICKDRAWS", "CRASHPAD"), MeetupGearItem.forPlace("BOTH", gym = false))
+        d = d.toggleBoulder()
+        assertEquals("ROUTE", d.discipline)
+        assertNull(d.toggleRoute().discipline)
+    }
 }

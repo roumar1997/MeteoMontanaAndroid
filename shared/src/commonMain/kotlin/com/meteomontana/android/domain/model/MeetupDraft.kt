@@ -16,7 +16,7 @@ data class MeetupDraft(
     val gymId: Long? = null,
     val placeName: String = "",
     val days: Set<String> = emptySet(),
-    /** BOULDER | ROUTE | null (sin elegir = cualquiera). */
+    /** BOULDER | ROUTE | BOTH (las dos casillas) | null (sin elegir = cualquiera). */
     val discipline: String? = null,
     val partners: Int = DEFAULT_PARTNERS,
     val gradeMin: String? = null,
@@ -30,6 +30,9 @@ data class MeetupDraft(
     val name: String = "",
     val description: String? = null
 ) {
+    val hasBoulder: Boolean get() = discipline == "BOULDER" || discipline == "BOTH"
+    val hasRoute: Boolean get() = discipline == "ROUTE" || discipline == "BOTH"
+
     val hasPlace: Boolean get() = if (placeIsGym) gymId != null else schoolId.isNotBlank()
 
     /** «Cordada»: una vía en la que se busca a una sola persona. */
@@ -52,9 +55,21 @@ data class MeetupDraft(
 
     /** Al cambiar de modalidad se suelta el material que ya no tiene sentido (cuerda en un bloque, etc.). */
     fun withDiscipline(value: String?): MeetupDraft {
-        val d = value.takeIf { it == "BOULDER" || it == "ROUTE" }
+        val d = value.takeIf { it == "BOULDER" || it == "ROUTE" || it == "BOTH" }
         val allowed = MeetupGearItem.forPlace(d, placeIsGym).toSet()
         return copy(discipline = d, gear = gear.filterKeys { it in allowed })
+    }
+
+    /** Casillas Bloque y Vía (se pueden marcar las dos): cada toque enciende o apaga la suya. */
+    fun toggleBoulder(): MeetupDraft = withDiscipline(disciplineOf(boulder = !hasBoulder, route = hasRoute))
+
+    fun toggleRoute(): MeetupDraft = withDiscipline(disciplineOf(boulder = hasBoulder, route = !hasRoute))
+
+    private fun disciplineOf(boulder: Boolean, route: Boolean): String? = when {
+        boulder && route -> "BOTH"
+        boulder -> "BOULDER"
+        route -> "ROUTE"
+        else -> null
     }
 
     fun withPartners(n: Int) = copy(partners = n.coerceIn(MIN_PARTNERS, MAX_PARTNERS))

@@ -34,7 +34,7 @@ object MeetupGearItem {
     fun forPlace(discipline: String?, gym: Boolean): List<String> =
         if (!gym) forDiscipline(discipline)
         else when (discipline) {
-            "ROUTE" -> listOf(ROPE, GRIGRI)
+            "ROUTE", "BOTH" -> listOf(ROPE, GRIGRI)
             else -> emptyList()
         }
 
@@ -42,6 +42,7 @@ object MeetupGearItem {
     fun forDiscipline(discipline: String?): List<String> = when (discipline) {
         "ROUTE" -> listOf(ROPE, GRIGRI, QUICKDRAWS)
         "BOULDER" -> listOf(CRASHPAD)
+        "BOTH" -> listOf(ROPE, GRIGRI, QUICKDRAWS, CRASHPAD)
         else -> emptyList()
     }
 }

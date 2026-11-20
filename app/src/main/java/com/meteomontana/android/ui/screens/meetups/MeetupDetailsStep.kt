@@ -3,13 +3,14 @@ package com.meteomontana.android.ui.screens.meetups
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +30,7 @@ import com.meteomontana.android.domain.model.MeetupDraft
 import com.meteomontana.android.domain.model.MeetupGearItem
 import com.meteomontana.android.ui.components.CumbreChip
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
+import com.meteomontana.android.ui.theme.gradeChipStyle
 import com.meteomontana.android.ui.theme.terraFillColor
 
 internal fun gearLabelRes(item: String): Int = when (item) {
@@ -38,91 +40,89 @@ internal fun gearLabelRes(item: String): Int = when (item) {
     else -> R.string.gear_crashpad
 }
 
-/** Paso 2 de 3: ¿Qué vais a hacer? Bloque/Vía, cuántos buscáis, grado orientativo, material mínimo y resumen. */
+/**
+ * Paso 2 de 3: ¿Qué vais a hacer? Bloque y Vía son casillas (se pueden marcar las dos), el grado del grupo es un rango
+ * sobre la escala con los colores de la app y, debajo, cuántos buscáis y la cordada. Todo entra sin scroll.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun MeetupDetailsStep(draft: MeetupDraft, onDraft: (MeetupDraft) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         WizardQuestion(stringResource(R.string.mw_step2_q))
+        WizardEyebrow(stringResource(R.string.mw_modality_both))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            WizardOptionCard(draft.discipline == "BOULDER", { onDraft(draft.withDiscipline(if (draft.discipline == "BOULDER") null else "BOULDER")) }, Modifier.weight(1f)) {
+            WizardOptionCard(draft.hasBoulder, { onDraft(draft.toggleBoulder()) }, Modifier.weight(1f)) {
                 WizardCardTitle(stringResource(R.string.mw_boulder_title), stringResource(R.string.mw_boulder_sub), serif = true)
             }
-            WizardOptionCard(draft.discipline == "ROUTE", { onDraft(draft.withDiscipline(if (draft.discipline == "ROUTE") null else "ROUTE")) }, Modifier.weight(1f)) {
+            WizardOptionCard(draft.hasRoute, { onDraft(draft.toggleRoute()) }, Modifier.weight(1f)) {
                 WizardCardTitle(stringResource(R.string.mw_route_title), stringResource(R.string.mw_route_sub), serif = true)
             }
         }
 
+        val range = draft.gradeMin?.let { min ->
+            val max = draft.gradeMax ?: min
+            if (min == max) min.uppercase() else stringResource(R.string.mw_grade_range, min.uppercase(), max.uppercase())
+        }
+        WizardEyebrow(stringResource(R.string.mw_grade_group) + (range?.let { " · $it" } ?: ""))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            MeetupDraft.GRADE_LADDER.forEach { g -> GradeChoiceChip(g, draft.isGradeSelected(g)) { onDraft(draft.toggleGrade(g)) } }
+        }
+
         WizardEyebrow(stringResource(R.string.mw_partners_q))
-        WizardStepper(
-            value = draft.partners.toString(), unit = pluralStringResource(R.plurals.mw_people, draft.partners),
-            onMinus = if (draft.partners > MeetupDraft.MIN_PARTNERS) ({ onDraft(draft.withPartners(draft.partners - 1)) }) else null,
-            onPlus = if (draft.partners < MeetupDraft.MAX_PARTNERS) ({ onDraft(draft.withPartners(draft.partners + 1)) }) else null
-        )
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            WizardStepper(
+                value = draft.partners.toString(), unit = pluralStringResource(R.plurals.mw_people, draft.partners), modifier = Modifier.weight(1f),
+                onMinus = if (draft.partners > MeetupDraft.MIN_PARTNERS) ({ onDraft(draft.withPartners(draft.partners - 1)) }) else null,
+                onPlus = if (draft.partners < MeetupDraft.MAX_PARTNERS) ({ onDraft(draft.withPartners(draft.partners + 1)) }) else null
+            )
             CumbreChip(stringResource(R.string.create_meetup_rope_team), draft.isRopeTeam, { onDraft(draft.toggleRopeTeam()) })
-            if (draft.isRopeTeam) Text(
-                stringResource(R.string.mw_rope_team_hint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f)
-            )
         }
-
-        WizardEyebrow(stringResource(R.string.mw_grade))
-        GradeLadder(draft, onDraft)
-        Text(stringResource(R.string.mw_grade_hint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-        val gearItems = MeetupGearItem.forPlace(draft.discipline, draft.placeIsGym)
-        if (gearItems.isNotEmpty()) {
-            WizardEyebrow(stringResource(R.string.mw_gear))
-            gearItems.forEach { item -> GearRequirementRow(item, draft.gear[item], onDraft, draft) }
-            Text(stringResource(R.string.mw_gear_hint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        MeetupSummaryCard(draft)
+        if (draft.isRopeTeam) Text(stringResource(R.string.mw_rope_team_hint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
-/** Escalera de grados deslizable: dos toques fijan el rango (de fácil a difícil). */
+/** Chip de grado con SU color de la app; dentro del rango lleva un aro terracota. Se toca el extremo de abajo y el de arriba. */
 @Composable
-private fun GradeLadder(draft: MeetupDraft, onDraft: (MeetupDraft) -> Unit) {
-    val range = when {
-        draft.gradeMin == null -> null
-        draft.gradeMax == null || draft.gradeMax == draft.gradeMin -> draft.gradeMin!!.uppercase()
-        else -> "${draft.gradeMin!!.uppercase()} – ${draft.gradeMax!!.uppercase()}"
-    }
-    if (range != null) Text(range, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = terraFillColor())
-    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        MeetupDraft.GRADE_LADDER.forEach { g ->
-            val on = draft.isGradeSelected(g)
-            Text(
-                g.uppercase(), fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1,
-                color = if (on) Color.White else MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.clip(CircleShape)
-                    .background(if (on) terraFillColor() else MaterialTheme.colorScheme.surface, CircleShape)
-                    .border(1.dp, if (on) terraFillColor() else MaterialTheme.colorScheme.outline, CircleShape)
-                    .clickable { onDraft(draft.toggleGrade(g)) }.padding(horizontal = 14.dp, vertical = 10.dp)
-            )
-        }
-    }
+private fun GradeChoiceChip(grade: String, selected: Boolean, onClick: () -> Unit) {
+    val st = gradeChipStyle(grade)
+    val shape = RoundedCornerShape(12.dp)
+    Text(
+        grade.uppercase(), fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1,
+        color = if (st.dark) Color(0xFF1B1B1B) else Color.White,
+        modifier = Modifier.clip(shape).background(st.stroke, shape)
+            .border(if (selected) 3.dp else 0.dp, if (selected) terraFillColor() else Color.Transparent, shape)
+            .clickable(onClick = onClick).padding(horizontal = 13.dp, vertical = 9.dp)
+    )
 }
 
-/** Una fila de material mínimo: se pide con el chip y, si lleva cantidad (cintas, crashpads), con − y +. */
+/**
+ * Material mínimo del paso 3: baldosas de dos en dos. Con cantidad (cintas, crashpads) la baldosa lleva − n + debajo.
+ * Se ofrece solo el material que tiene sentido según el lugar y la modalidad.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun GearRequirementRow(item: String, qty: Int?, onDraft: (MeetupDraft) -> Unit, draft: MeetupDraft) {
-    val shape = RoundedCornerShape(16.dp)
-    Row(
-        Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surface, shape)
-            .border(1.dp, if (qty != null) terraFillColor() else MaterialTheme.colorScheme.outline, shape)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
+internal fun GearTiles(draft: MeetupDraft, onDraft: (MeetupDraft) -> Unit) {
+    val items = MeetupGearItem.forPlace(draft.discipline, draft.placeIsGym)
+    if (items.isEmpty()) return
+    FlowRow(
+        Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), maxItemsInEachRow = 2
     ) {
-        CumbreChip(stringResource(gearLabelRes(item)), qty != null, { onDraft(draft.toggleGear(item)) })
-        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-            if (qty != null && MeetupGearItem.hasQuantity(item)) {
-                StepperButton("−", if (qty > 1) ({ onDraft(draft.withGearQty(item, qty - 1)) }) else null, primary = false, description = "−", size = 36)
-                Text(
-                    qty.toString(), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-                StepperButton("+", if (qty < MeetupGearItem.MAX_QTY) ({ onDraft(draft.withGearQty(item, qty + 1)) }) else null, primary = true, description = "+", size = 36)
+        items.forEach { item ->
+            val qty = draft.gear[item]
+            val shape = RoundedCornerShape(14.dp)
+            Column(
+                Modifier.weight(1f).clip(shape)
+                    .background(if (qty != null) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface, shape)
+                    .border(if (qty != null) 2.dp else 1.dp, if (qty != null) terraFillColor() else MaterialTheme.colorScheme.outline, shape)
+                    .clickable { onDraft(draft.toggleGear(item)) }.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(stringResource(gearLabelRes(item)), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
+                if (qty != null && MeetupGearItem.hasQuantity(item)) Row(verticalAlignment = Alignment.CenterVertically) {
+                    StepperButton("−", if (qty > 1) ({ onDraft(draft.withGearQty(item, qty - 1)) }) else null, primary = false, description = "−", size = 30)
+                    Text(qty.toString(), fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.padding(horizontal = 10.dp))
+                    StepperButton("+", if (qty < MeetupGearItem.MAX_QTY) ({ onDraft(draft.withGearQty(item, qty + 1)) }) else null, primary = true, description = "+", size = 30)
+                }
             }
         }
     }
@@ -135,6 +135,7 @@ internal fun MeetupSummaryCard(draft: MeetupDraft) {
     val discipline = when (draft.discipline) {
         "BOULDER" -> stringResource(R.string.mw_boulder_title)
         "ROUTE" -> stringResource(R.string.mw_route_title)
+        "BOTH" -> stringResource(R.string.mw_both_title)
         else -> null
     }
     val grade = draft.gradeMin?.let { min ->
@@ -145,7 +146,7 @@ internal fun MeetupSummaryCard(draft: MeetupDraft) {
         .filter { it.isNotBlank() }.joinToString(" · ")
     val line2 = listOfNotNull(discipline, "${draft.partners} " + pluralStringResource(R.plurals.mw_people, draft.partners), grade).joinToString(" · ")
     Column(
-        Modifier.fillMaxWidth().clip(shape).background(Color(0xFF1B1B1B), shape).padding(horizontal = 16.dp, vertical = 14.dp),
+        Modifier.fillMaxWidth().clip(shape).background(Color(0xFF1B1B1B), shape).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(stringResource(R.string.mw_summary).uppercase(), style = EyebrowTextStyle, color = Color(0xFFBDB7A6))

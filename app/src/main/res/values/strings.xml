@@ -2108,7 +2108,7 @@
     <string name="gym_nearby_row">%1$s · %2$s</string>
     <string name="mw_step1_q">¿Dónde\nvais a escalar?</string>
     <string name="mw_step2_q">¿Qué vais\na hacer?</string>
-    <string name="mw_step3_q">¿Quién\npuede unirse?</string>
+    <string name="mw_step3_q">Material y detalles</string>
     <string name="mw_place_school_hint">Busca escuela o zona</string>
     <string name="mw_nearby">Cerca de ti</string>
     <string name="mw_results">Resultados</string>
@@ -2329,4 +2329,12 @@
     <string name="gym_board_row">Board · %1$s</string>
     <string name="gym_board_no_angle">Sin inclinación</string>
     <string name="gym_sheet_remove_workout">Quitar entreno</string>
+    <string name="mw_modality_both">Modalidad · puedes marcar las dos</string>
+    <string name="mw_grade_group">Grado del grupo</string>
+    <string name="mw_grade_range">de %1$s a %2$s</string>
+    <string name="mw_both_title">Bloque y vía</string>
+    <string name="mw_gear_tap">Material mínimo · toca lo que haga falta</string>
+    <string name="mw_message">Mensaje</string>
+    <string name="mw_message_hint">Cuenta qué planeáis (opcional)</string>
+    <string name="mw_who_joins">Quién puede unirse</string>
 </resources>

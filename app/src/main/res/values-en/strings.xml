@@ -2049,7 +2049,7 @@
     <string name="gym_nearby_row">%1$s · %2$s</string>
     <string name="mw_step1_q">Where are\nyou climbing?</string>
     <string name="mw_step2_q">What are\nyou doing?</string>
-    <string name="mw_step3_q">Who can\njoin?</string>
+    <string name="mw_step3_q">Gear and details</string>
     <string name="mw_place_school_hint">Search a crag or area</string>
     <string name="mw_nearby">Near you</string>
     <string name="mw_results">Results</string>
@@ -2270,4 +2270,12 @@
     <string name="gym_board_row">Board · %1$s</string>
     <string name="gym_board_no_angle">No incline</string>
     <string name="gym_sheet_remove_workout">Remove workout</string>
+    <string name="mw_modality_both">Style · you can pick both</string>
+    <string name="mw_grade_group">Group grade</string>
+    <string name="mw_grade_range">%1$s to %2$s</string>
+    <string name="mw_both_title">Boulder and route</string>
+    <string name="mw_gear_tap">Minimum gear · tap what is needed</string>
+    <string name="mw_message">Message</string>
+    <string name="mw_message_hint">Tell what you plan (optional)</string>
+    <string name="mw_who_joins">Who can join</string>
 </resources>
