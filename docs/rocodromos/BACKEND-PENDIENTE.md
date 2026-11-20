@@ -115,3 +115,10 @@ La política pública vive en la web (otro repo); textos nuevos en `PRIVACIDAD-R
 - `board:<kilter|tension|moonboard>:<grado>[:<inclinación 0-90>]`, por ejemplo `board:kilter:6c:40`.
 
 Grado = francés de `FrenchGrade` (3 a 9c+). Cualquier otra forma con esos prefijos da 400. Entran en el máximo de 30 claves y en `gym-ascents` como una clave más (las apps las distinguen con `GymAscentKeys`). Tests: `GymScaleAndAscentsTest` (2 nuevos). No hay migración (`ascent_key` ya es VARCHAR(30); la clave más larga mide 25). Staging tiene af8a22e desplegado (deployment `success`, 2026-11-20 12:35 UTC). Pendiente: PUT real desde un cliente con sesión y `POST /api/gyms/{id}/sessions` con fecha para entrenos de días pasados (hoy solo `sessions/today`).
+
+## 9. Ronda 5 (ya en develop/staging, ramas feature/rocodromos-r5*)
+
+- **Grado doble** en vías y boards: `route:partner:sent:6b+/6c`, `board:kilter:6a/6a+:40`. Solo dos grados CONTIGUOS (`FrenchGrade.normalizeOrDouble`); si no, 400.
+- `DELETE /api/gyms/sessions/{sessionId}` (204; 404 si es ajena): borra la sesión con lo hecho. Las apps lo llaman al editar un entreno a cero.
+- `GET /api/users/{identifier}/gym-summary` (misma privacidad que gym-stats): `{sessions, gyms, ascents, maxGrade, byGym:[{gymId,name,sessions,ascents,maxGrade}], items:[{key,count}], byMonth:[{month,ascents}]}` (12 meses). El grado doble cuenta por su grado alto; los colores no tienen grado.
+- **Pendiente**: «Tu rocódromo» elegido se guarda solo en el móvil; falta campo en el servidor para verlo en perfiles ajenos. El desglose por rocódromo no distingue bloques/vías (en «Ascensiones» solo «Todo» lo muestra).

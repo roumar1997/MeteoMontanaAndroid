@@ -18,3 +18,19 @@
 
 ## Estado 2026-11-20 (ronda 4b, Android)
 Hechos y probados en emulador: 1-13, salvo la foto opcional al crear quedada (se mantiene opcional) y el «Guardar» fijo del detalle de entrenos (cada toque ya se guarda solo). Ver PARIDAD §13.
+
+## Pruebas ronda 4 (2026-11-20 tarde)
+14. Franja de 5 días (seca/mojada): no se distingue bien bueno / lluvia / dudoso (rayas finas de color). Mejorar legibilidad.
+15. QUITAR el bloque «Rocódromos cerca» dentro de la ficha de una escuela. Como mucho una línea muy pequeña plegable.
+16. En Vías/Bloques, al buscar una escuela (Zarzalejo, 102), agrupar por SECTORES (sector del Mundo al Revés…), no los 100 seguidos. Si solo tiene bloques, decir «bloques» (no «vías/bloques»).
+17. Ficha de rocódromo: «Estoy aquí»/«Ya no estoy», «Quién va hoy» y chat EXACTAMENTE igual que en escuelas (mismos iconos y sitio); no duplicado arriba y abajo. En el chat no se puede escribir si no estás «Aquí», como en escuelas.
+18. Ficha: botones (He entrenado, Crear quedada, Cómo llegar, Llamar, Web) ocupan mucho y obligan a scroll; compactar (y pensar cómo queda con foto).
+19. He entrenado: el día cambia (hoy). Añadir varias vías/boards debe ser fácil (botón añadir claro, lista). Grados DOBLES (6B+/6C) como en las búsquedas, en vías y boards.
+20. Perfil: estadísticas generales con el MISMO estilo que la tarjeta de rocódromo de noviembre (degradado), más pequeñas, debajo de «Mis publicaciones»; quitar descripción/bio y acoplar seguidos/seguidores para que entre sin scroll. Igual en el perfil de OTROS usuarios (muy importante). Sesiones, Rocódromos y Ascensiones pulsables (en qué rocódromos, grado máximo…), en mí y en otros.
+21. «Tu rocódromo»: que el usuario lo elija si quiere (si no, no mostrar).
+22. Editar un entreno y dejarlo a cero debe borrar la sesión (ahora sigue contando).
+23. Crear quedada: poder elegir Bloque Y Vía a la vez. Material mínimo en fila compacta (Cuerda y Gri-gri lado a lado). Grados con los colores de grado de la app. Paso 3 sin scroll.
+24. Detalle de quedada: «Cómo llegar» arriba como icono junto a chat y compartir (como en toda la app); compartir igual que en el resto.
+25. TODOS los chats más modernos (quedada, escuela, rocódromo, privados): campo de escribir, botón enviar, cabecera.
+26. Mapa de Quedadas: el selector de capas solo ofrece MapLibre/Google; debe ofrecer los mismos estilos que Roca.
+27. Perfil propio y de otros: deslizar hacia abajo para recargar.

@@ -258,3 +258,17 @@ Lógica nueva en `shared` (iOS no debe reimplementarla): `RockDryOutlook` (seca/
 9. **Sectores plegables** en Vías/Bloques de una escuela: la lista Vías/Bloques empieza con los grupos de escuela plegados (comprobado en Zarzalejo) y los filtros funcionan (223 a 176 con «Bloque»).
 10. **Selector «¿Dónde has entrenado?»** (`GymPickerSheet`): buscador, Hoy | Ayer | Otro día (calendario sin futuro), Favoritos, Recientes («hace 2 semanas», `GymPickerViewModel`) y Cerca; «Seguir · apuntar en X» abre la hoja de entreno de ese día. LÍMITE: el servidor solo tiene `sessions/today`, así que Ayer/Otro día se guardan solo en el móvil hasta que haya `POST /api/gyms/{id}/sessions` con fecha.
 11. **Claves route:/board: bonitas** (`GymAscentPills`): vía = grado con su color + icono compañero/autoaseguro + check (encadenada) o «Proyecto» + ×N; board = color de marca + nombre + grado + inclinación + ×N. Nunca la clave en crudo (entrenos, año, perfil).
+
+## 14. Ronda 5 (2026-11-20, Android hecho; PENDIENTE PARA iOS)
+
+Lógica nueva en `shared` (no reimplementar en Swift): `ExploreSectors` (sectores plegables y «bloques»/«vías»), `GymAscentKeys` (rejilla `GRID_GRADES`, `toggleGrade`, grados dobles contiguos `6b+/6c`, `gradeOf`, `harder`), `MeetupDraft.toggleBoulder/toggleRoute` (`BOTH`), `GymSummary`/`GymBreakdown` (totales, por rocódromo, grado y mes), `JournalStatsCalculator.rockDays`, `GetGymSummaryUseCase`, y editar a cero borra la sesión (`LocalFirstGymSessionRepository.saveAscents`).
+
+1. **Franja de 5 días**: pastilla por día con icono (sol seca, nube dudosa, gota mojada), hoy recuadrado, resumen en una línea (`RockDryBanner`).
+2. **Ficha de rocódromo**: cabecera atrás · chat · mapa (pin, abre el mapa del móvil) · estrella; UNA tarjeta «Estoy aquí / Quién va hoy»; fila de 4 iconos (Cómo llegar, Llamar, Web, Compartir); «He entrenado» y «Crear quedada» lado a lado. Chat de rocódromo: sin «Aquí» no se escribe (barra con candado).
+3. **He entrenado**: rejilla de grados (uno, o dos contiguos = doble), «Añadir», lista de lo añadido con papelera; en vías y boards. El servidor acepta `route:partner:sent:6b+/6c`.
+4. **Perfil propio y ajeno**: cabecera compacta (sin bio), título con efectos, 4 celdas, «Mis publicaciones», tarjeta de degradado (Total/Roca/Rocódromo + sesiones/rocódromos/ascensiones pulsables) que abre Estadísticas (Todo · Roca · Rocódromo); «Ascensiones» (Todo/Bloques/Vías/Boards). «Tu rocódromo» se elige en Ajustes (solo local, ver BACKEND-PENDIENTE §9). Deslizar para recargar. Escuelas y Proyectos pasan a la pestaña Todo de Estadísticas.
+5. **Crear quedada**: Bloque y Vía a la vez (`BOTH`), rango de grado con colores, paso 3 «Material y detalles» (baldosas, mensaje, privacidad, nombre+foto, resumen). Se quita el límite de participantes.
+6. **Detalle de quedada**: cómo llegar y compartir (icono de iOS) arriba.
+7. **Chats**: `ChatInputPill` (campo píldora + enviar redondo) en privados, quedada, escuela y rocódromo; `ChatLockedBar`; burbujas de 18 con hora y «· aquí»; separador de día. Sin cámara (no existe en ningún chat).
+8. **Vías/Bloques**: sectores plegables dentro de cada escuela; contadores «bloques»/«vías» si solo hay uno.
+9. «Rocódromos cerca» en la ficha de escuela: una línea pequeña plegable. Mapas de Quedadas con los estilos de Roca.
