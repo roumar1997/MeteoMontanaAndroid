@@ -59,11 +59,16 @@ private val CragGreen = Color(0xFF1FA84E)
 private val CragTeal = Color(0xFF1F7F8C)
 
 @Composable
-private fun HeroRoundButton(icon: androidx.compose.ui.graphics.vector.ImageVector, description: String, onClick: () -> Unit) {
+private fun HeroRoundButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null, description: String, onClick: () -> Unit, drawable: Int? = null
+) {
     Box(
         Modifier.size(44.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.92f)).clickable(onClick = onClick),
         contentAlignment = Alignment.Center
-    ) { Icon(icon, description, tint = Color(0xFF2A2924), modifier = Modifier.size(20.dp)) }
+    ) {
+        if (icon != null) Icon(icon, description, tint = Color(0xFF2A2924), modifier = Modifier.size(20.dp))
+        else if (drawable != null) Icon(androidx.compose.ui.res.painterResource(drawable), description, tint = Color(0xFF2A2924), modifier = Modifier.size(20.dp))
+    }
 }
 
 @Composable
@@ -74,12 +79,13 @@ private fun HeroChip(text: String, fill: Color, textColor: Color = Color.White) 
     )
 }
 
-/** Cabecera de color con volver · chat · compartir (· denunciar), chips de estado, nombre y «día · lugar». */
+/** Cabecera de color con volver · chat · cómo llegar · compartir (· denunciar), chips de estado, nombre y «día · lugar». */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun MeetupHero(
     meetup: Meetup, canChat: Boolean, canReport: Boolean,
-    onBack: () -> Unit, onChat: () -> Unit, onShare: () -> Unit, onReport: () -> Unit
+    onBack: () -> Unit, onChat: () -> Unit, onShare: () -> Unit, onReport: () -> Unit,
+    onDirections: (() -> Unit)? = null
 ) {
     val colors = if (meetup.isGymMeetup) listOf(GymBlue, GymPurple) else listOf(CragGreen, CragTeal)
     val place = meetup.placeName ?: meetup.schoolName
@@ -95,7 +101,9 @@ internal fun MeetupHero(
                 HeroRoundButton(Icons.Outlined.ArrowBack, stringResource(R.string.common_back), onBack)
                 Box(Modifier.weight(1f))
                 if (canChat) HeroRoundButton(Icons.Outlined.Chat, stringResource(R.string.meetup_open_chat), onChat)
-                HeroRoundButton(Icons.Outlined.Share, stringResource(R.string.common_share), onShare)
+                // Cómo llegar y compartir con los mismos iconos que el resto de la app (flecha de ruta y compartir de iOS).
+                onDirections?.let { HeroRoundButton(null, stringResource(R.string.common_directions), it, drawable = R.drawable.ic_directions) }
+                HeroRoundButton(null, stringResource(R.string.common_share), onShare, drawable = R.drawable.ic_share_ios)
                 if (canReport) HeroRoundButton(Icons.Outlined.Flag, stringResource(R.string.common_report), onReport)
             }
             FlowRow(Modifier.padding(top = Spacing.xl), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

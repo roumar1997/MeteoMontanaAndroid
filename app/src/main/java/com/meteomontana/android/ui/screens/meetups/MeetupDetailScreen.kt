@@ -211,6 +211,9 @@ fun MeetupDetailScreen(
                             MeetupHero(
                                 meetup, canChat = canChat && meetup.conversationId.isNotBlank(), canReport = !isCreator,
                                 onBack = onBack, onChat = { onOpenChat(meetup.conversationId) }, onReport = { showReportDialog = true },
+                                onDirections = if (meetup.schoolLat != null && meetup.schoolLon != null) ({
+                                    openDirections(context, meetup.schoolLat!!, meetup.schoolLon!!, meetup.placeName ?: meetup.schoolName)
+                                }) else null,
                                 onShare = {
                                     com.meteomontana.android.ui.share.shareMeetup(
                                         context, meetup.name, meetup.placeName ?: meetup.schoolName, meetup.days, meetup.discipline,
@@ -236,14 +239,8 @@ fun MeetupDetailScreen(
                                     GymActionPill(stringResource(R.string.meetup_chat_n, meetup.memberCount), { onOpenChat(meetup.conversationId) }, Modifier.weight(1.4f), primary = true)
                                     if (!isCreator) GymActionPill(stringResource(R.string.meetup_detail_screen_v2_salir), { showLeaveConfirm = true }, Modifier.weight(1f), enabled = !state.leaving)
                                 }
-                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    if (meetup.schoolLat != null && meetup.schoolLon != null) GymActionPill(
-                                        stringResource(R.string.common_directions), { openDirections(context, meetup.schoolLat!!, meetup.schoolLon!!, meetup.schoolName) },
-                                        Modifier.weight(1f), icon = R.drawable.ic_directions
-                                    )
-                                    meetup.schoolName?.takeIf { !meetup.isGymMeetup }?.let {
-                                        GymActionPill(stringResource(R.string.common_view_school), { onOpenSchool(meetup.schoolId) }, Modifier.weight(1f))
-                                    }
+                                meetup.schoolName?.takeIf { !meetup.isGymMeetup }?.let {
+                                    GymActionPill(stringResource(R.string.common_view_school), { onOpenSchool(meetup.schoolId) }, Modifier.fillMaxWidth())
                                 }
                                 if (isCreator) Text(
                                     stringResource(R.string.meetup_detail_delete), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,

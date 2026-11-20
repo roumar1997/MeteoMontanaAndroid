@@ -3,7 +3,9 @@ package com.meteomontana.android.ui.screens.meetups
 import com.meteomontana.android.data.map.withMapLibre
 
 import com.meteomontana.android.util.AppText
-import com.meteomontana.android.data.map.MapStyles
+import com.meteomontana.android.ui.screens.schools.DARK_RASTER_STYLE
+import com.meteomontana.android.ui.screens.schools.OSM_RASTER_STYLE
+import com.meteomontana.android.ui.screens.schools.SATELLITE_RASTER_STYLE
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -248,18 +250,13 @@ internal fun MeetupsMapView(
     // Satélite por defecto, paridad con el mapa de Escuelas (Álvaro, 2026-09-03).
     var isSatellite by remember { mutableStateOf(true) }
 
-    fun tileUrl(satellite: Boolean, dark: Boolean): String = when {
-        satellite -> "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-        dark -> "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png"
-        else -> "https://tile.opentopomap.org/{z}/{x}/{y}.png"
-    }
-
     fun applyStyle(map: MapLibreMap, satellite: Boolean) {
         val dark = context.resources.configuration.uiMode and
                 android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
                 android.content.res.Configuration.UI_MODE_NIGHT_YES
-        val url = tileUrl(satellite, dark)
-        map.setStyle(Style.Builder().fromJson(MapStyles.raster("osm", listOf(url))))
+        // Los mismos estilos que el mapa de Roca (satélite, papel claro y papel oscuro).
+        val style = when { satellite -> SATELLITE_RASTER_STYLE; dark -> DARK_RASTER_STYLE; else -> OSM_RASTER_STYLE }
+        map.setStyle(Style.Builder().fromJson(style))
     }
 
     val mapView = remember {
