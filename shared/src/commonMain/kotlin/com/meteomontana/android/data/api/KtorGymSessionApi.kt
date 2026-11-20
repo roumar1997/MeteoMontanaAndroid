@@ -38,6 +38,12 @@ class KtorGymSessionApi(private val client: HttpClient) {
     suspend fun putAscents(sessionId: Long, body: GymAscentsRequestDto): GymSessionDto =
         client.put("gyms/sessions/$sessionId/ascents") { setBody(body) }.body()
 
+    /** Borra una sesion propia con todo lo hecho en ella (404 si es ajena). */
+    @Throws(Exception::class)
+    suspend fun deleteSession(sessionId: Long) {
+        client.delete("gyms/sessions/$sessionId")
+    }
+
     /** Ascensiones por color o grado en un periodo (misma privacidad que gym-stats). */
     @Throws(Exception::class)
     suspend fun ascentStats(uidOrUsername: String, period: String, date: String, gymId: Long?): GymAscentStatsDto =

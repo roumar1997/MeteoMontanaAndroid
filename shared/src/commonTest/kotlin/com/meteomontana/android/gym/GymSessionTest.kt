@@ -99,6 +99,20 @@ class GymSessionTest {
     }
 
     @Test
+    fun `editar un entreno a cero borra la sesion pero uno sin nada apuntado se queda`() = runTest {
+        val r = repo(MemStore())
+        r.checkInToday(7, GymSessionSource.MANUAL)
+        // sin nada apuntado, guardar vacio no la borra (es el entreno de Aqui)
+        r.saveAscents(7, today, emptyList())
+        assertEquals(1, r.sessions().size)
+        r.saveAscents(7, today, listOf(com.meteomontana.android.domain.model.gym.GymAscent("6a", 2)))
+        assertEquals(2, r.sessions().single().ascents.single().count)
+        // a cero tras haber apuntado algo: la sesion desaparece
+        r.saveAscents(7, today, emptyList())
+        assertTrue(r.sessions().isEmpty())
+    }
+
+    @Test
     fun `refresh sin servidor devuelve lo local`() = runTest {
         val r = repo(MemStore())
         r.checkInToday(1, GymSessionSource.MANUAL)

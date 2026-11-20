@@ -2260,4 +2260,14 @@
     <string name="chat_locked_sub">You can read the chat</string>
     <string name="chat_here_tag">here</string>
     <string name="gym_chat_here_now">%1$d here now</string>
+    <string name="gym_sheet_grade_pick">Grade · tap one or two in a row</string>
+    <string name="gym_add_grade">Add %1$s</string>
+    <string name="gym_add_pick">Pick a grade</string>
+    <string name="gym_added_today">Added today · %1$d</string>
+    <string name="gym_remove">Remove</string>
+    <string name="gym_route_single">Route</string>
+    <string name="gym_route_double">Route with a double grade</string>
+    <string name="gym_board_row">Board · %1$s</string>
+    <string name="gym_board_no_angle">No incline</string>
+    <string name="gym_sheet_remove_workout">Remove workout</string>
 </resources>

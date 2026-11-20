@@ -27,6 +27,44 @@ object GymAscentKeys {
 
     val BOARD_ANGLES: List<Int> = listOf(30, 40, 45)
 
+    /** Todos los grados de la rejilla de «He entrenado» (vías y boards), de fácil a difícil. */
+    val GRID_GRADES: List<String> = listOf("5", "5+", "6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a", "8a+")
+
+    /** El orden de grados del servidor (FrenchGrade): un grado doble solo vale si sus dos grados son vecinos AQUÍ. */
+    private val SERVER_ORDER = listOf(
+        "3", "3+", "4", "4+", "5", "5+", "5a", "5a+", "5b", "5b+", "5c", "5c+",
+        "6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b", "7b+", "7c", "7c+",
+        "8a", "8a+", "8b", "8b+", "8c", "8c+", "9a", "9a+", "9b", "9b+", "9c", "9c+"
+    )
+
+    /** ¿Son [a] y [b] dos grados consecutivos (6b+ y 6c; no 5+ y 6a, que el servidor no tiene pegados)? */
+    fun areContiguous(a: String, b: String): Boolean {
+        val i = SERVER_ORDER.indexOf(a.lowercase())
+        val j = SERVER_ORDER.indexOf(b.lowercase())
+        return i >= 0 && j >= 0 && (i - j == 1 || j - i == 1)
+    }
+
+    /**
+     * Toque en la rejilla de grados: uno suelto; tocar otro CONTIGUO lo convierte en grado doble (6b+/6c); tocar el
+     * ya elegido lo quita (de un doble queda el otro); en cualquier otro caso se empieza de nuevo con el tocado.
+     */
+    fun toggleGrade(selected: List<String>, tapped: String): List<String> {
+        val t = tapped.lowercase()
+        val cur = selected.map { it.lowercase() }
+        return when {
+            t in cur -> cur - t
+            cur.size == 1 && areContiguous(cur[0], t) -> listOf(cur[0], t).sortedBy { SERVER_ORDER.indexOf(it) }
+            else -> listOf(t)
+        }
+    }
+
+    /** Grado de la clave: «6b+» o «6b+/6c», o null si no hay nada elegido. */
+    fun gradeOf(selected: List<String>): String? =
+        selected.map { it.lowercase() }.sortedBy { SERVER_ORDER.indexOf(it) }.takeIf { it.isNotEmpty() }?.joinToString("/")
+
+    /** El grado base (el primero) de uno doble, para darle color y ordenar: «6b+/6c» -> «6b+». */
+    fun baseGrade(grade: String): String = grade.substringBefore('/').trim().lowercase()
+
     fun route(style: RouteStyle, project: Boolean, grade: String): String =
         "route:${style.wire}:${if (project) "project" else "sent"}:${grade.lowercase()}"
 
@@ -54,5 +92,5 @@ object GymAscentKeys {
     /** Vías sumadas por grado y estilo (para las etiquetas «6A+ ×2 · compañero»), en el orden de los grados. */
     fun routeSummary(list: List<GymAscent>): List<Triple<String, RouteStyle, Int>> =
         routes(list).mapNotNull { a -> (parse(a.key) as? AscentKey.Route)?.let { Triple(it.grade, it.style, a.count) } }
-            .sortedWith(compareBy({ ROUTE_GRADES.indexOf(it.first).let { i -> if (i < 0) 99 else i } }, { it.second }))
+            .sortedWith(compareBy({ SERVER_ORDER.indexOf(baseGrade(it.first)).let { i -> if (i < 0) 99 else i } }, { it.second }))
 }

@@ -137,7 +137,8 @@ class GymStatsViewModel @Inject constructor(
         )
     }
 
-    private fun gradeSeg(grade: String, count: Int) = BarSeg(grade, null, grade.uppercase(), count, gradeOrder(grade))
+    /** Un grado doble (6b+/6c) cuenta con su grado base: color, orden y barra. */
+    private fun gradeSeg(grade: String, count: Int) = GymAscentKeys.baseGrade(grade).let { BarSeg(it, null, it.uppercase(), count, gradeOrder(it)) }
 
     /** Orden de dificultad de un grado francés: 6a < 6a+ < 6b … (número, letra, plus). */
     private fun gradeOrder(grade: String): Int {

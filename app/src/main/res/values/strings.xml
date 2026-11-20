@@ -2319,4 +2319,14 @@
     <string name="chat_locked_sub">Puedes leer el chat</string>
     <string name="chat_here_tag">aquí</string>
     <string name="gym_chat_here_now">%1$d aquí ahora</string>
+    <string name="gym_sheet_grade_pick">Grado · toca uno o dos seguidos</string>
+    <string name="gym_add_grade">Añadir %1$s</string>
+    <string name="gym_add_pick">Elige un grado</string>
+    <string name="gym_added_today">Añadido hoy · %1$d</string>
+    <string name="gym_remove">Quitar</string>
+    <string name="gym_route_single">Vía</string>
+    <string name="gym_route_double">Vía de grado doble</string>
+    <string name="gym_board_row">Board · %1$s</string>
+    <string name="gym_board_no_angle">Sin inclinación</string>
+    <string name="gym_sheet_remove_workout">Quitar entreno</string>
 </resources>

@@ -81,6 +81,16 @@ class LocalFirstGymSessionRepository(
     override suspend fun saveAscents(gymId: Long, date: LocalDate, ascents: List<GymAscent>): GymSession {
         val clean = ascents.filter { it.count > 0 }
         val existing = load().firstOrNull { it.gymId == gymId && it.date == date } ?: GymSession(gymId, date)
+        // Editar un entreno hasta dejarlo a cero BORRA la sesion (en el movil y en el servidor).
+        if (clean.isEmpty() && existing.ascents.isNotEmpty()) {
+            save(load().filterNot { it.gymId == gymId && it.date == date })
+            try {
+                if (existing.id != 0L) api.deleteSession(existing.id) else if (date == today()) api.undoToday(gymId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) { /* sin red: al refrescar el servidor la devolvera vacia, pero ya no cuenta como entreno con lo hecho */ }
+            return GymSession(gymId, date)
+        }
         var updated = existing.copy(ascents = clean)
         save(load().filterNot { it.gymId == gymId && it.date == date } + updated)
         try {

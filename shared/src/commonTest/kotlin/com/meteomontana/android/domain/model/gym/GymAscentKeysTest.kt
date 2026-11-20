@@ -33,3 +33,29 @@ class GymAscentKeysTest {
         assertEquals(listOf("6a+", "6b"), GymAscentKeys.routeSummary(all).map { it.first })
     }
 }
+
+class GymAscentKeysDoubleGradeTest {
+    @Test fun contiguousGradesMakeADoubleAndOthersRestart() {
+        var sel = GymAscentKeys.toggleGrade(emptyList(), "6B+")
+        assertEquals(listOf("6b+"), sel)
+        sel = GymAscentKeys.toggleGrade(sel, "6c")
+        assertEquals("6b+/6c", GymAscentKeys.gradeOf(sel))
+        sel = GymAscentKeys.toggleGrade(sel, "7a")
+        assertEquals(listOf("7a"), sel)
+        assertEquals(listOf("6a"), GymAscentKeys.toggleGrade(listOf("6a", "6a+"), "6a+"))
+        assertEquals(listOf("6b"), GymAscentKeys.toggleGrade(listOf("6a"), "6b"))
+    }
+
+    @Test fun fivePlusAndSixAAreNotNeighboursForTheServer() {
+        assertEquals(false, GymAscentKeys.areContiguous("5+", "6a"))
+        assertEquals(true, GymAscentKeys.areContiguous("5", "5+"))
+    }
+
+    @Test fun doubleGradeKeyRoundTripsAndSortsByBase() {
+        val key = GymAscentKeys.route(RouteStyle.PARTNER, false, "6b+/6c")
+        assertEquals(AscentKey.Route(RouteStyle.PARTNER, false, "6b+/6c"), GymAscentKeys.parse(key))
+        assertEquals("6b+", GymAscentKeys.baseGrade("6b+/6c"))
+        val all = listOf(GymAscent("route:solo:sent:7a", 1), GymAscent(key, 2))
+        assertEquals(listOf("6b+/6c", "7a"), GymAscentKeys.routeSummary(all).map { it.first })
+    }
+}

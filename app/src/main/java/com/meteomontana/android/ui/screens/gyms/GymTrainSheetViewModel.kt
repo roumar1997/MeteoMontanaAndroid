@@ -14,7 +14,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class GymTrainSheetState(val ascents: List<GymAscent> = emptyList(), val saving: Boolean = false, val saved: Boolean = false)
+data class GymTrainSheetState(val ascents: List<GymAscent> = emptyList(), val saving: Boolean = false, val saved: Boolean = false,
+    /** Ya había algo apuntado al abrir la hoja: dejarla a cero BORRA el entreno. */
+    val hadAscents: Boolean = false
+)
 
 /** Hoja «He entrenado aquí hoy»: apunta lo hecho (bloques, vías, boards) y lo guarda junto con la sesión de hoy. */
 @HiltViewModel
@@ -30,7 +33,7 @@ class GymTrainSheetViewModel @Inject constructor(
         val day = date ?: today
         val existing = training.summary(com.meteomontana.android.domain.model.gym.GymTrainingPeriod.YEAR, today)
             .sessions.firstOrNull { it.gymId == gymId && it.date == day }
-        _state.update { GymTrainSheetState(ascents = existing?.ascents ?: emptyList()) }
+        _state.update { GymTrainSheetState(ascents = existing?.ascents ?: emptyList(), hadAscents = existing?.ascents?.isNotEmpty() == true) }
     }
 
     fun adjust(key: String, delta: Int) = _state.update { it.copy(ascents = GymTraining.adjust(it.ascents, key, delta)) }
@@ -42,9 +45,10 @@ class GymTrainSheetViewModel @Inject constructor(
         viewModelScope.launch {
             val day = date ?: training.today()
             // Hoy se apunta también en el servidor; otro día solo existe la ruta de «hoy», así que queda en el móvil.
-            if (day == training.today()) runCatching { record.execute(gymId, GymSessionSource.MANUAL) }
             val list = _state.value.ascents
-            if (list.isNotEmpty() || day != training.today()) runCatching { training.saveAscents(gymId, day, list) }
+            // Con algo apuntado se da de alta el día (hoy también en el servidor); a cero solo se borra si ya había algo.
+            if (list.isNotEmpty() && day == training.today()) runCatching { record.execute(gymId, GymSessionSource.MANUAL) }
+            if (list.isNotEmpty() || _state.value.hadAscents) runCatching { training.saveAscents(gymId, day, list) }
             _state.update { it.copy(saving = false, saved = true) }
             onDone()
         }
