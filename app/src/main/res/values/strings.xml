@@ -2121,7 +2121,7 @@
     <string name="mw_route_title">Vía</string>
     <string name="mw_route_sub">Con cuerda.</string>
     <string name="mw_partners_q">¿Cuántos buscáis?</string>
-    <string name="mw_rope_team_hint">Busco 1 compañero para cordada</string>
+    <string name="mw_rope_team_hint">Vía de cordada · busco 1 compañero</string>
     <string name="mw_grade">Grado orientativo</string>
     <string name="mw_grade_hint">Opcional. Vale para roca y rocódromo.</string>
     <string name="mw_gear">Material mínimo</string>
@@ -2137,7 +2137,7 @@
     <string name="mw_name_label">Nombre (opcional)</string>
     <string name="gear_rope">Cuerda</string>
     <string name="gear_crashpad">Crashpads</string>
-    <string name="meetup_facts_rope_team">Cordada (1 persona)</string>
+    <string name="meetup_facts_rope_team">Vía de cordada</string>
     <string name="meetup_facts_level">Nivel %1$s</string>
     <string name="meetup_gear_title">Material mínimo</string>
     <string name="meetup_gear_missing">Falta material: si puedes, llévalo.</string>
@@ -2312,7 +2312,7 @@
     <string name="gym_who_hint">Marca que estás para escribir en el chat</string>
     <string name="gym_share">Compartir</string>
     <string name="gym_map_open">Ver en el mapa</string>
-    <string name="gym_train_short">He entrenado</string>
+    <string name="gym_train_short">¿Has entrenado hoy?</string>
     <string name="gym_train_short_done">Entreno apuntado</string>
     <string name="gym_meetup_short">Crear quedada</string>
     <string name="chat_locked_title">Solo escriben los que están aquí</string>
@@ -2372,6 +2372,18 @@
     <string name="stats_hub_open_schools">Escuelas</string>
     <string name="stats_hub_open_projects">Proyectos</string>
     <string name="stats_hub_gym_empty">Sin entrenos de rocódromo todavía</string>
+    <string name="home_gym_yours">Tu rocódromo</string>
+    <string name="home_gym_theirs">Su rocódromo</string>
+    <string name="home_gym_pick">Elige tu rocódromo</string>
     <string name="settings_home_gym">Mi rocódromo</string>
     <string name="settings_home_gym_clear">Quitar mi rocódromo</string>
+    <string name="profile_card_blocks">Bloques</string>
+    <string name="profile_card_routes">Vías</string>
+    <string name="profile_card_schools">Escuelas</string>
+    <string name="profile_card_gyms">Rocódromos</string>
+    <string name="profile_card_ascents">Ascensiones</string>
+    <string name="profile_card_max">Máximo</string>
+    <string name="meetup_rope_route_label">Vía de cordada</string>
+    <string name="meetup_list_material">Material</string>
+    <string name="meetup_list_gear_missing">Falta %1$s</string>
 </resources>

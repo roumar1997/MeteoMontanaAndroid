@@ -2062,7 +2062,7 @@
     <string name="mw_route_title">Route</string>
     <string name="mw_route_sub">With a rope.</string>
     <string name="mw_partners_q">How many do you need?</string>
-    <string name="mw_rope_team_hint">Looking for 1 partner to rope up</string>
+    <string name="mw_rope_team_hint">Rope team route · looking for 1 partner</string>
     <string name="mw_grade">Rough grade</string>
     <string name="mw_grade_hint">Optional. Works for crag and gym.</string>
     <string name="mw_gear">Minimum gear</string>
@@ -2078,7 +2078,7 @@
     <string name="mw_name_label">Name (optional)</string>
     <string name="gear_rope">Rope</string>
     <string name="gear_crashpad">Crashpads</string>
-    <string name="meetup_facts_rope_team">Rope team (1 person)</string>
+    <string name="meetup_facts_rope_team">Rope team route</string>
     <string name="meetup_facts_level">Level %1$s</string>
     <string name="meetup_gear_title">Minimum gear</string>
     <string name="meetup_gear_missing">Gear is missing: bring it if you can.</string>
@@ -2253,7 +2253,7 @@
     <string name="gym_who_hint">Mark that you are here to write in the chat</string>
     <string name="gym_share">Share</string>
     <string name="gym_map_open">View on the map</string>
-    <string name="gym_train_short">I trained</string>
+    <string name="gym_train_short">Did you train today?</string>
     <string name="gym_train_short_done">Workout logged</string>
     <string name="gym_meetup_short">Create meetup</string>
     <string name="chat_locked_title">Only people who are here can write</string>
@@ -2313,6 +2313,18 @@
     <string name="stats_hub_open_schools">Schools</string>
     <string name="stats_hub_open_projects">Projects</string>
     <string name="stats_hub_gym_empty">No gym sessions yet</string>
+    <string name="home_gym_yours">Your gym</string>
+    <string name="home_gym_theirs">Their gym</string>
+    <string name="home_gym_pick">Pick your gym</string>
     <string name="settings_home_gym">My gym</string>
     <string name="settings_home_gym_clear">Remove my gym</string>
+    <string name="profile_card_blocks">Boulders</string>
+    <string name="profile_card_routes">Routes</string>
+    <string name="profile_card_schools">Crags</string>
+    <string name="profile_card_gyms">Gyms</string>
+    <string name="profile_card_ascents">Ascents</string>
+    <string name="profile_card_max">Max</string>
+    <string name="meetup_rope_route_label">Rope team route</string>
+    <string name="meetup_list_material">Gear</string>
+    <string name="meetup_list_gear_missing">Missing %1$s</string>
 </resources>

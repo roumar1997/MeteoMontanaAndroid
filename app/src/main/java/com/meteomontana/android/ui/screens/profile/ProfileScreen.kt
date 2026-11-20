@@ -260,19 +260,11 @@ internal fun ProfileTopBar(
         Text(title, style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.align(Alignment.Center))
-        // Izquierda: "? AYUDA".
-        Row(
-            modifier = Modifier.align(Alignment.CenterStart),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            com.meteomontana.android.ui.components.HelpButton(topicKey = "profile")
-        }
-        // Derecha: compartir + ajustes, también en pastilla (en iOS son las dos
-        // que van juntas arriba a la derecha).
+        // Derecha, todo junto en la misma pastilla: ayuda (?), mi material, compartir y ajustes.
         com.meteomontana.android.ui.components.CumbrePillGroup(
             modifier = Modifier.align(Alignment.CenterEnd)
         ) {
+            com.meteomontana.android.ui.components.HelpButton(topicKey = "profile", compact = true)
             // Mi material: primero de los tres, igual que en iOS.
             if (onGear != null) IconButton(onClick = onGear) {
                 Icon(
@@ -354,7 +346,7 @@ internal fun Content(
         },
         avatar = { ProfileAvatar(profile, canChangePhoto = !offline, onPhotoChanged = onPhotoChanged) },
         modifier = Modifier.fillMaxSize(),
-        startPadding = 16.dp
+        startPadding = ProfileAvatarStart
     ) { avatarSlot ->
     LazyColumn(
         state = listState,
@@ -393,14 +385,22 @@ internal fun Content(
         }
         item {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp).guideTarget("profile.diary"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ProfileCells(stats.boulderCount, stats.routeCount, stats.maxBoulderGrade, stats.maxRouteGrade, onOpenBoulders, onOpenRoutes, onOpenMaxGrade)
+                ProfileCells(
+                    stats.boulderCount, stats.routeCount, stats.maxBoulderGrade, stats.maxRouteGrade, onOpenBoulders, onOpenRoutes, onOpenMaxGrade,
+                    schools = stats.schoolCount, onSchools = onOpenAllSchools
+                )
                 ProfileThinRow(stringResource(R.string.feed_my_posts_section), null, onOpenMyPosts)
                 // Entrenos en rocódromo (solo con el interruptor `gyms_enabled` encendido).
                 if (gymsOn) {
                     Box(Modifier.guideTarget("profile.stats")) {
                         ClimbGradientCard(climb, stats.maxGrade, onStats = onOpenStats, onSessions = onOpenGymAscents, onGyms = onOpenGymAscents, onAscents = onOpenGymAscents)
                     }
-                    HomeGymAndStreak(climb.homeGym, climb.streakWeeks, onOpenGym)
+                    var pickingHome by remember { mutableStateOf(false) }
+                    HomeGymAndStreak(climb.homeGym, climb.streakWeeks, onOpenGym, onPick = { pickingHome = true })
+                    if (pickingHome) com.meteomontana.android.ui.screens.gyms.GymPickerSheet(
+                        onPick = { g, _ -> pickingHome = false; climbVm.setHomeGym(g) },
+                        onDismiss = { pickingHome = false }
+                    )
                     LogWorkoutButton(onSaved = { climbVm.load(null, myUid) })
                 } else {
                     Box(Modifier.guideTarget("profile.stats")) { com.meteomontana.android.ui.components.StatsEntryButton(onClick = onOpenStats) }

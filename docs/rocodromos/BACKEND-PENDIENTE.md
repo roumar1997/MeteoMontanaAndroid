@@ -121,4 +121,4 @@ Grado = francés de `FrenchGrade` (3 a 9c+). Cualquier otra forma con esos prefi
 - **Grado doble** en vías y boards: `route:partner:sent:6b+/6c`, `board:kilter:6a/6a+:40`. Solo dos grados CONTIGUOS (`FrenchGrade.normalizeOrDouble`); si no, 400.
 - `DELETE /api/gyms/sessions/{sessionId}` (204; 404 si es ajena): borra la sesión con lo hecho. Las apps lo llaman al editar un entreno a cero.
 - `GET /api/users/{identifier}/gym-summary` (misma privacidad que gym-stats): `{sessions, gyms, ascents, maxGrade, byGym:[{gymId,name,sessions,ascents,maxGrade}], items:[{key,count}], byMonth:[{month,ascents}]}` (12 meses). El grado doble cuenta por su grado alto; los colores no tienen grado.
-- **Pendiente**: «Tu rocódromo» elegido se guarda solo en el móvil; falta campo en el servidor para verlo en perfiles ajenos. El desglose por rocódromo no distingue bloques/vías (en «Ascensiones» solo «Todo» lo muestra).
+- **Hecho (V115, develop)**: «Tu rocódromo» en el servidor: `PUT/GET /api/me/home-gym` y `homeGym` en `gym-summary` (muestra `summary` en `gym-sessions.json`). **Pendiente**:  El desglose por rocódromo no distingue bloques/vías (en «Ascensiones» solo «Todo» lo muestra).

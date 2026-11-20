@@ -58,6 +58,15 @@ class KtorGymSessionApi(private val client: HttpClient) {
     suspend fun summary(uidOrUsername: String): com.meteomontana.android.data.api.dto.GymSummaryDto =
         client.get("users/$uidOrUsername/gym-summary").body()
 
+    /** Mi rocódromo habitual en el servidor. */
+    @Throws(Exception::class)
+    suspend fun homeGym(): com.meteomontana.android.data.api.dto.HomeGymResponseDto = client.get("me/home-gym").body()
+
+    /** Fija mi rocódromo habitual; [gymId] null lo quita. */
+    @Throws(Exception::class)
+    suspend fun putHomeGym(gymId: Long?): com.meteomontana.android.data.api.dto.HomeGymResponseDto =
+        client.put("me/home-gym") { setBody(com.meteomontana.android.data.api.dto.HomeGymRequestDto(gymId)) }.body()
+
     @Throws(Exception::class)
     suspend fun stats(uidOrUsername: String, year: Int): GymStatsDto =
         client.get("users/$uidOrUsername/gym-stats") { parameter("year", year) }.body()

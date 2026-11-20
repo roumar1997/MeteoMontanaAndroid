@@ -391,6 +391,7 @@ private fun SheetNavHost(
                             onOpenProjects = { uid -> sheetNav.navigate(Routes.projects(uid)) },
                             onOpenStats = { uid -> sheetNav.navigate(Routes.journalStats(uid)) },
                             onOpenGymAscents = { uid -> sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.ascents(uid)) },
+                            onOpenGym = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.detail(it)) },
                             onOpenPosts = { uid -> sheetNav.navigate(Routes.myPosts(uid)) },
                             // Sección Publicaciones (feed) del perfil:
                             onOpenUserProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },

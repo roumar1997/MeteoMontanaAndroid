@@ -19,5 +19,15 @@
     "year": 2026, "sessionsThisWeek": 0, "sessionsThisMonth": 0, "sessionsThisYear": 0,
     "topGym": null,
     "streakWeeks": 0, "bestStreakWeeks": 0, "gymDays": 0, "outdoorDays": 0
+  },
+  "summary": {
+    "sessions": 3, "gyms": 2, "ascents": 6, "maxGrade": "7a",
+    "byGym": [{"gymId": 5, "name": "Chango", "sessions": 2, "ascents": 5, "maxGrade": "6c"}],
+    "items": [{"key": "verde", "count": 3}],
+    "byMonth": [{"month": "2026-10", "ascents": 1}, {"month": "2026-11", "ascents": 5}],
+    "homeGym": {"id": 5, "name": "Chango", "city": "Madrid"}
+  },
+  "summaryEmpty": {
+    "sessions": 0, "gyms": 0, "ascents": 0, "maxGrade": null, "byGym": [], "items": [], "byMonth": [], "homeGym": null
   }
 }

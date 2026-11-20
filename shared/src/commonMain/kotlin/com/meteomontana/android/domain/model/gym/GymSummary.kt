@@ -14,10 +14,15 @@ data class GymSummary(
     /** Lo hecho por clave (colores, grados, vias, boards), de mas a menos. */
     val items: List<GymAscent> = emptyList(),
     /** Ultimos 12 meses, del mas antiguo al actual: «2026-11» y cuantas ascensiones. */
-    val byMonth: List<GymSummaryMonth> = emptyList()
+    val byMonth: List<GymSummaryMonth> = emptyList(),
+    /** Su rocódromo habitual («Tu rocódromo»), si lo ha elegido. */
+    val homeGym: HomeGym? = null
 ) {
     val isEmpty: Boolean get() = sessions == 0
 }
+
+/** Rocódromo habitual de una persona, con lo justo para pintarlo y abrir su ficha. */
+data class HomeGym(val id: Long, val name: String, val city: String? = null)
 
 data class GymSummaryGym(val gymId: Long, val name: String?, val sessions: Int, val ascents: Int, val maxGrade: String?)
 

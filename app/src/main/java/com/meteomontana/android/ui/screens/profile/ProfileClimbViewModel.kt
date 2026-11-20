@@ -8,6 +8,8 @@ import com.meteomontana.android.domain.model.gym.Gym
 import com.meteomontana.android.domain.model.gym.GymAscentKeys
 import com.meteomontana.android.domain.model.gym.GymBreakdown
 import com.meteomontana.android.domain.model.gym.GymSummary
+import com.meteomontana.android.domain.model.gym.HomeGym
+import com.meteomontana.android.domain.usecase.gym.HomeGymUseCase
 import com.meteomontana.android.domain.usecase.gym.GetCachedGymsUseCase
 import com.meteomontana.android.domain.usecase.gym.GetGymStatsUseCase
 import com.meteomontana.android.domain.usecase.gym.GetGymSummaryUseCase
@@ -23,7 +25,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** «Tu rocódromo» elegido por la persona (solo en este móvil; el servidor aún no tiene el campo). */
+/** «Tu rocódromo» elegido por la persona: caché local del id; la verdad vive en el servidor (`me/home-gym`). */
 class HomeGymPreference @Inject constructor(@ApplicationContext context: Context) {
     private val store = SharedPrefsKeyValueStore(context, "cumbre_profile_prefs")
 
@@ -39,11 +41,16 @@ data class ProfileClimbState(
     /** Días distintos en roca (diario); null mientras no se sabe. */
     val rockDays: Int? = null,
     val segments: List<BarSeg> = emptyList(),
-    val homeGym: Gym? = null,
+    val homeGym: HomeGym? = null,
     val streakWeeks: Int = 0,
     /** Grado máximo en roca y nº de escuelas del diario (para la línea «Roca» de Estadísticas). */
     val rockMax: String? = null,
-    val schools: Int = 0
+    val schools: Int = 0,
+    /** Roca del diario: bloques y vías hechos y el grado máximo de cada modalidad (mitad «Roca» de la tarjeta). */
+    val rockBoulders: Int = 0,
+    val rockRoutes: Int = 0,
+    val rockMaxBoulder: String? = null,
+    val rockMaxRoute: String? = null
 ) {
     /** Días escalando en total: roca + sesiones de rocódromo (un día en cada sitio cuenta aparte). */
     val totalDays: Int get() = (rockDays ?: 0) + summary.sessions
@@ -63,7 +70,8 @@ class ProfileClimbViewModel @Inject constructor(
     private val getUserJournal: GetUserJournalUseCase,
     private val getMyStats: com.meteomontana.android.domain.usecase.journal.GetMyJournalStatsUseCase,
     private val getUserStats: com.meteomontana.android.domain.usecase.journal.GetUserStatsUseCase,
-    private val homeGymPref: HomeGymPreference
+    private val homeGymPref: HomeGymPreference,
+    private val homeGymUc: HomeGymUseCase
 ) : ViewModel() {
     private val _state = MutableStateFlow(ProfileClimbState())
     val state: StateFlow<ProfileClimbState> = _state
@@ -72,7 +80,7 @@ class ProfileClimbViewModel @Inject constructor(
     fun load(uid: String?, myUid: String?) {
         val own = uid == null || uid == myUid
         val gyms = getCachedGyms().associateBy { it.id }
-        if (own) _state.update { build(getSummary.local { gyms[it]?.name }, it.rockDays, gyms, own = true).copy(rockMax = it.rockMax, schools = it.schools) }
+        if (own) _state.update { build(getSummary.local { gyms[it]?.name }, it.rockDays, gyms, own = true).copy(rockMax = it.rockMax, schools = it.schools, rockBoulders = it.rockBoulders, rockRoutes = it.rockRoutes, rockMaxBoulder = it.rockMaxBoulder, rockMaxRoute = it.rockMaxRoute) }
         viewModelScope.launch {
             val rock = async { runCatching { if (own) getMyJournal() else getUserJournal(uid!!) }.getOrNull()?.let { JournalStatsCalculator.rockDays(it) } }
             val jstats = async { runCatching { if (own) getMyStats() else getUserStats(uid!!) }.getOrNull() }
@@ -81,14 +89,34 @@ class ProfileClimbViewModel @Inject constructor(
             val remote = target?.let { runCatching { getSummary.remote(it) }.getOrNull() }
             val summary = remote?.let { r -> r.copy(byGym = r.byGym.map { g -> g.copy(name = g.name ?: gyms[g.gymId]?.name) }) }
                 ?: if (own) getSummary.local { gyms[it]?.name } else GymSummary()
+            if (own) syncHomeGym(remote)
             val js = jstats.await()
-            _state.update { build(summary, rock.await() ?: it.rockDays, gyms, own).copy(rockMax = js?.maxGrade, schools = js?.schoolCount ?: it.schools) }
+            _state.update { build(summary, rock.await() ?: it.rockDays, gyms, own).copy(
+                rockMax = js?.maxGrade, schools = js?.schoolCount ?: it.schools, rockBoulders = js?.boulderCount ?: it.rockBoulders,
+                rockRoutes = js?.routeCount ?: it.rockRoutes, rockMaxBoulder = js?.maxBoulderGrade, rockMaxRoute = js?.maxRouteGrade
+            ) }
         }
     }
 
     /** Color (hex) de la escala de cualquier rocódromo conocido con ese nombre de color. */
     fun colorHex(key: String): String? =
         getCachedGyms().firstNotNullOfOrNull { it.scale?.takeIf { s -> s.isColors }?.levelNamed(key)?.hex }
+
+    /** Propio: si el servidor tiene mi rocódromo lo guardo en el móvil; si no lo tiene y yo sí (elegido antes o sin red), lo subo. */
+    private suspend fun syncHomeGym(remote: GymSummary?) {
+        if (remote == null) return
+        val server = remote.homeGym
+        val local = homeGymPref.get()
+        if (server != null) homeGymPref.set(server.id)
+        else if (local != null) runCatching { homeGymUc.set(local) }
+    }
+
+    /** Elige (o quita, con null) mi rocódromo desde el hueco del perfil: se ve ya y se sube al servidor. */
+    fun setHomeGym(gym: Gym?) {
+        homeGymPref.set(gym?.id)
+        _state.update { it.copy(homeGym = gym?.let { g -> HomeGym(g.id, g.name, g.city) }) }
+        viewModelScope.launch { runCatching { homeGymUc.set(gym?.id) } }
+    }
 
     fun gym(id: Long): Gym? = getCachedGyms().firstOrNull { it.id == id }
 
@@ -100,7 +128,7 @@ class ProfileClimbViewModel @Inject constructor(
             }
         return ProfileClimbState(
             summary = summary, rockDays = rockDays, segments = segs.sortedBy { it.order },
-            homeGym = if (own) homeGymPref.get()?.let { gyms[it] } else null,
+            homeGym = summary.homeGym ?: if (own) homeGymPref.get()?.let { gyms[it] }?.let { HomeGym(it.id, it.name, it.city) } else null,
             streakWeeks = if (own) getStats.cached().streakWeeks else 0
         )
     }

@@ -9,6 +9,7 @@ import com.meteomontana.android.data.api.dto.GymNearDto
 import com.meteomontana.android.data.api.dto.GymReportDto
 import com.meteomontana.android.data.api.dto.GymSessionDto
 import com.meteomontana.android.data.api.dto.GymStatsDto
+import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.api.dto.JournalSessionDto
 import com.meteomontana.android.data.api.dto.MeetupDto
 import com.meteomontana.android.data.api.dto.PrivateProfileDto
@@ -330,6 +331,11 @@ class ApiContractTest {
         assertEquals(31, st.sessionsThisYear); assertEquals("Sputnik Madrid", st.topGym!!.name); assertEquals(3, st.streakWeeks)
         assertNull(parse("gym-sessions.json", "statsEmpty", GymStatsDto.serializer()).topGym)
         assertDtoKeysInGolden("gym-sessions.json", GymStatsDto.serializer(), "stats")
+        val sum = parse("gym-sessions.json", "summary", com.meteomontana.android.data.api.dto.GymSummaryDto.serializer())
+        assertEquals(6, sum.ascents); assertEquals(5L, sum.homeGym!!.id); assertEquals("Chango", sum.homeGym!!.name); assertEquals("Madrid", sum.homeGym!!.city)
+        assertEquals("Chango", sum.toDomain().homeGym!!.name)
+        assertNull(parse("gym-sessions.json", "summaryEmpty", com.meteomontana.android.data.api.dto.GymSummaryDto.serializer()).homeGym)
+        assertDtoKeysInGolden("gym-sessions.json", com.meteomontana.android.data.api.dto.GymSummaryDto.serializer(), "summary")
     }
 
     // ── GET feature-flags (público) ─────────────────────────────────────────

@@ -100,6 +100,8 @@ fun PublicProfileScreen(
     onOpenStats: (String) -> Unit = {},
     /** Sesiones, rocódromos o ascensiones de su tarjeta: la pantalla de ascensiones de esa persona. */
     onOpenGymAscents: (String) -> Unit = {},
+    /** Su rocódromo habitual («Su rocódromo»): abre la ficha. */
+    onOpenGym: (Long) -> Unit = {},
     /** H: sus publicaciones en pantalla propia (como «Mis publicaciones»). */
     onOpenPosts: (String) -> Unit = {},
     /** Abrir OTRO perfil (autor de un comentario del feed). */
@@ -142,7 +144,7 @@ fun PublicProfileScreen(
             // Mensaje (maqueta B: el botón de chat va arriba con compartir y ⋯).
             if (profileUid != null && profileUid != myUid && (state as? PublicProfileUiState.Success)?.profile?.locked == false) {
                 IconButton(onClick = { onOpenChat(profileUid) }) {
-                    Icon(Icons.Filled.ChatBubble, contentDescription = stringResource(R.string.chat_message), tint = MaterialTheme.colorScheme.onBackground)
+                    Icon(Icons.Filled.ChatBubble, contentDescription = stringResource(R.string.chat_message), tint = MaterialTheme.colorScheme.primary)
                 }
             }
             // Compartir perfil (también el propio): enlace /s/u/ que abre la app.
@@ -168,7 +170,7 @@ fun PublicProfileScreen(
                 }) {
                     Icon(androidx.compose.ui.res.painterResource(R.drawable.ic_share_ios),
                         contentDescription = stringResource(R.string.public_profile_screen_v2_compartir_perfil),
-                        tint = MaterialTheme.colorScheme.onBackground)
+                        tint = MaterialTheme.colorScheme.primary)
                 }
             }
             // ⋯: denunciar / bloquear (solo perfiles ajenos)
@@ -177,7 +179,7 @@ fun PublicProfileScreen(
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(Icons.Outlined.MoreHoriz,
                             contentDescription = stringResource(R.string.public_profile_screen_v2_opciones),
-                            tint = MaterialTheme.colorScheme.onBackground)
+                            tint = MaterialTheme.colorScheme.primary)
                     }
                     com.meteomontana.android.ui.components.CumbreDropdownMenu(
                         expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
@@ -219,6 +221,7 @@ fun PublicProfileScreen(
                 onOpenProjects = { onOpenProjects(s.profile.uid) },
                 onOpenStats = { onOpenStats(s.profile.uid) },
                 onOpenGymAscents = { onOpenGymAscents(s.profile.uid) },
+                onOpenGym = onOpenGym,
                 onRefresh = viewModel::load,
                 onOpenPosts = { onOpenPosts(s.profile.uid) },
                 onOpenUserProfile = onOpenUserProfile,
@@ -256,6 +259,7 @@ internal fun Body(
     onOpenProjects: () -> Unit = {},
     onOpenStats: () -> Unit = {},
     onOpenGymAscents: () -> Unit = {},
+    onOpenGym: (Long) -> Unit = {},
     onRefresh: () -> Unit = {},
     onOpenPosts: () -> Unit = {},
     onOpenUserProfile: (String) -> Unit = {},
@@ -303,7 +307,7 @@ internal fun Body(
             }
         },
         modifier = Modifier.fillMaxSize(),
-        startPadding = 16.dp
+        startPadding = com.meteomontana.android.ui.screens.profile.ProfileAvatarStart
     ) { avatarSlot ->
     Column(modifier = Modifier.fillMaxSize().verticalScroll(scroll).padding(bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)) {
         // Cabecera compacta (maqueta B): sin descripción; seguidos · seguidores junto al nombre y SEGUIR a la derecha.
@@ -314,13 +318,17 @@ internal fun Body(
                 uid = p.uid, followers = s.status.followers, following = s.status.following,
                 onFollowers = if (locked) ({}) else onFollowersClick, onFollowing = if (locked) ({}) else onFollowingClick,
                 avatarSlot = avatarSlot,
-                modifier = Modifier.padding(top = 4.dp),
-                trailing = {
-                    Box(Modifier.width(112.dp)) {
-                        FollowButton(iFollow = s.status.iFollowThem, requestPending = s.status.requestPending, onClick = onToggleFollow)
-                    }
-                }
+                modifier = Modifier.padding(top = 4.dp)
             )
+            // SEGUIR va en su propia fila (antes iba a la derecha del nombre y se comía «seguidores»).
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(Modifier.weight(1f)) {
+                    FollowButton(iFollow = s.status.iFollowThem, requestPending = s.status.requestPending, onClick = onToggleFollow)
+                }
+            }
             // Título (con sus efectos), insignias y viero/bloquero de esta persona.
             com.meteomontana.android.ui.components.RewardsBlock(uid = p.uid)
             // «Te sigue»: una etiqueta clara.
@@ -343,13 +351,14 @@ internal fun Body(
             Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 com.meteomontana.android.ui.screens.profile.ProfileCells(
                     s.stats.boulderCount, s.stats.routeCount, s.stats.maxBoulderGrade, s.stats.maxRouteGrade,
-                    onOpenBoulders, onOpenRoutes, onOpenMaxGrade
+                    onOpenBoulders, onOpenRoutes, onOpenMaxGrade, schools = s.stats.schoolCount, onSchools = onOpenSchools
                 )
                 com.meteomontana.android.ui.screens.profile.ProfileThinRow(stringResource(R.string.feed_posts_section), null, onOpenPosts)
                 if (gymsOn) com.meteomontana.android.ui.screens.profile.ClimbGradientCard(
                     climb, s.stats.maxGrade, onStats = onOpenStats,
                     onSessions = onOpenGymAscents, onGyms = onOpenGymAscents, onAscents = onOpenGymAscents
                 ) else com.meteomontana.android.ui.components.StatsEntryButton(onClick = onOpenStats)
+                if (gymsOn) com.meteomontana.android.ui.screens.profile.HomeGymAndStreak(climb.homeGym, 0, onOpenGym, own = false)
             }
         }
         if (locked) {

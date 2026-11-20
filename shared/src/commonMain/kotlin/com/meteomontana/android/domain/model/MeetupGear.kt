@@ -46,3 +46,29 @@ object MeetupGearItem {
         else -> emptyList()
     }
 }
+
+/** Una linea del material de una quedada: lo que se pide, lo que ya hay y si esta cubierto. */
+data class MeetupGearLine(val item: String, val required: Int, val provided: Int, val ok: Boolean) {
+    /** Cuanto falta (0 si esta cubierto). */
+    val missing: Int get() = if (ok) 0 else (required - provided).coerceAtLeast(1)
+}
+
+/**
+ * Que material TIENE ya el grupo y cual FALTA, para mostrarlo en la tarjeta de la lista antes de apuntarse. Se parte del
+ * material pedido; si es una cordada en via y no se pidio nada, se da por pedido cuerda y gri-gri. Lo que cubre cada cosa
+ * lo dice el servidor (`gearCoverage`, que cuenta al organizador y a los apuntados); sin dato, cuenta como no cubierto.
+ */
+object MeetupGearStatus {
+    fun lines(meetup: Meetup): List<MeetupGearLine> {
+        val needed = when {
+            meetup.requiredGear.isNotEmpty() -> meetup.requiredGear
+            meetup.isRopeTeam -> listOf(MeetupGear(MeetupGearItem.ROPE, 1), MeetupGear(MeetupGearItem.GRIGRI, 1))
+            else -> emptyList()
+        }
+        val coverage = meetup.gearCoverage.associateBy { it.item }
+        return needed.map { g ->
+            val c = coverage[g.item]
+            MeetupGearLine(g.item, g.qty, c?.provided ?: 0, c?.ok ?: false)
+        }
+    }
+}

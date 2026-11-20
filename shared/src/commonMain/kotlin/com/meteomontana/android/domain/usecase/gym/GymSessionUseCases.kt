@@ -57,6 +57,15 @@ class GymTrainingUseCase(private val repo: GymSessionRepository) {
         repo.ascentStats(uid, period, date, gymId)
 }
 
+/** «Tu rocódromo»: leer y fijar (o quitar) el rocódromo habitual en el servidor. */
+class HomeGymUseCase(private val repo: GymSessionRepository) {
+    @Throws(Exception::class)
+    suspend fun mine(): com.meteomontana.android.domain.model.gym.HomeGym? = repo.myHomeGym()
+
+    @Throws(Exception::class)
+    suspend fun set(gymId: Long?): com.meteomontana.android.domain.model.gym.HomeGym? = repo.setHomeGym(gymId)
+}
+
 /** Resumen de TODO el historial de rocódromo (perfil propio y ajeno): primero el del móvil y luego el del servidor. */
 class GetGymSummaryUseCase(private val repo: GymSessionRepository) {
     /** Calculado con las sesiones del móvil (sin red); [name] da el nombre de cada rocódromo. */

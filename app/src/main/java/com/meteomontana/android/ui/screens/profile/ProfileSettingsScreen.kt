@@ -8,6 +8,7 @@ import com.meteomontana.android.util.AppText
 import android.content.Context
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.CoroutineScope
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -178,26 +179,36 @@ internal fun ProfileSettingsScreen(
             .verticalScroll(androidx.compose.foundation.rememberScrollState())
             .padding(bottom = 24.dp)) {
             SettingsSectionLabel(stringResource(R.string.profile_section_account))
-            MenuRow(Icons.Outlined.Edit, stringResource(R.string.profile_edit), onEdit)
+            SettingsGroup { MenuRow(Icons.Outlined.Edit, stringResource(R.string.profile_edit), onEdit) }
 
             SettingsSectionLabel(stringResource(R.string.profile_section_activity))
-            MenuRow(Icons.Outlined.Download, stringResource(R.string.profile_saved_schools), onSavedSchools)
-            MenuRow(Icons.Outlined.Place, stringResource(R.string.profile_my_contributions), onSubmissions)
-            if (isPrivate) {
-                MenuRow(Icons.Outlined.PersonAdd, stringResource(R.string.profile_follow_requests), onOpenFollowRequests)
+            SettingsGroup {
+                MenuRow(Icons.Outlined.Download, stringResource(R.string.profile_saved_schools), onSavedSchools)
+                SettingsDivider()
+                MenuRow(Icons.Outlined.Place, stringResource(R.string.profile_my_contributions), onSubmissions)
+                if (isPrivate) {
+                    SettingsDivider()
+                    MenuRow(Icons.Outlined.PersonAdd, stringResource(R.string.profile_follow_requests), onOpenFollowRequests)
+                }
             }
 
             SettingsSectionLabel(stringResource(R.string.profile_section_prefs))
-            MenuRow(Icons.Outlined.Notifications, stringResource(R.string.profile_weather_alert), onWeekendAlert)
-            LanguageRow()
-            if (com.meteomontana.android.ui.components.LocalFeatureFlags.current.isGymsEnabled) HomeGymRow()
             val ctx = LocalContext.current
-            MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(R.string.profile_show_hints)) {
-                com.meteomontana.android.ui.components.resetAllHints(ctx)
-                android.widget.Toast.makeText(ctx, ctx.getString(R.string.profile_screen_v3_pistas_reactivadas), android.widget.Toast.LENGTH_SHORT).show()
+            SettingsGroup {
+                MenuRow(Icons.Outlined.Notifications, stringResource(R.string.profile_weather_alert), onWeekendAlert)
+                SettingsDivider()
+                LanguageRow()
+                if (com.meteomontana.android.ui.components.LocalFeatureFlags.current.isGymsEnabled) { SettingsDivider(); HomeGymRow() }
+                SettingsDivider()
+                MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(R.string.profile_show_hints)) {
+                    com.meteomontana.android.ui.components.resetAllHints(ctx)
+                    android.widget.Toast.makeText(ctx, ctx.getString(R.string.profile_screen_v3_pistas_reactivadas), android.widget.Toast.LENGTH_SHORT).show()
+                }
             }
             // Interruptor general de las guías por pantalla ("? AYUDA" parpadea / guía de Escuelas sale sola).
-            com.meteomontana.android.ui.guide.GuidesToggleRow(Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+            SettingsGroup(Modifier.padding(top = 10.dp)) {
+                com.meteomontana.android.ui.guide.GuidesToggleRow(Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
+            }
 
             // Cierre de la pantalla EXACTAMENTE como iOS (AccountView): botón
             // "Cerrar sesión" en su recuadro, debajo "Eliminar cuenta" como
@@ -209,8 +220,9 @@ internal fun ProfileSettingsScreen(
             Box(
                 modifier = Modifier.fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .clip(MaterialTheme.shapes.small)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.small)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
                     .clickable(onClick = onSignOut)
                     .padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center
@@ -272,7 +284,22 @@ internal fun SettingsSectionLabel(text: String) {
     Text(text.uppercase(),
         style = com.meteomontana.android.ui.theme.EyebrowTextStyle,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 2.dp))
+        modifier = Modifier.padding(start = 24.dp, top = 18.dp, bottom = 8.dp))
+}
+
+/** Grupo redondeado de filas de Ajustes (tarjeta con borde suave y separadores), como las filas de avisos. */
+@Composable
+internal fun SettingsGroup(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val shape = RoundedCornerShape(18.dp)
+    Column(
+        modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(shape).background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
+    ) { content() }
+}
+
+@Composable
+internal fun SettingsDivider() {
+    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), modifier = Modifier.padding(start = 62.dp))
 }
 
 @Composable
@@ -283,12 +310,14 @@ internal fun MenuRow(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Icon(icon, contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+        Box(
+            Modifier.size(34.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) }
         Text(label, style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
         Icon(Icons.Outlined.ChevronRight, contentDescription = null,
@@ -301,13 +330,28 @@ internal fun MenuRow(
 @dagger.hilt.android.lifecycle.HiltViewModel
 class HomeGymViewModel @javax.inject.Inject constructor(
     private val pref: HomeGymPreference,
-    private val cached: com.meteomontana.android.domain.usecase.gym.GetCachedGymsUseCase
+    private val cached: com.meteomontana.android.domain.usecase.gym.GetCachedGymsUseCase,
+    private val server: com.meteomontana.android.domain.usecase.gym.HomeGymUseCase
 ) : ViewModel() {
     var gym by mutableStateOf(pref.get()?.let { id -> cached().firstOrNull { it.id == id } })
         private set
 
+    init {
+        // El servidor manda: si tiene mi rocódromo lo copio al móvil; si no y yo sí lo tengo (elegido antes), lo subo.
+        viewModelScope.launch {
+            runCatching { server.mine() }.onSuccess { home ->
+                if (home != null) show(home.id, save = true) else pref.get()?.let { runCatching { server.set(it) } }
+            }
+        }
+    }
+
     fun set(id: Long?) {
-        pref.set(id)
+        show(id, save = true)
+        viewModelScope.launch { runCatching { server.set(id) } }
+    }
+
+    private fun show(id: Long?, save: Boolean) {
+        if (save) pref.set(id)
         gym = id?.let { i -> cached().firstOrNull { it.id == i } }
     }
 }
