@@ -102,6 +102,7 @@ fun ProfileScreen(
     onOpenMyPosts: () -> Unit = {},
     onOpenStats: () -> Unit = {},
     onOpenGymTraining: () -> Unit = {},
+    onOpenGym: (Long) -> Unit = {},
     /** En la pestaña keep-alive: true cuando la pestaña Perfil está visible.
      *  Recarga al hacerse visible (los ON_RESUME no saltan al cambiar de tab). */
     visible: Boolean = true,
@@ -201,6 +202,7 @@ fun ProfileScreen(
                     onOpenMyPosts = onOpenMyPosts,
                     onOpenStats = onOpenStats,
                     onOpenGymTraining = onOpenGymTraining,
+                    onOpenGym = onOpenGym,
                     visible = visible,
                     onPhotoChanged = viewModel::load
                 )
@@ -313,6 +315,7 @@ internal fun Content(
     onOpenMyPosts: () -> Unit = {},
     onOpenStats: () -> Unit = {},
     onOpenGymTraining: () -> Unit = {},
+    onOpenGym: (Long) -> Unit = {},
     /** Pestaña Perfil visible: la tarjeta de rocódromo se relee cada vez (la pestaña no se recompone al volver). */
     visible: Boolean = true,
     onPhotoChanged: () -> Unit = {}
@@ -359,7 +362,7 @@ internal fun Content(
             avatarSlot = avatarSlot) }
         item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects, onOpenMyPosts, onOpenStats) }
         // Entrenos en rocódromo (solo con el interruptor `gyms_enabled` encendido).
-        if (gymsOn) item { GymStatsCard(onClick = onOpenGymTraining, visible = visible) }
+        if (gymsOn) item { GymStatsCard(onClick = onOpenGymTraining, onOpenGym = onOpenGym, visible = visible) }
         // Admin ya no va aquí: es un botón arriba a la izquierda (junto al "?").
         // La lista de escuelas tampoco (ya vive en la pestaña Diario).
         item { Spacer(Modifier.height(24.dp)) }

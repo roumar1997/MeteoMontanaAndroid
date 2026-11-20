@@ -227,7 +227,8 @@ private fun SheetNavHost(
                             onOpenProjects = { sheetNav.navigate(Routes.projects(null)) },
                             onOpenMyPosts = { sheetNav.navigate(Routes.myPosts()) },
                             onOpenStats = { sheetNav.navigate(Routes.journalStats()) },
-                            onOpenGymTraining = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.TRAINING) }
+                            onOpenGymTraining = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.TRAINING) },
+                            onOpenGym = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.detail(it)) }
                         )
                     }
                     // C4: MIS ESTADISTICAS (piramide, racha, progresion).

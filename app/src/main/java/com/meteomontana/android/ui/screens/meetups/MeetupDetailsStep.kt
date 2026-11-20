@@ -70,7 +70,7 @@ internal fun MeetupDetailsStep(draft: MeetupDraft, onDraft: (MeetupDraft) -> Uni
         GradeLadder(draft, onDraft)
         Text(stringResource(R.string.mw_grade_hint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-        val gearItems = MeetupGearItem.forDiscipline(draft.discipline)
+        val gearItems = MeetupGearItem.forPlace(draft.discipline, draft.placeIsGym)
         if (gearItems.isNotEmpty()) {
             WizardEyebrow(stringResource(R.string.mw_gear))
             gearItems.forEach { item -> GearRequirementRow(item, draft.gear[item], onDraft, draft) }

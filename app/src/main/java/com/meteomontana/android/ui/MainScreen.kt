@@ -448,7 +448,8 @@ fun MainScreen(
                         onOpenProjects = { openSheet(Routes.projects(null)) },
                         onOpenMyPosts = { openSheet(Routes.myPosts()) },
                         onOpenStats = { openSheet(Routes.journalStats()) },
-                        onOpenGymTraining = { openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.TRAINING) }
+                        onOpenGymTraining = { openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.TRAINING) },
+                        onOpenGym = { openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.detail(it)) }
                     )
                     }
                 }

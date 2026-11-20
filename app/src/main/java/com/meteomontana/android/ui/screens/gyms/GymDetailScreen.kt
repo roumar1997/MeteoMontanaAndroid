@@ -69,6 +69,7 @@ fun GymDetailScreen(
     val gym = state.gym
     val ctx = LocalContext.current
     var reportOpen by remember { mutableStateOf(false) }
+    var trainOpen by remember { mutableStateOf(false) }
     val userLoc = com.meteomontana.android.ui.components.rememberUserLocation()
 
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -78,6 +79,8 @@ fun GymDetailScreen(
         ) { item ->
             IconAction(description = stringResource(R.string.common_close), onClick = onBack, modifier = item,
                 icon = Icons.AutoMirrored.Outlined.ArrowBack)
+            IconAction(description = stringResource(R.string.gym_chat_open), onClick = { gym?.let(onOpenChat) }, modifier = item,
+                icon = Icons.Outlined.Forum)
             IconAction(
                 description = stringResource(if (state.favorite) R.string.gym_favorite_remove else R.string.gym_favorite_add),
                 onClick = viewModel::toggleFavorite, modifier = item, active = state.favorite,
@@ -101,7 +104,7 @@ fun GymDetailScreen(
 
                 GymActionPill(
                     stringResource(if (state.trainedToday) R.string.gym_train_done else R.string.gym_train_today),
-                    viewModel::toggleTraining, Modifier.fillMaxWidth().padding(top = Spacing.xs), primary = !state.trainedToday
+                    { trainOpen = true }, Modifier.fillMaxWidth().padding(top = Spacing.xs), primary = !state.trainedToday
                 )
                 if (state.trainedToday) Text(
                     stringResource(R.string.gym_train_undo), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -130,6 +133,10 @@ fun GymDetailScreen(
         }
     }
     if (reportOpen && gym != null) GymReportSheet(gym = gym, onDismiss = { reportOpen = false })
+    if (trainOpen && gym != null) {
+        val day = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("EEEE d MMM", java.util.Locale.getDefault()))
+        GymTrainSheet(gym, stringResource(R.string.gym_train_today_label, day), onDismiss = { trainOpen = false; viewModel.refreshTrained() })
+    }
 
 }
 

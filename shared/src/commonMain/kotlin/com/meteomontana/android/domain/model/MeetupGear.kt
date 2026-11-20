@@ -27,6 +27,17 @@ object MeetupGearItem {
         else -> 1
     }
 
+    /**
+     * Material que tiene sentido pedir segun el lugar: en un rocodromo solo cuerda y gri-gri si hay via (el rocodromo
+     * pone presas, cintas y colchonetas); en roca, segun la modalidad ([forDiscipline]).
+     */
+    fun forPlace(discipline: String?, gym: Boolean): List<String> =
+        if (!gym) forDiscipline(discipline)
+        else when (discipline) {
+            "ROUTE" -> listOf(ROPE, GRIGRI)
+            else -> emptyList()
+        }
+
     /** Material que tiene sentido pedir segun la modalidad: vias: cuerda, gri-gri y cintas; bloque: crashpads. */
     fun forDiscipline(discipline: String?): List<String> = when (discipline) {
         "ROUTE" -> listOf(ROPE, GRIGRI, QUICKDRAWS)

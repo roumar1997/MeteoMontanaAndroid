@@ -239,9 +239,11 @@ internal fun EditGearDialog(
     discipline: String?,
     currentGearJson: String?,
     onDismiss: () -> Unit,
-    onSave: (String) -> Unit
+    onSave: (String) -> Unit,
+    gym: Boolean = false
 ) {
-    val items = gearItemsForDiscipline(discipline)
+    // En un rocódromo solo cuerda y gri-gri (el rocódromo pone cintas y colchonetas).
+    val items = if (gym) gearItemsForDiscipline("ROUTE").filter { it.first == "cuerda" || it.first == "grigri" } else gearItemsForDiscipline(discipline)
     val currentGear = parseGear(currentGearJson)
     val gearState = remember {
         mutableMapOf<String, Int>().apply {

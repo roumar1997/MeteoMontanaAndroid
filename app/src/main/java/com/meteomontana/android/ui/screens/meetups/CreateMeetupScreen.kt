@@ -95,10 +95,13 @@ fun CreateMeetupScreen(
 
     // Lo que trae el asistente o la ficha se aplica UNA vez: si el usuario lo cambia, no se le vuelve a poner encima.
     var prefillApplied by rememberSaveable { mutableStateOf(false) }
+    // Si se llega desde una ficha (rocódromo o escuela) el lugar ya viene fijado y no se pregunta.
+    var placeLocked by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(prefill) {
         val p = prefill ?: return@LaunchedEffect
         if (prefillApplied) return@LaunchedEffect
         prefillApplied = true
+        placeLocked = p.gymId != null || p.schoolId.isNotBlank()
         var d = draft
         d = if (p.gymId != null) d.withGym(p.gymId, p.schoolName) else if (p.schoolId.isNotBlank()) d.withSchool(p.schoolId, p.schoolName) else d
         p.day?.let { d = d.toggleDay(it) }
@@ -142,7 +145,7 @@ fun CreateMeetupScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             when (step) {
-                1 -> MeetupPlaceStep(draft, { draft = it }, schoolResults, { viewModel.searchSchools(it) }, dayScores)
+                1 -> MeetupPlaceStep(draft, { draft = it }, schoolResults, { viewModel.searchSchools(it) }, dayScores, placeLocked)
                 2 -> MeetupDetailsStep(draft) { draft = it }
                 else -> MeetupFinalStep(draft, { draft = it }, uploadingPhoto, { photoPicker.launch("image/*") }, defaultName)
             }

@@ -106,3 +106,12 @@ La política pública vive en la web (otro repo); textos nuevos en `PRIVACIDAD-R
 - **Chat de rocódromo**: no necesita servidor. Usa `school_chats/gym-{id}/messages` de Firestore (las reglas actuales aceptan cualquier id, texto ≤ 500, solo el autor borra). Si se quiere TTL o moderación propia, habría que sacarlo a su colección.
 - **Hora de la quedada** (la maqueta A enseña «18:30»): no hay campo en `POST /api/meetups`; no se envía.
 - **Detalle offline de quedadas**: la caché SQLDelight no guarda `gymId`, grado, cordada ni material (solo el detalle online los ve). Si se quiere offline, subir el esquema (migración local).
+
+## 8. Ronda 4: vías y boards en `ascents` (rama `feature/rocodromos-r4`, ya en `develop`/staging)
+
+`PUT /api/gyms/sessions/{id}/ascents` acepta, además de colores y grados, claves con prefijo (no dependen de la escala del rocódromo; aditivo, las apps viejas no las mandan):
+
+- `route:<partner|solo>:<sent|project>:<grado>` (cuerda con compañero o autoaseguro; encadenada o proyecto), por ejemplo `route:partner:sent:6a+`.
+- `board:<kilter|tension|moonboard>:<grado>[:<inclinación 0-90>]`, por ejemplo `board:kilter:6c:40`.
+
+Grado = francés de `FrenchGrade` (3 a 9c+). Cualquier otra forma con esos prefijos da 400. Entran en el máximo de 30 claves y en `gym-ascents` como una clave más (las apps las distinguen con `GymAscentKeys`). Tests: `GymScaleAndAscentsTest` (2 nuevos). No hay migración (`ascent_key` ya es VARCHAR(30); la clave más larga mide 25). Pendiente: comprobar en staging que ese commit está desplegado y probar un PUT real.

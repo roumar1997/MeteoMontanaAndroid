@@ -42,7 +42,7 @@ data class MeetupDraft(
     }
 
     fun withPlaceKind(gym: Boolean): MeetupDraft =
-        if (gym == placeIsGym) this else copy(placeIsGym = gym, schoolId = "", gymId = null, placeName = "")
+        if (gym == placeIsGym) this else copy(placeIsGym = gym, schoolId = "", gymId = null, placeName = "", gear = emptyMap())
 
     fun withSchool(id: String, name: String) = copy(placeIsGym = false, schoolId = id, gymId = null, placeName = name)
 
@@ -53,7 +53,7 @@ data class MeetupDraft(
     /** Al cambiar de modalidad se suelta el material que ya no tiene sentido (cuerda en un bloque, etc.). */
     fun withDiscipline(value: String?): MeetupDraft {
         val d = value.takeIf { it == "BOULDER" || it == "ROUTE" }
-        val allowed = MeetupGearItem.forDiscipline(d).toSet()
+        val allowed = MeetupGearItem.forPlace(d, placeIsGym).toSet()
         return copy(discipline = d, gear = gear.filterKeys { it in allowed })
     }
 
@@ -118,7 +118,7 @@ data class MeetupDraft(
         gradeMin = gradeMin,
         gradeMax = gradeMax ?: gradeMin,
         partnersWanted = partners,
-        requiredGear = MeetupGearItem.forDiscipline(discipline).mapNotNull { item -> gear[item]?.let { MeetupGear(item, it) } }
+        requiredGear = MeetupGearItem.forPlace(discipline, placeIsGym).mapNotNull { item -> gear[item]?.let { MeetupGear(item, it) } }
     )
 
     companion object {

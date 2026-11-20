@@ -32,7 +32,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class GymStatsUiState(val stats: GymStats = GymStats(), val topGymName: String? = null)
+data class GymStatsUiState(val stats: GymStats = GymStats(), val topGymName: String? = null, val topGymId: Long? = null)
 
 /**
  * Tarjeta «Rocódromo» del perfil. Los números salen de `shared` ([GetGymStatsUseCase]): primero lo que hay en el
@@ -54,12 +54,13 @@ class GymStatsViewModel @Inject constructor(
 
     private fun build(stats: GymStats) = GymStatsUiState(
         stats = stats,
-        topGymName = stats.topGymId?.let { id -> getCachedGyms().firstOrNull { it.id == id }?.name }
+        topGymName = stats.topGymId?.let { id -> getCachedGyms().firstOrNull { it.id == id }?.name },
+        topGymId = stats.topGymId
     )
 }
 
 @Composable
-internal fun GymStatsCard(modifier: Modifier = Modifier, onClick: () -> Unit = {}, visible: Boolean = true, viewModel: GymStatsViewModel = hiltViewModel()) {
+internal fun GymStatsCard(modifier: Modifier = Modifier, onClick: () -> Unit = {}, onOpenGym: (Long) -> Unit = {}, visible: Boolean = true, viewModel: GymStatsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     // Perfil es una pestaña que se queda viva: sin la clave `visible`, la tarjeta se quedaba con lo del primer arranque
     // y «He entrenado aquí hoy» no se veía al volver al perfil.
@@ -82,8 +83,14 @@ internal fun GymStatsCard(modifier: Modifier = Modifier, onClick: () -> Unit = {
             StatCell(stringResource(R.string.gym_stats_month).uppercase(), s.month.toString(), Modifier.weight(1f))
             StatCell(stringResource(R.string.gym_stats_year).uppercase(), s.year.toString(), Modifier.weight(1f))
         }
+        // Frases que se entienden: «Tu rocódromo» (se toca y abre su ficha) y «Semanas seguidas».
         state.topGymName?.let { name ->
-            InfoLine(stringResource(R.string.gym_stats_top), androidx.compose.ui.res.pluralStringResource(R.plurals.gym_stats_top_value, s.topGymVisits, name, s.topGymVisits))
+            val gymId = state.topGymId
+            InfoLine(
+                stringResource(R.string.gym_stats_top),
+                androidx.compose.ui.res.pluralStringResource(R.plurals.gym_stats_top_value, s.topGymVisits, name, s.topGymVisits),
+                if (gymId != null) Modifier.clickable { onOpenGym(gymId) } else Modifier
+            )
         }
         if (s.streakWeeks > 0) {
             InfoLine(
@@ -96,8 +103,8 @@ internal fun GymStatsCard(modifier: Modifier = Modifier, onClick: () -> Unit = {
 }
 
 @Composable
-private fun InfoLine(label: String, value: String) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+private fun InfoLine(label: String, value: String, modifier: Modifier = Modifier) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(label.uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             value, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground,

@@ -159,6 +159,7 @@ fun MeetupDetailScreen(
             state.meetup?.let { m ->
                 EditGearDialog(
                     discipline = m.discipline,
+                    gym = m.isGymMeetup,
                     currentGearJson = m.members.firstOrNull { it.uid == myUid }?.gearJson,
                     onDismiss = { showEditGear = false },
                     onSave = { json ->

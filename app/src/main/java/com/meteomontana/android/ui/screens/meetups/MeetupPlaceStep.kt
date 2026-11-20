@@ -54,6 +54,7 @@ internal fun MeetupPlaceStep(
     schoolResults: List<School>,
     onSchoolQuery: (String) -> Unit,
     dayScores: Map<String, Int>,
+    placeLocked: Boolean = false,
     gymPicker: MeetupGymPickerViewModel = hiltViewModel()
 ) {
     var query by rememberSaveable { mutableStateOf("") }
@@ -61,8 +62,21 @@ internal fun MeetupPlaceStep(
     val loc = rememberUserLocation()
     LaunchedEffect(loc?.lat, loc?.lon) { gymPicker.setOrigin(loc?.lat, loc?.lon) }
 
+    if (placeLocked && draft.hasPlace) {
+        // Desde la ficha: el lugar está fijado, solo se pregunta cuándo.
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            WizardQuestion(stringResource(R.string.mw_step1_when_only))
+            LockedPlaceCard(draft.placeName, draft.placeIsGym)
+            WizardEyebrow(stringResource(R.string.mw_when))
+            MeetupDayPicker(draft.days, dayScores) { onDraft(draft.toggleDay(it)) }
+        }
+        return
+    }
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         WizardQuestion(stringResource(R.string.mw_step1_q))
+        WizardEyebrow(stringResource(R.string.mw_when))
+        MeetupDayPicker(draft.days, dayScores) { onDraft(draft.toggleDay(it)) }
+        WizardEyebrow(stringResource(R.string.mw_where))
         WizardSegmented(
             first = stringResource(R.string.create_meetup_place_school), second = stringResource(R.string.create_meetup_place_gym),
             firstSelected = !draft.placeIsGym,
@@ -110,8 +124,27 @@ internal fun MeetupPlaceStep(
                 Text(stringResource(R.string.mw_no_results), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        WizardEyebrow(stringResource(R.string.mw_when))
-        MeetupDayPicker(draft.days, dayScores) { onDraft(draft.toggleDay(it)) }
+    }
+}
+
+/** Lugar ya fijado (viene de una ficha): tarjeta de color con la etiqueta «FIJADO». */
+@Composable
+private fun LockedPlaceCard(name: String, gym: Boolean) {
+    val shape = RoundedCornerShape(20.dp)
+    Row(
+        Modifier.fillMaxWidth().clip(shape).background(terraFillColor()).padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(Modifier.size(42.dp).clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.22f)), contentAlignment = Alignment.Center) {
+            androidx.compose.material3.Icon(painterResource(R.drawable.ic_gym), null, tint = Color.White, modifier = Modifier.size(22.dp))
+        }
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(if (gym) R.string.create_meetup_place_gym else R.string.create_meetup_place_school).uppercase(),
+                style = EyebrowTextStyle, color = Color.White.copy(alpha = 0.85f))
+            Text(name, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White, maxLines = 2)
+        }
+        Text(stringResource(R.string.mw_fixed).uppercase(), style = EyebrowTextStyle, color = terraFillColor(),
+            modifier = Modifier.clip(CircleShape).background(Color.White).padding(horizontal = 10.dp, vertical = 5.dp))
     }
 }
 

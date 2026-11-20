@@ -157,7 +157,11 @@ class GymTrainingAndDraftTest {
         assertEquals("ROUTE", r.discipline)
         assertEquals("6a", r.gradeMin); assertEquals("6c+", r.gradeMax)
         assertEquals(1, r.partnersWanted)
-        assertEquals(listOf(MeetupGear("ROPE", 1), MeetupGear("QUICKDRAWS", 9)), r.requiredGear)
+        // En rocódromo no se piden cintas: solo cuerda y gri-gri (el rocódromo pone el resto).
+        assertEquals(listOf(MeetupGear("ROPE", 1)), r.requiredGear)
+        assertEquals(listOf("ROPE", "GRIGRI"), MeetupGearItem.forPlace("ROUTE", gym = true))
+        assertEquals(emptyList(), MeetupGearItem.forPlace("BOULDER", gym = true))
+        assertEquals(listOf("CRASHPAD"), MeetupGearItem.forPlace("BOULDER", gym = false))
     }
 
     @Test

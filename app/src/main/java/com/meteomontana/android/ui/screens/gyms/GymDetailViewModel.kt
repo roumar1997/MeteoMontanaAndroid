@@ -89,6 +89,9 @@ class GymDetailViewModel @Inject constructor(
         }
     }
 
+    /** Tras cerrar la hoja de entreno: relee si hoy ya hay sesión apuntada en este rocódromo. */
+    fun refreshTrained() = _state.update { it.copy(trainedToday = recordSession.hasSessionToday(gymId)) }
+
     /** «He entrenado aquí hoy»: apunta el día de hoy o, si ya estaba apuntado, lo quita. Funciona sin red. */
     fun toggleTraining() {
         val done = _state.value.trainedToday

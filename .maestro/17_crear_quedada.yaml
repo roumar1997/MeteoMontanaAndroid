@@ -16,19 +16,17 @@ appId: com.meteomontana.android
 - extendedWaitUntil:
     visible: "Nueva quedada"
     timeout: 10000
-# Paso 1: lugar (escuela) y día
+# Paso 1: primero el día y luego el lugar (escuela)
+- tapOn: "SÁB"
 # el texto de ayuda del buscador no sale en el árbol de accesibilidad: se toca por posición
 - tapOn:
-    point: "50%,34%"
+    point: "50%,49%"
 - inputText: "Zarzalejo"
 - hideKeyboard
 # índice 1: el 0 es el texto escrito en el buscador
 - tapOn:
     text: "Zarzalejo"
     index: 1
-- scrollUntilVisible:
-    element: "¿CUÁNDO?"
-- tapOn: "SÁB"
 - tapOn: "SIGUIENTE.*"
 # Paso 2: sin cambios (todo opcional)
 - extendedWaitUntil:
