@@ -1,8 +1,10 @@
 package com.meteomontana.android.ui.screens.gyms
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -10,41 +12,54 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.R
+import com.meteomontana.android.domain.model.SchoolPresence
 import com.meteomontana.android.domain.port.SchoolChatService
+import com.meteomontana.android.domain.usecase.gym.ClearGymPresenceUseCase
+import com.meteomontana.android.domain.usecase.gym.GetGymPresenceUseCase
+import com.meteomontana.android.domain.usecase.gym.MarkGymPresenceUseCase
 import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
+import com.meteomontana.android.ui.components.PresencePrivacySheet
+import com.meteomontana.android.ui.screens.chat.ChatDayDivider
+import com.meteomontana.android.ui.screens.chat.ChatInputPill
+import com.meteomontana.android.ui.screens.chat.ChatLockedBar
+import com.meteomontana.android.ui.screens.chat.chatDayStartIds
 import com.meteomontana.android.ui.screens.detail.MessageBubble
+import com.meteomontana.android.ui.theme.Ok
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
-import com.meteomontana.android.ui.theme.Terra
+import com.meteomontana.android.ui.theme.terraFillColor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -54,12 +69,16 @@ internal fun gymChatId(gymId: Long) = "gym-$gymId"
 
 /**
  * Chat de un rocódromo: el mismo chat abierto que el de escuela (`school_chats/{id}/messages`, ya en las reglas de
- * Firestore) con la clave `gym-{id}`. Sin servidor nuevo. No exige «Aquí» (los rocódromos no lo piden).
+ * Firestore) con la clave `gym-{id}`. Como en las escuelas, solo escribe quien ha marcado «Aquí» (lo mira la app; las
+ * reglas no lo exigen, igual que en escuelas).
  */
 @HiltViewModel
 class GymChatViewModel @Inject constructor(
     private val chatService: SchoolChatService,
-    private val getPublicProfile: GetPublicProfileUseCase
+    private val getPublicProfile: GetPublicProfileUseCase,
+    private val getPresence: GetGymPresenceUseCase,
+    private val markPresence: MarkGymPresenceUseCase,
+    private val clearPresence: ClearGymPresenceUseCase
 ) : ViewModel() {
     var messages by mutableStateOf<List<SchoolChatService.Message>>(emptyList())
         private set
@@ -68,12 +87,22 @@ class GymChatViewModel @Inject constructor(
         private set
     var namesVersion by mutableStateOf(0)
         private set
+    var people by mutableStateOf<List<SchoolPresence>>(emptyList())
+        private set
+    /** false hasta la primera respuesta de presencia: no se enseña el candado antes de saber si ya estás «Aquí». */
+    var presenceLoaded by mutableStateOf(false)
+        private set
+    var iAmHere by mutableStateOf(false)
+        private set
+    var presenceBusy by mutableStateOf(false)
+        private set
     private val names = mutableMapOf<String, String>()
     private var started = false
 
     fun start(gymId: Long, myUid: String) {
         if (started) return
         started = true
+        loadPresence(gymId, myUid)
         viewModelScope.launch {
             chatService.observeMessages(gymChatId(gymId), 100).collect { msgs ->
                 msgs.map { it.fromUid }.toSet().filter { it != myUid && it !in names }.forEach { uid ->
@@ -86,11 +115,43 @@ class GymChatViewModel @Inject constructor(
         }
     }
 
+    fun loadPresence(gymId: Long, myUid: String) {
+        viewModelScope.launch {
+            runCatching { getPresence.execute(gymId) }.onSuccess { list ->
+                people = list
+                iAmHere = list.any { it.uid == myUid }
+                presenceLoaded = true
+            }
+        }
+    }
+
+    fun markHere(gymId: Long, myUid: String) {
+        if (presenceBusy) return
+        presenceBusy = true
+        viewModelScope.launch {
+            val ok = runCatching { markPresence.execute(gymId) }.isSuccess
+            presenceBusy = false
+            if (ok) iAmHere = true
+            loadPresence(gymId, myUid)
+        }
+    }
+
+    fun leave(gymId: Long, myUid: String) {
+        if (presenceBusy) return
+        presenceBusy = true
+        viewModelScope.launch {
+            val ok = runCatching { clearPresence.execute(gymId) }.isSuccess
+            presenceBusy = false
+            if (ok) iAmHere = false
+            loadPresence(gymId, myUid)
+        }
+    }
+
     fun nameFor(uid: String, myUid: String): String = if (uid == myUid) "Tú" else (names[uid] ?: uid.take(6))
 
     fun send(gymId: Long) {
         val trimmed = text.trim()
-        if (trimmed.isEmpty() || sending) return
+        if (trimmed.isEmpty() || sending || !iAmHere) return
         sending = true
         text = ""
         viewModelScope.launch {
@@ -112,23 +173,36 @@ fun GymChatScreen(
 ) {
     LaunchedEffect(gymId) { viewModel.start(gymId, myUid) }
     val listState = rememberLazyListState()
+    var privacyOpen by remember { mutableStateOf(false) }
     LaunchedEffect(viewModel.messages.size) {
         if (viewModel.messages.isNotEmpty()) listState.animateScrollToItem(viewModel.messages.size - 1)
     }
+    val locked = viewModel.presenceLoaded && !viewModel.iAmHere
+    val presentNow = viewModel.people.map { it.uid }.toSet()
     Column(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
-            .consumeWindowInsets(androidx.compose.foundation.layout.PaddingValues(bottom = bottomInset)).imePadding()
+            .consumeWindowInsets(PaddingValues(bottom = bottomInset)).imePadding()
     ) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.xs, vertical = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.common_back), tint = MaterialTheme.colorScheme.onBackground)
             }
-            Column(Modifier.weight(1f)) {
-                Text(gymName, style = MaterialTheme.typography.titleMedium.copy(fontFamily = Serif, fontWeight = FontWeight.Bold), maxLines = 2)
-                Text(
-                    stringResource(R.string.school_chat_screen_v2_se_borra_solo_pasados_unos),
-                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Box(Modifier.size(42.dp).clip(CircleShape).background(Ok), contentAlignment = Alignment.Center) {
+                Text(gymName.take(1).uppercase(), color = Color.White, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            }
+            Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
+                Text(gymName, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (viewModel.people.isNotEmpty()) {
+                        Box(Modifier.size(7.dp).clip(CircleShape).background(Ok))
+                        Spacer(Modifier.size(5.dp))
+                    }
+                    Text(
+                        if (viewModel.people.isEmpty()) stringResource(R.string.school_chat_screen_v2_se_borra_solo_pasados_unos)
+                        else stringResource(R.string.gym_chat_here_now, viewModel.people.size),
+                        fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1
+                    )
+                }
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
@@ -137,11 +211,13 @@ fun GymChatScreen(
                 stringResource(R.string.gym_chat_empty), color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.Center).padding(Spacing.xl)
             )
-            LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.md)) {
+            LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(Spacing.md)) {
+                val dayStarts = chatDayStartIds(viewModel.messages.map { it.id to it.createdAtMillis })
                 items(viewModel.messages, key = { it.id }) { m ->
                     @Suppress("UNUSED_EXPRESSION") viewModel.namesVersion
+                    dayStarts[m.id]?.let { ChatDayDivider(it) }
                     MessageBubble(
-                        message = m, isMine = m.fromUid == myUid, isPresent = true,
+                        message = m, isMine = m.fromUid == myUid, isPresent = m.fromUid in presentNow,
                         name = viewModel.nameFor(m.fromUid, myUid), onClick = { onOpenChat(m.fromUid) }
                     )
                     Spacer(Modifier.padding(top = Spacing.xs))
@@ -149,21 +225,18 @@ fun GymChatScreen(
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-        Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm, vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = viewModel.text, onValueChange = { viewModel.text = it },
-                placeholder = { Text(stringResource(R.string.school_chat_screen_v2_escribe_algo), style = MaterialTheme.typography.bodySmall) },
-                modifier = Modifier.weight(1f), shape = RoundedCornerShape(50), singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface, focusedContainerColor = MaterialTheme.colorScheme.surface
-                )
+        if (locked) ChatLockedBar(onHere = {
+            Text(
+                stringResource(R.string.gym_here_top).uppercase(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp,
+                modifier = Modifier.clip(CircleShape).background(terraFillColor()).clickable(enabled = !viewModel.presenceBusy) { privacyOpen = true }
+                    .padding(horizontal = 12.dp, vertical = 9.dp)
             )
-            IconButton(onClick = { viewModel.send(gymId) }, enabled = viewModel.text.trim().isNotEmpty() && !viewModel.sending) {
-                Icon(
-                    Icons.AutoMirrored.Outlined.Send, stringResource(R.string.school_chat_screen_v2_enviar),
-                    tint = if (viewModel.text.trim().isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else Terra
-                )
-            }
-        }
+        }) else ChatInputPill(
+            text = viewModel.text, onTextChange = { viewModel.text = it }, onSend = { viewModel.send(gymId) },
+            enabled = !viewModel.sending, placeholder = stringResource(R.string.school_chat_screen_v2_escribe_algo)
+        )
     }
+    if (privacyOpen) PresencePrivacySheet(
+        onConfirm = { privacyOpen = false; viewModel.markHere(gymId, myUid) }, onDismiss = { privacyOpen = false }
+    )
 }

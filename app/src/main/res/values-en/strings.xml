@@ -2247,4 +2247,17 @@
     <string name="explore_found_boulders">%d boulders found</string>
     <string name="explore_found_routes">%d routes found</string>
     <string name="explore_sector_none">No sector</string>
+    <string name="gym_here_you">You are here</string>
+    <string name="gym_who_today">Who is going today · %1$d</string>
+    <string name="gym_who_today_none">Who is going today</string>
+    <string name="gym_who_hint">Mark that you are here to write in the chat</string>
+    <string name="gym_share">Share</string>
+    <string name="gym_map_open">View on the map</string>
+    <string name="gym_train_short">I trained</string>
+    <string name="gym_train_short_done">Workout logged</string>
+    <string name="gym_meetup_short">Create meetup</string>
+    <string name="chat_locked_title">Only people who are here can write</string>
+    <string name="chat_locked_sub">You can read the chat</string>
+    <string name="chat_here_tag">here</string>
+    <string name="gym_chat_here_now">%1$d here now</string>
 </resources>

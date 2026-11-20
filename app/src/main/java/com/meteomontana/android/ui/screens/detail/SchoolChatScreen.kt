@@ -66,6 +66,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
+import com.meteomontana.android.ui.screens.chat.ChatDayDivider
+import com.meteomontana.android.ui.screens.chat.ChatInputPill
+import com.meteomontana.android.ui.screens.chat.ChatLockedBar
+import com.meteomontana.android.ui.screens.chat.chatDayStartIds
 
 @HiltViewModel
 class SchoolChatViewModel @Inject constructor(
@@ -262,7 +266,9 @@ fun SchoolChatScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.md)
         ) {
             if (notMarkedHere && viewModel.messages.isNotEmpty()) item { MarkHereNotice(compact = true) }
+            val dayStarts = chatDayStartIds(viewModel.messages.map { it.id to it.createdAtMillis })
             items(viewModel.messages) { m ->
+                dayStarts[m.id]?.let { ChatDayDivider(it) }
                 MessageBubble(
                     message = m,
                     isMine = m.fromUid == myUid,
@@ -280,48 +286,18 @@ fun SchoolChatScreen(
         }
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
-        // Sin marcar «Aquí» no se puede escribir: el botón grande ocupa el sitio de la caja.
-        if (notMarkedHere) Box(
-            Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm)
-        ) {
+        // Sin marcar «Aquí» no se puede escribir: la barra con candado ocupa el sitio del campo.
+        if (notMarkedHere) ChatLockedBar(onHere = {
             com.meteomontana.android.ui.components.PresenceMarkControl(
                 schoolId = schoolId, myUid = myUid,
                 onChanged = { viewModel.refreshPresence(schoolId) },
-                visibleWhenHere = false, big = true
+                visibleWhenHere = false
             )
-        }
-        else Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = Spacing.sm, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = viewModel.text,
-                onValueChange = { viewModel.text = it },
-                placeholder = { Text(stringResource(R.string.school_chat_screen_v2_escribe_algo), style = MaterialTheme.typography.bodySmall) },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(50),
-                colors = TextFieldDefaults.colors(
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface
-                ),
-                singleLine = true
-            )
-            Spacer(Modifier.padding(start = Spacing.xs))
-            IconButton(
-                onClick = { viewModel.send(schoolId) },
-                enabled = viewModel.text.trim().isNotEmpty() && !viewModel.sending
-            ) {
-                Icon(
-                    Icons.Outlined.Send,
-                    contentDescription = stringResource(R.string.school_chat_screen_v2_enviar),
-                    tint = if (viewModel.text.trim().isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else Terra
-                )
-            }
-        }
+        })
+        else ChatInputPill(
+            text = viewModel.text, onTextChange = { viewModel.text = it }, onSend = { viewModel.send(schoolId) },
+            enabled = !viewModel.sending, placeholder = stringResource(R.string.school_chat_screen_v2_escribe_algo)
+        )
     }
 
     if (showAllPresent) {
@@ -427,40 +403,32 @@ internal fun MessageBubble(
             if (!isMine) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        name,
+                        if (isPresent) name + " · " + stringResource(R.string.chat_here_tag) else name,
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                         color = Terra
                     )
-                    if (isPresent) {
-                        Spacer(Modifier.padding(start = 6.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .background(Terra)
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(stringResource(R.string.school_chat_screen_aqui_ahora), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = Color.White)
-                        }
-                    }
                 }
                 Spacer(Modifier.padding(top = 2.dp))
             }
-            Box(
+            Column(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(if (isMine) Terra else MaterialTheme.colorScheme.surface)
-                    .then(
-                        if (!isMine) Modifier
-                        else Modifier
-                    )
-                    .padding(horizontal = 10.dp, vertical = 8.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(if (isMine) com.meteomontana.android.ui.theme.terraFillColor() else MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Text(
                     message.text,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = if (isMine) Color.White else MaterialTheme.colorScheme.onBackground
                 )
+                message.createdAtMillis?.let {
+                    Text(
+                        java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(it)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = (if (isMine) Color.White else MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.75f),
+                        modifier = Modifier.align(Alignment.End)
+                    )
+                }
             }
         }
     }

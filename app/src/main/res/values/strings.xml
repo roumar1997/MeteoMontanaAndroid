@@ -2306,4 +2306,17 @@
     <string name="explore_found_boulders">%d bloques encontrados</string>
     <string name="explore_found_routes">%d vías encontradas</string>
     <string name="explore_sector_none">Sin sector</string>
+    <string name="gym_here_you">Estás aquí</string>
+    <string name="gym_who_today">Quién va hoy · %1$d</string>
+    <string name="gym_who_today_none">Quién va hoy</string>
+    <string name="gym_who_hint">Marca que estás para escribir en el chat</string>
+    <string name="gym_share">Compartir</string>
+    <string name="gym_map_open">Ver en el mapa</string>
+    <string name="gym_train_short">He entrenado</string>
+    <string name="gym_train_short_done">Entreno apuntado</string>
+    <string name="gym_meetup_short">Crear quedada</string>
+    <string name="chat_locked_title">Solo escriben los que están aquí</string>
+    <string name="chat_locked_sub">Puedes leer el chat</string>
+    <string name="chat_here_tag">aquí</string>
+    <string name="gym_chat_here_now">%1$d aquí ahora</string>
 </resources>

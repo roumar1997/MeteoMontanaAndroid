@@ -198,38 +198,7 @@ fun ChatScreen(
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             }
-            Row(modifier = Modifier.fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                androidx.compose.material3.TextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text(stringResource(R.string.chat_write),
-                        style = MaterialTheme.typography.bodyMedium) },
-                    maxLines = 4,
-                    shape = RoundedCornerShape(24.dp),
-                    colors = androidx.compose.material3.TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                        unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                        disabledIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
-                    )
-                )
-                IconButton(
-                    onClick = {
-                        if (text.isNotBlank()) { viewModel.send(text); text = "" }
-                    },
-                    enabled = text.isNotBlank()
-                ) {
-                    Icon(Icons.Outlined.Send, contentDescription = stringResource(R.string.common_send),
-                        tint = if (text.isNotBlank()) MaterialTheme.colorScheme.primary
-                               else MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+            ChatInputPill(text = text, onTextChange = { text = it }, onSend = { if (text.isNotBlank()) { viewModel.send(text); text = "" } })
         }
     }
 }

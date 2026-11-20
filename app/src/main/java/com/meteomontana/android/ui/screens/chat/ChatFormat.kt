@@ -75,3 +75,15 @@ fun ChatDayDivider(millis: Long) {
         )
     }
 }
+
+/** Como [chatDayStarts] pero para cualquier mensaje (id + hora): id del primer mensaje de cada día -> su hora. */
+fun chatDayStartIds(messages: List<Pair<String, Long?>>): Map<String, Long> {
+    val out = HashMap<String, Long>()
+    var last: Calendar? = null
+    for ((id, ms) in messages) {
+        if (ms == null) continue
+        val c = cal(ms)
+        if (last == null || !sameDay(c, last)) { out[id] = ms; last = c }
+    }
+    return out
+}

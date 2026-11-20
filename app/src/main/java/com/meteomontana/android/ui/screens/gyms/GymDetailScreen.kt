@@ -86,13 +86,8 @@ fun GymDetailScreen(
                 icon = Icons.AutoMirrored.Outlined.ArrowBack)
             IconAction(description = stringResource(R.string.gym_chat_open), onClick = { gym?.let(onOpenChat) }, modifier = item,
                 icon = Icons.Outlined.Forum)
-            // «Estoy aquí» arriba, junto al chat, como en las escuelas.
-            IconAction(
-                description = stringResource(if (state.iAmHere) R.string.gym_here_leave else R.string.gym_here_top),
-                onClick = { if (state.iAmHere) viewModel.togglePresence(myUid) else privacyOpen = true },
-                modifier = item, active = state.iAmHere, enabled = !state.presenceBusy,
-                icon = if (state.iAmHere) Icons.Filled.Place else Icons.Outlined.Place
-            )
+            IconAction(description = stringResource(R.string.gym_map_open), onClick = { gym?.let { openGymOnMap(ctx, it) } }, modifier = item,
+                icon = Icons.Outlined.Place, enabled = gym != null)
             IconAction(
                 description = stringResource(if (state.favorite) R.string.gym_favorite_remove else R.string.gym_favorite_add),
                 onClick = viewModel::toggleFavorite, modifier = item, active = state.favorite,
@@ -112,24 +107,29 @@ fun GymDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 GymHeader(gym, userLoc?.let { GeoUtil.haversineKm(it.lat, it.lon, gym.lat, gym.lon) })
-                GymActions(gym, ctx)
-
-                GymActionPill(
-                    stringResource(if (state.trainedToday) R.string.gym_train_done else R.string.gym_train_today),
-                    { trainOpen = true }, Modifier.fillMaxWidth().padding(top = Spacing.xs), primary = !state.trainedToday
+                GymPresenceCard(
+                    people = state.people, iAmHere = state.iAmHere, busy = state.presenceBusy, error = state.presenceError,
+                    onJoin = { privacyOpen = true }, onLeave = { viewModel.togglePresence(myUid) }
                 )
+                GymQuickActions(gym, ctx, Modifier.padding(top = Spacing.xs))
+                gym.instagram?.takeIf { it.isNotBlank() }?.let { insta ->
+                    Text(
+                        stringResource(R.string.gym_instagram), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.align(Alignment.CenterHorizontally).clickable { openUrl(ctx, instagramUrl(insta)) }.padding(Spacing.xs)
+                    )
+                }
+                Row(Modifier.fillMaxWidth().padding(top = Spacing.xs), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    GymActionPill(
+                        stringResource(if (state.trainedToday) R.string.gym_train_short_done else R.string.gym_train_short),
+                        { trainOpen = true }, Modifier.weight(1f), primary = !state.trainedToday
+                    )
+                    GymActionPill(stringResource(R.string.gym_meetup_short), { onCreateMeetup(gym) }, Modifier.weight(1f))
+                }
                 if (state.trainedToday) Text(
                     stringResource(R.string.gym_train_undo), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.align(Alignment.CenterHorizontally).clickable(onClick = viewModel::toggleTraining).padding(Spacing.sm)
                 )
-                GymActionPill(
-                    stringResource(R.string.gym_create_meetup), { onCreateMeetup(gym) }, Modifier.fillMaxWidth()
-                )
                 GymInfoSections(gym)
-                GymPresenceSection(
-                    people = state.people, iAmHere = state.iAmHere, busy = state.presenceBusy, error = state.presenceError,
-                    onLoad = viewModel::loadPresence, onToggle = viewModel::togglePresence
-                )
                 GymPhotoContribute(gym)
                 Box(
                     Modifier.fillMaxWidth().padding(top = Spacing.md).clip(CircleShape)
@@ -170,33 +170,6 @@ private fun GymHeader(gym: Gym, distanceKm: Double?) {
         ).joinToString(" · ")
         if (line.isNotEmpty()) Text(line, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
-}
-
-/** «Cómo llegar» (primaria), «Web» e «Instagram» si la ficha los trae. */
-@Composable
-private fun GymActions(gym: Gym, ctx: Context) {
-    val phone = gym.phone?.takeIf { it.isNotBlank() }
-    Column(Modifier.fillMaxWidth().padding(top = Spacing.xs), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            GymActionPill(stringResource(R.string.gym_directions), { openDirections(ctx, gym.lat, gym.lon, gym.name) }, Modifier.weight(1f),
-                primary = true, icon = R.drawable.ic_directions)
-            phone?.let { GymActionPill(stringResource(R.string.gym_call), { dial(ctx, it) }, Modifier.weight(1f)) }
-        }
-        val web = gym.website?.takeIf { it.isNotBlank() }
-        val insta = gym.instagram?.takeIf { it.isNotBlank() }
-        if (web != null || insta != null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            web?.let { GymActionPill(stringResource(R.string.gym_web), { openUrl(ctx, webUrl(it)) }, Modifier.weight(1f)) }
-            insta?.let {
-                GymActionPill(stringResource(R.string.gym_instagram), { openUrl(ctx, instagramUrl(it)) }, Modifier.weight(1f), icon = R.drawable.ic_instagram)
-            }
-        }
-    }
-}
-
-/** Abre el marcador del teléfono con el número puesto (DIAL: no llama sin que el usuario pulse). */
-private fun dial(ctx: Context, phone: String) {
-    val number = phone.filter { it.isDigit() || it == '+' }
-    runCatching { ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number"))) }
 }
 
 private fun openUrl(ctx: Context, url: String) {
