@@ -127,7 +127,10 @@ data class GroupChatUiState(
     val gearSummary: String? = null,
     val members: List<MeetupMember> = emptyList(),
     val discipline: String? = null,
-    val myGearJson: String? = null
+    val myGearJson: String? = null,
+    val isGym: Boolean = false,
+    val placeName: String? = null,
+    val firstDay: String? = null
 )
 
 @HiltViewModel
@@ -176,6 +179,9 @@ class GroupChatViewModel @Inject constructor(
                     schoolLat = meetup.schoolLat,
                     schoolLon = meetup.schoolLon,
                     schoolName = meetup.schoolName,
+                    isGym = meetup.isGymMeetup,
+                    placeName = meetup.placeName ?: meetup.schoolName,
+                    firstDay = meetup.days.firstOrNull(),
                     gearSummary = gear.ifEmpty { null },
                     members = members,
                     discipline = meetup.discipline,

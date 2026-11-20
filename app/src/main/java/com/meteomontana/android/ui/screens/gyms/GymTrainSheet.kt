@@ -75,9 +75,9 @@ private val MoonYellow = Color(0xFFF2C21A)
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun GymTrainSheet(gym: Gym, dateLabel: String, onDismiss: () -> Unit, vm: GymTrainSheetViewModel = hiltViewModel()) {
+fun GymTrainSheet(gym: Gym, dateLabel: String, onDismiss: () -> Unit, date: kotlinx.datetime.LocalDate? = null, vm: GymTrainSheetViewModel = hiltViewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
-    LaunchedEffect(gym.id) { vm.load(gym.id) }
+    LaunchedEffect(gym.id, date) { vm.load(gym.id, date) }
     var tab by remember { mutableStateOf(TrainTab.BLOCKS) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -114,7 +114,7 @@ fun GymTrainSheet(gym: Gym, dateLabel: String, onDismiss: () -> Unit, vm: GymTra
             }
             Box(
                 Modifier.fillMaxWidth().padding(top = Spacing.sm).clip(CircleShape).background(terraFillColor())
-                    .clickable(enabled = !state.saving) { vm.save(gym.id, onDismiss) }.padding(vertical = 14.dp),
+                    .clickable(enabled = !state.saving) { vm.save(gym.id, onDismiss, date) }.padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(stringResource(R.string.gym_sheet_save).uppercase(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -246,7 +246,7 @@ private fun BoardsTab(ascents: List<GymAscent>, adjust: (String, Int) -> Unit) {
 private fun boardColor(b: BoardKind) = when (b) { BoardKind.KILTER -> KilterBlue; BoardKind.TENSION -> TensionWood; BoardKind.MOONBOARD -> MoonYellow }
 
 @Composable
-private fun boardName(b: BoardKind) = stringResource(when (b) {
+internal fun boardName(b: BoardKind) = stringResource(when (b) {
     BoardKind.KILTER -> R.string.gym_board_kilter; BoardKind.TENSION -> R.string.gym_board_tension; BoardKind.MOONBOARD -> R.string.gym_board_moon
 })
 

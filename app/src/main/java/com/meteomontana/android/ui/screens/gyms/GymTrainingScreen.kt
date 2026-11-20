@@ -49,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.gym.Gym
 import com.meteomontana.android.domain.model.gym.GymAscent
+import com.meteomontana.android.domain.model.gym.GymAscentKeys
 import com.meteomontana.android.domain.model.gym.GymAscentStats
 import com.meteomontana.android.domain.model.gym.GymSession
 import com.meteomontana.android.domain.model.gym.GymTraining
@@ -71,6 +72,7 @@ internal fun parseHex(hex: String): Color =
 fun GymTrainingScreen(onBack: () -> Unit, viewModel: GymTrainingViewModel = hiltViewModel()) {
     val st by viewModel.state.collectAsStateWithLifecycle()
     var picking by rememberSaveable { mutableStateOf(false) }
+    var sheetFor by remember { mutableStateOf<Pair<Gym, kotlinx.datetime.LocalDate>?>(null) }
     val sessions = st.summary.sessions
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -128,13 +130,18 @@ fun GymTrainingScreen(onBack: () -> Unit, viewModel: GymTrainingViewModel = hilt
                 items(sessions, key = { "${it.gymId}-${it.date}" }) { s ->
                     SessionCard(
                         s, st.gyms[s.gymId], st.today == s.date, open = st.openKey == (s.gymId to s.date) || (st.openKey == null && s == sessions.first()),
-                        onToggle = { viewModel.toggleOpen(s) }, onAdjust = { key, d -> viewModel.adjust(s, key, d) }
+                        onToggle = { viewModel.toggleOpen(s) }, onAdjust = { key, d -> viewModel.adjust(s, key, d) },
+                        onEdit = { st.gyms[s.gymId]?.let { g -> sheetFor = g to s.date } }
                     )
                 }
             }
         }
     }
-    if (picking) GymPickerDialog(onPick = { picking = false; viewModel.trainedAt(it.id) }, onDismiss = { picking = false })
+    if (picking) GymPickerSheet(onPick = { gym, day -> picking = false; sheetFor = gym to day }, onDismiss = { picking = false })
+    sheetFor?.let { (gym, day) ->
+        val label = java.time.LocalDate.of(day.year, day.monthNumber, day.dayOfMonth).format(java.time.format.DateTimeFormatter.ofPattern("EEEE d MMM", Locale.getDefault()))
+        GymTrainSheet(gym, label, onDismiss = { sheetFor = null; viewModel.refresh() }, date = day)
+    }
 }
 
 @Composable
@@ -159,7 +166,7 @@ private fun dayLabel(s: GymSession, today: Boolean): String {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SessionCard(
-    s: GymSession, gym: Gym?, isToday: Boolean, open: Boolean, onToggle: () -> Unit, onAdjust: (String, Int) -> Unit
+    s: GymSession, gym: Gym?, isToday: Boolean, open: Boolean, onToggle: () -> Unit, onAdjust: (String, Int) -> Unit, onEdit: () -> Unit
 ) {
     val scale = gym?.scale?.takeIf { it.isColors }
     val shape = RoundedCornerShape(20.dp)
@@ -201,10 +208,16 @@ private fun SessionCard(
                         GradeCounter(g, GymTraining.countOf(s.ascents, g), { onAdjust(g, -1) }, { onAdjust(g, 1) })
                     }
                 }
+                RouteBoardPills(s.ascents)
                 if (s.ascents.isEmpty()) Text(stringResource(R.string.gym_train_log_hint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    stringResource(R.string.gym_train_edit_day), fontWeight = FontWeight.Bold, fontSize = 13.sp, color = terraFillColor(),
+                    modifier = Modifier.align(Alignment.End).clickable(onClick = onEdit).padding(vertical = 4.dp)
+                )
             } else if (s.ascents.isNotEmpty()) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    s.ascents.forEach { a -> MiniPill(a, scale?.levelNamed(a.key)?.hex) }
+                    GymAscentKeys.blocks(s.ascents).forEach { a -> MiniPill(a, scale?.levelNamed(a.key)?.hex) }
+                    RouteBoardPills(s.ascents)
                 }
             }
         }
@@ -213,7 +226,7 @@ private fun SessionCard(
 
 /** Grados que se ofrecen: la escalera de siempre más los ya apuntados en esa sesión que no estén en ella. */
 private fun gradeKeys(s: GymSession): List<String> =
-    GymTraining.DEFAULT_GRADES + s.ascents.map { it.key }.filter { it !in GymTraining.DEFAULT_GRADES }
+    GymTraining.DEFAULT_GRADES + GymAscentKeys.blocks(s.ascents).map { it.key }.filter { it !in GymTraining.DEFAULT_GRADES }
 
 @Composable
 private fun CounterRow(name: String, color: Color, count: Int, onMinus: () -> Unit, onPlus: () -> Unit) {
@@ -265,8 +278,9 @@ private fun MiniPill(a: GymAscent, hex: String?) {
 private fun GymChart(gym: Gym?, stats: GymAscentStats, visits: Int) {
     val scale = gym?.scale?.takeIf { it.isColors }
     val shape = RoundedCornerShape(20.dp)
-    val max = (stats.items.maxOfOrNull { it.count } ?: 1).coerceAtLeast(1)
-    val items = if (scale != null) scale.levels.map { lv -> GymAscent(lv.name, stats.items.firstOrNull { it.key.equals(lv.name, true) }?.count ?: 0) } else stats.items.sortedBy { it.key }
+    val blocks = GymAscentKeys.blocks(stats.items)
+    val max = (blocks.maxOfOrNull { it.count } ?: 1).coerceAtLeast(1)
+    val items = if (scale != null) scale.levels.map { lv -> GymAscent(lv.name, blocks.firstOrNull { it.key.equals(lv.name, true) }?.count ?: 0) } else blocks.sortedBy { it.key }
     Column(
         Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surface, shape).border(1.dp, MaterialTheme.colorScheme.outline, shape).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -291,43 +305,6 @@ private fun GymChart(gym: Gym?, stats: GymAscentStats, visits: Int) {
                 Text(a.count.toString(), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.width(34.dp))
             }
         }
+        RouteBoardPills(stats.items)
     }
-}
-
-/** Elige el rocódromo en el que has entrenado hoy (los más cercanos primero, o los que coincidan con el texto). */
-@Composable
-internal fun GymPickerDialog(onPick: (Gym) -> Unit, onDismiss: () -> Unit, vm: MeetupGymPickerViewModel = hiltViewModel()) {
-    var query by remember { mutableStateOf("") }
-    val results by vm.results.collectAsStateWithLifecycle()
-    val loc = rememberUserLocation()
-    LaunchedEffect(loc?.lat, loc?.lon) { vm.setOrigin(loc?.lat, loc?.lon) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.gym_train_trained_at), style = MaterialTheme.typography.titleMedium) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                androidx.compose.material3.OutlinedTextField(
-                    value = query, onValueChange = { query = it; vm.search(it) }, singleLine = true, shape = RoundedCornerShape(14.dp),
-                    placeholder = { Text(stringResource(R.string.gym_search_hint)) }, modifier = Modifier.fillMaxWidth()
-                )
-                LazyColumn(Modifier.height(280.dp)) {
-                    items(results, key = { it.gym.id }) { item ->
-                        Column(Modifier.fillMaxWidth().clickable { onPick(item.gym) }.padding(vertical = 10.dp, horizontal = 4.dp)) {
-                            Text(item.gym.name, fontWeight = FontWeight.SemiBold)
-                            Text(
-                                listOfNotNull(
-                                    listOf(item.gym.city, item.gym.province).filter { it.isNotBlank() }.distinct().joinToString(", ").ifEmpty { null },
-                                    GymPresentation.distanceText(item.distanceKm)
-                                ).joinToString(" · "),
-                                fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        HorizontalDivider()
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } }
-    )
 }

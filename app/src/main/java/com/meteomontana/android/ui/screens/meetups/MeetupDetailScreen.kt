@@ -69,11 +69,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.meteomontana.android.domain.model.MeetupMember
 import com.meteomontana.android.ui.screens.chat.openDirections
+import com.meteomontana.android.ui.screens.gyms.GymActionPill
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
@@ -115,51 +117,15 @@ fun MeetupDetailScreen(
     }
 
     Column(Modifier.fillMaxSize()) {
-        // ── Toolbar ──
-        Row(
-            modifier = Modifier.fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(0.dp))
-                .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, stringResource(R.string.common_back))
-            }
-            Text(stringResource(R.string.meetup_detail_title), modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            com.meteomontana.android.ui.components.HelpButton(topicKey = "meetup_detail", compact = true)
-            // Compartir
-            state.meetup?.let { m ->
-                IconButton(onClick = {
-                    com.meteomontana.android.ui.share.shareMeetup(
-                        context, m.name, m.placeName ?: m.schoolName, m.days, m.discipline,
-                        m.memberCount, m.memberLimit, state.inviteLink)
-                }) {
-                    Icon(Icons.Outlined.Share, stringResource(R.string.common_share), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            state.meetup?.conversationId?.let { convId ->
-                if (state.meetup?.joined == true || state.meetup?.creatorUid == myUid) {
-                    IconButton(onClick = { onOpenChat(convId) }) {
-                        Icon(Icons.Outlined.Chat, "Chat", tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
-            if (state.meetup != null && state.meetup?.creatorUid != myUid) {
-                IconButton(onClick = { showReportDialog = true }) {
-                    Icon(Icons.Outlined.Flag, stringResource(R.string.common_report),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-
         // Diálogos
         if (showEditGear) {
             state.meetup?.let { m ->
                 EditGearDialog(
                     discipline = m.discipline,
                     gym = m.isGymMeetup,
+                    placeName = m.placeName ?: m.schoolName,
+                    members = m.members,
+                    myUid = myUid,
                     currentGearJson = m.members.firstOrNull { it.uid == myUid }?.gearJson,
                     onDismiss = { showEditGear = false },
                     onSave = { json ->
@@ -238,249 +204,80 @@ fun MeetupDetailScreen(
             else -> {
                 val meetup = state.meetup!!
                 val isCreator = meetup.creatorUid == myUid
-
+                val canChat = isCreator || meetup.joined
                 Column(Modifier.fillMaxSize()) {
-                LazyColumn(Modifier.weight(1f)) {
-                    // Foto
-                    if (meetup.photoUrl != null) {
+                    LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         item {
-                            AsyncImage(model = meetup.photoUrl, contentDescription = meetup.name,
-                                modifier = Modifier.fillMaxWidth().height(200.dp),
-                                contentScale = ContentScale.Crop)
+                            MeetupHero(
+                                meetup, canChat = canChat && meetup.conversationId.isNotBlank(), canReport = !isCreator,
+                                onBack = onBack, onChat = { onOpenChat(meetup.conversationId) }, onReport = { showReportDialog = true },
+                                onShare = {
+                                    com.meteomontana.android.ui.share.shareMeetup(
+                                        context, meetup.name, meetup.placeName ?: meetup.schoolName, meetup.days, meetup.discipline,
+                                        meetup.memberCount, meetup.memberLimit, state.inviteLink)
+                                }
+                            )
                         }
-                    }
-
-                    // ── Hero: nombre + organizador + botones de acción ──
-                    item {
-                        Column(
-                            modifier = Modifier.fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .padding(Spacing.md),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                        ) {
-                            Text(meetup.name, style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.SemiBold, fontFamily = SourceSerif4Family)
-
-                            // Organizador
-                            Row(verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                                modifier = Modifier.clickable { onOpenProfile(meetup.creatorUid) }) {
-                                MemberAvatar(meetup.creatorPhotoUrl, 28.dp)
-                                val creatorName = meetup.members.firstOrNull { it.uid == meetup.creatorUid }
-                                    ?.let { it.displayName ?: it.username }
-                                    ?: meetup.creatorUsername ?: AppText.get(R.string.w_organizer)
-                                Column {
-                                    Text(stringResource(R.string.meetup_detail_organized_by), style = EyebrowTextStyle,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(creatorName, style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium)
-                                }
-                            }
-
-                            // Botones de acción
-                            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                                if (meetup.schoolLat != null && meetup.schoolLon != null) {
-                                    Button(
-                                        onClick = { openDirections(context, meetup.schoolLat!!, meetup.schoolLon!!, meetup.schoolName) },
-                                        modifier = Modifier.weight(1f),
-                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                        shape = RoundedCornerShape(2.dp)
-                                    ) {
-                                        Icon(Icons.Outlined.Directions, null, Modifier.size(16.dp))
-                                        Spacer(Modifier.size(6.dp))
-                                        Text(stringResource(R.string.common_directions), style = MaterialTheme.typography.labelMedium)
-                                    }
-                                }
-                                meetup.schoolName?.takeIf { !meetup.isGymMeetup }?.let { schoolName ->
-                                    OutlinedButton(
-                                        onClick = { onOpenSchool(meetup.schoolId) },
-                                        modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(2.dp)
-                                    ) {
-                                        Icon(Icons.Outlined.Terrain, null, Modifier.size(16.dp))
-                                        Spacer(Modifier.size(6.dp))
-                                        Text(stringResource(R.string.common_view_school), style = MaterialTheme.typography.labelMedium)
-                                    }
-                                }
-                            }
+                        item { MeetupChips(meetup) }
+                        item { DaysRow(meetup.days, dayScores) }
+                        item { DescriptionCard(meetup.description, isCreator) { showEditDescription = true } }
+                        if (meetup.gearCoverage.isNotEmpty()) item {
+                            GearSemaphore(meetup, canEdit = canChat) { showEditGear = true }
                         }
-                    }
-
-                    // ── Info con iconos ──
-                    item {
-                        Column(
-                            modifier = Modifier.padding(Spacing.md),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.md)
-                        ) {
-                            // Escuela (o rocódromo)
-                            (meetup.placeName ?: meetup.schoolName)?.let { name ->
-                                InfoRow(icon = { Icon(Icons.Outlined.Terrain, null, Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.primary) }) {
-                                    Text(name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                                }
-                            }
-
-                            // Días con scores
-                            InfoRow(icon = { Icon(Icons.Outlined.CalendarMonth, null, Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.primary) }) {
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    meetup.days.forEach { day ->
-                                        val score = dayScores[day]
-                                        Row(modifier = Modifier.clip(RoundedCornerShape(2.dp))
-                                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                                            .padding(horizontal = 6.dp, vertical = 3.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            Text(formatDayMonth(day), style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.Medium)
-                                            if (score != null) {
-                                                Box(Modifier.clip(RoundedCornerShape(2.dp))
-                                                    .background(detailScoreColor(score))
-                                                    .padding(horizontal = 4.dp, vertical = 1.dp)) {
-                                                    Text("$score", style = MaterialTheme.typography.labelSmall,
-                                                        color = Color.White, fontWeight = FontWeight.Bold)
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Privacidad + disciplina
-                            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                                if (meetup.privacy != "OPEN") {
-                                    InfoRow(icon = { Icon(Icons.Outlined.Lock, null, Modifier.size(18.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant) }) {
-                                        Text(privacyLabel(meetup.privacy), style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                            }
+                        item {
+                            ParticipantsCard(
+                                meetup, myUid, canKick = isCreator, canEditGear = canChat,
+                                onOpenProfile = onOpenProfile, onKick = { viewModel.kick(meetupId, it) }, onEditGear = { showEditGear = true }
+                            )
                         }
-                    }
-
-                    item {
-                        MeetupFacts(meetup, canChat = isCreator || meetup.joined, onOpenChat = { onOpenChat(meetup.conversationId) })
-                    }
-
-                    // ── Descripción ──
-                    item {
-                        HorizontalDivider()
-                        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                            Row(verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                                Text(stringResource(R.string.meetup_detail_details), style = EyebrowTextStyle,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                if (isCreator) {
-                                    IconButton(onClick = { showEditDescription = true }, Modifier.size(28.dp)) {
-                                        Icon(Icons.Outlined.Edit, null, Modifier.size(16.dp),
-                                            tint = MaterialTheme.colorScheme.primary)
+                        item {
+                            Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.md), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                if (canChat && meetup.conversationId.isNotBlank()) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    GymActionPill(stringResource(R.string.meetup_chat_n, meetup.memberCount), { onOpenChat(meetup.conversationId) }, Modifier.weight(1.4f), primary = true)
+                                    if (!isCreator) GymActionPill(stringResource(R.string.meetup_detail_screen_v2_salir), { showLeaveConfirm = true }, Modifier.weight(1f), enabled = !state.leaving)
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    if (meetup.schoolLat != null && meetup.schoolLon != null) GymActionPill(
+                                        stringResource(R.string.common_directions), { openDirections(context, meetup.schoolLat!!, meetup.schoolLon!!, meetup.schoolName) },
+                                        Modifier.weight(1f), icon = R.drawable.ic_directions
+                                    )
+                                    meetup.schoolName?.takeIf { !meetup.isGymMeetup }?.let {
+                                        GymActionPill(stringResource(R.string.common_view_school), { onOpenSchool(meetup.schoolId) }, Modifier.weight(1f))
                                     }
                                 }
-                            }
-                            if (!meetup.description.isNullOrBlank()) {
-                                Text(meetup.description!!, style = MaterialTheme.typography.bodyMedium)
-                            } else {
-                                Text(
-                                    if (isCreator) stringResource(R.string.meetup_detail_screen_v3_anade_detalles_material_nivel_hora)
-                                    else stringResource(R.string.meetup_detail_screen_v3_sin_detalles),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontStyle = FontStyle.Italic,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                if (isCreator) Text(
+                                    stringResource(R.string.meetup_detail_delete), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().clickable { showDeleteConfirm = true }.padding(Spacing.sm)
                                 )
                             }
                         }
+                        item { Spacer(Modifier.height(80.dp)) }
                     }
-
-                    // ── Material (gear) ──
-                    item {
-                        HorizontalDivider()
-                        GearSection(
-                            meetup = meetup,
-                            myUid = myUid,
-                            isCreator = isCreator,
-                            onEditGear = { showEditGear = true }
-                        )
-                    }
-
-                    // ── Organizador / salir (unirse va FIJO abajo, sin scroll) ──
-                    if (isCreator || meetup.joined) item {
-                        HorizontalDivider()
-                        Box(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
-                            if (isCreator) Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                                Text(stringResource(R.string.meetup_detail_screen_v2_eres_el_organizador),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                OutlinedButton(
-                                    onClick = { showDeleteConfirm = true },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.error),
-                                    border = androidx.compose.foundation.BorderStroke(
-                                        1.dp, MaterialTheme.colorScheme.error),
-                                    shape = RoundedCornerShape(2.dp)
-                                ) { Text(stringResource(R.string.meetup_detail_delete).uppercase()) }
-                            } else OutlinedButton(onClick = { showLeaveConfirm = true },
-                                enabled = !state.leaving, modifier = Modifier.fillMaxWidth()) {
-                                if (state.leaving) CircularProgressIndicator(Modifier.size(16.dp))
-                                else Text(stringResource(R.string.meetup_detail_leave))
+                    // ── UNIRME fijo (siempre visible, sin scroll) ──
+                    if (!isCreator && !meetup.joined) {
+                        Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
+                            when {
+                                meetup.isFull -> Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(50))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant).padding(Spacing.sm), contentAlignment = Alignment.Center) {
+                                    Text(stringResource(R.string.meetup_detail_screen_v2_aforo_completo), style = EyebrowTextStyle,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                meetup.privacy == "WOMEN" && viewModel.myGender.collectAsStateWithLifecycle().value != "WOMAN" -> {
+                                    Text(stringResource(R.string.meetup_detail_screen_solo_pueden_unirse_personas),
+                                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                else -> Box(
+                                    Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(com.meteomontana.android.ui.theme.terraFillColor())
+                                        .clickable(enabled = !state.joining) { viewModel.join(meetupId) }.padding(vertical = 15.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (state.joining) CircularProgressIndicator(Modifier.size(18.dp), color = Color.White)
+                                    else Text(stringResource(R.string.meetup_detail_join), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                }
                             }
                         }
                     }
-
-                    // ── Participantes ──
-                    item {
-                        HorizontalDivider()
-                        val limitText = meetup.memberLimit?.let { "${meetup.memberCount}/$it" }
-                            ?: "${meetup.memberCount}"
-                        Row(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                            Icon(Icons.Outlined.Person, null, Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("$limitText ${stringResource(R.string.meetup_detail_participants)}", style = EyebrowTextStyle,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    items(meetup.members, key = { it.uid }) { member ->
-                        MemberRow(member, canKick = isCreator && member.uid != myUid,
-                            onProfileClick = { onOpenProfile(member.uid) },
-                            onKick = { viewModel.kick(meetupId, member.uid) })
-                        HorizontalDivider()
-                    }
-                    item { Spacer(Modifier.height(80.dp)) }
-                }
-                // ── UNIRME fijo (siempre visible, sin scroll) ──
-                if (!isCreator && !meetup.joined) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-                    Box(Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
-                        when {
-                            meetup.isFull -> Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(2.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant).padding(Spacing.sm),
-                                contentAlignment = Alignment.Center) {
-                                Text(stringResource(R.string.meetup_detail_screen_v2_aforo_completo), style = EyebrowTextStyle,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            meetup.privacy == "WOMEN" && viewModel.myGender.collectAsStateWithLifecycle().value != "WOMAN" -> {
-                                Text(stringResource(R.string.meetup_detail_screen_solo_pueden_unirse_personas),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            else -> Button(onClick = { viewModel.join(meetupId) }, enabled = !state.joining,
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                shape = RoundedCornerShape(2.dp)) {
-                                if (state.joining) CircularProgressIndicator(Modifier.size(16.dp),
-                                    color = MaterialTheme.colorScheme.onPrimary)
-                                else Text(stringResource(R.string.meetup_detail_join))
-                            }
-                        }
-                    }
-                }
                 }
             }
         }

@@ -85,7 +85,9 @@ fun SchoolListItem(
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     onToggleFavorite: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Pastillas de seca/mojada con la previsión (si no se pasa, la pastilla simple de siempre). */
+    dryPill: (@Composable () -> Unit)? = null
 ) {
     val value = range?.combinedScore ?: todayScore
     val shape = RoundedCornerShape(20.dp)
@@ -151,11 +153,14 @@ fun SchoolListItem(
                         Text(meta, fontSize = 12.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                     }
                     if (range == null && dry != null) {
-                        val c = if (dry) okColor() else rainBlue()
-                        SoftPill(
-                            stringResource(if (dry) R.string.schools_card_dry_rock else R.string.schools_card_wet_rock),
-                            c, c.copy(alpha = 0.14f)
-                        )
+                        if (dryPill != null) dryPill()
+                        else {
+                            val c = if (dry) okColor() else rainBlue()
+                            SoftPill(
+                                stringResource(if (dry) R.string.schools_card_dry_rock else R.string.schools_card_wet_rock),
+                                c, c.copy(alpha = 0.14f)
+                            )
+                        }
                     }
                 }
             }
@@ -186,7 +191,7 @@ internal fun cumbrePillBg(): Color =
     if (MaterialTheme.colorScheme.background.luminance() > 0.5f) com.meteomontana.android.ui.theme.Paper else Color(0xFF2E2C25)
 
 @Composable
-private fun okColor(): Color =
+internal fun okColor(): Color =
     if (MaterialTheme.colorScheme.background.luminance() > 0.5f) com.meteomontana.android.ui.theme.Ok else Color(0xFF7DA068)
 
 /** «BUENO» → «Bueno», «MUY BUENO» → «Muy bueno». */
@@ -202,7 +207,7 @@ private fun schoolMeta(school: School, distanceKm: Double?): String = buildList 
 
 /** Pastilla suave (fondo tintado, sin borde). */
 @Composable
-private fun SoftPill(text: String, fg: Color, bg: Color) {
+internal fun SoftPill(text: String, fg: Color, bg: Color) {
     Text(
         text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = fg, maxLines = 1,
         modifier = Modifier.clip(CircleShape).background(bg).padding(horizontal = 8.dp, vertical = 3.dp)

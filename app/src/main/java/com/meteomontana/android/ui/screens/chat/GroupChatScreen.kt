@@ -138,165 +138,23 @@ fun GroupChatScreen(
         .consumeWindowInsets(androidx.compose.foundation.layout.PaddingValues(bottom = bottomInset))
         .imePadding()
     ) {
-        // ── Toolbar del chat (sin SheetHeader para evitar solapamiento) ──
-        Row(
-            modifier = Modifier.fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
-                .border(1.dp, MaterialTheme.colorScheme.outline,
-                    androidx.compose.foundation.shape.RoundedCornerShape(0.dp))
-                .padding(horizontal = com.meteomontana.android.ui.theme.Spacing.xs,
-                    vertical = com.meteomontana.android.ui.theme.Spacing.xs),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, stringResource(R.string.common_back))
-            }
-            // Nombre + subtítulo (pulsable si es quedada)
-            Column(
-                modifier = Modifier.weight(1f)
-                    .let { m -> state.meetupId?.let { id -> m.clickable { onOpenMeetup(id) } } ?: m }
-                    .padding(horizontal = com.meteomontana.android.ui.theme.Spacing.xs)
-            ) {
-                Text(state.name, style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                Text(
-                    if (state.meetupId != null) stringResource(R.string.group_chat_screen_v3_ver_detalles)
-                    else "${state.memberNames.size + 1} miembros",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (state.meetupId != null) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            // Cómo llegar
-            if (state.schoolLat != null && state.schoolLon != null) {
-                IconButton(onClick = {
-                    openDirections(context, state.schoolLat!!, state.schoolLon!!, state.schoolName)
-                }) {
-                    Icon(Icons.Outlined.Directions, stringResource(R.string.group_chat_screen_v3_como_llegar),
-                        tint = MaterialTheme.colorScheme.primary)
-                }
-            }
-            // Invitar al grupo: enlace que permite unirse aunque no haya
-            // relación de follows (los grupos "no mixto" siguen exigiendo género).
-            state.meetupId?.let { meetupId ->
-                IconButton(onClick = { viewModel.shareInvite(context, meetupId, state.name) }) {
-                    Icon(Icons.Outlined.PersonAdd, stringResource(R.string.group_chat_screen_v4_invitar_al_grupo),
-                        tint = MaterialTheme.colorScheme.primary)
-                }
-            }
-            // Silenciar
-            IconButton(onClick = { viewModel.toggleMute() }) {
-                Icon(
-                    if (state.muted) Icons.Outlined.NotificationsOff
-                    else Icons.Outlined.NotificationsActive,
-                    contentDescription = if (state.muted) stringResource(R.string.w_unmute) else stringResource(R.string.w_mute),
-                    tint = if (state.muted) MaterialTheme.colorScheme.onSurfaceVariant
-                           else MaterialTheme.colorScheme.primary
-                )
-            }
-            // Cerrar
-            TextButton(onClick = onBack) {
-                Text(stringResource(R.string.common_close), color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold)
-            }
-        }
-
-        // ── Expandable gear banner ──
+        GroupChatHeader(
+            state, onBack = onBack, onOpenMeetup = onOpenMeetup,
+            onDirections = { openDirections(context, state.schoolLat!!, state.schoolLon!!, state.schoolName) },
+            onInvite = { id -> viewModel.shareInvite(context, id, state.name) },
+            onToggleMute = { viewModel.toggleMute() }
+        )
         if (state.meetupId != null) {
-            var gearExpanded by remember { mutableStateOf(false) }
             var showEditGear by remember { mutableStateOf(false) }
-            val hasSomeGear = state.gearSummary != null
-
-            Column(Modifier.fillMaxWidth()) {
-                // Header row (always visible)
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                        .clickable { gearExpanded = !gearExpanded }
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(Icons.Outlined.Luggage, null,
-                        modifier = Modifier.height(16.dp).width(16.dp),
-                        tint = MaterialTheme.colorScheme.primary)
-                    if (hasSomeGear) {
-                        Text(state.gearSummary!!, style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Medium, fontSize = androidx.compose.ui.unit.TextUnit(13f, androidx.compose.ui.unit.TextUnitType.Sp)),
-                            color = MaterialTheme.colorScheme.onSurface, maxLines = 1,
-                            modifier = Modifier.weight(1f))
-                    } else {
-                        Text(stringResource(R.string.group_chat_screen_v2_sin_material_indicado), style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = androidx.compose.ui.unit.TextUnit(13f, androidx.compose.ui.unit.TextUnitType.Sp)),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier.weight(1f))
-                        // Small inline add button for empty state
-                        androidx.compose.material3.OutlinedButton(
-                            onClick = { showEditGear = true },
-                            shape = RoundedCornerShape(2.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                            modifier = Modifier.height(26.dp)
-                        ) {
-                            Text(stringResource(R.string.group_chat_screen_v2_anadir), style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold, fontSize = androidx.compose.ui.unit.TextUnit(11f, androidx.compose.ui.unit.TextUnitType.Sp)),
-                                color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                    if (hasSomeGear) {
-                        Icon(
-                            if (gearExpanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                            null, modifier = Modifier.height(12.dp).width(12.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f))
-                    }
-                }
-
-                // Expanded content
-                if (gearExpanded && hasSomeGear) {
-                    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        state.members.forEach { member ->
-                            val gear = gearSummaryText(member.gearJson)
-                            Row(verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                MemberAvatar(member.photoUrl, 24.dp)
-                                Text(member.displayName ?: member.username ?: member.uid.take(6),
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontWeight = FontWeight.Medium,
-                                        fontSize = androidx.compose.ui.unit.TextUnit(12f, androidx.compose.ui.unit.TextUnitType.Sp)),
-                                    modifier = Modifier.weight(1f, fill = false))
-                                if (gear.isNotEmpty()) {
-                                    Text(gear, style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = androidx.compose.ui.unit.TextUnit(12f, androidx.compose.ui.unit.TextUnitType.Sp)),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                } else {
-                                    Text(stringResource(R.string.group_chat_screen_v2_sin_material), style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = androidx.compose.ui.unit.TextUnit(12f, androidx.compose.ui.unit.TextUnitType.Sp),
-                                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
-                                }
-                            }
-                        }
-                        Spacer(Modifier.height(4.dp))
-                        androidx.compose.material3.OutlinedButton(
-                            onClick = { showEditGear = true },
-                            shape = RoundedCornerShape(2.dp),
-                            modifier = Modifier.fillMaxWidth().height(32.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                        ) {
-                            Icon(Icons.Outlined.Edit, null, Modifier.height(14.dp).width(14.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text(stringResource(R.string.group_chat_screen_v2_editar_mi_material), style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold, fontSize = androidx.compose.ui.unit.TextUnit(12f, androidx.compose.ui.unit.TextUnitType.Sp)))
-                        }
-                    }
-                }
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-            }
-
+            GroupChatGearRow(state.gearSummary) { showEditGear = true }
             if (showEditGear) {
                 EditGearDialog(
                     discipline = state.discipline,
                     currentGearJson = state.myGearJson,
+                    gym = state.isGym,
+                    placeName = state.placeName,
+                    members = state.members,
+                    myUid = state.myUid,
                     onDismiss = { showEditGear = false },
                     onSave = { json -> showEditGear = false; viewModel.updateMyGear(json) }
                 )

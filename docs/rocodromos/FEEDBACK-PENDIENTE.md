@@ -15,3 +15,6 @@
 11. Crear quedada: si se crea desde un rocódromo/escuela, no preguntar Escuela/Rocódromo ni buscar: ya viene fijado. Paso 1: fecha primero y luego lugar. NINGÚN paso con scroll. Quitar "número de participantes" del paso 3 (ya está "¿Cuántos buscáis?"). Nombre propuesto ok. ¿Foto opcional? decidir.
 12. Detalle de quedada (captura 3), chat de quedada (captura 4) y hoja "Mi material" (captura 5): rediseñar modernos, como el chat de escuelas.
 13. Lista de quedadas: borrar una quedada no se refleja con pull-to-refresh (solo con el botón recargar). Mapa de quedadas: filtro Roca/Rocódromo; el mapa abierto por defecto con las quedadas en el radio guardado (25 km por defecto). Quitar el fondo grisáceo de la pantalla de Quedadas.
+
+## Estado 2026-11-20 (ronda 4b, Android)
+Hechos y probados en emulador: 1-13, salvo la foto opcional al crear quedada (se mantiene opcional) y el «Guardar» fijo del detalle de entrenos (cada toque ya se guarda solo). Ver PARIDAD §13.

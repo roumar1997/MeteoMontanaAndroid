@@ -2008,6 +2008,7 @@
     <string name="gym_favorite_remove">Remove from favorites</string>
     <string name="gym_here_now">%1$d here now</string>
     <string name="gym_here_none">Nobody has marked “Here” yet</string>
+    <string name="gym_here_top">I am here</string>
     <string name="gym_here_join">Join</string>
     <string name="gym_here_leave">I left</string>
     <string name="gym_here_error">Could not update “Here”</string>
@@ -2082,6 +2083,68 @@
     <string name="meetup_gear_title">Minimum gear</string>
     <string name="meetup_gear_missing">Gear is missing: bring it if you can.</string>
     <string name="meetup_gear_ok">The gear is covered.</string>
+    <string name="meetup_full_chip">Full</string>
+    <plurals name="meetup_spots_left">
+        <item quantity="one">%1$d spot left</item>
+        <item quantity="other">%1$d spots left</item>
+    </plurals>
+    <string name="meetup_chip_going_of">%1$d of %2$d</string>
+    <plurals name="meetup_chip_going">
+        <item quantity="one">%1$d person</item>
+        <item quantity="other">%1$d people</item>
+    </plurals>
+    <string name="meetup_gear_group">Group gear</string>
+    <string name="meetup_gear_covered">%1$d of %2$d covered</string>
+    <string name="meetup_detail_organized_by_short">Organizer</string>
+    <plurals name="chat_header_people">
+        <item quantity="one">%1$d person</item>
+        <item quantity="other">%1$d people</item>
+    </plurals>
+    <string name="meetups_radius_chip">Radius %1$d km</string>
+    <string name="gym_train_edit_day">Edit this day</string>
+    <string name="meetup_chat_n">Open chat · %1$d</string>
+    <plurals name="gym_stats_visits">
+        <item quantity="one">%1$d session</item>
+        <item quantity="other">%1$d sessions</item>
+    </plurals>
+    <plurals name="gym_stats_ascents">
+        <item quantity="one">%1$d ascent</item>
+        <item quantity="other">%1$d ascents</item>
+    </plurals>
+    <string name="gym_stats_streak_sub">training at least 1 day a week</string>
+    <string name="gym_stats_last">Last session</string>
+    <string name="gym_stats_see_all">See all</string>
+    <string name="gym_stats_blocks">boulders</string>
+    <string name="gym_stats_routes">routes</string>
+    <string name="gym_stats_top_level">Your top this month: %1$s</string>
+    <string name="gym_pick_eyebrow">Log a session</string>
+    <string name="gym_pick_title">Where did you climb?</string>
+    <string name="gym_pick_today">Today</string>
+    <string name="gym_pick_yesterday">Yesterday</string>
+    <string name="gym_pick_other_day">Other day</string>
+    <string name="gym_pick_favorites">Favorites</string>
+    <string name="gym_pick_recent">Recent</string>
+    <string name="gym_pick_near">Nearby</string>
+    <string name="gym_pick_yours">your gym</string>
+    <string name="gym_pick_continue">Continue · log at %1$s</string>
+    <string name="gym_pick_choose">Pick a gym</string>
+    <plurals name="gym_pick_ago_days">
+        <item quantity="one">%1$d day ago</item>
+        <item quantity="other">%1$d days ago</item>
+    </plurals>
+    <plurals name="gym_pick_ago_weeks">
+        <item quantity="one">%1$d week ago</item>
+        <item quantity="other">%1$d weeks ago</item>
+    </plurals>
+    <plurals name="gym_pick_ago_months">
+        <item quantity="one">%1$d month ago</item>
+        <item quantity="other">%1$d months ago</item>
+    </plurals>
+    <string name="meetup_gear_sheet_title">What are you bringing?</string>
+    <string name="meetup_gear_sheet_none">No gear needed here.</string>
+    <string name="meetup_gear_sheet_nobody">Nobody has it yet</string>
+    <string name="meetup_gear_sheet_only_you">Only you</string>
+    <string name="meetup_gear_sheet_group_of">%1$d of %2$d in the group bring it</string>
     <string name="meetup_open_chat">Meetup chat</string>
     <string name="gym_train_title">Climbing gym</string>
     <string name="gym_train_week">Week</string>

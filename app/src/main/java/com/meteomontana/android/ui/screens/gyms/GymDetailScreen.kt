@@ -19,7 +19,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.CircularProgressIndicator
@@ -71,16 +73,26 @@ fun GymDetailScreen(
     var reportOpen by remember { mutableStateOf(false) }
     var trainOpen by remember { mutableStateOf(false) }
     val userLoc = com.meteomontana.android.ui.components.rememberUserLocation()
+    var privacyOpen by remember { mutableStateOf(false) }
+    val myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+    androidx.compose.runtime.LaunchedEffect(myUid) { viewModel.loadPresence(myUid) }
 
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         IconActionRow(
-            count = 3,
+            count = 4,
             modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(horizontal = Spacing.sm, vertical = Spacing.xs)
         ) { item ->
             IconAction(description = stringResource(R.string.common_close), onClick = onBack, modifier = item,
                 icon = Icons.AutoMirrored.Outlined.ArrowBack)
             IconAction(description = stringResource(R.string.gym_chat_open), onClick = { gym?.let(onOpenChat) }, modifier = item,
                 icon = Icons.Outlined.Forum)
+            // «Estoy aquí» arriba, junto al chat, como en las escuelas.
+            IconAction(
+                description = stringResource(if (state.iAmHere) R.string.gym_here_leave else R.string.gym_here_top),
+                onClick = { if (state.iAmHere) viewModel.togglePresence(myUid) else privacyOpen = true },
+                modifier = item, active = state.iAmHere, enabled = !state.presenceBusy,
+                icon = if (state.iAmHere) Icons.Filled.Place else Icons.Outlined.Place
+            )
             IconAction(
                 description = stringResource(if (state.favorite) R.string.gym_favorite_remove else R.string.gym_favorite_add),
                 onClick = viewModel::toggleFavorite, modifier = item, active = state.favorite,
@@ -132,6 +144,9 @@ fun GymDetailScreen(
             }
         }
     }
+    if (privacyOpen) com.meteomontana.android.ui.components.PresencePrivacySheet(
+        onConfirm = { privacyOpen = false; viewModel.togglePresence(myUid) }, onDismiss = { privacyOpen = false }
+    )
     if (reportOpen && gym != null) GymReportSheet(gym = gym, onDismiss = { reportOpen = false })
     if (trainOpen && gym != null) {
         val day = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("EEEE d MMM", java.util.Locale.getDefault()))

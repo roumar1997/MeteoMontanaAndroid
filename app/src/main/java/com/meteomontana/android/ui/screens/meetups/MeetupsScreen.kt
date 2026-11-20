@@ -261,7 +261,8 @@ fun MeetupsScreen(
                             userLat = uLat,
                             userLon = uLon,
                             maxDistanceKm = state.maxDistanceKm,
-                            gymCoords = gymCoords
+                            gymCoords = gymCoords,
+                            onRadiusChange = { viewModel.setMaxDistance(it) }
                         )
                     }
 

@@ -7,13 +7,11 @@ import com.meteomontana.android.domain.model.gym.Gym
 import com.meteomontana.android.domain.model.gym.GymAscent
 import com.meteomontana.android.domain.model.gym.GymAscentStats
 import com.meteomontana.android.domain.model.gym.GymSession
-import com.meteomontana.android.domain.model.gym.GymSessionSource
 import com.meteomontana.android.domain.model.gym.GymTraining
 import com.meteomontana.android.domain.model.gym.GymTrainingPeriod
 import com.meteomontana.android.domain.model.gym.GymTrainingSummary
 import com.meteomontana.android.domain.usecase.gym.GetCachedGymsUseCase
 import com.meteomontana.android.domain.usecase.gym.GymTrainingUseCase
-import com.meteomontana.android.domain.usecase.gym.RecordGymSessionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,7 +39,6 @@ data class GymTrainingState(
 @HiltViewModel
 class GymTrainingViewModel @Inject constructor(
     private val training: GymTrainingUseCase,
-    private val record: RecordGymSessionUseCase,
     getCachedGyms: GetCachedGymsUseCase
 ) : ViewModel() {
 
@@ -63,6 +60,9 @@ class GymTrainingViewModel @Inject constructor(
         val key = s.gymId to s.date
         _state.update { it.copy(openKey = if (it.openKey == key) null else key) }
     }
+
+    /** Relee las sesiones (tras cerrar la hoja de entreno). */
+    fun refresh() { viewModelScope.launch { runCatching { training.refresh() }; reload() }; reload() }
 
     private fun reload() {
         val st = _state.value
@@ -100,16 +100,6 @@ class GymTrainingViewModel @Inject constructor(
         saves[k] = viewModelScope.launch {
             runCatching { training.saveAscents(s.gymId, s.date, next) }
             if (_state.value.period == GymTrainingPeriod.YEAR) loadPerGym()
-        }
-    }
-
-    /** «He entrenado en…» desde el perfil: apunta hoy en ese rocódromo y deja la sesión abierta para apuntar lo hecho. */
-    fun trainedAt(gymId: Long) {
-        viewModelScope.launch {
-            runCatching { record.execute(gymId, GymSessionSource.MANUAL) }
-            val st = _state.value
-            _state.update { it.copy(period = if (it.period == GymTrainingPeriod.YEAR) it.period else GymTrainingPeriod.WEEK, openKey = gymId to st.today) }
-            reload()
         }
     }
 

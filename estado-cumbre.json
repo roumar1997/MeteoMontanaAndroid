@@ -489,7 +489,7 @@
       "ios": "hecho",
       "android": "hecho",
       "iosTest": "ronda del emulador replicada el 2026-11-20 sin Mac: lo valida ios-ci; sin probar en iPhone",
-      "androidTest": "ronda 3 (quedada en 3 pasos, material, entrenos por color/grado, escalas, llamar, chat de rocódromo, marcadores y lista nuevos) probada en el emulador contra staging + Maestro 17 y escuelas; sin probar en móvil real (rama feature/rocodromos-v1)"
+      "androidTest": "ronda 3 (quedada en 3 pasos, material, entrenos por color/grado, escalas, llamar, chat de rocódromo, marcadores y lista nuevos) probada en el emulador contra staging + Maestro 17 y escuelas; ronda 4 completa (Estoy aquí arriba, tarjeta de perfil con degradado, detalle/chat/material de quedada modernos, círculo de radio, seca/mojada en la lista, selector de rocódromo y vías/boards bonitos) probada en emulador; sin probar en móvil real (rama feature/rocodromos-v1)"
     }
   ],
   "versions": {

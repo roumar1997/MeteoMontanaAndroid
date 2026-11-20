@@ -49,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -95,7 +96,8 @@ fun MeetupsMapPanel(
     userLat: Double? = null,
     userLon: Double? = null,
     maxDistanceKm: Int? = null,
-    gymCoords: Map<Long, Pair<Double, Double>> = emptyMap()
+    gymCoords: Map<Long, Pair<Double, Double>> = emptyMap(),
+    onRadiusChange: (Int?) -> Unit = {}
 ) {
     // Filtro SOLO del mapa (no toca la lista de quedadas de fuera) — mismo
     // criterio que el mapa de Escuelas, cuyos filtros de pantalla completa
@@ -189,6 +191,7 @@ fun MeetupsMapPanel(
                     userLon = userLon,
                     maxDistanceKm = maxDistanceKm,
                     onSchoolSelected = onSchoolSelected,
+                    onRadiusChange = onRadiusChange,
                     onFullscreen = { fullscreenMap = true }
                 )
             } else {
@@ -234,6 +237,7 @@ internal fun MeetupsMapView(
     userLon: Double?,
     maxDistanceKm: Int?,
     onSchoolSelected: (String) -> Unit,
+    onRadiusChange: (Int?) -> Unit,
     onFullscreen: () -> Unit
 ) {
     val context = LocalContext.current
@@ -317,6 +321,23 @@ internal fun MeetupsMapView(
     LaunchedEffect(groups, mapRef, userLat, userLon, maxDistanceKm) {
         val map = mapRef ?: return@LaunchedEffect
         map.markers.forEach { map.removeMarker(it) }
+        map.polygons.forEach { map.removePolygon(it) }
+        map.polylines.forEach { map.removePolyline(it) }
+        // Círculo del radio guardado, alrededor de tu ubicación (terracota translúcido).
+        if (userLat != null && userLon != null && maxDistanceKm != null) {
+            map.addPolygon(
+                org.maplibre.android.annotations.PolygonOptions()
+                    .addAll(circlePoints(userLat, userLon, maxDistanceKm.toDouble()))
+                    .fillColor(android.graphics.Color.rgb(194, 65, 12)).alpha(0.1f)
+                    .strokeColor(android.graphics.Color.rgb(194, 65, 12))
+            )
+            // El contorno va aparte (un trazo sólido): el relleno translúcido comparte la transparencia con su borde.
+            val ring = circlePoints(userLat, userLon, maxDistanceKm.toDouble())
+            map.addPolyline(
+                org.maplibre.android.annotations.PolylineOptions().addAll(ring + ring.first())
+                    .color(android.graphics.Color.rgb(194, 65, 12)).width(3f)
+            )
+        }
         markerToGroup.clear()
         val iconFactory = IconFactory.getInstance(context)
 
@@ -357,7 +378,7 @@ internal fun MeetupsMapView(
             } else if (userLat != null && userLon != null) {
                 // Sin quedadas visibles: centrar en ti. Con filtro de distancia,
                 // al zoom del radio (25km→cerca, 200km→lejos); si no, zoom cómodo.
-                val zoom = if (maxDistanceKm != null) zoomForKm(maxDistanceKm.toDouble()) else 8.0
+                val zoom = if (maxDistanceKm != null) zoomForKm(maxDistanceKm.toDouble()) - 1.6 else 8.0
                 map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(userLat, userLon), zoom))
             } else {
                 map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(40.4, -3.7), 6.0))
@@ -400,6 +421,8 @@ internal fun MeetupsMapView(
             modifier = Modifier.align(Alignment.TopEnd).padding(Spacing.sm),
             onClick = { isSatellite = !isSatellite }
         )
+
+        if (maxDistanceKm != null) RadiusChip(maxDistanceKm, onRadiusChange, Modifier.align(Alignment.TopCenter).padding(Spacing.sm))
 
         // Popup de la escuela seleccionada
         selectedGroup?.let { group ->
@@ -505,3 +528,33 @@ internal fun DisciplineFilterPill(label: String, selected: Boolean, onClick: () 
     }
 }
 
+
+/** Puntos de un círculo de [km] kilómetros alrededor de un punto (64 vértices). */
+internal fun circlePoints(lat: Double, lon: Double, km: Double): List<LatLng> {
+    val dLat = km / 111.32
+    val dLon = km / (111.32 * Math.cos(Math.toRadians(lat)).coerceAtLeast(0.01))
+    return (0 until 64).map { i ->
+        val a = 2 * Math.PI * i / 64
+        LatLng(lat + dLat * Math.sin(a), lon + dLon * Math.cos(a))
+    }
+}
+
+/** Chip de radio sobre el mapa: se toca para cambiarlo (o quitarlo). */
+@Composable
+private fun RadiusChip(km: Int, onChange: (Int?) -> Unit, modifier: Modifier = Modifier) {
+    var open by remember { mutableStateOf(false) }
+    Box(modifier) {
+        Text(
+            stringResource(R.string.meetups_radius_chip, km), fontWeight = FontWeight.Bold, fontSize = 13.sp,
+            color = androidx.compose.ui.graphics.Color.White,
+            modifier = Modifier.clip(androidx.compose.foundation.shape.CircleShape).background(com.meteomontana.android.ui.theme.terraFillColor())
+                .clickable { open = true }.padding(horizontal = 14.dp, vertical = 8.dp)
+        )
+        androidx.compose.material3.DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            listOf(25, 50, 100, 200, 500).forEach { v ->
+                androidx.compose.material3.DropdownMenuItem(text = { Text("$v km") }, onClick = { open = false; onChange(v) })
+            }
+            androidx.compose.material3.DropdownMenuItem(text = { Text(stringResource(R.string.w_any)) }, onClick = { open = false; onChange(null) })
+        }
+    }
+}

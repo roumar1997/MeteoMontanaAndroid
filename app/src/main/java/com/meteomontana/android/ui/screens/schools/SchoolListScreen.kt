@@ -552,9 +552,7 @@ fun SchoolListScreen(
                 is SchoolListUiState.Success -> {
                     itemsIndexed(s.schools, key = { _, it -> it.id }) { index, school ->
                         val score = scores[school.id]
-                        // animateItem(): cuando llegan (solo deslizamiento, sin fundidos) los scores y la lista se
-                        // re-ordena, las cards se deslizan a su sitio en vez de
-                        // teletransportarse.
+                        // animateItem(): al llegar los scores y re-ordenar, las cards se deslizan a su sitio.
                         // Tarjetas separadas (propuesta A, Álvaro 2026-10-19): sin divisor, con hueco entre ellas.
                         Column(
                             modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null)
@@ -578,7 +576,8 @@ fun SchoolListScreen(
                                     else openSchool(school.id)
                                 },
                                 onLongClick = { viewModel.toggleCompare(school.id) },
-                                onToggleFavorite = { viewModel.toggleFavorite(school.id) }
+                                onToggleFavorite = { viewModel.toggleFavorite(school.id) },
+                                dryPill = { SchoolDryPill(school.id, score?.dryRock == true) }
                             )
                         }
                     }
