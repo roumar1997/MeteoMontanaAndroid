@@ -3,6 +3,7 @@ package com.meteomontana.android
 import com.meteomontana.android.data.api.dto.BlockDto
 import com.meteomontana.android.data.api.dto.FeatureFlagsDto
 import com.meteomontana.android.data.api.dto.ForecastDto
+import com.meteomontana.android.data.api.dto.GymAscentStatsDto
 import com.meteomontana.android.data.api.dto.GymDto
 import com.meteomontana.android.data.api.dto.GymNearDto
 import com.meteomontana.android.data.api.dto.GymReportDto
@@ -234,6 +235,10 @@ class ApiContractTest {
         assertTrue(m.joined)
         assertEquals(12L, m.gymId)
         assertEquals("Zarzalejo", m.placeName)
+        assertEquals("6a", m.gradeMin); assertEquals("6c", m.gradeMax); assertEquals(2, m.partnersWanted)
+        assertEquals(listOf("ROPE" to 1, "QUICKDRAWS" to 12), m.requiredGear.map { it.item to it.qty })
+        assertEquals(listOf(true, false), m.gearCoverage.map { it.ok })
+        assertEquals(12, m.gearCoverage[1].required); assertEquals(6, m.gearCoverage[1].provided)
         val mem = m.members.single()
         assertEquals("uid123", mem.uid)
         assertEquals("{\"crashpads\":2}", mem.gearJson)
@@ -244,6 +249,8 @@ class ApiContractTest {
         assertNull(n.photoUrl); assertNull(n.creatorUsername); assertNull(n.creatorPhotoUrl)
         assertFalse(n.joined)
         assertNull(n.gymId); assertNull(n.placeName)
+        assertNull(n.gradeMin); assertNull(n.gradeMax); assertNull(n.partnersWanted)
+        assertTrue(n.requiredGear.isEmpty()); assertTrue(n.gearCoverage.isEmpty())
         assertNull(n.members.single().username)
         assertNull(n.members.single().gearJson)
         assertDtoKeysInGolden("meetups.json", ser)
@@ -263,8 +270,14 @@ class ApiContractTest {
         assertEquals("MON-FRI", g.openingHours!![0].days)
         assertEquals(true, g.hasAutobelay)
         assertEquals("VERIFIED", g.verification)
+        assertEquals("+34 645 511 702", g.phone)
+        assertEquals("COLORS", g.scale!!.type)
+        assertEquals(listOf("blanco", "verde"), g.scale!!.levels.map { it.name })
+        assertEquals("#2E9E4F", g.scale!!.levels[1].hex)
+        assertNull(g.scale!!.levels[0].gradeFrom); assertEquals("5c", g.scale!!.levels[1].gradeTo)
 
         val n = parse("gyms.json", "nulls", ser).single()
+        assertNull(n.phone); assertNull(n.scale)
         assertNull(n.chain); assertNull(n.address); assertNull(n.website); assertNull(n.instagram)
         assertNull(n.openingHours); assertNull(n.priceSingleEur); assertNull(n.pricePassEur)
         assertNull(n.priceUpdatedAt); assertNull(n.hasAutobelay); assertNull(n.hasGearRental)
@@ -290,6 +303,12 @@ class ApiContractTest {
         assertEquals("PENDING", r.status)
         val n = parse("gym-report.json", "nulls", ser)
         assertNull(n.gymId); assertNull(n.gymName); assertNull(n.comment); assertNull(n.photoUrl); assertNull(n.proposed)
+        assertNull(n.scale); assertNull(r.scale)
+        val sc = parse("gym-report.json", "scale", ser)
+        assertEquals(listOf("SCALE"), sc.issues)
+        assertEquals("COLORS", sc.scale!!.type)
+        assertEquals(listOf("verde", "azul"), sc.scale!!.levels.map { it.name })
+        assertNull(sc.scale!!.levels[1].gradeTo)
         assertDtoKeysInGolden("gym-report.json", ser)
     }
 
@@ -298,7 +317,15 @@ class ApiContractTest {
     @Test fun entrenosDeRocodromo() {
         val s = parse("gym-sessions.json", "session", GymSessionDto.serializer())
         assertEquals(5L, s.gymId); assertEquals("2026-11-19", s.date); assertEquals("MANUAL", s.source)
+        assertEquals(11L, s.id)
+        assertEquals(listOf("verde" to 5, "azul" to 2), s.ascents.map { it.key to it.count })
+        assertTrue(parse("gym-sessions.json", "sessionEmpty", GymSessionDto.serializer()).ascents.isEmpty())
         assertDtoKeysInGolden("gym-sessions.json", GymSessionDto.serializer(), "session")
+        val a = parse("gym-sessions.json", "ascentStats", GymAscentStatsDto.serializer())
+        assertEquals("WEEK", a.period); assertEquals("2026-11-16", a.from); assertEquals("2026-11-22", a.to)
+        assertEquals(2, a.sessions); assertEquals(7, a.total)
+        assertEquals(listOf("verde" to 5, "azul" to 2), a.items.map { it.key to it.count })
+        assertDtoKeysInGolden("gym-sessions.json", GymAscentStatsDto.serializer(), "ascentStats")
         val st = parse("gym-sessions.json", "stats", GymStatsDto.serializer())
         assertEquals(31, st.sessionsThisYear); assertEquals("Sputnik Madrid", st.topGym!!.name); assertEquals(3, st.streakWeeks)
         assertNull(parse("gym-sessions.json", "statsEmpty", GymStatsDto.serializer()).topGym)

@@ -447,7 +447,8 @@ fun MainScreen(
                         onOpenMaxGrade = { openSheet(Routes.journalEntries("grade-max")) },
                         onOpenProjects = { openSheet(Routes.projects(null)) },
                         onOpenMyPosts = { openSheet(Routes.myPosts()) },
-                        onOpenStats = { openSheet(Routes.journalStats()) }
+                        onOpenStats = { openSheet(Routes.journalStats()) },
+                        onOpenGymTraining = { openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.TRAINING) }
                     )
                     }
                 }

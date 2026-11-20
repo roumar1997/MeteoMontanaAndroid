@@ -1,17 +1,108 @@
-# Backend pendiente para rocódromos
+# Backend de rocódromos, ronda 3: CONTRATO FINAL
 
-## Quedadas: grado orientativo y cordada (la app ya los envía)
+Rama `feature/rocodromos-r3` del backend, migraciones V111 a V114, desplegado en **staging** (`develop`).
+Todo es aditivo: apps viejas siguen funcionando (campos nuevos opcionales; las listas vienen `[]`, nunca ausentes).
+Muestras exactas en `MeteoMontanaAPI/api/src/test/resources/contract/` (`gyms.json`, `gym-report.json`,
+`gym-sessions.json`, `meetups.json`): copiarlas idénticas al repo de las apps.
 
-`POST /api/meetups` (y la respuesta de lectura) necesita campos **opcionales** nuevos. La app Android solo los manda cuando tienen valor; un servidor que los ignore sigue funcionando.
+## 1. Quedadas (`/api/meetups`)
 
-| Campo | Tipo | Significado |
-|---|---|---|
-| `gymId` | long | ya soportado: quedada en rocódromo (entonces `schoolId` va vacío) |
-| `discipline` | `BOULDER` \| `ROUTE` \| `BOTH` \| null | ya soportado |
-| `gradeMin` | string \| null | grado orientativo mínimo, de la escalera de grados de la app (p. ej. `6a`) |
-| `gradeMax` | string \| null | grado orientativo máximo; si solo hay uno, vale como único |
-| `partnersWanted` | int \| null | cordada: personas que se buscan (la app envía `1` solo con `discipline = ROUTE`) |
+`POST /api/meetups` acepta, además de lo de siempre (todos opcionales):
 
-Pendiente: migración (3 columnas nulas en `meetups`), validación (`gradeMin <= gradeMax` en la escalera; `partnersWanted` solo con `ROUTE`), devolverlos en `MeetupDto` y, si se quiere, filtrar por ellos. Después hay que leerlos en la lista y el detalle de quedadas de Android e iOS (hoy no se muestran).
+```json
+{ "gymId": 5, "name": "Sábado de cuerda", "days": ["2026-11-28"], "discipline": "ROPE",
+  "gradeMin": "6a", "gradeMax": "6c+", "partnersWanted": 1,
+  "requiredGear": [{"item": "ROPE", "qty": 1}, {"item": "QUICKDRAWS", "qty": 12}] }
+```
 
-Sigue sin existir un endpoint de quedadas por `gymId` para la ficha del rocódromo.
+- `discipline`: llegan `BOULDER|ROUTE|BOTH` como siempre; **`ROPE` se guarda como `ROUTE` y `ANY` como `BOTH`**
+  (la respuesta devuelve siempre los valores de siempre, para no romper apps viejas).
+- `gradeMin/gradeMax`: grado francés 3 a 9c+ (`6a+`, `7b`...). Se normaliza a minúsculas; 400 si no es válido o
+  min > max.
+- `partnersWanted`: 1 a 20 (1 = cordada). No sustituye a `memberLimit`.
+- `requiredGear`: máx. 4. `item` = `ROPE | GRIGRI | QUICKDRAWS | CRASHPAD`, `qty` 1 a 50. Repetidos se suman.
+  Mapean a las claves de «Mi material»: ROPE=`cuerda`, GRIGRI=`grigri`, QUICKDRAWS=`cintas`, CRASHPAD=`crashpads`.
+- **No hay edición posterior** de estos campos (PATCH sigue siendo solo la descripción).
+
+Respuesta (`MeetupDto`), campos nuevos al final:
+
+```json
+{ "...": "...", "gymId": 12, "placeName": "Zarzalejo",
+  "gradeMin": "6a", "gradeMax": "6c", "partnersWanted": 2,
+  "requiredGear": [{"item": "ROPE", "qty": 1}, {"item": "QUICKDRAWS", "qty": 12}],
+  "gearCoverage": [{"item": "ROPE", "required": 1, "provided": 1, "ok": true},
+                   {"item": "QUICKDRAWS", "required": 12, "provided": 6, "ok": false}] }
+```
+
+`gearCoverage` suma el material de los apuntados: el que dejó en la quedada (`PUT /api/meetups/{id}/my-gear`)
+o, si no lo ha tocado, el de su perfil. Cuerda/gri-gri cuentan 1 por persona que los lleva. Sin requisitos:
+`gradeMin/gradeMax/partnersWanted = null`, `requiredGear = []`, `gearCoverage = []`.
+
+**Chat de la quedada**: ya existía. Al crear la quedada se crea un grupo de chat (Firestore) y su id va en
+`conversationId`; los que se apuntan se añaden a sus participantes. Abrir la quedada desde el chat:
+`GET /api/meetups/by-conversation/{conversationId}`. No hizo falta cambiar nada.
+
+## 2. Escalas de rocódromo
+
+`GymDto` (lista y ficha) lleva ahora `phone` y `scale` (null si no se conoce):
+
+```json
+{ "phone": "+34 645 511 702",
+  "scale": {"type": "COLORS", "levels": [
+     {"name": "blanco", "hex": "#FFFFFF", "gradeFrom": null, "gradeTo": null},
+     {"name": "verde", "hex": "#2E9E4F", "gradeFrom": "5a", "gradeTo": "5c"}]} }
+```
+
+- `type`: `COLORS` (niveles ordenados de fácil a difícil) o `GRADES` (sin niveles, `levels: []`).
+- `GET /api/gyms/{id}/scale` (público): la escala, o **404** si el rocódromo no tiene.
+- `PUT /api/admin/gyms/{id}/scale` (admin): body = la escala; 2 a 20 colores, nombre único (30 car.), `hex`
+  `#RRGGBB`, `gradeFrom/gradeTo` opcionales (francés, from <= to). Devuelve el `GymDto`.
+- `DELETE /api/admin/gyms/{id}/scale` (admin): la borra.
+- **Propuesta comunitaria**: `POST /api/gyms/{id}/reports` con `issues:["SCALE"]` y `scale:{...}` (las dos cosas
+  juntas, si no 400). El reporte (`GymReportDto`) devuelve `scale`. El admin lo aplica con
+  `POST /api/admin/gyms/reports/{id}/apply` y la escala queda en la ficha. Cuenta para la cuota de 5 reportes/día.
+- Datos cargados (V114): **solo Sputnik** (7 centros): blanco, verde, amarillo, azul, morado, rojo, negro (orden
+  confirmado por Álvaro; **sin equivalencia a grados**, no hay fuente oficial). Arkose, Indoorwall, Climbat,
+  Sharma, Bloc District, The Climb y Boulder Zone: sus webs no publican la escala, no se ha cargado nada.
+
+## 3. Sesiones con lo hecho
+
+`GymSessionDto` lleva `ascents` (`[]` si nada):
+
+```json
+{ "id": 11, "gymId": 5, "date": "2026-11-19", "startedAt": "2026-11-19T18:00:00Z", "source": "MANUAL",
+  "ascents": [{"key": "verde", "count": 5}, {"key": "azul", "count": 2}] }
+```
+
+- `PUT /api/gyms/sessions/{sessionId}/ascents` (sesión propia; 404 si es ajena). Body
+  `{"ascents": [{"key":"verde","count":5}]}`. **Sustituye** todo lo anterior (`[]` lo borra). Devuelve la
+  `GymSessionDto`. Reglas: con escala de COLORS en el rocódromo, `key` debe ser uno de sus colores (se guarda con el
+  nombre de la escala); sin escala, grado francés o nombre corto; con escala GRADES, grado francés. `count` 1 a 999,
+  máx. 30 claves, repetidas se suman. 400 si no cuadra. Va tras el interruptor `gyms_enabled`.
+- `GET /api/gyms/sessions` y `POST /api/gyms/{id}/sessions/today` ya devuelven `ascents`.
+- **Estadísticas**: `GET /api/users/{identifier}/gym-ascents?period=WEEK|MONTH|YEAR&date=2026-11-19&gymId=5`
+  (todo opcional; por defecto WEEK de hoy). Misma privacidad que `gym-stats` (404 si perfil privado y no eres tú ni
+  seguidor). Semana = lunes a domingo.
+
+```json
+{ "period": "WEEK", "from": "2026-11-16", "to": "2026-11-22", "sessions": 2, "total": 7,
+  "items": [{"key": "verde", "count": 5}, {"key": "azul", "count": 2}] }
+```
+
+## 4. Teléfono
+`phone` (texto libre, máx. 40) en `GymDto`; editable por admin con `PUT /api/admin/gyms/{id}` (`"phone": "..."`).
+Cargados desde las webs oficiales (V114): 7 Sputnik, Arkose Cuatro Caminos y Bloc District Marina/Tetuán. El resto,
+null.
+
+## 5. Datos
+King Kong Climbing Gym (`madrid-king-kong-climbing-gym`) marcado `closed = true` (V114).
+
+## 6. Privacidad
+La política pública vive en la web (otro repo); textos nuevos en `PRIVACIDAD-ROCODROMOS.md`.
+
+## 7. Pendiente tras la ronda 3 (apps)
+
+- **Fotos aprobadas en la ficha**: `GymDto` no trae fotos. Hoy «Añadir foto» solo envía un reporte (`OTHER` + foto) y no se muestra ninguna foto ni «Denunciar foto». Para mostrarlas hace falta: lista `photos: [{id, url, authorUid}]` en `GymDto` (solo aprobadas) y `POST /api/gyms/{id}/photos/{photoId}/report` (denuncia) con su cola de admin.
+- **Chat de rocódromo**: no necesita servidor. Usa `school_chats/gym-{id}/messages` de Firestore (las reglas actuales aceptan cualquier id, texto ≤ 500, solo el autor borra). Si se quiere TTL o moderación propia, habría que sacarlo a su colección.
+- **Hora de la quedada** (la maqueta A enseña «18:30»): no hay campo en `POST /api/meetups`; no se envía.
+- **Detalle offline de quedadas**: la caché SQLDelight no guarda `gymId`, grado, cordada ni material (solo el detalle online los ve). Si se quiere offline, subir el esquema (migración local).

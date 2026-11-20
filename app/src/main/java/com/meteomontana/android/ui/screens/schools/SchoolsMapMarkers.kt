@@ -49,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -89,7 +90,9 @@ internal fun syncMarkers(
     fitBounds: Boolean,
     userLat: Double?,
     userLon: Double?,
-    tiny: Boolean = false,   // zoom lejano: puntito en vez de diamante
+    tiny: Boolean = false,   // zoom lejano: puntito en vez del anillo
+    wetIds: Set<String> = emptySet(),
+    selectedId: String? = null,
     onMarkerTap: (School) -> Unit
 ) {
     // Limpia los anteriores
@@ -120,10 +123,12 @@ internal fun syncMarkers(
         // nuevos en el atlas de MapLibre y acaba corrompiéndolo (markers
         // pintados como bandas gigantes al hacer zoom).
         val label = if (showLabels) s.name else null
-        val key = if (tiny) "dot:$score" else "dia:$score:${label ?: ""}"
+        val wet = s.id in wetIds
+        val selected = s.id == selectedId
+        val key = if (tiny) "dot:$score" else "ring:$score:$wet:$selected:${label ?: ""}"
         val icon = cachedPanelIcon(ctx, key) {
             if (tiny) dotBitmap(score, density)
-            else diamondBitmap(score, label, density)
+            else ringBitmap(score, wet, selected, label, density)
         }
         val marker = map.addMarker(
             MarkerOptions()
@@ -188,6 +193,82 @@ internal fun dotBitmap(score: Int?, density: Float = 2f): Bitmap {
     return bmp
 }
 
+/**
+ * Marcador de escuela (propuesta A de Álvaro): anillo que se llena según la nota con el color de scoreColor y centro
+ * crema con el número; mojada: anillo azul con una gota; seleccionada: más grande con aureola terracota. El nombre va
+ * debajo en una etiqueta blanca (como los rocódromos) para que se lea sobre el satélite.
+ */
+internal fun ringBitmap(score: Int?, wet: Boolean, selected: Boolean, name: String?, density: Float = 2f): Bitmap {
+    val k = density
+    val d = (if (selected) 50f else 40f) * k
+    val pad = 6f * k
+    val label = when {
+        name == null -> null
+        name.length > 18 -> name.take(17).trimEnd() + "…"
+        else -> name
+    }
+    val rain = "#2563C7".toColorInt()
+    val ringColor = if (wet) rain else com.meteomontana.android.ui.theme.scoreColor(score ?: 0).toArgb()
+    val inkPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = "#1C1C1A".toColorInt(); textSize = 10.5f * k; textAlign = Paint.Align.CENTER; isFakeBoldText = true
+    }
+    val chipH = if (label != null) 15f * k else 0f
+    val chipGap = if (label != null) 3f * k else 0f
+    val chipW = if (label != null) inkPaint.measureText(label) + 14f * k else 0f
+    val w = maxOf(d + pad * 2, chipW + 4f * k)
+    val h = d + pad * 2 + chipGap + chipH
+    val bmp = Bitmap.createBitmap(w.toInt(), h.toInt(), Bitmap.Config.ARGB_8888)
+    val c = Canvas(bmp)
+    val cx = w / 2f
+    val cy = pad + d / 2f
+    val band = d * 0.115f
+
+    c.drawCircle(cx, cy + 2f * k, d / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AndroidColor.argb(70, 0, 0, 0) })
+    if (selected) {
+        c.drawCircle(cx, cy, d / 2f + 2.5f * k, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE; strokeWidth = 3f * k; color = "#C2410C".toColorInt()
+        })
+    }
+    // Pista (blanco translúcido) y progreso con el color de la nota.
+    val r = d / 2f - band / 2f
+    val oval = RectF(cx - r, cy - r, cx + r, cy + r)
+    c.drawCircle(cx, cy, d / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AndroidColor.argb(110, 255, 255, 255) })
+    val sweep = 360f * (score ?: 0).coerceIn(2, 100) / 100f
+    c.drawArc(oval, -90f, sweep, false, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeWidth = band; color = ringColor
+    })
+    c.drawCircle(cx, cy, d / 2f - band, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = if (wet) "#E3ECFA".toColorInt() else "#FBF9F4".toColorInt() })
+    val num = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = if (wet) rain else "#1C1C1A".toColorInt(); textSize = d * 0.36f; textAlign = Paint.Align.CENTER
+        typeface = android.graphics.Typeface.MONOSPACE; isFakeBoldText = true
+    }
+    c.drawText(score?.toString() ?: "·", cx, cy - (num.descent() + num.ascent()) / 2f, num)
+    if (wet) {
+        // Gota azul con borde blanco, arriba a la derecha.
+        val bx = cx + d * 0.38f
+        val by = cy - d * 0.38f
+        val br = 8f * k
+        c.drawCircle(bx, by, br, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = rain })
+        c.drawCircle(bx, by, br - 1f * k, Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 2f * k; color = AndroidColor.WHITE })
+        val drop = android.graphics.Path().apply {
+            moveTo(bx, by - 4.6f * k)
+            cubicTo(bx + 1f * k, by - 2.8f * k, bx + 3.4f * k, by - 0.8f * k, bx + 3.4f * k, by + 1.2f * k)
+            cubicTo(bx + 3.4f * k, by + 3.4f * k, bx - 3.4f * k, by + 3.4f * k, bx - 3.4f * k, by + 1.2f * k)
+            cubicTo(bx - 3.4f * k, by - 0.8f * k, bx - 1f * k, by - 2.8f * k, bx, by - 4.6f * k)
+            close()
+        }
+        c.drawPath(drop, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AndroidColor.WHITE })
+    }
+    if (label != null) {
+        val top = pad * 2 + d + chipGap - pad
+        val rect = RectF(cx - chipW / 2f, top, cx + chipW / 2f, top + chipH)
+        c.drawRoundRect(rect, chipH / 2f, chipH / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = AndroidColor.argb(235, 255, 255, 255) })
+        c.drawText(label, cx, rect.centerY() - (inkPaint.descent() + inkPaint.ascent()) / 2f, inkPaint)
+    }
+    return bmp
+}
+
+@Suppress("unused")
 internal fun diamondBitmap(score: Int?, name: String?, density: Float = 2f): Bitmap {
     // Todo se dibuja a escala k para que el pin mida lo mismo (en dp) en
     // cualquier pantalla — igual de grande que en iPhone.

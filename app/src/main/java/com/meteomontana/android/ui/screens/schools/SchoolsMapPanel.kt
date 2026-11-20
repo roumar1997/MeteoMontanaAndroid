@@ -138,6 +138,8 @@ fun planInitialCamera(schools: List<School>, userLat: Double?, userLon: Double?)
 fun SchoolsMapPanel(
     schools: List<School>,
     scoresById: Map<String, Int>,
+    wetIds: Set<String> = emptySet(),
+    onFix: (School) -> Unit = {},
     userLat: Double?,
     userLon: Double?,
     expanded: Boolean,
@@ -168,6 +170,8 @@ fun SchoolsMapPanel(
         MapBody(
                 schools = schools,
                 scoresById = scoresById,
+                wetIds = wetIds,
+                onFix = onFix,
                 userLat = userLat,
                 userLon = userLon,
                 onSchoolDetail = onSchoolDetail,
@@ -220,6 +224,8 @@ fun MapToggleBar(expanded: Boolean, onToggle: () -> Unit, modifier: Modifier = M
 internal fun MapBody(
     schools: List<School>,
     scoresById: Map<String, Int>,
+    wetIds: Set<String> = emptySet(),
+    onFix: (School) -> Unit = {},
     userLat: Double?,
     userLon: Double?,
     onSchoolDetail: (String) -> Unit,
@@ -270,7 +276,7 @@ internal fun MapBody(
     // Re-sincronizar markers cuando cambian los filtros (= cambia `schools`)
     // o cuando el mapa ya está listo. Fit-bounds SOLO si cambió la lista de
     // escuelas; si solo llegaron scores nuevos, la cámara no se mueve.
-    LaunchedEffect(schools, scoresById, mapRef.value, labelsVisible.value) {
+    LaunchedEffect(schools, scoresById, wetIds, selectedSchool?.id, mapRef.value, labelsVisible.value) {
         val map = mapRef.value ?: return@LaunchedEffect
         val ids = schools.map { it.id }.toSet()
         val listChanged = ids != lastFittedIds.value
@@ -279,7 +285,8 @@ internal fun MapBody(
             ctx, map, schools, scoresById,
             showLabels = labelsVisible.value,
             fitBounds = listChanged,
-            userLat = userLat, userLon = userLon
+            userLat = userLat, userLon = userLon,
+            wetIds = wetIds, selectedId = selectedSchool?.id
         ) { tappedSchool -> selectedSchool = tappedSchool }
     }
 
@@ -344,7 +351,8 @@ internal fun MapBody(
                                 context, map, schools, scoresById,
                                 showLabels = labelsVisible.value,
                                 fitBounds = doFit,
-                                userLat = userLat, userLon = userLon
+                                userLat = userLat, userLon = userLon,
+                                wetIds = wetIds, selectedId = selectedSchool?.id
                             ) { tappedSchool -> selectedSchool = tappedSchool }
                         }
                         map.uiSettings.apply {
@@ -487,6 +495,8 @@ internal fun MapBody(
             MarkerPreviewCard(
                 school = sel,
                 score = scoresById[sel.id],
+                wet = sel.id in wetIds,
+                onFix = { onFix(sel) },
                 userLat = userLat,
                 userLon = userLon,
                 onClose = { selectedSchool = null },

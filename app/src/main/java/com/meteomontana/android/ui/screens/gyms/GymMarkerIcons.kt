@@ -58,7 +58,7 @@ internal object GymMarkerIcons {
             style = Paint.Style.STROKE; strokeWidth = 4f * k; color = Color.WHITE
             textSize = 11f * k; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER
         }
-        val nameW = title?.let { haloPaint.measureText(it) + 6f * k } ?: 0f
+        val nameW = title?.let { haloPaint.measureText(it) + 14f * k } ?: 0f
         val nameH = if (title != null) GymLabelPlanner.LABEL_EXTRA_DP * k else 0f
         val w = maxOf(d, pillW, nameW) + pad * 2
         val h = d + pad * 2 + pill - (if (kind == GymKind.FREE) 4f * k else 0f) + nameH
@@ -92,9 +92,12 @@ internal object GymMarkerIcons {
             val ink = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = 0xFF1A1A1A.toInt(); textSize = 11f * k; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER
             }
-            val y = h - 4f * k
-            c.drawText(title, cx, y, haloPaint)
-            c.drawText(title, cx, y, ink)
+            // Etiqueta blanca (misma familia que los marcadores de escuela) para leerse sobre el satélite.
+            val chipH = nameH - 1f * k
+            val tw = ink.measureText(title) + 12f * k
+            val rect = RectF(cx - tw / 2f, h - chipH, cx + tw / 2f, h)
+            c.drawRoundRect(rect, chipH / 2f, chipH / 2f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(235, 255, 255, 255) })
+            c.drawText(title, cx, rect.centerY() - (ink.descent() + ink.ascent()) / 2f, ink)
         }
         return bmp
     }

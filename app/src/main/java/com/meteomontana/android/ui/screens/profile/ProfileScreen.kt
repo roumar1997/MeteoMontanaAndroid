@@ -101,6 +101,7 @@ fun ProfileScreen(
     // Fila "Mis publicaciones" → pantalla dedicada con el feed propio (scope=mine).
     onOpenMyPosts: () -> Unit = {},
     onOpenStats: () -> Unit = {},
+    onOpenGymTraining: () -> Unit = {},
     /** En la pestaña keep-alive: true cuando la pestaña Perfil está visible.
      *  Recarga al hacerse visible (los ON_RESUME no saltan al cambiar de tab). */
     visible: Boolean = true,
@@ -199,6 +200,8 @@ fun ProfileScreen(
                     onOpenProjects = onOpenProjects,
                     onOpenMyPosts = onOpenMyPosts,
                     onOpenStats = onOpenStats,
+                    onOpenGymTraining = onOpenGymTraining,
+                    visible = visible,
                     onPhotoChanged = viewModel::load
                 )
             }
@@ -309,6 +312,9 @@ internal fun Content(
     onOpenProjects: () -> Unit,
     onOpenMyPosts: () -> Unit = {},
     onOpenStats: () -> Unit = {},
+    onOpenGymTraining: () -> Unit = {},
+    /** Pestaña Perfil visible: la tarjeta de rocódromo se relee cada vez (la pestaña no se recompone al volver). */
+    visible: Boolean = true,
     onPhotoChanged: () -> Unit = {}
 ) {
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
@@ -353,7 +359,7 @@ internal fun Content(
             avatarSlot = avatarSlot) }
         item { StatsRow(stats, onOpenBoulders, onOpenRoutes, onOpenAllSchools, onOpenMaxGrade, onOpenProjects, onOpenMyPosts, onOpenStats) }
         // Entrenos en rocódromo (solo con el interruptor `gyms_enabled` encendido).
-        if (gymsOn) item { GymStatsCard() }
+        if (gymsOn) item { GymStatsCard(onClick = onOpenGymTraining, visible = visible) }
         // Admin ya no va aquí: es un botón arriba a la izquierda (junto al "?").
         // La lista de escuelas tampoco (ya vive en la pestaña Diario).
         item { Spacer(Modifier.height(24.dp)) }

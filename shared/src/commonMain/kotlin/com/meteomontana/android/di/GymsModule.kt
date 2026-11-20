@@ -23,6 +23,7 @@ import com.meteomontana.android.domain.usecase.gym.GetCachedGymsUseCase
 import com.meteomontana.android.domain.usecase.gym.GetGymFavoritesUseCase
 import com.meteomontana.android.domain.usecase.gym.GetGymPresenceUseCase
 import com.meteomontana.android.domain.usecase.gym.GetGymStatsUseCase
+import com.meteomontana.android.domain.usecase.gym.GymTrainingUseCase
 import com.meteomontana.android.domain.usecase.gym.GetGymUseCase
 import com.meteomontana.android.domain.usecase.gym.GetGymsUseCase
 import com.meteomontana.android.domain.usecase.gym.ListPendingGymReportsUseCase
@@ -68,6 +69,7 @@ class GymsModule(httpClient: HttpClient, store: KeyValueStore? = null) {
 
     val recordGymSession = RecordGymSessionUseCase(sessions)
     val getGymStats = GetGymStatsUseCase(sessions)
+    val gymTraining = GymTrainingUseCase(sessions)
 
     // Admin (solo iOS)
     val listPendingGymReports = ListPendingGymReportsUseCase(admin)

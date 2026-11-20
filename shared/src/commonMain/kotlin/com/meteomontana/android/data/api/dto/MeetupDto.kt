@@ -62,7 +62,23 @@ data class MeetupDto(
     /** Rocodromo de la quedada; null si es en una escuela. */
     val gymId: Long? = null,
     /** Nombre del lugar (escuela o rocodromo) ya resuelto por el servidor. */
-    val placeName: String? = null
+    val placeName: String? = null,
+    val gradeMin: String? = null,
+    val gradeMax: String? = null,
+    val partnersWanted: Int? = null,
+    val requiredGear: List<MeetupGearDto> = emptyList(),
+    val gearCoverage: List<MeetupGearCoverageDto> = emptyList()
+)
+
+@Serializable
+data class MeetupGearDto(val item: String = "", val qty: Int = 0)
+
+@Serializable
+data class MeetupGearCoverageDto(
+    val item: String = "",
+    val required: Int = 0,
+    val provided: Int = 0,
+    val ok: Boolean = false
 )
 
 @Serializable
@@ -92,5 +108,6 @@ data class CreateMeetupRequestDto(
     val gymId: Long? = null,
     val gradeMin: String? = null,
     val gradeMax: String? = null,
-    val partnersWanted: Int? = null
+    val partnersWanted: Int? = null,
+    val requiredGear: List<MeetupGearDto> = emptyList()
 )

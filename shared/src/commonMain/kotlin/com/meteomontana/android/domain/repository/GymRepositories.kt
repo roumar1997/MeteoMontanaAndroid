@@ -3,11 +3,14 @@ package com.meteomontana.android.domain.repository
 import com.meteomontana.android.domain.model.SchoolPresence
 import com.meteomontana.android.domain.model.gym.Gym
 import com.meteomontana.android.domain.model.gym.GymAdminEdit
+import com.meteomontana.android.domain.model.gym.GymAscent
+import com.meteomontana.android.domain.model.gym.GymAscentStats
 import com.meteomontana.android.domain.model.gym.GymCorrection
 import com.meteomontana.android.domain.model.gym.GymNear
 import com.meteomontana.android.domain.model.gym.GymReport
 import com.meteomontana.android.domain.model.gym.GymSession
 import com.meteomontana.android.domain.model.gym.GymSessionSource
+import com.meteomontana.android.domain.model.gym.GymTrainingPeriod
 import com.meteomontana.android.domain.model.gym.NewGymDraft
 
 /** Copia local del catalogo de rocodromos (con el ETag con el que se descargo). Funciona sin conexion. */
@@ -60,6 +63,12 @@ interface GymSessionRepository {
     suspend fun checkInToday(gymId: Long, source: GymSessionSource): GymSession
     suspend fun undoToday(gymId: Long)
     suspend fun refresh(): List<GymSession>
+
+    /** Apunta lo hecho (por color o grado) en la sesion de ese dia; SUSTITUYE lo anterior. Primero local, luego el servidor. */
+    suspend fun saveAscents(gymId: Long, date: kotlinx.datetime.LocalDate, ascents: List<GymAscent>): GymSession
+
+    /** Ascensiones de un periodo: las del servidor y, si no hay red o ruta, las calculadas con las sesiones del movil. */
+    suspend fun ascentStats(uid: String, period: GymTrainingPeriod, date: kotlinx.datetime.LocalDate, gymId: Long?): GymAscentStats
 }
 
 /** Revision de reportes y edicion de fichas por un admin (solo iOS; Android no tiene panel de admin). */

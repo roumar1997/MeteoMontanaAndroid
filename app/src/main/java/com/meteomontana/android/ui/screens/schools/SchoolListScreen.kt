@@ -36,6 +36,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import com.meteomontana.android.ui.screens.gyms.wetRockBannerItem
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -80,7 +81,15 @@ fun SchoolListScreen(
 ) {
     // "Enviar piedra": el selector de fotos está abierto.
     var eligiendoFoto by remember { mutableStateOf(false) }
+    var fixOpen by remember { mutableStateOf(false) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    if (fixOpen) {
+        AportarSheet(
+            onDismiss = { fixOpen = false },
+            onPiedra = { fixOpen = false; eligiendoFoto = true },
+            onEscuela = { fixOpen = false; onSubmitSchool() }
+        )
+    }
     if (eligiendoFoto) {
         SubmitBlockPhotoFlow(
             // El catálogo ENTERO, no lo que el filtro deja ver: la escuela de la
@@ -350,6 +359,8 @@ fun SchoolListScreen(
                     SchoolsMapPanel(
                         schools = successState?.schools.orEmpty(),
                         scoresById = scores.mapValues { it.value.todayScore },
+                        wetIds = scores.filterValues { !it.dryRock }.keys,
+                        onFix = { fixOpen = true },
                         userLat = userLocation?.lat,
                         userLon = userLocation?.lon,
                         expanded = mapExpanded,
@@ -452,6 +463,13 @@ fun SchoolListScreen(
             if (favoritesCompare && exploreTab == ExploreTab.Schools) {
                 item(key = "favorites-compare") {
                     FavoritesCompareCard(onOpen = openSchool, modifier = Modifier.padding(horizontal = 12.dp).padding(top = 8.dp))
+                }
+            }
+
+            if (gymsOn && exploreTab == ExploreTab.Schools && selectedDays.isEmpty()) {
+                val visible = (state as? SchoolListUiState.Success)?.schools.orEmpty()
+                wetRockBannerItem(visible.map { scores[it.id]?.dryRock }) {
+                    gyms.setLayer(com.meteomontana.android.ui.screens.gyms.SchoolsLayer.ROCODROMOS)
                 }
             }
 

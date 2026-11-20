@@ -1,95 +1,74 @@
 package com.meteomontana.android.ui.screens.meetups
 
-import com.meteomontana.android.util.CalendarLabels
 import android.net.Uri
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AddAPhoto
-import androidx.compose.material.icons.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.School
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.meteomontana.android.R
-import com.meteomontana.android.domain.model.CreateMeetupRequest
 import com.meteomontana.android.domain.model.FeatureKey
+import com.meteomontana.android.domain.model.MeetupDraft
 import com.meteomontana.android.ui.components.FeatureOffNotice
 import com.meteomontana.android.ui.components.LocalFeatureFlags
-import com.meteomontana.android.domain.model.School
-import com.meteomontana.android.ui.theme.EyebrowTextStyle
+import com.meteomontana.android.ui.screens.gyms.GymActionPill
 import com.meteomontana.android.ui.theme.Spacing
-import kotlinx.coroutines.launch
+import com.meteomontana.android.util.AppText
+import kotlinx.serialization.json.Json
 
 /**
- * Datos que trae el asistente («crea una quedada en Albarracín el sábado a las 9»): el formulario se abre ya relleno y
- * el usuario lo revisa y la crea con su botón. Espejo de `AssistantViewModel.MeetupRequest` (iOS).
+ * Datos que trae el asistente («crea una quedada en Albarracín el sábado a las 9») o la ficha de un rocódromo: el
+ * asistente se abre ya con el lugar (y el día) puestos y el usuario lo revisa y la crea con su botón. Espejo de
+ * `AssistantViewModel.MeetupRequest` (iOS).
  */
-/** Guarda los días elegidos como lista de «yyyy-MM-dd» (un Set no es Saveable por sí solo). */
-private val SelectedDaysSaver = androidx.compose.runtime.saveable.listSaver<androidx.compose.runtime.MutableState<Set<String>>, String>(
-    save = { it.value.toList() },
-    restore = { androidx.compose.runtime.mutableStateOf(it.toSet()) }
-)
-
 data class MeetupPrefill(val schoolId: String, val schoolName: String, val day: String?, val name: String, val description: String?,
     /** Rocódromo de la quedada (entonces [schoolId] va en blanco). */ val gymId: Long? = null)
 
-/** Pantalla de creación de quedada. Campos: nombre, escuela, días, privacidad,
- *  disciplina y límite de participantes. */
+private val DraftSaver = Saver<androidx.compose.runtime.MutableState<MeetupDraft>, String>(
+    save = { Json.encodeToString(MeetupDraft.serializer(), it.value) },
+    restore = { raw -> mutableStateOf(runCatching { Json.decodeFromString(MeetupDraft.serializer(), raw) }.getOrDefault(MeetupDraft())) }
+)
+
+private const val LAST_STEP = 3
+
+/**
+ * Nueva quedada en 3 pasos (maqueta A): 1 dónde y cuándo, 2 qué y con quién (bloque o vía, cuántos buscáis, grado,
+ * material mínimo), 3 privacidad, límite, nombre y foto. Atrás conserva lo elegido: el borrador entero sobrevive
+ * incluso a que el sistema mate el proceso. La lógica (qué falta, la petición) vive en `MeetupDraft` de shared.
+ */
 @Composable
 fun CreateMeetupScreen(
     onBack: () -> Unit = {},
@@ -100,472 +79,102 @@ fun CreateMeetupScreen(
 ) {
     val createError by viewModel.createError.collectAsStateWithLifecycle()
     val genderGate by viewModel.genderGate.collectAsStateWithLifecycle()
-    if (genderGate) {
-        GenderGateDialog(onEditProfile = onEditProfile, onDismiss = { viewModel.clearGenderGate() })
-    }
+    if (genderGate) GenderGateDialog(onEditProfile = onEditProfile, onDismiss = { viewModel.clearGenderGate() })
     val uploadingPhoto by viewModel.uploadingPhoto.collectAsStateWithLifecycle()
-    // Crear quedada en pausa (interruptor del servidor, o un 503 acabado de recibir): aviso en vez del formulario.
+    // Crear quedada en pausa (interruptor del servidor, o un 503 acabado de recibir): aviso en vez del asistente.
     val flags = LocalFeatureFlags.current
     val createPaused by viewModel.createPaused.collectAsStateWithLifecycle()
     val paused = if (!flags.isEnabled(FeatureKey.MEETUP_CREATE)) FeatureNotice(flags.messageFor(FeatureKey.MEETUP_CREATE)) else createPaused
     val dayScores by viewModel.dayScores.collectAsStateWithLifecycle()
-
-    // rememberSaveable: el formulario sobrevive a que el SO mate el proceso
-    // (MIUI) o a un giro de pantalla — no se pierde lo escrito/elegido.
-    var name by rememberSaveable { mutableStateOf("") }
-    var schoolId by rememberSaveable { mutableStateOf("") }
-    var schoolName by rememberSaveable { mutableStateOf("") }
-    var gymId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var privacy by rememberSaveable { mutableStateOf("OPEN") }
-    var discipline by rememberSaveable { mutableStateOf<String?>(null) }
-    var limitText by rememberSaveable { mutableStateOf("") }
-    // Saveable como el resto del formulario: si no, tras recrearse la pantalla el nombre sobrevivía pero los días no
-    // y el formulario quedaba «a medias» (botón desactivado, parecía que se había reseteado).
-    val selectedDays = rememberSaveable(saver = SelectedDaysSaver) {
-        mutableStateOf<Set<String>>(emptySet())
-    }
-    var submitting by remember { mutableStateOf(false) }
-    var photoUrl by rememberSaveable { mutableStateOf<String?>(null) }
-    var showSchoolPicker by remember { mutableStateOf(false) }
-    var showGymPicker by remember { mutableStateOf(false) }
-    var placeIsGym by rememberSaveable { mutableStateOf(false) }
-    var gradeMin by rememberSaveable { mutableStateOf<String?>(null) }
-    var gradeMax by rememberSaveable { mutableStateOf<String?>(null) }
-    var ropeTeam by rememberSaveable { mutableStateOf(false) }
     val schoolResults by viewModel.schoolResults.collectAsStateWithLifecycle()
 
-    // Lo que trae el asistente se aplica UNA vez: si el usuario lo cambia, no se le vuelve a poner encima.
+    var draftState = rememberSaveable(saver = DraftSaver) { mutableStateOf(MeetupDraft()) }
+    var draft by draftState
+    var step by rememberSaveable { mutableIntStateOf(1) }
+    var submitting by remember { mutableStateOf(false) }
+
+    // Lo que trae el asistente o la ficha se aplica UNA vez: si el usuario lo cambia, no se le vuelve a poner encima.
     var prefillApplied by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(prefill) {
         val p = prefill ?: return@LaunchedEffect
         if (prefillApplied) return@LaunchedEffect
         prefillApplied = true
-        if (name.isEmpty()) name = p.name
-        schoolId = p.schoolId
-        schoolName = p.schoolName
-        gymId = p.gymId
-        placeIsGym = p.gymId != null
-        p.day?.let { selectedDays.value = selectedDays.value + it }
+        var d = draft
+        d = if (p.gymId != null) d.withGym(p.gymId, p.schoolName) else if (p.schoolId.isNotBlank()) d.withSchool(p.schoolId, p.schoolName) else d
+        p.day?.let { d = d.toggleDay(it) }
+        draft = d.copy(name = p.name, description = p.description)
     }
 
-    // Cargar scores de los días seleccionados cuando hay escuela
-    LaunchedEffect(schoolId, selectedDays.value) {
-        if (schoolId.isNotBlank() && selectedDays.value.isNotEmpty())
-            viewModel.loadMeetupDayScores(schoolId, selectedDays.value)
-        else
-            viewModel.clearDayScores()
+    // Notas del día con escuela elegida.
+    LaunchedEffect(draft.schoolId, draft.days) {
+        if (!draft.placeIsGym && draft.schoolId.isNotBlank() && draft.days.isNotEmpty()) viewModel.loadMeetupDayScores(draft.schoolId, draft.days)
+        else viewModel.clearDayScores()
     }
 
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri ?: return@rememberLauncherForActivityResult
         // Pasamos el URI: el VM lee con readImageCompressed (hornea la rotación EXIF).
-        viewModel.uploadMeetupPhoto(uri.toString()) { url -> photoUrl = url }
+        viewModel.uploadMeetupPhoto(uri.toString()) { url -> draft = draft.copy(photoUrl = url) }
     }
+    val defaultName = AppText.get(R.string.gym_meetup_default_name, draft.placeName.ifBlank { AppText.get(R.string.create_meetup_title) })
+    val goBack = { if (step > 1) step -= 1 else onBack() }
+    BackHandler(enabled = step > 1) { step -= 1 }
 
-    // Para el selector de escuela, reusamos búsqueda simple (cadena schoolId manual por ahora)
-    // Se mejoraría con un picker de escuelas en próximas iteraciones.
-
-    Column(Modifier.fillMaxSize()) {
-        // ── Toolbar ──
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-            verticalAlignment = Alignment.CenterVertically
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.common_cancel))
-            }
-            Text(stringResource(R.string.create_meetup_title), modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            IconButton(onClick = goBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.common_back)) }
+            Text(
+                stringResource(R.string.create_meetup_title), modifier = Modifier.weight(1f),
+                fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.headlineSmall
+            )
         }
-        HorizontalDivider()
-
         if (paused != null) {
             FeatureOffNotice(paused.message, Modifier.padding(Spacing.md))
             return@Column
         }
-
+        WizardProgress(step)
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(Spacing.md),
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            // Foto del grupo
-            FieldLabel(stringResource(R.string.create_meetup_screen_v3_foto_del_grupo_opcional))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 9f)
-                    .clip(RoundedCornerShape(4.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { photoPicker.launch("image/*") },
-                contentAlignment = Alignment.Center
-            ) {
-                if (photoUrl != null) {
-                    AsyncImage(
-                        model = photoUrl,
-                        contentDescription = stringResource(R.string.create_meetup_screen_v2_foto_de_la_quedada),
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Outlined.AddAPhoto, contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(32.dp))
-                        Spacer(Modifier.height(4.dp))
-                        Text(stringResource(R.string.create_meetup_screen_anadir_foto), style = EyebrowTextStyle,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-                if (uploadingPhoto) {
-                    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
-                        contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(Modifier.size(28.dp))
-                    }
-                }
+            when (step) {
+                1 -> MeetupPlaceStep(draft, { draft = it }, schoolResults, { viewModel.searchSchools(it) }, dayScores)
+                2 -> MeetupDetailsStep(draft) { draft = it }
+                else -> MeetupFinalStep(draft, { draft = it }, uploadingPhoto, { photoPicker.launch("image/*") }, defaultName)
             }
-
-            // Nombre
-            FieldLabel(stringResource(R.string.w_name_caps))
-            OutlinedTextField(
-                value = name, onValueChange = { name = it },
-                placeholder = { Text(stringResource(R.string.create_meetup_screen_v2_ej_quedar_en_pedriza)) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(4.dp),
-                colors = outlinedColors()
-            )
-
-            // Lugar: Escuela o Rocódromo, con su buscador
-            MeetupPlaceKindSelector(placeIsGym) { toGym ->
-                if (toGym != placeIsGym) { placeIsGym = toGym; schoolId = ""; schoolName = ""; gymId = null }
-            }
-            FieldLabel(stringResource(if (placeIsGym) R.string.gym_meetup_place_label else R.string.w_school_caps))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(4.dp))
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .clickable { if (placeIsGym) showGymPicker = true else showSchoolPicker = true }
-                    .padding(horizontal = 12.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(Icons.Outlined.School, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-                Text(
-                    text = if (schoolName.isNotBlank()) schoolName
-                           else stringResource(if (placeIsGym) R.string.create_meetup_gym_search else R.string.create_meetup_school_search),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (schoolName.isNotBlank()) MaterialTheme.colorScheme.onSurface
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // Días (picker de próximos 14 días)
-            FieldLabel(stringResource(R.string.create_meetup_screen_v3_dias_elige_uno_o_varios))
-            DayPickerRow(
-                selected = selectedDays.value,
-                scores = dayScores,
-                onToggle = { day ->
-                    selectedDays.value = if (selectedDays.value.contains(day))
-                        selectedDays.value - day else selectedDays.value + day
-                }
-            )
-
-            // Privacidad
-            FieldLabel(stringResource(R.string.w_privacy_caps))
-            PrivacySelector(selected = privacy, onSelected = { privacy = it })
-            if (privacy == "WOMEN") {
-                Text(
-                    stringResource(R.string.create_meetup_screen_v2_quedada_no_mixto_solo_pueden),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // Disciplina
-            FieldLabel(stringResource(R.string.create_meetup_screen_v3_disciplina_opcional))
-            DisciplineSelector(selected = discipline, onSelected = { discipline = it; if (it != "ROUTE") ropeTeam = false })
-            MeetupGradeAndRopeTeam(gradeMin, gradeMax, { gradeMin = it }, { gradeMax = it }, discipline == "ROUTE", ropeTeam) { ropeTeam = it }
-
-            // Límite
-            FieldLabel(stringResource(R.string.create_meetup_screen_v3_limite_de_participantes_opcional))
-            OutlinedTextField(
-                value = limitText, onValueChange = { limitText = it.filter { c -> c.isDigit() } },
-                placeholder = { Text(stringResource(R.string.create_meetup_no_limit)) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                shape = RoundedCornerShape(4.dp),
-                colors = outlinedColors()
-            )
-
-            // Error
-            createError?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error)
-            }
+            createError?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
         }
-
-        if (showSchoolPicker) {
-            SchoolPickerDialog(
-                results = schoolResults,
-                onQueryChange = { viewModel.searchSchools(it) },
-                onSelect = { school ->
-                    schoolId = school.id
-                    schoolName = school.name
-                    showSchoolPicker = false
-                    viewModel.clearSchoolSearch()
-                },
-                onDismiss = { showSchoolPicker = false; viewModel.clearSchoolSearch() }
-            )
-        }
-
-        if (showGymPicker) {
-            MeetupGymPickerDialog(
-                onSelect = { g -> gymId = g.id; schoolId = ""; schoolName = g.name; showGymPicker = false },
-                onDismiss = { showGymPicker = false }
-            )
-        }
-
-        // Botón crear
+        // SIN navigationBarsPadding: esta pantalla vive dentro del overlay, y el overlay YA reserva abajo la cápsula
+        // de pestañas más la barra del sistema (reservarlo otra vez dejaba un hueco muerto, Redmi Note 12).
         HorizontalDivider()
-        // SIN navigationBarsPadding: esta pantalla vive dentro del overlay, y
-        // el overlay YA reserva abajo la cápsula de pestañas más la barra del
-        // sistema. Reservarlo otra vez aquí dejaba el botón flotando a media
-        // altura, con un hueco muerto debajo (visto en el Redmi Note 12).
-        Box(Modifier.fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface).padding(Spacing.md)) {
-            Button(
-                onClick = {
-                    if (name.isBlank() || (schoolId.isBlank() && gymId == null) || selectedDays.value.isEmpty()) return@Button
-                    submitting = true
-                    val req = CreateMeetupRequest(
-                        schoolId = schoolId.trim(),
-                        name = name.trim(),
-                        description = prefill?.description,
-                        discipline = discipline,
-                        privacy = privacy,
-                        memberLimit = limitText.toIntOrNull(),
-                        photoUrl = photoUrl,
-                        days = selectedDays.value.sorted(),
-                        gymId = gymId,
-                        gradeMin = gradeMin,
-                        gradeMax = gradeMax,
-                        partnersWanted = if (ropeTeam && discipline == "ROUTE") 1 else null
-                    )
-                    viewModel.create(req,
-                        onSuccess = { meetup -> submitting = false; onCreated(meetup.id) },
-                        onError = { submitting = false }
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !submitting && name.isNotBlank() && (schoolId.isNotBlank() || gymId != null) && selectedDays.value.isNotEmpty(),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-            ) {
-                if (submitting) CircularProgressIndicator(Modifier.size(18.dp), color = MaterialTheme.colorScheme.onPrimary)
-                else Text(stringResource(R.string.create_meetup_create))
-            }
-        }
-    }
-}
-
-@Composable
-private fun FieldLabel(text: String) {
-    Text(text, style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-
-@Composable
-private fun DayPickerRow(
-    selected: Set<String>,
-    scores: Map<String, Int> = emptyMap(),
-    onToggle: (String) -> Unit
-) {
-    val days = nextNDays(14)
-    Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-    ) {
-        days.forEach { (label, iso) ->
-            val on = selected.contains(iso)
-            val score = scores[iso]
-            val bg = if (on) MaterialTheme.colorScheme.primaryContainer
-                     else MaterialTheme.colorScheme.surface
-            val fg = if (on) MaterialTheme.colorScheme.onPrimaryContainer
-                     else MaterialTheme.colorScheme.onSurfaceVariant
-            Column(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(bg)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
-                    .clickable { onToggle(iso) }
-                    .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(label.first, style = MaterialTheme.typography.labelSmall, color = fg,
-                    fontWeight = FontWeight.Bold)
-                Text(label.second, style = MaterialTheme.typography.labelSmall, color = fg)
-                if (score != null) {
-                    Spacer(Modifier.height(2.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(scoreColor(score))
-                            .padding(horizontal = 4.dp, vertical = 1.dp)
-                    ) {
-                        Text(
-                            text = "$score",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = androidx.compose.ui.graphics.Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-private fun nextNDays(n: Int): List<Pair<Pair<String, String>, String>> {
-    val result = mutableListOf<Pair<Pair<String, String>, String>>()
-    val dayNames = CalendarLabels.daysShortSunFirst().map { it.uppercase() }
-    // Simple: usamos System.currentTimeMillis para calcular los próximos n días
-    val now = System.currentTimeMillis()
-    val dayMs = 86_400_000L
-    for (i in 0 until n) {
-        val ts = now + i * dayMs
-        val cal = java.util.Calendar.getInstance().apply { timeInMillis = ts }
-        val y = cal.get(java.util.Calendar.YEAR)
-        val mo = cal.get(java.util.Calendar.MONTH) + 1
-        val d = cal.get(java.util.Calendar.DAY_OF_MONTH)
-        val dow = cal.get(java.util.Calendar.DAY_OF_WEEK) - 1
-        val iso = "%04d-%02d-%02d".format(y, mo, d)
-        val label = dayNames[dow] to "%02d/%02d".format(d, mo)
-        result.add(label to iso)
-    }
-    return result
-}
-
-@Composable
-private fun PrivacySelector(selected: String, onSelected: (String) -> Unit) {
-    val openLabel = stringResource(R.string.create_meetup_privacy_open)
-    val followersLabel = stringResource(R.string.create_meetup_privacy_followers)
-    val womenLabel = stringResource(R.string.create_meetup_privacy_women)
-    val options = listOf(
-        "OPEN" to openLabel,
-        "FOLLOWERS" to followersLabel,
-        "WOMEN" to womenLabel
-    )
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        options.forEach { (key, label) ->
-            ToggleChip(label = label, selected = selected == key, onClick = { onSelected(key) })
-        }
-    }
-}
-
-@Composable
-private fun DisciplineSelector(selected: String?, onSelected: (String?) -> Unit) {
-    val options = listOf(
-        null to stringResource(R.string.w_any),
-        "BOULDER" to stringResource(R.string.w_boulder),
-        "ROUTE" to stringResource(R.string.school_map_v3_via),
-        "BOTH" to stringResource(R.string.w_both)
-    )
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        options.forEach { (key, label) ->
-            ToggleChip(label = label, selected = selected == key, onClick = { onSelected(key) })
-        }
-    }
-}
-
-@Composable
-private fun ToggleChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val bg = if (selected) MaterialTheme.colorScheme.primaryContainer
-             else MaterialTheme.colorScheme.surface
-    val fg = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-             else MaterialTheme.colorScheme.onSurfaceVariant
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(bg)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        if (selected) Icon(Icons.Outlined.Check, null, Modifier.size(12.dp), tint = fg)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = fg,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
-    }
-}
-
-@Composable
-private fun outlinedColors() = TextFieldDefaults.colors(
-    focusedContainerColor = MaterialTheme.colorScheme.surface,
-    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-)
-
-@Composable
-private fun SchoolPickerDialog(
-    results: List<School>,
-    onQueryChange: (String) -> Unit,
-    onSelect: (School) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var query by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.create_meetup_screen_v2_buscar_escuela), style = MaterialTheme.typography.titleMedium) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it; onQueryChange(it) },
-                    placeholder = { Text(stringResource(R.string.create_meetup_screen_v2_ej_zarzalejo_pedriza)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(4.dp),
-                    colors = outlinedColors()
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (step > 1) GymActionPill(stringResource(R.string.mw_back), { step -= 1 }, Modifier.weight(0.45f))
+            if (step < LAST_STEP) {
+                GymActionPill(
+                    stringResource(R.string.mw_next), { step += 1 }, Modifier.weight(1f), primary = true,
+                    enabled = draft.canAdvance(step)
                 )
-                if (results.isNotEmpty()) {
-                    LazyColumn(modifier = Modifier.heightIn(max = 240.dp)) {
-                        items(results.distinctBy { it.id }, key = { it.id }) { school ->
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onSelect(school) }
-                                    .padding(vertical = 10.dp, horizontal = 4.dp)
-                            ) {
-                                Text(school.name, style = MaterialTheme.typography.bodyMedium)
-                                school.location?.let {
-                                    Text(it, style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }
-                            HorizontalDivider()
-                        }
-                    }
-                } else if (query.length >= 2) {
-                    Text(stringResource(R.string.create_meetup_screen_v2_sin_resultados), style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+            } else {
+                GymActionPill(
+                    if (submitting) "…" else stringResource(R.string.create_meetup_create), enabled = !submitting && draft.canAdvance(1),
+                    onClick = {
+                        submitting = true
+                        viewModel.create(
+                            draft.toRequest(defaultName),
+                            onSuccess = { meetup -> submitting = false; onCreated(meetup.id) },
+                            onError = { submitting = false }
+                        )
+                    },
+                    modifier = Modifier.weight(1f), primary = true
+                )
             }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
         }
-    )
+    }
 }
-

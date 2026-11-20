@@ -33,6 +33,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -85,7 +88,7 @@ fun SchoolListItem(
     modifier: Modifier = Modifier
 ) {
     val value = range?.combinedScore ?: todayScore
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(20.dp)
     // Lo que ACABAS de tocar en la ficha manda sobre lo que trajo el catálogo (Álvaro, 2026-09-05).
     val overrides by com.meteomontana.android.domain.util.ProcessionaryOverrideStore.observe()
         .collectAsState(initial = com.meteomontana.android.domain.util.ProcessionaryOverrideStore.currentValue())
@@ -94,19 +97,17 @@ fun SchoolListItem(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            // Propuesta A (Álvaro): tarjeta blanca con sombra suave, sin borde gris (solo al elegir para comparar).
+            .shadow(2.dp, shape, ambientColor = Color(0x22000000), spotColor = Color(0x22000000))
             .clip(shape)
             .background(schoolCardBg())
-            .border(
-                if (selectedForCompare) 2.dp else 1.dp,
-                if (selectedForCompare) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
-                shape
-            )
+            .let { if (selectedForCompare) it.border(2.dp, MaterialTheme.colorScheme.primary, shape) else it }
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ScoreRing(value)
+            ScoreRing(value, wet = range == null && dry == false)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     // Nombre + iconos ocupan todo lo que sobra: la estrella queda pegada a la derecha (como iOS).
@@ -150,7 +151,7 @@ fun SchoolListItem(
                         Text(meta, fontSize = 12.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                     }
                     if (range == null && dry != null) {
-                        val c = if (dry) okColor() else MaterialTheme.colorScheme.error
+                        val c = if (dry) okColor() else rainBlue()
                         SoftPill(
                             stringResource(if (dry) R.string.schools_card_dry_rock else R.string.schools_card_wet_rock),
                             c, c.copy(alpha = 0.14f)
@@ -173,7 +174,12 @@ fun SchoolListItem(
 /** Fondo de las tarjetas: un punto más claro que el fondo de la pantalla (espejo de iOS 0xFBFAF6 / 0x211F19). */
 @Composable
 private fun schoolCardBg(): Color =
-    if (MaterialTheme.colorScheme.background.luminance() > 0.5f) Color(0xFFFBFAF6) else Color(0xFF211F19)
+    if (MaterialTheme.colorScheme.background.luminance() > 0.5f) Color.White else Color(0xFF211F19)
+
+/** Azul de lluvia (claro u oscuro según el tema). */
+@Composable
+internal fun rainBlue(): Color =
+    if (MaterialTheme.colorScheme.background.luminance() > 0.5f) com.meteomontana.android.ui.theme.RainBlue else com.meteomontana.android.ui.theme.RainBlueDark
 
 @Composable
 internal fun cumbrePillBg(): Color =
@@ -205,27 +211,29 @@ private fun SoftPill(text: String, fg: Color, bg: Color) {
 
 /** La nota en un anillo que se llena con su color (sin nota: anillo vacío y «—»). */
 @Composable
-internal fun ScoreRing(score: Int?) {
-    val color = score?.let { scoreColor(it) } ?: MaterialTheme.colorScheme.onSurfaceVariant
+internal fun ScoreRing(score: Int?, wet: Boolean = false, diameter: Dp = 58.dp) {
+    // Mojada: anillo azul entero con una gota en el centro (no número); la lista dice «Mojada» al lado.
+    val color = if (wet) rainBlue() else score?.let { scoreColor(it) } ?: MaterialTheme.colorScheme.onSurfaceVariant
     val track = cumbrePillBg()
     val label = score?.let { "$it, ${CatalogLabels.scoreLabel(it)}" } ?: stringResource(R.string.schools_card_no_score)
     Box(
-        Modifier.size(58.dp).semantics { contentDescription = label },
+        Modifier.size(diameter).semantics { contentDescription = label },
         contentAlignment = Alignment.Center
     ) {
-        Canvas(Modifier.size(52.dp)) {
-            val stroke = 6.dp.toPx()
+        Canvas(Modifier.size(diameter * 0.9f)) {
+            val stroke = diameter.toPx() * 0.103f
             val inset = stroke / 2
             val arcSize = Size(size.width - stroke, size.height - stroke)
             drawArc(track, 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(stroke))
-            if (score != null) {
-                val sweep = 360f * score.coerceIn(2, 100) / 100f
+            if (score != null || wet) {
+                val sweep = if (wet) 360f else 360f * score!!.coerceIn(2, 100) / 100f
                 drawArc(color, -90f, sweep, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
             }
         }
-        Text(
+        if (wet) Icon(Icons.Filled.WaterDrop, null, tint = color, modifier = Modifier.size(diameter * 0.42f))
+        else Text(
             score?.toString() ?: "—",
-            style = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 21.sp),
+            style = TextStyle(fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = (diameter.value * 0.362f).sp),
             color = color
         )
     }

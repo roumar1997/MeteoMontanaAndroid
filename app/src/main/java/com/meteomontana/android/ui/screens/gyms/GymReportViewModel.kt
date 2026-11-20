@@ -34,10 +34,13 @@ class GymReportViewModel @Inject constructor(
 
     fun reset() { _status.value = ReportStatus.IDLE }
 
-    fun sendCorrection(gymId: Long, issues: Set<GymReportIssue>, comment: String, photoUri: String?) {
+    fun sendCorrection(
+        gymId: Long, issues: Set<GymReportIssue>, comment: String, photoUri: String?,
+        scale: com.meteomontana.android.domain.model.gym.GymScale? = null
+    ) {
         send(photoUri) { url ->
             submitCorrection.execute(
-                GymCorrection(gymId, issues.toList(), comment.trim().ifEmpty { null }, url)
+                GymCorrection(gymId, issues.toList(), comment.trim().ifEmpty { null }, url, scale)
             )
         }
     }

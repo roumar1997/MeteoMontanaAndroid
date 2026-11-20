@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.profile
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -58,12 +59,20 @@ class GymStatsViewModel @Inject constructor(
 }
 
 @Composable
-internal fun GymStatsCard(modifier: Modifier = Modifier, viewModel: GymStatsViewModel = hiltViewModel()) {
+internal fun GymStatsCard(modifier: Modifier = Modifier, onClick: () -> Unit = {}, visible: Boolean = true, viewModel: GymStatsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    LaunchedEffect(Unit) { viewModel.refresh() }
+    // Perfil es una pestaña que se queda viva: sin la clave `visible`, la tarjeta se quedaba con lo del primer arranque
+    // y «He entrenado aquí hoy» no se veía al volver al perfil.
+    LaunchedEffect(visible) { if (visible) viewModel.refresh() }
     val s = state.stats
-    Column(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(stringResource(R.string.gym_stats_title).uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary)
+    Column(
+        modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Text(stringResource(R.string.gym_stats_title).uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.gym_train_open) + " ›", style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         if (s.isEmpty) {
             Text(stringResource(R.string.gym_stats_empty), fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             return@Column

@@ -69,7 +69,11 @@ data class Gym(
     val hidden: Boolean,
     val updatedAt: String?,
     /** Cerrado de forma permanente (lo manda el servidor). No sale en la lista salvo con `GymFilters.showClosed`. */
-    val closed: Boolean = false
+    val closed: Boolean = false,
+    /** Telefono de la ficha (texto libre); null si no se conoce. */
+    val phone: String? = null,
+    /** Escala de dificultad del rocodromo (colores o grados); null si no se conoce. */
+    val scale: GymScale? = null
 ) {
     val isFree: Boolean get() = kind == GymKind.FREE || priceSingleEur == 0.0
 

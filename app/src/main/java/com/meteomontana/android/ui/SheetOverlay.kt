@@ -226,7 +226,8 @@ private fun SheetNavHost(
                             onOpenMaxGrade = { sheetNav.navigate(Routes.journalEntries("grade-max")) },
                             onOpenProjects = { sheetNav.navigate(Routes.projects(null)) },
                             onOpenMyPosts = { sheetNav.navigate(Routes.myPosts()) },
-                            onOpenStats = { sheetNav.navigate(Routes.journalStats()) }
+                            onOpenStats = { sheetNav.navigate(Routes.journalStats()) },
+                            onOpenGymTraining = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.TRAINING) }
                         )
                     }
                     // C4: MIS ESTADISTICAS (piramide, racha, progresion).

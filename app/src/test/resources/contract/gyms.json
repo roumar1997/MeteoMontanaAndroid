@@ -9,7 +9,12 @@
       "priceSingleEur": 12.5, "pricePassEur": 45, "pricePassLabel": "Bono 10 entradas",
       "priceUpdatedAt": "2026-11-01", "hasAutobelay": true, "hasGearRental": true,
       "kidsFriendly": true, "beginnerFriendly": true, "outdoor": false, "verification": "VERIFIED",
-      "source": "OpenStreetMap node1", "hidden": false, "closed": false, "updatedAt": "2026-11-19T10:00:00Z"
+      "source": "OpenStreetMap node1", "hidden": false, "closed": false,
+      "phone": "+34 645 511 702",
+      "scale": {"type": "COLORS", "levels": [
+        {"name": "blanco", "hex": "#FFFFFF", "gradeFrom": null, "gradeTo": null},
+        {"name": "verde", "hex": "#2E9E4F", "gradeFrom": "5a", "gradeTo": "5c"}]},
+      "updatedAt": "2026-11-19T10:00:00Z"
     }
   ],
   "nulls": [
@@ -21,7 +26,8 @@
       "priceSingleEur": null, "pricePassEur": null, "pricePassLabel": null,
       "priceUpdatedAt": null, "hasAutobelay": null, "hasGearRental": null,
       "kidsFriendly": null, "beginnerFriendly": null, "outdoor": true, "verification": "UNCONFIRMED",
-      "source": null, "hidden": false, "closed": true, "updatedAt": "2026-11-19T10:00:00Z"
+      "source": null, "hidden": false, "closed": true,
+      "phone": null, "scale": null, "updatedAt": "2026-11-19T10:00:00Z"
     }
   ]
 }

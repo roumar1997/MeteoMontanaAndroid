@@ -101,15 +101,8 @@ internal fun ExploreGroupHeader(
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(width = 40.dp, height = 28.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(color.copy(alpha = 0.12f))
-                    .border(1.dp, color, RoundedCornerShape(50)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(score?.toString() ?: "—", style = MaterialTheme.typography.titleMedium.copy(fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold), color = color)
-            }
+            // El mismo anillo de progreso de la lista de Escuelas (rellena según la nota).
+            com.meteomontana.android.ui.components.ScoreRing(score, wet = dry == false, diameter = 44.dp)
             Spacer(Modifier.size(Spacing.sm))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

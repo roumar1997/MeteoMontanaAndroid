@@ -68,6 +68,8 @@ internal fun GymInfoSections(gym: Gym) {
         disciplines.forEach { GymTag(it, gymDisciplineColor()) }
     }
 
+    gym.scale?.let { GymScaleSection(it) }
+
     SectionLabel(stringResource(R.string.gym_section_hours), R.drawable.ic_clock)
     val hours = GymPresentation.hoursLines(gym.openingHours)
     if (hours.isEmpty()) Text(stringResource(R.string.gym_hours_unknown), fontSize = 14.sp, color = muted)
@@ -88,12 +90,38 @@ internal fun GymInfoSections(gym: Gym) {
         ServiceRow(R.drawable.ic_kids, R.string.gym_service_kids, gym.kidsFriendly)
         ServiceRow(R.drawable.ic_beginner, R.string.gym_service_beginner, gym.beginnerFriendly)
     }
+    }
+}
 
-    Text(
-        GymPresentation.verificationText(gym.verification), fontSize = 12.sp, color = muted,
-        fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = Spacing.md)
-    )
-    if (gym.needsOsmAttribution) Text(stringResource(R.string.gym_osm), fontSize = 11.sp, color = muted)
+/** Escala de dificultad del rocódromo: bolitas de color de fácil a difícil, o «Por grado». */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun GymScaleSection(scale: com.meteomontana.android.domain.model.gym.GymScale) {
+    Column {
+        SectionLabel(stringResource(R.string.gym_section_scale))
+        if (scale.isColors) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                scale.levels.forEach { lv ->
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Box(Modifier.size(22.dp).clip(CircleShape).background(parseHex(lv.hex))
+                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
+                        Text(lv.name.replaceFirstChar { it.uppercase() }, fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground)
+                    }
+                }
+            }
+            Text(stringResource(R.string.gym_scale_easy_hard), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp))
+        } else Text(stringResource(R.string.gym_train_by_grade), fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+    }
+}
+
+/** Lo último de la ficha, pequeño y discreto: fiabilidad del dato y el crédito de OpenStreetMap (ODbL). */
+@Composable
+internal fun GymFooterNotes(gym: Gym) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(Modifier.fillMaxWidth().padding(top = Spacing.lg), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(GymPresentation.verificationText(gym.verification), fontSize = 11.sp, color = muted)
+        Text(stringResource(R.string.gym_osm_credit), fontSize = 10.sp, color = muted.copy(alpha = 0.8f))
     }
 }
 

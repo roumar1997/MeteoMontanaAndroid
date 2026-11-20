@@ -17,6 +17,9 @@ import com.meteomontana.android.ui.screens.meetups.MeetupPrefill
 object GymNav {
     const val DETAIL = "gyms/{gymId}"
     fun detail(id: Long) = "gyms/$id"
+    const val TRAINING = "gym-training"
+    const val CHAT = "gyms/{gymId}/chat?name={name}"
+    fun chat(id: Long, name: String) = "gyms/$id/chat?name=${android.net.Uri.encode(name)}"
     const val MEETUP = "gyms/{gymId}/meetup?name={name}"
     fun meetup(id: Long, name: String) = "gyms/$id/meetup?name=${android.net.Uri.encode(name)}"
 }
@@ -29,7 +32,25 @@ fun NavGraphBuilder.gymRoutes(sheetNav: NavHostController, popSheetOrDismiss: ()
         val gymId = entry.arguments?.getString("gymId")?.toLongOrNull() ?: -1L
         GymDetailScreen(
             onBack = popSheetOrDismiss,
-            onCreateMeetup = { gym -> sheetNav.navigate(GymNav.meetup(gymId, gym.name)) }
+            onCreateMeetup = { gym -> sheetNav.navigate(GymNav.meetup(gymId, gym.name)) },
+            onOpenChat = { gym -> sheetNav.navigate(GymNav.chat(gymId, gym.name)) }
+        )
+    }
+    composable(GymNav.TRAINING) { GymTrainingScreen(onBack = popSheetOrDismiss) }
+    composable(
+        route = GymNav.CHAT,
+        arguments = listOf(
+            navArgument("gymId") { type = NavType.StringType },
+            navArgument("name") { type = NavType.StringType; defaultValue = "" }
+        )
+    ) { entry ->
+        GymChatScreen(
+            gymId = entry.arguments?.getString("gymId")?.toLongOrNull() ?: -1L,
+            gymName = entry.arguments?.getString("name").orEmpty(),
+            myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "",
+            onBack = popSheetOrDismiss,
+            onOpenChat = { uid -> sheetNav.navigate(Routes.chat(uid)) },
+            bottomInset = com.meteomontana.android.ui.components.LocalTabBarInset.current
         )
     }
     composable(

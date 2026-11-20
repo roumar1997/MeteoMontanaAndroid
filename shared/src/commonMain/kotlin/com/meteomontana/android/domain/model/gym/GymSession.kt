@@ -12,7 +12,17 @@ enum class GymSessionSource {
 }
 
 /** Un dia entrenado en un rocodromo. Como mucho una por rocodromo y dia (marcar dos veces no duplica). */
-data class GymSession(val gymId: Long, val date: LocalDate, val source: GymSessionSource = GymSessionSource.MANUAL)
+data class GymSession(
+    val gymId: Long,
+    val date: LocalDate,
+    val source: GymSessionSource = GymSessionSource.MANUAL,
+    /** Id del servidor; 0 mientras la sesion solo existe en el movil. */
+    val id: Long = 0,
+    /** Lo hecho ese dia por color o grado (vacio si no se apunto nada). */
+    val ascents: List<GymAscent> = emptyList()
+) {
+    val totalAscents: Int get() = ascents.sumOf { it.count }
+}
 
 /**
  * Resumen de entrenos para la tarjeta «Rocodromo» del perfil. [streakWeeks] cuenta semanas seguidas (lunes a

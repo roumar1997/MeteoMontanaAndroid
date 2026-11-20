@@ -25,11 +25,24 @@ data class Meetup(
     val members: List<MeetupMember>,
     val joined: Boolean,
     val gymId: Long? = null,    // rocodromo; null = escuela
-    val placeName: String? = null
+    val placeName: String? = null,
+    /** Grado orientativo (rango, minusculas); null si no se indico. */
+    val gradeMin: String? = null,
+    val gradeMax: String? = null,
+    /** Cuantos compañeros se buscan (1 = cordada); null si no se indico. */
+    val partnersWanted: Int? = null,
+    /** Material minimo que pide la quedada y cuanto cubren ya los apuntados. */
+    val requiredGear: List<MeetupGear> = emptyList(),
+    val gearCoverage: List<MeetupGearCoverage> = emptyList()
 ) {
     val isGymMeetup: Boolean get() = gymId != null
 
     val isFull: Boolean get() = memberLimit != null && memberCount >= memberLimit
+
+    /** Hay material pedido que aun no cubre nadie del todo. */
+    val gearMissing: Boolean get() = gearCoverage.any { !it.ok }
+
+    val isRopeTeam: Boolean get() = discipline == "ROUTE" && partnersWanted == 1
 
     // Alias para Swift: `description` choca con NSObject.description vía SKIE.
     val descriptionText: String? get() = description
@@ -53,9 +66,11 @@ data class CreateMeetupRequest(
     val photoUrl: String?,
     val days: List<String>,     // ISO dates
     val gymId: Long? = null,    // rocodromo (entonces schoolId va en blanco)
-    /** Grado orientativo (rango, opcional). Contrato pendiente en el servidor: docs/rocodromos/BACKEND-PENDIENTE.md. */
+    /** Grado orientativo (rango frances, opcional). */
     val gradeMin: String? = null,
     val gradeMax: String? = null,
-    /** Cordada: cuantas personas se buscan (1 = cordada, solo para vias). */
-    val partnersWanted: Int? = null
+    /** Cuantos se buscan (1 a 20; 1 = cordada). No sustituye a [memberLimit]. */
+    val partnersWanted: Int? = null,
+    /** Material minimo (max. 4): cuerda, gri-gri, cintas con cantidad, crashpads. */
+    val requiredGear: List<MeetupGear> = emptyList()
 )

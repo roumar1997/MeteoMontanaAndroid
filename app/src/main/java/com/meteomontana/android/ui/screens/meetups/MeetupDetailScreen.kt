@@ -355,12 +355,12 @@ fun MeetupDetailScreen(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
-                                meetup.discipline?.let {
-                                    Text("· ${disciplineLabel(it)}", style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
                             }
                         }
+                    }
+
+                    item {
+                        MeetupFacts(meetup, canChat = isCreator || meetup.joined, onOpenChat = { onOpenChat(meetup.conversationId) })
                     }
 
                     // ── Descripción ──

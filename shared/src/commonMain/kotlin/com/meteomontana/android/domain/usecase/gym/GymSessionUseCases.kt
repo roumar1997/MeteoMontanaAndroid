@@ -1,9 +1,15 @@
 package com.meteomontana.android.domain.usecase.gym
 
+import com.meteomontana.android.domain.model.gym.GymAscent
+import com.meteomontana.android.domain.model.gym.GymAscentStats
 import com.meteomontana.android.domain.model.gym.GymSession
 import com.meteomontana.android.domain.model.gym.GymSessionSource
 import com.meteomontana.android.domain.model.gym.GymStats
 import com.meteomontana.android.domain.model.gym.GymStatsCalculator
+import com.meteomontana.android.domain.model.gym.GymTraining
+import com.meteomontana.android.domain.model.gym.GymTrainingPeriod
+import com.meteomontana.android.domain.model.gym.GymTrainingSummary
+import kotlinx.datetime.LocalDate
 import com.meteomontana.android.domain.repository.GymSessionRepository
 
 /** «He entrenado aqui hoy»: apunta (o quita) el dia de hoy en un rocodromo. Idempotente. */
@@ -29,4 +35,24 @@ class GetGymStatsUseCase(private val repo: GymSessionRepository) {
 
     @Throws(Exception::class)
     suspend fun refresh(): GymStats = GymStatsCalculator.compute(repo.refresh(), repo.today())
+}
+
+/** Pantalla «Entrenos»: sesiones del periodo (Semana/Mes/Año), lo hecho por color o grado y sus estadísticas. */
+class GymTrainingUseCase(private val repo: GymSessionRepository) {
+    fun today(): LocalDate = repo.today()
+
+    /** Sesiones del periodo al instante, desde el móvil (sin red). */
+    fun summary(period: GymTrainingPeriod, date: LocalDate): GymTrainingSummary = GymTraining.summary(repo.sessions(), period, date)
+
+    @Throws(Exception::class)
+    suspend fun refresh() { repo.refresh() }
+
+    /** Apunta lo hecho en la sesión de ese día (sustituye lo anterior) y devuelve la sesión. */
+    @Throws(Exception::class)
+    suspend fun saveAscents(gymId: Long, date: LocalDate, ascents: List<GymAscent>): GymSession =
+        repo.saveAscents(gymId, date, ascents)
+
+    @Throws(Exception::class)
+    suspend fun ascentStats(uid: String, period: GymTrainingPeriod, date: LocalDate, gymId: Long?): GymAscentStats =
+        repo.ascentStats(uid, period, date, gymId)
 }

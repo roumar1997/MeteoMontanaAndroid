@@ -94,6 +94,8 @@ import com.meteomontana.android.ui.theme.Serif
 internal fun MarkerPreviewCard(
     school: School,
     score: Int?,
+    wet: Boolean = false,
+    onFix: () -> Unit = {},
     userLat: Double?,
     userLon: Double?,
     onClose: () -> Unit,
@@ -115,7 +117,7 @@ internal fun MarkerPreviewCard(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ScoreRing(score)
+            ScoreRing(score, wet = wet)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text(
                     school.name, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 21.sp,
@@ -155,6 +157,11 @@ internal fun MarkerPreviewCard(
             )
             GymActionPill(stringResource(R.string.schools_map_panel_v3_ver_detalle), onSchoolDetail, Modifier.weight(1f))
         }
+        // Corregir o aportar sobre esta escuela: abre la hoja «Aportar» de siempre.
+        Text(
+            stringResource(R.string.schools_card_fix), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = muted,
+            modifier = Modifier.align(Alignment.CenterHorizontally).clip(CircleShape).clickable(onClick = onFix).padding(horizontal = 14.dp, vertical = 6.dp)
+        )
     }
 }
 

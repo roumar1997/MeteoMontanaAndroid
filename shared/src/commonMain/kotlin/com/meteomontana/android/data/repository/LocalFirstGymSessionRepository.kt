@@ -1,10 +1,17 @@
 package com.meteomontana.android.data.repository
 
 import com.meteomontana.android.data.api.KtorGymSessionApi
+import com.meteomontana.android.data.api.dto.GymAscentStatsDto
+import com.meteomontana.android.data.api.dto.GymAscentsRequestDto
 import com.meteomontana.android.data.api.dto.GymSessionDto
 import com.meteomontana.android.data.api.dto.toDomainOrNull
+import com.meteomontana.android.data.api.dto.toDomainOrNull
 import com.meteomontana.android.data.api.dto.toDto
+import com.meteomontana.android.domain.model.gym.GymAscent
+import com.meteomontana.android.domain.model.gym.GymAscentStats
 import com.meteomontana.android.domain.model.gym.GymSession
+import com.meteomontana.android.domain.model.gym.GymTraining
+import com.meteomontana.android.domain.model.gym.GymTrainingPeriod
 import com.meteomontana.android.domain.model.gym.GymSessionSource
 import com.meteomontana.android.domain.port.KeyValueStore
 import com.meteomontana.android.domain.repository.GymSessionRepository
@@ -61,10 +68,43 @@ class LocalFirstGymSessionRepository(
         } catch (_: Exception) {
             return load()
         }
-        val merged = (load() + remote).distinctBy { it.gymId to it.date }
+        val local = load()
+        // El servidor manda (tiene el id); lo apuntado en el movil que aun no ha subido no se pierde.
+        val merged = remote.map { r ->
+            val l = local.firstOrNull { it.gymId == r.gymId && it.date == r.date }
+            if (l != null && r.ascents.isEmpty() && l.ascents.isNotEmpty()) r.copy(ascents = l.ascents) else r
+        } + local.filter { l -> remote.none { it.gymId == l.gymId && it.date == l.date } }
         save(merged)
         return merged
     }
+
+    override suspend fun saveAscents(gymId: Long, date: LocalDate, ascents: List<GymAscent>): GymSession {
+        val clean = ascents.filter { it.count > 0 }
+        val existing = load().firstOrNull { it.gymId == gymId && it.date == date } ?: GymSession(gymId, date)
+        var updated = existing.copy(ascents = clean)
+        save(load().filterNot { it.gymId == gymId && it.date == date } + updated)
+        try {
+            // Una sesion de hoy que solo existe en el movil se da de alta primero (idempotente) para tener su id.
+            val id = existing.id.takeIf { it != 0L } ?: if (date == today()) api.checkInToday(gymId).id else 0L
+            if (id != 0L) {
+                val remote = api.putAscents(id, GymAscentsRequestDto(clean.map { it.toDto() })).toDomainOrNull()
+                updated = updated.copy(id = id, ascents = remote?.ascents ?: clean)
+                save(load().filterNot { it.gymId == gymId && it.date == date } + updated)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) { /* sin red o sin ruta: queda en el movil y se sube al refrescar */ }
+        return updated
+    }
+
+    override suspend fun ascentStats(uid: String, period: GymTrainingPeriod, date: LocalDate, gymId: Long?): GymAscentStats =
+        try {
+            api.ascentStats(uid, period.name, date.toString(), gymId).toDomainOrNull()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        } ?: GymTraining.stats(load(), period, date, gymId)
 
     private fun load(): List<GymSession> {
         val raw = runCatching { store.getString(KEY) }.getOrNull() ?: return emptyList()

@@ -1,6 +1,14 @@
 {
   "session": {
-    "id": 11, "gymId": 5, "date": "2026-11-19", "startedAt": "2026-11-19T18:00:00Z", "source": "MANUAL"
+    "id": 11, "gymId": 5, "date": "2026-11-19", "startedAt": "2026-11-19T18:00:00Z", "source": "MANUAL",
+    "ascents": [{"key": "verde", "count": 5}, {"key": "azul", "count": 2}]
+  },
+  "sessionEmpty": {
+    "id": 12, "gymId": 5, "date": "2026-11-18", "startedAt": "2026-11-18T18:00:00Z", "source": "PRESENCE", "ascents": []
+  },
+  "ascentStats": {
+    "period": "WEEK", "from": "2026-11-16", "to": "2026-11-22", "sessions": 2, "total": 7,
+    "items": [{"key": "verde", "count": 5}, {"key": "azul", "count": 2}]
   },
   "stats": {
     "year": 2026, "sessionsThisWeek": 1, "sessionsThisMonth": 4, "sessionsThisYear": 31,

@@ -1,6 +1,8 @@
 package com.meteomontana.android.data.api.dto
 
 import com.meteomontana.android.domain.model.Meetup
+import com.meteomontana.android.domain.model.MeetupGear
+import com.meteomontana.android.domain.model.MeetupGearCoverage
 import com.meteomontana.android.domain.model.MeetupMember
 
 fun MeetupDto.toDomain(): Meetup = Meetup(
@@ -27,7 +29,12 @@ fun MeetupDto.toDomain(): Meetup = Meetup(
     members = members.map { it.toDomain() },
     joined = joined,
     gymId = gymId,
-    placeName = placeName
+    placeName = placeName,
+    gradeMin = gradeMin,
+    gradeMax = gradeMax,
+    partnersWanted = partnersWanted,
+    requiredGear = requiredGear.map { MeetupGear(it.item, it.qty) },
+    gearCoverage = gearCoverage.map { MeetupGearCoverage(it.item, it.required, it.provided, it.ok) }
 )
 
 fun MeetupMemberDto.toDomain() = MeetupMember(

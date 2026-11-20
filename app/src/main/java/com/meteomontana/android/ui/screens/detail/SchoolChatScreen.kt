@@ -407,7 +407,7 @@ private fun MarkHereNotice(compact: Boolean) {
 }
 
 @Composable
-private fun MessageBubble(
+internal fun MessageBubble(
     message: SchoolChatService.Message,
     isMine: Boolean,
     isPresent: Boolean,

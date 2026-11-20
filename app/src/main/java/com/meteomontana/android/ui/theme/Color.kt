@@ -129,3 +129,7 @@ val GymMunicipalFillDark = Color(0xFF2B64C4)
 val GymMunicipalTextDark = Color(0xFF7BA3EE)
 val GymFree              = Ok
 val GymFreeFillDark      = Color(0xFF3F6B4A)
+
+/** Azul de «roca mojada» (anillo, gota y etiqueta MOJADA de escuelas); en oscuro se aclara para leerse. */
+val RainBlue = Color(0xFF2563C7)
+val RainBlueDark = Color(0xFF7BA3EE)

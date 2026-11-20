@@ -6,6 +6,7 @@ enum class GymReportIssue(val code: String) {
     IS_PAID("IS_PAID"),
     IS_BOULDER("IS_BOULDER"),
     IS_ROPE("IS_ROPE"),
+    SCALE("SCALE"),
     CLOSED("CLOSED"),
     WRONG_LOCATION("WRONG_LOCATION"),
     OTHER("OTHER");
@@ -46,7 +47,8 @@ data class GymReport(
     val photoUrl: String?,
     val proposed: GymProposal?,
     val status: GymReportStatus,
-    val createdAt: String
+    val createdAt: String,
+    val scale: GymScale? = null
 )
 
 /** Correccion de una ficha. */
@@ -54,7 +56,9 @@ data class GymCorrection(
     val gymId: Long,
     val issues: List<GymReportIssue>,
     val comment: String?,
-    val photoUrl: String?
+    val photoUrl: String?,
+    /** Escala propuesta (issue SCALE): van las dos cosas juntas o el servidor contesta 400. */
+    val scale: GymScale? = null
 )
 
 /** Alta de un muro nuevo: nombre y punto en el mapa; el resto opcional. */

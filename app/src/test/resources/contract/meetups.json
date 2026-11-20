@@ -14,7 +14,10 @@
          "photoUrl": "https://x/foto.jpg", "gearJson": "{\"crashpads\":2}"}
       ],
       "joined": true,
-      "gymId": 12, "placeName": "Zarzalejo"
+      "gymId": 12, "placeName": "Zarzalejo",
+      "gradeMin": "6a", "gradeMax": "6c", "partnersWanted": 2,
+      "requiredGear": [{"item": "ROPE", "qty": 1}, {"item": "QUICKDRAWS", "qty": 12}],
+      "gearCoverage": [{"item": "ROPE", "required": 1, "provided": 1, "ok": true}, {"item": "QUICKDRAWS", "required": 12, "provided": 6, "ok": false}]
     }
   ],
   "nulls": [
@@ -31,7 +34,9 @@
         {"uid": "uid456", "username": null, "displayName": null, "photoUrl": null, "gearJson": null}
       ],
       "joined": false,
-      "gymId": null, "placeName": null
+      "gymId": null, "placeName": null,
+      "gradeMin": null, "gradeMax": null, "partnersWanted": null,
+      "requiredGear": [], "gearCoverage": []
     }
   ]
 }

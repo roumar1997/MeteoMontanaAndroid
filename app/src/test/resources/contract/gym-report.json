@@ -3,11 +3,20 @@
     "id": 9, "gymId": 5, "gymName": "Sputnik Madrid", "authorUid": "uid123", "kind": "CORRECTION",
     "issues": ["IS_FREE", "CLOSED"], "comment": "Es gratis", "photoUrl": "https://x/gym.jpg",
     "proposed": {"name": "Muro nuevo", "lat": 40.1, "lon": -3.2, "kind": "FREE", "discipline": "BOULDER", "outdoor": true},
+    "scale": null,
+    "status": "PENDING", "createdAt": "2026-11-19T10:00:00Z"
+  },
+  "scale": {
+    "id": 11, "gymId": 5, "gymName": "Sputnik Madrid", "authorUid": "uid789", "kind": "CORRECTION",
+    "issues": ["SCALE"], "comment": null, "photoUrl": null, "proposed": null,
+    "scale": {"type": "COLORS", "levels": [
+      {"name": "verde", "hex": "#2E9E4F", "gradeFrom": "5a", "gradeTo": "5c"},
+      {"name": "azul", "hex": "#1F6FD1", "gradeFrom": "6a", "gradeTo": null}]},
     "status": "PENDING", "createdAt": "2026-11-19T10:00:00Z"
   },
   "nulls": {
     "id": 10, "gymId": null, "gymName": null, "authorUid": "uid456", "kind": "NEW_GYM",
-    "issues": [], "comment": null, "photoUrl": null, "proposed": null,
+    "issues": [], "comment": null, "photoUrl": null, "proposed": null, "scale": null,
     "status": "REJECTED", "createdAt": "2026-11-19T10:00:00Z"
   }
 }

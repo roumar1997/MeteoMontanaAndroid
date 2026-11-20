@@ -60,6 +60,7 @@ import com.meteomontana.android.domain.util.Geo as GeoUtil
 fun GymDetailScreen(
     onBack: () -> Unit,
     onCreateMeetup: (Gym) -> Unit,
+    onOpenChat: (Gym) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: GymDetailViewModel = hiltViewModel()
 ) {
@@ -109,9 +110,11 @@ fun GymDetailScreen(
                     stringResource(R.string.gym_train_undo), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.align(Alignment.CenterHorizontally).clickable(onClick = viewModel::toggleTraining).padding(Spacing.sm)
                 )
+                GymActionPill(stringResource(R.string.gym_chat_open), { onOpenChat(gym) }, Modifier.fillMaxWidth())
                 GymActionPill(
                     stringResource(R.string.gym_create_meetup), { onCreateMeetup(gym) }, Modifier.fillMaxWidth()
                 )
+                GymPhotoContribute(gym)
                 Box(
                     Modifier.fillMaxWidth().padding(top = Spacing.md).clip(CircleShape)
                         .border(androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant), CircleShape)
@@ -121,6 +124,7 @@ fun GymDetailScreen(
                     Text(stringResource(R.string.gym_fix_cta), fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                 }
+                GymFooterNotes(gym)
             }
         }
     }
@@ -148,17 +152,28 @@ private fun GymHeader(gym: Gym, distanceKm: Double?) {
 /** «Cómo llegar» (primaria), «Web» e «Instagram» si la ficha los trae. */
 @Composable
 private fun GymActions(gym: Gym, ctx: Context) {
-    Row(Modifier.fillMaxWidth().padding(top = Spacing.xs), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        GymActionPill(stringResource(R.string.gym_directions), { openDirections(ctx, gym.lat, gym.lon, gym.name) }, Modifier.weight(1f),
-            primary = true, icon = R.drawable.ic_directions)
-        gym.website?.takeIf { it.isNotBlank() }?.let { site ->
-            GymActionPill(stringResource(R.string.gym_web), { openUrl(ctx, webUrl(site)) }, Modifier.weight(1f))
+    val phone = gym.phone?.takeIf { it.isNotBlank() }
+    Column(Modifier.fillMaxWidth().padding(top = Spacing.xs), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GymActionPill(stringResource(R.string.gym_directions), { openDirections(ctx, gym.lat, gym.lon, gym.name) }, Modifier.weight(1f),
+                primary = true, icon = R.drawable.ic_directions)
+            phone?.let { GymActionPill(stringResource(R.string.gym_call), { dial(ctx, it) }, Modifier.weight(1f)) }
         }
-        gym.instagram?.takeIf { it.isNotBlank() }?.let { handle ->
-            GymActionPill(stringResource(R.string.gym_instagram), { openUrl(ctx, instagramUrl(handle)) }, Modifier.weight(1f),
-                icon = R.drawable.ic_instagram)
+        val web = gym.website?.takeIf { it.isNotBlank() }
+        val insta = gym.instagram?.takeIf { it.isNotBlank() }
+        if (web != null || insta != null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            web?.let { GymActionPill(stringResource(R.string.gym_web), { openUrl(ctx, webUrl(it)) }, Modifier.weight(1f)) }
+            insta?.let {
+                GymActionPill(stringResource(R.string.gym_instagram), { openUrl(ctx, instagramUrl(it)) }, Modifier.weight(1f), icon = R.drawable.ic_instagram)
+            }
         }
     }
+}
+
+/** Abre el marcador del teléfono con el número puesto (DIAL: no llama sin que el usuario pulse). */
+private fun dial(ctx: Context, phone: String) {
+    val number = phone.filter { it.isDigit() || it == '+' }
+    runCatching { ctx.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number"))) }
 }
 
 private fun openUrl(ctx: Context, url: String) {

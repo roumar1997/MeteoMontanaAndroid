@@ -3,6 +3,7 @@ package com.meteomontana.android.data.repository
 import com.meteomontana.android.data.api.KtorMeetupApi
 import com.meteomontana.android.data.api.dto.CreateMeetupRequestDto
 import com.meteomontana.android.data.api.dto.MeetupAlertDto
+import com.meteomontana.android.data.api.dto.MeetupGearDto
 import com.meteomontana.android.data.api.dto.ReportRequestDto
 import com.meteomontana.android.data.api.dto.SetAlertRequestDto
 import com.meteomontana.android.data.api.dto.toDomain
@@ -97,7 +98,8 @@ class KtorMeetupRepository(
                 gymId = req.gymId,
                 gradeMin = req.gradeMin,
                 gradeMax = req.gradeMax,
-                partnersWanted = req.partnersWanted
+                partnersWanted = req.partnersWanted,
+                requiredGear = req.requiredGear.map { MeetupGearDto(it.item, it.qty) }
             )
         )
         cache?.saveAll(listOf(dto))

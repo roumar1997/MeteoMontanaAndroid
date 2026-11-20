@@ -4,6 +4,9 @@ import com.meteomontana.android.domain.model.gym.Gym
 import com.meteomontana.android.domain.model.gym.GymDiscipline
 import com.meteomontana.android.domain.model.gym.GymKind
 import com.meteomontana.android.domain.model.gym.GymNear
+import com.meteomontana.android.domain.model.gym.GymScale
+import com.meteomontana.android.domain.model.gym.GymScaleLevel
+import com.meteomontana.android.domain.model.gym.GymScaleType
 import com.meteomontana.android.domain.model.gym.GymVerification
 import com.meteomontana.android.domain.model.gym.OpeningSlot
 import kotlinx.serialization.Serializable
@@ -13,6 +16,26 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class OpeningSlotDto(val days: String = "", val open: String = "", val close: String = "")
+
+@Serializable
+data class GymScaleLevelDto(
+    val name: String = "",
+    val hex: String = "#9AA0A6",
+    val gradeFrom: String? = null,
+    val gradeTo: String? = null
+)
+
+/** Escala de un rocodromo: COLORS (niveles de facil a dificil) o GRADES (sin niveles). Contrato gyms.json. */
+@Serializable
+data class GymScaleDto(val type: String? = null, val levels: List<GymScaleLevelDto> = emptyList())
+
+fun GymScaleDto.toDomain() = GymScale(
+    GymScaleType.parse(type), levels.map { GymScaleLevel(it.name, it.hex, it.gradeFrom, it.gradeTo) }
+)
+
+fun GymScale.toDto() = GymScaleDto(
+    type.name, levels.map { GymScaleLevelDto(it.name, it.hex, it.gradeFrom, it.gradeTo) }
+)
 
 @Serializable
 data class GymDto(
@@ -44,7 +67,9 @@ data class GymDto(
     val source: String? = null,
     val hidden: Boolean = false,
     val updatedAt: String? = null,
-    val closed: Boolean = false
+    val closed: Boolean = false,
+    val phone: String? = null,
+    val scale: GymScaleDto? = null
 )
 
 @Serializable
@@ -75,7 +100,8 @@ fun GymDto.toDomain() = Gym(
     hasAutobelay = hasAutobelay, hasGearRental = hasGearRental,
     kidsFriendly = kidsFriendly, beginnerFriendly = beginnerFriendly,
     outdoor = outdoor, verification = GymVerification.parse(verification),
-    source = source, hidden = hidden, updatedAt = updatedAt, closed = closed
+    source = source, hidden = hidden, updatedAt = updatedAt, closed = closed,
+    phone = phone, scale = scale?.toDomain()
 )
 
 /** Para guardar la copia local; el reverso exacto de [toDomain]. */
@@ -87,7 +113,8 @@ fun Gym.toDto() = GymDto(
     priceSingleEur = priceSingleEur, pricePassEur = pricePassEur, pricePassLabel = pricePassLabel,
     priceUpdatedAt = priceUpdatedAt, hasAutobelay = hasAutobelay, hasGearRental = hasGearRental,
     kidsFriendly = kidsFriendly, beginnerFriendly = beginnerFriendly, outdoor = outdoor,
-    verification = verification.name, source = source, hidden = hidden, updatedAt = updatedAt, closed = closed
+    verification = verification.name, source = source, hidden = hidden, updatedAt = updatedAt, closed = closed,
+    phone = phone, scale = scale?.toDto()
 )
 
 fun GymNearDto.toDomain() = GymNear(

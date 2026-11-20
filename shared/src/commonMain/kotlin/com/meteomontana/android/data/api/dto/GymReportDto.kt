@@ -14,7 +14,9 @@ import kotlinx.serialization.Serializable
 data class GymReportRequestDto(
     val issues: List<String> = emptyList(),
     val comment: String? = null,
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
+    /** Solo con el issue SCALE (las dos cosas juntas). */
+    val scale: GymScaleDto? = null
 )
 
 @Serializable
@@ -51,13 +53,15 @@ data class GymReportDto(
     val photoUrl: String? = null,
     val proposed: GymProposalDto? = null,
     val status: String? = null,
-    val createdAt: String = ""
+    val createdAt: String = "",
+    val scale: GymScaleDto? = null
 )
 
 @Serializable
 data class GymPhotoUrlDto(val url: String)
 
-fun GymCorrection.toDto() = GymReportRequestDto(issues.map { it.code }, comment?.trim()?.ifEmpty { null }, photoUrl)
+fun GymCorrection.toDto() =
+    GymReportRequestDto(issues.map { it.code }, comment?.trim()?.ifEmpty { null }, photoUrl, scale?.toDto())
 
 fun NewGymDraft.toDto() = NewGymRequestDto(
     name = name.trim(), lat = lat, lon = lon, kind = kind?.name, discipline = discipline?.name,
@@ -70,7 +74,7 @@ fun GymReportDto.toDomain() = GymReport(
     proposed = proposed?.let {
         GymProposal(it.name, it.lat, it.lon, GymKind.parse(it.kind), GymDiscipline.parse(it.discipline), it.outdoor)
     },
-    status = GymReportStatus.parse(status), createdAt = createdAt
+    status = GymReportStatus.parse(status), createdAt = createdAt, scale = scale?.toDomain()
 )
 
 /** Cuerpo de `PUT /api/admin/gyms/{id}`: lo que va a null no se toca. */

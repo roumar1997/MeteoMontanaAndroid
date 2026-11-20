@@ -225,6 +225,14 @@ internal fun ProfileSettingsScreen(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
+            // Atribución de los datos de rocódromos (ODbL).
+            Text(
+                stringResource(R.string.gym_osm_credit),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
             if (showDelete) {
                 AlertDialog(
                     onDismissRequest = { showDelete = false },

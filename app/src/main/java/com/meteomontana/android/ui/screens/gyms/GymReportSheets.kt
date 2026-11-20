@@ -64,6 +64,7 @@ private val issueLabels = mapOf(
     GymReportIssue.CLOSED to R.string.gym_issue_closed,
     GymReportIssue.IS_BOULDER to R.string.gym_issue_boulder,
     GymReportIssue.IS_ROPE to R.string.gym_issue_rope,
+    GymReportIssue.SCALE to R.string.gym_issue_scale,
     GymReportIssue.WRONG_LOCATION to R.string.gym_issue_location,
     GymReportIssue.OTHER to R.string.gym_issue_other
 )
@@ -77,9 +78,15 @@ fun GymReportSheet(gym: Gym, onDismiss: () -> Unit, viewModel: GymReportViewMode
     var issues by rememberSaveable { mutableStateOf(setOf<String>()) }
     var comment by rememberSaveable { mutableStateOf("") }
     var photoUri by rememberSaveable { mutableStateOf<String?>(null) }
+    var scaleGrades by rememberSaveable { mutableStateOf(false) }
+    var picked by rememberSaveable { mutableStateOf(listOf<String>()) }
     val status by viewModel.status.collectAsStateWithLifecycle()
     val pickPhoto = rememberGymPhotoPicker { photoUri = it }
     CloseWhenSent(status, onDismiss)
+    val wantsScale = GymReportIssue.SCALE.code in issues
+    val proposal = com.meteomontana.android.domain.model.gym.GymScalePresets.proposal(
+        if (scaleGrades) com.meteomontana.android.domain.model.gym.GymScaleType.GRADES else com.meteomontana.android.domain.model.gym.GymScaleType.COLORS, picked
+    )
 
     ModalBottomSheet(
         onDismissRequest = { viewModel.reset(); onDismiss() },
@@ -102,14 +109,18 @@ fun GymReportSheet(gym: Gym, onDismiss: () -> Unit, viewModel: GymReportViewMode
                     })
                 }
             }
+            if (wantsScale) GymScaleEditor(scaleGrades, { scaleGrades = it }, picked, { picked = it })
             Eyebrow(stringResource(R.string.gym_comment))
             CommentField(comment, { comment = it }, stringResource(R.string.gym_comment_hint))
             PhotoRow(photoUri, pickPhoto)
             SendBlock(
                 status = status,
-                enabled = issues.isNotEmpty() || comment.isNotBlank(),
+                enabled = (issues.isNotEmpty() || comment.isNotBlank()) && (!wantsScale || proposal != null),
                 onSend = {
-                    viewModel.sendCorrection(gym.id, issues.mapNotNull { GymReportIssue.fromCode(it) }.toSet(), comment, photoUri)
+                    viewModel.sendCorrection(
+                        gym.id, issues.mapNotNull { GymReportIssue.fromCode(it) }.toSet(), comment, photoUri,
+                        scale = if (wantsScale) proposal else null
+                    )
                 }
             )
             Spacer(Modifier.height(Spacing.xl))
