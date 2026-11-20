@@ -44,7 +44,7 @@ import com.meteomontana.android.ui.theme.gradeChipStyle
 import com.meteomontana.android.ui.theme.terraFillColor
 
 /** Margen izquierdo del avatar del perfil: holgura para los efectos de título (dragones, hadas) que sobresalen. */
-internal val ProfileAvatarStart = 30.dp
+internal val ProfileAvatarStart = 38.dp
 
 // Piezas del perfil propio y ajeno (maqueta 4): cuatro celdas, filas finas, la tarjeta de degradado con Total / Roca /
 // Rocódromo y la fila «Tu rocódromo». Todo con peso (weight) y texto que puede crecer: nada de anchos fijos.
@@ -262,7 +262,7 @@ internal fun CompactProfileHeader(
                 com.meteomontana.android.ui.components.VerifiedCheck(uid, 18.dp)
             }
             Text(handle, fontFamily = Mono, fontSize = 12.sp, maxLines = 1, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.padding(top = 2.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 2.dp)) {
                 FollowInline(following, stringResource(R.string.profile_following).lowercase(), onFollowing)
                 FollowInline(followers, stringResource(R.string.profile_followers).lowercase(), onFollowers)
             }
@@ -274,7 +274,7 @@ internal fun CompactProfileHeader(
 @Composable
 private fun FollowInline(value: Long, label: String, onClick: () -> Unit) {
     Row(Modifier.clickable(onClick = onClick), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("$value", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
-        Text(label, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        Text("$value", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground)
+        Text(label, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
     }
 }

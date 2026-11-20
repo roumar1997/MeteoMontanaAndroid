@@ -70,6 +70,10 @@ import com.meteomontana.android.ui.screens.chat.ChatDayDivider
 import com.meteomontana.android.ui.screens.chat.ChatInputPill
 import com.meteomontana.android.ui.screens.chat.ChatLockedBar
 import com.meteomontana.android.ui.screens.chat.chatDayStartIds
+import com.meteomontana.android.ui.screens.chat.chatBubbleShape
+import com.meteomontana.android.ui.screens.chat.ChatTopBar
+import com.meteomontana.android.ui.screens.chat.ChatSubtitle
+import com.meteomontana.android.ui.screens.chat.ChatInitialAvatar
 
 @HiltViewModel
 class SchoolChatViewModel @Inject constructor(
@@ -184,64 +188,38 @@ fun SchoolChatScreen(
         .consumeWindowInsets(androidx.compose.foundation.layout.PaddingValues(bottom = bottomInset))
         .imePadding()
     ) {
-        // Cabecera
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = Spacing.md, vertical = Spacing.sm)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.school_chat_screen_atras),
-                        tint = MaterialTheme.colorScheme.onBackground)
-                }
-                Text(
-                    schoolName,
-                    style = MaterialTheme.typography.titleMedium.copy(fontFamily = Serif, fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.weight(1f)
-                )
-                // "Estoy aquí" también se marca desde dentro del chat (Álvaro, 2026-10-14; igual que en iOS).
+        ChatTopBar(
+            title = schoolName, onBack = onBack,
+            avatar = { ChatInitialAvatar(schoolName, com.meteomontana.android.ui.theme.Ok) },
+            subtitle = { ChatSubtitle(stringResource(R.string.school_chat_screen_v2_se_borra_solo_pasados_unos)) },
+            actions = {
                 com.meteomontana.android.ui.components.PresenceMarkControl(
                     schoolId = schoolId, myUid = myUid,
                     onChanged = { viewModel.refreshPresence(schoolId) },
-                    // Sin marcar, el botón grande del centro hace de «Aquí»: arriba solo queda el de quitarte.
                     visibleWhenHere = true
                 )
             }
-            Text(
-                stringResource(R.string.school_chat_screen_v2_se_borra_solo_pasados_unos),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = Spacing.md)
-            )
-            if (viewModel.presentList.isNotEmpty() && !notMarkedHere) {
-                Row(
-                    modifier = Modifier
-                        .clickable { showAllPresent = true }
-                        .padding(start = Spacing.md, top = Spacing.xs),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(modifier = Modifier
-                        .clip(CircleShape)
-                        .background(Terra)
-                        .size(7.dp))
-                    Spacer(Modifier.padding(start = Spacing.xs))
-                    Text(
-                        stringResource(R.string.school_chat_screen_v2_1_s_aqui_ahora_2, viewModel.presentList.size),
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = Terra
-                    )
-                    Text(
-                        stringResource(R.string.school_chat_screen_v2_ver_todos),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+        )
+        if (viewModel.presentList.isNotEmpty() && !notMarkedHere) {
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable { showAllPresent = true }
+                    .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(modifier = Modifier.clip(CircleShape).background(Terra).size(7.dp))
+                Spacer(Modifier.padding(start = Spacing.xs))
+                Text(
+                    stringResource(R.string.school_chat_screen_v2_1_s_aqui_ahora_2, viewModel.presentList.size),
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = Terra,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    stringResource(R.string.school_chat_screen_v2_ver_todos),
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
 
         var isRefreshing by remember { mutableStateOf(false) }
         val refreshScope = androidx.compose.runtime.rememberCoroutineScope()
@@ -412,7 +390,7 @@ internal fun MessageBubble(
             }
             Column(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(chatBubbleShape(isMine))
                     .background(if (isMine) com.meteomontana.android.ui.theme.terraFillColor() else MaterialTheme.colorScheme.surface)
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {

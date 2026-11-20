@@ -28,7 +28,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.meteomontana.android.domain.model.MeetupGearStatus
+import com.meteomontana.android.ui.components.userRing
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -81,125 +84,151 @@ import com.meteomontana.android.ui.theme.Spacing
 @Composable
 fun MeetupListItem(meetup: Meetup, dayScoresMap: Map<String, Int> = emptyMap(),
                    distanceKm: Double? = null, onClick: () -> Unit) {
-    Row(
+    val shape = RoundedCornerShape(20.dp)
+    Column(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = Spacing.md, vertical = 5.dp)
+            .clip(shape).background(MaterialTheme.colorScheme.surface, shape)
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Foto
-        Box(
-            modifier = Modifier
-                .size(50.dp)
-                .clip(RoundedCornerShape(50))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            val photo = meetup.photoUrl  // solo la foto de la quedada, no la del creador
-            if (photo != null) {
-                AsyncImage(model = photo, contentDescription = meetup.name,
-                    modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            } else {
-                Icon(Icons.Outlined.Groups, null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
+            MeetupCover(meetup)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(meetup.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold,
+                    fontFamily = com.meteomontana.android.ui.theme.SourceSerif4Family, maxLines = 2)
+                meetup.creatorUsername?.let {
+                    Text("@$it", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                }
             }
+            MeetupListBadges(meetup)
         }
-
-        // Info
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            // Escuela + distancia como eyebrow
-            val eyebrow = buildString {
-                (meetup.placeName ?: meetup.schoolName)?.let { append(it.uppercase()) }
-                if (distanceKm != null) append(" · ${distanceKm.toInt()} KM")
-            }
-            if (eyebrow.isNotBlank()) {
-                Text(eyebrow, style = EyebrowTextStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            // Nombre en serif
-            Text(meetup.name, style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                fontFamily = com.meteomontana.android.ui.theme.SourceSerif4Family)
-            // Días con score individual
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                meetup.days.forEach { day ->
-                    val score = dayScoresMap["${meetup.schoolId}_$day"]
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(formatDayMonth(day), style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        if (score != null) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(50))
-                                    .background(scoreColor(score))
-                                    .padding(horizontal = 4.dp, vertical = 1.dp)
-                            ) {
-                                Text("$score", style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-            }
-            // Meta: disciplina + privacidad
-            Row(verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                meetup.discipline?.let {
-                    Text(disciplineLabel(it), style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                if (meetup.privacy != "OPEN") {
-                    Row(verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Icon(Icons.Outlined.Lock, null, Modifier.size(11.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(privacyLabel(meetup.privacy),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        MeetupPlaceCard(meetup, dayScoresMap, distanceKm)
+        // Días con su nota
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            meetup.days.forEach { day ->
+                val score = dayScoresMap["${meetup.schoolId}_$day"]
+                Row(
+                    modifier = Modifier.clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(formatDayMonth(day), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (score != null) Box(Modifier.clip(RoundedCornerShape(50)).background(scoreColor(score)).padding(horizontal = 4.dp, vertical = 1.dp)) {
+                        Text("$score", style = MaterialTheme.typography.labelSmall, color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
+        // Modalidad, cordada y privacidad
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+            meetup.discipline?.let { MeetupMiniPill(disciplineLabel(it)) }
+            if (meetup.isRopeTeam) MeetupMiniPill(stringResource(R.string.meetup_rope_route_label), highlight = true)
+            if (meetup.privacy != "OPEN") Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                Icon(Icons.Outlined.Lock, null, Modifier.size(11.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(privacyLabel(meetup.privacy), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        MeetupGearStatusRow(meetup)
+    }
+}
 
-        // Right: badge + members
-        Column(horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            when {
-                meetup.joined -> {
-                    Box(Modifier.clip(RoundedCornerShape(50))
-                        .background(MaterialTheme.colorScheme.primary)
-                        .padding(horizontal = Spacing.sm, vertical = 2.dp)) {
-                        Text(stringResource(R.string.meetups_joined).uppercase(), style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
-                    }
-                }
-                meetup.isFull -> {
-                    Box(Modifier.clip(RoundedCornerShape(50))
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-                        .padding(horizontal = Spacing.sm, vertical = 2.dp)) {
-                        Text(stringResource(R.string.meetups_full).uppercase(), style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
-                    }
-                }
+/** Foto de la quedada; sin foto, el avatar del organizador con su aureola de título (nunca un icono vacío). */
+@Composable
+private fun MeetupCover(meetup: Meetup) {
+    val photo = meetup.photoUrl
+    val avatar = meetup.creatorPhotoUrl
+    when {
+        photo != null -> AsyncImage(
+            model = photo, contentDescription = meetup.name, contentScale = ContentScale.Crop,
+            modifier = Modifier.size(54.dp).clip(RoundedCornerShape(16.dp))
+        )
+        avatar != null -> AsyncImage(
+            model = avatar, contentDescription = meetup.creatorUsername, contentScale = ContentScale.Crop,
+            modifier = Modifier.padding(3.dp).userRing(meetup.creatorUid, 54.dp).size(54.dp).clip(CircleShape)
+        )
+        else -> Box(Modifier.size(54.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
+            Icon(Icons.Outlined.Groups, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun MeetupListBadges(meetup: Meetup) {
+    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        when {
+            meetup.joined -> Box(Modifier.clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.primary).padding(horizontal = Spacing.sm, vertical = 2.dp)) {
+                Text(stringResource(R.string.meetups_joined).uppercase(), style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
             }
-            Row(verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                Icon(Icons.Outlined.Person, null, Modifier.size(12.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                val limitText = meetup.memberLimit?.let { "${meetup.memberCount}/$it" }
-                    ?: "${meetup.memberCount}"
-                Text(limitText, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            meetup.isFull -> Box(Modifier.clip(RoundedCornerShape(50)).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50)).padding(horizontal = Spacing.sm, vertical = 2.dp)) {
+                Text(stringResource(R.string.meetups_full).uppercase(), style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
             }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            Icon(Icons.Outlined.Person, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(meetup.memberLimit?.let { "${meetup.memberCount}/$it" } ?: "${meetup.memberCount}",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/**
+ * Tarjeta del lugar dentro de la quedada, como las de la app: en ROCA, el anillo de nota de la escuela (la del primer día
+ * con previsión; mojada = gota) y su nombre con la distancia; en ROCÓDROMO, el cuadrado del rocódromo como en su lista.
+ */
+@Composable
+private fun MeetupPlaceCard(meetup: Meetup, dayScoresMap: Map<String, Int>, distanceKm: Double?) {
+    val name = (meetup.placeName ?: meetup.schoolName)?.takeIf { it.isNotBlank() } ?: return
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.background.copy(alpha = 0.6f), shape)
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.7f), shape).padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        if (meetup.isGymMeetup) com.meteomontana.android.ui.screens.gyms.GymKindBadge(
+            com.meteomontana.android.domain.model.gym.GymKind.COMMERCIAL, size = 40.dp
+        ) else com.meteomontana.android.ui.components.ScoreRing(meetup.days.firstNotNullOfOrNull { dayScoresMap["${meetup.schoolId}_$it"] }, diameter = 40.dp)
+        Column(Modifier.weight(1f)) {
+            Text(name, fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 2,
+                color = MaterialTheme.colorScheme.onBackground)
+            if (distanceKm != null) Text("${distanceKm.toInt()} km", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun MeetupMiniPill(text: String, highlight: Boolean = false) {
+    val color = if (highlight) com.meteomontana.android.ui.theme.terraFillColor() else MaterialTheme.colorScheme.onSurfaceVariant
+    Text(
+        text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1,
+        modifier = Modifier.clip(CircleShape).background(color.copy(alpha = 0.12f)).padding(horizontal = 9.dp, vertical = 3.dp)
+    )
+}
+
+/**
+ * Material del grupo SIN abrir la quedada: lo que ya hay en verde («✓ Cuerda») y lo que falta en rojo («Falta gri-gri»),
+ * para saber qué llevar antes de apuntarse. Sin material pedido no se pinta nada. Lógica en shared ([MeetupGearStatus]).
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MeetupGearStatusRow(meetup: Meetup) {
+    val lines = MeetupGearStatus.lines(meetup)
+    if (lines.isEmpty()) return
+    val ok = com.meteomontana.android.ui.theme.Ok
+    val bad = MaterialTheme.colorScheme.error
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(R.string.meetup_list_material).uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        lines.forEach { l ->
+            val label = stringResource(gearLabelRes(l.item))
+            val text = if (l.ok) "✓ $label" else stringResource(R.string.meetup_list_gear_missing, label.lowercase())
+            val c = if (l.ok) ok else bad
+            Text(text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = c, maxLines = 1,
+                modifier = Modifier.clip(CircleShape).background(c.copy(alpha = 0.12f)).padding(horizontal = 9.dp, vertical = 3.dp))
         }
     }
 }

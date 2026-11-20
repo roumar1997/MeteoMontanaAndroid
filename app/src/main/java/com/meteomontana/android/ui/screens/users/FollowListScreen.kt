@@ -221,9 +221,8 @@ fun FollowListScreen(
             placeholder = { Text(stringResource(R.string.follow_search_hint)) },
             leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
             singleLine = true,
-            shape = RoundedCornerShape(2.dp)
+            shape = RoundedCornerShape(26.dp)
         )
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
         when (val s = state) {
             FollowListUiState.Loading -> SkeletonList(count = 8) { SkeletonPersonRow(trailing = true) }
@@ -242,7 +241,10 @@ fun FollowListScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
-                    LazyColumn(Modifier.dismissKeyboardOnScroll()) {
+                    LazyColumn(
+                        Modifier.dismissKeyboardOnScroll(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         items(visible, key = { it.uid }) { u ->
                             UserRow(
                                 u = u,
@@ -255,7 +257,6 @@ fun FollowListScreen(
                                     { viewModel.removeFollower(u.uid) }
                                 } else null
                             )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                         }
                     }
                 }
@@ -274,11 +275,14 @@ private fun UserRow(
     onToggleFollow: () -> Unit = {},
     onRemove: (() -> Unit)? = null
 ) {
+    // Fila redondeada como las de la pantalla de avisos: tarjeta con borde suave, foto, nombre y botón.
+    val rowShape = RoundedCornerShape(18.dp)
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth().clip(rowShape).background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, rowShape).clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         if (u.photoUrl != null) {
             AsyncImage(model = u.photoUrl, contentDescription = null,
@@ -331,12 +335,12 @@ private fun RowActionButton(
     val fg = if (filled) androidx.compose.ui.graphics.Color.White else MaterialTheme.colorScheme.onBackground
     val borderColor = if (filled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
     Box(modifier = Modifier
-        .clip(RoundedCornerShape(2.dp))
-        .background(bg, RoundedCornerShape(2.dp))
-        .border(1.dp, borderColor, RoundedCornerShape(2.dp))
+        .clip(CircleShape)
+        .background(bg, CircleShape)
+        .border(1.dp, borderColor, CircleShape)
         .clickable(enabled = enabled, onClick = onClick)
-        .padding(horizontal = 10.dp, vertical = 6.dp)
+        .padding(horizontal = 14.dp, vertical = 7.dp)
     ) {
-        Text(text, style = MaterialTheme.typography.labelMedium, color = fg)
+        Text(text, style = MaterialTheme.typography.labelMedium, color = fg, maxLines = 1)
     }
 }

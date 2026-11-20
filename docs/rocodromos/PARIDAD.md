@@ -273,3 +273,19 @@ Lógica nueva en `shared` (no reimplementar en Swift): `ExploreSectors` (sectore
 8. **Vías/Bloques**: sectores plegables dentro de cada escuela; contadores «bloques»/«vías» si solo hay uno.
 9. «Rocódromos cerca» en la ficha de escuela: una línea pequeña plegable. Mapas de Quedadas con los estilos de Roca.
 10. **Tu rocódromo en el servidor** (PENDIENTE PARA iOS): `PUT /api/me/home-gym` con `{"gymId": 5}` (null = quitar) y `GET /api/me/home-gym`, respuesta `{"homeGym": {"id","name","city"} | null}`. `gym-summary` lleva ahora `homeGym` (misma privacidad que el resto del resumen: perfil privado ajeno = 404). Lógica en `shared` (`HomeGymUseCase`, `GymSummary.homeGym`, `HomeGym`). iOS: Ajustes guarda en servidor (y caché local); el perfil propio muestra «Tu rocódromo» (hueco «Elige tu rocódromo» si no hay, abre el selector) y el ajeno «Su rocódromo» (sin hueco si no tiene); tocar abre la ficha. Al abrir el perfil propio: si el servidor lo tiene se copia al móvil; si no y el móvil sí, se sube (migra a quien ya lo había elegido solo en local). Textos nuevos: `home_gym_yours/theirs/pick`.
+
+## 15. Ronda 6 (2026-11-20, Android hecho; PENDIENTE PARA iOS)
+
+Logica nueva en `shared` (no reimplementar en Swift): `MeetupGearStatus.lines(meetup)` (material que tiene y que falta; cordada en via sin material pedido = cuerda + gri-gri; la cobertura la da el servidor), con test.
+
+1. **Sectores plegables** (Vias/Bloques de una escuela): cada sector es una TARJETA (radio 16, borde, sombra suave) con nombre, contador en pildora y chevron en circulo (relleno terracota al abrir).
+2. **Ficha de rocodromo**: "Servicios" sube justo bajo "He entrenado / Crear quedada"; "Anadir foto" y "Corregir" van lado a lado debajo; el resto (modalidad, escala, horario, precio) despues.
+3. **Chat**, un solo diseno para quedada, privado, escuela y rocodromo (maqueta 7A): `ChatTopBar` (volver, avatar, titulo + subtitulo, acciones a la derecha), burbujas con cola (`chatBubbleShape`: ajenas 18/18/18/6, mias 18/18/6/18), campo pildora + enviar redondo, barra con candado. Sin camara (ningun chat envia fotos).
+4. **He entrenado**: sin entreno hoy, el boton dice "Has entrenado hoy?"; con entreno, "Entreno apuntado".
+5. **Perfil propio**: Ayuda (?) dentro de la pildora de iconos a la derecha (ayuda, material, compartir, ajustes); avatar desplazado a la derecha (`ProfileAvatarStart` = 38 dp) para que dragones/hadas no se corten; vuelve la celda **Escuelas** arriba (5 celdas: Escuelas, Bloques, Vias, Max bloque, Max via); tarjeta de degradado partida en dos mitades iguales **Roca** (dias, bloques y vias con su maximo, escuelas) y **Rocodromo** (sesiones, rocodromos, ascensiones, maximo), cada una pulsable.
+6. **Ajustes**: secciones en grupos redondeados (radio 18, borde, separadores) con icono en cuadradito tintado; "Cerrar sesion" tambien redondeado.
+7. **Perfil ajeno**: mismo desplazamiento del avatar; SEGUIR en su propia fila (ya no esconde "seguidores"); chat, compartir y los tres puntos en terracota como el propio; celda Escuelas.
+8. **Seguidores/Siguiendo**: filas-tarjeta redondeadas (radio 18, borde), botones en pildora, buscador redondeado.
+9. **Quedadas**: tarjeta de la lista con cubierta (foto; si no hay, avatar del organizador con su aureola), tarjeta del lugar (rocodromo: cuadrado como en su lista; roca: anillo de nota de la escuela + distancia), pildora "Via de cordada" (tambien en el detalle y en el paso 2), y fila "MATERIAL" con el check de lo que ya hay (verde) y "Falta X" (rojo) antes de apuntarse.
+
+Diferencias conocidas: el clima del lugar en la tarjeta de quedada se limita a la nota del primer dia con prevision; los chats no muestran avatar junto a cada burbuja (solo cola).

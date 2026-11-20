@@ -283,9 +283,9 @@ internal fun GroupMessageBubble(
             horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start) {
             Column(modifier = Modifier
                 .widthIn(max = 280.dp)
-                .clip(ChatBubbleShape)
+                .clip(chatBubbleShape(isMine))
                 .background(bg)
-                .border(1.dp, if (isMine) Color.Transparent else MaterialTheme.colorScheme.outline, ChatBubbleShape)
+                .border(1.dp, if (isMine) Color.Transparent else MaterialTheme.colorScheme.outline, chatBubbleShape(isMine))
                 .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 // Nombre del emisor (solo en mensajes de otros).

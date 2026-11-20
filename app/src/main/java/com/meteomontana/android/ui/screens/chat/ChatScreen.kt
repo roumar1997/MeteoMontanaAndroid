@@ -222,38 +222,25 @@ internal fun LoadOlderRow(onClick: () -> Unit) {
     }
 }
 
-/** Cabecera de sheet del chat: avatar + nombre centrados (tap → perfil) + "Cerrar". */
+/** Cabecera del chat privado: la misma [ChatTopBar] de todos los chats, con la foto de la otra persona. */
 @Composable
 private fun ChatSheetHeader(name: String, avatarUrl: String?, userUid: String?, onClose: () -> Unit, onOpenProfile: () -> Unit = {}) {
-    com.meteomontana.android.ui.components.SheetHeader(onClose = onClose) {
-        Row(
-            modifier = Modifier.align(Alignment.Center)
-                .clip(RoundedCornerShape(8.dp))
-                .clickable(onClick = onOpenProfile)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+    ChatTopBar(
+        title = "@$name", onBack = onClose, onTitleClick = onOpenProfile,
+        avatar = {
             if (avatarUrl != null) {
                 AsyncImage(model = avatarUrl, contentDescription = null,
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                    modifier = Modifier.padding(3.dp)
-                        .userRing(userUid, 32.dp)
-                        .size(32.dp).clip(CircleShape)
+                    modifier = Modifier.padding(3.dp).userRing(userUid, 36.dp).size(36.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
             } else {
                 androidx.compose.foundation.Image(
-                    painter = androidx.compose.ui.res.painterResource(
-                        com.meteomontana.android.R.drawable.logo_cumbre),
-                    contentDescription = null,
-                    modifier = Modifier.size(32.dp).clip(CircleShape)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                    painter = androidx.compose.ui.res.painterResource(R.drawable.logo_cumbre), contentDescription = null,
+                    modifier = Modifier.size(36.dp).clip(CircleShape).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                 )
             }
-            Text("@$name", style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground)
         }
-    }
+    )
 }
 
 @Composable
@@ -307,10 +294,10 @@ private fun MessageBubble(
             horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start) {
             Column(modifier = Modifier
                 .widthIn(max = 280.dp)
-                .clip(ChatBubbleShape)
+                .clip(chatBubbleShape(isMine))
                 .background(bg)
                 // Borde solo en las de la otra persona (en las mías el terracota ya delimita).
-                .border(1.dp, if (isMine) Color.Transparent else MaterialTheme.colorScheme.outline, ChatBubbleShape)
+                .border(1.dp, if (isMine) Color.Transparent else MaterialTheme.colorScheme.outline, chatBubbleShape(isMine))
                 .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 // Cita del mensaje al que responde este mensaje. Copiamos a locals

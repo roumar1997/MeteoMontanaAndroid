@@ -52,7 +52,10 @@ import com.meteomontana.android.domain.usecase.gym.MarkGymPresenceUseCase
 import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
 import com.meteomontana.android.ui.components.PresencePrivacySheet
 import com.meteomontana.android.ui.screens.chat.ChatDayDivider
+import com.meteomontana.android.ui.screens.chat.ChatInitialAvatar
 import com.meteomontana.android.ui.screens.chat.ChatInputPill
+import com.meteomontana.android.ui.screens.chat.ChatSubtitle
+import com.meteomontana.android.ui.screens.chat.ChatTopBar
 import com.meteomontana.android.ui.screens.chat.ChatLockedBar
 import com.meteomontana.android.ui.screens.chat.chatDayStartIds
 import com.meteomontana.android.ui.screens.detail.MessageBubble
@@ -183,29 +186,22 @@ fun GymChatScreen(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
             .consumeWindowInsets(PaddingValues(bottom = bottomInset)).imePadding()
     ) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = Spacing.xs, vertical = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.common_back), tint = MaterialTheme.colorScheme.onBackground)
-            }
-            Box(Modifier.size(42.dp).clip(CircleShape).background(Ok), contentAlignment = Alignment.Center) {
-                Text(gymName.take(1).uppercase(), color = Color.White, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            }
-            Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
-                Text(gymName, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        ChatTopBar(
+            title = gymName, onBack = onBack,
+            avatar = { ChatInitialAvatar(gymName, Ok) },
+            subtitle = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (viewModel.people.isNotEmpty()) {
                         Box(Modifier.size(7.dp).clip(CircleShape).background(Ok))
                         Spacer(Modifier.size(5.dp))
                     }
-                    Text(
+                    ChatSubtitle(
                         if (viewModel.people.isEmpty()) stringResource(R.string.school_chat_screen_v2_se_borra_solo_pasados_unos)
-                        else stringResource(R.string.gym_chat_here_now, viewModel.people.size),
-                        fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1
+                        else stringResource(R.string.gym_chat_here_now, viewModel.people.size)
                     )
                 }
             }
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+        )
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (viewModel.messages.isEmpty()) Text(
                 stringResource(R.string.gym_chat_empty), color = MaterialTheme.colorScheme.onSurfaceVariant,

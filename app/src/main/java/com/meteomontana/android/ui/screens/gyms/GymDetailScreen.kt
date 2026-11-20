@@ -129,17 +129,20 @@ fun GymDetailScreen(
                     stringResource(R.string.gym_train_undo), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.align(Alignment.CenterHorizontally).clickable(onClick = viewModel::toggleTraining).padding(Spacing.sm)
                 )
-                GymInfoSections(gym)
-                GymPhotoContribute(gym)
-                Box(
-                    Modifier.fillMaxWidth().padding(top = Spacing.md).clip(CircleShape)
-                        .border(androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant), CircleShape)
-                        .clickable { reportOpen = true }.padding(13.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(stringResource(R.string.gym_fix_cta), fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                GymServicesSection(gym)
+                Row(Modifier.fillMaxWidth().padding(top = Spacing.xs), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.weight(1f)) { GymPhotoContribute(gym) }
+                    Box(
+                        Modifier.weight(1f).height(44.dp).clip(CircleShape)
+                            .border(androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant), CircleShape)
+                            .clickable { reportOpen = true }.padding(horizontal = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(stringResource(R.string.gym_fix_cta), fontWeight = FontWeight.SemiBold, fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, maxLines = 2)
+                    }
                 }
+                GymInfoSections(gym)
                 GymFooterNotes(gym)
             }
         }

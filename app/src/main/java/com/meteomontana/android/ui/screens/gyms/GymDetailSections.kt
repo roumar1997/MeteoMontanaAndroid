@@ -85,6 +85,13 @@ internal fun GymInfoSections(gym: Gym) {
         price.note?.let { Text(it, fontSize = 12.sp, color = muted, modifier = Modifier.padding(top = 2.dp)) }
     }
 
+    }
+}
+
+/** Servicios (autoaseguro, alquiler, ninos, principiantes): va arriba en la ficha para verlo de un vistazo. */
+@Composable
+internal fun GymServicesSection(gym: Gym) {
+    Column {
     SectionLabel(stringResource(R.string.gym_section_services))
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         ServiceRow(R.drawable.ic_autobelay, R.string.gym_service_autobelay, gym.hasAutobelay)

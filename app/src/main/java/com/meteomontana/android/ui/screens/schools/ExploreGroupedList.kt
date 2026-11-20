@@ -1,7 +1,15 @@
 package com.meteomontana.android.ui.screens.schools
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,24 +48,40 @@ internal fun exploreCountText(count: Int, boulders: Boolean, routes: Boolean): S
     else -> stringResource(R.string.explore_group_count_other, count)
 }
 
-/** Cabecera plegable de un SECTOR dentro de una escuela (más pequeña que la de la escuela). */
+/**
+ * Cabecera plegable de un SECTOR dentro de una escuela: una TARJETA propia (redondeada, con borde y sombra suave), con
+ * el nombre, el contador en una pastilla y un chevron en un circulo que se rellena al abrir, para que se vea que se despliega.
+ */
 @Composable
 internal fun ExploreSectorHeader(name: String?, count: Int, boulders: Boolean, routes: Boolean, expanded: Boolean, onToggle: () -> Unit) {
+    val shape = RoundedCornerShape(16.dp)
     Row(
-        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)).clickable(onClick = onToggle)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        Modifier.fillMaxWidth().padding(horizontal = Spacing.md, vertical = 4.dp)
+            .shadow(if (expanded) 0.dp else 2.dp, shape, clip = false)
+            .clip(shape).background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, if (expanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline, shape)
+            .clickable(onClick = onToggle).padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            name ?: stringResource(R.string.explore_sector_none), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f), maxLines = 1
+            name ?: stringResource(R.string.explore_sector_none), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f), maxLines = 2
         )
-        Text(exploreCountText(count, boulders, routes), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.size(4.dp))
-        Icon(
-            if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown, null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)
+        Text(
+            exploreCountText(count, boulders, routes), fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 9.dp, vertical = 3.dp)
         )
+        Spacer(Modifier.size(8.dp))
+        Box(
+            Modifier.size(28.dp).clip(CircleShape).background(if (expanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                if (expanded) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown, null,
+                tint = if (expanded) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)
+            )
+        }
     }
 }
 
@@ -97,7 +121,6 @@ internal fun LazyListScope.exploreGroupedItems(
                 ExploreSectorHeader(
                     sector.name, sector.hits.size, boulders, routes, sectorKey in state.expandedSectors
                 ) { state.toggleSector(sectorKey) }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
             }
             if (sectorKey in state.expandedSectors) items(sector.hits, key = { "line-${it.lineId}-${it.blockId}" }) { h -> row(h) }
         }
