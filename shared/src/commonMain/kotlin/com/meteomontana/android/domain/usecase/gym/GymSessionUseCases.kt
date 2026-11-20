@@ -56,3 +56,18 @@ class GymTrainingUseCase(private val repo: GymSessionRepository) {
     suspend fun ascentStats(uid: String, period: GymTrainingPeriod, date: LocalDate, gymId: Long?): GymAscentStats =
         repo.ascentStats(uid, period, date, gymId)
 }
+
+/** Resumen de TODO el historial de rocódromo (perfil propio y ajeno): primero el del móvil y luego el del servidor. */
+class GetGymSummaryUseCase(private val repo: GymSessionRepository) {
+    /** Calculado con las sesiones del móvil (sin red); [name] da el nombre de cada rocódromo. */
+    fun local(name: (Long) -> String? = { null }): com.meteomontana.android.domain.model.gym.GymSummary =
+        com.meteomontana.android.domain.model.gym.GymBreakdown.summarize(repo.sessions(), repo.today(), name)
+
+    /** El del servidor para [uidOrUsername]; null si no se puede ver o no hay red. */
+    @Throws(Exception::class)
+    suspend fun remote(uidOrUsername: String): com.meteomontana.android.domain.model.gym.GymSummary? = repo.summary(uidOrUsername)
+
+    /** Sesiones propias, para refrescar antes de calcular. */
+    @Throws(Exception::class)
+    suspend fun refresh() { repo.refresh() }
+}

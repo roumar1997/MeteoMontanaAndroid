@@ -6,6 +6,7 @@ import com.meteomontana.android.data.api.dto.GymAscentsRequestDto
 import com.meteomontana.android.data.api.dto.GymSessionDto
 import com.meteomontana.android.data.api.dto.toDomainOrNull
 import com.meteomontana.android.data.api.dto.toDomainOrNull
+import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.api.dto.toDto
 import com.meteomontana.android.domain.model.gym.GymAscent
 import com.meteomontana.android.domain.model.gym.GymAscentStats
@@ -60,7 +61,8 @@ class LocalFirstGymSessionRepository(
     }
 
     override suspend fun refresh(): List<GymSession> {
-        val from = LocalDate(today().year, 1, 1).toString()
+        // Todo el historial (el perfil enseña totales de siempre), no solo el año en curso.
+        val from = LocalDate(2020, 1, 1).toString()
         val remote = try {
             api.mine(from, today().toString()).mapNotNull { it.toDomainOrNull() }
         } catch (e: CancellationException) {
@@ -106,6 +108,15 @@ class LocalFirstGymSessionRepository(
         } catch (_: Exception) { /* sin red o sin ruta: queda en el movil y se sube al refrescar */ }
         return updated
     }
+
+    override suspend fun summary(uidOrUsername: String): com.meteomontana.android.domain.model.gym.GymSummary? =
+        try {
+            api.summary(uidOrUsername).toDomain()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        }
 
     override suspend fun ascentStats(uid: String, period: GymTrainingPeriod, date: LocalDate, gymId: Long?): GymAscentStats =
         try {

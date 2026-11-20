@@ -53,6 +53,11 @@ class KtorGymSessionApi(private val client: HttpClient) {
             gymId?.let { parameter("gymId", it) }
         }.body()
 
+    /** Todo el historial de rocódromo de una persona (404 si su perfil es privado y no la sigues). */
+    @Throws(Exception::class)
+    suspend fun summary(uidOrUsername: String): com.meteomontana.android.data.api.dto.GymSummaryDto =
+        client.get("users/$uidOrUsername/gym-summary").body()
+
     @Throws(Exception::class)
     suspend fun stats(uidOrUsername: String, year: Int): GymStatsDto =
         client.get("users/$uidOrUsername/gym-stats") { parameter("year", year) }.body()

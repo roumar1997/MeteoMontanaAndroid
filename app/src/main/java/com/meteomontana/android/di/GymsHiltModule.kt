@@ -40,4 +40,5 @@ object GymsHiltModule {
     @Provides fun provideRecordGymSession(m: GymsModule) = m.recordGymSession
     @Provides fun provideGetGymStats(m: GymsModule) = m.getGymStats
     @Provides fun provideGymTraining(m: GymsModule) = m.gymTraining
+    @Provides fun provideGetGymSummary(m: GymsModule) = m.getGymSummary
 }

@@ -3,6 +3,9 @@ package com.meteomontana.android.data.api.dto
 import com.meteomontana.android.domain.model.gym.GymAscent
 import com.meteomontana.android.domain.model.gym.GymAscentStats
 import com.meteomontana.android.domain.model.gym.GymSession
+import com.meteomontana.android.domain.model.gym.GymSummary
+import com.meteomontana.android.domain.model.gym.GymSummaryGym
+import com.meteomontana.android.domain.model.gym.GymSummaryMonth
 import com.meteomontana.android.domain.model.gym.GymSessionSource
 import com.meteomontana.android.domain.model.gym.GymTrainingPeriod
 import kotlinx.datetime.LocalDate
@@ -72,3 +75,24 @@ fun GymAscentStatsDto.toDomainOrNull(): GymAscentStats? = runCatching {
         sessions, total, items.map { it.toDomain() }
     )
 }.getOrNull()
+
+/** GET users/{uidOrUsername}/gym-summary: todo el historial de rocódromo (contrato gym-sessions.json). */
+@Serializable
+data class GymSummaryDto(
+    val sessions: Int = 0,
+    val gyms: Int = 0,
+    val ascents: Int = 0,
+    val maxGrade: String? = null,
+    val byGym: List<GymSummaryGymDto> = emptyList(),
+    val items: List<GymAscentDto> = emptyList(),
+    val byMonth: List<GymSummaryMonth> = emptyList()
+)
+
+@Serializable
+data class GymSummaryGymDto(val gymId: Long = 0, val name: String? = null, val sessions: Int = 0, val ascents: Int = 0, val maxGrade: String? = null)
+
+fun GymSummaryDto.toDomain() = GymSummary(
+    sessions, gyms, ascents, maxGrade?.takeIf { it.isNotBlank() },
+    byGym.map { GymSummaryGym(it.gymId, it.name, it.sessions, it.ascents, it.maxGrade?.takeIf { g -> g.isNotBlank() }) },
+    items.filter { it.key.isNotBlank() && it.count > 0 }.map { GymAscent(it.key, it.count) }, byMonth
+)

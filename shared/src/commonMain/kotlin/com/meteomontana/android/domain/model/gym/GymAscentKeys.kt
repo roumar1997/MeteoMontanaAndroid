@@ -62,6 +62,30 @@ object GymAscentKeys {
     fun gradeOf(selected: List<String>): String? =
         selected.map { it.lowercase() }.sortedBy { SERVER_ORDER.indexOf(it) }.takeIf { it.isNotEmpty() }?.joinToString("/")
 
+    /** Posición de dificultad de un grado (cualquier grado doble cuenta por su grado ALTO); -1 si no es un grado francés. */
+    fun gradeRank(grade: String): Int = SERVER_ORDER.indexOf(grade.substringAfter('/').trim().lowercase())
+
+    /** El mas dificil de dos grados (o el que no sea null); los dobles cuentan por el alto. */
+    fun harder(a: String?, b: String?): String? = when {
+        a == null -> b
+        b == null -> a
+        gradeRank(b) > gradeRank(a) -> b
+        else -> a
+    }
+
+    /** El grado de una clave de via, board o bloque por grado (un doble, por su grado ALTO); null si es un color. */
+    fun gradeOfKey(key: String): String? {
+        val raw = when (val k = parse(key)) {
+            is AscentKey.Route -> k.grade
+            is AscentKey.Board -> k.grade
+            is AscentKey.Block -> k.key
+        }
+        val high = raw.substringAfter('/').trim().lowercase()
+        return high.takeIf { SERVER_ORDER.contains(it) }
+    }
+
+    fun maxGradeOfKey(key: String): String? = gradeOfKey(key)
+
     /** El grado base (el primero) de uno doble, para darle color y ordenar: «6b+/6c» -> «6b+». */
     fun baseGrade(grade: String): String = grade.substringBefore('/').trim().lowercase()
 

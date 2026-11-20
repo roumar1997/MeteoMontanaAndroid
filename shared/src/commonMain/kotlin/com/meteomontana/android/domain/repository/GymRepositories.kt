@@ -67,6 +67,9 @@ interface GymSessionRepository {
     /** Apunta lo hecho (por color o grado) en la sesion de ese dia; SUSTITUYE lo anterior. Primero local, luego el servidor. */
     suspend fun saveAscents(gymId: Long, date: kotlinx.datetime.LocalDate, ascents: List<GymAscent>): GymSession
 
+    /** Todo el historial de [uidOrUsername] según el servidor; null si no se puede ver (privado) o no hay red. */
+    suspend fun summary(uidOrUsername: String): com.meteomontana.android.domain.model.gym.GymSummary?
+
     /** Ascensiones de un periodo: las del servidor y, si no hay red o ruta, las calculadas con las sesiones del movil. */
     suspend fun ascentStats(uid: String, period: GymTrainingPeriod, date: kotlinx.datetime.LocalDate, gymId: Long?): GymAscentStats
 }
