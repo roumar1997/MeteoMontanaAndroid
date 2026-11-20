@@ -167,7 +167,7 @@ internal fun FullScreenMeetupsMap(
         groups.forEach { group ->
             val marker = map.addMarker(
                 MarkerOptions().position(LatLng(group.lat, group.lon)).title(group.schoolName)
-                    .icon(iconFactory.fromBitmap(createSchoolBadge(group.schoolName, group.count)))
+                    .icon(iconFactory.fromBitmap(createSchoolBadge(group.schoolName, group.count, group.isGym)))
             )
             markerToGroup[marker] = group
         }
@@ -310,7 +310,7 @@ internal fun zoomForKm(km: Double): Double = when {
     else      -> 5.0
 }
 
-internal fun createSchoolBadge(name: String, count: Int): Bitmap {
+internal fun createSchoolBadge(name: String, count: Int, gym: Boolean = false): Bitmap {
     // 3f (antes 2f) → badge ~50% más grande y legible, a la par que iOS (M3b).
     val density = 3f
     val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -330,7 +330,7 @@ internal fun createSchoolBadge(name: String, count: Int): Bitmap {
     val bmp = Bitmap.createBitmap(w, h + pointerH.toInt(), Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bmp)
     val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = AndroidColor.parseColor("#C2542D")
+        color = AndroidColor.parseColor(if (gym) "#C2542D" else "#3F6B4A")
     }
     val r = 4f * density
     canvas.drawRoundRect(0f, 0f, w.toFloat(), h.toFloat(), r, r, bgPaint)

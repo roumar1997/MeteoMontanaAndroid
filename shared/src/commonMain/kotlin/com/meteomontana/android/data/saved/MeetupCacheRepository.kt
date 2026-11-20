@@ -62,6 +62,14 @@ class MeetupCacheRepository(
         q.deleteExpiredMeetups(now - EXPIRY_GRACE_MS)
     }
 
+    /** Quita una quedada de la copia local (p. ej. al borrarla), para que no reaparezca al recargar. */
+    suspend fun remove(id: String) = withContext(dispatcher) { q.deleteMeetup(id) }
+
+    /** Tras pedir la lista COMPLETA al servidor: borra de la copia lo que el servidor ya no devuelve (borradas). */
+    suspend fun retainOnly(ids: Set<String>) = withContext(dispatcher) {
+        q.allMeetups().executeAsList().filter { it.id !in ids }.forEach { q.deleteMeetup(it.id) }
+    }
+
     suspend fun getAll(): List<Meetup> = withContext(dispatcher) {
         q.allMeetups().executeAsList().map { row ->
             MeetupDto(

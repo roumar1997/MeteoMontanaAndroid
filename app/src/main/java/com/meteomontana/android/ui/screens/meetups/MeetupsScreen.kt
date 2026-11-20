@@ -75,7 +75,7 @@ import com.meteomontana.android.domain.util.Geo
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun MeetupsScreen(
     onMeetupClick: (String) -> Unit = {},
@@ -94,7 +94,11 @@ fun MeetupsScreen(
     val uLon by viewModel.userLon.collectAsStateWithLifecycle()
     var showSchoolFilter by remember { mutableStateOf(false) }
     var showWomenGateDialog by remember { mutableStateOf(false) }
-    var mapExpanded by remember { mutableStateOf(false) }
+    var mapExpanded by remember { mutableStateOf(true) }
+    var placeFilter by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(PlaceFilter.ALL) }
+    val gymCoords = remember { viewModel.gymCoords() }
+    fun coordsOf(m: Meetup): Pair<Double, Double>? =
+        if (m.schoolLat != null && m.schoolLon != null) m.schoolLat!! to m.schoolLon!! else m.gymId?.let { gymCoords[it] }
     var filtersExpanded by remember { mutableStateOf(false) }
 
     // Recarga el estado de la alerta cada vez que la pestaña se hace VISIBLE sin
@@ -104,16 +108,19 @@ fun MeetupsScreen(
     LaunchedEffect(visible) { if (visible) viewModel.loadAlertState() }
 
     // Filtros aplicados localmente (recomputa cuando llega la ubicación)
-    val displayedMeetups = remember(state.meetups, state.filterPrivacy, state.maxDistanceKm, state.filterDays, state.filterDiscipline, uLat, uLon) {
-        var list = state.meetups
+    val displayedMeetups = remember(placeFilter, gymCoords, state.meetups, state.filterPrivacy, state.maxDistanceKm, state.filterDays, state.filterDiscipline, uLat, uLon) {
+        var list = when (placeFilter) {
+            PlaceFilter.ALL -> state.meetups
+            PlaceFilter.ROCK -> state.meetups.filter { !it.isGymMeetup }
+            PlaceFilter.GYM -> state.meetups.filter { it.isGymMeetup }
+        }
         if (state.filterPrivacy != null) list = list.filter { it.privacy == state.filterPrivacy }
         val maxKm = state.maxDistanceKm
         val myLat = uLat
         val myLon = uLon
         if (maxKm != null && myLat != null && myLon != null) {
             list = list.filter { m ->
-                val sLat = m.schoolLat ?: return@filter true
-                val sLon = m.schoolLon ?: return@filter true
+                val (sLat, sLon) = coordsOf(m) ?: return@filter true
                 Geo.haversineKm(myLat, myLon, sLat, sLon) <= maxKm
             }
         }
@@ -131,8 +138,7 @@ fun MeetupsScreen(
     fun distanceFor(meetup: Meetup): Double? {
         val lat = uLat ?: return null
         val lon = uLon ?: return null
-        val sLat = meetup.schoolLat ?: return null
-        val sLon = meetup.schoolLon ?: return null
+        val (sLat, sLon) = coordsOf(meetup) ?: return null
         return Geo.haversineKm(lat, lon, sLat, sLon)
     }
 
@@ -156,8 +162,6 @@ fun MeetupsScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface)
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(0.dp))
                 .padding(horizontal = Spacing.md, vertical = Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -201,6 +205,7 @@ fun MeetupsScreen(
             }
         }
 
+        PlaceFilterBar(placeFilter, { placeFilter = it }, Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs))
         // ── Todo en LazyColumn scrollable (mapa scrollea con el resto) ──
         when {
             state.isLoading && displayedMeetups.isEmpty() -> {
@@ -216,7 +221,11 @@ fun MeetupsScreen(
                     }
                 }
             }
-            else -> {
+            else -> androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+                isRefreshing = state.isLoading,
+                onRefresh = { viewModel.loadMeetups() },
+                modifier = Modifier.fillMaxSize()
+            ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = Spacing.xxl +
@@ -251,7 +260,8 @@ fun MeetupsScreen(
                             },
                             userLat = uLat,
                             userLon = uLon,
-                            maxDistanceKm = state.maxDistanceKm
+                            maxDistanceKm = state.maxDistanceKm,
+                            gymCoords = gymCoords
                         )
                     }
 

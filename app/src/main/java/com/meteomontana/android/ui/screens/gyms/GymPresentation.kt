@@ -25,6 +25,17 @@ import java.util.Locale
  */
 object GymPresentation {
 
+    /** «6A–6C» (o «6A» si coinciden); null si no hay ningún grado. */
+    fun gradeRange(from: String?, to: String?): String? {
+        val a = from?.takeIf { it.isNotBlank() }?.uppercase()
+        val b = to?.takeIf { it.isNotBlank() }?.uppercase()
+        return when {
+            a == null && b == null -> null
+            a == null || b == null || a == b -> a ?: b
+            else -> "$a–$b"
+        }
+    }
+
     fun kindLabel(kind: GymKind): String = AppText.get(
         when (kind) {
             GymKind.COMMERCIAL -> R.string.gym_kind_commercial

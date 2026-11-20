@@ -102,7 +102,7 @@ class MeetupsViewModelTest {
         getMeetups, getMeetup, createMeetup, joinMeetup, leaveMeetup, deleteMeetup,
         updateMeetup, kick, report, getAlert, setAlert, updateGear, searchSchools,
         getRangeScores, getMyProfile, location, photoUploader, mockk(relaxed = true),
-        mockk(relaxed = true), context)
+        mockk(relaxed = true), mockk(relaxed = true), context)
 
     @Test fun `join mapea MEETUP_FULL a mensaje claro`() = runTest {
         coEvery { joinMeetup.execute("m1") } throws RuntimeException("MEETUP_FULL")

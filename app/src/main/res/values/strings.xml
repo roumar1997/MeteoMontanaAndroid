@@ -2190,4 +2190,18 @@
     <string name="gym_chat_open">Chat del rocódromo</string>
     <string name="gym_chat_empty">Aún no hay mensajes. Sé el primero en escribir.</string>
     <string name="schools_card_fix">Corregir</string>
+    <string name="meetups_place_all">Todas</string>
+    <string name="meetups_place_rock">Roca</string>
+    <string name="meetups_place_gym">Rocódromo</string>
+    <string name="dry_wet_hours">Mojada · seca en ~%1$d h</string>
+    <string name="dry_wet_day">Mojada · seca a partir del %1$s</string>
+    <string name="dry_today">hoy</string>
+    <string name="dry_wet">Mojada</string>
+    <string name="dry_until">Seca hasta el %1$s</string>
+    <string name="dry_now">Seca</string>
+    <string name="dry_worsens">Empeora el %1$s</string>
+    <string name="dry_all_week">Sin lluvia prevista estos días</string>
+    <string name="dry_chip_wet">Mojada</string>
+    <string name="dry_chip_until">Seca hasta el %1$s</string>
+    <string name="dry_chip_worsens">Empeora %1$s</string>
 </resources>

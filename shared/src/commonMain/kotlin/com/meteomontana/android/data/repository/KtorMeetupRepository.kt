@@ -51,8 +51,13 @@ class KtorMeetupRepository(
         }
         return try {
             val dtos = api.getMeetups(schoolId, date, relation)
-            if (dtos.isNotEmpty()) cache?.saveAll(dtos)   // no vaciar la caché con un vacío
+            val unfiltered = schoolId == null && date == null && relation == null
+            if (dtos.isNotEmpty()) cache?.saveAll(dtos)
+            // Lista completa y con respuesta del servidor: lo que ya no viene (una quedada borrada) sale también
+            // de la copia, así ni reaparece ni la copia lo devuelve cuando la lista queda vacía.
+            if (unfiltered) cache?.retainOnly(dtos.map { it.id }.toSet())
             val fresh = dtos.map { it.toDomain() }
+            if (unfiltered) return fresh
             // RED-PRIMERO, CACHÉ-DE-RESPALDO: si la red viene VACÍA (sin conexión que
             // no lanza, respuesta transitoria vacía…) NO borramos lo que se veía;
             // caemos a la caché. Solo mostramos vacío si la caché también lo está
@@ -136,6 +141,7 @@ class KtorMeetupRepository(
 
     override suspend fun deleteMeetup(meetupId: String) {
         api.deleteMeetup(meetupId)
+        cache?.remove(meetupId)
     }
 
     override suspend fun reportMeetup(meetupId: String, reportedUid: String?, reason: String, context: String?) {

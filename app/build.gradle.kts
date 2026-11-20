@@ -133,6 +133,7 @@ dependencies {
     implementation(project(":shared"))
 
     // Core Android + Compose
+    implementation(libs.androidx.browser)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)

@@ -82,7 +82,8 @@ data class SchoolMeetupGroup(
     val lat: Double,
     val lon: Double,
     val count: Int,
-    val meetups: List<Meetup>
+    val meetups: List<Meetup>,
+    val isGym: Boolean = false
 )
 
 @Composable
@@ -93,7 +94,8 @@ fun MeetupsMapPanel(
     onSchoolSelected: (String) -> Unit,
     userLat: Double? = null,
     userLon: Double? = null,
-    maxDistanceKm: Int? = null
+    maxDistanceKm: Int? = null,
+    gymCoords: Map<Long, Pair<Double, Double>> = emptyMap()
 ) {
     // Filtro SOLO del mapa (no toca la lista de quedadas de fuera) — mismo
     // criterio que el mapa de Escuelas, cuyos filtros de pantalla completa
@@ -113,7 +115,7 @@ fun MeetupsMapPanel(
                 }
             }
         }
-        return filtered.filter { !it.isGymMeetup && it.schoolLat != null && it.schoolLon != null }
+        val schools = filtered.filter { !it.isGymMeetup && it.schoolLat != null && it.schoolLon != null }
             .groupBy { it.schoolId }
             .map { (schoolId, l) ->
                 SchoolMeetupGroup(
@@ -125,9 +127,16 @@ fun MeetupsMapPanel(
                     meetups = l
                 )
             }
+        val gyms = filtered.filter { it.isGymMeetup && gymCoords[it.gymId] != null }
+            .groupBy { it.gymId!! }
+            .map { (gymId, l) ->
+                val (lat, lon) = gymCoords.getValue(gymId)
+                SchoolMeetupGroup("gym-$gymId", l.first().placeName ?: l.first().schoolName ?: "", lat, lon, l.size, l, isGym = true)
+            }
+        return schools + gyms
     }
 
-    val groups = remember(meetups, disciplineFilter, mapDistanceKm) { groupOf(meetups) }
+    val groups = remember(meetups, disciplineFilter, mapDistanceKm, gymCoords) { groupOf(meetups) }
     var fullscreenMap by remember { mutableStateOf(false) }
 
     Column {
@@ -324,7 +333,7 @@ internal fun MeetupsMapView(
 
         // Markers de escuelas con quedadas
         groups.forEach { group ->
-            val bmp = createSchoolBadge(group.schoolName, group.count)
+            val bmp = createSchoolBadge(group.schoolName, group.count, group.isGym)
             val marker = map.addMarker(
                 MarkerOptions()
                     .position(LatLng(group.lat, group.lon))

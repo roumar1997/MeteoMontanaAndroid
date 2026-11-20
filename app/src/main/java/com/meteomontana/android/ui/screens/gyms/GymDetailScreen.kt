@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -72,7 +73,7 @@ fun GymDetailScreen(
 
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         IconActionRow(
-            count = 2,
+            count = 3,
             modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(horizontal = Spacing.sm, vertical = Spacing.xs)
         ) { item ->
             IconAction(description = stringResource(R.string.common_close), onClick = onBack, modifier = item,
@@ -97,22 +98,22 @@ fun GymDetailScreen(
             ) {
                 GymHeader(gym, userLoc?.let { GeoUtil.haversineKm(it.lat, it.lon, gym.lat, gym.lon) })
                 GymActions(gym, ctx)
-                GymInfoSections(gym)
-                GymPresenceSection(
-                    people = state.people, iAmHere = state.iAmHere, busy = state.presenceBusy, error = state.presenceError,
-                    onLoad = viewModel::loadPresence, onToggle = viewModel::togglePresence
-                )
+
                 GymActionPill(
                     stringResource(if (state.trainedToday) R.string.gym_train_done else R.string.gym_train_today),
-                    viewModel::toggleTraining, Modifier.fillMaxWidth().padding(top = Spacing.sm), primary = !state.trainedToday
+                    viewModel::toggleTraining, Modifier.fillMaxWidth().padding(top = Spacing.xs), primary = !state.trainedToday
                 )
                 if (state.trainedToday) Text(
                     stringResource(R.string.gym_train_undo), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.align(Alignment.CenterHorizontally).clickable(onClick = viewModel::toggleTraining).padding(Spacing.sm)
                 )
-                GymActionPill(stringResource(R.string.gym_chat_open), { onOpenChat(gym) }, Modifier.fillMaxWidth())
                 GymActionPill(
                     stringResource(R.string.gym_create_meetup), { onCreateMeetup(gym) }, Modifier.fillMaxWidth()
+                )
+                GymInfoSections(gym)
+                GymPresenceSection(
+                    people = state.people, iAmHere = state.iAmHere, busy = state.presenceBusy, error = state.presenceError,
+                    onLoad = viewModel::loadPresence, onToggle = viewModel::togglePresence
                 )
                 GymPhotoContribute(gym)
                 Box(
@@ -177,7 +178,7 @@ private fun dial(ctx: Context, phone: String) {
 }
 
 private fun openUrl(ctx: Context, url: String) {
-    runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+    com.meteomontana.android.util.openInApp(ctx, url)
 }
 
 internal fun webUrl(raw: String): String = com.meteomontana.android.domain.model.gym.GymLinks.webUrl(raw)

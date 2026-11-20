@@ -45,6 +45,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -143,6 +144,11 @@ internal fun MarkerPreviewCard(
                 )
             }
         }
+        val outlookVm: RockDryOutlookViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+        val outlook by androidx.compose.runtime.produceState<com.meteomontana.android.domain.usecase.forecast.RockDryOutlook?>(null, school.id) {
+            value = outlookVm.outlook(school.id)
+        }
+        outlook?.let { RockDryBanner(it) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             GymActionPill(
                 stringResource(R.string.gym_directions),

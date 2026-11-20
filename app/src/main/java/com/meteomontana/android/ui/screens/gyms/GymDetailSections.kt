@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -68,7 +70,7 @@ internal fun GymInfoSections(gym: Gym) {
         disciplines.forEach { GymTag(it, gymDisciplineColor()) }
     }
 
-    gym.scale?.let { GymScaleSection(it) }
+    GymScaleSection(gym.scale)
 
     SectionLabel(stringResource(R.string.gym_section_hours), R.drawable.ic_clock)
     val hours = GymPresentation.hoursLines(gym.openingHours)
@@ -93,25 +95,51 @@ internal fun GymInfoSections(gym: Gym) {
     }
 }
 
-/** Escala de dificultad del rocódromo: bolitas de color de fácil a difícil, o «Por grado». */
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * Escala de dificultad en una tarjeta: con colores, cada color con su rango de grado debajo (si se conoce); sin
+ * colores, el degradado de grados con la paleta de grados de la app (la misma de vías y bloques).
+ */
 @Composable
-internal fun GymScaleSection(scale: com.meteomontana.android.domain.model.gym.GymScale) {
+internal fun GymScaleSection(scale: com.meteomontana.android.domain.model.gym.GymScale?) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val cardShape = RoundedCornerShape(16.dp)
     Column {
         SectionLabel(stringResource(R.string.gym_section_scale))
-        if (scale.isColors) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                scale.levels.forEach { lv ->
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Box(Modifier.size(22.dp).clip(CircleShape).background(parseHex(lv.hex))
-                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
-                        Text(lv.name.replaceFirstChar { it.uppercase() }, fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground)
+        Column(
+            Modifier.fillMaxWidth().clip(cardShape).background(MaterialTheme.colorScheme.surface)
+                .border(1.dp, MaterialTheme.colorScheme.outline, cardShape).padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (scale != null && scale.isColors) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    scale.levels.forEach { lv ->
+                        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Box(Modifier.fillMaxWidth().height(34.dp).clip(RoundedCornerShape(10.dp)).background(parseHex(lv.hex))
+                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp)))
+                            val range = GymPresentation.gradeRange(lv.gradeFrom, lv.gradeTo)
+                            Text(range ?: lv.name.replaceFirstChar { it.uppercase() }, fontSize = 10.sp, color = muted, maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
+                        }
                     }
                 }
+                Text(stringResource(R.string.gym_scale_easy_hard), fontSize = 12.sp, color = muted)
+            } else {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    listOf("5", "6a", "6b", "6c", "7a", "7b+").forEach { g ->
+                        val st = com.meteomontana.android.ui.theme.gradeChipStyle(g)
+                        Box(
+                            Modifier.weight(1f).height(30.dp).clip(RoundedCornerShape(9.dp)).background(st.stroke)
+                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(9.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(g.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+                                color = if (st.dark) androidx.compose.ui.graphics.Color(0xFF1B1B1B) else androidx.compose.ui.graphics.Color.White)
+                        }
+                    }
+                }
+                Text(stringResource(R.string.gym_train_by_grade), fontSize = 12.sp, color = muted)
             }
-            Text(stringResource(R.string.gym_scale_easy_hard), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp))
-        } else Text(stringResource(R.string.gym_train_by_grade), fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+        }
     }
 }
 

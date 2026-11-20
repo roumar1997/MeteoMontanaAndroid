@@ -89,6 +89,7 @@ class MeetupsViewModel @Inject constructor(
     private val locationProvider: LocationProvider,
     private val photoUploader: PhotoUploader,
     private val fileReader: com.meteomontana.android.domain.port.FileReader,
+    private val getCachedGyms: com.meteomontana.android.domain.usecase.gym.GetCachedGymsUseCase,
     private val getInviteLink: com.meteomontana.android.domain.usecase.meetups.GetMeetupInviteLinkUseCase,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
@@ -497,6 +498,9 @@ class MeetupsViewModel @Inject constructor(
         }
     }
 
+    /** Coordenadas de los rocódromos (copia local del catálogo) para pintar y filtrar por distancia sus quedadas. */
+    fun gymCoords(): Map<Long, Pair<Double, Double>> = getCachedGyms().associate { it.id to (it.lat to it.lon) }
+
     fun clearDayScores() { _dayScores.value = emptyMap() }
 
     // ── Persistir filtros ────────────────────────────────────────────────────
@@ -515,7 +519,7 @@ class MeetupsViewModel @Inject constructor(
         val relation = prefs.getString("relation", null)
         val privacy = prefs.getString("privacy", null)
         val distRaw = prefs.getInt("maxDistanceKm", -1)
-        val dist = if (distRaw > 0) distRaw else null
+        val dist = if (!prefs.contains("maxDistanceKm")) 25 else if (distRaw > 0) distRaw else null
         val discipline = prefs.getString("discipline", null)
         return MeetupsUiState(
             filterRelation = relation,

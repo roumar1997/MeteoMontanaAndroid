@@ -2131,4 +2131,18 @@
     <string name="gym_chat_open">Gym chat</string>
     <string name="gym_chat_empty">No messages yet. Be the first to write.</string>
     <string name="schools_card_fix">Fix</string>
+    <string name="meetups_place_all">All</string>
+    <string name="meetups_place_rock">Rock</string>
+    <string name="meetups_place_gym">Gym</string>
+    <string name="dry_wet_hours">Wet · dry in ~%1$d h</string>
+    <string name="dry_wet_day">Wet · dry from %1$s</string>
+    <string name="dry_today">today</string>
+    <string name="dry_wet">Wet</string>
+    <string name="dry_until">Dry until %1$s</string>
+    <string name="dry_now">Dry</string>
+    <string name="dry_worsens">Worsens on %1$s</string>
+    <string name="dry_all_week">No rain expected these days</string>
+    <string name="dry_chip_wet">Wet</string>
+    <string name="dry_chip_until">Dry until %1$s</string>
+    <string name="dry_chip_worsens">Worsens %1$s</string>
 </resources>

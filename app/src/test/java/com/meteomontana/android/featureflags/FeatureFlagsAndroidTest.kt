@@ -66,7 +66,7 @@ class FeatureFlagsAndroidTest {
             getMeetups, mockk(), createMeetup, mockk(), mockk(relaxed = true), mockk(relaxed = true),
             mockk(), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
             mockk(), mockk(), mockk(), profile, location, mockk(relaxed = true), mockk(relaxed = true),
-            mockk(relaxed = true), context)
+            mockk(relaxed = true), mockk(relaxed = true), context)
     }
 
     @Test fun `un 503 FEATURE_DISABLED al crear deja el aviso y no un error generico`() = runTest {
