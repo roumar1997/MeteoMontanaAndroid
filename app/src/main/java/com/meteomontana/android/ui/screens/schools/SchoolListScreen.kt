@@ -152,6 +152,7 @@ fun SchoolListScreen(
     // Grupos de escuela DESPLEGADOS — empiezan todos plegados (Álvaro,
     // 2026-10-01: "que puedas verlos todos rápido"). No persiste.
     var expandedGroups by remember { mutableStateOf(setOf<String>()) }
+    var expandedSectors by remember { mutableStateOf(setOf<String>()) }
 
     // ¿Hay PERMISO de ubicación? Se sabe al instante. El aviso "Sin ubicación"
     // y el icono del mapa dependen de esto, no de `userLocation == null`: al
@@ -489,8 +490,7 @@ fun SchoolListScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            if (exploreLoading) stringResource(R.string.explore_searching)
-                            else stringResource(R.string.explore_results_found, exploreHits.size),
+                            if (exploreLoading) stringResource(R.string.explore_searching) else exploreFoundText(exploreHits, schoolStyleById),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f)
@@ -512,8 +512,15 @@ fun SchoolListScreen(
                         EmptyResults(onClear = explore::clearCriteria)
                     }
                 } else if (exploreGrouped) {
-                    exploreGroups.forEach { group ->
-                        item(key = "group-${group.schoolId}") {
+                    exploreGroupedItems(
+                        groups = exploreGroups,
+                        state = ExploreGroupedState(
+                            expandedGroups, expandedSectors,
+                            toggleGroup = { id -> expandedGroups = if (id in expandedGroups) expandedGroups - id else expandedGroups + id },
+                            toggleSector = { id -> expandedSectors = if (id in expandedSectors) expandedSectors - id else expandedSectors + id }
+                        ),
+                        styleBySchool = schoolStyleById,
+                        headerFor = { group, expanded, boulders, routes, toggle ->
                             ExploreGroupHeader(
                                 group = group,
                                 kind = com.meteomontana.android.domain.util.SchoolKind.from(schoolStyleById[group.schoolId]),
@@ -521,22 +528,16 @@ fun SchoolListScreen(
                                         else scores[group.schoolId]?.todayScore,
                                 dry = scores[group.schoolId]?.dryRock,
                                 range = if (selectedDays.isNotEmpty()) rangeScores[group.schoolId] else null,
-                                expanded = group.schoolId in expandedGroups,
-                                onToggle = {
-                                    expandedGroups = if (group.schoolId in expandedGroups)
-                                        expandedGroups - group.schoolId else expandedGroups + group.schoolId
-                                }
+                                expanded = expanded, onToggle = toggle, boulders = boulders, routes = routes
                             )
-                        }
-                        if (group.schoolId in expandedGroups) {
-                            items(group.hits, key = { "line-${it.lineId}-${it.blockId}" }) { h ->
-                                Column {
-                                    ExploreLineRow(h, kind = exploreRowKind(h.discipline, filters.style.apiValue, schoolStyleById[h.schoolId]), showSchool = false, distanceKm = h.lat?.let { la -> h.lon?.let { lo -> viewModel.distanceTo(la, lo).toInt() } }, onClick = { openVia(h.schoolId, h.lineId, h.lineName ?: h.blockName) })
-                                    HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
-                                }
+                        },
+                        row = { h ->
+                            Column {
+                                ExploreLineRow(h, kind = exploreRowKind(h.discipline, filters.style.apiValue, schoolStyleById[h.schoolId]), showSchool = false, distanceKm = h.lat?.let { la -> h.lon?.let { lo -> viewModel.distanceTo(la, lo).toInt() } }, onClick = { openVia(h.schoolId, h.lineId, h.lineName ?: h.blockName) })
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
                             }
                         }
-                    }
+                    )
                 } else {
                     items(exploreHitsSorted, key = { "flat-${it.lineId}-${it.blockId}" }) { h ->
                         Column {

@@ -1,7 +1,13 @@
 package com.meteomontana.android.ui.screens.gyms
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,7 +39,6 @@ import com.meteomontana.android.domain.usecase.gym.FindGymsNearUseCase
 import com.meteomontana.android.domain.usecase.gym.ShouldSuggestGymsUseCase
 import com.meteomontana.android.ui.components.LocalFeatureFlags
 import com.meteomontana.android.ui.theme.CumbreStatCardShape
-import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Serif
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -82,26 +87,32 @@ fun GymsNearbyBanner(
     LaunchedEffect(show, lat, lon) { if (show) viewModel.load(lat, lon) }
     if (!show || near.isEmpty()) return
 
-    Column(
-        modifier.padding(horizontal = 12.dp, vertical = 6.dp).fillMaxWidth().clip(CumbreStatCardShape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, CumbreStatCardShape)
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Text(stringResource(R.string.gym_nearby_title).uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary)
-        Text(stringResource(R.string.gym_nearby_subtitle), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        near.forEach { gym ->
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    Column(modifier.padding(horizontal = 12.dp, vertical = 2.dp).fillMaxWidth()) {
+        Row(
+            Modifier.clip(CumbreStatCardShape).clickable { expanded = !expanded }.padding(vertical = 6.dp, horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                stringResource(R.string.gym_nearby_title), fontSize = 12.sp, fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Icon(
+                if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp)
+            )
+        }
+        if (expanded) near.forEach { gym ->
             Row(
                 Modifier.fillMaxWidth().clickable { open(gym.id) }.padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                GymKindBadge(gym.kind, size = 34.dp)
+                GymKindBadge(gym.kind, size = 28.dp)
                 Text(
-                    gym.name, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 2,
+                    gym.name, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 2,
                     overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f)
                 )
-                Text(GymPresentation.distanceText(gym.distanceKm).orEmpty(), fontSize = 13.sp,
+                Text(GymPresentation.distanceText(gym.distanceKm).orEmpty(), fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

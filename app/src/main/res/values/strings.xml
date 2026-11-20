@@ -2299,4 +2299,11 @@
     <string name="dry_chip_wet">Mojada</string>
     <string name="dry_chip_until">Seca hasta el %1$s</string>
     <string name="dry_chip_worsens">Empeora %1$s</string>
+    <string name="explore_group_count_boulders_one">1 bloque</string>
+    <string name="explore_group_count_boulders_other">%d bloques</string>
+    <string name="explore_group_count_routes_one">1 vía</string>
+    <string name="explore_group_count_routes_other">%d vías</string>
+    <string name="explore_found_boulders">%d bloques encontrados</string>
+    <string name="explore_found_routes">%d vías encontradas</string>
+    <string name="explore_sector_none">Sin sector</string>
 </resources>

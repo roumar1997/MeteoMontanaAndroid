@@ -90,7 +90,9 @@ internal fun ExploreGroupHeader(
     dry: Boolean?,
     range: com.meteomontana.android.domain.model.RangeScore?,
     expanded: Boolean,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    boulders: Boolean = false,
+    routes: Boolean = false
 ) {
     val color = score?.let { com.meteomontana.android.ui.theme.scoreColor(it) } ?: MaterialTheme.colorScheme.outline
     Column(
@@ -118,10 +120,8 @@ internal fun ExploreGroupHeader(
                         color = MaterialTheme.colorScheme.error)
                 }
             }
-            val count = group.hits.size
             Text(
-                if (count == 1) stringResource(R.string.explore_group_count_one)
-                else stringResource(R.string.explore_group_count_other, count),
+                exploreCountText(group.hits.size, boulders, routes),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

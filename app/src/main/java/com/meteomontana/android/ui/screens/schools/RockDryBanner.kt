@@ -1,14 +1,20 @@
 package com.meteomontana.android.ui.screens.schools
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Cloud
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.WaterDrop
+import androidx.compose.material.icons.outlined.WbSunny
+import androidx.compose.material3.Icon
+import com.meteomontana.android.ui.theme.Terra
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -76,28 +82,42 @@ internal fun rockDryTexts(o: RockDryOutlook): Pair<String, String?> = when {
     else -> stringResource(R.string.dry_now) to stringResource(R.string.dry_all_week)
 }
 
-/** Banda de estado (azul mojada / verde seca) con el detalle y debajo la franja de 5 días, todo junto. */
+/** Franja de 5 días (pastilla por día con icono: sol = seca, nube = dudosa, gota = mojada; hoy recuadrado) y debajo el resumen en una línea. */
 @Composable
 internal fun RockDryBanner(o: RockDryOutlook, modifier: Modifier = Modifier) {
     val (title, sub) = rockDryTexts(o)
     val tint = if (o.wet) WetBlue else Ok
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(tint.copy(alpha = 0.14f)).padding(horizontal = 12.dp, vertical = 9.dp)
-        ) {
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = tint)
-            sub?.let { Text(it, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        }
-        if (o.strip.isNotEmpty()) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (o.strip.isNotEmpty()) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             o.strip.forEachIndexed { i, (date, state) ->
-                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(Modifier.fillMaxWidth().height(5.dp).clip(CircleShape).background(stateColor(state)))
+                val color = stateColor(state)
+                val today = i == 0
+                Column(
+                    Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(color.copy(alpha = 0.14f))
+                        .then(if (today) Modifier.border(2.dp, Terra, RoundedCornerShape(12.dp)) else Modifier)
+                        .padding(vertical = 7.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(stateIcon(state), null, tint = color, modifier = Modifier.size(18.dp))
                     Text(
-                        (if (i == 0) stringResource(R.string.dry_today) else dayName(date, full = false)).uppercase(), fontSize = 9.sp, maxLines = 1,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp)
+                        (if (today) stringResource(R.string.dry_today) else dayName(date, full = false)).uppercase(), fontSize = 9.sp, maxLines = 1,
+                        fontWeight = FontWeight.Bold, color = color, modifier = Modifier.padding(top = 2.dp)
                     )
                 }
             }
         }
+        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(Icons.Outlined.Schedule, null, tint = tint, modifier = Modifier.size(16.dp).padding(top = 1.dp))
+            Text(
+                listOfNotNull(title, sub).joinToString(" · "), fontSize = 12.sp, fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
+}
+
+private fun stateIcon(s: RockDayState) = when (s) {
+    RockDayState.WET -> Icons.Outlined.WaterDrop
+    RockDayState.DUBIOUS -> Icons.Outlined.Cloud
+    RockDayState.DRY -> Icons.Outlined.WbSunny
 }

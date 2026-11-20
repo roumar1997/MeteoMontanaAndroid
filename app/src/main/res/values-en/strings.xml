@@ -2240,4 +2240,11 @@
     <string name="dry_chip_wet">Wet</string>
     <string name="dry_chip_until">Dry until %1$s</string>
     <string name="dry_chip_worsens">Worsens %1$s</string>
+    <string name="explore_group_count_boulders_one">1 boulder</string>
+    <string name="explore_group_count_boulders_other">%d boulders</string>
+    <string name="explore_group_count_routes_one">1 route</string>
+    <string name="explore_group_count_routes_other">%d routes</string>
+    <string name="explore_found_boulders">%d boulders found</string>
+    <string name="explore_found_routes">%d routes found</string>
+    <string name="explore_sector_none">No sector</string>
 </resources>
