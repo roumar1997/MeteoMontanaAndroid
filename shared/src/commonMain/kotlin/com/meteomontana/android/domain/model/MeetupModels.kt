@@ -52,5 +52,10 @@ data class CreateMeetupRequest(
     val memberLimit: Int?,
     val photoUrl: String?,
     val days: List<String>,     // ISO dates
-    val gymId: Long? = null     // rocodromo (entonces schoolId va en blanco)
+    val gymId: Long? = null,    // rocodromo (entonces schoolId va en blanco)
+    /** Grado orientativo (rango, opcional). Contrato pendiente en el servidor: docs/rocodromos/BACKEND-PENDIENTE.md. */
+    val gradeMin: String? = null,
+    val gradeMax: String? = null,
+    /** Cordada: cuantas personas se buscan (1 = cordada, solo para vias). */
+    val partnersWanted: Int? = null
 )

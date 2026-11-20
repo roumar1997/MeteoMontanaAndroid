@@ -94,7 +94,10 @@ class KtorMeetupRepository(
                 memberLimit = req.memberLimit,
                 photoUrl = req.photoUrl,
                 days = req.days,
-                gymId = req.gymId
+                gymId = req.gymId,
+                gradeMin = req.gradeMin,
+                gradeMax = req.gradeMax,
+                partnersWanted = req.partnersWanted
             )
         )
         cache?.saveAll(listOf(dto))

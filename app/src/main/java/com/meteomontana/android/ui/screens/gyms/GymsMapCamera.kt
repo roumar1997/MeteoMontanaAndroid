@@ -42,20 +42,4 @@ internal fun fitTo(ctx: Context, map: MapLibreMap, gyms: List<Gym>) {
     }
 }
 
-/** Tocar un grupo acerca la cámara a sus miembros; si están todos en el mismo punto, zoom directo por encima del grupo. */
-internal fun zoomIntoCluster(ctx: Context, map: MapLibreMap, item: GymMapItem) {
-    val lats = item.gyms.map { it.lat }
-    val lons = item.gyms.map { it.lon }
-    val tiny = (lats.max() - lats.min()) < 1e-4 && (lons.max() - lons.min()) < 1e-4
-    runCatching {
-        if (tiny) {
-            map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(item.lat, item.lon), GymClusterer.MAX_CLUSTER_ZOOM + 1), 350)
-        } else {
-            val b = LatLngBounds.Builder()
-            item.gyms.forEach { b.include(LatLng(it.lat, it.lon)) }
-            map.animateCamera(CameraUpdateFactory.newLatLngBounds(b.build(), px(ctx, 72)), 350)
-        }
-    }
-}
-
 private fun px(ctx: Context, dp: Int) = (dp * ctx.resources.displayMetrics.density).toInt()

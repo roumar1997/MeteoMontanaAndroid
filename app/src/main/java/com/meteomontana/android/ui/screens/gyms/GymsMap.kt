@@ -34,6 +34,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.meteomontana.android.R
 import com.meteomontana.android.data.map.withMapLibre
 import com.meteomontana.android.domain.model.gym.Gym
+import com.meteomontana.android.domain.model.gym.GymClusterer
 import com.meteomontana.android.domain.model.gym.GymLabelPlanner
 import com.meteomontana.android.domain.model.gym.GymMapItem
 import com.meteomontana.android.domain.model.gym.LabelCandidate
@@ -56,14 +57,13 @@ import kotlin.math.abs
 import kotlin.math.max
 
 /**
- * Mapa de rocódromos (MapLibre): un marcador por ficha o un grupo con su número. La agrupación sale de
- * [cluster] (`GymClusterer` de shared) para que iOS y Android agrupen igual. Tocar un grupo acerca la cámara a
- * sus miembros; tocar un marcador lo selecciona ([onSelect]) y la pantalla enseña la tarjeta de cristal.
+ * Mapa de rocódromos (MapLibre): un marcador con nombre por ficha, sin agrupar (el usuario acerca el zoom). Los
+ * nombres se reparten con `GymLabelPlanner` (shared): si dos chocan se oculta el nombre, no el marcador. Tocar un
+ * marcador lo selecciona ([onSelect]) y la pantalla enseña la tarjeta de cristal.
  */
 @Composable
 internal fun GymsMap(
     gyms: List<Gym>,
-    cluster: (List<Gym>, Double) -> List<GymMapItem>,
     userLat: Double?,
     userLon: Double?,
     selectedId: Long?,
@@ -87,7 +87,7 @@ internal fun GymsMap(
     MapViewLifecycleEffect(mapViewRef) { mapRef.value = null }
     GymsMapEffects(
         map = mapRef.value, dark = dark, gyms = gyms, zoom = zoom, selectedId = selectedId, styleTick = styleTick,
-        user = userLat to userLon, cluster = cluster, mapState = mapState,
+        user = userLat to userLon, mapState = mapState,
         onStyleLoad = { styleTick++ }, onSelect = { onSelectNow(it) }
     )
 
@@ -130,7 +130,6 @@ private fun GymsMapEffects(
     selectedId: Long?,
     styleTick: Int,
     user: Pair<Double?, Double?>,
-    cluster: (List<Gym>, Double) -> List<GymMapItem>,
     mapState: GymsMapState,
     onStyleLoad: () -> Unit,
     onSelect: (Long) -> Unit
@@ -141,7 +140,6 @@ private fun GymsMapEffects(
     val freeLabel = stringResource(R.string.gym_free_badge)
     val styleLoaded by rememberUpdatedState(onStyleLoad)
     val selectNow by rememberUpdatedState(onSelect)
-    val clusterNow by rememberUpdatedState(cluster)
 
     LaunchedEffect(dark, map, mapState.isSatellite) {
         val m = map ?: return@LaunchedEffect
@@ -159,7 +157,8 @@ private fun GymsMapEffects(
             val dot = IconFactory.getInstance(ctx).fromBitmap(userDotBitmap())
             markers += m.addMarker(MarkerOptions().position(LatLng(uLat, uLon)).icon(dot))
         }
-        val items = clusterNow(gyms, zoom)
+        // Sin agrupar: un marcador por rocódromo; el nombre se oculta si choca con otro (el marcador nunca).
+        val items = GymClusterer.singles(gyms)
         itemsById = items.associateBy { it.id }
         val labelled = labelledIds(ctx, m, items, zoom, selectedId)
         items.forEach { markers += m.addMarker(markerFor(ctx, m, it, dark, selectedId, freeLabel, it.id in labelled)) }
@@ -169,7 +168,7 @@ private fun GymsMapEffects(
         val m = map ?: return@LaunchedEffect
         m.setOnMarkerClickListener { marker ->
             val item = itemsById[marker.snippet] ?: return@setOnMarkerClickListener false
-            if (item.isCluster) zoomIntoCluster(ctx, m, item) else selectNow(item.gyms.first().id)
+            selectNow(item.gyms.first().id)
             true
         }
     }

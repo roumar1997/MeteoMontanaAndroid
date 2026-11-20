@@ -92,7 +92,7 @@ fun MeetupListItem(meetup: Meetup, dayScoresMap: Map<String, Int> = emptyMap(),
         Box(
             modifier = Modifier
                 .size(50.dp)
-                .clip(RoundedCornerShape(2.dp))
+                .clip(RoundedCornerShape(50))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
@@ -128,7 +128,7 @@ fun MeetupListItem(meetup: Meetup, dayScoresMap: Map<String, Int> = emptyMap(),
                     val score = dayScoresMap["${meetup.schoolId}_$day"]
                     Row(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(2.dp))
+                            .clip(RoundedCornerShape(50))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                             .padding(horizontal = 6.dp, vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -139,7 +139,7 @@ fun MeetupListItem(meetup: Meetup, dayScoresMap: Map<String, Int> = emptyMap(),
                         if (score != null) {
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(2.dp))
+                                    .clip(RoundedCornerShape(50))
                                     .background(scoreColor(score))
                                     .padding(horizontal = 4.dp, vertical = 1.dp)
                             ) {
@@ -175,7 +175,7 @@ fun MeetupListItem(meetup: Meetup, dayScoresMap: Map<String, Int> = emptyMap(),
             verticalArrangement = Arrangement.spacedBy(4.dp)) {
             when {
                 meetup.joined -> {
-                    Box(Modifier.clip(RoundedCornerShape(2.dp))
+                    Box(Modifier.clip(RoundedCornerShape(50))
                         .background(MaterialTheme.colorScheme.primary)
                         .padding(horizontal = Spacing.sm, vertical = 2.dp)) {
                         Text(stringResource(R.string.meetups_joined).uppercase(), style = MaterialTheme.typography.labelSmall,
@@ -183,7 +183,7 @@ fun MeetupListItem(meetup: Meetup, dayScoresMap: Map<String, Int> = emptyMap(),
                     }
                 }
                 meetup.isFull -> {
-                    Box(Modifier.clip(RoundedCornerShape(2.dp))
+                    Box(Modifier.clip(RoundedCornerShape(50))
                         .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
                         .padding(horizontal = Spacing.sm, vertical = 2.dp)) {
                         Text(stringResource(R.string.meetups_full).uppercase(), style = MaterialTheme.typography.labelSmall,

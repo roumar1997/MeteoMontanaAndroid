@@ -293,71 +293,83 @@ fun FiltersToggleRow(
 ) {
     val active = activeCount > 0
     val fill = com.meteomontana.android.ui.theme.terraFillColor()
-    Row(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp),
-        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+    val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxWidth()) {
+        // Qué cabe en esta anchura y con esta letra: primero se oculta el contador, luego BORRAR y FAVORITOS quedan en
+        // su icono. Nada se corta ni se parte en dos líneas (mismo criterio que iOS).
+        val mode = filtersRowMode(maxWidth.value, fontScale, active, favsOn != null, dayLabel != null)
         Row(
-            modifier = Modifier.weight(1f).clickable(onClick = onToggleOpen),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(if (active) fill else MaterialTheme.colorScheme.surface)
-                    .border(1.dp, if (active) fill else MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                modifier = Modifier.weight(1f).clickable(onClick = onToggleOpen),
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val fg = if (active) androidx.compose.ui.graphics.Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                Icon(Icons.Outlined.Tune, contentDescription = null, tint = fg, modifier = Modifier.size(15.dp))
-                Text(
-                    if (active) stringResource(R.string.schools_filters_with_count, activeCount) else stringResource(R.string.common_filters),
-                    style = EyebrowTextStyle, color = fg,
-                    // Nunca se parte en varias líneas (en iOS salía «FILTR / OS / (1)» con BORRAR al lado).
-                    maxLines = 1, softWrap = false
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(if (active) fill else MaterialTheme.colorScheme.surface)
+                        .border(1.dp, if (active) fill else MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val fg = if (active) androidx.compose.ui.graphics.Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                    Icon(Icons.Outlined.Tune, contentDescription = null, tint = fg, modifier = Modifier.size(15.dp))
+                    Text(
+                        if (active) stringResource(R.string.schools_filters_with_count, activeCount) else stringResource(R.string.common_filters),
+                        style = EyebrowTextStyle, color = fg,
+                        // Nunca se parte en varias líneas (en iOS salía «FILTR / OS / (1)» con BORRAR al lado).
+                        maxLines = 1, softWrap = false
+                    )
+                }
+                if (mode.showCount) {
+                    Text(countText.orEmpty(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                } else androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+                Icon(
+                    if (open) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                    contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)
                 )
             }
-            Text(countText.orEmpty(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            Icon(
-                if (open) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)
-            )
-        }
-        // BORRAR: solo si hay algún filtro movido; lo deja todo como de base sin desplegar nada (Álvaro, 2026-10-18).
-        if (active) {
-            Row(
+            // BORRAR: solo si hay algún filtro movido; lo deja todo como de base sin desplegar nada (Álvaro, 2026-10-18).
+            if (active) {
+                val clearLabel = stringResource(R.string.schools_clear_short)
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
+                        .clickable(onClick = onClear)
+                        .semantics { contentDescription = clearLabel }
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text("✕", color = MaterialTheme.colorScheme.primary, style = EyebrowTextStyle, maxLines = 1, softWrap = false)
+                    if (!mode.clearAsIcon) {
+                        Text(clearLabel, style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary, maxLines = 1, softWrap = false)
+                    }
+                }
+            }
+            if (favsOn != null) FavsChip(favsOn, onToggleFavs, favsLabel, favsDescription, showLabel = !mode.favsAsIcon)
+            if (dayLabel != null) Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))
-                    .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
-                    .clickable(onClick = onClear)
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                    .background(fill)
+                    .clickable(onClick = onToggleDays)
+                    .padding(horizontal = 11.dp, vertical = 8.dp),
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text("✕", color = MaterialTheme.colorScheme.primary, style = EyebrowTextStyle)
-                Text(stringResource(R.string.schools_clear_short), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary)
+                Text(dayLabel, style = EyebrowTextStyle, color = androidx.compose.ui.graphics.Color.White, maxLines = 1, softWrap = false)
+                Icon(
+                    if (daysOpen) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
+                    contentDescription = null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(14.dp)
+                )
             }
-        }
-        if (favsOn != null) FavsChip(favsOn, onToggleFavs, favsLabel, favsDescription)
-        if (dayLabel != null) Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(50))
-                .background(fill)
-                .clickable(onClick = onToggleDays)
-                .padding(horizontal = 11.dp, vertical = 8.dp),
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(dayLabel, style = EyebrowTextStyle, color = androidx.compose.ui.graphics.Color.White)
-            Icon(
-                if (daysOpen) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown,
-                contentDescription = null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(14.dp)
-            )
         }
     }
 }
@@ -365,7 +377,7 @@ fun FiltersToggleRow(
 /** Dos campos MÍN/MÁX con desplegable de grados — Álvaro, 2026-10-01 (2ª
  *  vuelta): "pulsar y poner un filtro", no un slider ni chips en fila. */
 @Composable
-private fun GradeRangeSection(
+internal fun GradeRangeSection(
     gradeMin: String?, gradeMax: String?,
     onGradeMin: (String?) -> Unit, onGradeMax: (String?) -> Unit
 ) {
@@ -463,7 +475,8 @@ internal fun FavsChip(
     on: Boolean,
     onClick: () -> Unit,
     label: String = stringResource(R.string.favs_chip),
-    description: String = stringResource(R.string.favs_chip_desc)
+    description: String = stringResource(R.string.favs_chip_desc),
+    showLabel: Boolean = true
 ) {
     val fill = com.meteomontana.android.ui.theme.terraFillColor()
     val fg = if (on) androidx.compose.ui.graphics.Color.White else MaterialTheme.colorScheme.onSurfaceVariant
@@ -481,6 +494,6 @@ internal fun FavsChip(
     ) {
         Icon(if (on) Icons.Filled.Star else Icons.Outlined.StarBorder, contentDescription = null, tint = fg,
             modifier = Modifier.size(12.dp))
-        Text(label, style = EyebrowTextStyle, color = fg, maxLines = 1, softWrap = false)
+        if (showLabel) Text(label, style = EyebrowTextStyle, color = fg, maxLines = 1, softWrap = false)
     }
 }

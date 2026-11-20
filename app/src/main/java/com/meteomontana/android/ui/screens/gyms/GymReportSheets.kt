@@ -70,7 +70,6 @@ private val issueLabels = mapOf(
 
 /**
  * «Corregir datos» (maqueta): chips de lo que falla, comentario, foto opcional y «Enviar». Lo recibe un admin.
- * Abajo, el acceso a «Añadir un muro que falta».
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -78,7 +77,6 @@ fun GymReportSheet(gym: Gym, onDismiss: () -> Unit, viewModel: GymReportViewMode
     var issues by rememberSaveable { mutableStateOf(setOf<String>()) }
     var comment by rememberSaveable { mutableStateOf("") }
     var photoUri by rememberSaveable { mutableStateOf<String?>(null) }
-    var addWallOpen by remember { mutableStateOf(false) }
     val status by viewModel.status.collectAsStateWithLifecycle()
     val pickPhoto = rememberGymPhotoPicker { photoUri = it }
     CloseWhenSent(status, onDismiss)
@@ -114,11 +112,9 @@ fun GymReportSheet(gym: Gym, onDismiss: () -> Unit, viewModel: GymReportViewMode
                     viewModel.sendCorrection(gym.id, issues.mapNotNull { GymReportIssue.fromCode(it) }.toSet(), comment, photoUri)
                 }
             )
-            AddWallCard(onClick = { addWallOpen = true })
             Spacer(Modifier.height(Spacing.xl))
         }
     }
-    if (addWallOpen) NewGymSheet(lat = gym.lat, lon = gym.lon, onDismiss = { addWallOpen = false })
 }
 
 /** «Añadir un muro que falta»: nombre, tipo, modalidad y el punto del mapa. Se publica tras revisión. */
@@ -227,21 +223,6 @@ private fun SendBlock(status: ReportStatus, enabled: Boolean, onSend: () -> Unit
             stringResource(note), fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp),
             color = if (status == ReportStatus.FAILED) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
         )
-    }
-}
-
-/** Bloque suave terracota de la maqueta que abre el alta de un muro. */
-@Composable
-private fun AddWallCard(onClick: () -> Unit) {
-    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    Box(
-        Modifier.fillMaxWidth().padding(top = Spacing.md).clip(RoundedCornerShape(16.dp))
-            .background(if (dark) Terra.copy(alpha = 0.16f) else TerraBg)
-            .border(1.dp, Terra.copy(alpha = 0.25f), RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 14.dp)
-    ) {
-        Text("＋  " + stringResource(R.string.gym_add_missing), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onBackground)
     }
 }
 

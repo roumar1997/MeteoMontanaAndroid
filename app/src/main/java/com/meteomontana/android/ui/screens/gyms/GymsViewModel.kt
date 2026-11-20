@@ -6,7 +6,6 @@ import com.meteomontana.android.domain.model.gym.Gym
 import com.meteomontana.android.domain.model.gym.GymFilters
 import com.meteomontana.android.domain.model.gym.GymListItem
 import com.meteomontana.android.domain.model.gym.GymOrigin
-import com.meteomontana.android.domain.usecase.gym.ClusterGymsUseCase
 import com.meteomontana.android.domain.usecase.gym.FilterGymsUseCase
 import com.meteomontana.android.domain.usecase.gym.GetCachedGymsUseCase
 import com.meteomontana.android.domain.usecase.gym.GetGymFavoritesUseCase
@@ -33,7 +32,6 @@ data class GymsUiState(
     val loadFailed: Boolean = false,
     val all: List<Gym> = emptyList(),
     val items: List<GymListItem> = emptyList(),
-    val chains: List<String> = emptyList(),
     val favorites: Set<Long> = emptySet(),
     val filters: GymFilters = GymFilters(),
     val view: GymsView = GymsView.MAP
@@ -48,7 +46,6 @@ class GymsViewModel @Inject constructor(
     private val getCachedGyms: GetCachedGymsUseCase,
     private val getGyms: GetGymsUseCase,
     private val filterGyms: FilterGymsUseCase,
-    private val clusterGyms: ClusterGymsUseCase,
     private val getGymFavorites: GetGymFavoritesUseCase,
     private val setGymFavorite: SetGymFavoriteUseCase
 ) : ViewModel() {
@@ -66,12 +63,12 @@ class GymsViewModel @Inject constructor(
     private var started = false
 
     private val filtered = combine(_all, _filters, _origin, _favorites) { all, filters, origin, favs ->
-        filterGyms(all, filters, origin, favs) to filterGyms.chains(all)
+        filterGyms(all, filters, origin, favs)
     }
 
     val state: StateFlow<GymsUiState> = combine(filtered, _all, _filters, _favorites, _view) { f, all, filters, favs, view ->
         GymsUiState(
-            all = all, items = f.first, chains = f.second, favorites = favs, filters = filters, view = view
+            all = all, items = f, favorites = favs, filters = filters, view = view
         )
     }.combine(_loading) { s, loading -> s.copy(loading = loading) }
         .combine(_failed) { s, failed -> s.copy(loadFailed = failed) }
@@ -112,9 +109,6 @@ class GymsViewModel @Inject constructor(
 
     fun setView(view: GymsView) { _view.value = view }
 
-    /** Agrupación del mapa por zoom (rejilla común con iOS). */
-    fun cluster(gyms: List<Gym>, zoom: Double) = clusterGyms(gyms, zoom)
-
     fun setQuery(q: String) = _filters.update { it.copy(query = q) }
     fun toggleFree() = _filters.update { it.copy(onlyFree = !it.onlyFree) }
     fun toggleBoulder() = _filters.update { it.copy(boulder = !it.boulder) }
@@ -123,7 +117,6 @@ class GymsViewModel @Inject constructor(
     fun toggleStreet() = _filters.update { it.copy(onlyStreet = !it.onlyStreet) }
     fun toggleClosed() = _filters.update { it.copy(showClosed = !it.showClosed) }
     fun toggleFavorites() = _filters.update { it.copy(onlyFavorites = !it.onlyFavorites) }
-    fun setChain(chain: String?) = _filters.update { it.copy(chain = chain) }
     fun setMaxDistance(km: Double?) = _filters.update { it.copy(maxDistanceKm = km) }
 
     /** BORRAR: todo como de base (50 km, sin chips); el texto del buscador se respeta. */

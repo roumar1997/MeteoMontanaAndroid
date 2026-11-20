@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.meteomontana.android.R
@@ -19,7 +21,6 @@ import com.meteomontana.android.domain.model.gym.GymFilters
 import com.meteomontana.android.ui.components.CumbreChip
 import com.meteomontana.android.ui.screens.schools.ChipRow
 import com.meteomontana.android.ui.screens.schools.DISTANCE_OPTIONS
-import com.meteomontana.android.ui.screens.schools.Section
 import com.meteomontana.android.ui.screens.schools.TabButton
 import com.meteomontana.android.util.AppText
 
@@ -29,7 +30,7 @@ internal const val DEFAULT_GYM_DISTANCE_KM = 50.0
 /** Cuántos filtros se han movido respecto a lo de base (el número de «FILTROS (n)»). */
 internal fun gymActiveFilterCount(f: GymFilters): Int = listOf(
     f.maxDistanceKm != DEFAULT_GYM_DISTANCE_KM, f.boulder, f.rope, f.openNow, f.onlyFree, f.onlyStreet,
-    f.showClosed, f.chain != null, f.onlyFavorites
+    f.showClosed, f.onlyFavorites
 ).count { it }
 
 /** Dos segmentos de la fila entera, con el mismo ancho (como «Escuelas | Vías/Bloques»), el primero o el segundo elegido. */
@@ -66,14 +67,15 @@ fun SchoolsLayerPicker(layer: SchoolsLayer, onChange: (SchoolsLayer) -> Unit, mo
 }
 
 /**
- * Panel de filtros que se despliega bajo «FILTROS (n)», con las mismas secciones y chips que el de Escuelas:
- * distancia (mismos valores), modalidad, mostrar (gratis, de calle, abierto ahora, cerrados) y cadena.
- * El orden es por cercanía (si hay ubicación) y no se elige.
+ * Panel de filtros bajo «FILTROS (n)»: compacto para que el mapa siga a la vista. Dos filas que se deslizan
+ * (distancia · modalidad y qué mostrar) y «Ver N rocódromos», que lo pliega. Elegir una distancia lo pliega solo
+ * (es de elección única); los demás chips se pueden combinar y el botón cierra cuando se ha terminado.
+ * Las cadenas ya no son un filtro (decisión 2026-11-19): salían cadenas que no estaban cerca.
  */
 @Composable
 internal fun GymFiltersPanel(
     filters: GymFilters,
-    chains: List<String>,
+    resultCount: Int,
     onDistance: (Double?) -> Unit,
     onBoulder: () -> Unit,
     onRope: () -> Unit,
@@ -81,39 +83,29 @@ internal fun GymFiltersPanel(
     onStreet: () -> Unit,
     onOpenNow: () -> Unit,
     onClosed: () -> Unit,
-    onChain: (String?) -> Unit,
+    onApply: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Section(stringResource(R.string.w_distance_caps)) {
-            ChipRow(
-                items = DISTANCE_OPTIONS,
-                isSelected = { it == filters.maxDistanceKm },
-                label = { km -> km?.let { "${it.toInt()} km" } ?: AppText.get(R.string.w_all) },
-                onClick = onDistance
+    Column(modifier.fillMaxWidth().padding(bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        ChipRow(
+            items = DISTANCE_OPTIONS,
+            isSelected = { it == filters.maxDistanceKm },
+            label = { km -> km?.let { "${it.toInt()} km" } ?: AppText.get(R.string.w_all) },
+            onClick = onDistance
+        )
+        Chips {
+            CumbreChip(stringResource(R.string.gym_filter_boulder), filters.boulder, onBoulder)
+            CumbreChip(stringResource(R.string.gym_filter_rope), filters.rope, onRope)
+            CumbreChip(stringResource(R.string.gym_filter_free), filters.onlyFree, onFree)
+            CumbreChip(stringResource(R.string.gym_filter_street), filters.onlyStreet, onStreet)
+            CumbreChip(stringResource(R.string.gym_filter_open_now), filters.openNow, onOpenNow)
+            CumbreChip(stringResource(R.string.gym_filter_closed), filters.showClosed, onClosed)
+        }
+        Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp)) {
+            GymActionPill(
+                pluralStringResource(R.plurals.gym_see_results, resultCount, resultCount), onApply,
+                Modifier.fillMaxWidth(), primary = true
             )
-        }
-        Section(stringResource(R.string.gym_section_discipline).uppercase()) {
-            Chips {
-                CumbreChip(stringResource(R.string.gym_filter_boulder), filters.boulder, onBoulder)
-                CumbreChip(stringResource(R.string.gym_filter_rope), filters.rope, onRope)
-            }
-        }
-        Section(stringResource(R.string.gym_filter_show).uppercase()) {
-            Chips {
-                CumbreChip(stringResource(R.string.gym_filter_free), filters.onlyFree, onFree)
-                CumbreChip(stringResource(R.string.gym_filter_street), filters.onlyStreet, onStreet)
-                CumbreChip(stringResource(R.string.gym_filter_open_now), filters.openNow, onOpenNow)
-                CumbreChip(stringResource(R.string.gym_filter_closed), filters.showClosed, onClosed)
-            }
-        }
-        if (chains.isNotEmpty()) {
-            Section(stringResource(R.string.gym_filter_chain).uppercase()) {
-                Chips {
-                    CumbreChip(stringResource(R.string.gym_filter_chain_all), filters.chain == null, onClick = { onChain(null) })
-                    chains.forEach { c -> CumbreChip(c, filters.chain.equals(c, ignoreCase = true), onClick = { onChain(c) }) }
-                }
-            }
         }
     }
 }

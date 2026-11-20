@@ -74,7 +74,7 @@ internal fun GymStatsCard(modifier: Modifier = Modifier, viewModel: GymStatsView
             StatCell(stringResource(R.string.gym_stats_year).uppercase(), s.year.toString(), Modifier.weight(1f))
         }
         state.topGymName?.let { name ->
-            InfoLine(stringResource(R.string.gym_stats_top), stringResource(R.string.gym_stats_top_value, name, s.topGymVisits))
+            InfoLine(stringResource(R.string.gym_stats_top), androidx.compose.ui.res.pluralStringResource(R.plurals.gym_stats_top_value, s.topGymVisits, name, s.topGymVisits))
         }
         if (s.streakWeeks > 0) {
             InfoLine(

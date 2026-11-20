@@ -62,6 +62,7 @@ object GymPresentation {
     /** "Abierto · hasta 23:00", "Cerrado · abre a las 10:00", "Cerrado"; null si no hay horario (no se afirma nada). */
     fun openStatusText(status: GymOpenStatus): String? = when (status) {
         GymOpenStatus.Unknown -> null
+        GymOpenStatus.AlwaysOpen -> AppText.get(R.string.gym_open_always)
         is GymOpenStatus.Open -> AppText.get(R.string.gym_open_until, status.closesAt)
         is GymOpenStatus.Closed ->
             if (status.opensAt != null) AppText.get(R.string.gym_closed_opens, status.opensAt)

@@ -1938,7 +1938,10 @@
     <string name="gym_stats_month">This month</string>
     <string name="gym_stats_year">This year</string>
     <string name="gym_stats_top">Most visited</string>
-    <string name="gym_stats_top_value">%1$s · %2$d times</string>
+    <plurals name="gym_stats_top_value">
+        <item quantity="one">%1$s · %2$d time</item>
+        <item quantity="other">%1$s · %2$d times</item>
+    </plurals>
     <string name="gym_stats_streak">Streak</string>
     <string name="gym_stats_streak_one">1 week</string>
     <string name="gym_stats_streak_many">%1$d weeks</string>
@@ -1953,6 +1956,17 @@
     <string name="gym_disc_rope">Rope</string>
     <string name="gym_disc_both">Bouldering + rope</string>
     <string name="gym_disc_outdoor">Outdoor wall</string>
+    <string name="create_meetup_place_school">School</string>
+    <string name="create_meetup_place_gym">Gym</string>
+    <string name="create_meetup_gym_search">Search a gym…</string>
+    <string name="create_meetup_gym_search_title">Search a gym</string>
+    <string name="create_meetup_grade_label">APPROXIMATE GRADE (OPTIONAL)</string>
+    <string name="create_meetup_rope_team">Rope team (1 person)</string>
+    <string name="gym_open_always">Open · 24 h</string>
+    <plurals name="gym_see_results">
+        <item quantity="one">Show %1$d gym</item>
+        <item quantity="other">Show %1$d gyms</item>
+    </plurals>
     <string name="gym_open_until">Open · until %1$s</string>
     <string name="gym_closed">Closed</string>
     <string name="gym_closed_opens">Closed · opens at %1$s</string>

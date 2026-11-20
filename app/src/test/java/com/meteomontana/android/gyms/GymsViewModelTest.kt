@@ -4,7 +4,6 @@ import com.meteomontana.android.domain.model.gym.Gym
 import com.meteomontana.android.domain.model.gym.GymDiscipline
 import com.meteomontana.android.domain.model.gym.GymKind
 import com.meteomontana.android.domain.model.gym.GymVerification
-import com.meteomontana.android.domain.usecase.gym.ClusterGymsUseCase
 import com.meteomontana.android.domain.usecase.gym.FilterGymsUseCase
 import com.meteomontana.android.domain.usecase.gym.GetCachedGymsUseCase
 import com.meteomontana.android.domain.usecase.gym.GetGymFavoritesUseCase
@@ -66,7 +65,7 @@ class GymsViewModelTest {
 
     @After fun tearDown() = Dispatchers.resetMain()
 
-    private fun vm() = GymsViewModel(cached, getGyms, FilterGymsUseCase(), ClusterGymsUseCase(), getFavorites, setFavorite)
+    private fun vm() = GymsViewModel(cached, getGyms, FilterGymsUseCase(), getFavorites, setFavorite)
 
     private fun TestScope.observe(vm: GymsViewModel) = backgroundScope.launch { vm.state.collect {} }
 
@@ -107,10 +106,10 @@ class GymsViewModelTest {
     @Test fun `volver a Roca y a Rocodromos conserva los filtros`() = runTest(dispatcher) {
         val vm = vm(); observe(vm)
         vm.setLayer(SchoolsLayer.ROCODROMOS); advanceUntilIdle()
-        vm.toggleFree(); vm.setChain("Sputnik"); advanceUntilIdle()
+        vm.toggleFree(); vm.toggleOpenNow(); advanceUntilIdle()
         vm.setLayer(SchoolsLayer.ROCK); vm.setLayer(SchoolsLayer.ROCODROMOS); advanceUntilIdle()
         assertTrue(vm.state.value.filters.onlyFree)
-        assertEquals("Sputnik", vm.state.value.filters.chain)
+        assertTrue(vm.state.value.filters.openNow)
     }
 
     @Test fun `sin red y sin copia local queda en fallo`() = runTest(dispatcher) {

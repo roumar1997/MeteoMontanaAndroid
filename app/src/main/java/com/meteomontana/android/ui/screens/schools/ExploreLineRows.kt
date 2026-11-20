@@ -102,9 +102,10 @@ internal fun ExploreGroupHeader(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(width = 34.dp, height = 30.dp)
+                Modifier.size(width = 40.dp, height = 28.dp)
+                    .clip(RoundedCornerShape(50))
                     .background(color.copy(alpha = 0.12f))
-                    .border(1.dp, color),
+                    .border(1.dp, color, RoundedCornerShape(50)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(score?.toString() ?: "—", style = MaterialTheme.typography.titleMedium.copy(fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold), color = color)

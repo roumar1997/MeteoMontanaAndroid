@@ -338,6 +338,7 @@ score por hora, mapa con piedras/parkings/zonas, flujo de contribuciones
 (proponer piedra/parking/sector/corrección con revisión admin), editor de
 topos (líneas sobre foto), tema visual Cumbre, autenticación Firebase.
 
+- 2026-11-20 · Rocódromos ronda 2 (Android): igual que Escuelas (mapa plegable + filtros plegables + lista), sin agrupar ni cadenas, calle siempre abierta, tarjeta de cristal en Roca, notas en píldora, quedadas con rocódromo/grado/cordada (contrato en docs/rocodromos/BACKEND-PENDIENTE.md). Notas iOS en PARIDAD §11.
 - 2026-09-21 · i18n: barrido por forma (Android ~1700 claves ES=EN, iOS ~1130 entradas), AppText/CalendarLabels/CatalogLabels, selector de idioma en Ajustes (Android AppLanguage, iOS LanguageManager + L()), ayuda con idioma, orientaciones traducidas. Pendiente: textos del servidor (push/bandeja) y probar todo en EN en móvil.
 
 - 2026-11-03 — Modo GUÍA en BLOQUES (iOS 2.25.9 build 324, TestFlight prod): interruptor LISTA/GUÍA; piedras por sector ordenadas por el eje más largo (`SchoolGuide`, shared, con tests). PRUEBA: si Álvaro no la quiere, revert del commit. Android sin portar. Trampa: el tren 2.25.8 ya estaba aprobado → subir a 2.25.9.

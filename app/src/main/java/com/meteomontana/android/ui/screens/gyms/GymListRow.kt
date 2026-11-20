@@ -35,7 +35,9 @@ internal fun GymListRow(
     isFavorite: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    onToggleFavorite: (() -> Unit)? = null
+    onToggleFavorite: (() -> Unit)? = null,
+    /** Hueco del aforo («% lleno»), que llegará más adelante: sin dato no se pinta nada. */
+    capacity: (@Composable () -> Unit)? = null
 ) {
     val gym = item.gym
     Row(
@@ -54,6 +56,7 @@ internal fun GymListRow(
                     overflow = TextOverflow.Ellipsis)
             }
             GymTags(gym, status, showKind = false, modifier = Modifier.padding(top = 3.dp))
+            capacity?.invoke()
         }
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             GymPresentation.distanceText(item.distanceKm)?.let {

@@ -1997,7 +1997,10 @@
     <string name="gym_stats_month">Este mes</string>
     <string name="gym_stats_year">Este año</string>
     <string name="gym_stats_top">Más visitado</string>
-    <string name="gym_stats_top_value">%1$s · %2$d veces</string>
+    <plurals name="gym_stats_top_value">
+        <item quantity="one">%1$s · %2$d vez</item>
+        <item quantity="other">%1$s · %2$d veces</item>
+    </plurals>
     <string name="gym_stats_streak">Racha</string>
     <string name="gym_stats_streak_one">1 semana</string>
     <string name="gym_stats_streak_many">%1$d semanas</string>
@@ -2012,6 +2015,17 @@
     <string name="gym_disc_rope">Cuerda</string>
     <string name="gym_disc_both">Bloque + cuerda</string>
     <string name="gym_disc_outdoor">Muro al aire libre</string>
+    <string name="create_meetup_place_school">Escuela</string>
+    <string name="create_meetup_place_gym">Rocódromo</string>
+    <string name="create_meetup_gym_search">Buscar rocódromo…</string>
+    <string name="create_meetup_gym_search_title">Buscar rocódromo</string>
+    <string name="create_meetup_grade_label">GRADO ORIENTATIVO (OPCIONAL)</string>
+    <string name="create_meetup_rope_team">Cordada (1 persona)</string>
+    <string name="gym_open_always">Abierto · 24 h</string>
+    <plurals name="gym_see_results">
+        <item quantity="one">Ver %1$d rocódromo</item>
+        <item quantity="other">Ver %1$d rocódromos</item>
+    </plurals>
     <string name="gym_open_until">Abierto · hasta %1$s</string>
     <string name="gym_closed">Cerrado</string>
     <string name="gym_closed_opens">Cerrado · abre a las %1$s</string>

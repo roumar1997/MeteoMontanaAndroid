@@ -91,7 +91,7 @@ internal fun GymTags(
         // Un cerrado definitivamente dice solo «Cerrado»: su horario ya no vale.
         if (gym.closed) GymTag(stringResource(R.string.gym_closed_tag), MaterialTheme.colorScheme.error)
         else GymPresentation.openStatusText(status)?.let { text ->
-            GymTag(text, if (status is GymOpenStatus.Open) ok else MaterialTheme.colorScheme.onSurfaceVariant)
+            GymTag(text, if (status is GymOpenStatus.Open || status is GymOpenStatus.AlwaysOpen) ok else MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

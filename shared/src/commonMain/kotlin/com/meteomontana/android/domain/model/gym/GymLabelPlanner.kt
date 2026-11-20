@@ -14,7 +14,7 @@ data class LabelCandidate(
 object GymLabelPlanner {
 
     /** Zoom mínimo para enseñar nombres; por debajo mandan los grupos y los puntos sueltos sin texto. */
-    const val MIN_ZOOM = 10.5
+    const val MIN_ZOOM = 9.0
 
     private const val CIRCLE_DP = 38f
     private const val LABEL_H_DP = 15f

@@ -394,7 +394,7 @@ private fun HourStrip(w: AssistantWeather, p: AssistantPresenter, words: Assista
 private fun ClimbingRow(w: AssistantWeather, p: AssistantPresenter, words: AssistantWords) {
     val c = w.climbing
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Box(Modifier.size(width = 40.dp, height = 34.dp).border(1.dp, scoreColor(c.score)), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(width = 44.dp, height = 32.dp).border(1.dp, scoreColor(c.score), RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
             Text("${c.score}", color = scoreColor(c.score), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 20.sp)
         }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {

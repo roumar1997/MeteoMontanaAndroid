@@ -89,5 +89,8 @@ data class CreateMeetupRequestDto(
     val memberLimit: Int? = null,
     val photoUrl: String? = null,
     val days: List<String>,
-    val gymId: Long? = null
+    val gymId: Long? = null,
+    val gradeMin: String? = null,
+    val gradeMax: String? = null,
+    val partnersWanted: Int? = null
 )

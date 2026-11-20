@@ -9,6 +9,9 @@ import kotlinx.datetime.toLocalDateTime
 sealed class GymOpenStatus {
     object Unknown : GymOpenStatus()
 
+    /** Muro de calle (GymKind.FREE): sin puertas, siempre abierto. */
+    object AlwaysOpen : GymOpenStatus()
+
     /** Abierto; [closesAt] es "HH:mm" del cierre del tramo en curso ("24:00" se enseña como "00:00"). */
     data class Open(val closesAt: String) : GymOpenStatus()
 
@@ -33,11 +36,13 @@ object GymOpeningHours {
     /** true/false, o null si no hay horario (no se sabe: la UI no debe decir "cerrado"). */
     fun isOpenAt(gym: Gym, instant: Instant): Boolean? = when (statusAt(gym, instant)) {
         GymOpenStatus.Unknown -> null
+        GymOpenStatus.AlwaysOpen -> true
         is GymOpenStatus.Open -> true
         is GymOpenStatus.Closed -> false
     }
 
     fun statusAt(gym: Gym, instant: Instant): GymOpenStatus {
+        if (gym.kind == GymKind.FREE) return GymOpenStatus.AlwaysOpen
         val slots = gym.openingHours?.takeIf { it.isNotEmpty() } ?: return GymOpenStatus.Unknown
         val local = instant.toLocalDateTime(MADRID)
         val today = local.dayOfWeek

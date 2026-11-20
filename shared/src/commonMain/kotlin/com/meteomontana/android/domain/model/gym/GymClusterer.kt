@@ -26,6 +26,9 @@ object GymClusterer {
 
     fun cellSizeDegrees(zoom: Double): Double = 360.0 * CELL_PX / (256.0 * 2.0.pow(zoom))
 
+    /** Sin agrupar (decision 2026-11-19): cada rocodromo su marcador, ordenados por id para que no parpadeen. */
+    fun singles(gyms: List<Gym>): List<GymMapItem> = gyms.sortedBy { it.id }.map { single(it) }
+
     fun cluster(gyms: List<Gym>, zoom: Double): List<GymMapItem> {
         if (gyms.isEmpty()) return emptyList()
         if (zoom >= MAX_CLUSTER_ZOOM) return gyms.sortedBy { it.id }.map { single(it) }

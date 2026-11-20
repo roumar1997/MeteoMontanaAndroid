@@ -127,6 +127,11 @@ fun CreateMeetupScreen(
     var submitting by remember { mutableStateOf(false) }
     var photoUrl by rememberSaveable { mutableStateOf<String?>(null) }
     var showSchoolPicker by remember { mutableStateOf(false) }
+    var showGymPicker by remember { mutableStateOf(false) }
+    var placeIsGym by rememberSaveable { mutableStateOf(false) }
+    var gradeMin by rememberSaveable { mutableStateOf<String?>(null) }
+    var gradeMax by rememberSaveable { mutableStateOf<String?>(null) }
+    var ropeTeam by rememberSaveable { mutableStateOf(false) }
     val schoolResults by viewModel.schoolResults.collectAsStateWithLifecycle()
 
     // Lo que trae el asistente se aplica UNA vez: si el usuario lo cambia, no se le vuelve a poner encima.
@@ -139,6 +144,7 @@ fun CreateMeetupScreen(
         schoolId = p.schoolId
         schoolName = p.schoolName
         gymId = p.gymId
+        placeIsGym = p.gymId != null
         p.day?.let { selectedDays.value = selectedDays.value + it }
     }
 
@@ -237,15 +243,18 @@ fun CreateMeetupScreen(
                 colors = outlinedColors()
             )
 
-            // Escuela — buscador
-            FieldLabel(stringResource(if (gymId != null) R.string.gym_meetup_place_label else R.string.w_school_caps))
+            // Lugar: Escuela o Rocódromo, con su buscador
+            MeetupPlaceKindSelector(placeIsGym) { toGym ->
+                if (toGym != placeIsGym) { placeIsGym = toGym; schoolId = ""; schoolName = ""; gymId = null }
+            }
+            FieldLabel(stringResource(if (placeIsGym) R.string.gym_meetup_place_label else R.string.w_school_caps))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(4.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
                     .background(MaterialTheme.colorScheme.surface)
-                    .clickable(enabled = gymId == null) { showSchoolPicker = true }
+                    .clickable { if (placeIsGym) showGymPicker = true else showSchoolPicker = true }
                     .padding(horizontal = 12.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -253,7 +262,8 @@ fun CreateMeetupScreen(
                 Icon(Icons.Outlined.School, contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                 Text(
-                    text = if (schoolName.isNotBlank()) schoolName else stringResource(R.string.create_meetup_school_search),
+                    text = if (schoolName.isNotBlank()) schoolName
+                           else stringResource(if (placeIsGym) R.string.create_meetup_gym_search else R.string.create_meetup_school_search),
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (schoolName.isNotBlank()) MaterialTheme.colorScheme.onSurface
                             else MaterialTheme.colorScheme.onSurfaceVariant
@@ -284,7 +294,8 @@ fun CreateMeetupScreen(
 
             // Disciplina
             FieldLabel(stringResource(R.string.create_meetup_screen_v3_disciplina_opcional))
-            DisciplineSelector(selected = discipline, onSelected = { discipline = it })
+            DisciplineSelector(selected = discipline, onSelected = { discipline = it; if (it != "ROUTE") ropeTeam = false })
+            MeetupGradeAndRopeTeam(gradeMin, gradeMax, { gradeMin = it }, { gradeMax = it }, discipline == "ROUTE", ropeTeam) { ropeTeam = it }
 
             // Límite
             FieldLabel(stringResource(R.string.create_meetup_screen_v3_limite_de_participantes_opcional))
@@ -319,6 +330,13 @@ fun CreateMeetupScreen(
             )
         }
 
+        if (showGymPicker) {
+            MeetupGymPickerDialog(
+                onSelect = { g -> gymId = g.id; schoolId = ""; schoolName = g.name; showGymPicker = false },
+                onDismiss = { showGymPicker = false }
+            )
+        }
+
         // Botón crear
         HorizontalDivider()
         // SIN navigationBarsPadding: esta pantalla vive dentro del overlay, y
@@ -340,7 +358,10 @@ fun CreateMeetupScreen(
                         memberLimit = limitText.toIntOrNull(),
                         photoUrl = photoUrl,
                         days = selectedDays.value.sorted(),
-                        gymId = gymId
+                        gymId = gymId,
+                        gradeMin = gradeMin,
+                        gradeMax = gradeMax,
+                        partnersWanted = if (ropeTeam && discipline == "ROUTE") 1 else null
                     )
                     viewModel.create(req,
                         onSuccess = { meetup -> submitting = false; onCreated(meetup.id) },
@@ -397,7 +418,7 @@ private fun DayPickerRow(
                     Spacer(Modifier.height(2.dp))
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(2.dp))
+                            .clip(RoundedCornerShape(50))
                             .background(scoreColor(score))
                             .padding(horizontal = 4.dp, vertical = 1.dp)
                     ) {

@@ -43,10 +43,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.meteomontana.android.R
-import com.meteomontana.android.domain.model.gym.Gym
-import com.meteomontana.android.domain.model.gym.GymMapItem
 import com.meteomontana.android.ui.components.CumbreChip
 import com.meteomontana.android.ui.screens.schools.FiltersToggleRow
+import com.meteomontana.android.ui.screens.schools.MapToggleBar
 import com.meteomontana.android.ui.components.CumbreSearchField
 import com.meteomontana.android.ui.components.LocalTabBarInset
 import com.meteomontana.android.ui.components.dismissKeyboardOnScroll
@@ -69,17 +68,14 @@ private class GymsActions(vm: GymsViewModel) {
     val toggleStreet: () -> Unit = vm::toggleStreet
     val toggleClosed: () -> Unit = vm::toggleClosed
     val toggleFavorite: (Long) -> Unit = vm::toggleFavorite
-    val setChain: (String?) -> Unit = vm::setChain
     val setMaxDistance: (Double?) -> Unit = vm::setMaxDistance
-    val setView: (GymsView) -> Unit = vm::setView
     val refresh: () -> Unit = vm::refresh
     val clearFilters: () -> Unit = vm::clearFilters
-    val cluster: (List<Gym>, Double) -> List<GymMapItem> = vm::cluster
 }
 
 /**
  * Cuerpo de Escuelas cuando el selector está en «Rocódromos» o «Muros gratis» (sustituye a la lista de escuelas y
- * a su nota del tiempo): buscador, filtros en cápsulas, contador, alternar Mapa/Lista y el contenido.
+ * a su nota del tiempo), con la misma forma: buscador, mapa plegable, filtros plegables y la lista por cercanía.
  */
 @Composable
 fun GymsLayerScreen(
@@ -105,15 +101,80 @@ fun GymsLayerScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
     }
 
-    Column(modifier.fillMaxSize()) {
-        GymsLayerHeader(remember(viewModel) { GymsActions(viewModel) }, state)
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            GymsLayerContent(
-                remember(viewModel) { GymsActions(viewModel) }, state, userLat, userLon, locationPermission, onRequestLocation, onOpenGym,
-                onCenter = { la, lo -> mapCenter = la to lo }, onAddWall = { addWallOpen = true }
-            )
+    val actions = remember(viewModel) { GymsActions(viewModel) }
+    val closeKeyboard = rememberKeyboardDismisser()
+    val mapState = rememberGymsMapState()
+    val filters = state.filters
+    // Igual que Escuelas: el mapa y los filtros se abren y se cierran; debajo, siempre la lista por cercanía.
+    var mapOpen by rememberSaveable { mutableStateOf(false) }
+    var filtersOpen by rememberSaveable { mutableStateOf(false) }
+    var selectedId by rememberSaveable { mutableStateOf<Long?>(null) }
+    androidx.activity.compose.BackHandler(enabled = filtersOpen) { filtersOpen = false }
+
+    LazyColumn(
+        modifier.fillMaxSize().dismissKeyboardOnScroll(),
+        contentPadding = PaddingValues(bottom = LocalTabBarInset.current + Spacing.lg)
+    ) {
+        item {
+            Box(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.xs)) {
+                CumbreSearchField(
+                    value = filters.query, onValueChange = actions.setQuery,
+                    placeholder = stringResource(R.string.gym_search_hint), onSearch = { closeKeyboard() }
+                )
+            }
         }
+        if (mapOpen) {
+            item {
+                GymsMapBox(
+                    state, selectedId, { selectedId = it }, mapState, userLat, userLon, locationPermission, onRequestLocation,
+                    onOpenGym, actions, onCenter = { la, lo -> mapCenter = la to lo }, onAddWall = { addWallOpen = true }
+                )
+            }
+        }
+        item {
+            Spacer(Modifier.height(Spacing.xs))
+            MapToggleBar(expanded = mapOpen, onToggle = { mapOpen = !mapOpen })
+            Spacer(Modifier.height(Spacing.sm))
+            FiltersToggleRow(
+                open = filtersOpen, activeCount = gymActiveFilterCount(filters),
+                countText = stringResource(R.string.gym_count_gyms, state.items.size),
+                dayLabel = null, daysOpen = false,
+                onToggleOpen = { filtersOpen = !filtersOpen }, onToggleDays = {},
+                onClear = { actions.clearFilters(); filtersOpen = false },
+                favsOn = filters.onlyFavorites, onToggleFavs = actions.toggleFavorites,
+                favsLabel = stringResource(R.string.gym_favs_chip), favsDescription = stringResource(R.string.gym_favs_chip_desc)
+            )
+            Spacer(Modifier.height(Spacing.sm))
+        }
+        if (filtersOpen) {
+            item {
+                GymFiltersPanel(
+                    filters = filters, resultCount = state.items.size,
+                    // La distancia es de elección única: al elegirla el panel se pliega.
+                    onDistance = { actions.setMaxDistance(it); filtersOpen = false },
+                    onBoulder = actions.toggleBoulder, onRope = actions.toggleRope, onFree = actions.toggleFree,
+                    onStreet = actions.toggleStreet, onOpenNow = actions.toggleOpenNow, onClosed = actions.toggleClosed,
+                    onApply = { filtersOpen = false }
+                )
+            }
+        }
+        item { HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp) }
+        when {
+            state.loading && state.all.isEmpty() ->
+                item { Box(Modifier.fillMaxWidth().padding(Spacing.xl), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
+            state.loadFailed && state.all.isEmpty() ->
+                item { Message(stringResource(R.string.gym_load_error), stringResource(R.string.gym_retry), actions.refresh) }
+            state.items.isEmpty() ->
+                item { Message(stringResource(R.string.gym_empty), stringResource(R.string.gym_clear_filters), actions.clearFilters) }
+            else -> items(state.items, key = { it.gym.id }) { item ->
+                GymListRow(
+                    item, item.gym.openStatusNow(), item.gym.id in state.favorites, { onOpenGym(item.gym.id) },
+                    onToggleFavorite = { actions.toggleFavorite(item.gym.id) }
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
+            }
+        }
+        item { Box(Modifier.padding(Spacing.lg)) { AddWallPill { addWallOpen = true } } }
     }
     if (addWallOpen) {
         NewGymSheet(
@@ -124,101 +185,34 @@ fun GymsLayerScreen(
     }
 }
 
-/**
- * Buscador, «Mapa | Lista» y la fila plegable «FILTROS (n) · N rocódromos» (la misma que la de Escuelas, sin el chip de
- * días) con su panel de chips; el chip de favoritos va en la propia fila.
- */
+/** Mapa plegable (320 dp, como el de Escuelas) con la tarjeta de cristal del marcador pulsado. */
 @Composable
-private fun GymsLayerHeader(actions: GymsActions, state: GymsUiState) {
-    val closeKeyboard = rememberKeyboardDismisser()
-    val filters = state.filters
-    var filtersOpen by rememberSaveable { mutableStateOf(false) }
-    androidx.activity.compose.BackHandler(enabled = filtersOpen) { filtersOpen = false }
-    val active = gymActiveFilterCount(filters)
-    Column {
-        Box(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.xs)) {
-            CumbreSearchField(
-                value = filters.query, onValueChange = actions.setQuery,
-                placeholder = stringResource(R.string.gym_search_hint), onSearch = { closeKeyboard() }
-            )
-        }
-        SegmentedPair(
-            first = stringResource(R.string.gym_view_map).uppercase(), second = stringResource(R.string.gym_view_list).uppercase(),
-            firstSelected = state.view == GymsView.MAP,
-            onFirst = { actions.setView(GymsView.MAP) }, onSecond = { actions.setView(GymsView.LIST) }
-        )
-        Spacer(Modifier.height(Spacing.sm))
-        FiltersToggleRow(
-            open = filtersOpen, activeCount = active,
-            countText = stringResource(R.string.gym_count_gyms, state.items.size),
-            dayLabel = null, daysOpen = false,
-            onToggleOpen = { filtersOpen = !filtersOpen }, onToggleDays = {},
-            onClear = { actions.clearFilters(); filtersOpen = false },
-            favsOn = filters.onlyFavorites, onToggleFavs = actions.toggleFavorites,
-            favsLabel = stringResource(R.string.gym_favs_chip), favsDescription = stringResource(R.string.gym_favs_chip_desc)
-        )
-        Spacer(Modifier.height(Spacing.sm))
-        if (filtersOpen) {
-            GymFiltersPanel(
-                filters = filters, chains = state.chains, onDistance = actions.setMaxDistance,
-                onBoulder = actions.toggleBoulder, onRope = actions.toggleRope, onFree = actions.toggleFree,
-                onStreet = actions.toggleStreet, onOpenNow = actions.toggleOpenNow, onClosed = actions.toggleClosed,
-                onChain = actions.setChain
-            )
-        }
-    }
-}
-
-/** Carga, error sin copia, lista vacía, mapa con su tarjeta o la lista. */
-@Composable
-private fun BoxScope.GymsLayerContent(
-    actions: GymsActions,
+private fun GymsMapBox(
     state: GymsUiState,
+    selectedId: Long?,
+    onSelect: (Long?) -> Unit,
+    mapState: GymsMapState,
     userLat: Double?,
     userLon: Double?,
     locationPermission: Boolean,
     onRequestLocation: () -> Unit,
     onOpenGym: (Long) -> Unit,
+    actions: GymsActions,
     onCenter: (Double, Double) -> Unit,
     onAddWall: () -> Unit
 ) {
-    val mapState = rememberGymsMapState()
-    var selectedId by rememberSaveable { mutableStateOf<Long?>(null) }
-    when {
-        state.loading && state.all.isEmpty() -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-        state.loadFailed && state.all.isEmpty() ->
-            Message(stringResource(R.string.gym_load_error), stringResource(R.string.gym_retry), actions.refresh)
-        state.view == GymsView.MAP -> {
-            GymsMap(
-                gyms = state.items.map { it.gym }, cluster = actions.cluster, userLat = userLat, userLon = userLon,
-                selectedId = selectedId, onSelect = { selectedId = it }, mapState = mapState, onCenterChange = onCenter,
-                onRequestLocation = onRequestLocation, locationPermission = locationPermission, modifier = Modifier.fillMaxSize()
+    Box(Modifier.fillMaxWidth().height(320.dp)) {
+        GymsMap(
+            gyms = state.items.map { it.gym }, userLat = userLat, userLon = userLon,
+            selectedId = selectedId, onSelect = onSelect, mapState = mapState, onCenterChange = onCenter,
+            onRequestLocation = onRequestLocation, locationPermission = locationPermission, modifier = Modifier.fillMaxSize()
+        )
+        val selected = state.items.firstOrNull { it.gym.id == selectedId }
+        Column(Modifier.align(Alignment.BottomCenter).padding(horizontal = Spacing.md).padding(bottom = Spacing.sm)) {
+            if (selected == null) AddWallPill(onAddWall)
+            else SelectedGymCard(
+                selected, selected.gym.id in state.favorites, { onSelect(null) }, onOpenGym, { actions.toggleFavorite(selected.gym.id) }
             )
-            val selected = state.items.firstOrNull { it.gym.id == selectedId }
-            Column(
-                Modifier.align(Alignment.BottomCenter).padding(horizontal = Spacing.md)
-                    .padding(bottom = LocalTabBarInset.current + Spacing.sm)
-            ) {
-                if (selected == null) AddWallPill(onAddWall)
-                else SelectedGymCard(
-                    selected, selected.gym.id in state.favorites, { selectedId = null }, onOpenGym, { actions.toggleFavorite(selected.gym.id) }
-                )
-            }
-        }
-        state.items.isEmpty() ->
-            Message(stringResource(R.string.gym_empty), stringResource(R.string.gym_clear_filters), actions.clearFilters)
-        else -> LazyColumn(
-            Modifier.fillMaxSize().dismissKeyboardOnScroll(),
-            contentPadding = PaddingValues(bottom = LocalTabBarInset.current + Spacing.lg)
-        ) {
-            items(state.items, key = { it.gym.id }) { item ->
-                GymListRow(
-                    item, item.gym.openStatusNow(), item.gym.id in state.favorites, { onOpenGym(item.gym.id) },
-                    onToggleFavorite = { actions.toggleFavorite(item.gym.id) }
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
-            }
-            item { Box(Modifier.padding(Spacing.lg)) { AddWallPill(onAddWall) } }
         }
     }
 }
@@ -260,7 +254,7 @@ private fun AddWallPill(onClick: () -> Unit) {
 @Composable
 private fun Message(text: String, action: String, onAction: () -> Unit) {
     Column(
-        Modifier.fillMaxSize().padding(Spacing.xl),
+        Modifier.fillMaxWidth().padding(Spacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
     ) {
         Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)

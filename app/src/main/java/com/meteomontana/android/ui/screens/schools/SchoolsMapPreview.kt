@@ -54,7 +54,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.graphics.toColorInt
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.meteomontana.android.domain.model.School
@@ -73,9 +72,24 @@ import org.maplibre.android.maps.Style
 import com.meteomontana.android.domain.util.Geo
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
+import com.meteomontana.android.ui.components.ScoreRing
+import com.meteomontana.android.ui.screens.gyms.GymActionPill
+import com.meteomontana.android.ui.screens.gyms.GymTag
+import com.meteomontana.android.ui.theme.Serif
 
 // Tarjeta de la escuela tocada en el mapa de Escuelas y sus botones y chips.
 
+/**
+ * Tarjeta de la escuela tocada en el mapa de Roca: la misma de cristal que la de rocódromos (radio 24, fondo del tema
+ * al 92 %, canto blanco al 55 %). La nota de hoy va en el anillo de la izquierda, en el sitio del icono.
+ */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 internal fun MarkerPreviewCard(
     school: School,
@@ -88,64 +102,48 @@ internal fun MarkerPreviewCard(
 ) {
     val ctx = LocalContext.current
     val distKm = haversineKm(userLat, userLon, school.lat, school.lon)
-    val scoreColor = pinColorHex(score)
+    val shape = RoundedCornerShape(24.dp)
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
 
-    // Mini-ficha (mismo estilo que la de parkings/sectores del mapa de escuela).
     Column(
         modifier = modifier
-            .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.background)
-            .border(1.dp, MaterialTheme.colorScheme.outline,
-                androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
-            .padding(Spacing.md)
+            .shadow(12.dp, shape)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.92f))
+            .border(1.dp, Color.White.copy(alpha = 0.55f), shape)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            // Chip de score: el mismo color del pin, con el número dentro.
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
-                    .background(androidx.compose.ui.graphics.Color(scoreColor.toColorInt())),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(score?.toString() ?: "·",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = androidx.compose.ui.graphics.Color.White)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            ScoreRing(score)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(
+                    school.name, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 21.sp,
+                    color = MaterialTheme.colorScheme.onBackground, maxLines = 2, overflow = TextOverflow.Ellipsis
+                )
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    school.rockType?.let { GymTag(CatalogLabels.rock(it), muted) }
+                    school.style?.let { GymTag(it, muted) }
+                    distKm?.let { GymTag("${it.toInt()} km", muted) }
+                }
             }
-            Text(
-                school.name,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                "✕",
-                modifier = Modifier
-                    .clickable(onClick = onClose)
-                    .padding(start = Spacing.sm),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.titleMedium
-            )
+            Row(
+                Modifier.size(32.dp).clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.07f))
+                    .clickable(onClick = onClose),
+                horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Outlined.Close, stringResource(R.string.common_close),
+                    tint = muted, modifier = Modifier.size(16.dp)
+                )
+            }
         }
-
-        Row(
-            modifier = Modifier.padding(top = Spacing.xs),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) {
-            school.rockType?.let { Tag(CatalogLabels.rock(it)) }
-            school.style?.let    { Tag(it) }
-            distKm?.let          { Tag("${it.toInt()} km") }
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = Spacing.sm),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
-            OutlinedAction(
-                text = stringResource(R.string.common_directions),
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GymActionPill(
+                stringResource(R.string.gym_directions),
                 onClick = {
                     val intent = Intent(
                         Intent.ACTION_VIEW,
@@ -153,13 +151,9 @@ internal fun MarkerPreviewCard(
                     )
                     runCatching { ctx.startActivity(intent) }
                 },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f), primary = true, icon = R.drawable.ic_directions
             )
-            FilledAction(
-                text = stringResource(R.string.schools_map_panel_v3_ver_detalle),
-                onClick = onSchoolDetail,
-                modifier = Modifier.weight(1f)
-            )
+            GymActionPill(stringResource(R.string.schools_map_panel_v3_ver_detalle), onSchoolDetail, Modifier.weight(1f))
         }
     }
 }

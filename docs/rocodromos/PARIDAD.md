@@ -201,3 +201,19 @@ Cambios respecto a las secciones 1 a 4. **iOS ya los lleva** (ver la tabla al fi
 
 Cambios en shared de esta pasada: `GymLabelPlanner` y `LabelCandidate` pasan de `app` a `shared` (públicos); `GymAdminEdit`/`GymAdminUpdateDto` llevan `closed`.
 Diferencia conocida: en iOS el nombre se coloca proyectando a Mercator (mundo de 512 pt a zoom 0), no con la proyección del mapa; el reparto solo usa posiciones relativas, así que coincide con Android.
+
+## 11. Ronda 2 del emulador (2026-11-20, Android hecho; PENDIENTE PARA iOS)
+
+Rocódromos funciona **igual que Escuelas**: buscador, botón «VER MAPA / OCULTAR MAPA» (mapa plegable de 320 dp, cerrado al arrancar, `MapToggleBar`), fila «FILTROS (n) · N rocódromos · FAVORITOS» y debajo la **lista** por cercanía (50 km por defecto). Ya no hay «Mapa | Lista» ni carrusel de favoritos (el favorito es el filtro ★).
+
+1. **Panel de filtros compacto**: dos filas deslizables (distancia; Bloque · Cuerda · Gratis · De calle · Abierto ahora · Incluir cerrados) y botón «Ver N rocódromos» (plural `gym_see_results`) que lo pliega. Elegir distancia lo pliega solo. Sin secciones con título.
+2. **Fila FILTROS/BORRAR** (`filtersRowMode`, lógica pura con test): si no cabe se oculta el contador; después BORRAR queda en «✕» y FAVORITOS en su estrella. Afecta también a Escuelas (misma fila).
+3. **Abierto ahora**: `GymOpeningHours` devuelve `GymOpenStatus.AlwaysOpen` para `kind == FREE` (shared). Texto `gym_open_always` («Abierto · 24 h»). Hay que añadir el caso en los `switch` de Swift.
+4. **Cadenas**: filtro quitado de la UI y de `gymActiveFilterCount`. El campo `chain` de `GymFilters` sigue en shared (buscador por cadena y subtítulo de la fila).
+5. **Sin agrupar**: `GymClusterer.singles(gyms)` (shared) y el mapa ya no agrupa; `GymLabelPlanner.MIN_ZOOM` baja de 10,5 a 9,0 (el nombre se oculta si choca, nunca el marcador).
+6. **Tarjeta de la escuela en el mapa de Roca** (`MarkerPreviewCard`): tarjeta de cristal como la de rocódromos (radio 24, anillo con la nota a la izquierda, nombre serif 21, chips roca/estilo/distancia, «Cómo llegar» + «Ver detalle»).
+7. **Notas en lista**: la nota en cuadrado pasa a píldora/círculo en la cabecera de grupo de Vías/Bloques, la tarjeta del asistente y los chips de nota de los días en quedadas.
+8. **«Añadir un muro que falta»** ya no está en «Corregir datos»; vive en la capa de rocódromos (píldora bajo el mapa y al final de la lista).
+9. **Plural** de «veces» en la tarjeta Rocódromo del perfil: `gym_stats_top_value` pasa a `plurals` (1 vez / N veces; es/en).
+10. **Quedadas**: «Crear quedada» tiene segmento Escuela | Rocódromo (buscador de rocódromos del catálogo, sin tildes), **grado orientativo** MÍN/MÁX opcional y, si la disciplina es Vía, chip «Cordada (1 persona)». Campos nuevos en `CreateMeetupRequest`/DTO: `gradeMin`, `gradeMax`, `partnersWanted` (solo se envían si tienen valor). Contrato en `BACKEND-PENDIENTE.md`.
+11. **Preparado, sin dato todavía**: `GymListRow(capacity = …)` es un hueco para el «aforo %» (no se pinta sin dato) y el orden futuro «Más vacío» se añadirá a `GymSort` cuando exista el dato.
