@@ -81,18 +81,22 @@ struct GymTrainBoardsTab: View {
     let problems: [BoardProblem]
     let adjust: (String, Int) -> Void
     let addBoard: (BoardKind, String, Int?, String) -> Void
+    /// Tablero fijado (el «+» de la pantalla Boards): sin selector de marca.
+    var fixedBoard: BoardKind?
     @State private var board: BoardKind = .kilter
     @State private var angle: Int?
+    @State private var started = false
     @State private var selected: [String] = []
     @State private var name = ""
 
     var body: some View {
         let items = ascents.filter { GymAscentKeys.shared.parse(key: $0.key) is AscentKeyBoard }
         GymAddedList(list: items, names: BoardProblems.shared.namesByKey(items: items, problems: problems), adjust: adjust)
+        if fixedBoard == nil {
         HStack(spacing: 8) {
             ForEach(BoardStyle.all, id: \.self) { b in
                 let sel = b == board
-                Button { board = b } label: {
+                Button { board = b; angle = BoardAngleStore.memory.initial(board: b)?.intValue } label: {
                     VStack(spacing: 5) {
                         BoardLogo(board: b)
                         Text(BoardStyle.name(b)).font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink).lineLimit(1)
@@ -105,11 +109,13 @@ struct GymTrainBoardsTab: View {
                 .buttonStyle(.plain)
             }
         }
-        HStack(spacing: 6) {
-            GymEyebrow(text: L("gym_sheet_incline")).frame(maxWidth: .infinity, alignment: .leading)
-            ForEach(GymAscentKeys.shared.BOARD_ANGLES.map { Int(truncating: $0) }, id: \.self) { a in
+        }
+        let angles = BoardAngles.shared.anglesFor(board: board).map { Int(truncating: $0) }
+        if !angles.isEmpty { GymEyebrow(text: L("gym_sheet_incline")) }
+        FlowLayoutView(spacing: 6) {
+            ForEach(angles, id: \.self) { a in
                 let sel = angle == a
-                Button { angle = sel ? nil : a } label: {
+                Button { angle = sel ? nil : a; BoardAngleStore.remember(board, angle) } label: {
                     Text("\(a)°").font(.system(size: 12, weight: .bold)).foregroundStyle(sel ? .white : Cumbre.ink)
                         .padding(.horizontal, 12).padding(.vertical, 6)
                         .background(sel ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
@@ -135,10 +141,17 @@ struct GymTrainBoardsTab: View {
         GymAddButton(grade: grade) {
             guard let grade else { return }
             addBoard(board, grade, angle, name)
+            BoardAngleStore.remember(board, angle)
             selected = []
             name = ""
         }
         Text(L("gym_sheet_board_note")).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
+            .onAppear {
+                guard !started else { return }
+                started = true
+                if let fixedBoard { board = fixedBoard }
+                angle = BoardAngleStore.memory.initial(board: board)?.intValue
+            }
     }
 }
 

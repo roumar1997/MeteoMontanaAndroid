@@ -191,15 +191,20 @@ struct BoardsSections: View {
     let items: [GymAscent]
     @ObservedObject var climb: ProfileClimbModel
     let onOpenGym: (Int64) -> Void
+    /// Perfil propio: cada tablero lleva un «+» y salen los 4 aunque estén vacíos.
+    var onAdd: ((BoardKind) -> Void)?
+    @State private var angles: [String: Int] = [:]
 
     var body: some View {
         let groups: [(BoardKind, [GymAscent])] = BoardStyle.all.compactMap { k in
             let list = GymAscentKeys.shared.boards(list: items, board: k)
-            return list.isEmpty ? nil : (k, list)
+            return list.isEmpty && onAdd == nil ? nil : (k, list)
         }
         if groups.isEmpty { EmptyCategory() }
-        ForEach(groups, id: \.0) { kind, list in
+        ForEach(groups, id: \.0) { kind, all in
             Group {
+                let angle = angles[kind.name]
+                let list = BoardAngles.shared.filter(items: all, board: kind, angle: angle.map { KotlinInt(int: Int32($0)) })
                 let open = climb.expandedBoards.contains(kind.name)
                 VStack(alignment: .leading, spacing: 6) {
                     Button { climb.toggleBoard(kind) } label: {
@@ -209,6 +214,14 @@ struct BoardsSections: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             if let max = GymBreakdown.shared.maxGrade(items: list) { MaxGradePill(grade: max) }
                             Text("\(list.reduce(0) { $0 + Int($1.count) })").font(.system(size: 14, weight: .bold)).foregroundStyle(Cumbre.ink)
+                            if let onAdd {
+                                Button { onAdd(kind) } label: {
+                                    Image(systemName: "plus").font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
+                                        .frame(width: 30, height: 30).background(Cumbre.terraFill, in: Circle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(L("gym_board_add_cd", BoardStyle.name(kind)))
+                            }
                             Image(systemName: open ? "chevron.up" : "chevron.down").font(.system(size: 13, weight: .semibold))
                                 .foregroundStyle(Cumbre.ink2)
                         }
@@ -217,7 +230,8 @@ struct BoardsSections: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel(L("gym_board_toggle_cd"))
                     if open {
-                        BoardNamedSection(kind: kind, summary: summary, onOpenGym: onOpenGym)
+                        BoardAngleFilter(kind: kind, list: all, selected: Binding(get: { angles[kind.name] }, set: { angles[kind.name] = $0 }))
+                        BoardNamedSection(kind: kind, summary: summary, onOpenGym: onOpenGym, boardItems: all, angle: angle)
                         ByGradeSection(items: list, colorHex: { _ in nil }, titled: false)
                     }
                 }
@@ -232,6 +246,8 @@ struct BoardNamedSection: View {
     let kind: BoardKind
     let summary: GymSummary
     let onOpenGym: (Int64) -> Void
+    var boardItems: [GymAscent] = []
+    var angle: Int?
     @State private var query = ""
 
     var body: some View {
@@ -241,7 +257,9 @@ struct BoardNamedSection: View {
         }
         .padding(12)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Cumbre.rule, lineWidth: 1))
-        let found = BoardProblems.shared.search(all: summary.boardProblems, board: kind, query: query)
+        let pool = BoardAngles.shared.problemsAt(problems: summary.boardProblems, items: boardItems, board: kind,
+                                                 angle: angle.map { KotlinInt(int: Int32($0)) })
+        let found = BoardProblems.shared.search(all: pool, board: kind, query: query)
         if found.isEmpty {
             if !query.trimmingCharacters(in: .whitespaces).isEmpty {
                 Text(L("gym_board_search_empty")).font(.system(size: 13)).foregroundStyle(Cumbre.ink2).padding(.vertical, 6)
@@ -263,6 +281,7 @@ struct BoardNamedSection: View {
                     .padding(.horizontal, 12).padding(.vertical, 10).cardChrome(14)
                 }
                 .buttonStyle(.plain)
+                .disabled(p.gymId == GymSession.Companion.shared.NO_GYM)
             }
         }
     }

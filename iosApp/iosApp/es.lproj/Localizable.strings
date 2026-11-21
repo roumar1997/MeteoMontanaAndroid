@@ -743,3 +743,13 @@
 /* Rocodromos rondas 2-11c (sincronizado de Android) */
 "explore_group_count_one" = "1 vía/bloque";
 "explore_group_count_other" = "%1$@ vías/bloques";
+
+/* Rocodromos rondas 2-11c (sincronizado de Android) */
+"gym_solo_board_title" = "Solo board";
+"gym_solo_board_sub" = "Sin rocódromo: tu board de casa o da igual dónde";
+"gym_solo_board_sheet" = "Boards · %1$@";
+"gym_solo_board_save" = "Guardar boards";
+"gym_board_add_cd" = "Apuntar un %1$@";
+"gym_board_angles" = "Ángulos";
+"gym_board_angles_all" = "Todos";
+"gym_board_angle_chip" = "%1$@° · %2$@";

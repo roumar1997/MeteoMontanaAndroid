@@ -81,6 +81,8 @@ private enum PickDay { case today, yesterday, other }
 /// cercanos. «Seguir» devuelve el rocódromo y el día.
 struct GymPickerSheet: View {
     let onPick: (Gym, Date) -> Void
+    /// Si se pasa, arriba sale «Solo board» (boards sin rocódromo) y devuelve solo el día elegido.
+    var onSoloBoard: ((Date) -> Void)?
     @StateObject private var vm = GymPickerViewModel()
     @Environment(\.dismiss) private var dismiss
     @State private var chosen: Gym?
@@ -124,6 +126,7 @@ struct GymPickerSheet: View {
             .padding(.top, 8)
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
+                    if let onSoloBoard { soloRow { onSoloBoard(date) } }
                     if !vm.query.trimmingCharacters(in: .whitespaces).isEmpty {
                         ForEach(vm.results) { row($0) }
                     } else {
@@ -168,6 +171,25 @@ struct GymPickerSheet: View {
             .padding(16)
             .presentationDetents([.medium, .large])
         }
+    }
+
+    /// «Solo board»: boards sin rocódromo (tablero de casa).
+    private func soloRow(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 12).fill(Cumbre.terraFill).frame(width: 40, height: 40)
+                    .overlay(Image(systemName: "square.grid.2x2").font(.system(size: 18)).foregroundStyle(.white))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(L("gym_solo_board_title")).font(.system(size: 15, weight: .bold)).foregroundStyle(Cumbre.ink)
+                    Text(L("gym_solo_board_sub")).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(12)
+            .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Cumbre.terraFill, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 
     private var otherLabel: String {

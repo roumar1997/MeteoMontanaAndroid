@@ -293,6 +293,7 @@ struct LogWorkoutPill: View {
     var onSaved: () -> Void = {}
     @State private var picking = false
     @State private var target: GymTrainTarget?
+    @State private var soloDay: SoloDay?
 
     var body: some View {
         Button { picking = true } label: {
@@ -305,15 +306,26 @@ struct LogWorkoutPill: View {
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $picking) {
-            GymPickerSheet { gym, day in
+            GymPickerSheet(onPick: { gym, day in
                 picking = false
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { target = GymTrainTarget(gym: gym, day: day) }
-            }
+            }, onSoloBoard: { day in
+                picking = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { soloDay = SoloDay(day: day) }
+            })
         }
         .sheet(item: $target) { t in
             GymTrainSheet(gym: t.gym, dateLabel: GymDates.long(t.day), date: GymDates.local(t.day), onSaved: onSaved)
         }
+        .sheet(item: $soloDay) { s in
+            SoloBoardSheet(dateLabel: GymDates.long(s.day), date: GymDates.local(s.day), onSaved: onSaved)
+        }
     }
+}
+
+struct SoloDay: Identifiable {
+    let day: Date
+    var id: Double { day.timeIntervalSince1970 }
 }
 
 struct GymTrainTarget: Identifiable {

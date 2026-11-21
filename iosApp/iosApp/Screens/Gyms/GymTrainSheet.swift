@@ -15,8 +15,9 @@ final class GymTrainSheetViewModel: ObservableObject {
     func load(gymId: Int64, date: Kotlinx_datetimeLocalDate?) {
         let today = c.gymTraining.today()
         let day = date ?? today
-        let existing = c.gymTraining.summary(period: .year, date: today).sessions
-            .first { $0.gymId == gymId && $0.date == day }
+        // session() y no summary(): summary excluye las sesiones sin rocódromo (gymId 0) y el segundo guardado pisaría el primero.
+        _ = today
+        let existing = c.gymTraining.session(gymId: gymId, date: day)
         ascents = existing?.ascents ?? []
         boardProblems = existing?.boardProblems ?? []
         hadAscents = !(existing?.ascents.isEmpty ?? true)
@@ -42,7 +43,7 @@ final class GymTrainSheetViewModel: ObservableObject {
         Task {
             let today = c.gymTraining.today()
             let day = date ?? today
-            if !ascents.isEmpty && day == today {
+            if gymId != GymSession.Companion.shared.NO_GYM && !ascents.isEmpty && day == today {
                 _ = try? await c.recordGymSession.execute(gymId: gymId, source: .manual)
             }
             if !ascents.isEmpty || hadAscents {

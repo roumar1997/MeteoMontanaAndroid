@@ -296,6 +296,7 @@ struct AscentOrderSheet: View {
 struct GymBoardsView: View {
     let uid: String?
     @StateObject private var climb = ProfileClimbModel()
+    @State private var addFor: BoardPick?
     @State private var grades = Set<String>()
     @State private var route: ClimbRoute?
 
@@ -306,16 +307,17 @@ struct GymBoardsView: View {
             ClimbHeader(title: L("gym_boards_title", GymBreakdown.shared.boardCount(items: items))) { EmptyView() }
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
-                    if items.isEmpty {
+                    if items.isEmpty && uid != nil {
                         Text(L("gym_boards_empty")).foregroundStyle(Cumbre.ink2).frame(maxWidth: .infinity).padding(.top, 40)
                     } else {
-                        GradeChipRow(grades: AscentEntries.shared.grades(items: items), selected: $grades)
+                        if !items.isEmpty { GradeChipRow(grades: AscentEntries.shared.grades(items: items), selected: $grades) }
                         if !grades.isEmpty {
                             GradeEntriesList(entries: AscentEntries.shared.entries(summary: s, filter: .boards, grades: grades, includeBoards: true)) {
                                 route = .visit($0)
                             }
                         } else {
-                            BoardsSections(summary: s, items: items, climb: climb) { route = .visit($0) }
+                            BoardsSections(summary: s, items: items, climb: climb, onOpenGym: { route = .visit($0) },
+                                           onAdd: uid == nil ? { addFor = BoardPick(kind: $0) } : nil)
                         }
                     }
                 }
@@ -324,6 +326,9 @@ struct GymBoardsView: View {
         }
         .background(Cumbre.bg.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .sheet(item: $addFor, onDismiss: { Task { await climb.load(uid: uid) } }) { k in
+            SoloBoardSheet(dateLabel: GymDates.todayLong(), date: GymDates.local(Date()), board: k.kind)
+        }
         .navigationDestination(item: $route) { r in ClimbRouteView(route: r, uid: uid) }
         .task { await climb.load(uid: uid) }
     }

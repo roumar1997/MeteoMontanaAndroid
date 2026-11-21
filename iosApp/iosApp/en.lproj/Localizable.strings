@@ -2463,3 +2463,13 @@
 /* Rocodromos rondas 2-11c (sincronizado de Android) */
 "explore_group_count_one" = "1 route/boulder";
 "explore_group_count_other" = "%1$@ routes/boulders";
+
+/* Rocodromos rondas 2-11c (sincronizado de Android) */
+"gym_solo_board_title" = "Solo board";
+"gym_solo_board_sub" = "No gym: your home board or anywhere";
+"gym_solo_board_sheet" = "Boards · %1$@";
+"gym_solo_board_save" = "Save boards";
+"gym_board_add_cd" = "Log a %1$@ ascent";
+"gym_board_angles" = "Angles";
+"gym_board_angles_all" = "All";
+"gym_board_angle_chip" = "%1$@° · %2$@";
