@@ -92,7 +92,7 @@ class GymTrainingViewModel @Inject constructor(
         // Se pinta ya con lo nuevo; saveAscents lo guarda primero en el móvil y luego lo sube.
         _state.update { st ->
             st.copy(summary = st.summary.let { sm ->
-                val sessions = sm.sessions.map { if (it.gymId == s.gymId && it.date == s.date) it.copy(ascents = next) else it }
+                val sessions = sm.sessions.map { if (it.gymId == s.gymId && it.date == s.date) it.copy(ascents = next, boardProblems = com.meteomontana.android.domain.model.gym.BoardProblems.prune(it.boardProblems, next)) else it }
                 sm.copy(sessions = sessions, ascents = sessions.sumOf { it.totalAscents })
             })
         }

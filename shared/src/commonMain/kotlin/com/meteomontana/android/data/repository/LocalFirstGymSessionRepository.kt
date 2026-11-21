@@ -8,6 +8,8 @@ import com.meteomontana.android.data.api.dto.toDomainOrNull
 import com.meteomontana.android.data.api.dto.toDomainOrNull
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.api.dto.toDto
+import com.meteomontana.android.domain.model.gym.BoardProblem
+import com.meteomontana.android.domain.model.gym.BoardProblems
 import com.meteomontana.android.domain.model.gym.GymAscent
 import com.meteomontana.android.domain.model.gym.GymAscentStats
 import com.meteomontana.android.domain.model.gym.GymSession
@@ -74,13 +76,13 @@ class LocalFirstGymSessionRepository(
         // El servidor manda (tiene el id); lo apuntado en el movil que aun no ha subido no se pierde.
         val merged = remote.map { r ->
             val l = local.firstOrNull { it.gymId == r.gymId && it.date == r.date }
-            if (l != null && r.ascents.isEmpty() && l.ascents.isNotEmpty()) r.copy(ascents = l.ascents) else r
+            if (l != null && r.ascents.isEmpty() && l.ascents.isNotEmpty()) r.copy(ascents = l.ascents, boardProblems = l.boardProblems) else r
         } + local.filter { l -> remote.none { it.gymId == l.gymId && it.date == l.date } }
         save(merged)
         return merged
     }
 
-    override suspend fun saveAscents(gymId: Long, date: LocalDate, ascents: List<GymAscent>): GymSession {
+    override suspend fun saveAscents(gymId: Long, date: LocalDate, ascents: List<GymAscent>, boardProblems: List<BoardProblem>?): GymSession {
         val clean = ascents.filter { it.count > 0 }
         val existing = load().firstOrNull { it.gymId == gymId && it.date == date } ?: GymSession(gymId, date)
         // Editar un entreno hasta dejarlo a cero BORRA la sesion (en el movil y en el servidor).
@@ -93,14 +95,15 @@ class LocalFirstGymSessionRepository(
             } catch (_: Exception) { /* sin red: al refrescar el servidor la devolvera vacia, pero ya no cuenta como entreno con lo hecho */ }
             return GymSession(gymId, date)
         }
-        var updated = existing.copy(ascents = clean)
+        val named = BoardProblems.prune(boardProblems ?: existing.boardProblems, clean)
+        var updated = existing.copy(ascents = clean, boardProblems = named)
         save(load().filterNot { it.gymId == gymId && it.date == date } + updated)
         try {
             // Una sesion de hoy que solo existe en el movil se da de alta primero (idempotente) para tener su id.
             val id = existing.id.takeIf { it != 0L } ?: if (date == today()) api.checkInToday(gymId).id else 0L
             if (id != 0L) {
-                val remote = api.putAscents(id, GymAscentsRequestDto(clean.map { it.toDto() })).toDomainOrNull()
-                updated = updated.copy(id = id, ascents = remote?.ascents ?: clean)
+                val remote = api.putAscents(id, GymAscentsRequestDto(clean.map { it.toDto() }, boardProblems?.let { named.map { p -> p.toDto() } })).toDomainOrNull()
+                updated = updated.copy(id = id, ascents = remote?.ascents ?: clean, boardProblems = remote?.boardProblems ?: named)
                 save(load().filterNot { it.gymId == gymId && it.date == date } + updated)
             }
         } catch (e: CancellationException) {

@@ -2401,6 +2401,10 @@
     <string name="gym_entry_before">Antes</string>
     <string name="gym_entry_block">Bloque</string>
     <string name="gym_board_toggle_cd">Plegar o desplegar el tablero</string>
+    <string name="gym_board_name_hint">Nombre del bloque (opcional)</string>
+    <string name="gym_board_search_hint">Buscar en %1$s por nombre</string>
+    <string name="gym_board_search_empty">Ningún bloque con ese nombre</string>
+    <string name="gym_board_named_title">Bloques con nombre · %1$d</string>
     <string name="gym_asc_order_btn">Ordenar</string>
     <string name="gym_asc_order_up">Subir</string>
     <string name="gym_asc_order_down">Bajar</string>

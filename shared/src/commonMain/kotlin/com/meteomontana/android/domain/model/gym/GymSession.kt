@@ -19,7 +19,9 @@ data class GymSession(
     /** Id del servidor; 0 mientras la sesion solo existe en el movil. */
     val id: Long = 0,
     /** Lo hecho ese dia por color o grado (vacio si no se apunto nada). */
-    val ascents: List<GymAscent> = emptyList()
+    val ascents: List<GymAscent> = emptyList(),
+    /** Bloques de board con nombre (opcional; los recuentos de [ascents] mandan). */
+    val boardProblems: List<BoardProblem> = emptyList()
 ) {
     val totalAscents: Int get() = ascents.sumOf { it.count }
 }

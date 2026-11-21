@@ -65,7 +65,8 @@ interface GymSessionRepository {
     suspend fun refresh(): List<GymSession>
 
     /** Apunta lo hecho (por color o grado) en la sesion de ese dia; SUSTITUYE lo anterior. Primero local, luego el servidor. */
-    suspend fun saveAscents(gymId: Long, date: kotlinx.datetime.LocalDate, ascents: List<GymAscent>): GymSession
+    /** [boardProblems] null = no tocar los nombres ya guardados (solo se podan los que ya no caben en los recuentos). */
+    suspend fun saveAscents(gymId: Long, date: kotlinx.datetime.LocalDate, ascents: List<GymAscent>, boardProblems: List<com.meteomontana.android.domain.model.gym.BoardProblem>? = null): GymSession
 
     /** Todo el historial de [uidOrUsername] según el servidor; null si no se puede ver (privado) o no hay red. */
     suspend fun summary(uidOrUsername: String): com.meteomontana.android.domain.model.gym.GymSummary?

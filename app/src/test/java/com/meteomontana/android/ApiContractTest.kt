@@ -8,6 +8,7 @@ import com.meteomontana.android.data.api.dto.GymDto
 import com.meteomontana.android.data.api.dto.GymNearDto
 import com.meteomontana.android.data.api.dto.GymReportDto
 import com.meteomontana.android.data.api.dto.GymSessionDto
+import com.meteomontana.android.data.api.dto.toDomainOrNull
 import com.meteomontana.android.data.api.dto.GymStatsDto
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.api.dto.JournalSessionDto
@@ -320,6 +321,9 @@ class ApiContractTest {
         assertEquals(5L, s.gymId); assertEquals("2026-11-19", s.date); assertEquals("MANUAL", s.source)
         assertEquals(11L, s.id)
         assertEquals(listOf("verde" to 5, "azul" to 2), s.ascents.map { it.key to it.count })
+        assertEquals(listOf("kilter:6c:Slab Master"), s.boardProblems.map { "${it.board}:${it.grade}:${it.name}" })
+        assertEquals("Slab Master", s.toDomainOrNull()!!.boardProblems.single().name)
+        assertTrue(parse("gym-sessions.json", "sessionEmpty", GymSessionDto.serializer()).boardProblems.isEmpty())
         assertTrue(parse("gym-sessions.json", "sessionEmpty", GymSessionDto.serializer()).ascents.isEmpty())
         assertDtoKeysInGolden("gym-sessions.json", GymSessionDto.serializer(), "session")
         val a = parse("gym-sessions.json", "ascentStats", GymAscentStatsDto.serializer())
@@ -340,6 +344,9 @@ class ApiContractTest {
         assertEquals("5,3,9", sum.gymOrder); assertEquals("5,3,9", sum.toDomain().gymOrder)
         assertNull(parse("gym-sessions.json", "summaryEmpty", com.meteomontana.android.data.api.dto.GymSummaryDto.serializer()).gymOrder)
         assertEquals(2, sum.toDomain().byGym.first().days.first().items.size)
+        assertEquals("Sala 3", sum.toDomain().boardProblems.single().problem.name)
+        assertEquals("Sala 3", sum.toDomain().byGym.first().days.first().boardProblems.single().name)
+        assertTrue(parse("gym-sessions.json", "summaryEmpty", com.meteomontana.android.data.api.dto.GymSummaryDto.serializer()).boardProblems.isEmpty())
         val feedCount = parse("feed-count.json", "count", com.meteomontana.android.data.api.dto.FeedCountDto.serializer())
         assertEquals(7L, feedCount.count)
         assertDtoKeysInGolden("feed-count.json", com.meteomontana.android.data.api.dto.FeedCountDto.serializer(), "count")

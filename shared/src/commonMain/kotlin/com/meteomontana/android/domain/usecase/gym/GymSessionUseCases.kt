@@ -49,8 +49,9 @@ class GymTrainingUseCase(private val repo: GymSessionRepository) {
 
     /** Apunta lo hecho en la sesión de ese día (sustituye lo anterior) y devuelve la sesión. */
     @Throws(Exception::class)
-    suspend fun saveAscents(gymId: Long, date: LocalDate, ascents: List<GymAscent>): GymSession =
-        repo.saveAscents(gymId, date, ascents)
+    suspend fun saveAscents(gymId: Long, date: LocalDate, ascents: List<GymAscent>,
+                           boardProblems: List<com.meteomontana.android.domain.model.gym.BoardProblem>? = null): GymSession =
+        repo.saveAscents(gymId, date, ascents, boardProblems)
 
     @Throws(Exception::class)
     suspend fun ascentStats(uid: String, period: GymTrainingPeriod, date: LocalDate, gymId: Long?): GymAscentStats =

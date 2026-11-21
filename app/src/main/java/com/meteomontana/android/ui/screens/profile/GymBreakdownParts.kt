@@ -49,7 +49,7 @@ internal fun AscentsBody(
     collapsedBoards: Set<String> = emptySet(), onToggleBoard: (BoardKind) -> Unit = {}
 ) {
     when {
-        filter == AscentFilter.BOARDS -> BoardsSections(items, collapsedBoards, onToggleBoard)
+        filter == AscentFilter.BOARDS -> BoardsSections(s, items, collapsedBoards, onToggleBoard, onOpenGym)
         GymBreakdown.hasGymBreakdown(s) -> {
             val gyms = GymBreakdown.gymsFiltered(s, filter)
             if (gyms.isEmpty()) EmptyCategory() else PerGymSections(gyms, colorHexFor, onOpenGym)
@@ -94,7 +94,7 @@ internal fun PerGymSections(gyms: List<GymSummaryGym>, colorHexFor: (Long, Strin
 
 /** Boards agrupados por tablero (logo, nombre y total) y, dentro, el reparto por grado. */
 @Composable
-internal fun BoardsSections(items: List<GymAscent>, collapsed: Set<String>, onToggle: (BoardKind) -> Unit) {
+internal fun BoardsSections(s: GymSummary, items: List<GymAscent>, collapsed: Set<String>, onToggle: (BoardKind) -> Unit, onOpenGym: (Long) -> Unit) {
     val groups = GymBreakdown.boardsByKind(items)
     if (groups.isEmpty()) { EmptyCategory(); return }
     groups.forEach { (kind, list) ->
@@ -112,7 +112,10 @@ internal fun BoardsSections(items: List<GymAscent>, collapsed: Set<String>, onTo
                     stringResource(R.string.gym_board_toggle_cd), tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            if (open) ByGradeSection(list, { null }, titled = false)
+            if (open) {
+                BoardNamedSection(kind, s, onOpenGym)
+                ByGradeSection(list, { null }, titled = false)
+            }
         }
     }
 }

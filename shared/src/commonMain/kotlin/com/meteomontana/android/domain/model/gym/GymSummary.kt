@@ -20,7 +20,9 @@ data class GymSummary(
     /** Orden de las categorias de sus Ascensiones («BOARDS,BLOCKS,ROUTES»); null si no lo cambio (vale [AscentTabOrder.default]). */
     val ascentOrder: String? = null,
     /** Orden de sus rocodromos (ids «5,3,9»); null si no lo cambio (vale [GymOrder]: favoritos y luego por ascensiones). */
-    val gymOrder: String? = null
+    val gymOrder: String? = null,
+    /** Bloques de board con nombre de todo el historial (mas recientes primero; para buscar por nombre). */
+    val boardProblems: List<NamedBoardProblem> = emptyList()
 ) {
     val isEmpty: Boolean get() = sessions == 0
 }
@@ -39,7 +41,7 @@ data class GymSummaryGym(
 )
 
 /** Un dia en un rocodromo: «2026-11-18», cuantas ascensiones y cuales ([items]; vacio si el servidor es antiguo). */
-data class GymSummaryDay(val date: String, val ascents: Int, val items: List<GymAscent> = emptyList())
+data class GymSummaryDay(val date: String, val ascents: Int, val items: List<GymAscent> = emptyList(), val boardProblems: List<BoardProblem> = emptyList())
 
 @Serializable
 data class GymSummaryMonth(val month: String, val ascents: Int)
@@ -57,6 +59,7 @@ object GymBreakdown {
         val daysByGym = HashMap<Long, MutableList<GymSummaryDay>>()
         val maxByGym = HashMap<Long, String?>()
         val byKey = LinkedHashMap<String, Int>()
+        val named = mutableListOf<NamedBoardProblem>()
         val byMonth = HashMap<String, Int>()
         var max: String? = null
         var total = 0
@@ -65,7 +68,8 @@ object GymBreakdown {
             row[0]++
             row[1] += s.totalAscents
             total += s.totalAscents
-            daysByGym.getOrPut(s.gymId) { mutableListOf() }.add(GymSummaryDay(s.date.toString(), s.totalAscents, s.ascents.map { GymAscent(it.key, it.count) }))
+            daysByGym.getOrPut(s.gymId) { mutableListOf() }.add(GymSummaryDay(s.date.toString(), s.totalAscents, s.ascents.map { GymAscent(it.key, it.count) }, s.boardProblems))
+            s.boardProblems.forEach { named += NamedBoardProblem(s.gymId, s.date.toString(), it) }
             val monthKey = monthKey(s.date)
             byMonth[monthKey] = (byMonth[monthKey] ?: 0) + s.totalAscents
             for (a in s.ascents) {
@@ -84,7 +88,7 @@ object GymBreakdown {
             val key = monthKey(shiftMonths(today, -back))
             GymSummaryMonth(key, byMonth[key] ?: 0)
         }
-        return GymSummary(sessions.size, perGym.size, total, max, byGym, items, months)
+        return GymSummary(sessions.size, perGym.size, total, max, byGym, items, months, boardProblems = named.sortedByDescending { it.date })
     }
 
     private const val MAX_DAYS = 60

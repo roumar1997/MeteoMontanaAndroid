@@ -2342,6 +2342,10 @@
     <string name="gym_entry_before">Earlier</string>
     <string name="gym_entry_block">Boulder</string>
     <string name="gym_board_toggle_cd">Collapse or expand the board</string>
+    <string name="gym_board_name_hint">Problem name (optional)</string>
+    <string name="gym_board_search_hint">Search %1$s by name</string>
+    <string name="gym_board_search_empty">No problem with that name</string>
+    <string name="gym_board_named_title">Named problems · %1$d</string>
     <string name="gym_asc_order_btn">Reorder</string>
     <string name="gym_asc_order_up">Up</string>
     <string name="gym_asc_order_down">Down</string>

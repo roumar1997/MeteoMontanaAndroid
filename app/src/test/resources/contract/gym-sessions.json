@@ -1,10 +1,11 @@
 {
   "session": {
     "id": 11, "gymId": 5, "date": "2026-11-19", "startedAt": "2026-11-19T18:00:00Z", "source": "MANUAL",
-    "ascents": [{"key": "verde", "count": 5}, {"key": "azul", "count": 2}]
+    "ascents": [{"key": "verde", "count": 5}, {"key": "azul", "count": 2}],
+    "boardProblems": [{"board": "kilter", "grade": "6c", "name": "Slab Master"}]
   },
   "sessionEmpty": {
-    "id": 12, "gymId": 5, "date": "2026-11-18", "startedAt": "2026-11-18T18:00:00Z", "source": "PRESENCE", "ascents": []
+    "id": 12, "gymId": 5, "date": "2026-11-18", "startedAt": "2026-11-18T18:00:00Z", "source": "PRESENCE", "ascents": [], "boardProblems": []
   },
   "ascentStats": {
     "period": "WEEK", "from": "2026-11-16", "to": "2026-11-22", "sessions": 2, "total": 7,
@@ -24,13 +25,15 @@
     "sessions": 3, "gyms": 2, "ascents": 6, "maxGrade": "7a",
     "byGym": [{"gymId": 5, "name": "Chango", "sessions": 2, "ascents": 5, "maxGrade": "6c",
       "items": [{"key": "verde", "count": 3}, {"key": "board:system:6c", "count": 2}],
-      "days": [{"date": "2026-11-18", "ascents": 5, "items": [{"key": "verde", "count": 3}, {"key": "board:system:6c", "count": 2}]}]}],
+      "days": [{"date": "2026-11-18", "ascents": 5, "items": [{"key": "verde", "count": 3}, {"key": "board:system:6c", "count": 2}],
+        "boardProblems": [{"board": "system", "grade": "6c", "name": "Sala 3"}]}]}],
     "items": [{"key": "verde", "count": 3}],
     "byMonth": [{"month": "2026-10", "ascents": 1}, {"month": "2026-11", "ascents": 5}],
     "homeGym": {"id": 5, "name": "Chango", "city": "Madrid"},
-    "ascentOrder": "BOARDS,BLOCKS,ROUTES", "gymOrder": "5,3,9"
+    "ascentOrder": "BOARDS,BLOCKS,ROUTES", "gymOrder": "5,3,9",
+    "boardProblems": [{"gymId": 5, "date": "2026-11-18", "board": "system", "grade": "6c", "name": "Sala 3"}]
   },
   "summaryEmpty": {
-    "sessions": 0, "gyms": 0, "ascents": 0, "maxGrade": null, "byGym": [], "items": [], "byMonth": [], "homeGym": null, "ascentOrder": null, "gymOrder": null
+    "sessions": 0, "gyms": 0, "ascents": 0, "maxGrade": null, "byGym": [], "items": [], "byMonth": [], "homeGym": null, "ascentOrder": null, "gymOrder": null, "boardProblems": []
   }
 }

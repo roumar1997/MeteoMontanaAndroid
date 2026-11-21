@@ -3,9 +3,9 @@ package com.meteomontana.android.domain.model.gym
 /**
  * Una ascension (o varias iguales) de la lista que sale al filtrar por grado. [date] es «2026-11-18», o null para
  * «antes»: lo que el resumen cuenta pero ya no trae con su dia (el servidor solo manda los ultimos dias de cada sitio).
- * No se guarda el nombre de la via o del bloque: solo grado, sitio y dia.
+ * Los boards pueden llevar el nombre del bloque ([names]); vias y bloques no: solo grado, sitio y dia.
  */
-data class AscentEntry(val gymId: Long, val gymName: String?, val date: String?, val key: String, val count: Int)
+data class AscentEntry(val gymId: Long, val gymName: String?, val date: String?, val key: String, val count: Int, val names: List<String> = emptyList())
 
 /** Filtro por grado de Ascensiones: que grados se pueden elegir y que ascensiones sueltas salen con los elegidos. */
 object AscentEntries {
@@ -22,10 +22,13 @@ object AscentEntries {
         for (g in summary.byGym) {
             val total = GymBreakdown.filter(g.items, filter).filter { GymAscentKeys.gradeOfKey(it.key) in grades }
             val dated = LinkedHashMap<String, Int>()
-            for (d in g.days) for (a in GymBreakdown.filter(d.items, filter)) {
+            for (d in g.days) {
+              val names = BoardProblems.namesByKey(d.items, d.boardProblems)
+              for (a in GymBreakdown.filter(d.items, filter)) {
                 if (GymAscentKeys.gradeOfKey(a.key) !in grades) continue
-                out += AscentEntry(g.gymId, g.name, d.date, a.key, a.count)
+                out += AscentEntry(g.gymId, g.name, d.date, a.key, a.count, names[a.key].orEmpty())
                 dated[a.key] = (dated[a.key] ?: 0) + a.count
+              }
             }
             for (t in total) {
                 val left = t.count - (dated[t.key] ?: 0)

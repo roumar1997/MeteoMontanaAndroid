@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,6 +38,8 @@ import androidx.compose.ui.unit.sp
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.gym.AscentKey
 import com.meteomontana.android.domain.model.gym.BoardKind
+import com.meteomontana.android.domain.model.gym.BoardProblem
+import com.meteomontana.android.domain.model.gym.BoardProblems
 import com.meteomontana.android.domain.model.gym.GymAscent
 import com.meteomontana.android.domain.model.gym.GymAscentKeys
 import com.meteomontana.android.domain.model.gym.RouteStyle
@@ -75,11 +78,16 @@ internal fun RoutesTab(ascents: List<GymAscent>, adjust: (String, Int) -> Unit) 
 
 /** Pestaña «Boards»: el board (Kilter, Tension, Moonboard), la inclinación, los grados y lo ya añadido. */
 @Composable
-internal fun BoardsTab(ascents: List<GymAscent>, adjust: (String, Int) -> Unit) {
+internal fun BoardsTab(
+    ascents: List<GymAscent>, problems: List<BoardProblem>, adjust: (String, Int) -> Unit,
+    addBoard: (BoardKind, String, Int?, String) -> Unit
+) {
     var board by remember { mutableStateOf(BoardKind.KILTER) }
     var angle by remember { mutableStateOf<Int?>(null) }
     var selected by remember { mutableStateOf(listOf<String>()) }
-    AddedList(ascents.filter { GymAscentKeys.parse(it.key) is AscentKey.Board }, adjust)
+    var name by remember { mutableStateOf("") }
+    val boardItems = ascents.filter { GymAscentKeys.parse(it.key) is AscentKey.Board }
+    AddedList(boardItems, adjust, BoardProblems.namesByKey(boardItems, problems))
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         BoardKind.entries.forEach { b ->
             val sel = b == board
@@ -107,9 +115,14 @@ internal fun BoardsTab(ascents: List<GymAscent>, adjust: (String, Int) -> Unit) 
     }
     Eyebrow(stringResource(R.string.gym_sheet_grade_pick))
     GradeGrid(selected) { selected = GymAscentKeys.toggleGrade(selected, it) }
+    OutlinedTextField(
+        value = name, onValueChange = { name = it.take(BoardProblems.MAX_NAME) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+        label = { Text(stringResource(R.string.gym_board_name_hint)) }, shape = RoundedCornerShape(14.dp),
+        supportingText = { Text("${name.length}/${BoardProblems.MAX_NAME}", fontSize = 11.sp) }
+    )
     val grade = GymAscentKeys.gradeOf(selected)
     AddButton(grade) {
-        grade?.let { adjust(GymAscentKeys.board(board, it, angle), 1); selected = emptyList() }
+        grade?.let { addBoard(board, it, angle, name); selected = emptyList(); name = "" }
     }
     Text(stringResource(R.string.gym_sheet_board_note), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
@@ -157,7 +170,7 @@ private fun AddButton(grade: String?, onClick: () -> Unit) {
 
 /** Lo añadido hoy en esta pestaña: grado con su color, qué es, cuántas veces y la papelera que quita la fila entera. */
 @Composable
-private fun AddedList(list: List<GymAscent>, adjust: (String, Int) -> Unit) {
+private fun AddedList(list: List<GymAscent>, adjust: (String, Int) -> Unit, names: Map<String, List<String>> = emptyMap()) {
     if (list.isEmpty()) return
     Eyebrow(stringResource(R.string.gym_added_today, list.sumOf { it.count }))
     list.forEach { a ->
@@ -174,7 +187,7 @@ private fun AddedList(list: List<GymAscent>, adjust: (String, Int) -> Unit) {
                 modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(st.stroke).padding(horizontal = 10.dp, vertical = 6.dp))
             Column(Modifier.weight(1f)) {
                 Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground, maxLines = 1)
-                Text(sub, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                Text(listOf(sub).plus(names[a.key].orEmpty()).joinToString(" \u00b7 "), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
             Text("×${a.count}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
             Icon(

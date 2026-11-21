@@ -98,7 +98,7 @@ private fun EntryRow(e: AscentEntry, onOpenGym: (Long) -> Unit) {
             modifier = Modifier.clip(RoundedCornerShape(9.dp)).background(st.stroke).padding(horizontal = 10.dp, vertical = 4.dp)
         )
         Column(Modifier.weight(1f)) {
-            Text(kind, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onBackground)
+            Text(if (e.names.isEmpty()) kind else kind + " \u00b7 " + e.names.joinToString(", "), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onBackground)
             Text(
                 listOfNotNull(e.gymName, dayText(e.date)).joinToString(" · "), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

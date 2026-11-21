@@ -1,5 +1,8 @@
 package com.meteomontana.android.data.api.dto
 
+import com.meteomontana.android.domain.model.gym.BoardKind
+import com.meteomontana.android.domain.model.gym.BoardProblem
+import com.meteomontana.android.domain.model.gym.NamedBoardProblem
 import com.meteomontana.android.domain.model.gym.GymAscent
 import com.meteomontana.android.domain.model.gym.GymAscentStats
 import com.meteomontana.android.domain.model.gym.GymSession
@@ -21,15 +24,31 @@ data class GymSessionDto(
     val startedAt: String? = null,
     val source: String? = null,
     /** Lo hecho ese dia por color o grado; [] si nada. */
-    val ascents: List<GymAscentDto> = emptyList()
+    val ascents: List<GymAscentDto> = emptyList(),
+    /** Bloques de board con nombre (opcional); servidores antiguos no lo mandan. */
+    val boardProblems: List<BoardProblemDto> = emptyList()
 )
 
 @Serializable
 data class GymAscentDto(val key: String = "", val count: Int = 0)
 
+@Serializable
+data class BoardProblemDto(val board: String = "", val grade: String = "", val name: String = "")
+
+/** Un bloque con nombre del resumen: donde y cuando. */
+@Serializable
+data class NamedProblemDto(val gymId: Long = 0, val date: String = "", val board: String = "", val grade: String = "", val name: String = "")
+
+fun BoardProblemDto.toDomainOrNull(): BoardProblem? {
+    val b = BoardKind.entries.firstOrNull { it.wire == board } ?: return null
+    return if (name.isBlank() || grade.isBlank()) null else BoardProblem(b, grade, name)
+}
+
+fun BoardProblem.toDto() = BoardProblemDto(board.wire, grade, name)
+
 /** Cuerpo de PUT gyms/sessions/{id}/ascents: SUSTITUYE todo lo anterior ([] lo borra). */
 @Serializable
-data class GymAscentsRequestDto(val ascents: List<GymAscentDto>)
+data class GymAscentsRequestDto(val ascents: List<GymAscentDto>, val boardProblems: List<BoardProblemDto>? = null)
 
 /** GET users/{id}/gym-ascents?period=&date=&gymId= (contrato gym-sessions.json, ascentStats). */
 @Serializable
@@ -64,11 +83,12 @@ fun GymAscentDto.toDomain() = GymAscent(key, count)
 fun GymAscent.toDto() = GymAscentDto(key, count)
 
 fun GymSessionDto.toDomainOrNull(): GymSession? = runCatching {
-    GymSession(gymId, LocalDate.parse(date), GymSessionSource.parse(source), id, ascents.filter { it.count > 0 }.map { it.toDomain() })
+    GymSession(gymId, LocalDate.parse(date), GymSessionSource.parse(source), id, ascents.filter { it.count > 0 }.map { it.toDomain() },
+        boardProblems.mapNotNull { it.toDomainOrNull() })
 }.getOrNull()
 
 fun GymSession.toDto() =
-    GymSessionDto(id = id, gymId = gymId, date = date.toString(), source = source.name, ascents = ascents.map { it.toDto() })
+    GymSessionDto(id = id, gymId = gymId, date = date.toString(), source = source.name, ascents = ascents.map { it.toDto() }, boardProblems = boardProblems.map { it.toDto() })
 
 fun GymAscentStatsDto.toDomainOrNull(): GymAscentStats? = runCatching {
     GymAscentStats(
@@ -91,7 +111,9 @@ data class GymSummaryDto(
     /** Orden de las categorias de Ascensiones que eligio («BOARDS,BLOCKS,ROUTES»); null = el de siempre. */
     val ascentOrder: String? = null,
     /** Orden de sus rocodromos (ids «5,3,9»); null = el de siempre. */
-    val gymOrder: String? = null
+    val gymOrder: String? = null,
+    /** Bloques de board con nombre de todo el historial (mas recientes primero). */
+    val boardProblems: List<NamedProblemDto> = emptyList()
 )
 
 @Serializable
@@ -121,7 +143,7 @@ data class GymSummaryGymDto(
 )
 
 @Serializable
-data class GymSummaryDayDto(val date: String = "", val ascents: Int = 0, val items: List<GymAscentDto> = emptyList())
+data class GymSummaryDayDto(val date: String = "", val ascents: Int = 0, val items: List<GymAscentDto> = emptyList(), val boardProblems: List<BoardProblemDto> = emptyList())
 
 fun GymSummaryDto.toDomain() = GymSummary(
     sessions, gyms, ascents, maxGrade?.takeIf { it.isNotBlank() },
@@ -129,11 +151,15 @@ fun GymSummaryDto.toDomain() = GymSummary(
         GymSummaryGym(
             g.gymId, g.name, g.sessions, g.ascents, g.maxGrade?.takeIf { m -> m.isNotBlank() },
             g.items.filter { it.key.isNotBlank() && it.count > 0 }.map { GymAscent(it.key, it.count) },
-            g.days.filter { it.date.isNotBlank() }.map { GymSummaryDay(it.date, it.ascents, it.items.filter { a -> a.key.isNotBlank() && a.count > 0 }.map { a -> GymAscent(a.key, a.count) }) }
+            g.days.filter { it.date.isNotBlank() }.map { GymSummaryDay(it.date, it.ascents, it.items.filter { a -> a.key.isNotBlank() && a.count > 0 }.map { a -> GymAscent(a.key, a.count) }, it.boardProblems.mapNotNull { p -> p.toDomainOrNull() }) }
         )
     },
     items.filter { it.key.isNotBlank() && it.count > 0 }.map { GymAscent(it.key, it.count) }, byMonth,
     homeGym?.takeIf { it.id != 0L && it.name.isNotBlank() }?.toDomain(),
     ascentOrder?.takeIf { it.isNotBlank() },
-    gymOrder?.takeIf { it.isNotBlank() }
+    gymOrder?.takeIf { it.isNotBlank() },
+    boardProblems.mapNotNull { it.toNamedOrNull() }
 )
+
+fun NamedProblemDto.toNamedOrNull(): NamedBoardProblem? =
+    BoardProblemDto(board, grade, name).toDomainOrNull()?.let { NamedBoardProblem(gymId, date, it) }

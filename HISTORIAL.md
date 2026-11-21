@@ -338,6 +338,7 @@ score por hora, mapa con piedras/parkings/zonas, flujo de contribuciones
 (proponer piedra/parking/sector/corrección con revisión admin), editor de
 topos (líneas sobre foto), tema visual Cumbre, autenticación Firebase.
 
+- **2026-11-21 · ronda 10 (rocódromos)**: nombre opcional de los bloques de board (backend V118 `gym_session_board_problem`, `boardProblems` en sesiones y gym-summary, aditivo; app: campo en He entrenado, buscador por nombre y lista nombrada en cada tablero de Ascensiones, nombres en los chips de grado). Los recuentos mandan: los nombres se podan si bajan. Probado en emulador contra staging (eb3ccb5f). Ver PARIDAD §19.
 - 2026-11-20 · Rocódromos ronda 2 (Android): igual que Escuelas (mapa plegable + filtros plegables + lista), sin agrupar ni cadenas, calle siempre abierta, tarjeta de cristal en Roca, notas en píldora, quedadas con rocódromo/grado/cordada (contrato en docs/rocodromos/BACKEND-PENDIENTE.md). Notas iOS en PARIDAD §11.
 - 2026-09-21 · i18n: barrido por forma (Android ~1700 claves ES=EN, iOS ~1130 entradas), AppText/CalendarLabels/CatalogLabels, selector de idioma en Ajustes (Android AppLanguage, iOS LanguageManager + L()), ayuda con idioma, orientaciones traducidas. Pendiente: textos del servidor (push/bandeja) y probar todo en EN en móvil.
 

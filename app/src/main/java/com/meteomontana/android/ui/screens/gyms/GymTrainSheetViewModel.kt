@@ -2,7 +2,11 @@ package com.meteomontana.android.ui.screens.gyms
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.meteomontana.android.domain.model.gym.BoardKind
+import com.meteomontana.android.domain.model.gym.BoardProblem
+import com.meteomontana.android.domain.model.gym.BoardProblems
 import com.meteomontana.android.domain.model.gym.GymAscent
+import com.meteomontana.android.domain.model.gym.GymAscentKeys
 import com.meteomontana.android.domain.model.gym.GymSessionSource
 import com.meteomontana.android.domain.model.gym.GymTraining
 import com.meteomontana.android.domain.usecase.gym.GymTrainingUseCase
@@ -14,7 +18,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class GymTrainSheetState(val ascents: List<GymAscent> = emptyList(), val saving: Boolean = false, val saved: Boolean = false,
+data class GymTrainSheetState(val ascents: List<GymAscent> = emptyList(), val boardProblems: List<BoardProblem> = emptyList(), val saving: Boolean = false, val saved: Boolean = false,
     /** Ya había algo apuntado al abrir la hoja: dejarla a cero BORRA el entreno. */
     val hadAscents: Boolean = false
 )
@@ -33,10 +37,19 @@ class GymTrainSheetViewModel @Inject constructor(
         val day = date ?: today
         val existing = training.summary(com.meteomontana.android.domain.model.gym.GymTrainingPeriod.YEAR, today)
             .sessions.firstOrNull { it.gymId == gymId && it.date == day }
-        _state.update { GymTrainSheetState(ascents = existing?.ascents ?: emptyList(), hadAscents = existing?.ascents?.isNotEmpty() == true) }
+        _state.update { GymTrainSheetState(ascents = existing?.ascents ?: emptyList(), boardProblems = existing?.boardProblems ?: emptyList(), hadAscents = existing?.ascents?.isNotEmpty() == true) }
     }
 
-    fun adjust(key: String, delta: Int) = _state.update { it.copy(ascents = GymTraining.adjust(it.ascents, key, delta)) }
+    fun adjust(key: String, delta: Int) = _state.update {
+        val next = GymTraining.adjust(it.ascents, key, delta)
+        it.copy(ascents = next, boardProblems = BoardProblems.prune(it.boardProblems, next))
+    }
+
+    /** Apunta un board y, si lleva nombre (opcional, se recorta), tambien el nombre del bloque. */
+    fun addBoard(board: BoardKind, grade: String, angle: Int?, name: String) = _state.update {
+        val next = GymTraining.adjust(it.ascents, GymAscentKeys.board(board, grade, angle), 1)
+        it.copy(ascents = next, boardProblems = BoardProblems.add(it.boardProblems, board, grade, name))
+    }
 
     /** Apunta la sesión de hoy (si no estaba) y guarda lo hecho. Funciona sin red: primero en el móvil, luego se sube. */
     fun save(gymId: Long, onDone: () -> Unit, date: kotlinx.datetime.LocalDate? = null) {
@@ -48,7 +61,7 @@ class GymTrainSheetViewModel @Inject constructor(
             val list = _state.value.ascents
             // Con algo apuntado se da de alta el día (hoy también en el servidor); a cero solo se borra si ya había algo.
             if (list.isNotEmpty() && day == training.today()) runCatching { record.execute(gymId, GymSessionSource.MANUAL) }
-            if (list.isNotEmpty() || _state.value.hadAscents) runCatching { training.saveAscents(gymId, day, list) }
+            if (list.isNotEmpty() || _state.value.hadAscents) runCatching { training.saveAscents(gymId, day, list, _state.value.boardProblems) }
             _state.update { it.copy(saving = false, saved = true) }
             onDone()
         }
