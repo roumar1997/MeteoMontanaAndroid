@@ -1,17 +1,9 @@
 import SwiftUI
 import Shared
 
-/// Almacén clave-valor de shared sobre UserDefaults (con prefijo, como el `cumbre_board_prefs` de Android).
-final class UserDefaultsKeyValueStore: NSObject, KeyValueStore {
-    private let prefix: String
-    init(prefix: String) { self.prefix = prefix; super.init() }
-    func getString(key: String) -> String? { UserDefaults.standard.string(forKey: prefix + key) }
-    func putString(key: String, value: String) { UserDefaults.standard.set(value, forKey: prefix + key) }
-}
-
 /// Última inclinación por board (shared: `BoardAngleMemory`): la primera vez Kilter 45°, MoonBoard 25°, Tension 25°.
 enum BoardAngleStore {
-    static let memory = BoardAngleMemory(store: UserDefaultsKeyValueStore(prefix: "cumbre_board_prefs."))
+    static let memory = BoardAngleMemory(store: UserDefaultsKeyValueStore(defaults: UserDefaults(suiteName: "cumbre_board_prefs") ?? .standard))
 
     static func remember(_ board: BoardKind, _ angle: Int?) {
         memory.remember(board: board, angle: angle.map { KotlinInt(int: Int32($0)) })
