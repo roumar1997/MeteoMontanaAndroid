@@ -353,11 +353,14 @@ internal fun EntryRow(
                 }
                 // Estilo de ascensión: etiqueta SOLO si lo hay (A VISTA / AL FLASH); se cambia en «Editar ascenso».
                 // Al flash = distintivo dorado; mas de un intento = pastilla naranja «🎯 N INTENTOS» (visible en el perfil publico).
-                if (e.aVista || e.alFlash || com.meteomontana.android.domain.model.gym.Attempts.showsCount(e.attempts)) {
+                val rowStyle = AscentStyle.fromFlags(e.aVista, e.alFlash) // red de seguridad: un solo estilo (a vista gana)
+                if (rowStyle != AscentStyle.NONE || com.meteomontana.android.domain.model.gym.Attempts.showsCount(e.attempts)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        if (e.aVista) com.meteomontana.android.ui.components.OnsightBadge()
-                        if (e.alFlash) com.meteomontana.android.ui.components.FlashBadge()
-                        else com.meteomontana.android.ui.components.AttemptsBadge(e.attempts)
+                        when (rowStyle) {
+                            AscentStyle.ONSIGHT -> com.meteomontana.android.ui.components.OnsightBadge()
+                            AscentStyle.FLASH -> com.meteomontana.android.ui.components.FlashBadge()
+                            AscentStyle.NONE -> com.meteomontana.android.ui.components.AttemptsBadge(e.attempts)
+                        }
                     }
                 }
                 // Escuela · Piedra N · sector · fecha («12 oct»): la fecha ya no es un botón escondido.

@@ -16,6 +16,17 @@ class AscentStyleTest {
         AscentStyle.entries.forEach { assertFalse(it.aVista && it.alFlash) }
     }
 
+    @Test fun `flash luego desmarcar luego a vista termina con un solo estilo`() {
+        val link = com.meteomontana.android.domain.model.gym.AttemptsStyleLink
+        val empty = com.meteomontana.android.domain.model.gym.StyleAttempts(false, null)
+        val flash = link.setFlash(empty, true)
+        assertEquals(AscentStyle.FLASH, AscentStyle.fromFlags(flash.onsight, flash.flash))
+        val onsight = link.setOnsight(empty, true) // desmarcar = hoja nueva; marcar a vista
+        assertFalse(onsight.onsight && onsight.flash)
+        assertEquals(AscentStyle.ONSIGHT, AscentStyle.fromFlags(onsight.onsight, onsight.flash))
+        assertFalse(link.setOnsight(flash, true).flash) // incluso desde flash
+    }
+
     @Test fun `ida y vuelta de cada opcion`() {
         AscentStyle.entries.forEach { assertEquals(it, AscentStyle.fromFlags(it.aVista, it.alFlash)) }
     }

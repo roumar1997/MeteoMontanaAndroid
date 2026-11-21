@@ -438,3 +438,8 @@ Checklist iOS:
 3. Componente reutilizable `OnsightBadge` azul («👁 A VISTA», mismos colores) junto a `FlashBadge`: filas de Mis vías (y Mis bloques si hay a vista) y chip del filtro de estilo (apagado se ve más tenue); sustituye al chip simple «A VISTA».
 4. El registro de boards sigue solo con Flash + intentos (sin A vista).
 5. EN: «ONSIGHT», «How did it go?», «attempts».
+
+### 25b. Estilo excluyente de raíz (2026-11-22, Android y servidor hechos; iOS pendiente)
+
+Síntoma: «La Renenaza» hecha con FLASH, desmarcada y vuelta a marcar con A VISTA enseñaba las DOS insignias. Causa: el servidor guarda dos booleanos (`a_vista`, `al_flash`) y los aceptaba tal cual (POST y PATCH /style); el build de la ronda 15 (hoja con A VISTA y FLASH independientes) los mandaba a la vez, y las filas lo pintaban en cascada (`if aVista` + `if alFlash`). Fix: servidor (develop, V123 limpia filas viejas) fuerza exclusión, gana A VISTA; Android pinta UNA insignia por prioridad (`AscentStyle.fromFlags`) y manda `alFlash && !aVista`.
+Checklist iOS: en las filas de Mis vías/bloques y perfil público, una sola insignia por prioridad (a vista gana; si no, flash; si no, intentos); al crear/editar nunca enviar los dos `true`.

@@ -236,8 +236,9 @@ class JournalTickController @Inject constructor(
                 // Va también offline (la cola serializa la request entera).
                 lineId = line.id.takeIf { it.isNotBlank() },
                 status = "DONE",
+                // Estilo excluyente: si llegaran los dos, gana a vista.
                 aVista = aVista,
-                alFlash = alFlash,
+                alFlash = alFlash && !aVista,
                 attempts = attempts
             )
             val sent = networkMonitor.isOnline.value && runCatching { createJournalEntry(req) }.isSuccess
