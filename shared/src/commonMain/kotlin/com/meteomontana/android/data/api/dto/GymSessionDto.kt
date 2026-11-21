@@ -50,6 +50,10 @@ fun BoardProblem.toDto() = BoardProblemDto(board.wire, grade, name)
 @Serializable
 data class GymAscentsRequestDto(val ascents: List<GymAscentDto>, val boardProblems: List<BoardProblemDto>? = null)
 
+/** Cuerpo de POST gyms/{id}/sessions: la fecha local (yyyy-MM-dd) del entreno (Ayer / Otro dia apuntado sin red). */
+@Serializable
+data class GymSessionDateRequestDto(val date: String)
+
 /** GET users/{id}/gym-ascents?period=&date=&gymId= (contrato gym-sessions.json, ascentStats). */
 @Serializable
 data class GymAscentStatsDto(

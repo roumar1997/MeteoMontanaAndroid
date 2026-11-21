@@ -326,6 +326,14 @@ class ApiContractTest {
         assertTrue(parse("gym-sessions.json", "sessionEmpty", GymSessionDto.serializer()).boardProblems.isEmpty())
         assertTrue(parse("gym-sessions.json", "sessionEmpty", GymSessionDto.serializer()).ascents.isEmpty())
         assertDtoKeysInGolden("gym-sessions.json", GymSessionDto.serializer(), "session")
+        // Cuerpo de POST gyms/{id}/sessions (entreno de otro dia): lo que manda la app es exactamente la muestra del backend.
+        assertEquals(
+            golden("gym-sessions.json", "createOnDateRequest"),
+            json.encodeToString(
+                com.meteomontana.android.data.api.dto.GymSessionDateRequestDto.serializer(),
+                com.meteomontana.android.data.api.dto.GymSessionDateRequestDto("2026-11-20")
+            )
+        )
         val a = parse("gym-sessions.json", "ascentStats", GymAscentStatsDto.serializer())
         assertEquals("WEEK", a.period); assertEquals("2026-11-16", a.from); assertEquals("2026-11-22", a.to)
         assertEquals(2, a.sessions); assertEquals(7, a.total)

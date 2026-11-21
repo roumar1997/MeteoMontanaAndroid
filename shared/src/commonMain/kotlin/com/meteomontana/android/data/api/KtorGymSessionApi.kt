@@ -20,6 +20,11 @@ class KtorGymSessionApi(private val client: HttpClient) {
     @Throws(Exception::class)
     suspend fun checkInToday(gymId: Long): GymSessionDto = client.post("gyms/$gymId/sessions/today").body()
 
+    /** Apunta el entreno de [date] (yyyy-MM-dd; no futura ni de hace mas de un ano). Idempotente por dia: reintentar no duplica. */
+    @Throws(Exception::class)
+    suspend fun checkInOn(gymId: Long, date: String): GymSessionDto =
+        client.post("gyms/$gymId/sessions") { setBody(com.meteomontana.android.data.api.dto.GymSessionDateRequestDto(date)) }.body()
+
     @Throws(Exception::class)
     suspend fun undoToday(gymId: Long) {
         client.delete("gyms/$gymId/sessions/today")

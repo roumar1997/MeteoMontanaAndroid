@@ -140,9 +140,9 @@ class LocalFirstGymSessionRepository(
         }
     }
 
-    /** Da de alta la sesion en el servidor si hace falta (solo hoy tiene ruta) y sube lo hecho; null si aun no se puede. */
+    /** Da de alta la sesion en el servidor si hace falta (hoy con /today; otro dia con la fecha explicita) y sube lo hecho; null si aun no se puede. */
     private suspend fun push(s: GymSession, sendNames: Boolean): GymSession? {
-        val id = s.id.takeIf { it != 0L } ?: if (s.date == today()) api.checkInToday(s.gymId).id else 0L
+        val id = s.id.takeIf { it != 0L } ?: if (s.date == today()) api.checkInToday(s.gymId).id else api.checkInOn(s.gymId, s.date.toString()).id
         if (id == 0L) return null
         val body = GymAscentsRequestDto(s.ascents.map { it.toDto() }, if (sendNames) s.boardProblems.map { it.toDto() } else null)
         val remote = api.putAscents(id, body).toDomainOrNull()

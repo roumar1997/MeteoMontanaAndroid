@@ -4,6 +4,7 @@
     "ascents": [{"key": "verde", "count": 5}, {"key": "azul", "count": 2}],
     "boardProblems": [{"board": "kilter", "grade": "6c", "name": "Slab Master"}]
   },
+  "createOnDateRequest": { "date": "2026-11-20" },
   "sessionEmpty": {
     "id": 12, "gymId": 5, "date": "2026-11-18", "startedAt": "2026-11-18T18:00:00Z", "source": "PRESENCE", "ascents": [], "boardProblems": []
   },

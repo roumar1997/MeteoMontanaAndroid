@@ -41,6 +41,7 @@ class GymOfflineQueueTest {
         var serverSession: String? = null
         val calls = ArrayList<String>()
         var putBody: String? = null
+        var pastBody: String? = null
 
         fun client() = HttpClient(MockEngine { req ->
             if (!online) error("sin red")
@@ -50,6 +51,10 @@ class GymOfflineQueueTest {
                 req.method == HttpMethod.Post && req.url.encodedPath.endsWith("/sessions/today") -> {
                     serverSession = """{"id":55,"gymId":7,"date":"2026-11-21"}"""
                     respond(serverSession!!, HttpStatusCode.OK, json)
+                }
+                req.method == HttpMethod.Post && req.url.encodedPath.endsWith("/gyms/7/sessions") -> {
+                    pastBody = (req.body as io.ktor.http.content.TextContent).text
+                    respond("""{"id":56,"gymId":7,"date":"2026-11-20"}""", HttpStatusCode.OK, json)
                 }
                 req.method == HttpMethod.Put -> {
                     putBody = req.body.let { b -> (b as? io.ktor.http.content.TextContent)?.text ?: (b as io.ktor.http.content.ByteArrayContent).bytes().decodeToString() }
@@ -89,6 +94,24 @@ class GymOfflineQueueTest {
         assertTrue(server.putBody!!.contains("Fanjulandia"))
         assertEquals(55L, repo(store, server).sessions().single().id)
         // Ya no queda nada pendiente: otra sincronizacion no vuelve a llamar.
+        val n = server.calls.size
+        repo(store, server).syncPending()
+        assertEquals(n, server.calls.size)
+    }
+
+    @Test
+    fun `un entreno de ayer apuntado sin red se da de alta con su fecha al volver la conexion`() = runTest {
+        val store = MemStore()
+        val server = Server()
+        val yesterday = LocalDate(2026, 11, 20)
+        repo(store, server).saveAscents(7, yesterday, listOf(GymAscent("verde", 3)))
+        assertEquals(0L, repo(store, server).sessions().single().id)
+        assertTrue(server.calls.isEmpty())
+        server.online = true
+        repo(store, server).syncPending()
+        assertEquals(listOf("POST /gyms/7/sessions", "PUT /gyms/sessions/56/ascents"), server.calls)
+        assertTrue(server.pastBody!!.contains("2026-11-20"), server.pastBody)
+        assertEquals(56L, repo(store, server).sessions().single().id)
         val n = server.calls.size
         repo(store, server).syncPending()
         assertEquals(n, server.calls.size)

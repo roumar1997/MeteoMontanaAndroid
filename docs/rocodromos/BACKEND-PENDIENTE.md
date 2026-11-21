@@ -152,3 +152,9 @@ Grado = francés de `FrenchGrade` (3 a 9c+). Cualquier otra forma con esos prefi
 ## Ronda 11: entrenos de otro día sin red
 
 - Solo existe `POST /gyms/{id}/sessions/today` para dar de alta una sesión. Un entreno de un día pasado apuntado SIN red (Ayer / Otro día) queda en el móvil, marcado pendiente, pero no se puede subir hasta que haya una ruta para crear la sesión de una fecha concreta (p. ej. `PUT /gyms/{id}/sessions/{date}/ascents`, aditivo, con las mismas reglas que `sessions/{id}/ascents`). No se ha tocado el backend en la ronda 11.
+
+### Ronda 11b: resuelto (backend develop 6e50e55)
+
+- Nuevo `POST /api/gyms/{id}/sessions` con cuerpo `{"date":"yyyy-MM-dd"}` (aditivo; las apps viejas siguen con `/today`). Devuelve la `GymSessionDto` de siempre (golden intacto). Validación: fecha obligatoria, no futura (día de Madrid) y de hace como mucho 366 días, si no 400; respeta el interruptor `gyms_enabled`; rocódromo oculto o inexistente, 404.
+- Idempotencia: no hace falta id de cliente; la tabla ya es única por usuario+rocódromo+día (`ON CONFLICT DO NOTHING`), así que reintentar tras un corte devuelve la misma sesión sin duplicar.
+- Golden `gym-sessions.json` > `createOnDateRequest` (cuerpo de la petición), igual byte a byte en los dos repos. Tests: `GymSessionUseCasesTest`, `GymSessionControllerTest`, `GymContractTest`; suite 824, solo falla `contextLoads`. Verificado en staging (deployment de ese commit en success).
