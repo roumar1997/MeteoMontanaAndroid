@@ -2409,6 +2409,17 @@
     <string name="gym_board_search_hint">Buscar en %1$s por nombre</string>
     <string name="gym_board_search_empty">Ningún bloque con ese nombre</string>
     <string name="gym_board_named_title">Bloques con nombre · %1$d</string>
+    <string name="gym_board_reps_badge">×%1$d</string>
+    <plurals name="gym_board_reps_days">
+        <item quantity="one">%1$d día</item>
+        <item quantity="other">%1$d días</item>
+    </plurals>
+    <string name="gym_board_reps_last">última %1$s</string>
+    <string name="gym_board_reps_label">Repeticiones</string>
+    <string name="gym_board_reps_minus_cd">Menos repeticiones</string>
+    <string name="gym_board_reps_plus_cd">Más repeticiones</string>
+    <string name="gym_board_suggest_meta">%1$s · %2$s</string>
+    <string name="gym_board_suggest_people">×%1$d</string>
     <string name="gym_asc_order_btn">Ordenar</string>
     <string name="gym_asc_order_up">Subir</string>
     <string name="gym_asc_order_down">Bajar</string>

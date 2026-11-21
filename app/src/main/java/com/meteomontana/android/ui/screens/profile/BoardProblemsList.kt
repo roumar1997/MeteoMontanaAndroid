@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,7 +34,8 @@ import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.gym.BoardKind
 import com.meteomontana.android.domain.model.gym.BoardProblems
 import com.meteomontana.android.domain.model.gym.GymSummary
-import com.meteomontana.android.domain.model.gym.NamedBoardProblem
+import com.meteomontana.android.domain.model.gym.BoardProblemRepeats
+import com.meteomontana.android.domain.model.gym.RepeatedProblem
 import com.meteomontana.android.ui.screens.gyms.boardName
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.gradeChipStyle
@@ -55,34 +57,35 @@ internal fun BoardNamedSection(kind: BoardKind, summary: GymSummary, onOpenGym: 
         leadingIcon = { Icon(Icons.Outlined.Search, null) }
     )
     val pool = com.meteomontana.android.domain.model.gym.BoardAngles.problemsAt(summary.boardProblems, boardItems, kind, angle)
-    val found = BoardProblems.search(pool, kind, query)
+    val found = BoardProblemRepeats.repeated(pool, kind, query)
     if (found.isEmpty()) {
         if (query.isNotBlank()) Text(stringResource(R.string.gym_board_search_empty), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 6.dp))
         return
     }
     Text(stringResource(R.string.gym_board_named_title, found.size).uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        found.forEach { p -> NamedRow(p, summary.byGym.firstOrNull { it.gymId == p.gymId }?.name, onOpenGym) }
+        found.forEach { p -> NamedRow(p, summary.byGym.firstOrNull { it.gymId == p.lastGymId }?.name, onOpenGym) }
     }
 }
 
 @Composable
-private fun NamedRow(p: NamedBoardProblem, gymName: String?, onOpenGym: (Long) -> Unit) {
-    val st = gradeChipStyle(p.problem.grade.substringBefore('/'))
+private fun NamedRow(p: RepeatedProblem, gymName: String?, onOpenGym: (Long) -> Unit) {
+    val st = gradeChipStyle(p.grade.substringBefore('/'))
     val shape = RoundedCornerShape(14.dp)
     Row(
         Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surface, shape).border(1.dp, MaterialTheme.colorScheme.outline, shape)
-            .clickable(enabled = p.gymId != com.meteomontana.android.domain.model.gym.GymSession.NO_GYM) { onOpenGym(p.gymId) }.padding(horizontal = 12.dp, vertical = 10.dp),
+            .clickable(enabled = p.lastGymId != com.meteomontana.android.domain.model.gym.GymSession.NO_GYM) { onOpenGym(p.lastGymId) }.padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            p.problem.grade.uppercase(), fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, color = if (st.dark) Color(0xFF1B1B1B) else Color.White,
+            p.grade.uppercase(), fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, color = if (st.dark) Color(0xFF1B1B1B) else Color.White,
             modifier = Modifier.clip(RoundedCornerShape(9.dp)).background(st.stroke).padding(horizontal = 10.dp, vertical = 4.dp)
         )
         Column(Modifier.weight(1f)) {
-            Text(p.problem.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onBackground)
-            Text(listOfNotNull(gymName, dayLabel(p.date)).joinToString(" · "), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(p.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onBackground)
+            Text(listOfNotNull(gymName, if (p.reps > 1) pluralStringResource(R.plurals.gym_board_reps_days, p.dates.size, p.dates.size) else null, stringResource(R.string.gym_board_reps_last, dayLabel(p.lastDate))).joinToString(" · "), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        if (p.reps > 1) Text(stringResource(R.string.gym_board_reps_badge, p.reps), fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, color = MaterialTheme.colorScheme.primary)
     }
 }
 

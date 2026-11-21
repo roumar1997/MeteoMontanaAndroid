@@ -2350,6 +2350,17 @@
     <string name="gym_board_search_hint">Search %1$s by name</string>
     <string name="gym_board_search_empty">No problem with that name</string>
     <string name="gym_board_named_title">Named problems · %1$d</string>
+    <string name="gym_board_reps_badge">×%1$d</string>
+    <plurals name="gym_board_reps_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <string name="gym_board_reps_last">last %1$s</string>
+    <string name="gym_board_reps_label">Repetitions</string>
+    <string name="gym_board_reps_minus_cd">Fewer repetitions</string>
+    <string name="gym_board_reps_plus_cd">More repetitions</string>
+    <string name="gym_board_suggest_meta">%1$s · %2$s</string>
+    <string name="gym_board_suggest_people">×%1$d</string>
     <string name="gym_asc_order_btn">Reorder</string>
     <string name="gym_asc_order_up">Up</string>
     <string name="gym_asc_order_down">Down</string>

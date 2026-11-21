@@ -66,7 +66,7 @@ fun SoloBoardSheet(dateLabel: String, date: LocalDate, onDismiss: () -> Unit, bo
             Column(
                 Modifier.weight(1f, fill = false).heightIn(max = 460.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) { BoardsTab(state.ascents, state.boardProblems, vm::adjust, vm::addBoard, vm.angles, board) }
+            ) { BoardsTab(state.ascents, state.boardProblems, vm::adjust, vm::addBoard, vm.angles, board, BoardNameAssist(state.suggestions, vm::onNameChanged, vm::clearSuggestions)) }
             val total = state.ascents.sumOf { it.count }
             Row(Modifier.fillMaxWidth().padding(top = Spacing.sm), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(stringResource(R.string.gym_sheet_total).uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)

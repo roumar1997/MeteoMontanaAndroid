@@ -41,6 +41,7 @@ import com.meteomontana.android.domain.model.gym.BoardAngleMemory
 import com.meteomontana.android.domain.model.gym.BoardAngles
 import com.meteomontana.android.domain.model.gym.BoardKind
 import com.meteomontana.android.domain.model.gym.BoardProblem
+import com.meteomontana.android.domain.model.gym.BoardProblemRepeats
 import com.meteomontana.android.domain.model.gym.BoardProblems
 import com.meteomontana.android.domain.model.gym.GymAscent
 import com.meteomontana.android.domain.model.gym.GymAscentKeys
@@ -86,12 +87,14 @@ internal fun RoutesTab(ascents: List<GymAscent>, adjust: (String, Int) -> Unit) 
 @Composable
 internal fun BoardsTab(
     ascents: List<GymAscent>, problems: List<BoardProblem>, adjust: (String, Int) -> Unit,
-    addBoard: (BoardKind, String, Int?, String) -> Unit, angles: BoardAngleMemory, fixedBoard: BoardKind? = null
+    addBoard: (BoardKind, String, Int?, String, Int) -> Unit, angles: BoardAngleMemory, fixedBoard: BoardKind? = null,
+    assist: BoardNameAssist = BoardNameAssist.None
 ) {
     var board by remember { mutableStateOf(fixedBoard ?: BoardKind.KILTER) }
     var angle by remember(board) { mutableStateOf(angles.initial(board)) }
     var selected by remember { mutableStateOf(listOf<String>()) }
     var name by remember { mutableStateOf("") }
+    var reps by remember { mutableStateOf(1) }
     val boardItems = ascents.filter { GymAscentKeys.parse(it.key) is AscentKey.Board }
     AddedList(boardItems, adjust, BoardProblems.namesByKey(boardItems, problems))
     if (fixedBoard == null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -101,7 +104,7 @@ internal fun BoardsTab(
                 Modifier.weight(1f).clip(RoundedCornerShape(16.dp))
                     .background(if (sel) boardColor(b).copy(alpha = 0.16f) else MaterialTheme.colorScheme.surface)
                     .border(if (sel) 2.dp else 1.dp, if (sel) boardColor(b) else MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
-                    .clickable { board = b }.padding(vertical = 10.dp),
+                    .clickable { board = b; if (name.isNotBlank()) assist.onQuery(b, name) else assist.onClear() }.padding(vertical = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 BoardLogo(b)
@@ -122,13 +125,20 @@ internal fun BoardsTab(
     Eyebrow(stringResource(R.string.gym_sheet_grade_pick))
     GradeGrid(selected) { selected = GymAscentKeys.toggleGrade(selected, it) }
     OutlinedTextField(
-        value = name, onValueChange = { name = it.take(BoardProblems.MAX_NAME) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+        value = name, onValueChange = { name = it.take(BoardProblems.MAX_NAME); assist.onQuery(board, name) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
         label = { Text(stringResource(R.string.gym_board_name_hint)) }, shape = RoundedCornerShape(14.dp),
         supportingText = { Text("${name.length}/${BoardProblems.MAX_NAME}", fontSize = 11.sp) }
     )
+    NameSuggestions(if (name.isBlank()) emptyList() else assist.suggestions) { s ->
+        name = s.name
+        selected = s.grade.split('/').filter { it in GymAscentKeys.GRID_GRADES }.take(2)
+        s.angle?.takeIf { it in BoardAngles.anglesFor(board) }?.let { angle = it }
+        assist.onClear()
+    }
+    RepsStepper(reps) { reps = it }
     val grade = GymAscentKeys.gradeOf(selected)
     AddButton(grade) {
-        grade?.let { addBoard(board, it, angle, name); angles.remember(board, angle); selected = emptyList(); name = "" }
+        grade?.let { addBoard(board, it, angle, name, reps); angles.remember(board, angle); selected = emptyList(); name = ""; reps = 1; assist.onClear() }
     }
     Text(stringResource(R.string.gym_sheet_board_note), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
@@ -193,7 +203,7 @@ private fun AddedList(list: List<GymAscent>, adjust: (String, Int) -> Unit, name
                 modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(st.stroke).padding(horizontal = 10.dp, vertical = 6.dp))
             Column(Modifier.weight(1f)) {
                 Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground, maxLines = 1)
-                Text(listOf(sub).plus(names[a.key].orEmpty()).joinToString(" \u00b7 "), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                Text(listOf(sub).plus(BoardProblemRepeats.groupNames(names[a.key].orEmpty()).map { (n, c) -> if (c > 1) "$n ×$c" else n }).joinToString(" \u00b7 "), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
             Text("×${a.count}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
             Icon(
