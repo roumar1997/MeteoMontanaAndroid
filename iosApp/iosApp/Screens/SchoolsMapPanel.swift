@@ -210,7 +210,10 @@ struct MapToggleAndPanel: View {
                 color: UIColor(score.map { Cumbre.score($0) } ?? Cumbre.rule),
                 score: score,
                 name: s.name,
-                showName: zoom >= 8.5))
+                showName: zoom >= 8.5,
+                glyph: "ring",
+                selected: popup?.id == s.id,
+                badge: vm.scores[s.id]?.dryRock == false ? "wet" : nil))
         }
         return ms
     }

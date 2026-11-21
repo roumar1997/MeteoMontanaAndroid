@@ -16,6 +16,8 @@ enum MarkerRenderer {
         case .block:   return block(name: m.name ?? m.title, color: m.color, discipline: m.discipline)
         case .school:  return school()
         case .user:    return userDot(bearing: m.score)
+        case .score where m.glyph == "ring":
+            return scoreRing(score: m.score, wet: m.badge == "wet", selected: m.selected, name: m.showName ? (m.name ?? m.title) : nil)
         case .score:   return scoreDiamond(score: m.score, color: m.color,
                                             name: m.showName ? (m.name ?? m.title) : nil)
         case .dot:     return dot(color: m.color)
@@ -222,6 +224,83 @@ enum MarkerRenderer {
             fillCircle(ctx, c, 22, UIColor(red: 30/255, green: 100/255, blue: 220/255, alpha: 50/255))
             fillCircle(ctx, c, 12, .white)
             fillCircle(ctx, c, 9, UIColor(red: 30/255, green: 100/255, blue: 220/255, alpha: 1))
+        }
+    }
+
+    // MARK: - Anillo de nota de las escuelas (propuesta A de maquetas-3/marcadores)
+
+    /// Anillo que se llena según la nota sobre pista blanca translúcida, centro crema con la nota en mono; mojada: anillo
+    /// azul, centro azul claro y gota arriba a la derecha; elegida: 50 en vez de 40 con aureola terracota; nombre debajo
+    /// en etiqueta blanca. Espejo de `ringBitmap` (Android).
+    static func scoreRing(score: Int?, wet: Bool, selected: Bool, name: String?) -> UIImage {
+        let d: CGFloat = selected ? 50 : 40
+        let pad: CGFloat = 6
+        let label = name.map { $0.count > 18 ? String($0.prefix(17)).trimmingCharacters(in: .whitespaces) + "…" : $0 }
+        let font = UIFont.boldSystemFont(ofSize: 10.5)
+        let chipH: CGFloat = label != nil ? 15 : 0
+        let chipGap: CGFloat = label != nil ? 3 : 0
+        let chipW: CGFloat = label.map { ($0 as NSString).size(withAttributes: [.font: font]).width + 14 } ?? 0
+        let w = max(d + pad * 2, chipW + 4)
+        // La imagen se ancla por su centro: el mismo hueco arriba que la etiqueta abajo deja el anillo sobre el punto.
+        let below = chipGap + chipH
+        let h = d + pad * 2 + below * 2
+        let rain = UIColor(rgb: 0x2563C7)
+        let ringColor = wet ? rain : UIColor(Cumbre.score(score ?? 0))
+        return UIGraphicsImageRenderer(size: CGSize(width: w, height: h)).image { c in
+            let g = c.cgContext
+            let cx = w / 2, cy = below + pad + d / 2
+            let band = d * 0.115
+            g.setFillColor(UIColor.black.withAlphaComponent(0.27).cgColor)
+            g.fillEllipse(in: CGRect(x: cx - d / 2, y: cy - d / 2 + 2, width: d, height: d))
+            if selected {
+                g.setStrokeColor(UIColor(rgb: 0xC2410C).cgColor)
+                g.setLineWidth(3)
+                g.strokeEllipse(in: CGRect(x: cx - d / 2 - 2.5, y: cy - d / 2 - 2.5, width: d + 5, height: d + 5))
+            }
+            g.setFillColor(UIColor.white.withAlphaComponent(0.43).cgColor)
+            g.fillEllipse(in: CGRect(x: cx - d / 2, y: cy - d / 2, width: d, height: d))
+            let r = d / 2 - band / 2
+            let sweep = CGFloat(max(2, min(100, wet ? 100 : (score ?? 0)))) / 100 * 2 * .pi
+            let arc = UIBezierPath(arcCenter: CGPoint(x: cx, y: cy), radius: r, startAngle: -.pi / 2,
+                                   endAngle: -.pi / 2 + sweep, clockwise: true)
+            arc.lineWidth = band
+            ringColor.setStroke()
+            arc.stroke()
+            g.setFillColor((wet ? UIColor(rgb: 0xE3ECFA) : UIColor(rgb: 0xFBF9F4)).cgColor)
+            g.fillEllipse(in: CGRect(x: cx - d / 2 + band, y: cy - d / 2 + band, width: d - band * 2, height: d - band * 2))
+            let num = score.map { "\($0)" } ?? "·"
+            let numFont = UIFont.monospacedSystemFont(ofSize: d * 0.36, weight: .bold)
+            let numSize = (num as NSString).size(withAttributes: [.font: numFont])
+            (num as NSString).draw(at: CGPoint(x: cx - numSize.width / 2, y: cy - numSize.height / 2),
+                                   withAttributes: [.font: numFont, .foregroundColor: wet ? rain : UIColor(rgb: 0x1C1C1A)])
+            if wet {
+                let bx = cx + d * 0.38, by = cy - d * 0.38, br: CGFloat = 8
+                g.setFillColor(rain.cgColor)
+                g.fillEllipse(in: CGRect(x: bx - br, y: by - br, width: br * 2, height: br * 2))
+                g.setStrokeColor(UIColor.white.cgColor)
+                g.setLineWidth(2)
+                g.strokeEllipse(in: CGRect(x: bx - br + 1, y: by - br + 1, width: br * 2 - 2, height: br * 2 - 2))
+                let drop = UIBezierPath()
+                drop.move(to: CGPoint(x: bx, y: by - 4.6))
+                drop.addCurve(to: CGPoint(x: bx + 3.4, y: by + 1.2), controlPoint1: CGPoint(x: bx + 1, y: by - 2.8),
+                              controlPoint2: CGPoint(x: bx + 3.4, y: by - 0.8))
+                drop.addCurve(to: CGPoint(x: bx - 3.4, y: by + 1.2), controlPoint1: CGPoint(x: bx + 3.4, y: by + 3.4),
+                              controlPoint2: CGPoint(x: bx - 3.4, y: by + 3.4))
+                drop.addCurve(to: CGPoint(x: bx, y: by - 4.6), controlPoint1: CGPoint(x: bx - 3.4, y: by - 0.8),
+                              controlPoint2: CGPoint(x: bx - 1, y: by - 2.8))
+                drop.close()
+                UIColor.white.setFill()
+                drop.fill()
+            }
+            if let label {
+                let top = cy + d / 2 + pad + chipGap
+                let rect = CGRect(x: cx - chipW / 2, y: top, width: chipW, height: chipH)
+                UIColor.white.withAlphaComponent(0.92).setFill()
+                UIBezierPath(roundedRect: rect, cornerRadius: chipH / 2).fill()
+                let ts = (label as NSString).size(withAttributes: [.font: font])
+                (label as NSString).draw(at: CGPoint(x: cx - ts.width / 2, y: rect.midY - ts.height / 2),
+                                         withAttributes: [.font: font, .foregroundColor: UIColor(rgb: 0x1C1C1A)])
+            }
         }
     }
 
