@@ -225,7 +225,7 @@ extension View {
 struct ChatView: View {
     @StateObject private var vm: ChatVM
     @FocusState private var inputFocused: Bool
-    @Environment(.dismiss) private var dismiss
+    @Environment(\.dismiss) private var dismiss
     @State private var openProfile = false
 
     init(otherUid: String, otherName: String) {

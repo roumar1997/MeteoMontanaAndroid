@@ -270,7 +270,7 @@ struct BoardNamedSection: View {
                 let gymName = summary.byGym.first { $0.gymId == p.gymId }?.name
                 Button { onOpenGym(p.gymId) } label: {
                     HStack(spacing: 12) {
-                        GradeBadge(grade: p.problem.grade)
+                        GymGradeBadge(grade: p.problem.grade)
                         VStack(alignment: .leading, spacing: 1) {
                             Text(p.problem.name).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink).lineLimit(2)
                             Text([gymName, GymDayText.long(p.date)].compactMap { $0 }.joined(separator: " · "))
@@ -288,7 +288,7 @@ struct BoardNamedSection: View {
 }
 
 /// Grado en píldora con su color (dobles por el primero).
-struct GradeBadge: View {
+struct GymGradeBadge: View {
     let grade: String
     var body: some View {
         let st = GradeColor.chipStyle(String(grade.split(separator: "/").first ?? Substring(grade)))
@@ -352,7 +352,7 @@ struct GradeEntriesList: View {
         ForEach(Array(entries.enumerated()), id: \.offset) { _, e in
             Button { onOpenGym(e.gymId) } label: {
                 HStack(spacing: 12) {
-                    GradeBadge(grade: GymAscentKeys.shared.gradeOfKey(key: e.key) ?? "")
+                    GymGradeBadge(grade: GymAscentKeys.shared.gradeOfKey(key: e.key) ?? "")
                     VStack(alignment: .leading, spacing: 1) {
                         let kind = Self.kind(e.key)
                         Text(e.names.isEmpty ? kind : kind + " · " + e.names.joined(separator: ", "))
