@@ -151,6 +151,12 @@ struct SchoolListView: View {
                         .transition(.opacity.combined(with: .move(edge: .top)))
                     }
 
+                    // Roca mojada cerca: la mayoría de las escuelas del filtro están mojadas hoy (shared: WetRockAdvisor).
+                    if featureFlags.flags.isGymsEnabled && explore.tab == .schools && !explore.active && !vm.rangeMode,
+                       WetRockAdvisor.shared.isMostlyWet(dryFlags: vm.filtered.map { s in vm.scores[s.id].map { KotlinBoolean(bool: $0.dryRock) } }) {
+                        WetRockBanner { gyms.setLayer(.rocodromos) }.padding(.horizontal, 12).padding(.top, 8)
+                    }
+
                     FirstTimeHint(
                         hintKey: "schools_compare",
                         text: L("Mantén pulsada una escuela para compararla con otras (hasta 3). También puedes abrir HOY para ver un tramo de varios días.")

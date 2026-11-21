@@ -68,3 +68,23 @@ struct GymsNearbyBanner: View {
         .padding(.horizontal, 12).padding(.vertical, 6)
     }
 }
+
+/// «Hoy la roca está mojada cerca de ti · ¿Rocódromo?»: al tocarlo, Escuelas pasa a la capa de rocódromos.
+struct WetRockBanner: View {
+    let action: () -> Void
+    var body: some View {
+        let rain = Cumbre.dyn(0x2563C7, 0x7BA3EE)
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: "drop.fill").font(.system(size: 17)).foregroundStyle(rain)
+                Text(L("gym_wet_banner")).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(rain)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 12)
+            .background(rain.opacity(0.12), in: RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(rain.opacity(0.5), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+}
