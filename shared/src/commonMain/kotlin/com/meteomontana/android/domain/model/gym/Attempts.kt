@@ -31,7 +31,7 @@ object Attempts {
 }
 
 /** Estilo «Al flash» + intentos de una ascension de escuela, siempre coherentes entre si. */
-data class StyleAttempts(val flash: Boolean, val attempts: Int?)
+data class StyleAttempts(val flash: Boolean, val attempts: Int?, val onsight: Boolean = false)
 
 /** Enlace entre el estilo «Al flash» y los intentos: tocar 1 marca «Al flash» y marcar «Al flash» pone 1. Nada viene preseleccionado. */
 object AttemptsStyleLink {
@@ -49,5 +49,10 @@ object AttemptsStyleLink {
     /** Se marca o desmarca «Al flash»: marcarlo pone 1 intento; desmarcarlo quita el 1 (un 2 o mas se queda). */
     fun setFlash(current: StyleAttempts, on: Boolean): StyleAttempts =
         if (on) StyleAttempts(flash = true, attempts = Attempts.FLASH)
+        else StyleAttempts(flash = false, attempts = current.attempts?.takeIf { it != Attempts.FLASH })
+
+    /** A VISTA = onsight + 1 intento (apaga «Al flash»); desmarcarlo quita ese 1 (un 2 o mas se queda). Estilo y N son excluyentes. */
+    fun setOnsight(current: StyleAttempts, on: Boolean): StyleAttempts =
+        if (on) StyleAttempts(flash = false, attempts = Attempts.FLASH, onsight = true)
         else StyleAttempts(flash = false, attempts = current.attempts?.takeIf { it != Attempts.FLASH })
 }

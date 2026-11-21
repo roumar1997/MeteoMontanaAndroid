@@ -2462,6 +2462,11 @@
     <string name="attempts_more">5+</string>
     <string name="attempts_hint">Lo verá quien mire tu perfil</string>
     <string name="flash_badge">FLASH</string>
+    <string name="onsight_badge">A VISTA</string>
+    <string name="ascent_flash_pill">FLASH</string>
+    <string name="ascent_how_title">¿Cómo te salió?</string>
+    <string name="ascent_how_attempts">intentos</string>
+    <string name="ascent_how_hint">A vista y Flash = a la primera. Lo verá quien mire tu perfil</string>
     <string name="attempts_pill">🎯 %1$d INTENTOS</string>
     <plurals name="attempts_n">
         <item quantity="one">%1$d intento</item>

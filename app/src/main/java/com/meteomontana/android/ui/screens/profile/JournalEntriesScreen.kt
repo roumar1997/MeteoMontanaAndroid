@@ -205,9 +205,11 @@ fun JournalEntriesScreen(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                                 ) {
-                                    StyleBadge(stringResource(R.string.journal_entries_screen_v4_a_vista), active = "aVista" in styleFilters) {
-                                        styleFilters = if ("aVista" in styleFilters) styleFilters - "aVista" else styleFilters + "aVista"
-                                    }
+                                    com.meteomontana.android.ui.components.OnsightBadge(
+                                        Modifier.alpha(if (styleFilters.isEmpty() || "aVista" in styleFilters) 1f else 0.55f).clickable {
+                                            styleFilters = if ("aVista" in styleFilters) styleFilters - "aVista" else styleFilters + "aVista"
+                                        }
+                                    )
                                     // Filtro «Al flash»: el mismo distintivo dorado; apagado se ve mas tenue.
                                     com.meteomontana.android.ui.components.FlashBadge(
                                         Modifier.alpha(if (styleFilters.isEmpty() || "alFlash" in styleFilters) 1f else 0.55f).clickable {
@@ -353,7 +355,7 @@ internal fun EntryRow(
                 // Al flash = distintivo dorado; mas de un intento = pastilla naranja «🎯 N INTENTOS» (visible en el perfil publico).
                 if (e.aVista || e.alFlash || com.meteomontana.android.domain.model.gym.Attempts.showsCount(e.attempts)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        if (e.aVista) StyleTag(stringResource(R.string.journal_entries_screen_v4_a_vista))
+                        if (e.aVista) com.meteomontana.android.ui.components.OnsightBadge()
                         if (e.alFlash) com.meteomontana.android.ui.components.FlashBadge()
                         else com.meteomontana.android.ui.components.AttemptsBadge(e.attempts)
                     }
@@ -422,44 +424,6 @@ internal fun shortJournalDate(iso: String): String = runCatching {
         .format(java.time.format.DateTimeFormatter.ofPattern("d MMM", java.util.Locale.getDefault()))
         .replace(".", "")
 }.getOrDefault(iso.take(10))
-
-/** Chip pequeño de estilo (A VISTA / AL FLASH) — pulsable si onClick != null,
- *  para poder marcarlo/desmarcarlo sin abrir un diálogo aparte. */
-@Composable
-internal fun StyleBadge(label: String, active: Boolean, onClick: (() -> Unit)?) {
-    Box(
-        Modifier
-            .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
-            .background(if (active) com.meteomontana.android.ui.theme.Terra
-                        else MaterialTheme.colorScheme.surface)
-            .border(1.dp, if (active) com.meteomontana.android.ui.theme.Terra
-                          else MaterialTheme.colorScheme.outlineVariant,
-                com.meteomontana.android.ui.theme.CumbrePillShape)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 7.dp, vertical = 3.dp)
-    ) {
-        Text(label, style = MaterialTheme.typography.labelSmall,
-            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-            color = if (active) androidx.compose.ui.graphics.Color.White
-                    else MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-/** Etiqueta pequeña de estilo (A VISTA / AL FLASH) en el color activo; solo se pinta si el estilo está puesto. */
-@Composable
-internal fun StyleTag(label: String) {
-    Box(
-        Modifier
-            .clip(com.meteomontana.android.ui.theme.CumbrePillShape)
-            .background(com.meteomontana.android.ui.theme.Terra)
-            .border(1.dp, com.meteomontana.android.ui.theme.Terra, com.meteomontana.android.ui.theme.CumbrePillShape)
-            .padding(horizontal = 7.dp, vertical = 3.dp)
-    ) {
-        Text(label, style = MaterialTheme.typography.labelSmall,
-            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-            color = androidx.compose.ui.graphics.Color.White)
-    }
-}
 
 internal fun formatMonthHeader(yyyyMm: String): String = runCatching {
     CalendarLabels.monthsLong()[yyyyMm.substringAfter('-').toInt() - 1].uppercase() + " " + yyyyMm.take(4)

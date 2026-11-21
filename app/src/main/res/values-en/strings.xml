@@ -2403,6 +2403,11 @@
     <string name="attempts_more">5+</string>
     <string name="attempts_hint">Anyone viewing your profile will see it</string>
     <string name="flash_badge">FLASH</string>
+    <string name="onsight_badge">ONSIGHT</string>
+    <string name="ascent_flash_pill">FLASH</string>
+    <string name="ascent_how_title">How did it go?</string>
+    <string name="ascent_how_attempts">attempts</string>
+    <string name="ascent_how_hint">Onsight and Flash = first try. Anyone viewing your profile will see it</string>
     <string name="attempts_pill">🎯 %1$d ATTEMPTS</string>
     <plurals name="attempts_n">
         <item quantity="one">%1$d attempt</item>

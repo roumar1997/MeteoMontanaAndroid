@@ -232,12 +232,8 @@ internal fun AscentSheet(
 ) {
     // CUÁNDO la encadenaste: null = hoy. La fecha se guarda en el diario SIEMPRE, publiques o no.
     var sessionDate by remember { mutableStateOf<String?>(null) }
-    // A vista y al flash son cosas distintas: uno u otro (encender uno apaga el otro).
-    var aVista by remember { mutableStateOf(false) }
-    var alFlash by remember { mutableStateOf(false) }
-    // Intentos (opcional, NADA elegido): 1 = al flash y al reves; ver AttemptsStyleLink (shared).
-    var attempts by remember { mutableStateOf<Int?>(null) }
-    fun link(l: com.meteomontana.android.domain.model.gym.StyleAttempts) { alFlash = l.flash; attempts = l.attempts }
+    // Estilo + intentos en UNA eleccion: A VISTA / FLASH = a la primera, N = N intentos sin estilo (AttemptsStyleLink, shared).
+    var styleChoice by remember { mutableStateOf(com.meteomontana.android.domain.model.gym.StyleAttempts(flash = false, attempts = null)) }
     // Voto de grado y el que espera a que se diga la altura (solo la primera vez en la vida).
     var vote by remember { mutableStateOf<String?>(null) }
     var pendingVote by remember { mutableStateOf<String?>(null) }
@@ -341,21 +337,7 @@ internal fun AscentSheet(
                 onYesterday = { sessionDate = java.time.LocalDate.now().minusDays(1).toString() },
                 onOther = { showDatePicker = true })
             AscentSectionLabel(stringResource(R.string.ascent_style))
-            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AscentStyleTile(Icons.Outlined.Visibility, stringResource(R.string.ascent_onsight),
-                    stringResource(R.string.ascent_onsight_sub), aVista, Modifier.weight(1f)) {
-                    aVista = !aVista; if (aVista) link(com.meteomontana.android.domain.model.gym.AttemptsStyleLink.setFlash(com.meteomontana.android.domain.model.gym.StyleAttempts(alFlash, attempts), false))
-                }
-                AscentStyleTile(Icons.Outlined.FlashOn, stringResource(R.string.ascent_flash),
-                    stringResource(R.string.ascent_flash_sub), alFlash, Modifier.weight(1f)) {
-                    val on = !alFlash
-                    link(com.meteomontana.android.domain.model.gym.AttemptsStyleLink.setFlash(com.meteomontana.android.domain.model.gym.StyleAttempts(alFlash, attempts), on)); if (on) aVista = false
-                }
-            }
-            Spacer(Modifier.height(10.dp))
-            com.meteomontana.android.ui.components.AttemptsCard(attempts, { picked ->
-                link(com.meteomontana.android.domain.model.gym.AttemptsStyleLink.pick(com.meteomontana.android.domain.model.gym.StyleAttempts(alFlash, attempts), picked)); if (alFlash) aVista = false
-            })
+            com.meteomontana.android.ui.components.AscentStyleCard(styleChoice, { styleChoice = it })
             // TU ALTURA: con la que cuenta este encadene (+1,70 / −1,70) para saber cuánta gente de cada altura hace la
             // vía. Si ya la dijiste (mochila), una línea; si no, se elige aquí mismo.
             AscentSectionLabel(stringResource(R.string.ascent_height))
@@ -422,7 +404,7 @@ internal fun AscentSheet(
                     .clickable {
                         if (publishEnabled) com.meteomontana.android.data.local.FeedSharePref.set(photoCtx, share)
                         onSave(AscentChoice(
-                            sessionDate = sessionDate, aVista = aVista, alFlash = alFlash, attempts = attempts,
+                            sessionDate = sessionDate, aVista = styleChoice.onsight, alFlash = styleChoice.flash, attempts = styleChoice.attempts,
                             gradeVote = vote, publish = share,
                             caption = if (share) caption.trim().ifBlank { null } else null,
                             photoUri = if (share) photoUri else null))
@@ -496,27 +478,6 @@ private fun AscentSegment(label: String, on: Boolean, modifier: Modifier, onClic
     ) {
         Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
             color = if (on) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@androidx.compose.runtime.Composable
-private fun AscentStyleTile(
-    icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String,
-    on: Boolean, modifier: Modifier, onClick: () -> Unit
-) {
-    Column(
-        modifier.fillMaxHeight()
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (on) Terra.copy(alpha = 0.11f) else MaterialTheme.colorScheme.surface)
-            .border(1.dp, if (on) Terra else MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick).padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp),
-            tint = if (on) Terra else MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(top = 4.dp))
-        Text(subtitle, fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

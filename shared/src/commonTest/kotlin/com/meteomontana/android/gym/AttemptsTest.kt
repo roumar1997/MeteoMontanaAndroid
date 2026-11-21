@@ -40,6 +40,17 @@ class AttemptsTest {
         assertEquals(StyleAttempts(false, null), AttemptsStyleLink.pick(StyleAttempts(true, 1), null))
     }
 
+    @Test fun onsightAndFlashAreExclusiveAndBothMeanOneAttempt() {
+        val none = StyleAttempts(false, null)
+        val onsight = AttemptsStyleLink.setOnsight(none, true)
+        assertEquals(StyleAttempts(false, 1, true), onsight)
+        assertEquals(StyleAttempts(true, 1), AttemptsStyleLink.setFlash(onsight, true))
+        assertEquals(StyleAttempts(false, 1, true), AttemptsStyleLink.setOnsight(StyleAttempts(true, 1), true))
+        assertEquals(StyleAttempts(false, 3), AttemptsStyleLink.pick(onsight, 3))
+        assertEquals(none, AttemptsStyleLink.setOnsight(onsight, false))
+        assertEquals(none, AttemptsStyleLink.pick(onsight, null))
+    }
+
     @Test fun unnamedAttemptsGoOnTheKeyAndNamedOnesOnEachRepetition() {
         val empty = BoardLog(emptyList(), emptyList())
         val unnamed = BoardLogging.add(empty, BoardKind.KILTER, "6c", 40, "", 2, 3)

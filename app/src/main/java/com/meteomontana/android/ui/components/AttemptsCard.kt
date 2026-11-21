@@ -68,7 +68,7 @@ fun AttemptsCard(selected: Int?, onChange: (Int?) -> Unit, modifier: Modifier = 
 }
 
 @Composable
-private fun FlashChip(on: Boolean, modifier: Modifier, onClick: () -> Unit) {
+internal fun FlashChip(on: Boolean, modifier: Modifier, label: String = stringResource(R.string.attempts_flash_chip), onClick: () -> Unit) {
     val shape = RoundedCornerShape(50)
     Row(
         modifier.heightIn(min = 40.dp).clip(shape)
@@ -78,13 +78,13 @@ private fun FlashChip(on: Boolean, modifier: Modifier, onClick: () -> Unit) {
         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(Icons.Outlined.FlashOn, null, Modifier.size(15.dp), tint = if (on) FlashBrown else terraFillColor())
-        Text(stringResource(R.string.attempts_flash_chip), fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, letterSpacing = 0.5.sp, maxLines = 1,
+        Text(label, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, letterSpacing = 0.5.sp, maxLines = 1,
             color = if (on) FlashBrown else MaterialTheme.colorScheme.onBackground, modifier = Modifier.padding(start = 3.dp))
     }
 }
 
 @Composable
-private fun NumberChip(label: String, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
+internal fun NumberChip(label: String, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val shape = RoundedCornerShape(50)
     Box(
         modifier.heightIn(min = 40.dp).clip(shape).background(if (on) terraFillColor() else MaterialTheme.colorScheme.background)
@@ -97,7 +97,7 @@ private fun NumberChip(label: String, on: Boolean, modifier: Modifier, onClick: 
 
 /** «5+»: abre una lista de 5 a 30; elegido muestra el numero. */
 @Composable
-private fun MoreChip(selected: Int?, modifier: Modifier, onChange: (Int?) -> Unit) {
+internal fun MoreChip(selected: Int?, modifier: Modifier, onChange: (Int?) -> Unit) {
     var open by remember { mutableStateOf(false) }
     val on = Attempts.isFivePlus(selected)
     val shape = RoundedCornerShape(50)

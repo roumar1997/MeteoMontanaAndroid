@@ -425,3 +425,16 @@ Backend: `GymAscent.attempts` y `GymBoardProblem.attempts` (opcionales), `GET gy
 5. **Hoja «Hecho»** de escuelas: tarjeta de intentos bajo ESTILO; 1 marca «Al flash» y «Al flash» pone 1. «Editar ascenso» sincroniza: pasar a flash pone 1; quitar el flash quita ese 1.
 
 Checklist iOS: `GymAscent/BoardProblem/ProblemDay` con `attempts` en los DTO; tarjeta de intentos con los mismos chips y estados; lista única con `BoardBlocks`; insignias FLASH/INTENTOS; ocultar System; «Cerrar» y «GUARDAR» en el registro; enlace flash↔1 en la hoja «Hecho». Capturas: `Desktop\rocodromos\capturas-android\ronda15`.
+
+## 25. Ronda 16 (2026-11-22, Android hecho; iOS pendiente)
+
+Hoja «Hecho» de escuelas: se quitan las dos tarjetas «A vista» / «Al flash» y la tarjeta de intentos y se sustituyen por UNA tarjeta bajo la etiqueta «ESTILO · OPCIONAL». Maqueta aprobada: `Desktop\rocodromos\maquetas-6\vista.png`. Capturas: `Desktop\rocodromos\capturas-android\ronda16` (`01-hecho.png`, `02-misvias.png`).
+
+Lógica en `shared` (no reimplementar en Swift): `StyleAttempts(flash, attempts, onsight)` y `AttemptsStyleLink.setOnsight/setFlash/pick`. Elección única, nada por defecto, tocar lo elegido lo quita: A VISTA = estilo a vista + 1 intento; FLASH = flash + 1; 2, 3, 4, 5+ = N intentos sin estilo. Los campos guardados no cambian (`aVista`, `alFlash`, `attempts`). Test: `AttemptsTest.onsightAndFlashAreExclusiveAndBothMeanOneAttempt`.
+
+Checklist iOS:
+1. Tarjeta «🎯 ¿Cómo te salió?» + «opcional»; fila 1: pastillas «👁 A VISTA» (degradado 5EC8E5 a 2F80ED, texto 062A52, contorno blanco, brillo azul suave al elegirla) y «⚡ FLASH» (dorada, igual que FlashBadge); fila 2: chips 2, 3, 4 y «5+ ▾» (lista 5 a 30) seguidos del texto «intentos»; pie «A vista y Flash = a la primera. Lo verá quien mire tu perfil».
+2. Elección única, nada elegida al abrir; volver a tocar la elegida la quita; A VISTA y FLASH se excluyen y ponen 1 intento.
+3. Componente reutilizable `OnsightBadge` azul («👁 A VISTA», mismos colores) junto a `FlashBadge`: filas de Mis vías (y Mis bloques si hay a vista) y chip del filtro de estilo (apagado se ve más tenue); sustituye al chip simple «A VISTA».
+4. El registro de boards sigue solo con Flash + intentos (sin A vista).
+5. EN: «ONSIGHT», «How did it go?», «attempts».
