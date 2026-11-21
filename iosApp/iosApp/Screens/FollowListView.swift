@@ -140,11 +140,10 @@ struct FollowListView: View {
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                     .dismissKeyboardOnSubmit()
             }
-            .padding(.horizontal, 12).padding(.vertical, 9)
-            .background(Cumbre.paper)
-            .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
+            .padding(.horizontal, 14).padding(.vertical, 11)
+            .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 26))
+            .overlay(RoundedRectangle(cornerRadius: 26).stroke(Cumbre.rule, lineWidth: 1))
             .padding(.horizontal, 12).padding(.vertical, 8)
-            Divider().overlay(Cumbre.rule)
 
             Group {
             if vm.loading {
@@ -157,9 +156,9 @@ struct FollowListView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 0) {
+                    LazyVStack(spacing: 8) {
                         ForEach(filtered, id: \.uid) { u in
-                            HStack(spacing: 8) {
+                            HStack(spacing: 10) {
                                 NavigationLink(destination: PublicProfileView(uid: u.uid)) {
                                     UserRow(profile: u)
                                 }.buttonStyle(.plain)
@@ -172,10 +171,12 @@ struct FollowListView: View {
                                     rowButton(L("ELIMINAR"), filled: false) { vm.remove(followerUid: u.uid) }
                                 }
                             }
-                            .padding(.trailing, 12)
-                            Divider().overlay(Cumbre.rule)
+                            .padding(.horizontal, 12).padding(.vertical, 10)
+                            .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 18))
+                            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Cumbre.rule, lineWidth: 1))
                         }
                     }
+                    .padding(.horizontal, 14).padding(.vertical, 8)
                 }
             }
             }   // cierra el Group
@@ -200,9 +201,10 @@ struct FollowListView: View {
         Button(action: action) {
             Text(text).font(Cumbre.mono(10, .bold)).tracking(0.6)
                 .foregroundStyle(filled ? .white : Cumbre.ink2)
-                .padding(.horizontal, 10).padding(.vertical, 6)
-                .background(filled ? Cumbre.terra : Color.clear)
-                .overlay(Rectangle().stroke(filled ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
+                .lineLimit(1)
+                .padding(.horizontal, 14).padding(.vertical, 7)
+                .background(filled ? Cumbre.terraFill : Color.clear, in: Capsule())
+                .overlay(Capsule().stroke(filled ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
         }
         .buttonStyle(.plain)
         .disabled(!enabled)

@@ -7,7 +7,9 @@ import Shared
 // abre, mantener compara, estrella = favorita).
 
 /// Fondo de las tarjetas: un punto más claro que el fondo de la pantalla.
-private let schoolCardBg = Cumbre.dyn(0xFBFAF6, 0x211F19)
+private let schoolCardBg = Cumbre.dyn(0xFFFFFF, 0x211F19)
+/// Azul de lluvia (anillo, gota y etiqueta de roca mojada).
+let rainBlue = Cumbre.dyn(0x2563C7, 0x7BA3EE)
 
 /// «BUENO» → «Bueno», «MUY BUENO» → «Muy bueno».
 private func niceScoreLabel(_ s: Int?) -> String {
@@ -41,7 +43,7 @@ struct SchoolCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center, spacing: 12) {
-                ScoreRing(score: value)
+                ScoreRing(score: value, wet: range == nil && score?.dryRock == false)
                     .guideTarget("schools.score", when: isFirst)
                 VStack(alignment: .leading, spacing: 5) {
                     titleRow
@@ -59,9 +61,10 @@ struct SchoolCardView: View {
             }
         }
         .padding(12)
-        .background(schoolCardBg, in: RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16)
-            .stroke(isSelected ? Cumbre.terra : Cumbre.rule, lineWidth: isSelected ? 2 : 1))
+        // Propuesta A: tarjeta blanca con sombra suave, sin borde gris (solo al elegir para comparar).
+        .background(schoolCardBg, in: RoundedRectangle(cornerRadius: 20))
+        .shadow(color: .black.opacity(0.08), radius: 3, y: 1)
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(isSelected ? Cumbre.terra : Color.clear, lineWidth: 2))
     }
 
     private var titleRow: some View {
@@ -117,9 +120,7 @@ struct SchoolCardView: View {
 
     @ViewBuilder private var rockPill: some View {
         if range == nil, let dry = score?.dryRock {
-            SoftPill(text: dry ? L("Roca seca") : L("Roca mojada"),
-                     fg: dry ? Cumbre.ok : Cumbre.bad,
-                     bg: (dry ? Cumbre.ok : Cumbre.bad).opacity(0.14))
+            SchoolDryPill(schoolId: school.id, dry: dry)
         }
     }
 }
@@ -142,21 +143,28 @@ private struct SoftPill: View {
 /// La nota en un anillo que se llena con su color (sin nota: anillo vacío y «—»).
 struct ScoreRing: View {
     let score: Int?
+    /// Mojada: anillo azul entero con una gota en el centro (no número).
+    var wet = false
     var size: CGFloat = 58
     var body: some View {
-        let color = score.map { Cumbre.score($0) } ?? Cumbre.ink3
+        let color = wet ? rainBlue : (score.map { Cumbre.score($0) } ?? Cumbre.ink3)
+        let stroke = size * 0.103
         ZStack {
-            Circle().stroke(Cumbre.paper, lineWidth: 6)
-            if let s = score {
+            Circle().stroke(Cumbre.paper, lineWidth: stroke)
+            if wet || score != nil {
                 Circle()
-                    .trim(from: 0, to: CGFloat(max(2, min(100, s))) / 100)
-                    .stroke(color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                    .trim(from: 0, to: wet ? 1 : CGFloat(max(2, min(100, score ?? 0))) / 100)
+                    .stroke(color, style: StrokeStyle(lineWidth: stroke, lineCap: .round))
                     .rotationEffect(.degrees(-90))
             }
-            Text(score.map(String.init) ?? "—")
-                .font(Cumbre.serif(21, .bold))
-                .foregroundStyle(color)
-                .minimumScaleFactor(0.7).lineLimit(1)
+            if wet {
+                Image(systemName: "drop.fill").font(.system(size: size * 0.32)).foregroundStyle(color)
+            } else {
+                Text(score.map(String.init) ?? "—")
+                    .font(Cumbre.serif(size * 0.362, .bold))
+                    .foregroundStyle(color)
+                    .minimumScaleFactor(0.7).lineLimit(1)
+            }
         }
         .padding(3)
         .frame(width: size, height: size)

@@ -764,3 +764,6 @@
 "gym_board_suggest_people" = "×%1$@";
 "gym_board_reps_days_one" = "%1$@ día";
 "gym_board_reps_days_other" = "%1$@ días";
+
+/* Rocodromos rondas 2-11c (sincronizado de Android) */
+"schools_map_panel_v3_ver_detalle" = "VER DETALLE ▸";

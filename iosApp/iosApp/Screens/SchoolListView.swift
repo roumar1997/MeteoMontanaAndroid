@@ -438,7 +438,9 @@ struct SchoolListView: View {
             schoolName: g.schoolName, hitCount: g.hits.count, score: vm.scores[g.schoolId],
             range: vm.rangeScores[g.schoolId], rangeMode: vm.rangeMode,
             kind: SchoolKind(style: vm.schools.first(where: { $0.id == g.schoolId })?.style),
-            collapsed: !expandedGroups.contains(g.schoolId)
+            collapsed: !expandedGroups.contains(g.schoolId),
+            boulders: ExploreSectors.shared.allBoulders(hits: g.hits, schoolStyle: vm.schools.first(where: { $0.id == g.schoolId })?.style),
+            routes: ExploreSectors.shared.allRoutes(hits: g.hits, schoolStyle: vm.schools.first(where: { $0.id == g.schoolId })?.style)
         ) {
             if expandedGroups.contains(g.schoolId) { expandedGroups.remove(g.schoolId) } else { expandedGroups.insert(g.schoolId) }
         }

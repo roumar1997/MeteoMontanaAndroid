@@ -14,34 +14,31 @@ struct ExploreGroupHeader: View {
     let rangeMode: Bool
     let kind: SchoolKind
     let collapsed: Bool
+    var boulders = false
+    var routes = false
     let onToggle: () -> Void
 
     var body: some View {
         // Con un tramo de días elegido se muestra el score COMBINADO del tramo, igual que la lista de Escuelas;
         // si no, el de HOY (Álvaro, 2026-10-01).
         let scoreInt = rangeMode ? range.map { Int($0.combinedScore) } : score.map { Int($0.todayScore) }
-        let color = scoreInt.map { Cumbre.score($0) } ?? Cumbre.ink3
         VStack(alignment: .leading, spacing: 0) {
             Button(action: onToggle) {
                 HStack(spacing: 10) {
-                    Text(scoreInt.map(String.init) ?? "—")
-                        .font(Cumbre.serif(17, .bold))
-                        .foregroundStyle(color)
-                        .frame(width: 34, height: 30)
-                        .background(color.opacity(0.12))
-                        .overlay(Rectangle().stroke(color, lineWidth: 1))
+                    // El mismo anillo de progreso de la lista de Escuelas.
+                    ScoreRing(score: scoreInt, wet: score?.dryRock == false, size: 44)
                     VStack(alignment: .leading, spacing: 1) {
                         HStack(spacing: 7) {
                             Text(schoolName).font(.system(size: 15, weight: .semibold)).foregroundStyle(Cumbre.ink)
                             if !kind.isEmpty { SchoolKindIcons(kind: kind, height: 15) }
                         }
                         if score?.dryRock == false {
-                            Text(L("● MOJADA")).font(.system(size: 10, weight: .semibold)).tracking(0.6)
+                            Text("● " + L("schools_rock_wet")).font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(Cumbre.bad)
                         }
                     }
                     Spacer()
-                    Text(hitCount == 1 ? L("1 vía/bloque") : L("%@ vías/bloques", hitCount))
+                    Text(exploreCountText(hitCount, boulders: boulders, routes: routes))
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                     Image(systemName: collapsed ? "chevron.down" : "chevron.up")
                         .font(.system(size: 11)).foregroundStyle(Cumbre.ink3)

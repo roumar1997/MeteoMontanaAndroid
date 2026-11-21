@@ -109,11 +109,16 @@ struct MapToggleAndPanel: View {
         // con el valor de `popup` que hubiera en ESE momento: por eso al pulsar
         // una escuela en pantalla completa "no pasaba nada" y al salir aparecía
         // otra). Mismo patrón que ya usa mapArea en SchoolMapSection.swift.
-        .sheet(item: $popup) { s in
-            SchoolMapPopup(school: s, score: vm.scores[s.id].map { Int($0.todayScore) }) {
-                popup = nil; onOpen(s)
+        // Tarjeta de cristal de la escuela tocada (como la de rocódromos), encima del mapa.
+        .overlay(alignment: .bottom) {
+            if let s = popup {
+                SchoolMapPopup(school: s, score: vm.scores[s.id].map { Int($0.todayScore) },
+                               wet: vm.scores[s.id]?.dryRock == false, userLat: vm.userLat, userLon: vm.userLon,
+                               onClose: { popup = nil }) {
+                    popup = nil; onOpen(s)
+                }
+                .padding(.horizontal, 12).padding(.bottom, 8)
             }
-            .presentationDetents([.height(280)])
         }
     }
 
@@ -222,52 +227,62 @@ struct MapToggleAndPanel: View {
     }
 }
 
-/// Popup de una escuela al tocar su marcador en el panel de mapa de la lista.
-/// Nombre + score + tags + "CÓMO LLEGAR" y "VER DETALLE" (espejo de SchoolsMapPanel).
+/// Tarjeta de cristal de la escuela tocada en el mapa de Roca (como la de rocódromos): anillo con la nota, nombre serif,
+/// chips de roca/estilo/distancia, la franja seca/mojada, «Cómo llegar» + «Ver detalle» y «Corregir». Espejo de
+/// `MarkerPreviewCard` (SchoolsMapPreview.kt).
 struct SchoolMapPopup: View {
     let school: School
     let score: Int?
+    var wet = false
+    var userLat: Double?
+    var userLon: Double?
+    var onClose: () -> Void = {}
     let onDetail: () -> Void
-    @Environment(\.dismiss) private var dismiss
+    @State private var outlook: RockDryOutlook?
+    @State private var fixOpen = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
-                if let s = score {
-                    // Chip redondeado (estilo mini-ficha, adiós al cuadrado duro).
-                    VStack(spacing: 0) {
-                        Text("\(s)").font(Cumbre.serif(26, .bold)).foregroundStyle(Cumbre.score(s))
-                        Text(Cumbre.scoreLabel(s)).font(.system(size: 8, weight: .bold)).foregroundStyle(Cumbre.score(s))
+                ScoreRing(score: score, wet: wet)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(school.name).font(Cumbre.serif(21, .bold)).foregroundStyle(Cumbre.ink).lineLimit(2)
+                    FlowLayoutView(spacing: 6) {
+                        if let r = school.rockType { GymTag(text: rockLabel(r), color: Cumbre.ink2) }
+                        if let s = school.style { GymTag(text: s, color: Cumbre.ink2) }
+                        if let km = distanceKm { GymTag(text: "\(Int(km)) km", color: Cumbre.ink2) }
                     }
-                    .frame(width: 60, height: 60)
-                    .background(Cumbre.score(s).opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Cumbre.score(s), lineWidth: 1.5))
                 }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(school.name).font(Cumbre.serif(20, .bold)).foregroundStyle(Cumbre.ink)
-                    Text(tags).font(Cumbre.mono(11)).foregroundStyle(Cumbre.ink3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Button(action: onClose) {
+                    Image(systemName: "xmark").font(.system(size: 13, weight: .semibold)).foregroundStyle(Cumbre.ink2)
+                        .frame(width: 32, height: 32).background(Cumbre.ink.opacity(0.07), in: Circle())
                 }
-                Spacer()
+                .buttonStyle(.plain).accessibilityLabel(L("common_close"))
             }
-            HStack(spacing: 10) {
-                DirectionsButton(lat: school.lat, lon: school.lon, label: school.name)
-                Button(action: onDetail) {
-                    Text("VER DETALLE ▸").font(Cumbre.mono(12, .bold)).tracking(0.8)
-                        .foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 12)
-                        .background(Cumbre.terraFill)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }.buttonStyle(.plain)
+            if let outlook { RockDryBanner(outlook: outlook) }
+            HStack(spacing: 8) {
+                GymActionPill(text: L("gym_directions"), icon: "gym_ic_directions", primary: true) {
+                    openDirections(lat: school.lat, lon: school.lon)
+                }
+                GymActionPill(text: L("schools_map_panel_v3_ver_detalle"), action: onDetail)
             }
-            Spacer()
+            Button { fixOpen = true } label: {
+                Text(L("schools_card_fix")).font(.system(size: 13, weight: .semibold)).foregroundStyle(Cumbre.ink2)
+                    .padding(.horizontal, 14).padding(.vertical, 6)
+            }
+            .buttonStyle(.plain).frame(maxWidth: .infinity)
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Cumbre.bg.ignoresSafeArea())
+        .padding(14)
+        .background(Cumbre.bg.opacity(0.92), in: RoundedRectangle(cornerRadius: 24))
+        .overlay(RoundedRectangle(cornerRadius: 24).stroke(Color.white.opacity(0.55), lineWidth: 1))
+        .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
+        .task(id: school.id) { outlook = await RockDryOutlookCache.outlook(school.id) }
+        .sheet(isPresented: $fixOpen) { EditSchoolSheet(school: school) }
     }
 
-    private var tags: String {
-        [school.rockType.map { rockLabel($0).uppercased() }, school.region.map(regionLabel), school.style.map(styleLabel)]
-            .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "  ·  ")
+    private var distanceKm: Double? {
+        guard let lat = userLat, let lon = userLon else { return nil }
+        return Geo.shared.haversineKm(lat1: lat, lon1: lon, lat2: school.lat, lon2: school.lon)
     }
 }
