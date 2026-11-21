@@ -736,3 +736,6 @@
 
 /* Rocodromos rondas 2-11c (sincronizado de Android) */
 "gear_quickdraws" = "Cintas";
+
+/* Rocodromos rondas 2-11c (sincronizado de Android) */
+"w_all" = "Todas";

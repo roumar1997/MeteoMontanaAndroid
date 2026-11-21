@@ -209,11 +209,9 @@ struct ChatDayDivider: View {
 }
 
 extension View {
-    /// Burbuja redondeada: terracota si es mía, papel con borde si es de otra persona.
+    /// Burbuja con cola (ChatKit): terracota si es mía, blanca con borde si es de otra persona.
     func chatBubble(mine: Bool) -> some View {
-        self.padding(.horizontal, 12).padding(.vertical, 8)
-            .background(mine ? Cumbre.terra : Cumbre.paper, in: RoundedRectangle(cornerRadius: 16))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(mine ? Color.clear : Cumbre.rule, lineWidth: 1))
+        self.padding(.horizontal, 12).padding(.vertical, 8).chatBubbleSurface(mine: mine)
     }
 
     /// Campo de escribir de las conversaciones: redondeado, en vez del rectángulo con borde.
@@ -227,6 +225,8 @@ extension View {
 struct ChatView: View {
     @StateObject private var vm: ChatVM
     @FocusState private var inputFocused: Bool
+    @Environment(.dismiss) private var dismiss
+    @State private var openProfile = false
 
     init(otherUid: String, otherName: String) {
         _vm = StateObject(wrappedValue: ChatVM(otherUid: otherUid, otherName: otherName))
@@ -234,6 +234,10 @@ struct ChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            ChatTopBar(title: vm.otherName.isEmpty ? L("Chat") : vm.otherName, onBack: { dismiss() },
+                       onTitleClick: { openProfile = true },
+                       avatar: { AvatarCircle(url: vm.otherPhotoUrl, size: 44, uid: vm.otherUid) },
+                       subtitle: { EmptyView() }, actions: { EmptyView() })
             if vm.loading {
                 SkeletonChat()
             } else {
@@ -260,6 +264,7 @@ struct ChatView: View {
                         .padding(16)
                     }
                     .scrollDismissesKeyboard(.interactively)
+                    .overlay { if vm.messages.isEmpty { ChatEmptyState() } }
                     // Baja al último mensaje cuando: llega un mensaje NUEVO (cambia el
                     // último id — no al cargar antiguos, que solo añade por arriba),
                     // termina la carga, o aparece el teclado.
@@ -273,23 +278,8 @@ struct ChatView: View {
             inputBar
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            // Nombre del chat → abre el perfil del otro usuario.
-            ToolbarItem(placement: .principal) {
-                NavigationLink(destination: PublicProfileView(uid: vm.otherUid)) {
-                    HStack(spacing: 8) {
-                        AvatarCircle(url: vm.otherPhotoUrl, size: 30, uid: vm.otherUid)
-                        Text(vm.otherName.isEmpty ? L("Chat") : vm.otherName)
-                            .font(Cumbre.serif(17, .semibold)).foregroundStyle(Cumbre.ink)
-                            .lineLimit(1)
-                    }
-                        // Zona de toque generosa: costaba acertar al nombre.
-                        .padding(.horizontal, 24).padding(.vertical, 10)
-                        .contentShape(Rectangle())
-                }
-            }
-        }
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(isPresented: $openProfile) { PublicProfileView(uid: vm.otherUid) }
         .onAppear { vm.start() }
         .onDisappear { vm.stop() }
     }
@@ -328,19 +318,7 @@ struct ChatView: View {
     }
 
     private var inputBar: some View {
-        HStack(spacing: 8) {
-            TextField("Mensaje…", text: $vm.draft, axis: .vertical)
-                .lineLimit(1...4).font(.system(size: 15))
-                .focused($inputFocused)
-                .chatInputField()
-            Button { vm.send() } label: {
-                Image(systemName: "arrow.up.circle.fill").font(.system(size: 30)).foregroundStyle(Cumbre.terra)
-            }
-            .disabled(vm.draft.trimmingCharacters(in: .whitespaces).isEmpty)
-        }
-        .padding(12)
-        .background(Cumbre.bg)
-        .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .top)
+        ChatInputPill(text: $vm.draft, focused: $inputFocused) { vm.send() }
     }
 }
 

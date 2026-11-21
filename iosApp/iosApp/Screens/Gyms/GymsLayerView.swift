@@ -28,17 +28,19 @@ struct GymsLayerView: View {
     let onOpenGym: (Int64) -> Void
     @State private var addWallOpen = false
     @State private var filtersOpen = false
+    /// Igual que Escuelas: el mapa se abre y se cierra (cerrado al arrancar); debajo, siempre la lista por cercanía.
+    @State private var mapOpen = false
 
     var body: some View {
         VStack(spacing: 0) {
             GymSearchField(text: queryBinding)
-            GymSegmentedPair(
-                first: L("gym_view_map").uppercased(), second: L("gym_view_list").uppercased(),
-                firstSelected: vm.viewKind == .map,
-                onFirst: { vm.viewKind = .map }, onSecond: { vm.viewKind = .list }
-            )
+            if mapOpen {
+                GymsMapView(vm: vm, userLat: userLat, userLon: userLon, needsLocationPermission: needsLocationPermission,
+                            onRequestLocation: onRequestLocation, onOpenGym: onOpenGym, onAddWall: { addWallOpen = true })
+            }
+            GymMapToggleBar(open: $mapOpen).padding(.top, 4)
             GymFilterRow(vm: vm, open: $filtersOpen).padding(.top, 8).padding(.bottom, 8)
-            if filtersOpen { GymFiltersPanel(vm: vm) }
+            if filtersOpen { GymFiltersPanel(vm: vm) { filtersOpen = false } }
             Divider().overlay(Cumbre.rule)
             content
         }
@@ -60,9 +62,6 @@ struct GymsLayerView: View {
             ProgressView().frame(maxWidth: .infinity, minHeight: 240)
         } else if vm.loadFailed && vm.all.isEmpty {
             message(L("gym_load_error"), action: L("gym_retry")) { Task { await vm.refresh() } }
-        } else if vm.viewKind == .map {
-            GymsMapView(vm: vm, userLat: userLat, userLon: userLon, needsLocationPermission: needsLocationPermission,
-                        onRequestLocation: onRequestLocation, onOpenGym: onOpenGym, onAddWall: { addWallOpen = true })
         } else if vm.items.isEmpty {
             message(L("gym_empty"), action: L("gym_clear_filters")) { vm.clearFilters() }
         } else {
@@ -106,5 +105,28 @@ struct GymSearchField: View {
         .background(Cumbre.paper, in: Capsule())
         .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
         .padding(.horizontal, 16).padding(.vertical, 8)
+    }
+}
+
+/// «VER MAPA / OCULTAR MAPA» a todo el ancho, como el de Escuelas (`MapToggleBar`).
+struct GymMapToggleBar: View {
+    @Binding var open: Bool
+    var body: some View {
+        Button { withAnimation { open.toggle() } } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "map").font(.system(size: 14, weight: .semibold))
+                Text(open ? L("OCULTAR MAPA") : L("VER MAPA")).font(Cumbre.mono(12, .bold)).tracking(0.8)
+                Spacer(minLength: 0)
+                Image(systemName: open ? "chevron.up" : "chevron.down").font(.system(size: 11, weight: .bold))
+            }
+            .foregroundStyle(open ? Color.white : Cumbre.terra)
+            .padding(.horizontal, 14).padding(.vertical, 11)
+            .frame(maxWidth: .infinity)
+            .background(open ? Cumbre.terra : Cumbre.terra.opacity(0.10), in: Capsule())
+            .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 12)
     }
 }

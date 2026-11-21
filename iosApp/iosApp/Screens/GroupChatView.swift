@@ -26,6 +26,17 @@ final class GroupChatVM: ObservableObject {
     @Published var discipline: String?
     @Published var myGearJson: String?
     @Published var muted: Bool
+    /// La quedada (para el material, el día y el color de la cabecera).
+    @Published var meetup: Meetup?
+    /// Mi mochila (Mi material del perfil): cuenta como material disponible.
+    @Published var myMochila: String?
+    @Published var photos: [String: String] = [:]
+
+    /// Material pedido y cubierto (con mi mochila sumada); vacío si no se pidió. Lógica en shared.
+    var gearLines: [MeetupGearLine] {
+        guard let meetup else { return [] }
+        return MeetupGearStatus.shared.lines(meetup: MeetupGearStatus.shared.withMochilas(meetup: meetup, mochilas: [me: myMochila]))
+    }
 
     private let chat = AppDependencies.shared.container.chatService
     private let chatPush = AppDependencies.shared.container.chatPushApi
@@ -60,7 +71,9 @@ final class GroupChatVM: ObservableObject {
             guard let self else { return }
             if let m = try? await self.getMeetupByConv.execute(conversationId: self.convId) {
                 let mems = Array(m.members)
+                self.meetup = m
                 self.meetupId = m.id
+                self.myMochila = try? await AppDependencies.shared.container.getMyProfile.invoke().gearJson
                 self.schoolLat = m.schoolLat?.doubleValue
                 self.schoolLon = m.schoolLon?.doubleValue
                 self.members = mems
@@ -117,6 +130,7 @@ final class GroupChatVM: ObservableObject {
         for uid in Set(uids) where uid != me && memberNames[uid] == nil {
             if let p = try? await getProfile.invoke(uid: uid) {
                 memberNames[uid] = p.username ?? p.displayName ?? String(uid.prefix(6))
+                if let url = p.photoUrl { photos[uid] = url }
             }
         }
     }
@@ -150,6 +164,7 @@ final class GroupChatVM: ObservableObject {
         Task { [weak self] in
             guard let self else { return }
             if let updated = try? await self.updateMyGearUC.execute(meetupId: meetupId, gearJson: gearJson) {
+                self.meetup = updated
                 let mems = Array(updated.members)
                 self.members = mems
                 self.discipline = updated.discipline
@@ -166,6 +181,9 @@ final class GroupChatVM: ObservableObject {
 struct GroupChatView: View {
     @StateObject private var vm: GroupChatVM
     @FocusState private var inputFocused: Bool
+    @Environment(\.dismiss) private var dismiss
+    @State private var openMeetup = false
+    @State private var openProfile: String?
 
     init(convId: String, groupName: String) {
         _vm = StateObject(wrappedValue: GroupChatVM(convId: convId, groupName: groupName))
@@ -176,89 +194,9 @@ struct GroupChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Expandable gear banner
-            if vm.meetupId != nil {
-                let hasSomeGear = vm.gearSummary != nil
-                VStack(spacing: 0) {
-                    // Header row
-                    HStack(spacing: 6) {
-                        Image(systemName: "bag").font(.system(size: 13))
-                            .foregroundStyle(Cumbre.terra)
-                        if hasSomeGear {
-                            Text(vm.gearSummary!)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(Cumbre.ink)
-                                .lineLimit(1)
-                        } else {
-                            Text("Sin material indicado")
-                                .font(.system(size: 13))
-                                .foregroundStyle(Cumbre.ink.opacity(0.5))
-                        }
-                        Spacer()
-                        if !hasSomeGear {
-                            Button {
-                                showEditGear = true
-                            } label: {
-                                Text("+ Anadir")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundStyle(Cumbre.terra)
-                                    .padding(.horizontal, 8).padding(.vertical, 3)
-                                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.terra, lineWidth: 1))
-                            }
-                        }
-                        if hasSomeGear {
-                            Image(systemName: gearExpanded ? "chevron.up" : "chevron.down")
-                                .font(.system(size: 10))
-                                .foregroundStyle(Cumbre.ink.opacity(0.4))
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 12).padding(.vertical, 6)
-                    .contentShape(Rectangle())
-                    .onTapGesture { gearExpanded.toggle() }
-
-                    // Expanded content
-                    if gearExpanded && hasSomeGear {
-                        VStack(alignment: .leading, spacing: 4) {
-                            ForEach(vm.members, id: \.uid) { member in
-                                let gear = parseGear(member.gearJson)
-                                let summary = gear.isEmpty ? "" : gear.map { "\($0.value) \(gearLabel($0.key))" }.joined(separator: " \u{00B7} ")
-                                HStack(spacing: 8) {
-                                    MeetupAvatarCircle(url: member.photoUrl, size: 24)
-                                    Text(member.displayName ?? member.username ?? String(member.uid.prefix(6)))
-                                        .font(.system(size: 12, weight: .medium))
-                                    Spacer()
-                                    if !summary.isEmpty {
-                                        Text(summary)
-                                            .font(.system(size: 12))
-                                            .foregroundColor(Cumbre.ink.opacity(0.6))
-                                    } else {
-                                        Text(NSLocalizedString("meetup_detail_no_gear", comment: ""))
-                                            .font(.system(size: 12)).italic()
-                                            .foregroundColor(Cumbre.ink.opacity(0.35))
-                                    }
-                                }
-                            }
-                            Button {
-                                showEditGear = true
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "pencil").font(.system(size: 10))
-                                    Text(NSLocalizedString("meetup_detail_edit_gear", comment: "")).font(.system(size: 12, weight: .bold))
-                                }
-                                .foregroundColor(Cumbre.terra)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 7)
-                                .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.terra, lineWidth: 1))
-                            }
-                            .padding(.top, 4)
-                        }
-                        .padding(.horizontal, 12).padding(.bottom, 8)
-                    }
-
-                    Divider()
-                }
-            }
+            GroupChatHeader(vm: vm, onBack: { dismiss() }, onOpenMeetup: { openMeetup = true })
+            GroupChatActions(vm: vm, onOpenMeetup: { openMeetup = true })
+            GroupChatGearCard(vm: vm) { showEditGear = true }
 
             if vm.loading {
                 SkeletonChat()
@@ -274,10 +212,13 @@ struct GroupChatView: View {
                                 .padding(.vertical, 6)
                             }
                             let dayStarts = chatDayStarts(vm.messages)
-                            ForEach(vm.messages, id: \.id) { m in
+                            let msgs = vm.messages
+                            let runs = chatRunPositions(msgs.map { $0.fromUid }) { i in i < msgs.count && dayStarts[msgs[i].id] != nil }
+                            ForEach(Array(msgs.enumerated()), id: \.element.id) { i, m in
                                 VStack(spacing: 8) {
                                     if let ms = dayStarts[m.id] { ChatDayDivider(millis: ms) }
-                                    GroupMessageRow(m: m, me: vm.me,
+                                    GroupMessageRow(m: m, me: vm.me, run: runs[i], photoUrl: vm.photos[m.fromUid],
+                                                    onOpenProfile: { openProfile = m.fromUid },
                                                     senderName: vm.nameFor(m.fromUid),
                                                     nameFor: { vm.nameFor($0) },
                                                     onReply: { vm.startReply(m) })
@@ -287,6 +228,7 @@ struct GroupChatView: View {
                         .padding(16)
                     }
                     .scrollDismissesKeyboard(.interactively)
+                    .overlay { if vm.messages.isEmpty { ChatEmptyState() } }
                     // Solo baja al fondo cuando llega un mensaje NUEVO (cambia el
                     // último id), no al cargar antiguos (que añaden por arriba).
                     .onChange(of: vm.messages.last?.id) { _ in scrollToLast(proxy) }
@@ -321,49 +263,10 @@ struct GroupChatView: View {
             }
         }
         .background(Cumbre.bg.ignoresSafeArea())
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                if let mid = vm.meetupId {
-                    NavigationLink(destination: MeetupDetailView(meetupId: mid)) {
-                        VStack(spacing: 0) {
-                            Text(vm.groupName).font(Cumbre.serif(15, .semibold)).foregroundStyle(Cumbre.ink)
-                                .lineLimit(1).truncationMode(.tail)
-                            Text("Ver detalles ›").font(Cumbre.mono(9)).foregroundStyle(Cumbre.terra)
-                        }
-                        .frame(maxWidth: 180)
-                    }
-                } else {
-                    VStack(spacing: 0) {
-                        Text(vm.groupName).font(Cumbre.serif(15, .semibold)).foregroundStyle(Cumbre.ink)
-                            .lineLimit(1).truncationMode(.tail)
-                        Text(L("%@ miembros", vm.memberNames.count + 1)).font(Cumbre.mono(9)).foregroundStyle(Cumbre.ink3)
-                    }
-                    .frame(maxWidth: 180)
-                }
-            }
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                if let lat = vm.schoolLat, let lon = vm.schoolLon {
-                    Button {
-                        openDirections(lat: lat, lon: lon)
-                    } label: {
-                        Image(systemName: "location.fill").foregroundStyle(Cumbre.terra)
-                    }
-                }
-                // Invitar al grupo: enlace que permite unirse sin relación de
-                // follows (los "no mixto" siguen exigiendo género). Espejo Android.
-                if let invite = vm.inviteText {
-                    ShareLink(item: invite) {
-                        Image(systemName: "person.badge.plus").foregroundStyle(Cumbre.terra)
-                    }
-                }
-                Button {
-                    vm.toggleMute()
-                } label: {
-                    Image(systemName: vm.muted ? "bell.slash" : "bell")
-                        .foregroundStyle(vm.muted ? Cumbre.ink3 : Cumbre.terra)
-                }
-            }
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(isPresented: $openMeetup) { if let mid = vm.meetupId { MeetupDetailView(meetupId: mid) } }
+        .navigationDestination(isPresented: Binding(get: { openProfile != nil }, set: { if !$0 { openProfile = nil } })) {
+            if let uid = openProfile { PublicProfileView(uid: uid) }
         }
         .onAppear { vm.start() }
         .onDisappear { vm.stop() }
@@ -390,19 +293,7 @@ struct GroupChatView: View {
     }
 
     private var inputBar: some View {
-        HStack(spacing: 8) {
-            TextField("Mensaje…", text: $vm.draft, axis: .vertical)
-                .lineLimit(1...4).font(.system(size: 15))
-                .focused($inputFocused)
-                .chatInputField()
-            Button { vm.send() } label: {
-                Image(systemName: "arrow.up.circle.fill").font(.system(size: 30)).foregroundStyle(Cumbre.terra)
-            }
-            .disabled(vm.draft.trimmingCharacters(in: .whitespaces).isEmpty)
-        }
-        .padding(12)
-        .background(Cumbre.bg)
-        .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .top)
+        ChatInputPill(text: $vm.draft, focused: $inputFocused) { vm.send() }
     }
 }
 
@@ -411,6 +302,9 @@ struct GroupChatView: View {
 private struct GroupMessageRow: View {
     let m: ChatServiceChatMessage
     let me: String
+    let run: ChatRunPos
+    let photoUrl: String?
+    let onOpenProfile: () -> Void
     let senderName: String
     let nameFor: (String) -> String
     let onReply: () -> Void
@@ -425,10 +319,12 @@ private struct GroupMessageRow: View {
             Image(systemName: "arrowshape.turn.up.left.fill")
                 .font(.system(size: 14)).foregroundStyle(Cumbre.terra)
                 .opacity(Double(min(dragX / 56, 1))).padding(.leading, 8)
-            HStack {
-                if mine { Spacer(minLength: 40) }
+            HStack(alignment: .bottom, spacing: 6) {
+                if mine { Spacer(minLength: 40) } else {
+                    ChatSenderAvatarSlot(show: run.last, photoUrl: photoUrl, uid: m.fromUid, onTap: onOpenProfile)
+                }
                 VStack(alignment: mine ? .trailing : .leading, spacing: 2) {
-                    if !mine && !senderName.isEmpty {
+                    if !mine && !senderName.isEmpty && run.first {
                         Text(senderName).font(Cumbre.mono(9, .bold)).foregroundStyle(Cumbre.terra)
                     }
                     if let rid = m.replyToId, let rtext = m.replyText, !rid.isEmpty {
@@ -476,118 +372,3 @@ private struct GroupMessageRow: View {
     }
 }
 
-// MARK: - Crear grupo (elegir miembros + nombre)
-
-@MainActor
-final class NewGroupVM: ObservableObject {
-    @Published var contacts: [PublicProfile] = []
-    @Published var selected: Set<String> = []
-    @Published var name = ""
-    @Published var creating = false
-
-    private let chatPush = AppDependencies.shared.container.chatPushApi
-
-    func load() {
-        guard contacts.isEmpty else { return }
-        Task { [weak self] in
-            guard let self else { return }
-            let c = AppDependencies.shared.container
-            let me = AppDependencies.shared.authBridge.currentUid() ?? ""
-            let followers = (try? await c.getFollowers.invoke(uid: me)) ?? []
-            let following = (try? await c.getFollowing.invoke(uid: me)) ?? []
-            var seen = Set<String>()
-            self.contacts = (followers + following)
-                .filter { seen.insert($0.uid).inserted }
-                .sorted { ($0.displayName ?? $0.username ?? "") < ($1.displayName ?? $1.username ?? "") }
-        }
-    }
-
-    func toggle(_ uid: String) {
-        if selected.contains(uid) { selected.remove(uid) } else { selected.insert(uid) }
-    }
-
-    func create(onCreated: @escaping (String, String) -> Void) {
-        let n = name.trimmingCharacters(in: .whitespaces)
-        guard !n.isEmpty, !selected.isEmpty, !creating else { return }
-        creating = true
-        Task { [weak self] in
-            guard let self else { return }
-            let convId = try? await self.chatPush.createGroup(name: n, memberUids: Array(self.selected))
-            self.creating = false
-            if let convId { onCreated(convId, n) }
-        }
-    }
-}
-
-struct NewGroupView: View {
-    let onCreated: (String, String) -> Void
-    @StateObject private var vm = NewGroupVM()
-    @Environment(\.dismiss) private var dismiss
-    @State private var query = ""
-
-    // Contactos visibles según la búsqueda (sobre @usuario y nombre).
-    private var shownContacts: [PublicProfile] {
-        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
-        guard !q.isEmpty else { return vm.contacts }
-        return vm.contacts.filter {
-            ($0.username ?? "").lowercased().contains(q) ||
-            ($0.displayName ?? "").lowercased().contains(q)
-        }
-    }
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                TextField("Nombre del grupo", text: $vm.name)
-                    .padding(10).overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                    .padding(16)
-                Text(L("ELIGE MIEMBROS (%@)", vm.selected.count))
-                    .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
-                    .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 16)
-                if vm.contacts.isEmpty {
-                    Spacer()
-                    Text("Sigue a alguien (o que te sigan) para añadir miembros.")
-                        .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
-                        .multilineTextAlignment(.center).padding(32)
-                    Spacer()
-                } else {
-                    List(shownContacts, id: \.uid) { p in
-                        Button { vm.toggle(p.uid) } label: {
-                            HStack(spacing: 12) {
-                                AvatarCircle(url: p.photoUrl, size: 40, uid: p.uid)
-                                Text(p.displayName ?? p.username ?? L("Usuario"))
-                                    .font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
-                                Spacer()
-                                if vm.selected.contains(p.uid) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(Cumbre.terra)
-                                }
-                            }
-                        }.buttonStyle(.plain)
-                    }
-                    .listStyle(.plain)
-                    .searchable(text: $query, prompt: L("Buscar contacto"))
-                }
-                Button { vm.create(onCreated: onCreated) } label: {
-                    Group {
-                        if vm.creating { ProgressView().tint(.white) }
-                        else { Text("CREAR GRUPO").font(Cumbre.mono(13, .bold)).foregroundStyle(.white) }
-                    }
-                    .frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(canCreate ? Cumbre.terra : Cumbre.ink3)
-                }
-                .disabled(!canCreate)
-                .padding(16)
-            }
-            .background(Cumbre.bg.ignoresSafeArea())
-            .navigationTitle(NSLocalizedString("chat_new_group", comment: ""))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarLeading) { Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra) } }
-            .onAppear { vm.load() }
-        }
-    }
-
-    private var canCreate: Bool {
-        !vm.name.trimmingCharacters(in: .whitespaces).isEmpty && !vm.selected.isEmpty && !vm.creating
-    }
-}

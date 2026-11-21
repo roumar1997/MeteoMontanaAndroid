@@ -165,16 +165,34 @@ struct PublicProfileView: View {
                 if vm.adminAssistant != nil {
                     HStack { adminButton; Spacer() }.padding(.bottom, -4)
                 }
-                // Avatar ampliable con zoom al tocarlo (si tiene foto).
-                AvatarCircle(url: vm.profile?.photoUrl, size: 76, uid: vm.profile?.uid)
-                    .onTapGesture { if vm.profile?.photoUrl != nil { zoomPhoto = true } }
-                HStack(spacing: 6) {
-                    Text(vm.profile?.displayName ?? vm.profile?.username ?? L("Usuario"))
-                        .font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
-                    VerifiedCheck(uid: vm.profile?.uid, size: 18)
-                }
-                if let u = vm.profile?.username, !u.isEmpty {
-                    Text("@\(u)").font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink3)
+                // Cabecera compacta (como el perfil propio): avatar desplazado a la derecha (efectos de título) y, a su
+                // lado, nombre en dos líneas, @usuario y seguidos · seguidores.
+                HStack(spacing: 12) {
+                    AvatarCircle(url: vm.profile?.photoUrl, size: 76, uid: vm.profile?.uid)
+                        .onTapGesture { if vm.profile?.photoUrl != nil { zoomPhoto = true } }
+                        .padding(.leading, 22)
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 5) {
+                            Text(vm.profile?.displayName ?? vm.profile?.username ?? L("Usuario"))
+                                .font(Cumbre.serif(23, .bold)).foregroundStyle(Cumbre.ink).lineLimit(2)
+                            VerifiedCheck(uid: vm.profile?.uid, size: 18)
+                        }
+                        if let u = vm.profile?.username, !u.isEmpty {
+                            Text("@\(u)").font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink2).lineLimit(1)
+                        }
+                        if let s = vm.status, vm.profile?.locked != true {
+                            HStack(spacing: 10) {
+                                NavigationLink(destination: FollowListView(uid: realUid, mode: .following)) {
+                                    inlineCount(s.following, L("profile_following").lowercased())
+                                }.buttonStyle(.plain)
+                                NavigationLink(destination: FollowListView(uid: realUid, mode: .followers)) {
+                                    inlineCount(s.followers, L("profile_followers").lowercased())
+                                }.buttonStyle(.plain)
+                            }
+                            .padding(.top, 2)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 // Título, insignias y viero/bloquero de esta persona.
                 if let profileUid = vm.profile?.uid { RewardsBlock(uid: profileUid) }
@@ -191,58 +209,16 @@ struct PublicProfileView: View {
                     }.padding(.vertical, 8)
                     if let s = vm.status { followButton(s) }
                 } else {
-                    if let bio = vm.profile?.bio, !bio.isEmpty {
-                        Text(bio).font(.system(size: 15)).foregroundStyle(Cumbre.ink2)
-                            .multilineTextAlignment(.center).padding(.horizontal, 24)
-                    }
-                    // El grado tope ya NO es manual: se ve automático (MÁX BLOQUE /
-                    // MÁX VÍA del diario) en la sección DIARIO de abajo.
-                    if let s = vm.status {
-                        HStack(spacing: 20) {
-                            NavigationLink(destination: FollowListView(uid: realUid, mode: .followers)) {
-                                stat("\(s.followers)", L("SEGUIDORES"))
-                            }.buttonStyle(.plain)
-                            NavigationLink(destination: FollowListView(uid: realUid, mode: .following)) {
-                                stat("\(s.following)", L("SIGUIENDO"))
-                            }.buttonStyle(.plain)
-                            // «Te sigue»: una etiqueta clara, no un texto suelto.
-                            if s.theyFollowMe {
-                                Label(L("TE SIGUE"), systemImage: "person.fill.checkmark")
-                                    .font(Cumbre.mono(9.5, .bold)).foregroundStyle(Cumbre.ok)
-                                    .padding(.horizontal, 9).padding(.vertical, 5)
-                                    .background(Cumbre.ok.opacity(0.10), in: Capsule())
-                                    .overlay(Capsule().stroke(Cumbre.ok.opacity(0.5), lineWidth: 1))
-                            }
-                        }
-                        // Seguir y mensaje, uno al lado del otro (antes, dos botones grandes apilados).
-                        HStack(spacing: 10) {
-                            followButton(s)
-                            NavigationLink(destination: ChatView(
-                                otherUid: realUid,
-                                otherName: vm.profile?.displayName ?? vm.profile?.username ?? L("Usuario"))) {
-                                Label(NSLocalizedString("chat_message", comment: ""), systemImage: "bubble.left.fill")
-                                    .font(Cumbre.mono(11.5, .bold)).foregroundStyle(Cumbre.terra)
-                                    .frame(maxWidth: .infinity).padding(.vertical, 11)
-                                    .background(Cumbre.terra.opacity(0.08), in: Capsule())
-                                    .overlay(Capsule().stroke(Cumbre.terra, lineWidth: 1))
-                            }.buttonStyle(.plain)
-                        }
-                    }
-                    // Diario del usuario: BLOQUES / ESCUELAS / MÁXIMO navegables
-                    // (igual que tu cuenta). Solo si su perfil es visible.
-                    if let st = vm.stats {
-                        // H: incluye las celdas ESTADÍSTICAS y PUBLICACIONES
-                        // (pulsables, como el resto del perfil).
-                        JournalStatsNav(stats: st, entries: vm.entries, viaInfo: vm.viaInfo,
-                                        projectsUid: realUid, showStatsAndPosts: true)
-                    }
-                    // H: las publicaciones ya NO van inline — se abren desde
-                    // la celda PUBLICACIONES (igual que en el perfil propio).
+                    PublicProfileBody(realUid: realUid, status: vm.status, stats: vm.stats, entries: vm.entries,
+                                      viaInfo: vm.viaInfo,
+                                      displayName: vm.profile?.displayName ?? vm.profile?.username ?? L("Usuario"),
+                                      onToggleFollow: { vm.toggleFollow(uid: realUid) })
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.top, 8).padding(.horizontal, 20)
+            .padding(.top, 8).padding(.horizontal, 16).padding(.bottom, 24)
         }
+        .refreshable { await vm.load(uid: uid) }
         .background(Cumbre.bg.ignoresSafeArea())
         .navigationTitle("Perfil")
         .navigationBarTitleDisplayMode(.inline)
@@ -252,6 +228,13 @@ struct PublicProfileView: View {
             }
         }
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink(destination: ChatView(otherUid: realUid,
+                                                     otherName: vm.profile?.displayName ?? vm.profile?.username ?? L("Usuario"))) {
+                    Image(systemName: "bubble.left").foregroundStyle(Cumbre.terra)
+                }
+                .accessibilityLabel(NSLocalizedString("chat_message", comment: ""))
+            }
             // Compartir el perfil: imagen 1080×1920 (formato historia) →
             // Instagram Stories, WhatsApp... + enlace /s/u/ (paridad Android).
             ToolbarItem(placement: .topBarTrailing) {
@@ -272,7 +255,7 @@ struct PublicProfileView: View {
                             schools: st.map { Int($0.schoolCount) })
                     }
                 } label: {
-                    Image(systemName: "square.and.arrow.up").foregroundStyle(Cumbre.ink2)
+                    Image(systemName: "square.and.arrow.up").foregroundStyle(Cumbre.terra)
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
@@ -290,7 +273,7 @@ struct PublicProfileView: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "ellipsis").foregroundStyle(Cumbre.ink2)
+                    Image(systemName: "ellipsis").foregroundStyle(Cumbre.terra)
                 }
             }
         }
@@ -408,6 +391,13 @@ struct PublicProfileView: View {
         VStack(spacing: 2) {
             Text(value).font(Cumbre.serif(20, .bold)).foregroundStyle(Cumbre.ink)
             Text(label).font(Cumbre.mono(9, .bold)).tracking(0.8).foregroundStyle(Cumbre.ink3)
+        }
+    }
+
+    private func inlineCount(_ value: Int64, _ label: String) -> some View {
+        HStack(spacing: 4) {
+            Text("\(value)").font(.system(size: 13, weight: .bold)).foregroundStyle(Cumbre.ink)
+            Text(label).font(.system(size: 13)).foregroundStyle(Cumbre.ink2).lineLimit(1)
         }
     }
 

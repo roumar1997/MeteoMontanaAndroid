@@ -180,7 +180,7 @@ struct MeetupDetailsStep: View {
     }
 }
 
-func gearLabel(_ item: String) -> String {
+func gearItemLabel(_ item: String) -> String {
     switch item {
     case "ROPE": return L("gear_rope")
     case "GRIGRI": return L("gear_grigri")
@@ -260,7 +260,7 @@ struct MeetupFinalStep: View {
     private func gearTile(_ item: String) -> some View {
         let qty = draft.gear[item].map { Int(truncating: $0) }
         return VStack(alignment: .leading, spacing: 4) {
-            Text(gearLabel(item)).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
+            Text(gearItemLabel(item)).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink)
             if let qty, MeetupGearItem.shared.hasQuantity(item: item) {
                 HStack(spacing: 10) {
                     StepperButton(symbol: "−", action: qty > 1 ? { draft = draft.withGearQty(item: item, qty: Int32(qty - 1)) } : nil,

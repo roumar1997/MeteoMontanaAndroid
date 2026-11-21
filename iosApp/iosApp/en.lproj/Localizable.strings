@@ -2456,3 +2456,6 @@
 
 /* Rocodromos rondas 2-11c (sincronizado de Android) */
 "gear_quickdraws" = "Quickdraws";
+
+/* Rocodromos rondas 2-11c (sincronizado de Android) */
+"w_all" = "All";

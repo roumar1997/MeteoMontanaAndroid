@@ -14,6 +14,7 @@ final class SchoolChatViewModel: ObservableObject {
     @Published var presentList: [SchoolPresence] = []
     @Published var text = ""
     @Published var sending = false
+    @Published var photos: [String: String] = [:]
 
     var presentNow: Set<String> { Set(presentList.map { $0.uid }) }
 
@@ -55,6 +56,7 @@ final class SchoolChatViewModel: ObservableObject {
         for uid in Set(uids) where uid != me && memberNames[uid] == nil {
             if let p = try? await getProfile.invoke(uid: uid) {
                 memberNames[uid] = p.username ?? p.displayName ?? String(uid.prefix(6))
+                if let url = p.photoUrl { photos[uid] = url }
             }
         }
     }
@@ -91,6 +93,7 @@ struct SchoolChatView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showAllPresent = false
     @State private var openChatFor: SchoolChatTarget?
+    @State private var openProfile: String?
 
     init(schoolId: String, schoolName: String) {
         self.schoolId = schoolId
@@ -105,12 +108,21 @@ struct SchoolChatView: View {
             header
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 10) {
-                        ForEach(vm.messages, id: \.id) { m in
-                            bubble(m)
+                    let msgs = vm.messages
+                    let dayStarts = chatDayStartIds(msgs.map { ($0.id, $0.createdAtMillis?.int64Value) })
+                    let runs = chatRunPositions(msgs.map { $0.fromUid }) { i in i < msgs.count && dayStarts[msgs[i].id] != nil }
+                    LazyVStack(spacing: 4) {
+                        ForEach(Array(msgs.enumerated()), id: \.element.id) { i, m in
+                            if let day = dayStarts[m.id] { ChatDayDivider(millis: day) }
+                            OpenChatBubble(text: m.text, millis: m.createdAtMillis?.int64Value, mine: m.fromUid == vm.me,
+                                           name: vm.nameFor(m.fromUid), present: vm.presentNow.contains(m.fromUid), run: runs[i],
+                                           photoUrl: vm.photos[m.fromUid], uid: m.fromUid,
+                                           onOpenProfile: { openProfile = m.fromUid },
+                                           onTap: { openChatFor = SchoolChatTarget(uid: m.fromUid, name: vm.nameFor(m.fromUid)) })
+                            .id(m.id)
                         }
                     }
-                    .padding(14)
+                    .padding(16)
                 }
                 .onChange(of: vm.messages.count) { _ in
                     if let last = vm.messages.last?.id {
@@ -123,7 +135,7 @@ struct SchoolChatView: View {
             if notMarkedHere { markBar } else { inputBar }
         }
         .overlay {
-            if notMarkedHere && vm.messages.isEmpty { markNotice }
+            if notMarkedHere && vm.messages.isEmpty { markNotice } else if vm.messages.isEmpty { ChatEmptyState() }
         }
         .contentShape(Rectangle())
         .background(Cumbre.bg.ignoresSafeArea())
@@ -134,6 +146,9 @@ struct SchoolChatView: View {
         .sheet(isPresented: $showAllPresent) { allPresentSheet }
         .navigationDestination(item: $openChatFor) { target in
             ChatView(otherUid: target.uid, otherName: target.name)
+        }
+        .navigationDestination(isPresented: Binding(get: { openProfile != nil }, set: { if !$0 { openProfile = nil } })) {
+            if let uid = openProfile { PublicProfileView(uid: uid) }
         }
     }
 
@@ -154,46 +169,26 @@ struct SchoolChatView: View {
     }
 
     private var markBar: some View {
-        PresenceMarkButton(vm: presence, visibleWhenHere: false, big: true)
-            .padding(.horizontal, 14).padding(.vertical, 10)
-            .frame(maxWidth: .infinity)
-            .background(Cumbre.bg)
-            .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .top)
+        ChatLockedBar { PresenceMarkButton(vm: presence, visibleWhenHere: false) }
     }
 
+    /// Cabecera única de los chats (ChatTopBar): inicial de la escuela, «N aquí ahora» (toca para ver quién) o el aviso
+    /// de que se borra solo, y «Aquí» a la derecha.
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 10) {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left").font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Cumbre.ink)
-                }
-                Text(schoolName)
-                    .font(.system(size: 17, weight: .bold, design: .serif))
-                    .foregroundStyle(Cumbre.ink)
-                Spacer()
-                PresenceMarkButton(vm: presence, visibleWhenHere: true)
-            }
-            Text("se borra solo pasados unos días")
-                .font(.system(size: 9, design: .monospaced))
-                .foregroundStyle(Cumbre.ink3)
-            if !vm.presentList.isEmpty && !notMarkedHere {
-                Button { showAllPresent = true } label: {
-                    HStack(spacing: 6) {
-                        Circle().fill(Cumbre.terraFill).frame(width: 7, height: 7)
-                        Text(L("%@ aquí ahora", vm.presentList.count))
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                            .foregroundStyle(Cumbre.terra)
-                        Text("· ver todos")
-                            .font(.system(size: 10.5, design: .monospaced))
-                            .foregroundStyle(Cumbre.ink2)
-                    }
-                }
-            }
-        }
-        .padding(.horizontal, 16).padding(.vertical, 10)
-        .background(Cumbre.bg)
-        .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .bottom)
+        ChatTopBar(title: schoolName, onBack: { dismiss() },
+                   onTitleClick: vm.presentList.isEmpty ? nil : { showAllPresent = true },
+                   avatar: { ChatInitialAvatar(name: schoolName, color: Cumbre.terraFill) },
+                   subtitle: {
+                       HStack(spacing: 5) {
+                           if !vm.presentList.isEmpty && !notMarkedHere {
+                               Circle().fill(Cumbre.ok).frame(width: 7, height: 7)
+                               ChatSubtitle(text: L("%@ aquí ahora", vm.presentList.count))
+                           } else {
+                               ChatSubtitle(text: L("school_chat_screen_v2_se_borra_solo_pasados_unos"))
+                           }
+                       }
+                   },
+                   actions: { PresenceMarkButton(vm: presence, visibleWhenHere: true).padding(.trailing, 6) })
     }
 
     private var allPresentSheet: some View {
@@ -228,66 +223,7 @@ struct SchoolChatView: View {
         .presentationDetents([.medium, .large])
     }
 
-    private func bubble(_ m: SchoolChatServiceMessage) -> some View {
-        let mine = m.fromUid == vm.me
-        let content = VStack(alignment: mine ? .trailing : .leading, spacing: 3) {
-            if !mine {
-                HStack(spacing: 6) {
-                    Text(vm.nameFor(m.fromUid))
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .foregroundStyle(Cumbre.terra)
-                    if vm.presentNow.contains(m.fromUid) {
-                        Text("AQUÍ AHORA")
-                            .font(.system(size: 8, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(Cumbre.terraFill)
-                            .clipShape(Capsule())
-                    }
-                }
-                .padding(.horizontal, 2)
-            }
-            Text(m.text)
-                .font(.system(size: 13.5))
-                .foregroundStyle(mine ? .white : Cumbre.ink)
-                .padding(.horizontal, 10).padding(.vertical, 8)
-                .background(mine ? Cumbre.terra : Cumbre.paper)
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(mine ? Color.clear : Cumbre.rule, lineWidth: 1))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-        }
-        .frame(maxWidth: 260, alignment: mine ? .trailing : .leading)
-        .frame(maxWidth: .infinity, alignment: mine ? .trailing : .leading)
-        .id(m.id)
-
-        // Mensaje de alguien que sigue presente: tocarlo abre chat 1-a-1
-        // (la cabecera lo anuncia). El resto de mensajes no son pulsables.
-        if !mine && vm.presentNow.contains(m.fromUid) {
-            return AnyView(Button {
-                openChatFor = SchoolChatTarget(uid: m.fromUid, name: vm.nameFor(m.fromUid))
-            } label: { content }.buttonStyle(.plain))
-        }
-        return AnyView(content)
-    }
-
     private var inputBar: some View {
-        HStack(spacing: 8) {
-            TextField("Escribe algo...", text: $vm.text)
-                .font(.system(size: 13))
-                .padding(.horizontal, 12).padding(.vertical, 9)
-                .background(Cumbre.paper)
-                .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
-                .clipShape(Capsule())
-            Button {
-                vm.send()
-            } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 28))
-                    .foregroundStyle(vm.text.trimmingCharacters(in: .whitespaces).isEmpty ? Cumbre.ink3 : Cumbre.terra)
-            }
-            .disabled(vm.text.trimmingCharacters(in: .whitespaces).isEmpty || vm.sending)
-        }
-        .padding(.horizontal, 14).padding(.vertical, 10)
-        .background(Cumbre.bg)
-        .overlay(Rectangle().frame(height: 1).foregroundStyle(Cumbre.rule), alignment: .top)
+        ChatInputPill(text: $vm.text, enabled: !vm.sending, placeholder: L("school_chat_screen_v2_escribe_algo")) { vm.send() }
     }
 }

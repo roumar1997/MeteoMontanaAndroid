@@ -44,7 +44,7 @@ struct StatsHubView: View {
                     .padding(.horizontal, 16).padding(.vertical, 4)
             }
             if !flags.flags.isGymsEnabled || tab == 1 {
-                StatsView()
+                StatsView(uid: uid)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {

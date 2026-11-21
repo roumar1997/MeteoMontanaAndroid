@@ -123,27 +123,19 @@ struct GymFilterRow: View {
 /// valores), MODALIDAD, MOSTRAR (gratis, de calle, abierto ahora, cerrados) y CADENA. El orden es por cercanía.
 struct GymFiltersPanel: View {
     @ObservedObject var vm: GymsViewModel
+    /// Pliega el panel (al elegir distancia o con «Ver N rocódromos»).
+    var onClose: () -> Void = {}
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            section(L("DISTANCIA")) {
-                chipRow(SchoolListViewModel.distanceOptions, id: { $0.map { String(Int($0)) } ?? "all" },
-                        isSel: { $0 == vm.filter.maxDistanceKm },
-                        label: { $0 == nil ? NSLocalizedString("schools_filter_all", comment: "") : "\(Int($0!)) km" },
-                        onPick: { vm.filter.maxDistanceKm = $0 })
-            }
-            section(L("gym_section_discipline").uppercased()) { toggleRow([.boulder, .rope]) }
-            section(L("gym_filter_show").uppercased()) { toggleRow([.free, .street, .openNow, .closed]) }
-            if !vm.chains.isEmpty {
-                section(L("gym_filter_chain").uppercased()) {
-                    chipRow([String?.none] + vm.chains.map { Optional($0) }, id: { $0 ?? "all" },
-                            isSel: { ($0 ?? "").lowercased() == (vm.filter.chain ?? "").lowercased() },
-                            label: { $0 ?? L("gym_filter_chain_all") },
-                            onPick: { vm.filter.chain = $0 })
-                }
-            }
+        VStack(alignment: .leading, spacing: 8) {
+            chipRow(SchoolListViewModel.distanceOptions, id: { $0.map { String(Int($0)) } ?? "all" },
+                    isSel: { $0 == vm.filter.maxDistanceKm },
+                    label: { $0 == nil ? L("w_all") : "(Int($0!)) km" },
+                    onPick: { vm.filter.maxDistanceKm = $0; onClose() })
+            toggleRow([.boulder, .rope, .free, .street, .openNow, .closed])
+            GymActionPill(text: LP("gym_see_results", vm.items.count), primary: true, action: onClose).padding(.horizontal, 12)
         }
-        .padding(.vertical, 8)
+        .padding(.bottom, 4)
     }
 
     /// Una fila de chips de dos estados: cada uno enciende o apaga su campo de `GymFilterState`.

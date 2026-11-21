@@ -26,7 +26,7 @@ struct GymsMapView: View {
     @State private var focusCoordinate: CLLocationCoordinate2D?
     @State private var focusZoom = 13.5
 
-    private var mapHeight: CGFloat { max(380, UIScreen.main.bounds.height * 0.6) }
+    private var mapHeight: CGFloat { 320 }
     private var gyms: [Gym] { vm.items.map { $0.gym } }
     private var ids: [Int64] { vm.items.map { $0.gym.id } }
 
@@ -81,7 +81,8 @@ struct GymsMapView: View {
         return out
     }
 
-    private var clusters: [GymMapItem] { vm.cluster(gyms, zoom: zoom) }
+    /// Sin agrupar (2026-11-19): cada rocódromo su marcador (shared: `GymClusterer.singles`).
+    private var clusters: [GymMapItem] { GymClusterer.shared.singles(gyms: gyms) }
 
     /// Ids de los marcadores sueltos que enseñan nombre: solo con zoom cercano y sin pisarse (`GymLabelPlanner`).
     /// Las posiciones en pantalla salen de proyectar a Mercator con el zoom actual (MapLibre: mundo de 512 pt a zoom 0);
