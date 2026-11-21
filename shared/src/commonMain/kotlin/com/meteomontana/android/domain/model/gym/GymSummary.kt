@@ -18,7 +18,9 @@ data class GymSummary(
     /** Su rocódromo habitual («Tu rocódromo»), si lo ha elegido. */
     val homeGym: HomeGym? = null,
     /** Orden de las categorias de sus Ascensiones («BOARDS,BLOCKS,ROUTES»); null si no lo cambio (vale [AscentTabOrder.default]). */
-    val ascentOrder: String? = null
+    val ascentOrder: String? = null,
+    /** Orden de sus rocodromos (ids «5,3,9»); null si no lo cambio (vale [GymOrder]: favoritos y luego por ascensiones). */
+    val gymOrder: String? = null
 ) {
     val isEmpty: Boolean get() = sessions == 0
 }
@@ -36,8 +38,8 @@ data class GymSummaryGym(
     val days: List<GymSummaryDay> = emptyList()
 )
 
-/** Un dia en un rocodromo: «2026-11-18» y cuantas ascensiones. */
-data class GymSummaryDay(val date: String, val ascents: Int)
+/** Un dia en un rocodromo: «2026-11-18», cuantas ascensiones y cuales ([items]; vacio si el servidor es antiguo). */
+data class GymSummaryDay(val date: String, val ascents: Int, val items: List<GymAscent> = emptyList())
 
 @Serializable
 data class GymSummaryMonth(val month: String, val ascents: Int)
@@ -63,7 +65,7 @@ object GymBreakdown {
             row[0]++
             row[1] += s.totalAscents
             total += s.totalAscents
-            daysByGym.getOrPut(s.gymId) { mutableListOf() }.add(GymSummaryDay(s.date.toString(), s.totalAscents))
+            daysByGym.getOrPut(s.gymId) { mutableListOf() }.add(GymSummaryDay(s.date.toString(), s.totalAscents, s.ascents.map { GymAscent(it.key, it.count) }))
             val monthKey = monthKey(s.date)
             byMonth[monthKey] = (byMonth[monthKey] ?: 0) + s.totalAscents
             for (a in s.ascents) {

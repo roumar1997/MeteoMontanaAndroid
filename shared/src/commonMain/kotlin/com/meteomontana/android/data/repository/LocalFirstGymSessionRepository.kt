@@ -128,6 +128,10 @@ class LocalFirstGymSessionRepository(
 
     override suspend fun setAscentOrder(order: String): String? = api.putAscentOrder(order).order?.takeIf { it.isNotBlank() }
 
+    override suspend fun myGymOrder(): String? = api.gymOrder().order?.takeIf { it.isNotBlank() }
+
+    override suspend fun setGymOrder(order: String): String? = api.putGymOrder(order).order?.takeIf { it.isNotBlank() }
+
     override suspend fun ascentStats(uid: String, period: GymTrainingPeriod, date: LocalDate, gymId: Long?): GymAscentStats =
         try {
             api.ascentStats(uid, period.name, date.toString(), gymId).toDomainOrNull()

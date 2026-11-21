@@ -186,7 +186,7 @@
     <string name="chat_title">Messages</string>
     <string name="chat_write">Write a message</string>
     <string name="profile_add_workout_short">Workout</string>
-    <string name="gym_asc_order_title">Reorder categories</string>
+    <string name="gym_asc_order_title">Reorder</string>
     <string name="gym_asc_order_hint">Choose what comes first in your ascents. Others will see them in this order.</string>
     <string name="gym_asc_order_cd">Reorder categories</string>
     <string name="gym_asc_see_all">See ascents</string>
@@ -2335,6 +2335,13 @@
     <string name="meetup_rope_route_label">Rope team route</string>
     <string name="meetup_list_material">Gear</string>
     <string name="meetup_list_gear_missing">Missing %1$s</string>
+    <string name="gym_order_cats">Categories</string>
+    <string name="gym_order_gyms">Gyms</string>
+    <string name="gym_order_gyms_hint">Favorites come first until you reorder them by hand.</string>
+    <string name="gym_grade_all">All</string>
+    <string name="gym_entry_before">Earlier</string>
+    <string name="gym_entry_block">Boulder</string>
+    <string name="gym_board_toggle_cd">Collapse or expand the board</string>
     <string name="gym_asc_order_btn">Reorder</string>
     <string name="gym_asc_order_up">Up</string>
     <string name="gym_asc_order_down">Down</string>

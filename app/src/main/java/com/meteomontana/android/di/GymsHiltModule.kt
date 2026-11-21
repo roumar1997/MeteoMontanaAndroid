@@ -43,4 +43,5 @@ object GymsHiltModule {
     @Provides fun provideGetGymSummary(m: GymsModule) = m.getGymSummary
     @Provides fun provideHomeGym(m: GymsModule) = m.homeGym
     @Provides fun provideAscentOrder(m: GymsModule) = m.ascentOrder
+    @Provides fun provideGymOrder(m: GymsModule) = m.gymOrder
 }

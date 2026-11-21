@@ -75,6 +75,15 @@ class AscentOrderUseCase(private val repo: GymSessionRepository) {
     suspend fun set(order: String): String? = repo.setAscentOrder(order)
 }
 
+/** Orden de mis rocodromos: leerlo y guardarlo en el servidor para que los demas lo vean. */
+class GymOrderUseCase(private val repo: GymSessionRepository) {
+    @Throws(Exception::class)
+    suspend fun mine(): String? = repo.myGymOrder()
+
+    @Throws(Exception::class)
+    suspend fun set(order: String): String? = repo.setGymOrder(order)
+}
+
 /** Resumen de TODO el historial de rocódromo (perfil propio y ajeno): primero el del móvil y luego el del servidor. */
 class GetGymSummaryUseCase(private val repo: GymSessionRepository) {
     /** Calculado con las sesiones del móvil (sin red); [name] da el nombre de cada rocódromo. */

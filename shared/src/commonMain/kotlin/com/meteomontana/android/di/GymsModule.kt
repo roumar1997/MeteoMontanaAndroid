@@ -73,6 +73,7 @@ class GymsModule(httpClient: HttpClient, store: KeyValueStore? = null) {
     val getGymSummary = com.meteomontana.android.domain.usecase.gym.GetGymSummaryUseCase(sessions)
     val homeGym = com.meteomontana.android.domain.usecase.gym.HomeGymUseCase(sessions)
     val ascentOrder = com.meteomontana.android.domain.usecase.gym.AscentOrderUseCase(sessions)
+    val gymOrder = com.meteomontana.android.domain.usecase.gym.GymOrderUseCase(sessions)
 
     // Admin (solo iOS)
     val listPendingGymReports = ListPendingGymReportsUseCase(admin)

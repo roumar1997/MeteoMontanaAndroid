@@ -82,6 +82,12 @@ interface GymSessionRepository {
     /** Guarda mi orden de categorias de Ascensiones en el servidor. Lanza si no hay red: quien llama conserva la cache local. */
     suspend fun setAscentOrder(order: String): String?
 
+    /** Mi orden de rocodromos segun el servidor (ids «5,3,9»); null si no lo ha elegido. Lanza si no hay red. */
+    suspend fun myGymOrder(): String?
+
+    /** Guarda mi orden de rocodromos en el servidor. Lanza si no hay red: quien llama conserva la cache local. */
+    suspend fun setGymOrder(order: String): String?
+
     /** Ascensiones de un periodo: las del servidor y, si no hay red o ruta, las calculadas con las sesiones del movil. */
     suspend fun ascentStats(uid: String, period: GymTrainingPeriod, date: kotlinx.datetime.LocalDate, gymId: Long?): GymAscentStats
 }

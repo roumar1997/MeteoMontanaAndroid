@@ -89,7 +89,9 @@ data class GymSummaryDto(
     val byMonth: List<GymSummaryMonth> = emptyList(),
     val homeGym: HomeGymDto? = null,
     /** Orden de las categorias de Ascensiones que eligio («BOARDS,BLOCKS,ROUTES»); null = el de siempre. */
-    val ascentOrder: String? = null
+    val ascentOrder: String? = null,
+    /** Orden de sus rocodromos (ids «5,3,9»); null = el de siempre. */
+    val gymOrder: String? = null
 )
 
 @Serializable
@@ -106,6 +108,10 @@ data class HomeGymResponseDto(val homeGym: HomeGymDto? = null)
 @Serializable
 data class AscentOrderDto(val order: String? = null)
 
+/** PUT/GET me/gym-order: {order} con ids de rocodromo («5,3,9»); null en la respuesta = no ha elegido. */
+@Serializable
+data class GymOrderDto(val order: String? = null)
+
 fun HomeGymDto.toDomain() = com.meteomontana.android.domain.model.gym.HomeGym(id, name, city?.takeIf { it.isNotBlank() })
 
 @Serializable
@@ -115,7 +121,7 @@ data class GymSummaryGymDto(
 )
 
 @Serializable
-data class GymSummaryDayDto(val date: String = "", val ascents: Int = 0)
+data class GymSummaryDayDto(val date: String = "", val ascents: Int = 0, val items: List<GymAscentDto> = emptyList())
 
 fun GymSummaryDto.toDomain() = GymSummary(
     sessions, gyms, ascents, maxGrade?.takeIf { it.isNotBlank() },
@@ -123,10 +129,11 @@ fun GymSummaryDto.toDomain() = GymSummary(
         GymSummaryGym(
             g.gymId, g.name, g.sessions, g.ascents, g.maxGrade?.takeIf { m -> m.isNotBlank() },
             g.items.filter { it.key.isNotBlank() && it.count > 0 }.map { GymAscent(it.key, it.count) },
-            g.days.filter { it.date.isNotBlank() }.map { GymSummaryDay(it.date, it.ascents) }
+            g.days.filter { it.date.isNotBlank() }.map { GymSummaryDay(it.date, it.ascents, it.items.filter { a -> a.key.isNotBlank() && a.count > 0 }.map { a -> GymAscent(a.key, a.count) }) }
         )
     },
     items.filter { it.key.isNotBlank() && it.count > 0 }.map { GymAscent(it.key, it.count) }, byMonth,
     homeGym?.takeIf { it.id != 0L && it.name.isNotBlank() }?.toDomain(),
-    ascentOrder?.takeIf { it.isNotBlank() }
+    ascentOrder?.takeIf { it.isNotBlank() },
+    gymOrder?.takeIf { it.isNotBlank() }
 )

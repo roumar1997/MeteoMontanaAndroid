@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.meteomontana.android.R
+import com.meteomontana.android.domain.model.gym.AscentEntries
 import com.meteomontana.android.domain.model.gym.AscentFilter
 import com.meteomontana.android.domain.model.gym.GymBreakdown
 import com.meteomontana.android.ui.screens.schools.TabButton
@@ -59,9 +60,15 @@ fun GymAscentsScreen(
     // Propio: el que elegi (movil + servidor). Ajeno: el que eligio esa persona (viene en su resumen).
     val order = com.meteomontana.android.domain.model.gym.AscentTabOrder.parse(state.ascentOrder)
     var reordering by remember { mutableStateOf(false) }
-    if (reordering && own) AscentOrderDialog(order, onChange = { viewModel.setAscentOrder(com.meteomontana.android.domain.model.gym.AscentTabOrder.serialize(it)) }, onClose = { reordering = false })
+    if (reordering && own) AscentOrderDialog(
+        order, state.summary.byGym,
+        onChange = { viewModel.setAscentOrder(com.meteomontana.android.domain.model.gym.AscentTabOrder.serialize(it)) },
+        onChangeGyms = viewModel::setGymOrder, onClose = { reordering = false }
+    )
     val s = state.summary
     val items = GymBreakdown.filter(s.items, filter)
+    // Grados elegidos en los chips (varios a la vez); al cambiar de pestana se empieza de nuevo.
+    var grades by remember(filter) { mutableStateOf(emptySet<String>()) }
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.common_back)) }
@@ -84,7 +91,9 @@ fun GymAscentsScreen(
             if (s.isEmpty) Box(Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.gym_asc_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                AscentsBody(s, filter, items, viewModel::colorHex, viewModel::colorHexFor, onOpenGym)
+                GradeChipRow(AscentEntries.grades(items), grades, { g -> grades = if (g in grades) grades - g else grades + g }, { grades = emptySet() })
+                if (grades.isNotEmpty()) GradeEntriesList(AscentEntries.entries(s, filter, grades), onOpenGym)
+                else AscentsBody(s, filter, items, viewModel::colorHex, viewModel::colorHexFor, onOpenGym, state.collapsedBoards, viewModel::toggleBoard)
                 Box(Modifier.padding(bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current + 16.dp))
             }
         }

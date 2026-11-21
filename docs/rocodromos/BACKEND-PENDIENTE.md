@@ -135,3 +135,9 @@ Grado = francés de `FrenchGrade` (3 a 9c+). Cualquier otra forma con esos prefi
 - `gym-summary` → `byGym[]` gana `items: [{key,count}]` (lo hecho en ESE rocódromo, con su escala) y `days: [{date,ascents}]` (más reciente primero, máx. 60). Aditivo: las apps viejas los ignoran. Muestra `summary` de `gym-sessions.json` actualizada en los dos repos (byte a byte iguales).
 - Claves `board:system:<grado>[:<inclinación>]` aceptadas (`GymAscentRules`). Sin migración.
 - Tests: `GetGymSummaryUseCaseTest` (desglose por rocódromo), `GymScaleAndAscentsTest` (system), `GymContractTest`. Verificado en staging: el resumen real de la cuenta de pruebas ya trae `items` y `days` por rocódromo.
+
+## Ronda 9 (develop a5d2c85, V117)
+
+- `GET/PUT /api/me/gym-order` (`{order:"5,3,9"}`, ids de rocódromo; se sanea: solo ids positivos, sin repetir, máx. 100; si no queda ninguno válido no cambia nada) y campo `gymOrder` (string o null) en `gym-summary`, para que los demás vean el orden de esa persona. Tabla nueva `user_gym_order` (V117), como `user_ascent_order`.
+- `gym-summary` → `byGym[].days[]` gana `items: [{key,count}]` (lo hecho ese día en ese rocódromo) para listar ascensiones sueltas con fecha al filtrar por grado. Aditivo. `gym-sessions.json` actualizada en los dos repos (byte a byte iguales).
+- Tests: `GymOrderUseCaseTest` (nuevo), `GetGymSummaryUseCaseTest`, `GymContractTest`; suite completa 816 tests, solo falla `contextLoads` (normal). Sin verificar aún en staging con sesión real (el endpoint responde 403 sin token igual que cualquier otro; falta confirmar el despliegue del commit).

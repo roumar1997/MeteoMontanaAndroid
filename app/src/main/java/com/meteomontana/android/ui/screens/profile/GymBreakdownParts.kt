@@ -22,7 +22,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.meteomontana.android.R
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import com.meteomontana.android.domain.model.gym.AscentFilter
+import com.meteomontana.android.domain.model.gym.BoardKind
 import com.meteomontana.android.domain.model.gym.GymAscent
 import com.meteomontana.android.domain.model.gym.GymBreakdown
 import com.meteomontana.android.domain.model.gym.GymSummary
@@ -42,10 +45,11 @@ import com.meteomontana.android.ui.theme.terraFillColor
 @Composable
 internal fun AscentsBody(
     s: GymSummary, filter: AscentFilter, items: List<GymAscent>,
-    colorHex: (String) -> String?, colorHexFor: (Long, String) -> String?, onOpenGym: (Long) -> Unit
+    colorHex: (String) -> String?, colorHexFor: (Long, String) -> String?, onOpenGym: (Long) -> Unit,
+    collapsedBoards: Set<String> = emptySet(), onToggleBoard: (BoardKind) -> Unit = {}
 ) {
     when {
-        filter == AscentFilter.BOARDS -> BoardsSections(items)
+        filter == AscentFilter.BOARDS -> BoardsSections(items, collapsedBoards, onToggleBoard)
         GymBreakdown.hasGymBreakdown(s) -> {
             val gyms = GymBreakdown.gymsFiltered(s, filter)
             if (gyms.isEmpty()) EmptyCategory() else PerGymSections(gyms, colorHexFor, onOpenGym)
@@ -90,17 +94,25 @@ internal fun PerGymSections(gyms: List<GymSummaryGym>, colorHexFor: (Long, Strin
 
 /** Boards agrupados por tablero (logo, nombre y total) y, dentro, el reparto por grado. */
 @Composable
-internal fun BoardsSections(items: List<GymAscent>) {
+internal fun BoardsSections(items: List<GymAscent>, collapsed: Set<String>, onToggle: (BoardKind) -> Unit) {
     val groups = GymBreakdown.boardsByKind(items)
     if (groups.isEmpty()) { EmptyCategory(); return }
     groups.forEach { (kind, list) ->
         Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            val open = kind.name !in collapsed
+            Row(
+                Modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).clickable { onToggle(kind) }.padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 BoardLogo(kind)
                 Text(boardName(kind), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
                 Text(list.sumOf { it.count }.toString(), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+                androidx.compose.material3.Icon(
+                    if (open) androidx.compose.material.icons.Icons.Outlined.ExpandLess else androidx.compose.material.icons.Icons.Outlined.ExpandMore,
+                    stringResource(R.string.gym_board_toggle_cd), tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            ByGradeSection(list, { null }, titled = false)
+            if (open) ByGradeSection(list, { null }, titled = false)
         }
     }
 }

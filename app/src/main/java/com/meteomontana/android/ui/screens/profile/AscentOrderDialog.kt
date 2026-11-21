@@ -7,6 +7,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import com.meteomontana.android.domain.model.gym.GymOrder
+import com.meteomontana.android.domain.model.gym.GymSummaryGym
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -72,28 +76,49 @@ internal fun OrderPill(onClick: () -> Unit) {
     }
 }
 
-/** Dialogo para ordenar las categorias de Ascensiones con botones «Subir» y «Bajar»; el orden vive en [AscentTabOrder]. */
+/** Una fila numerada del dialogo con sus botones «Subir» y «Bajar» (grises al no poder mas). */
 @Composable
-internal fun AscentOrderDialog(order: List<AscentFilter>, onChange: (List<AscentFilter>) -> Unit, onClose: () -> Unit) {
+private fun OrderRow(index: Int, label: String, last: Int, onMove: (Int) -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surface, shape)
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape).padding(start = 14.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("${index + 1}", fontWeight = FontWeight.Bold, color = terraFillColor(), modifier = Modifier.padding(end = 10.dp))
+        Text(label, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        MoveButton(Icons.Outlined.ArrowUpward, stringResource(R.string.gym_asc_order_up), index > 0) { onMove(-1) }
+        MoveButton(Icons.Outlined.ArrowDownward, stringResource(R.string.gym_asc_order_down), index < last) { onMove(1) }
+        Spacer(Modifier.width(8.dp))
+    }
+}
+
+@Composable
+private fun SectionLabel(text: String) =
+    Text(text, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp))
+
+/**
+ * Dialogo «Ordenar» con dos secciones y botones «Subir» / «Bajar»: las categorias de Ascensiones (orden en [AscentTabOrder])
+ * y los rocodromos (orden en [GymOrder]; [gyms] ya viene en el orden que se ve ahora, y al mover se guardan todos).
+ */
+@Composable
+internal fun AscentOrderDialog(
+    order: List<AscentFilter>, gyms: List<GymSummaryGym>,
+    onChange: (List<AscentFilter>) -> Unit, onChangeGyms: (List<Long>) -> Unit, onClose: () -> Unit
+) {
     AlertDialog(
         onDismissRequest = onClose,
         title = { Text(stringResource(R.string.gym_asc_order_title), fontWeight = FontWeight.Bold) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SectionLabel(stringResource(R.string.gym_order_cats))
                 Text(stringResource(R.string.gym_asc_order_hint), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                order.forEachIndexed { i, f ->
-                    val shape = RoundedCornerShape(14.dp)
-                    Row(
-                        Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surface, shape)
-                            .border(1.dp, MaterialTheme.colorScheme.outline, shape).padding(start = 14.dp, top = 8.dp, bottom = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("${i + 1}", fontWeight = FontWeight.Bold, color = terraFillColor(), modifier = Modifier.padding(end = 10.dp))
-                        Text(ascentFilterLabel(f), fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f))
-                        MoveButton(Icons.Outlined.ArrowUpward, stringResource(R.string.gym_asc_order_up), i > 0) { onChange(AscentTabOrder.move(order, i, -1)) }
-                        MoveButton(Icons.Outlined.ArrowDownward, stringResource(R.string.gym_asc_order_down), i < order.lastIndex) { onChange(AscentTabOrder.move(order, i, 1)) }
-                        Spacer(Modifier.width(8.dp))
-                    }
+                order.forEachIndexed { i, f -> OrderRow(i, ascentFilterLabel(f), order.lastIndex) { d -> onChange(AscentTabOrder.move(order, i, d)) } }
+                if (gyms.size > 1) {
+                    SectionLabel(stringResource(R.string.gym_order_gyms))
+                    Text(stringResource(R.string.gym_order_gyms_hint), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    val ids = gyms.map { it.gymId }
+                    gyms.forEachIndexed { i, g -> OrderRow(i, g.name ?: "-", gyms.lastIndex) { d -> onChangeGyms(GymOrder.move(ids, i, d)) } }
                 }
             }
         },

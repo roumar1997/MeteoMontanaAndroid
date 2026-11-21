@@ -24,13 +24,13 @@
     "sessions": 3, "gyms": 2, "ascents": 6, "maxGrade": "7a",
     "byGym": [{"gymId": 5, "name": "Chango", "sessions": 2, "ascents": 5, "maxGrade": "6c",
       "items": [{"key": "verde", "count": 3}, {"key": "board:system:6c", "count": 2}],
-      "days": [{"date": "2026-11-18", "ascents": 5}]}],
+      "days": [{"date": "2026-11-18", "ascents": 5, "items": [{"key": "verde", "count": 3}, {"key": "board:system:6c", "count": 2}]}]}],
     "items": [{"key": "verde", "count": 3}],
     "byMonth": [{"month": "2026-10", "ascents": 1}, {"month": "2026-11", "ascents": 5}],
     "homeGym": {"id": 5, "name": "Chango", "city": "Madrid"},
-    "ascentOrder": "BOARDS,BLOCKS,ROUTES"
+    "ascentOrder": "BOARDS,BLOCKS,ROUTES", "gymOrder": "5,3,9"
   },
   "summaryEmpty": {
-    "sessions": 0, "gyms": 0, "ascents": 0, "maxGrade": null, "byGym": [], "items": [], "byMonth": [], "homeGym": null, "ascentOrder": null
+    "sessions": 0, "gyms": 0, "ascents": 0, "maxGrade": null, "byGym": [], "items": [], "byMonth": [], "homeGym": null, "ascentOrder": null, "gymOrder": null
   }
 }

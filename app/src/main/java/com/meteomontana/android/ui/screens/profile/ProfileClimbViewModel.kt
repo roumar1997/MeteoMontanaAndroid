@@ -1,6 +1,9 @@
 package com.meteomontana.android.ui.screens.profile
 
 import android.content.Context
+import com.meteomontana.android.domain.model.gym.GymOrder
+import com.meteomontana.android.domain.usecase.gym.GetGymFavoritesUseCase
+import com.meteomontana.android.domain.usecase.gym.GymOrderUseCase
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.local.SharedPrefsKeyValueStore
@@ -36,25 +39,6 @@ class HomeGymPreference @Inject constructor(@ApplicationContext context: Context
     private companion object { const val KEY = "home_gym_id" }
 }
 
-/**
- * Orden de las categorias de Ascensiones: cache local (clave de siempre, asi no se pierde el orden ya elegido) y marca de
- * «pendiente de subir» por si se cambio sin red. La verdad vive en el servidor (`me/ascent-order`).
- */
-class AscentOrderPreference @Inject constructor(@ApplicationContext context: Context) {
-    private val store = SharedPrefsKeyValueStore(context, "cumbre_profile_prefs")
-
-    fun get(): String? = store.getString(KEY)?.takeIf { it.isNotBlank() }
-
-    fun set(order: String, pending: Boolean) {
-        store.putString(KEY, order)
-        store.putString(PENDING, if (pending) "1" else "")
-    }
-
-    fun isPending(): Boolean = store.getString(PENDING) == "1"
-
-    private companion object { const val KEY = "ascent_tab_order"; const val PENDING = "ascent_tab_order_pending" }
-}
-
 data class ProfileClimbState(
     val summary: GymSummary = GymSummary(),
     /** Días distintos en roca (diario); null mientras no se sabe. */
@@ -63,6 +47,12 @@ data class ProfileClimbState(
     val homeGym: HomeGym? = null,
     /** Orden de las categorias de Ascensiones («BOARDS,BLOCKS,ROUTES»): el mio (movil + servidor) o el que eligio la otra persona. */
     val ascentOrder: String? = null,
+    /** Orden de rocodromos (ids «5,3,9»): el mio (movil + servidor) o el de la otra persona; ya aplicado a [summary].byGym. */
+    val gymOrder: String? = null,
+    /** Mis rocodromos favoritos: van primero mientras no se haya ordenado a mano. */
+    val favorites: Set<Long> = emptySet(),
+    /** Tableros plegados en la pestaña Boards (nombres de [com.meteomontana.android.domain.model.gym.BoardKind]). */
+    val collapsedBoards: Set<String> = emptySet(),
     val streakWeeks: Int = 0,
     /** Grado máximo en roca y nº de escuelas del diario (para la línea «Roca» de Estadísticas). */
     val rockMax: String? = null,
@@ -94,7 +84,11 @@ class ProfileClimbViewModel @Inject constructor(
     private val homeGymPref: HomeGymPreference,
     private val homeGymUc: HomeGymUseCase,
     private val ascentOrderPref: AscentOrderPreference,
-    private val ascentOrderUc: com.meteomontana.android.domain.usecase.gym.AscentOrderUseCase
+    private val ascentOrderUc: com.meteomontana.android.domain.usecase.gym.AscentOrderUseCase,
+    private val gymOrderPref: GymOrderPreference,
+    private val gymOrderUc: GymOrderUseCase,
+    private val getFavorites: GetGymFavoritesUseCase,
+    private val boardsCollapsePref: BoardsCollapsePreference
 ) : ViewModel() {
     private val _state = MutableStateFlow(ProfileClimbState())
     val state: StateFlow<ProfileClimbState> = _state
@@ -103,8 +97,10 @@ class ProfileClimbViewModel @Inject constructor(
     fun load(uid: String?, myUid: String?) {
         val own = uid == null || uid == myUid
         val gyms = getCachedGyms().associateBy { it.id }
-        if (own) _state.update { build(getSummary.local { gyms[it]?.name }, it.rockDays, gyms, own = true).copy(rockMax = it.rockMax, schools = it.schools, rockBoulders = it.rockBoulders, rockRoutes = it.rockRoutes, rockMaxBoulder = it.rockMaxBoulder, rockMaxRoute = it.rockMaxRoute) }
+        if (own) _state.update { build(getSummary.local { gyms[it]?.name }, it.rockDays, gyms, own = true, it.favorites).copy(rockMax = it.rockMax, schools = it.schools, rockBoulders = it.rockBoulders, rockRoutes = it.rockRoutes, rockMaxBoulder = it.rockMaxBoulder, rockMaxRoute = it.rockMaxRoute) }
+        _state.update { it.copy(collapsedBoards = boardsCollapsePref.get()) }
         viewModelScope.launch {
+            val favs = runCatching { getFavorites.execute() }.getOrDefault(_state.value.favorites)
             val rock = async { runCatching { if (own) getMyJournal() else getUserJournal(uid!!) }.getOrNull()?.let { JournalStatsCalculator.rockDays(it) } }
             val jstats = async { runCatching { if (own) getMyStats() else getUserStats(uid!!) }.getOrNull() }
             if (own) runCatching { getSummary.refresh() }
@@ -112,9 +108,9 @@ class ProfileClimbViewModel @Inject constructor(
             val remote = target?.let { runCatching { getSummary.remote(it) }.getOrNull() }
             val summary = remote?.let { r -> r.copy(byGym = r.byGym.map { g -> g.copy(name = g.name ?: gyms[g.gymId]?.name) }) }
                 ?: if (own) getSummary.local { gyms[it]?.name } else GymSummary()
-            if (own) { syncHomeGym(remote); syncAscentOrder(remote) }
+            if (own) { syncHomeGym(remote); syncAscentOrder(remote); syncGymOrder(remote) }
             val js = jstats.await()
-            _state.update { build(summary, rock.await() ?: it.rockDays, gyms, own).copy(
+            _state.update { build(summary, rock.await() ?: it.rockDays, gyms, own, favs).copy(
                 rockMax = js?.maxGrade, schools = js?.schoolCount ?: it.schools, rockBoulders = js?.boulderCount ?: it.rockBoulders,
                 rockRoutes = js?.routeCount ?: it.rockRoutes, rockMaxBoulder = js?.maxBoulderGrade, rockMaxRoute = js?.maxRouteGrade
             ) }
@@ -140,19 +136,32 @@ class ProfileClimbViewModel @Inject constructor(
 
     /** Propio: el servidor manda (lo guardo en el movil); si no tiene nada o hay un cambio sin subir, subo el del movil. */
     private suspend fun syncAscentOrder(remote: GymSummary?) {
-        if (remote == null) return
-        val server = remote.ascentOrder
-        val local = ascentOrderPref.get()
-        if (local != null && (server == null || ascentOrderPref.isPending())) {
-            if (runCatching { ascentOrderUc.set(local) }.isSuccess) ascentOrderPref.set(local, pending = false)
-        } else if (server != null) ascentOrderPref.set(server, pending = false)
+        if (remote != null) ascentOrderPref.sync(remote.ascentOrder) { ascentOrderUc.set(it) }
+    }
+
+    /** Igual con el orden de rocodromos; si manda el servidor, la lista se recoloca. */
+    private suspend fun syncGymOrder(remote: GymSummary?) {
+        if (remote != null) gymOrderPref.sync(remote.gymOrder) { gymOrderUc.set(it) }
     }
 
     /** Guarda mi orden de categorias: se ve ya, queda en el movil y se sube al servidor (si no hay red, se sube mas tarde). */
     fun setAscentOrder(order: String) {
-        ascentOrderPref.set(order, pending = true)
         _state.update { it.copy(ascentOrder = order) }
-        viewModelScope.launch { if (runCatching { ascentOrderUc.set(order) }.isSuccess) ascentOrderPref.set(order, pending = false) }
+        viewModelScope.launch { ascentOrderPref.save(order) { ascentOrderUc.set(it) } }
+    }
+
+    /** Guarda mi orden de rocodromos (ids completos, en el orden elegido): se ve ya, queda en el movil y se sube. */
+    fun setGymOrder(ids: List<Long>) {
+        val order = GymOrder.serialize(ids)
+        _state.update { it.copy(gymOrder = order, summary = it.summary.copy(byGym = GymOrder.sort(it.summary.byGym, ids, it.favorites))) }
+        viewModelScope.launch { gymOrderPref.save(order) { gymOrderUc.set(it) } }
+    }
+
+    /** Pliega o despliega un tablero de la pestaña Boards y lo recuerda. */
+    fun toggleBoard(kind: com.meteomontana.android.domain.model.gym.BoardKind) {
+        val next = _state.value.collapsedBoards.let { if (kind.name in it) it - kind.name else it + kind.name }
+        boardsCollapsePref.set(next)
+        _state.update { it.copy(collapsedBoards = next) }
     }
 
     /** Elige (o quita, con null) mi rocódromo desde el hueco del perfil: se ve ya y se sube al servidor. */
@@ -164,14 +173,16 @@ class ProfileClimbViewModel @Inject constructor(
 
     fun gym(id: Long): Gym? = getCachedGyms().firstOrNull { it.id == id }
 
-    private fun build(summary: GymSummary, rockDays: Int?, gyms: Map<Long, Gym>, own: Boolean): ProfileClimbState {
+    private fun build(summary: GymSummary, rockDays: Int?, gyms: Map<Long, Gym>, own: Boolean, favorites: Set<Long>): ProfileClimbState {
         val colorHex = { key: String -> gyms.values.firstNotNullOfOrNull { it.scale?.takeIf { s -> s.isColors }?.levelNamed(key)?.hex } }
         val segs = GymBreakdown.byGrade(summary.items).map { (g, n) -> BarSeg(g, null, g.uppercase(), n, GymAscentKeys.gradeRank(g)) } +
             GymBreakdown.byColor(summary.items).mapNotNull { a ->
                 colorHex(a.key)?.let { BarSeg(null, it, a.key.replaceFirstChar { c -> c.uppercase() }, a.count, 1000) }
             }
+        val gymOrder = if (own) gymOrderPref.get() ?: summary.gymOrder else summary.gymOrder
+        val sorted = summary.copy(byGym = GymOrder.sort(summary.byGym, GymOrder.parse(gymOrder), favorites))
         return ProfileClimbState(
-            summary = summary, rockDays = rockDays, segments = segs.sortedBy { it.order },
+            summary = sorted, gymOrder = gymOrder, favorites = favorites, collapsedBoards = boardsCollapsePref.get(), rockDays = rockDays, segments = segs.sortedBy { it.order },
             homeGym = summary.homeGym ?: if (own) homeGymPref.get()?.let { gyms[it] }?.let { HomeGym(it.id, it.name, it.city) } else null,
             ascentOrder = if (own) ascentOrderPref.get() ?: summary.ascentOrder else summary.ascentOrder,
             streakWeeks = if (own) getStats.cached().streakWeeks else 0

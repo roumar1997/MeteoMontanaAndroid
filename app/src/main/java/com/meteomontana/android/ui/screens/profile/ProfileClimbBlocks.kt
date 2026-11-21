@@ -263,7 +263,7 @@ internal fun CompactProfileHeader(
         Spacer(Modifier.width(avatarSlot + ProfileAvatarStart - 16.dp + 8.dp).height(avatarSlot + 8.dp))
         Column(Modifier.weight(1f).padding(start = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text(name, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 23.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f, fill = false))
+                Text(name, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 23.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f, fill = false))
                 com.meteomontana.android.ui.components.VerifiedCheck(uid, 18.dp)
             }
             Text(handle, fontFamily = Mono, fontSize = 12.sp, maxLines = 1, color = MaterialTheme.colorScheme.onSurfaceVariant)
