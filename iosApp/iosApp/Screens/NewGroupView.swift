@@ -95,8 +95,9 @@ struct NewGroupView: View {
                 }
                 Button { vm.create(onCreated: onCreated) } label: {
                     Group {
-                        if vm.creating { ProgressView().tint(.white) }
-                        else { Text("CREAR GRUPO").font(Cumbre.mono(13, .bold)).foregroundStyle(.white) }
+                        if vm.creating { ProgressView().tint(.white) } else {
+                            Text("CREAR GRUPO").font(Cumbre.mono(13, .bold)).foregroundStyle(.white)
+                        }
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
                     .background(canCreate ? Cumbre.terra : Cumbre.ink3)

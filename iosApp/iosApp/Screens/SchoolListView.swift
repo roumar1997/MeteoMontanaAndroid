@@ -137,7 +137,8 @@ struct SchoolListView: View {
                         viaHitsSection
                     }
 
-                    MapToggleAndPanel(vm: vm, onOpen: { navTarget = SchoolNavTarget(school: $0, via: nil) })
+                    MapToggleAndPanel(vm: vm, onOpen: { navTarget = SchoolNavTarget(school: $0, via: nil) },
+                                      onSubmitBlockPhoto: { eligiendoFoto = true })
 
                     FilterChips(vm: vm, explore: explore)
                     Divider().overlay(Cumbre.rule)
@@ -394,7 +395,7 @@ struct SchoolListView: View {
             } else if explore.grouped {
                 ForEach(explore.groups, id: \.schoolId) { group in
                     exploreGroupHeader(group)
-                    if expandedGroups.contains(group.schoolId) { groupBody(group) }
+                    if expandedGroups.contains(group.schoolId) { groupBody(schoolId: group.schoolId, hits: group.hits) }
                 }
             } else {
                 ForEach(explore.sortedHits, id: \.stableId) { h in
@@ -405,32 +406,6 @@ struct SchoolListView: View {
         }
     }
 
-    /// Dentro de una escuela: sus SECTORES plegables si tiene más de uno (shared: ExploreSectors.split); si no, las vías.
-    @ViewBuilder private func groupBody(_ g: (schoolId: String, schoolName: String, hits: [LineSearchHit])) -> some View {
-        if let buckets = ExploreSectors.shared.split(hits: g.hits) {
-            let style = vm.schools.first(where: { $0.id == g.schoolId })?.style
-            ForEach(Array(buckets.enumerated()), id: \.offset) { _, b in
-                let key = g.schoolId + "|" + (b.name ?? "")
-                let open = expandedSectors.contains(key)
-                ExploreSectorHeader(name: b.name, count: b.hits.count,
-                                    boulders: ExploreSectors.shared.allBoulders(hits: b.hits, schoolStyle: style),
-                                    routes: ExploreSectors.shared.allRoutes(hits: b.hits, schoolStyle: style), expanded: open) {
-                    if open { expandedSectors.remove(key) } else { expandedSectors.insert(key) }
-                }
-                if open {
-                    ForEach(b.hits, id: \.stableId) { h in
-                        exploreLineRow(h)
-                        Divider().overlay(Cumbre.rule)
-                    }
-                }
-            }
-        } else {
-            ForEach(g.hits, id: \.stableId) { h in
-                exploreLineRow(h)
-                Divider().overlay(Cumbre.rule)
-            }
-        }
-    }
 
     /// Cabecera de grupo de «Vías/Bloques» (la vista vive en ExploreGroupHeader.swift).
     private func exploreGroupHeader(_ g: (schoolId: String, schoolName: String, hits: [LineSearchHit])) -> some View {
@@ -567,5 +542,34 @@ struct MiniTopoThumbnail: View {
             }
         }
         .task(id: photoUrl) { image = await ImageCache.image(photoUrl, maxPixel: ImageCache.displayMaxPixel) }
+    }
+}
+
+extension SchoolListView {
+    /// Dentro de una escuela: sus SECTORES plegables si tiene más de uno (shared: ExploreSectors.split); si no, las vías.
+    @ViewBuilder func groupBody(schoolId: String, hits: [LineSearchHit]) -> some View {
+        if let buckets = ExploreSectors.shared.split(hits: hits) {
+            let style = vm.schools.first(where: { $0.id == schoolId })?.style
+            ForEach(Array(buckets.enumerated()), id: \.offset) { _, b in
+                let key = schoolId + "|" + (b.name ?? "")
+                let open = expandedSectors.contains(key)
+                ExploreSectorHeader(name: b.name, count: b.hits.count,
+                                    boulders: ExploreSectors.shared.allBoulders(hits: b.hits, schoolStyle: style),
+                                    routes: ExploreSectors.shared.allRoutes(hits: b.hits, schoolStyle: style), expanded: open) {
+                    if open { expandedSectors.remove(key) } else { expandedSectors.insert(key) }
+                }
+                if open {
+                    ForEach(b.hits, id: \.stableId) { h in
+                        exploreLineRow(h)
+                        Divider().overlay(Cumbre.rule)
+                    }
+                }
+            }
+        } else {
+            ForEach(hits, id: \.stableId) { h in
+                exploreLineRow(h)
+                Divider().overlay(Cumbre.rule)
+            }
+        }
     }
 }

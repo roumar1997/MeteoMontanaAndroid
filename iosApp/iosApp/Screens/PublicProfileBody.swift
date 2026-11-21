@@ -40,7 +40,7 @@ struct PublicProfileBody: View {
             }
             if gymsOn {
                 ClimbGradientCard(climb: climb, onStats: { route = .stats(0) }, onRock: { route = .stats(1) }, onGym: { route = .stats(2) })
-                HomeGymAndStreak(home: climb.homeGym, streakWeeks: 0, own: false, onOpenGym: { route = .gym($0) }) { EmptyView() }
+                HomeGymAndStreak(home: climb.homeGym, streakWeeks: 0, own: false, onOpenGym: { route = .gym($0) }, trailing: { EmptyView() })
             }
         }
         .task(id: realUid) {

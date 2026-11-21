@@ -163,7 +163,7 @@ struct GymAscentsView: View {
                                             favorites: Set(climb.favorites.map { KotlinLong(value: $0) }))
             let boards = Int(GymBreakdown.shared.boardCount(items: s.items))
             if gyms.isEmpty && !(filter == .all && boards > 0) { EmptyCategory() } else {
-                PerGymSections(gyms: gyms, colorHexFor: { climb.colorHexFor(gymId: $0, key: $1) }) { route = .visit($0) }
+                PerGymSections(gyms: gyms, colorHexFor: { climb.colorHexFor(gymId: $0, key: $1) }, onOpenGym: { route = .visit($0) })
             }
             if filter == .all && boards > 0 {
                 Button { route = .boards } label: {
@@ -326,9 +326,9 @@ struct GymBoardsView: View {
         }
         .background(Cumbre.bg.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .sheet(item: $addFor, onDismiss: { Task { await climb.load(uid: uid) } }) { k in
-            SoloBoardSheet(dateLabel: GymDates.todayLong(), date: GymDates.local(Date()), board: k.kind)
-        }
+        .sheet(item: $addFor, onDismiss: { Task { await climb.load(uid: uid) } }, content: { k in
+$1
+        })
         .navigationDestination(item: $route) { r in ClimbRouteView(route: r, uid: uid) }
         .task { await climb.load(uid: uid) }
     }

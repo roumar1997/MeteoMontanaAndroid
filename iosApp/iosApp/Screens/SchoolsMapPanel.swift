@@ -9,6 +9,8 @@ import CoreLocation
 struct MapToggleAndPanel: View {
     @ObservedObject var vm: SchoolListViewModel
     let onOpen: (School) -> Void
+    /// «Corregir» de la tarjeta de cristal: la hoja «Aportar» de siempre (piedra / escuela).
+    var onSubmitBlockPhoto: () -> Void = {}
     @State private var popup: School?
     // Satélite por defecto, paridad con el mapa de detalle de escuela
     // (Álvaro, 2026-09-01: "que se abra en satélite por defecto").
@@ -114,9 +116,9 @@ struct MapToggleAndPanel: View {
             if let s = popup {
                 SchoolMapPopup(school: s, score: vm.scores[s.id].map { Int($0.todayScore) },
                                wet: vm.scores[s.id]?.dryRock == false, userLat: vm.userLat, userLon: vm.userLon,
-                               onClose: { popup = nil }) {
+                               onClose: { popup = nil }, onSubmitBlockPhoto: onSubmitBlockPhoto, onDetail: {
                     popup = nil; onOpen(s)
-                }
+                })
                 .padding(.horizontal, 12).padding(.bottom, 8)
             }
         }
@@ -240,9 +242,11 @@ struct SchoolMapPopup: View {
     var userLat: Double?
     var userLon: Double?
     var onClose: () -> Void = {}
+    var onSubmitBlockPhoto: () -> Void = {}
     let onDetail: () -> Void
     @State private var outlook: RockDryOutlook?
     @State private var fixOpen = false
+    @State private var submitSchool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -281,7 +285,17 @@ struct SchoolMapPopup: View {
         .overlay(RoundedRectangle(cornerRadius: 24).stroke(Color.white.opacity(0.55), lineWidth: 1))
         .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
         .task(id: school.id) { outlook = await RockDryOutlookCache.outlook(school.id) }
-        .sheet(isPresented: $fixOpen) { EditSchoolSheet(school: school) }
+        .sheet(isPresented: $fixOpen) {
+            AportarSheet(onPiedra: {
+                fixOpen = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { onSubmitBlockPhoto() }
+            }, onEscuela: {
+                fixOpen = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { submitSchool = true }
+            })
+            .presentationDetents([.height(260)])
+        }
+        .sheet(isPresented: $submitSchool) { SubmitSchoolView() }
     }
 
     private var distanceKm: Double? {

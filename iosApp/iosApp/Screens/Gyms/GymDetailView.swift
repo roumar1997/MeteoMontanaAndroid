@@ -107,7 +107,6 @@ final class GymDetailViewModel: ObservableObject {
     }
 }
 
-
 /// Rocódromo donde se crea la quedada (el asistente lo enseña fijado y solo pregunta cuándo).
 struct GymPlace: Identifiable, Hashable {
     let id: Int64
@@ -168,9 +167,9 @@ struct GymDetailView: View {
         .sheet(isPresented: $privacyOpen) {
             PresencePrivacySheet { privacyOpen = false; Task { await vm.togglePresence(myUid: myUid) } }
         }
-        .sheet(isPresented: $trainOpen, onDismiss: { vm.refreshTrained() }) {
-            if let gym = vm.gym { GymTrainSheet(gym: gym, dateLabel: L("gym_train_today_label", GymDates.todayLong())) }
-        }
+        .sheet(isPresented: $trainOpen, onDismiss: { vm.refreshTrained() }, content: {
+$1
+        })
         .sheet(item: $web) { link in SafariSheet(url: link.url).ignoresSafeArea() }
         .sheet(item: $meetupPlace) { place in
             CreateMeetupView(onCreated: { id in

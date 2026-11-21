@@ -126,12 +126,12 @@ struct MeetupDetailsStep: View {
         WizardQuestion(text: L("mw_step2_q"))
         WizardEyebrow(text: L("mw_modality_both"))
         HStack(spacing: 10) {
-            WizardOptionCard(selected: draft.hasBoulder, action: { draft = draft.toggleBoulder() }) {
-                WizardCardTitle(title: L("mw_boulder_title"), subtitle: L("mw_boulder_sub"), serif: true)
-            }
-            WizardOptionCard(selected: draft.hasRoute, action: { draft = draft.toggleRoute() }) {
-                WizardCardTitle(title: L("mw_route_title"), subtitle: L("mw_route_sub"), serif: true)
-            }
+            WizardOptionCard(selected: draft.hasBoulder, action: { draft = draft.toggleBoulder() }, content: {
+$1
+            })
+            WizardOptionCard(selected: draft.hasRoute, action: { draft = draft.toggleRoute() }, content: {
+$1
+            })
         }
         WizardEyebrow(text: L("mw_grade_group") + (rangeText.map { " · \($0)" } ?? ""))
         FlowLayoutView(spacing: 6) {

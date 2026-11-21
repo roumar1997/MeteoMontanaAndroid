@@ -373,4 +373,3 @@ private struct GroupMessageRow: View {
         }
     }
 }
-

@@ -34,9 +34,9 @@ struct AccountProfileBody: View {
                 ClimbGradientCard(climb: climb, onStats: { route = .stats(0) }, onRock: { route = .stats(1) }, onGym: { route = .stats(2) })
                     .guideTarget("profile.stats")
                 HomeGymAndStreak(home: climb.homeGym, streakWeeks: climb.streakWeeks, own: true,
-                                 onOpenGym: { route = .gym($0) }, onPick: { pickingHome = true }) {
+                                 onOpenGym: { route = .gym($0) }, onPick: { pickingHome = true }, trailing: {
                     LogWorkoutPill { Task { await climb.load(uid: nil) } }
-                }
+                })
             } else {
                 Button { route = .stats(1) } label: { StatsEntryLabel() }.buttonStyle(.plain).guideTarget("profile.stats")
             }

@@ -254,7 +254,7 @@ struct GymAddedList: View {
         }
     }
 
-    private func row(_ a: GymAscent, _ d: (grade: String, title: String, sub: String)) -> some View {
+    private func row(_ a: GymAscent, _ d: AddedRowInfo) -> some View {
         let st = GradeColor.chipStyle(GymAscentKeys.shared.baseGrade(grade: d.grade))
         return HStack(spacing: 10) {
             Text(d.grade.uppercased()).font(.system(size: 13, weight: .bold)).lineLimit(1)
@@ -281,16 +281,25 @@ struct GymAddedList: View {
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Cumbre.rule, lineWidth: 1))
     }
 
-    private func describe(_ a: GymAscent) -> (grade: String, title: String, sub: String)? {
+    private func describe(_ a: GymAscent) -> AddedRowInfo? {
         let k = GymAscentKeys.shared.parse(key: a.key)
         if let r = k as? AscentKeyRoute {
             let style = L(r.style == .partner ? "gym_style_partner" : "gym_style_solo")
             let flow = L(r.project ? "gym_flow_project" : "gym_flow_sent")
-            return (r.grade, L(r.grade.contains("/") ? "gym_route_double" : "gym_route_single"), "\(flow) · \(style)")
+            return AddedRowInfo(grade: r.grade, title: L(r.grade.contains("/") ? "gym_route_double" : "gym_route_single"),
+                                sub: "\(flow) · \(style)")
         }
         if let b = k as? AscentKeyBoard {
-            return (b.grade, L("gym_board_row", BoardStyle.name(b.board)), b.angle.map { "\($0)°" } ?? L("gym_board_no_angle"))
+            return AddedRowInfo(grade: b.grade, title: L("gym_board_row", BoardStyle.name(b.board)),
+                                sub: b.angle.map { "\($0)°" } ?? L("gym_board_no_angle"))
         }
         return nil
     }
+}
+
+/// Grado, título y subtítulo de una fila añadida (vía o board).
+struct AddedRowInfo {
+    let grade: String
+    let title: String
+    let sub: String
 }

@@ -200,7 +200,7 @@ struct GymCounterRow: View {
     let accent: Color
     let count: Int
     let onMinus: () -> Void
-    let onPlus: () -> Void
+$1    private var done: Bool { !(count == 0) }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -210,13 +210,13 @@ struct GymCounterRow: View {
                 if let sub { Text(sub).font(.system(size: 11)).foregroundStyle(Cumbre.ink2) }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            round("−", enabled: count > 0, onMinus)
+            round("−", enabled: done, onMinus)
             Text("\(count)").font(.system(size: 16, weight: .bold)).foregroundStyle(Cumbre.ink).frame(minWidth: 24)
             round("+", enabled: true, onPlus)
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
         .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(count > 0 ? accent : Cumbre.rule, lineWidth: count > 0 ? 2 : 1))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(done ? accent : Cumbre.rule, lineWidth: done ? 2 : 1))
     }
 
     private func round(_ text: String, enabled: Bool, _ action: @escaping () -> Void) -> some View {
