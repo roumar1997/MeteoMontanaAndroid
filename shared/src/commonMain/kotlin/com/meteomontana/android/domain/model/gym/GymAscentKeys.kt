@@ -4,7 +4,7 @@ package com.meteomontana.android.domain.model.gym
 enum class RouteStyle(val wire: String) { PARTNER("partner"), SOLO("solo") }
 
 /** Los boards de entrenamiento que se pueden apuntar a mano (no hay API oficial). */
-enum class BoardKind(val wire: String) { KILTER("kilter"), TENSION("tension"), MOONBOARD("moonboard") }
+enum class BoardKind(val wire: String) { KILTER("kilter"), TENSION("tension"), MOONBOARD("moonboard"), SYSTEM("system") }
 
 /** Qué es una clave de `ascents`: un bloque (color o grado), una vía o un board. */
 sealed interface AscentKey {
@@ -15,7 +15,7 @@ sealed interface AscentKey {
 
 /**
  * Claves de vías y boards dentro de `ascents` (el servidor las valida igual, ver BACKEND-PENDIENTE.md §8):
- * `route:<partner|solo>:<sent|project>:<grado>` y `board:<kilter|tension|moonboard>:<grado>[:<inclinación>]`.
+ * `route:<partner|solo>:<sent|project>:<grado>` y `board:<kilter|tension|moonboard|system>:<grado>[:<inclinación>]`.
  * Cualquier otra clave es un bloque (color o grado). Igual en iOS y Android.
  */
 object GymAscentKeys {

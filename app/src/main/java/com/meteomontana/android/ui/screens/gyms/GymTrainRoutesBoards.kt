@@ -91,7 +91,7 @@ internal fun BoardsTab(ascents: List<GymAscent>, adjust: (String, Int) -> Unit) 
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 BoardLogo(b)
-                Text(boardName(b), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onBackground)
+                Text(boardName(b), fontWeight = FontWeight.SemiBold, fontSize = 12.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
             }
         }
     }

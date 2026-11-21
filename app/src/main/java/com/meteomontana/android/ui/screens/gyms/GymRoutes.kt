@@ -21,6 +21,9 @@ object GymNav {
     /** Ascensiones (por rocódromo, grado y mes) de una persona; sin uid, las mías. */
     const val ASCENTS = "gym-ascents?uid={uid}"
     fun ascents(uid: String? = null) = if (uid.isNullOrBlank()) "gym-ascents" else "gym-ascents?uid=$uid"
+    /** Lo que una persona hizo EN un rocódromo (sesiones y ascensiones); sin uid, lo mío. */
+    const val VISIT = "gym-visit/{gymId}?uid={uid}"
+    fun visit(gymId: Long, uid: String? = null) = "gym-visit/$gymId?uid=" + (uid?.let { android.net.Uri.encode(it) } ?: "")
     const val CHAT = "gyms/{gymId}/chat?name={name}"
     fun chat(id: Long, name: String) = "gyms/$id/chat?name=${android.net.Uri.encode(name)}"
     const val MEETUP = "gyms/{gymId}/meetup?name={name}"
@@ -46,6 +49,20 @@ fun NavGraphBuilder.gymRoutes(sheetNav: NavHostController, popSheetOrDismiss: ()
     ) { entry ->
         com.meteomontana.android.ui.screens.profile.GymAscentsScreen(
             uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() },
+            onBack = popSheetOrDismiss,
+            onOpenGym = { sheetNav.navigate(GymNav.visit(it, entry.arguments?.getString("uid")?.takeIf { u -> u.isNotBlank() })) }
+        )
+    }
+    composable(
+        route = GymNav.VISIT,
+        arguments = listOf(
+            navArgument("gymId") { type = NavType.StringType },
+            navArgument("uid") { type = NavType.StringType; nullable = true; defaultValue = null }
+        )
+    ) { entry ->
+        com.meteomontana.android.ui.screens.profile.GymVisitScreen(
+            uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() },
+            gymId = entry.arguments?.getString("gymId")?.toLongOrNull() ?: -1L,
             onBack = popSheetOrDismiss,
             onOpenGym = { sheetNav.navigate(GymNav.detail(it)) }
         )

@@ -67,6 +67,7 @@ private val KilterBlack = Color(0xFF1B1B1B)
 private val KilterBlue = Color(0xFF2B7FFF)
 private val TensionWood = Color(0xFFC79A63)
 private val MoonYellow = Color(0xFFF2C21A)
+private val SystemGreen = Color(0xFF3E8E6B)
 
 /**
  * Hoja «He entrenado aquí hoy» (maqueta 2): pestañas Bloques | Vías | Boards, el rocódromo ya viene fijado y «Guardar
@@ -150,17 +151,17 @@ private fun BlocksTab(gym: Gym, ascents: List<GymAscent>, adjust: (String, Int) 
     } else GymAscentKeys.BLOCK_GRADES.forEach { g -> GradeCounterRow(g, GymTraining.countOf(blocks, g)) { d -> adjust(g, d) } }
 }
 
-internal fun boardColor(b: BoardKind) = when (b) { BoardKind.KILTER -> KilterBlue; BoardKind.TENSION -> TensionWood; BoardKind.MOONBOARD -> MoonYellow }
+internal fun boardColor(b: BoardKind) = when (b) { BoardKind.KILTER -> KilterBlue; BoardKind.TENSION -> TensionWood; BoardKind.MOONBOARD -> MoonYellow; BoardKind.SYSTEM -> SystemGreen }
 
 @Composable
 internal fun boardName(b: BoardKind) = stringResource(when (b) {
-    BoardKind.KILTER -> R.string.gym_board_kilter; BoardKind.TENSION -> R.string.gym_board_tension; BoardKind.MOONBOARD -> R.string.gym_board_moon
+    BoardKind.KILTER -> R.string.gym_board_kilter; BoardKind.TENSION -> R.string.gym_board_tension; BoardKind.MOONBOARD -> R.string.gym_board_moon; BoardKind.SYSTEM -> R.string.gym_board_system
 })
 
 /** Logo-color de cada board: Kilter negro con celeste, Tension madera, Moonboard amarillo. */
 @Composable
 internal fun BoardLogo(b: BoardKind) {
-    val base = when (b) { BoardKind.KILTER -> KilterBlack; BoardKind.TENSION -> TensionWood; BoardKind.MOONBOARD -> MoonYellow }
+    val base = when (b) { BoardKind.KILTER -> KilterBlack; BoardKind.TENSION -> TensionWood; BoardKind.MOONBOARD -> MoonYellow; BoardKind.SYSTEM -> SystemGreen }
     Box(Modifier.size(34.dp).clip(RoundedCornerShape(9.dp)).background(base), contentAlignment = Alignment.Center) {
         if (b == BoardKind.KILTER) Box(Modifier.size(14.dp).clip(CircleShape).background(Color(0xFF58B7FF)))
     }

@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -17,7 +19,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,8 +40,9 @@ import com.meteomontana.android.ui.screens.schools.TabButton
 import com.meteomontana.android.ui.theme.Serif
 
 /**
- * «Ascensiones · N» (maqueta 4C), propia o de otra persona: pestañas Todo · Bloques · Vías · Boards y, debajo, por
- * rocódromo (solo en «Todo»: el desglose por rocódromo no distingue bloques de vías), por grado y por mes.
+ * «Ascensiones · N» (maqueta 4C), propia o de otra persona: pestañas Todo · Bloques · Vías · Boards. Cada rocódromo tiene
+ * su escala (colores o grados), así que Todo, Bloques y Vías van agrupados POR ROCÓDROMO con su propio reparto; Boards va
+ * agrupado por tablero (Kilter, MoonBoard...) y luego por grado. Tocar un rocódromo abre lo que se hizo allí.
  */
 @Composable
 fun GymAscentsScreen(
@@ -67,7 +69,8 @@ fun GymAscentsScreen(
                 stringResource(R.string.gym_asc_title, s.ascents), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp,
                 color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f)
             )
-            if (own) IconButton(onClick = { reordering = true }) { Icon(androidx.compose.material.icons.Icons.Outlined.SwapVert, stringResource(R.string.gym_asc_order_cd)) }
+            if (own) OrderPill { reordering = true }
+            Spacer(Modifier.width(8.dp))
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 6.dp)) {
             Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.outline.copy(alpha = 0.18f), RoundedCornerShape(24.dp)).padding(3.dp)) {
@@ -81,9 +84,7 @@ fun GymAscentsScreen(
             if (s.isEmpty) Box(Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.gym_asc_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (filter == AscentFilter.ALL) ByGymSection(s, onOpenGym)
-                ByGradeSection(items, viewModel::colorHex)
-                if (filter == AscentFilter.ALL) ByMonthSection(s)
+                AscentsBody(s, filter, items, viewModel::colorHex, viewModel::colorHexFor, onOpenGym)
                 Box(Modifier.padding(bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current + 16.dp))
             }
         }

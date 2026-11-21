@@ -95,4 +95,5 @@ internal fun boardBrandColor(b: com.meteomontana.android.domain.model.gym.BoardK
     com.meteomontana.android.domain.model.gym.BoardKind.KILTER -> Color(0xFF1B1B1B)
     com.meteomontana.android.domain.model.gym.BoardKind.TENSION -> Color(0xFFC79A63)
     com.meteomontana.android.domain.model.gym.BoardKind.MOONBOARD -> Color(0xFFF2C21A)
+    com.meteomontana.android.domain.model.gym.BoardKind.SYSTEM -> Color(0xFF3E8E6B)
 }

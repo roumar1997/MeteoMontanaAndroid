@@ -121,7 +121,7 @@ class GymPickerViewModel @Inject constructor(
 
     private fun recompute() {
         val q = _state.value.query
-        val items = filterGyms(all, GymFilters(query = q), origin)
+        val items = filterGyms(all, GymFilters(query = q), origin, favoriteIds)
         if (q.isNotBlank()) { _state.update { it.copy(results = items.take(20).map(::entry)) }; return }
         val byId = items.associateBy { it.gym.id }
         val today = training.today()

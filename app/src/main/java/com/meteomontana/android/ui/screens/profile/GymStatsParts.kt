@@ -45,7 +45,7 @@ internal fun SectionTitle(text: String) =
     Text(text.uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp, bottom = 4.dp))
 
 @Composable
-private fun CardBox(content: @Composable () -> Unit) {
+internal fun CardBox(content: @Composable () -> Unit) {
     val shape = RoundedCornerShape(18.dp)
     Column(
         Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surface, shape).border(1.dp, MaterialTheme.colorScheme.outline, shape).padding(12.dp),
@@ -55,7 +55,7 @@ private fun CardBox(content: @Composable () -> Unit) {
 
 /** Una barra con relleno proporcional (de 0 a 1) sobre una pista gris. */
 @Composable
-private fun Bar(fraction: Float, color: Color, modifier: Modifier = Modifier) {
+internal fun Bar(fraction: Float, color: Color, modifier: Modifier = Modifier) {
     Box(modifier.height(9.dp).clip(CircleShape).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.45f))) {
         Box(Modifier.fillMaxHeight().fillMaxWidth(fraction.coerceIn(0.03f, 1f)).clip(CircleShape).background(color))
     }
@@ -88,11 +88,11 @@ internal fun ByGymSection(summary: GymSummary, onOpenGym: ((Long) -> Unit)? = nu
 
 /** Ascensiones por grado (paleta de grados de la app) y, aparte, por color de escala. */
 @Composable
-internal fun ByGradeSection(items: List<com.meteomontana.android.domain.model.gym.GymAscent>, colorHex: (String) -> String?) {
+internal fun ByGradeSection(items: List<com.meteomontana.android.domain.model.gym.GymAscent>, colorHex: (String) -> String?, titled: Boolean = true) {
     val grades = com.meteomontana.android.domain.model.gym.GymBreakdown.byGrade(items)
     val colors = com.meteomontana.android.domain.model.gym.GymBreakdown.byColor(items)
     if (grades.isEmpty() && colors.isEmpty()) return
-    SectionTitle(stringResource(R.string.gym_by_grade))
+    if (titled) SectionTitle(stringResource(R.string.gym_by_grade))
     val top = (grades.map { it.second } + colors.map { it.count }).maxOrNull()?.coerceAtLeast(1) ?: 1
     CardBox {
         grades.forEach { (g, n) ->

@@ -70,6 +70,19 @@ class GymFiltersTest {
     }
 
     @Test
+    fun `buscando, los favoritos van antes que el resto y luego por distancia`() {
+        // "a" casa con varios: sin favoritos manda la distancia; con Cuerda Club (3) favorito, sube primero.
+        val origin = GymOrigin(40.42, -3.70)
+        val plain = ids(GymFilters(query = "a"), origin)
+        assertEquals(1L, plain.first())
+        val withFav = ids(GymFilters(query = "a"), origin, fav = setOf(3L))
+        assertEquals(3L, withFav.first())
+        assertEquals(plain.filter { it != 3L }, withFav.drop(1))
+        // sin texto no se reordena por favoritos
+        assertEquals(ids(GymFilters(), origin), ids(GymFilters(), origin, fav = setOf(3L)))
+    }
+
+    @Test
     fun `favoritos solo los marcados`() {
         assertEquals(listOf(2L), ids(GymFilters(onlyFavorites = true), fav = setOf(2L)))
         assertEquals(emptyList(), ids(GymFilters(onlyFavorites = true)))

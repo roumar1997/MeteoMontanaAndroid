@@ -61,11 +61,13 @@ object GymFilterEngine {
             .map { GymListItem(it, origin?.let { o -> Geo.haversineKm(o.lat, o.lon, it.lat, it.lon) }) }
             .filter { item -> maxKm == null || item.distanceKm == null || item.distanceKm <= maxKm }
             .toList()
-        return when {
+        val sorted = when {
             filters.sort == GymSort.DISTANCE && origin != null ->
                 items.sortedWith(compareBy<GymListItem> { it.distanceKm }.thenBy { it.gym.name.lowercase() })
             else -> items.sortedBy { it.gym.name.lowercase() }
         }
+        // Buscando por texto, los favoritos salen antes que el resto (cada grupo con su orden: distancia o nombre).
+        return if (q.isNotEmpty() && favoriteIds.isNotEmpty()) sorted.sortedBy { if (it.gym.id in favoriteIds) 0 else 1 } else sorted
     }
 
     /**

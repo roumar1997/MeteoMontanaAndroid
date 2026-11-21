@@ -129,3 +129,9 @@ Grado = francés de `FrenchGrade` (3 a 9c+). Cualquier otra forma con esos prefi
 - `gym-summary` lleva `ascentOrder` (aditivo, `null` si no lo cambió) con la misma privacidad que el resto del resumen. Muestras `summary`/`summaryEmpty` de `gym-sessions.json` actualizadas en los dos repos.
 - **`GET /api/feed/count?uid=`** (uid o username; sin `uid` = el propio) → `{count}`: publicaciones que enseña el perfil (todas menos NEW_BLOCK/NEW_LINE, igual que la lista). 0 si el perfil es privado sin seguirlo o hay bloqueo. Muestra `feed-count.json`. Los posts viven en el backend (`feed_posts`), no en Firestore.
 - Tests: `AscentOrderUseCaseTest`, `FeedCountTest`, `GetGymSummaryUseCaseTest` (2 nuevos), `GymContractTest`.
+
+## 11. Ronda 8: desglose por rocódromo y board `system` (backend `develop` 667f0b7, staging `success`)
+
+- `gym-summary` → `byGym[]` gana `items: [{key,count}]` (lo hecho en ESE rocódromo, con su escala) y `days: [{date,ascents}]` (más reciente primero, máx. 60). Aditivo: las apps viejas los ignoran. Muestra `summary` de `gym-sessions.json` actualizada en los dos repos (byte a byte iguales).
+- Claves `board:system:<grado>[:<inclinación>]` aceptadas (`GymAscentRules`). Sin migración.
+- Tests: `GetGymSummaryUseCaseTest` (desglose por rocódromo), `GymScaleAndAscentsTest` (system), `GymContractTest`. Verificado en staging: el resumen real de la cuenta de pruebas ya trae `items` y `days` por rocódromo.

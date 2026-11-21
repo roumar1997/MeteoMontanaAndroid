@@ -4,6 +4,7 @@ import com.meteomontana.android.domain.model.gym.GymAscent
 import com.meteomontana.android.domain.model.gym.GymAscentStats
 import com.meteomontana.android.domain.model.gym.GymSession
 import com.meteomontana.android.domain.model.gym.GymSummary
+import com.meteomontana.android.domain.model.gym.GymSummaryDay
 import com.meteomontana.android.domain.model.gym.GymSummaryGym
 import com.meteomontana.android.domain.model.gym.GymSummaryMonth
 import com.meteomontana.android.domain.model.gym.GymSessionSource
@@ -108,11 +109,23 @@ data class AscentOrderDto(val order: String? = null)
 fun HomeGymDto.toDomain() = com.meteomontana.android.domain.model.gym.HomeGym(id, name, city?.takeIf { it.isNotBlank() })
 
 @Serializable
-data class GymSummaryGymDto(val gymId: Long = 0, val name: String? = null, val sessions: Int = 0, val ascents: Int = 0, val maxGrade: String? = null)
+data class GymSummaryGymDto(
+    val gymId: Long = 0, val name: String? = null, val sessions: Int = 0, val ascents: Int = 0, val maxGrade: String? = null,
+    val items: List<GymAscentDto> = emptyList(), val days: List<GymSummaryDayDto> = emptyList()
+)
+
+@Serializable
+data class GymSummaryDayDto(val date: String = "", val ascents: Int = 0)
 
 fun GymSummaryDto.toDomain() = GymSummary(
     sessions, gyms, ascents, maxGrade?.takeIf { it.isNotBlank() },
-    byGym.map { GymSummaryGym(it.gymId, it.name, it.sessions, it.ascents, it.maxGrade?.takeIf { g -> g.isNotBlank() }) },
+    byGym.map { g ->
+        GymSummaryGym(
+            g.gymId, g.name, g.sessions, g.ascents, g.maxGrade?.takeIf { m -> m.isNotBlank() },
+            g.items.filter { it.key.isNotBlank() && it.count > 0 }.map { GymAscent(it.key, it.count) },
+            g.days.filter { it.date.isNotBlank() }.map { GymSummaryDay(it.date, it.ascents) }
+        )
+    },
     items.filter { it.key.isNotBlank() && it.count > 0 }.map { GymAscent(it.key, it.count) }, byMonth,
     homeGym?.takeIf { it.id != 0L && it.name.isNotBlank() }?.toDomain(),
     ascentOrder?.takeIf { it.isNotBlank() }

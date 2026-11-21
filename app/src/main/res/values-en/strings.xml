@@ -2227,6 +2227,7 @@
     <string name="gym_board_kilter">Kilter</string>
     <string name="gym_board_tension">Tension</string>
     <string name="gym_board_moon">Moonboard</string>
+    <string name="gym_board_system">System</string>
     <string name="gym_sheet_total">Total</string>
     <plurals name="gym_sheet_total_value">
         <item quantity="one">%1$d logged</item>
@@ -2334,4 +2335,21 @@
     <string name="meetup_rope_route_label">Rope team route</string>
     <string name="meetup_list_material">Gear</string>
     <string name="meetup_list_gear_missing">Missing %1$s</string>
+    <string name="gym_asc_order_btn">Reorder</string>
+    <string name="gym_asc_order_up">Up</string>
+    <string name="gym_asc_order_down">Down</string>
+    <string name="gym_asc_empty_category">Nothing logged in this category</string>
+    <string name="gym_visit_empty">No sessions logged here</string>
+    <string name="gym_visit_sessions">Sessions</string>
+    <string name="gym_visit_ascents">Ascents</string>
+    <string name="gym_visit_max">Max grade</string>
+    <string name="gym_visit_open_gym">View gym page</string>
+    <string name="gym_visit_days">Training days</string>
+    <string name="gym_visit_day_none">No ascents logged</string>
+    <plurals name="gym_visit_day_count">
+        <item quantity="one">%1$d ascent</item>
+        <item quantity="other">%1$d ascents</item>
+    </plurals>
+    <string name="public_profile_unfollow_title">Unfollow %1$s?</string>
+    <string name="public_profile_unfollow_confirm">Unfollow</string>
 </resources>

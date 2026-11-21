@@ -26,7 +26,18 @@ data class GymSummary(
 /** Rocódromo habitual de una persona, con lo justo para pintarlo y abrir su ficha. */
 data class HomeGym(val id: Long, val name: String, val city: String? = null)
 
-data class GymSummaryGym(val gymId: Long, val name: String?, val sessions: Int, val ascents: Int, val maxGrade: String?)
+/**
+ * Lo de una persona en UN rocodromo: sus claves ([items], cada rocodromo con su escala: colores o grados) y sus dias
+ * ([days], el mas reciente primero). Servidores antiguos no los mandan: quedan vacios.
+ */
+data class GymSummaryGym(
+    val gymId: Long, val name: String?, val sessions: Int, val ascents: Int, val maxGrade: String?,
+    val items: List<GymAscent> = emptyList(),
+    val days: List<GymSummaryDay> = emptyList()
+)
+
+/** Un dia en un rocodromo: «2026-11-18» y cuantas ascensiones. */
+data class GymSummaryDay(val date: String, val ascents: Int)
 
 @Serializable
 data class GymSummaryMonth(val month: String, val ascents: Int)
@@ -40,6 +51,8 @@ object GymBreakdown {
     /** Resumen calculado con las sesiones locales (sin red). [name] da el nombre de cada rocodromo si se conoce. */
     fun summarize(sessions: List<GymSession>, today: LocalDate, name: (Long) -> String? = { null }): GymSummary {
         val perGym = LinkedHashMap<Long, IntArray>()
+        val keysByGym = HashMap<Long, LinkedHashMap<String, Int>>()
+        val daysByGym = HashMap<Long, MutableList<GymSummaryDay>>()
         val maxByGym = HashMap<Long, String?>()
         val byKey = LinkedHashMap<String, Int>()
         val byMonth = HashMap<String, Int>()
@@ -50,16 +63,19 @@ object GymBreakdown {
             row[0]++
             row[1] += s.totalAscents
             total += s.totalAscents
+            daysByGym.getOrPut(s.gymId) { mutableListOf() }.add(GymSummaryDay(s.date.toString(), s.totalAscents))
             val monthKey = monthKey(s.date)
             byMonth[monthKey] = (byMonth[monthKey] ?: 0) + s.totalAscents
             for (a in s.ascents) {
                 byKey[a.key] = (byKey[a.key] ?: 0) + a.count
+                val gymKeys = keysByGym.getOrPut(s.gymId) { LinkedHashMap() }
+                gymKeys[a.key] = (gymKeys[a.key] ?: 0) + a.count
                 val g = GymAscentKeys.maxGradeOfKey(a.key)
                 max = GymAscentKeys.harder(max, g)
                 maxByGym[s.gymId] = GymAscentKeys.harder(maxByGym[s.gymId], g)
             }
         }
-        val byGym = perGym.map { (id, r) -> GymSummaryGym(id, name(id), r[0], r[1], maxByGym[id]) }
+        val byGym = perGym.map { (id, r) -> GymSummaryGym(id, name(id), r[0], r[1], maxByGym[id], sortedItems(keysByGym[id]), daysByGym[id].orEmpty().sortedByDescending { it.date }.take(MAX_DAYS)) }
             .sortedWith(compareByDescending<GymSummaryGym> { it.ascents }.thenByDescending { it.sessions })
         val items = byKey.map { GymAscent(it.key, it.value) }.sortedByDescending { it.count }
         val months = (11 downTo 0).map { back ->
@@ -68,6 +84,26 @@ object GymBreakdown {
         }
         return GymSummary(sessions.size, perGym.size, total, max, byGym, items, months)
     }
+
+    private const val MAX_DAYS = 60
+
+    private fun sortedItems(m: Map<String, Int>?): List<GymAscent> =
+        m.orEmpty().map { GymAscent(it.key, it.value) }.sortedByDescending { it.count }
+
+    /** Los rocodromos de [summary] con SOLO lo que entra en [filter] (los que se quedan sin nada, fuera); cada uno con su propia escala. */
+    fun gymsFiltered(summary: GymSummary, filter: AscentFilter): List<GymSummaryGym> =
+        summary.byGym.mapNotNull { g ->
+            val items = filter(g.items, filter)
+            if (items.isEmpty()) null else g.copy(items = items, ascents = items.sumOf { it.count })
+        }
+
+    /** ¿El servidor mando el desglose por rocodromo? (si no, solo hay el total: se pinta como antes). */
+    fun hasGymBreakdown(summary: GymSummary): Boolean = summary.byGym.any { it.items.isNotEmpty() }
+
+    /** Boards agrupados por tablero (Kilter, MoonBoard...), el que mas se uso primero; dentro, lo de cada grado. */
+    fun boardsByKind(items: List<GymAscent>): List<Pair<BoardKind, List<GymAscent>>> =
+        BoardKind.entries.mapNotNull { kind -> GymAscentKeys.boards(items, kind).takeIf { it.isNotEmpty() }?.let { kind to it } }
+            .sortedByDescending { (_, list) -> list.sumOf { it.count } }
 
     /** Las claves de [items] que entran en el [filter]. */
     fun filter(items: List<GymAscent>, filter: AscentFilter): List<GymAscent> = when (filter) {

@@ -125,6 +125,10 @@ class ProfileClimbViewModel @Inject constructor(
     fun colorHex(key: String): String? =
         getCachedGyms().firstNotNullOfOrNull { it.scale?.takeIf { s -> s.isColors }?.levelNamed(key)?.hex }
 
+    /** Color (hex) de un nivel de la escala de ESE rocódromo; si no se conoce su escala, el de cualquier rocódromo con ese nombre. */
+    fun colorHexFor(gymId: Long, key: String): String? =
+        gym(gymId)?.scale?.takeIf { it.isColors }?.levelNamed(key)?.hex ?: colorHex(key)
+
     /** Propio: si el servidor tiene mi rocódromo lo guardo en el móvil; si no lo tiene y yo sí (elegido antes o sin red), lo subo. */
     private suspend fun syncHomeGym(remote: GymSummary?) {
         if (remote == null) return

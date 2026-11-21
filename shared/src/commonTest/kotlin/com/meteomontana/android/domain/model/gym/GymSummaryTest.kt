@@ -44,6 +44,34 @@ class GymSummaryTest {
         assertEquals(listOf("verde"), GymBreakdown.byColor(items).map { it.key })
     }
 
+    @Test fun perGymBreakdownKeepsEachScaleApart() {
+        val sessions = listOf(
+            s(1, 2026, 11, 18, "verde" to 3, "azul" to 1),
+            s(1, 2026, 11, 2, "verde" to 2),
+            s(2, 2026, 11, 10, "6a" to 4, "route:solo:sent:6b" to 1, "board:system:6c" to 2, "board:kilter:6a:40" to 1)
+        )
+        val sum = GymBreakdown.summarize(sessions, today)
+        val g1 = sum.byGym.first { it.gymId == 1L }
+        assertEquals(mapOf("verde" to 5, "azul" to 1), g1.items.associate { it.key to it.count })
+        assertEquals(listOf("2026-11-18", "2026-11-02"), g1.days.map { it.date })
+        assertEquals(listOf(3 + 1, 2), g1.days.map { it.ascents })
+        assertEquals(true, GymBreakdown.hasGymBreakdown(sum))
+        // Bloques: el 1 solo con colores y el 2 solo con su grado; nunca se mezclan.
+        val blocks = GymBreakdown.gymsFiltered(sum, AscentFilter.BLOCKS)
+        assertEquals(mapOf(1L to 6, 2L to 4), blocks.associate { it.gymId to it.ascents })
+        assertEquals(listOf("6a"), blocks.first { it.gymId == 2L }.items.map { it.key })
+        assertEquals(listOf("route:solo:sent:6b"), GymBreakdown.gymsFiltered(sum, AscentFilter.ROUTES).single().items.map { it.key })
+        assertEquals(2, GymBreakdown.gymsFiltered(sum, AscentFilter.BOARDS).single().items.size)
+        // Boards por tablero: System (2) antes que Kilter (1).
+        val byKind = GymBreakdown.boardsByKind(GymBreakdown.filter(sum.items, AscentFilter.BOARDS))
+        assertEquals(listOf(BoardKind.SYSTEM, BoardKind.KILTER), byKind.map { it.first })
+    }
+
+    @Test fun oldServerWithoutBreakdown() {
+        val sum = GymSummary(sessions = 1, gyms = 1, ascents = 3, byGym = listOf(GymSummaryGym(1, "X", 1, 3, null)))
+        assertEquals(false, GymBreakdown.hasGymBreakdown(sum))
+    }
+
     @Test fun emptyHasNoMaxGrade() {
         val sum = GymBreakdown.summarize(emptyList(), today)
         assertNull(sum.maxGrade)

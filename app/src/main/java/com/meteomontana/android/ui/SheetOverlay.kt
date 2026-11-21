@@ -259,7 +259,7 @@ private fun SheetNavHost(
                             },
                             onOpenAllSchools = { sheetNav.navigate(Routes.journalSchools(null)) },
                             onOpenProjects = { sheetNav.navigate(Routes.projects(null)) },
-                            onOpenGym = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.detail(it)) }
+                            onOpenGym = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.visit(it, statsUid)) }
                         )
                     }
                     // "Mis publicaciones": feed propio en pantalla dedicada.

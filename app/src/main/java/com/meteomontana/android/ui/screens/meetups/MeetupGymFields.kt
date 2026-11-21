@@ -26,19 +26,22 @@ private const val MAX_RESULTS = 8
 class MeetupGymPickerViewModel @Inject constructor(
     getCached: GetCachedGymsUseCase,
     getGyms: GetGymsUseCase,
+    getFavorites: com.meteomontana.android.domain.usecase.gym.GetGymFavoritesUseCase,
     private val filterGyms: FilterGymsUseCase
 ) : ViewModel() {
     private val all = MutableStateFlow<List<Gym>>(getCached())
     private val query = MutableStateFlow("")
     private val origin = MutableStateFlow<GymOrigin?>(null)
+    private val favorites = MutableStateFlow<Set<Long>>(emptySet())
 
-    /** Con la ubicación y sin texto salen «cerca de ti» (los más cercanos); con texto, los que coinciden. */
-    val results: StateFlow<List<GymListItem>> = combine(all, query, origin) { gyms, q, o ->
-        filterGyms(gyms, GymFilters(query = q), o).take(MAX_RESULTS)
+    /** Con la ubicación y sin texto salen «cerca de ti» (los más cercanos); con texto, los que coinciden (favoritos primero). */
+    val results: StateFlow<List<GymListItem>> = combine(all, query, origin, favorites) { gyms, q, o, favs ->
+        filterGyms(gyms, GymFilters(query = q), o, favs).take(MAX_RESULTS)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     init {
         viewModelScope.launch { runCatching { getGyms.execute() }.onSuccess { all.value = it } }
+        viewModelScope.launch { runCatching { getFavorites.execute() }.onSuccess { favorites.value = it } }
     }
 
     fun search(q: String) { query.value = q }

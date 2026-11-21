@@ -2286,6 +2286,7 @@
     <string name="gym_board_kilter">Kilter</string>
     <string name="gym_board_tension">Tension</string>
     <string name="gym_board_moon">Moonboard</string>
+    <string name="gym_board_system">System</string>
     <string name="gym_sheet_total">Total</string>
     <plurals name="gym_sheet_total_value">
         <item quantity="one">%1$d apuntado</item>
@@ -2393,4 +2394,21 @@
     <string name="meetup_rope_route_label">Vía de cordada</string>
     <string name="meetup_list_material">Material</string>
     <string name="meetup_list_gear_missing">Falta %1$s</string>
+    <string name="gym_asc_order_btn">Ordenar</string>
+    <string name="gym_asc_order_up">Subir</string>
+    <string name="gym_asc_order_down">Bajar</string>
+    <string name="gym_asc_empty_category">Nada apuntado en esta categoría</string>
+    <string name="gym_visit_empty">Aquí no hay entrenos apuntados</string>
+    <string name="gym_visit_sessions">Sesiones</string>
+    <string name="gym_visit_ascents">Ascensiones</string>
+    <string name="gym_visit_max">Máx. grado</string>
+    <string name="gym_visit_open_gym">Ver ficha del rocódromo</string>
+    <string name="gym_visit_days">Días de entreno</string>
+    <string name="gym_visit_day_none">Sin ascensiones apuntadas</string>
+    <plurals name="gym_visit_day_count">
+        <item quantity="one">%1$d ascensión</item>
+        <item quantity="other">%1$d ascensiones</item>
+    </plurals>
+    <string name="public_profile_unfollow_title">¿Dejar de seguir a %1$s?</string>
+    <string name="public_profile_unfollow_confirm">Dejar de seguir</string>
 </resources>

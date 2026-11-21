@@ -323,35 +323,37 @@ internal fun Body(
                 avatarSlot = avatarSlot,
                 modifier = Modifier.padding(top = 4.dp)
             )
-            // SEGUIR va en su propia fila (antes iba a la derecha del nombre y se comía «seguidores»).
+            // Una sola fila compacta: «Te sigue» a la izquierda y la pildora Seguir / Siguiendo a la derecha.
+            // Tocar «Siguiendo» pide confirmación antes de dejar de seguir.
+            var confirmUnfollow by remember { mutableStateOf(false) }
+            if (confirmUnfollow) androidx.compose.material3.AlertDialog(
+                onDismissRequest = { confirmUnfollow = false },
+                title = { Text(stringResource(R.string.public_profile_unfollow_title, p.displayName ?: p.username ?: stringResource(R.string.w_user))) },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = { confirmUnfollow = false; onToggleFollow() }) {
+                        Text(stringResource(R.string.public_profile_unfollow_confirm), color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    androidx.compose.material3.TextButton(onClick = { confirmUnfollow = false }) { Text(stringResource(R.string.common_cancel)) }
+                }
+            )
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Box(Modifier.weight(1f)) {
-                    FollowButton(iFollow = s.status.iFollowThem, requestPending = s.status.requestPending, onClick = onToggleFollow)
-                }
+                if (s.status.theyFollowMe && !locked) FollowsYouChip()
+                Spacer(Modifier.weight(1f))
+                FollowButton(
+                    iFollow = s.status.iFollowThem, requestPending = s.status.requestPending,
+                    onClick = { if (s.status.iFollowThem) confirmUnfollow = true else onToggleFollow() }
+                )
             }
             // Título (con sus efectos), insignias y viero/bloquero de esta persona.
             com.meteomontana.android.ui.components.RewardsBlock(uid = p.uid)
-            // «Te sigue»: una etiqueta clara.
-            if (s.status.theyFollowMe && !locked) {
-                Row(
-                    Modifier.padding(horizontal = 16.dp).clip(CircleShape).background(com.meteomontana.android.ui.theme.Ok.copy(alpha = 0.10f))
-                        .border(1.dp, com.meteomontana.android.ui.theme.Ok.copy(alpha = 0.5f), CircleShape)
-                        .padding(horizontal = 9.dp, vertical = 5.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Filled.HowToReg, null,
-                        tint = com.meteomontana.android.ui.theme.Ok, modifier = Modifier.size(14.dp))
-                    Text(stringResource(R.string.public_profile_screen_v2_te_sigue).uppercase(),
-                        fontFamily = com.meteomontana.android.ui.theme.Mono, fontWeight = FontWeight.Bold,
-                        fontSize = 9.5.sp, color = com.meteomontana.android.ui.theme.Ok)
-                }
-            }
         }
         if (!locked && s.stats != null) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 com.meteomontana.android.ui.screens.profile.ProfileCells(
                     s.stats.boulderCount, s.stats.routeCount, s.stats.maxBoulderGrade, s.stats.maxRouteGrade,
                     onOpenBoulders, onOpenRoutes, onOpenMaxGrade
@@ -494,7 +496,7 @@ internal fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
 @Composable
 internal fun FollowButton(iFollow: Boolean, requestPending: Boolean, onClick: () -> Unit) {
     val text = when {
-        iFollow         -> stringResource(R.string.profile_following).uppercase()
+        iFollow         -> stringResource(R.string.profile_following)
         requestPending  -> stringResource(R.string.profile_requested)
         else            -> stringResource(R.string.profile_follow)
     }
@@ -506,15 +508,34 @@ internal fun FollowButton(iFollow: Boolean, requestPending: Boolean, onClick: ()
     val filled = !iFollow && !requestPending
     val bg = if (filled) com.meteomontana.android.ui.theme.terraFillColor() else MaterialTheme.colorScheme.surface
     val fg = if (filled) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-    Row(modifier = Modifier.fillMaxWidth().height(44.dp)
+    // Pildora compacta (no una barra a todo el ancho): ocupa lo justo y deja subir el contenido.
+    Row(modifier = Modifier.height(32.dp)
         .clip(CircleShape)
         .background(bg, CircleShape)
         .then(if (filled) Modifier else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
-        .clickable(enabled = !requestPending, onClick = onClick),
+        .clickable(enabled = !requestPending, onClick = onClick)
+        .padding(horizontal = 14.dp),
         horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
     ) {
-        androidx.compose.material3.Icon(icon, null, tint = fg, modifier = Modifier.size(16.dp))
-        Spacer(Modifier.width(6.dp))
-        Text(text.uppercase(), style = MaterialTheme.typography.labelLarge.copy(fontFamily = com.meteomontana.android.ui.theme.Mono, fontWeight = FontWeight.Bold, fontSize = 11.5.sp), color = fg)
+        androidx.compose.material3.Icon(icon, null, tint = fg, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.width(5.dp))
+        Text(text, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, color = fg)
+    }
+}
+
+/** «Te sigue»: etiqueta verde pequeña (la misma de siempre), ahora en la fila de Seguir. */
+@Composable
+internal fun FollowsYouChip() {
+    Row(
+        Modifier.clip(CircleShape).background(com.meteomontana.android.ui.theme.Ok.copy(alpha = 0.10f))
+            .border(1.dp, com.meteomontana.android.ui.theme.Ok.copy(alpha = 0.5f), CircleShape)
+            .padding(horizontal = 9.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Filled.HowToReg, null,
+            tint = com.meteomontana.android.ui.theme.Ok, modifier = Modifier.size(14.dp))
+        Text(stringResource(R.string.public_profile_screen_v2_te_sigue).uppercase(),
+            fontFamily = com.meteomontana.android.ui.theme.Mono, fontWeight = FontWeight.Bold,
+            fontSize = 9.5.sp, color = com.meteomontana.android.ui.theme.Ok)
     }
 }
