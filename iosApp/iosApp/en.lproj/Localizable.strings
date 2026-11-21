@@ -2459,3 +2459,7 @@
 
 /* Rocodromos rondas 2-11c (sincronizado de Android) */
 "w_all" = "All";
+
+/* Rocodromos rondas 2-11c (sincronizado de Android) */
+"explore_group_count_one" = "1 route/boulder";
+"explore_group_count_other" = "%1$@ routes/boulders";

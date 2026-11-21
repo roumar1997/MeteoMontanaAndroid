@@ -739,3 +739,7 @@
 
 /* Rocodromos rondas 2-11c (sincronizado de Android) */
 "w_all" = "Todas";
+
+/* Rocodromos rondas 2-11c (sincronizado de Android) */
+"explore_group_count_one" = "1 vía/bloque";
+"explore_group_count_other" = "%1$@ vías/bloques";

@@ -242,6 +242,8 @@ struct SchoolListView: View {
     /// con la puntuación y el número... pero que puedas verlos todos rápido");
     /// no persiste, se resetea al salir de la pantalla.
     @State private var expandedGroups: Set<String> = []
+    /// Sectores abiertos dentro de cada escuela (escuela|sector); plegados al empezar.
+    @State private var expandedSectors: Set<String> = []
     // Buscador global de vías/bloques: vía a abrir al navegar + resultados.
     @State private var viaHits: [LineSearchHit] = []   // modelo de DOMINIO (via use case)
     @State private var viaSearchTask: Task<Void, Never>?
@@ -392,18 +394,40 @@ struct SchoolListView: View {
             } else if explore.grouped {
                 ForEach(explore.groups, id: \.schoolId) { group in
                     exploreGroupHeader(group)
-                    if expandedGroups.contains(group.schoolId) {
-                        ForEach(group.hits, id: \.stableId) { h in
-                            exploreLineRow(h)
-                            Divider().overlay(Cumbre.rule)
-                        }
-                    }
+                    if expandedGroups.contains(group.schoolId) { groupBody(group) }
                 }
             } else {
                 ForEach(explore.sortedHits, id: \.stableId) { h in
                     exploreLineRow(h, showSchool: true)
                     Divider().overlay(Cumbre.rule)
                 }
+            }
+        }
+    }
+
+    /// Dentro de una escuela: sus SECTORES plegables si tiene más de uno (shared: ExploreSectors.split); si no, las vías.
+    @ViewBuilder private func groupBody(_ g: (schoolId: String, schoolName: String, hits: [LineSearchHit])) -> some View {
+        if let buckets = ExploreSectors.shared.split(hits: g.hits) {
+            let style = vm.schools.first(where: { $0.id == g.schoolId })?.style
+            ForEach(Array(buckets.enumerated()), id: \.offset) { _, b in
+                let key = g.schoolId + "|" + (b.name ?? "")
+                let open = expandedSectors.contains(key)
+                ExploreSectorHeader(name: b.name, count: b.hits.count,
+                                    boulders: ExploreSectors.shared.allBoulders(hits: b.hits, schoolStyle: style),
+                                    routes: ExploreSectors.shared.allRoutes(hits: b.hits, schoolStyle: style), expanded: open) {
+                    if open { expandedSectors.remove(key) } else { expandedSectors.insert(key) }
+                }
+                if open {
+                    ForEach(b.hits, id: \.stableId) { h in
+                        exploreLineRow(h)
+                        Divider().overlay(Cumbre.rule)
+                    }
+                }
+            }
+        } else {
+            ForEach(g.hits, id: \.stableId) { h in
+                exploreLineRow(h)
+                Divider().overlay(Cumbre.rule)
             }
         }
     }
