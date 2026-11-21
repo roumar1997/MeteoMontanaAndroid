@@ -124,7 +124,7 @@ fun MeetupListItem(meetup: Meetup, dayScoresMap: Map<String, Int> = emptyMap(),
             }
         }
         // Modalidad, cordada y privacidad
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             meetup.discipline?.let { MeetupMiniPill(disciplineLabel(it)) }
             if (meetup.isRopeTeam) MeetupMiniPill(stringResource(R.string.meetup_rope_route_label), highlight = true)
             if (meetup.privacy != "OPEN") Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -221,7 +221,7 @@ private fun MeetupGearStatusRow(meetup: Meetup) {
     if (lines.isEmpty()) return
     val ok = com.meteomontana.android.ui.theme.Ok
     val bad = MaterialTheme.colorScheme.error
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(stringResource(R.string.meetup_list_material).uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
         lines.forEach { l ->
             val label = stringResource(gearLabelRes(l.item))
