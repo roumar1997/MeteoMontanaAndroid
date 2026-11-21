@@ -80,9 +80,13 @@ struct GymTrainBoardsTab: View {
     let ascents: [GymAscent]
     let problems: [BoardProblem]
     let adjust: (String, Int) -> Void
-    let addBoard: (BoardKind, String, Int?, String) -> Void
+    let addBoard: (BoardKind, String, Int?, String, Int) -> Void
     /// Tablero fijado (el «+» de la pantalla Boards): sin selector de marca.
     var fixedBoard: BoardKind?
+    var suggestions: [BoardProblemSuggestion] = []
+    var onQuery: (BoardKind, String) -> Void = { _, _ in }
+    var onClear: () -> Void = {}
+    @State private var reps = 1
     @State private var board: BoardKind = .kilter
     @State private var angle: Int?
     @State private var started = false
@@ -96,7 +100,11 @@ struct GymTrainBoardsTab: View {
         HStack(spacing: 8) {
             ForEach(BoardStyle.all, id: \.self) { b in
                 let sel = b == board
-                Button { board = b; angle = BoardAngleStore.memory.initial(board: b)?.intValue } label: {
+                Button {
+                    board = b
+                    angle = BoardAngleStore.memory.initial(board: b)?.intValue
+                    if name.trimmingCharacters(in: .whitespaces).isEmpty { onClear() } else { onQuery(b, name) }
+                } label: {
                     VStack(spacing: 5) {
                         BoardLogo(board: b)
                         Text(BoardStyle.name(b)).font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink).lineLimit(1)
@@ -134,13 +142,18 @@ struct GymTrainBoardsTab: View {
                 .onChange(of: name) { _, new in
                     let max = Int(BoardProblems.shared.MAX_NAME)
                     if new.count > max { name = String(new.prefix(max)) }
+                    onQuery(board, name)
                 }
             Text("\(name.count)/\(BoardProblems.shared.MAX_NAME)").font(.system(size: 11)).foregroundStyle(Cumbre.ink2).padding(.leading, 12)
         }
+        if !name.trimmingCharacters(in: .whitespaces).isEmpty { BoardNameSuggestions(suggestions: suggestions, onPick: pick) }
+        BoardRepsStepper(reps: $reps)
         let grade = GymAscentKeys.shared.gradeOf(selected: selected)
         GymAddButton(grade: grade) {
             guard let grade else { return }
-            addBoard(board, grade, angle, name)
+            addBoard(board, grade, angle, name, reps)
+            reps = 1
+            onClear()
             BoardAngleStore.remember(board, angle)
             selected = []
             name = ""
@@ -152,6 +165,14 @@ struct GymTrainBoardsTab: View {
                 if let fixedBoard { board = fixedBoard }
                 angle = BoardAngleStore.memory.initial(board: board)?.intValue
             }
+    }
+
+    /// Elegir una sugerencia rellena nombre, grado y, si se sabe, inclinación.
+    private func pick(_ s: BoardProblemSuggestion) {
+        name = s.name
+        selected = Array(s.grade.split(separator: "/").map(String.init).filter { GymAscentKeys.shared.GRID_GRADES.contains($0) }.prefix(2))
+        if let a = s.angle?.intValue, BoardAngles.shared.anglesFor(board: board).contains(where: { $0.intValue == a }) { angle = a }
+        onClear()
     }
 }
 
@@ -241,7 +262,10 @@ struct GymAddedList: View {
                 .padding(.horizontal, 10).padding(.vertical, 6).background(st.stroke, in: RoundedRectangle(cornerRadius: 10))
             VStack(alignment: .leading, spacing: 1) {
                 Text(d.title).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink).lineLimit(1)
-                Text(([d.sub] + (names[a.key] ?? [])).joined(separator: " · ")).font(.system(size: 12))
+                Text(([d.sub] + BoardProblemRepeats.shared.groupNames(names: names[a.key] ?? []).compactMap { p -> String? in
+                    guard let n = p.first as? String, let c = p.second else { return nil }
+                    return c.intValue > 1 ? "\(n) ×\(c)" : n
+                }).joined(separator: " · ")).font(.system(size: 12))
                     .foregroundStyle(Cumbre.ink2).lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)

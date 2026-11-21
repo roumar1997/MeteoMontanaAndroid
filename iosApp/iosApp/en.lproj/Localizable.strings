@@ -2473,3 +2473,14 @@
 "gym_board_angles" = "Angles";
 "gym_board_angles_all" = "All";
 "gym_board_angle_chip" = "%1$@° · %2$@";
+
+/* Rocodromos rondas 2-11c (sincronizado de Android) */
+"gym_board_reps_badge" = "×%1$@";
+"gym_board_reps_last" = "last %1$@";
+"gym_board_reps_label" = "Repetitions";
+"gym_board_reps_minus_cd" = "Fewer repetitions";
+"gym_board_reps_plus_cd" = "More repetitions";
+"gym_board_suggest_meta" = "%1$@ · %2$@";
+"gym_board_suggest_people" = "×%1$@";
+"gym_board_reps_days_one" = "%1$@ day";
+"gym_board_reps_days_other" = "%1$@ days";

@@ -10,6 +10,9 @@ final class GymTrainSheetViewModel: ObservableObject {
     @Published var saving = false
     /// Ya había algo apuntado al abrir la hoja: dejarla a cero BORRA el entreno.
     @Published var hadAscents = false
+    /// Sugerencias del nombre del bloque mientras se escribe (lo propio y el catálogo compartido).
+    @Published var suggestions: [BoardProblemSuggestion] = []
+    private var suggestTask: Task<Void, Never>?
     private let c = AppDependencies.shared.container.gyms
 
     func load(gymId: Int64, date: Kotlinx_datetimeLocalDate?) {
@@ -30,10 +33,32 @@ final class GymTrainSheetViewModel: ObservableObject {
     }
 
     /// Apunta un board y, si lleva nombre (opcional, se recorta), también el nombre del bloque.
-    func addBoard(_ board: BoardKind, _ grade: String, _ angle: Int?, _ name: String) {
+    func addBoard(_ board: BoardKind, _ grade: String, _ angle: Int?, _ name: String, _ reps: Int) {
+        let n = BoardProblemRepeats.shared.clampReps(n: Int32(reps))
         let key = GymAscentKeys.shared.board(board: board, grade: grade, angle: angle.map { KotlinInt(int: Int32($0)) })
-        ascents = GymTraining.shared.adjust(ascents: ascents, key: key, delta: 1)
-        boardProblems = BoardProblems.shared.add(problems: boardProblems, board: board, grade: grade, name: name)
+        ascents = GymTraining.shared.adjust(ascents: ascents, key: key, delta: n)
+        boardProblems = BoardProblemRepeats.shared.addRepeated(problems: boardProblems, board: board, grade: grade, name: name, reps: n)
+        suggestions = []
+    }
+
+    /// Al escribir el nombre: al instante lo propio y, tras 250 ms, también el catálogo de todas las personas (desde 2 letras).
+    func onNameChanged(_ board: BoardKind, _ text: String) {
+        suggestTask?.cancel()
+        guard BoardProblemRepeats.shared.nameKey(name: text).count >= Int(BoardProblemRepeats.shared.SUGGEST_MIN_CHARS) else {
+            suggestions = []
+            return
+        }
+        suggestions = c.searchBoardProblems.local(board: board, query: text)
+        suggestTask = Task {
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            guard !Task.isCancelled else { return }
+            if let found = try? await c.searchBoardProblems.search(board: board, query: text), !Task.isCancelled { suggestions = found }
+        }
+    }
+
+    func clearSuggestions() {
+        suggestTask?.cancel()
+        suggestions = []
     }
 
     /// Apunta la sesión (hoy también en el servidor) y guarda lo hecho. Funciona sin red: primero en el móvil.
@@ -81,7 +106,8 @@ struct GymTrainSheet: View {
                     case .blocks: GymTrainBlocksTab(gym: gym, ascents: vm.ascents, adjust: vm.adjust)
                     case .routes: GymTrainRoutesTab(ascents: vm.ascents, adjust: vm.adjust)
                     case .boards: GymTrainBoardsTab(ascents: vm.ascents, problems: vm.boardProblems, adjust: vm.adjust,
-                                                    addBoard: vm.addBoard)
+                                                    addBoard: vm.addBoard, suggestions: vm.suggestions,
+                                                    onQuery: vm.onNameChanged, onClear: vm.clearSuggestions)
                     }
                 }
                 .padding(.top, 12)

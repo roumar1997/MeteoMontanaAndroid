@@ -31,7 +31,8 @@ struct SoloBoardSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
                     GymTrainBoardsTab(ascents: vm.ascents, problems: vm.boardProblems, adjust: vm.adjust, addBoard: vm.addBoard,
-                                      fixedBoard: board)
+                                      fixedBoard: board, suggestions: vm.suggestions, onQuery: vm.onNameChanged,
+                                      onClear: vm.clearSuggestions)
                 }
             }
             let total = vm.ascents.reduce(0) { $0 + Int($1.count) }

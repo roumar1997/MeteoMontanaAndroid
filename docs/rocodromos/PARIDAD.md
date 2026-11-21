@@ -202,7 +202,7 @@ Cambios respecto a las secciones 1 a 4. **iOS ya los lleva** (ver la tabla al fi
 Cambios en shared de esta pasada: `GymLabelPlanner` y `LabelCandidate` pasan de `app` a `shared` (públicos); `GymAdminEdit`/`GymAdminUpdateDto` llevan `closed`.
 Diferencia conocida: en iOS el nombre se coloca proyectando a Mercator (mundo de 512 pt a zoom 0), no con la proyección del mapa; el reparto solo usa posiciones relativas, así que coincide con Android.
 
-## 11. Ronda 2 del emulador (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 12»)
+## 11. Ronda 2 del emulador (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 Rocódromos funciona **igual que Escuelas**: buscador, botón «VER MAPA / OCULTAR MAPA» (mapa plegable de 320 dp, cerrado al arrancar, `MapToggleBar`), fila «FILTROS (n) · N rocódromos · FAVORITOS» y debajo la **lista** por cercanía (50 km por defecto). Ya no hay «Mapa | Lista» ni carrusel de favoritos (el favorito es el filtro ★).
 
@@ -218,7 +218,7 @@ Rocódromos funciona **igual que Escuelas**: buscador, botón «VER MAPA / OCULT
 10. **Quedadas**: «Crear quedada» tiene segmento Escuela | Rocódromo (buscador de rocódromos del catálogo, sin tildes), **grado orientativo** MÍN/MÁX opcional y, si la disciplina es Vía, chip «Cordada (1 persona)». Campos nuevos en `CreateMeetupRequest`/DTO: `gradeMin`, `gradeMax`, `partnersWanted` (solo se envían si tienen valor). Contrato en `BACKEND-PENDIENTE.md`.
 11. **Preparado, sin dato todavía**: `GymListRow(capacity = …)` es un hueco para el «aforo %» (no se pinta sin dato) y el orden futuro «Más vacío» se añadirá a `GymSort` cuando exista el dato.
 
-## 12. Ronda 3 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 12»)
+## 12. Ronda 3 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 Contrato final del servidor en staging (`BACKEND-PENDIENTE.md`; muestras en `app/src/test/resources/contract/`, copiadas idénticas del backend: `gyms.json`, `gym-report.json`, `gym-sessions.json`, `meetups.json`; `ApiContractTest` las comprueba). **Todo lo de lógica sale de shared: no reimplementar en Swift.**
 
@@ -243,7 +243,7 @@ Contrato final del servidor en staging (`BACKEND-PENDIENTE.md`; muestras en `app
 
 Diferencias conocidas: Maestro del paso 1 toca el buscador por posición (el texto de ayuda no sale en el árbol de accesibilidad de Compose).
 
-## 13. Ronda 4 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 12»)
+## 13. Ronda 4 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 Lógica nueva en `shared` (iOS no debe reimplementarla): `RockDryOutlook` (seca/mojada, franja de 5 días), `GymAscentKeys` (claves de vías y boards), `MeetupGearItem.forPlace` (material según lugar), purga de la caché de quedadas (`MeetupCacheRepository.retainOnly/remove`).
 
@@ -259,7 +259,7 @@ Lógica nueva en `shared` (iOS no debe reimplementarla): `RockDryOutlook` (seca/
 10. **Selector «¿Dónde has entrenado?»** (`GymPickerSheet`): buscador, Hoy | Ayer | Otro día (calendario sin futuro), Favoritos, Recientes («hace 2 semanas», `GymPickerViewModel`) y Cerca; «Seguir · apuntar en X» abre la hoja de entreno de ese día. LÍMITE: el servidor solo tiene `sessions/today`, así que Ayer/Otro día se guardan solo en el móvil hasta que haya `POST /api/gyms/{id}/sessions` con fecha.
 11. **Claves route:/board: bonitas** (`GymAscentPills`): vía = grado con su color + icono compañero/autoaseguro + check (encadenada) o «Proyecto» + ×N; board = color de marca + nombre + grado + inclinación + ×N. Nunca la clave en crudo (entrenos, año, perfil).
 
-## 14. Ronda 5 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 12»)
+## 14. Ronda 5 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 Lógica nueva en `shared` (no reimplementar en Swift): `ExploreSectors` (sectores plegables y «bloques»/«vías»), `GymAscentKeys` (rejilla `GRID_GRADES`, `toggleGrade`, grados dobles contiguos `6b+/6c`, `gradeOf`, `harder`), `MeetupDraft.toggleBoulder/toggleRoute` (`BOTH`), `GymSummary`/`GymBreakdown` (totales, por rocódromo, grado y mes), `JournalStatsCalculator.rockDays`, `GetGymSummaryUseCase`, y editar a cero borra la sesión (`LocalFirstGymSessionRepository.saveAscents`).
 
@@ -274,7 +274,7 @@ Lógica nueva en `shared` (no reimplementar en Swift): `ExploreSectors` (sectore
 9. «Rocódromos cerca» en la ficha de escuela: una línea pequeña plegable. Mapas de Quedadas con los estilos de Roca.
 10. **Tu rocódromo en el servidor** (PENDIENTE PARA iOS): `PUT /api/me/home-gym` con `{"gymId": 5}` (null = quitar) y `GET /api/me/home-gym`, respuesta `{"homeGym": {"id","name","city"} | null}`. `gym-summary` lleva ahora `homeGym` (misma privacidad que el resto del resumen: perfil privado ajeno = 404). Lógica en `shared` (`HomeGymUseCase`, `GymSummary.homeGym`, `HomeGym`). iOS: Ajustes guarda en servidor (y caché local); el perfil propio muestra «Tu rocódromo» (hueco «Elige tu rocódromo» si no hay, abre el selector) y el ajeno «Su rocódromo» (sin hueco si no tiene); tocar abre la ficha. Al abrir el perfil propio: si el servidor lo tiene se copia al móvil; si no y el móvil sí, se sube (migra a quien ya lo había elegido solo en local). Textos nuevos: `home_gym_yours/theirs/pick`.
 
-## 15. Ronda 6 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 12»)
+## 15. Ronda 6 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 Logica nueva en `shared` (no reimplementar en Swift): `MeetupGearStatus.lines(meetup)` (material que tiene y que falta; cordada en via sin material pedido = cuerda + gri-gri; la cobertura la da el servidor), con test.
 
@@ -292,7 +292,7 @@ Diferencias conocidas: el clima del lugar en la tarjeta de quedada se limita a l
 
 10. **Avatar en los chats de GRUPO** (quedada, escuela, rocodromo; NO en el privado 1 a 1; Android hecho, PENDIENTE PARA iOS): los mensajes ajenos llevan a la izquierda la foto redonda del emisor (28 dp, con su aureola de titulo, como `PersonAvatar`) y su nombre ENCIMA de la burbuja. En una racha (mensajes seguidos del mismo emisor, sin cruzar de dia): el nombre solo en el PRIMERO y el avatar solo en el ULTIMO (en los demas, un hueco de 28 dp + 6 dp para alinear las burbujas). Mis mensajes: sin avatar ni nombre. Tocar el avatar abre el perfil publico. Logica de rachas en `chatRunPositions` (Android; en iOS `chatRunPositions` de ChatKit.swift). Esto sustituye la "diferencia conocida" de arriba.
 
-## 16. Ronda 7 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 12»)
+## 16. Ronda 7 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 Logica nueva en `shared` (no reimplementar en Swift): `GearJson.parse` (mochila `{"cuerda":true,"cintas":12}`, los si/no cuentan 1), `MeetupGearStatus.withMochilas(meetup, mapOf(uid to mochilaJson))` (suma la mochila del organizador y de los apuntados al material cubierto; nunca baja lo que cuenta el servidor) y `AscentTabOrder` (orden de las categorias de Ascensiones), los tres con test.
 
@@ -304,12 +304,12 @@ Logica nueva en `shared` (no reimplementar en Swift): `GearJson.parse` (mochila 
 6. **Perfil propio y ajeno (mismo orden)**: 4 celdas (Bloques, Vias, Max bloque con grado en color, Max via) · 3 fichas (Publicaciones, Escuelas, Proyectos con su cuenta; Publicaciones lleva su cuenta de feed/count, ver 16b) · tarjeta de degradado (la mitad ROCA abre Estadisticas en su pestana Roca, la mitad ROCODROMO en la pestana Rocodromo; ruta `journal/stats?uid=&tab=rock|gym`) · fila «Tu/Su rocodromo» + «semanas seguidas» + boton pequeno «+ Entreno» (solo en el propio). Desaparecen la barra «Mis publicaciones», la celda Escuelas suelta y el boton grande de apuntar entreno. Estadisticas > Todo: Escuelas y Proyectos como filas redondeadas con icono de color; Estadisticas > Rocodromo gana la fila «Ver ascensiones» (la tarjeta ya no abre esa pantalla).
 7. **Ascensiones**: boton arriba a la derecha para ordenar las categorias (Bloques, Vias, Boards; «Todo» siempre primero) con flechas; se guarda en el servidor (ver 16b) y queda en cache en el movil (`cumbre_profile_prefs`, clave `ascent_tab_order`).
 
-### 16b. Orden de Ascensiones en el servidor y cuenta de Publicaciones (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 12»)
+### 16b. Orden de Ascensiones en el servidor y cuenta de Publicaciones (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 - **Orden de Ascensiones**: `PUT/GET /api/me/ascent-order` (`{order:"BOARDS,BLOCKS,ROUTES"}`) y campo `ascentOrder` en `gym-summary` (aditivo). Lógica en `shared` (`AscentOrderUseCase`, `GymSummary.ascentOrder`; `AscentTabOrder.parse` ya tolera null o roto). Al reordenar: se ve ya, se guarda en el móvil y se sube (si falla la red queda «pendiente» y se sube al abrir el perfil). Al abrir el perfil propio manda el servidor; si el servidor no tiene nada y el móvil sí (orden elegido antes), se sube el del móvil. En el perfil AJENO la pantalla Ascensiones usa SU orden (`summary.ascentOrder`) y no enseña el botón de ordenar (solo en la propia). Texto del diálogo: «Los demás las verán en este orden».
 - **Publicaciones**: `GET /api/feed/count?uid=` devuelve `{count}` (shared: `GetFeedPostCountUseCase`). Cuenta lo mismo que la lista (sin NEW_BLOCK/NEW_LINE); 0 en privado sin seguir o bloqueado. La ficha «Publicaciones» muestra el número en el perfil propio y en el ajeno (solo la flecha mientras no llega).
 
-## 17. Ronda 8 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 12»)
+## 17. Ronda 8 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 Logica nueva en `shared` (no reimplementar en Swift): `GymFilterEngine.apply` (buscando por texto, favoritos antes que el resto y luego distancia; los buscadores de «Apuntar entreno» y de «Nueva quedada» ahora pasan los favoritos), `GymSummaryGym.items/days` (lo hecho en cada rocodromo y sus dias), `GymBreakdown.gymsFiltered / hasGymBreakdown / boardsByKind`, `BoardKind.SYSTEM`; todo con test.
 
@@ -321,7 +321,7 @@ Logica nueva en `shared` (no reimplementar en Swift): `GymFilterEngine.apply` (b
 6. **Perfil ajeno**: «Te sigue» (izquierda) y pildora compacta «Siguiendo» / «Seguir» (derecha) en la MISMA fila (32 dp); tocar «Siguiendo» pide «¿Dejar de seguir a X?». Menos espacio vertical: las celdas y la tarjeta de degradado caben en un Pixel 7 sin bajar.
 7. **Perfil ajeno, mitad Rocodromo**: abre Estadisticas > Rocodromo con el desglose por rocodromo (→ visita con sus sesiones), respetando la privacidad del resumen.
 
-## 18. Ronda 9 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 12»)
+## 18. Ronda 9 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 Lógica nueva en `shared` (no reimplementar en Swift): `GymOrder` (parse/serialize/sort/move: favoritos primero por defecto, el orden manual manda), `AscentEntries` (`grades` y `entries`: ascensiones sueltas de los grados elegidos, más recientes primero, y «Antes» para lo que el resumen cuenta pero no trae con día), `GymSummary.gymOrder`, `GymSummaryDay.items`, `GymOrderUseCase`; todo con test (`GymOrderAndEntriesTest`).
 
@@ -330,7 +330,7 @@ Lógica nueva en `shared` (no reimplementar en Swift): `GymOrder` (parse/seriali
 3. **Filtro por grado** (Todo, Bloques, Vías y Boards): fila de chips «Todos» + los grados de esa categoría (color de grado); varios a la vez; «Todos» limpia. Con grados elegidos se ve la lista de ascensiones sueltas: grado, qué fue (Bloque, Vía o el board), rocódromo y día (o «Antes»), ×N si hay varias; tocar abre el rocódromo. No hay nombre de vía/bloque guardado (las ascensiones son clave + cantidad), por eso no se muestra. El servidor manda los últimos 60 días por rocódromo; el resto sale como «Antes».
 4. **Cabecera del perfil**: el nombre admite 2 líneas con puntos suspensivos (antes se cortaba «Manuela Jara paredes» a «Manuela Jara» sin avisar, mientras el diálogo de dejar de seguir usaba el nombre completo; era el mismo dato).
 
-## 19. Ronda 10 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 12»)
+## 19. Ronda 10 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 Lógica nueva en `shared` (no reimplementar en Swift): `BoardProblem` / `NamedBoardProblem` / `BoardProblems` (`cleanName` máx. 60, `add`, `prune` = los nombres nunca superan los recuentos de su board+grado, `namesByKey`, `search` sin mayúsculas ni acentos), `GymSession.boardProblems`, `GymSummary.boardProblems`, `GymSummaryDay.boardProblems`, `AscentEntry.names`; `saveAscents(..., boardProblems: List<BoardProblem>? = null)` (null = no tocar los nombres guardados). Todo con test (`BoardProblemsTest`, contrato `gym-sessions.json`).
 
@@ -338,7 +338,7 @@ Lógica nueva en `shared` (no reimplementar en Swift): `BoardProblem` / `NamedBo
 2. **Ascensiones > Boards**: cada tablero plegable lleva un buscador «Buscar en Kilter por nombre» y, debajo, «Bloques con nombre · N» (grado, nombre, rocódromo y día; tocar abre el rocódromo). Sin texto salen todos los nombrados; con texto, los que coinciden (sin acentos ni mayúsculas); sin coincidencias, «Ningún bloque con ese nombre». Mismo código para el perfil propio y el ajeno (misma privacidad que `gym-summary`).
 3. **Chips de grado**: en la lista de ascensiones sueltas, los boards con nombre muestran «Kilter · Slab Master». Lo de más de 60 días (el servidor manda 60 días por rocódromo en `days`) sale sin nombre en esa lista, pero el buscador usa la lista completa (`boardProblems` del resumen, hasta 300).
 
-## 20. Ronda 11 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 12»)
+## 20. Ronda 11 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 Lógica nueva en `shared` (no reimplementar en Swift): `GymBreakdown.gymsFilteredWithoutBoards`, `withoutBoards`, `boardCount`, `visitWithoutBoards`, `AscentEntries.entries(..., includeBoards)`; `GymSessionRepository.syncPending()` y la cola de pendientes dentro de `LocalFirstGymSessionRepository` (clave `gym_sessions_pending_v1`), con test (`GymOfflineQueueTest`).
 
@@ -346,16 +346,16 @@ Lógica nueva en `shared` (no reimplementar en Swift): `GymBreakdown.gymsFiltere
 2. **Ascensiones > Todo** ya no reparte los boards por rocódromo: salen solos en una fila final «Boards · todos los rocódromos · N ›» que abre la pantalla Boards; los chips de grado de Todo tampoco los incluyen. La pestaña Boards sigue agregando todos los rocódromos. La visita a un rocódromo (`gym-visit`) no cuenta ni pinta boards.
 3. **Sin conexión**: apuntar un entreno, sus ascensiones y los boards con nombre ya se guardaba primero en el móvil, pero lo que fallaba al subir **nunca se reintentaba** (solo se fusionaba en el refresco). Ahora cada alta, cambio o borrado queda marcado como pendiente (persistido) hasta que el servidor lo confirma, y se sube al volver la conexión (`OutboxFlusher`), al abrir la app y al abrir el perfil (`refresh` sube lo pendiente antes de traer lo del servidor, y lo pendiente manda sobre el servidor). Mientras tanto el perfil y las estadísticas lo enseñan desde el móvil. Límite: el servidor solo tiene ruta de «hoy» para dar de alta una sesión, así que un entreno de OTRO día apuntado sin red queda en el móvil (ver BACKEND-PENDIENTE).
 
-### 20b. Ronda 11b (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 12»)
+### 20b. Ronda 11b (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 - Entrenos de Ayer / Otro día apuntados sin red: al volver la conexión, `syncPending` los da de alta con `POST gyms/{id}/sessions` `{date}` (hoy sigue por `/today`) y sube ascensiones y nombres. iOS: misma ruta en su cola de pendientes (la lógica ya está en shared: `LocalFirstGymSessionRepository.push` y `KtorGymSessionApi.checkInOn`, con `@Throws`).
 - Banner «SIN CONEXIÓN» pegado: `AndroidNetworkMonitor` ponía offline en cada `onLost` aunque quedase otra red validada (wifi+datos) o llegase tarde el aviso de la red vieja. Ahora lleva el conjunto de redes validadas y hay conexión mientras quede alguna. iOS usa NWPathMonitor (estado, no eventos): sin cambios.
 
-### 20c. Boards plegados por defecto + grado máximo (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 12»)
+### 20c. Boards plegados por defecto + grado máximo (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 - Todas las secciones de board (Kilter, MoonBoard, Tension, System), en la pantalla Boards y en Ascensiones > Boards, empiezan **plegadas**; solo se recuerda lo que la persona despliega (pref nueva `boards_expanded`; la antigua de plegados se ignora). La cabecera enseña, junto al número, el **grado máximo hecho en ese board** como pastilla con el color del grado (la misma de «Máx bloque» del perfil). Lógica en shared: `GymBreakdown.maxGrade` (test en `GymAscentKeysTest`).
 
-## 21. Ronda 12 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 12»)
+## 21. Ronda 12 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 Lógica nueva en `shared` (no reimplementar en Swift): `BoardAngles` (`anglesFor`, `defaultAngle`, `initial`, `counts`, `filter`, `problemsAt`), `BoardAngleMemory(KeyValueStore)` (última inclinación por board), `GymSession.NO_GYM = 0` / `hasGym`, `GymTrainingUseCase.session(gymId, date)`, `KtorGymSessionApi.boardDays/putBoardDay`, `BoardDayDto`; `GymBreakdown.summarize`, `GymStatsCalculator`, `GymTraining.summary/stats` ya excluyen las sesiones sin rocódromo de rocódromos/rachas/sesiones. Tests: `BoardAnglesTest`, `SoloBoardTest`, `GymOfflineQueueTest`, contrato `gym-sessions.json` > `boardSession`. `GymAscentKeys.BOARD_ANGLES` desaparece (usa `BoardAngles.anglesFor(board)`).
 
@@ -367,7 +367,7 @@ Lógica nueva en `shared` (no reimplementar en Swift): `BoardAngles` (`anglesFor
 6. **Cliente**: una sesión «Solo board» es una `GymSession` con `gymId = 0`. Funciona sin red con la cola de pendientes ya existente (`0|fecha` → `U`); `push` y `deleteRemote` llaman a `putBoardDay` en vez de `/sessions`; `refresh` une los días del servidor (un servidor sin la ruta no rompe el refresco). Cuentan en la ficha y pantalla Boards y en los totales del perfil, nunca en «Por rocódromo», visitas, rachas ni «sesiones». En la lista de bloques con nombre, la fila de un bloque sin rocódromo no es pulsable y solo enseña el día. Trampa: la hoja debe leer el día existente con `GymTrainingUseCase.session()` (no con `summary`, que excluye `gymId 0`), si no el segundo guardado pisa el primero.
 7. **Filtro por ángulo en Boards** (pantalla Boards y Ascensiones > Boards, perfil propio y ajeno): dentro de cada tablero con inclinaciones, fila «Ángulos» **plegada por defecto** (chevron). Abierta: chips «Todos» + cada inclinación registrada con su cuenta («30° · 1»); la elegida se ve también junto al título. Elegir una filtra el reparto por grado, la pastilla de grado máximo y el número de la cabecera; los bloques con nombre salen solo si ese grado del board se hizo en ese ángulo (el nombre no guarda su inclinación: es una aproximación, ver BACKEND-PENDIENTE). El ángulo se saca de la clave en shared (`BoardAngles.counts/filter`). No se recuerda entre aperturas.
 
-## Estado iOS rondas 2 a 12 (§11–§21, 2026-11-21, build 362; validado en ios-ci, pendiente de probar en el iPhone)
+## Estado iOS rondas 2 a 13 (§11–§22, 2026-11-21, build 362; validado en ios-ci, pendiente de probar en el iPhone)
 
 | Sección | iOS | Ficheros |
 |---|---|---|
@@ -386,10 +386,11 @@ Lógica nueva en `shared` (no reimplementar en Swift): `BoardAngles` (`anglesFor
 | §16b / §17 / §18 / §19 / §20 / §20c Estadísticas (Todo/Roca/Rocódromo), Ascensiones por rocódromo, visita, Boards por tablero plegados con grado máximo, orden de categorías y rocódromos (servidor + móvil), filtro por grado, nombres de board, pantalla Boards global, cuenta de Publicaciones | hecho | `GymClimbScreens.swift`, `GymStatsParts.swift`, `ProfileClimbModel.swift` |
 | §20 / §20b Cola sin red (`syncPending`) | hecho | `ContributionOutboxFlusher.swift` |
 | §21 Solo board, «+» por tablero, inclinaciones por board con la última usada (`BoardAngleMemory` sobre UserDefaults), filtro de ángulos | hecho | `SoloBoardSheet.swift`, `GymTrainRoutesBoards.swift`, `GymPickerSheet.swift`, `GymStatsParts.swift`, `GymClimbScreens.swift` |
+| §22 Repetir bloques con nombre (×N, Repeticiones − ×N +), autocompletar con el catálogo compartido (SearchBoardProblemsUseCase, 250 ms), lista agrupada «×N · N días · última» | hecho | `BoardNameAssist.swift`, `GymTrainSheet.swift`, `GymTrainRoutesBoards.swift`, `GymStatsParts.swift` |
 
 Diferencias conocidas de iOS: el mapa de Escuelas no tiene aún los marcadores de anillo con gota (§12.12), las tarjetas blancas de la lista de escuelas (§12.13), las pastillas seca/mojada y la franja de 5 días (§13.7, §14.1), la tarjeta de cristal de escuela del mapa de Roca (§11.6, §12.11), el círculo y chip de radio del mapa de Quedadas (§13.6), «Rocódromos cerca» plegable (§14.9), la hoja «¿Qué llevas tú?» nueva (§13.5; sigue la de siempre) y las filas-tarjeta de Seguidores (§15.8). Quedan para la siguiente tanda.
 
-## 22. Ronda 13 (2026-11-21, Android hecho; PENDIENTE PARA iOS)
+## 22. Ronda 13 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 Repetir el mismo bloque con nombre (vueltas de entreno en Kilter, Moon, Tension, System) y autocompletar el nombre con un catálogo compartido. Lógica nueva en `shared` (no reimplementar en Swift): `BoardProblemRepeats` (`nameKey`, `clampReps`, `addRepeated`, `repeated`, `groupNames`, `history`, `suggestLocal`, `merge`), `RepeatedProblem`, `BoardProblemSuggestion`, `BoardProblemCatalogRepository` + `KtorBoardProblemCatalogRepository`, `SearchBoardProblemsUseCase` (`GymsModule.searchBoardProblems`: `local()` sin red y `search()` con `@Throws`). Tests: `BoardProblemRepeatsTest` (shared) y, en el backend, `GymBoardProblemRulesTest`, `SearchBoardProblemsUseCaseTest`.
 
