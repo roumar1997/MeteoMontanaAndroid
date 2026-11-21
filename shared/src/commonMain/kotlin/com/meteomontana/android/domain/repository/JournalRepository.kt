@@ -12,5 +12,6 @@ interface JournalRepository {
     suspend fun getUserJournal(uid: String): List<JournalSession>
     suspend fun deleteJournalSession(id: String)
     suspend fun updateJournalDate(id: String, date: String): JournalSession
-    suspend fun updateJournalStyle(id: String, aVista: Boolean, alFlash: Boolean): JournalSession
+    /** [attempts]: null = no tocar los intentos, 0 = quitarlos, 1 a 99 = ponerlos. */
+    suspend fun updateJournalStyle(id: String, aVista: Boolean, alFlash: Boolean, attempts: Int? = null): JournalSession
 }

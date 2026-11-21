@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.gyms
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,34 +54,40 @@ import kotlinx.datetime.LocalDate
 fun SoloBoardSheet(dateLabel: String, date: LocalDate, onDismiss: () -> Unit, board: BoardKind? = null, vm: GymTrainSheetViewModel = hiltViewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
     LaunchedEffect(date) { vm.load(GymSession.NO_GYM, date) }
+    val commit = androidx.compose.runtime.remember { BoardCommit() }
     ModalBottomSheet(
         onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = Color.Transparent, shape = CumbreSheetShape
     ) {
         Column(Modifier.fillMaxWidth().fillMaxHeight().imePadding().cumbreSheetSurface().padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md)) {
-            Text(dateLabel.uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary)
-            Text(
-                if (board != null) stringResource(R.string.gym_solo_board_sheet, boardName(board)) else stringResource(R.string.gym_solo_board_title),
-                fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground
-            )
+            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text(dateLabel.uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        if (board != null) stringResource(R.string.gym_solo_board_sheet, boardName(board)) else stringResource(R.string.gym_solo_board_title),
+                        fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+                Text(
+                    stringResource(R.string.common_close), color = terraFillColor(), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1,
+                    modifier = Modifier.clip(CircleShape).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable(onClick = onDismiss).padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
             Text(stringResource(R.string.gym_solo_board_sub), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = Spacing.sm))
             Column(
                 Modifier.weight(1f).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) { BoardsTab(state.ascents, state.boardProblems, vm::adjust, vm::addBoard, vm.angles, board, BoardNameAssist(state.suggestions, vm::onNameChanged, vm::clearSuggestions), showAdded = false) }
+            ) { BoardsTab(state.ascents, state.boardProblems, vm::adjust, { b, g, a, n, r, t -> vm.addBoard(b, g, a, n, r, t) }, vm.angles, board, BoardNameAssist(state.suggestions, vm::onNameChanged, vm::clearSuggestions), showAdded = false, commit = commit) }
             val total = state.ascents.sumOf { it.count }
-            Row(Modifier.fillMaxWidth().padding(top = Spacing.sm), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(R.string.gym_sheet_total).uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(pluralStringResource(R.plurals.gym_sheet_total_value, total, total), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
-            }
-            val canSave = !state.saving && (total > 0 || state.hadAscents)
+            // Guardar añade lo que haya en el formulario (si hay grado) y lo guarda todo; sin grado y a cero, quita el entreno.
+            val canSave = !state.saving && (commit.ready || total > 0 || state.hadAscents)
             Box(
                 Modifier.fillMaxWidth().padding(top = Spacing.sm).clip(CircleShape).background(terraFillColor().copy(alpha = if (canSave) 1f else 0.4f))
-                    .clickable(enabled = canSave) { vm.save(GymSession.NO_GYM, onDismiss, date) }.padding(vertical = 14.dp),
+                    .clickable(enabled = canSave) { commit.action(); vm.save(GymSession.NO_GYM, onDismiss, date) }.padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    (if (total == 0 && state.hadAscents) stringResource(R.string.gym_sheet_remove_workout) else stringResource(R.string.gym_solo_board_save) + (if (total > 0) " · $total" else "")).uppercase(),
+                    (if (total == 0 && state.hadAscents && !commit.ready) stringResource(R.string.gym_sheet_remove_workout) else stringResource(R.string.gym_board_save)).uppercase(),
                     color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp
                 )
             }

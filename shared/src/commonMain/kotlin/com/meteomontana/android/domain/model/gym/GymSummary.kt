@@ -22,7 +22,9 @@ data class GymSummary(
     /** Orden de sus rocodromos (ids «5,3,9»); null si no lo cambio (vale [GymOrder]: favoritos y luego por ascensiones). */
     val gymOrder: String? = null,
     /** Bloques de board con nombre de todo el historial (mas recientes primero; para buscar por nombre). */
-    val boardProblems: List<NamedBoardProblem> = emptyList()
+    val boardProblems: List<NamedBoardProblem> = emptyList(),
+    /** Lo hecho en boards por dia y clave (con y sin rocodromo), para listar los bloques SIN nombre junto a los nombrados. */
+    val boardAscents: List<BoardAscentRow> = emptyList()
 ) {
     val isEmpty: Boolean get() = sessions == 0
 }
@@ -60,16 +62,18 @@ object GymBreakdown {
         val maxByGym = HashMap<Long, String?>()
         val byKey = LinkedHashMap<String, Int>()
         val named = mutableListOf<NamedBoardProblem>()
+        val boardRows = mutableListOf<BoardAscentRow>()
         val byMonth = HashMap<String, Int>()
         var max: String? = null
         var total = 0
         for (s in sessions) {
+            boardRows += s.ascents.filter { GymAscentKeys.parse(it.key) is AscentKey.Board }.map { BoardAscentRow(s.gymId, s.date.toString(), it.key, it.count, it.attempts) }
             if (!s.hasGym) { soloBoard(s, byKey, named, byMonth); total += s.totalAscents; max = s.ascents.fold(max) { m, a -> GymAscentKeys.harder(m, GymAscentKeys.maxGradeOfKey(a.key)) }; continue }
             val row = perGym.getOrPut(s.gymId) { IntArray(2) }
             row[0]++
             row[1] += s.totalAscents
             total += s.totalAscents
-            daysByGym.getOrPut(s.gymId) { mutableListOf() }.add(GymSummaryDay(s.date.toString(), s.totalAscents, s.ascents.map { GymAscent(it.key, it.count) }, s.boardProblems))
+            daysByGym.getOrPut(s.gymId) { mutableListOf() }.add(GymSummaryDay(s.date.toString(), s.totalAscents, s.ascents, s.boardProblems))
             s.boardProblems.forEach { named += NamedBoardProblem(s.gymId, s.date.toString(), it) }
             val monthKey = monthKey(s.date)
             byMonth[monthKey] = (byMonth[monthKey] ?: 0) + s.totalAscents
@@ -89,7 +93,7 @@ object GymBreakdown {
             val key = monthKey(shiftMonths(today, -back))
             GymSummaryMonth(key, byMonth[key] ?: 0)
         }
-        return GymSummary(sessions.count { it.hasGym }, perGym.size, total, max, byGym, items, months, boardProblems = named.sortedByDescending { it.date })
+        return GymSummary(sessions.count { it.hasGym }, perGym.size, total, max, byGym, items, months, boardProblems = named.sortedByDescending { it.date }, boardAscents = boardRows.sortedByDescending { it.date })
     }
 
     private const val MAX_DAYS = 60
@@ -137,14 +141,14 @@ object GymBreakdown {
         items.fold<GymAscent, String?>(null) { acc, a -> GymAscentKeys.harder(acc, GymAscentKeys.gradeOfKey(a.key)) }
 
     /** Cuantas ascensiones de board hay en [items] (todos los rocodromos juntos). */
-    fun boardCount(items: List<GymAscent>): Int = items.filter { GymAscentKeys.parse(it.key) is AscentKey.Board }.sumOf { it.count }
+    fun boardCount(items: List<GymAscent>): Int = items.filter { (GymAscentKeys.parse(it.key) as? AscentKey.Board)?.board?.visible == true }.sumOf { it.count }
 
     /** ¿El servidor mando el desglose por rocodromo? (si no, solo hay el total: se pinta como antes). */
     fun hasGymBreakdown(summary: GymSummary): Boolean = summary.byGym.any { it.items.isNotEmpty() }
 
     /** Boards agrupados por tablero (Kilter, MoonBoard...), el que mas se uso primero; dentro, lo de cada grado. */
     fun boardsByKind(items: List<GymAscent>): List<Pair<BoardKind, List<GymAscent>>> =
-        BoardKind.entries.mapNotNull { kind -> GymAscentKeys.boards(items, kind).takeIf { it.isNotEmpty() }?.let { kind to it } }
+        BoardKind.selectable.mapNotNull { kind -> GymAscentKeys.boards(items, kind).takeIf { it.isNotEmpty() }?.let { kind to it } }
             .sortedByDescending { (_, list) -> list.sumOf { it.count } }
 
     /** Las claves de [items] que entran en el [filter]. */

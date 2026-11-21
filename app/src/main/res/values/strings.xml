@@ -2456,4 +2456,26 @@
         <item quantity="other">%1$d bloques</item>
     </plurals>
     <string name="gym_board_angle_chip">%1$d° · %2$d</string>
+    <string name="attempts_title">¿En cuántos intentos?</string>
+    <string name="attempts_optional">opcional</string>
+    <string name="attempts_flash_chip">1 · FLASH</string>
+    <string name="attempts_more">5+</string>
+    <string name="attempts_hint">Lo verá quien mire tu perfil</string>
+    <string name="flash_badge">FLASH</string>
+    <string name="attempts_pill">🎯 %1$d INTENTOS</string>
+    <plurals name="attempts_n">
+        <item quantity="one">%1$d intento</item>
+        <item quantity="other">%1$d intentos</item>
+    </plurals>
+    <string name="gym_board_save">Guardar</string>
+    <string name="gym_boards_blocks">Bloques · %1$d</string>
+    <string name="gym_board_unnamed">Sin nombre</string>
+    <string name="gym_board_angle_tag">Ángulo</string>
+    <string name="gym_board_best">mejor: %1$s</string>
+    <string name="gym_board_in_attempts">en %1$s</string>
+    <string name="gym_board_flash_line">⚡ Flash</string>
+    <plurals name="gym_board_detail_reps">
+        <item quantity="one">×%1$d en %2$d día</item>
+        <item quantity="other">×%1$d en %2$d días</item>
+    </plurals>
 </resources>

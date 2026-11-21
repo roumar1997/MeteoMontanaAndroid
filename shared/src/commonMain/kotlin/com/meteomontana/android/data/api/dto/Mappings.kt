@@ -177,7 +177,7 @@ fun ContributionDto.toDomain() = Contribution(
 )
 
 // Journal
-fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt, discipline, lineId, status, aVista, alFlash)
+fun JournalSessionDto.toDomain() = JournalSession(id, schoolId, schoolName, sector, blockName, grade, notes, date, createdAt, discipline, lineId, status, aVista, alFlash, com.meteomontana.android.domain.model.gym.Attempts.clean(attempts))
 fun JournalStatsDto.toDomain() = JournalStats(blockCount, boulderCount, routeCount, schoolCount, maxGrade, maxBoulderGrade, maxRouteGrade, bySchool.map { it.toDomain() }, projectCount, projectBoulderCount, projectRouteCount)
 fun SchoolStatsDto.toDomain() = SchoolStats(schoolName, blockCount, maxGrade)
 

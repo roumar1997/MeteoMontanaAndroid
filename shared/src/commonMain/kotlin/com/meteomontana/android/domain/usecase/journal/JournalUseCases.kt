@@ -33,8 +33,8 @@ class UpdateJournalDateUseCase(private val repo: JournalRepository) {
 
 class UpdateJournalStyleUseCase(private val repo: JournalRepository) {
     @Throws(Exception::class)
-    suspend operator fun invoke(id: String, aVista: Boolean, alFlash: Boolean): JournalSession =
-        repo.updateJournalStyle(id, aVista, alFlash)
+    suspend operator fun invoke(id: String, aVista: Boolean, alFlash: Boolean, attempts: Int? = null): JournalSession =
+        repo.updateJournalStyle(id, aVista, alFlash, attempts)
 }
 
 class CreateJournalEntryUseCase(private val repo: JournalRepository) {

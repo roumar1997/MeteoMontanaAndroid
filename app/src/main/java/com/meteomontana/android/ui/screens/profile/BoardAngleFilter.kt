@@ -41,7 +41,10 @@ internal fun BoardAngleFilter(kind: BoardKind, list: List<GymAscent>, selected: 
     if (counts.isEmpty()) return
     val total = BoardAngles.filter(list, kind, null).sumOf { it.count }
     Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(stringResource(R.string.gym_board_angles).uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        Text(
+            stringResource(R.string.gym_board_angle_tag), fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)).padding(horizontal = 10.dp, vertical = 6.dp)
+        )
         Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             AngleChip(stringResource(R.string.gym_board_angles_all), pluralStringResource(R.plurals.gym_board_blocks_n, total, total), selected == null) { onSelect(null) }
             counts.forEach { (angle, n) -> AngleChip("$angle°", n.toString(), selected == angle) { onSelect(if (selected == angle) null else angle) } }

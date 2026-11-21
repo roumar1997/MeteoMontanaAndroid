@@ -196,6 +196,7 @@ internal data class AscentChoice(
     val sessionDate: String?,
     val aVista: Boolean,
     val alFlash: Boolean,
+    val attempts: Int? = null,
     val gradeVote: String?,
     val publish: Boolean,
     val caption: String?,
@@ -234,6 +235,9 @@ internal fun AscentSheet(
     // A vista y al flash son cosas distintas: uno u otro (encender uno apaga el otro).
     var aVista by remember { mutableStateOf(false) }
     var alFlash by remember { mutableStateOf(false) }
+    // Intentos (opcional, NADA elegido): 1 = al flash y al reves; ver AttemptsStyleLink (shared).
+    var attempts by remember { mutableStateOf<Int?>(null) }
+    fun link(l: com.meteomontana.android.domain.model.gym.StyleAttempts) { alFlash = l.flash; attempts = l.attempts }
     // Voto de grado y el que espera a que se diga la altura (solo la primera vez en la vida).
     var vote by remember { mutableStateOf<String?>(null) }
     var pendingVote by remember { mutableStateOf<String?>(null) }
@@ -340,13 +344,18 @@ internal fun AscentSheet(
             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AscentStyleTile(Icons.Outlined.Visibility, stringResource(R.string.ascent_onsight),
                     stringResource(R.string.ascent_onsight_sub), aVista, Modifier.weight(1f)) {
-                    aVista = !aVista; if (aVista) alFlash = false
+                    aVista = !aVista; if (aVista) link(com.meteomontana.android.domain.model.gym.AttemptsStyleLink.setFlash(com.meteomontana.android.domain.model.gym.StyleAttempts(alFlash, attempts), false))
                 }
                 AscentStyleTile(Icons.Outlined.FlashOn, stringResource(R.string.ascent_flash),
                     stringResource(R.string.ascent_flash_sub), alFlash, Modifier.weight(1f)) {
-                    alFlash = !alFlash; if (alFlash) aVista = false
+                    val on = !alFlash
+                    link(com.meteomontana.android.domain.model.gym.AttemptsStyleLink.setFlash(com.meteomontana.android.domain.model.gym.StyleAttempts(alFlash, attempts), on)); if (on) aVista = false
                 }
             }
+            Spacer(Modifier.height(10.dp))
+            com.meteomontana.android.ui.components.AttemptsCard(attempts, { picked ->
+                link(com.meteomontana.android.domain.model.gym.AttemptsStyleLink.pick(com.meteomontana.android.domain.model.gym.StyleAttempts(alFlash, attempts), picked)); if (alFlash) aVista = false
+            })
             // TU ALTURA: con la que cuenta este encadene (+1,70 / −1,70) para saber cuánta gente de cada altura hace la
             // vía. Si ya la dijiste (mochila), una línea; si no, se elige aquí mismo.
             AscentSectionLabel(stringResource(R.string.ascent_height))
@@ -413,7 +422,7 @@ internal fun AscentSheet(
                     .clickable {
                         if (publishEnabled) com.meteomontana.android.data.local.FeedSharePref.set(photoCtx, share)
                         onSave(AscentChoice(
-                            sessionDate = sessionDate, aVista = aVista, alFlash = alFlash,
+                            sessionDate = sessionDate, aVista = aVista, alFlash = alFlash, attempts = attempts,
                             gradeVote = vote, publish = share,
                             caption = if (share) caption.trim().ifBlank { null } else null,
                             photoUri = if (share) photoUri else null))

@@ -14,10 +14,13 @@ data class RepeatedProblem(
     val dates: List<String>,
     /** Cada dia (y rocodromo) en que se hizo con sus repeticiones, del mas reciente al mas antiguo. */
     val days: List<ProblemDay> = emptyList()
-)
+) {
+    /** El mejor (menor) numero de intentos de todas las veces; null si nunca se dijo. 1 = flash. */
+    val bestAttempts: Int? get() = Attempts.best(days.map { it.attempts })
+}
 
 /** Un dia en que se hizo un bloque: [reps] veces en [gymId] ([GymSession.NO_GYM] = sin rocodromo). */
-data class ProblemDay(val date: String, val gymId: Long, val reps: Int)
+data class ProblemDay(val date: String, val gymId: Long, val reps: Int, val attempts: Int? = null)
 
 /** Sugerencia para autocompletar el nombre: nombre tal como se escribio, grado e inclinacion mas habituales y cuanta gente/veces. */
 data class BoardProblemSuggestion(val name: String, val grade: String, val angle: Int?, val count: Int, val mine: Boolean = false)
@@ -46,11 +49,11 @@ object BoardProblemRepeats {
      * Anade [reps] veces el mismo bloque con nombre (sin nombre no anade nada). Nunca pasa de [MAX_NAMED_PER_SESSION]
      * nombres por sesion (el servidor rechazaria mas); lo que sobra sigue contando en los recuentos.
      */
-    fun addRepeated(problems: List<BoardProblem>, board: BoardKind, grade: String, name: String, reps: Int): List<BoardProblem> {
+    fun addRepeated(problems: List<BoardProblem>, board: BoardKind, grade: String, name: String, reps: Int, attempts: Int? = null): List<BoardProblem> {
         val clean = BoardProblems.cleanName(name)
         if (clean.isEmpty()) return problems
         val room = (MAX_NAMED_PER_SESSION - problems.size).coerceAtLeast(0)
-        return problems + List(minOf(clampReps(reps), room)) { BoardProblem(board, grade.lowercase(), clean) }
+        return problems + List(minOf(clampReps(reps), room)) { BoardProblem(board, grade.lowercase(), clean, Attempts.clean(attempts)) }
     }
 
     /**
@@ -72,7 +75,7 @@ object BoardProblemRepeats {
                 board, newest.problem.name, newest.problem.grade, g.size,
                 g.minOf { it.date }, newest.date, newest.gymId,
                 g.map { it.date }.distinct().sortedDescending(),
-                g.groupingBy { it.date to it.gymId }.eachCount().map { (k, n) -> ProblemDay(k.first, k.second, n) }
+                g.groupBy { it.date to it.gymId }.map { (k, list) -> ProblemDay(k.first, k.second, list.size, Attempts.best(list.map { it.problem.attempts })) }
                     .sortedWith(compareByDescending<ProblemDay> { it.date }.thenBy { it.gymId })
             )
         }.sortedWith(compareByDescending<RepeatedProblem> { it.lastDate }.thenByDescending { it.reps }.thenBy { it.name })

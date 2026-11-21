@@ -104,7 +104,7 @@ fun GymTrainSheet(gym: Gym, dateLabel: String, onDismiss: () -> Unit, date: kotl
                 when (tab) {
                     TrainTab.BLOCKS -> BlocksTab(gym, state.ascents, vm::adjust)
                     TrainTab.ROUTES -> RoutesTab(state.ascents, vm::adjust)
-                    TrainTab.BOARDS -> BoardsTab(state.ascents, state.boardProblems, vm::adjust, vm::addBoard, vm.angles, assist = BoardNameAssist(state.suggestions, vm::onNameChanged, vm::clearSuggestions))
+                    TrainTab.BOARDS -> BoardsTab(state.ascents, state.boardProblems, vm::adjust, { b, g, a, n, r, t -> vm.addBoard(b, g, a, n, r, t) }, vm.angles, assist = BoardNameAssist(state.suggestions, vm::onNameChanged, vm::clearSuggestions))
                 }
             }
             val total = state.ascents.sumOf { it.count }

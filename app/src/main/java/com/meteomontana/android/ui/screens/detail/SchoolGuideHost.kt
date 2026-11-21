@@ -100,7 +100,7 @@ internal fun SchoolGuideHost(
                 ticking = null
                 scope.launch {
                     val r = viewModel.toggleLine(block, line, index, school.name, h.sectorName, markDone = true,
-                        sessionDate = choice.sessionDate, aVista = choice.aVista, alFlash = choice.alFlash)
+                        sessionDate = choice.sessionDate, aVista = choice.aVista, alFlash = choice.alFlash, attempts = choice.attempts)
                     if (r.getOrNull() != true) return@launch
                     if (choice.publish) {
                         viewModel.publishTickToFeed(

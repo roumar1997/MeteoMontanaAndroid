@@ -87,18 +87,22 @@ internal fun RoutesTab(ascents: List<GymAscent>, adjust: (String, Int) -> Unit) 
 @Composable
 internal fun BoardsTab(
     ascents: List<GymAscent>, problems: List<BoardProblem>, adjust: (String, Int) -> Unit,
-    addBoard: (BoardKind, String, Int?, String, Int) -> Unit, angles: BoardAngleMemory, fixedBoard: BoardKind? = null,
-    assist: BoardNameAssist = BoardNameAssist.None, showAdded: Boolean = true
+    addBoard: (BoardKind, String, Int?, String, Int, Int?) -> Unit, angles: BoardAngleMemory, fixedBoard: BoardKind? = null,
+    assist: BoardNameAssist = BoardNameAssist.None, showAdded: Boolean = true,
+    /** Si se pasa, no hay boton «Añadir»: el boton Guardar de la hoja añade lo que haya en el formulario (ver [BoardCommit]). */
+    commit: BoardCommit? = null
 ) {
     var board by remember { mutableStateOf(fixedBoard ?: BoardKind.KILTER) }
     var angle by remember(board) { mutableStateOf(angles.initial(board)) }
     var selected by remember { mutableStateOf(listOf<String>()) }
     var name by remember { mutableStateOf("") }
     var reps by remember { mutableStateOf(1) }
+    // NADA preseleccionado: sin tocar no se apunta ningun intento ni flash.
+    var attempts by remember { mutableStateOf<Int?>(null) }
     val boardItems = ascents.filter { GymAscentKeys.parse(it.key) is AscentKey.Board }
     if (showAdded) AddedList(boardItems, adjust, BoardProblems.namesByKey(boardItems, problems))
     if (fixedBoard == null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        BoardKind.entries.forEach { b ->
+        BoardKind.selectable.forEach { b ->
             val sel = b == board
             Column(
                 Modifier.weight(1f).clip(RoundedCornerShape(16.dp))
@@ -135,12 +139,20 @@ internal fun BoardsTab(
     }
     Eyebrow(stringResource(R.string.gym_sheet_grade_pick))
     GradeGrid(selected) { selected = GymAscentKeys.toggleGrade(selected, it) }
+    com.meteomontana.android.ui.components.AttemptsCard(attempts, { attempts = it })
     RepsStepper(reps) { reps = it }
     val grade = GymAscentKeys.gradeOf(selected)
-    AddButton(grade) {
-        grade?.let { addBoard(board, it, angle, name, reps); angles.remember(board, angle); selected = emptyList(); name = ""; reps = 1; assist.onClear() }
-    }
+    val doAdd = { g: String -> addBoard(board, g, angle, name, reps, attempts); angles.remember(board, angle); selected = emptyList(); name = ""; reps = 1; attempts = null; assist.onClear() }
+    if (commit == null) AddButton(grade) { grade?.let { doAdd(it) } }
+    else androidx.compose.runtime.SideEffect { commit.ready = grade != null; commit.action = { grade?.let { g -> doAdd(g); true } ?: false } }
     Text(stringResource(R.string.gym_sheet_board_note), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+/** Puente entre el boton Guardar de una hoja y el formulario de [BoardsTab]: [ready] = hay un grado elegido y [action] lo añade. */
+@androidx.compose.runtime.Stable
+internal class BoardCommit {
+    var ready by mutableStateOf(false)
+    var action: () -> Boolean = { false }
 }
 
 /** Rejilla de todos los grados con su color; los elegidos (uno o dos contiguos) llevan aro terracota. */

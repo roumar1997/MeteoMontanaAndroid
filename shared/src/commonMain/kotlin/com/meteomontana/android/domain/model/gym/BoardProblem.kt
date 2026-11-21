@@ -1,7 +1,7 @@
 package com.meteomontana.android.domain.model.gym
 
-/** Un bloque de board con nombre (opcional) dentro de una sesion: Kilter, 6C, «Slab Master». */
-data class BoardProblem(val board: BoardKind, val grade: String, val name: String)
+/** Un bloque de board con nombre (opcional) dentro de una sesion: Kilter, 6C, «Slab Master»; [attempts] = intentos que costo esa vez (opcional, 1 = flash). */
+data class BoardProblem(val board: BoardKind, val grade: String, val name: String, val attempts: Int? = null)
 
 /** Un bloque con nombre y cuando/donde se hizo (viene del resumen del servidor, todo el historial). */
 data class NamedBoardProblem(val gymId: Long, val date: String, val problem: BoardProblem)

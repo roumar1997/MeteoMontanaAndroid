@@ -53,6 +53,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -207,9 +208,12 @@ fun JournalEntriesScreen(
                                     StyleBadge(stringResource(R.string.journal_entries_screen_v4_a_vista), active = "aVista" in styleFilters) {
                                         styleFilters = if ("aVista" in styleFilters) styleFilters - "aVista" else styleFilters + "aVista"
                                     }
-                                    StyleBadge(stringResource(R.string.journal_entries_screen_v4_al_flash), active = "alFlash" in styleFilters) {
-                                        styleFilters = if ("alFlash" in styleFilters) styleFilters - "alFlash" else styleFilters + "alFlash"
-                                    }
+                                    // Filtro «Al flash»: el mismo distintivo dorado; apagado se ve mas tenue.
+                                    com.meteomontana.android.ui.components.FlashBadge(
+                                        Modifier.alpha(if (styleFilters.isEmpty() || "alFlash" in styleFilters) 1f else 0.55f).clickable {
+                                            styleFilters = if ("alFlash" in styleFilters) styleFilters - "alFlash" else styleFilters + "alFlash"
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -346,9 +350,13 @@ internal fun EntryRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 // Estilo de ascensión: etiqueta SOLO si lo hay (A VISTA / AL FLASH); se cambia en «Editar ascenso».
-                if (e.aVista || e.alFlash) {
-                    StyleTag(stringResource(
-                        if (e.aVista) R.string.journal_entries_screen_v4_a_vista else R.string.journal_entries_screen_v4_al_flash))
+                // Al flash = distintivo dorado; mas de un intento = pastilla naranja «🎯 N INTENTOS» (visible en el perfil publico).
+                if (e.aVista || e.alFlash || com.meteomontana.android.domain.model.gym.Attempts.showsCount(e.attempts)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (e.aVista) StyleTag(stringResource(R.string.journal_entries_screen_v4_a_vista))
+                        if (e.alFlash) com.meteomontana.android.ui.components.FlashBadge()
+                        else com.meteomontana.android.ui.components.AttemptsBadge(e.attempts)
+                    }
                 }
                 // Escuela · Piedra N · sector · fecha («12 oct»): la fecha ya no es un botón escondido.
                 val subtitle = listOfNotNull(

@@ -157,7 +157,8 @@ class JournalTickController @Inject constructor(
         projectKeys: Set<String>,
         sessionDate: String? = null,
         aVista: Boolean = false,
-        alFlash: Boolean = false
+        alFlash: Boolean = false,
+        attempts: Int? = null
     ): Result<Boolean> = runCatching {
         val viaName = line.name.ifBlank { "Vía ${index + 1}" }
         // Clave por lineId (aguanta homónimas). La clave por NOMBRE se sigue
@@ -236,7 +237,8 @@ class JournalTickController @Inject constructor(
                 lineId = line.id.takeIf { it.isNotBlank() },
                 status = "DONE",
                 aVista = aVista,
-                alFlash = alFlash
+                alFlash = alFlash,
+                attempts = attempts
             )
             val sent = networkMonitor.isOnline.value && runCatching { createJournalEntry(req) }.isSuccess
             if (sent) {

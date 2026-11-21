@@ -105,7 +105,7 @@ internal fun PendingTickSheet(pt: PendingTick, viewModel: com.meteomontana.andro
                 // Primero el diario (el voto de grado exige tener la vía en él), luego publicar y votar.
                 val r = viewModel.toggleLine(
                     pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName, markDone = true,
-                    sessionDate = choice.sessionDate, aVista = choice.aVista, alFlash = choice.alFlash)
+                    sessionDate = choice.sessionDate, aVista = choice.aVista, alFlash = choice.alFlash, attempts = choice.attempts)
                 if (r.getOrNull() == true) {
                     if (choice.publish) {
                         viewModel.publishTickToFeed(

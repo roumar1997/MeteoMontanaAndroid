@@ -212,7 +212,13 @@ class JournalEntriesViewModel @Inject constructor(
             runCatching {
                 if (newDate != entry.date.take(10)) updateJournalDate(entry.id, newDate)
                 if (style != AscentStyle.fromFlags(entry.aVista, entry.alFlash)) {
-                    updateJournalStyle(entry.id, style.aVista, style.alFlash)
+                    // Al flash = 1 intento; quitar el flash quita ese 1 (un 2 o mas se queda). null = no tocar.
+                    val attempts = when {
+                        style.alFlash -> com.meteomontana.android.domain.model.gym.Attempts.FLASH
+                        entry.attempts == com.meteomontana.android.domain.model.gym.Attempts.FLASH -> 0
+                        else -> null
+                    }
+                    updateJournalStyle(entry.id, style.aVista, style.alFlash, attempts)
                 }
             }.onFailure { e ->
                 android.util.Log.e("CumbreEstilo", "editar ascenso ${entry.id} fallo", e)

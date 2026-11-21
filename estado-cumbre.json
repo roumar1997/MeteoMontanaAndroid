@@ -7,6 +7,10 @@
   },
   "steps": [
     {
+      "name": "Ronda 15 rocódromos: intentos (1 = flash), insignia FLASH, lista única de bloques, catálogo moderado (Android hecho, iOS pendiente)",
+      "done": true
+    },
+    {
       "name": "iOS 7.1.4 (build 348) enviada a revisión",
       "done": true
     },

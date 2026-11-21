@@ -34,8 +34,8 @@ class KtorJournalApi(private val client: HttpClient) {
         }.body()
 
     /** Cambiar el estilo (a vista / al flash) de una entrada. Independientes entre sí. */
-    suspend fun updateJournalStyle(id: String, aVista: Boolean, alFlash: Boolean): JournalSessionDto =
+    suspend fun updateJournalStyle(id: String, aVista: Boolean, alFlash: Boolean, attempts: Int? = null): JournalSessionDto =
         client.patch("journal/$id/style") {
-            setBody(com.meteomontana.android.data.api.dto.UpdateJournalStyleRequest(aVista, alFlash))
+            setBody(com.meteomontana.android.data.api.dto.UpdateJournalStyleRequest(aVista, alFlash, attempts))
         }.body()
 }

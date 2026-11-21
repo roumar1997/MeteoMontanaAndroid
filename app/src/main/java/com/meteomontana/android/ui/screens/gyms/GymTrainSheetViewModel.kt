@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.domain.model.gym.BoardAngleMemory
 import com.meteomontana.android.domain.model.gym.BoardKind
 import com.meteomontana.android.domain.model.gym.GymSession
+import com.meteomontana.android.domain.model.gym.BoardLog
+import com.meteomontana.android.domain.model.gym.BoardLogging
 import com.meteomontana.android.domain.model.gym.BoardProblem
 import com.meteomontana.android.domain.model.gym.BoardProblemRepeats
 import com.meteomontana.android.domain.model.gym.BoardProblemSuggestion
@@ -60,10 +62,9 @@ class GymTrainSheetViewModel @Inject constructor(
     }
 
     /** Apunta un board y, si lleva nombre (opcional, se recorta), tambien el nombre del bloque. */
-    fun addBoard(board: BoardKind, grade: String, angle: Int?, name: String, reps: Int) = _state.update {
-        val n = BoardProblemRepeats.clampReps(reps)
-        val next = GymTraining.adjust(it.ascents, GymAscentKeys.board(board, grade, angle), n)
-        it.copy(ascents = next, boardProblems = BoardProblemRepeats.addRepeated(it.boardProblems, board, grade, name, n), suggestions = emptyList())
+    fun addBoard(board: BoardKind, grade: String, angle: Int?, name: String, reps: Int, attempts: Int? = null) = _state.update {
+        val log = BoardLogging.add(BoardLog(it.ascents, it.boardProblems), board, grade, angle, name, reps, attempts)
+        it.copy(ascents = log.ascents, boardProblems = log.problems, suggestions = emptyList())
     }
 
     private var suggestJob: Job? = null

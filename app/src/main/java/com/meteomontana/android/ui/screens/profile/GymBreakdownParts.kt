@@ -120,7 +120,7 @@ internal fun BoardsSections(
     onAdd: ((BoardKind) -> Unit)? = null
 ) {
     val used = GymBreakdown.boardsByKind(items)
-    val groups = if (onAdd == null) used else used + BoardKind.entries.filter { k -> used.none { it.first == k } }.map { it to emptyList() }
+    val groups = if (onAdd == null) used else used + BoardKind.selectable.filter { k -> used.none { it.first == k } }.map { it to emptyList() }
     if (groups.isEmpty()) { EmptyCategory(); return }
     groups.forEach { (kind, all) ->
         var angle by androidx.compose.runtime.saveable.rememberSaveable(kind.name, "angle") { androidx.compose.runtime.mutableStateOf<Int?>(null) }

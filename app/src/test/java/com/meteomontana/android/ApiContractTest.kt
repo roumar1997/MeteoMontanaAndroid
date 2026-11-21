@@ -75,9 +75,13 @@ class ApiContractTest {
         assertKeysCovered(file, "$", dto, sample)
     }
 
+    private val OMITTED_WHEN_NULL = setOf("attempts", "boardAscents")
+
     private fun assertKeysCovered(file: String, path: String, dto: JsonElement, sample: JsonElement) {
         when {
             dto is JsonObject && sample is JsonObject -> dto.forEach { (key, value) ->
+                // Opcionales que el backend OMITE cuando no hay dato (intentos, 2026-11): no tienen que estar en cada elemento de la muestra.
+                if (key in OMITTED_WHEN_NULL && key !in sample) return@forEach
                 assertTrue("$file: la app lee '$path.$key' pero el backend no lo manda", key in sample)
                 assertKeysCovered(file, "$path.$key", value, sample.getValue(key))
             }

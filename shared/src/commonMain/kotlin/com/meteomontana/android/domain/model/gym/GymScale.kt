@@ -44,8 +44,8 @@ object GymScalePresets {
     }
 }
 
-/** Lo hecho en una sesion: [key] es un color de la escala o un grado, [count] cuantas veces. */
-data class GymAscent(val key: String, val count: Int)
+/** Lo hecho en una sesion: [key] es un color de la escala o un grado, [count] cuantas veces y [attempts] (opcional) el mejor numero de intentos de las SIN nombre ese dia (1 = flash). */
+data class GymAscent(val key: String, val count: Int, val attempts: Int? = null)
 
 /** Periodo de las estadisticas de entrenos. Semana de lunes a domingo (igual que el servidor). */
 enum class GymTrainingPeriod {
@@ -112,7 +112,7 @@ object GymTraining {
         return when {
             next == 0 -> rest
             current == 0 -> rest + GymAscent(key, next)
-            else -> ascents.map { if (it.key == key) GymAscent(key, next) else it }
+            else -> ascents.map { if (it.key == key) it.copy(count = next) else it }
         }
     }
 

@@ -18,7 +18,9 @@ data class JournalSessionDto(
     val status: String = "DONE",     // DONE | PROJECT
     // Estilo de ascensión, independientes entre sí (Rodrigo, 2026-08-21).
     val aVista: Boolean = false,
-    val alFlash: Boolean = false
+    val alFlash: Boolean = false,
+    /** Intentos (1 a 99) o null si no lo dijo; servidores antiguos no lo mandan. */
+    val attempts: Int? = null
 )
 
 @Serializable
@@ -37,11 +39,14 @@ data class CreateJournalRequest(
     // para Swift no expone KotlinBoolean?, que es incómodo de construir
     // desde las apps — false es un default seguro (Rodrigo, 2026-08-21).
     val aVista: Boolean = false,
-    val alFlash: Boolean = false
+    val alFlash: Boolean = false,
+    /** Intentos (opcional): null = no lo dijo. */
+    val attempts: Int? = null
 )
 
+/** [attempts]: null = no tocar los intentos, 0 = quitarlos, 1 a 99 = ponerlos. */
 @Serializable
-data class UpdateJournalStyleRequest(val aVista: Boolean, val alFlash: Boolean)
+data class UpdateJournalStyleRequest(val aVista: Boolean, val alFlash: Boolean, val attempts: Int? = null)
 
 @Serializable
 data class JournalStatsDto(

@@ -62,9 +62,9 @@ class GymSummaryTest {
         assertEquals(listOf("6a"), blocks.first { it.gymId == 2L }.items.map { it.key })
         assertEquals(listOf("route:solo:sent:6b"), GymBreakdown.gymsFiltered(sum, AscentFilter.ROUTES).single().items.map { it.key })
         assertEquals(2, GymBreakdown.gymsFiltered(sum, AscentFilter.BOARDS).single().items.size)
-        // Boards por tablero: System (2) antes que Kilter (1).
+        // Boards por tablero: System ya no se muestra (queda solo Kilter).
         val byKind = GymBreakdown.boardsByKind(GymBreakdown.filter(sum.items, AscentFilter.BOARDS))
-        assertEquals(listOf(BoardKind.SYSTEM, BoardKind.KILTER), byKind.map { it.first })
+        assertEquals(listOf(BoardKind.KILTER), byKind.map { it.first })
     }
 
     @Test fun oldServerWithoutBreakdown() {

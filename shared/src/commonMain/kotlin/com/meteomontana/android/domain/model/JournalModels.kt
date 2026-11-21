@@ -17,7 +17,9 @@ data class JournalSession(
     // Estilo de ascensión, independientes entre sí: se puede marcar a vista,
     // al flash, las dos o ninguna (Rodrigo, 2026-08-21).
     val aVista: Boolean = false,
-    val alFlash: Boolean = false
+    val alFlash: Boolean = false,
+    // Intentos que costo (opcional; 1 = flash). null = no lo dijo.
+    val attempts: Int? = null
 )
 
 data class JournalStats(
