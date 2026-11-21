@@ -12,6 +12,8 @@ enum ContributionOutboxFlusher {
     static func flush() async {
         let c = AppDependencies.shared.container
         _ = try? await c.flushSimpleContributions()
+        // Entrenos de rocódromo apuntados sin red (hoy y otros días): la cola vive en shared.
+        try? await c.gyms.recordGymSession.syncPending()
 
         if let rows = try? await c.pendingBoulderContributions() {
             for row in rows { await flushBoulder(row, container: c) }

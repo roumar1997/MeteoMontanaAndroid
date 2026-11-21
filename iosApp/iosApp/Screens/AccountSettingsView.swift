@@ -19,19 +19,30 @@ struct AccountSettingsView: View {
         ScrollView {
             VStack(spacing: 0) {
                 sectionLabel(NSLocalizedString("profile_section_account", comment: ""))
-                menuRow(NSLocalizedString("profile_edit", comment: ""), "pencil", EditProfileView())
+                settingsGroup {
+                    menuRow(NSLocalizedString("profile_edit", comment: ""), "pencil", EditProfileView())
+                }
 
                 sectionLabel(NSLocalizedString("profile_section_activity", comment: ""))
-                menuRow(L("Escuelas guardadas (offline)"), "arrow.down.circle", SavedSchoolsView())
-                menuRow(L("Mis contribuciones"), "mappin.and.ellipse", MyContributionsUnifiedView())
-                if vm.profile?.isPublic == false {
-                    menuRow(L("Solicitudes de seguimiento"), "person.badge.plus", FollowRequestsView())
+                settingsGroup {
+                    menuRow(L("Escuelas guardadas (offline)"), "arrow.down.circle", SavedSchoolsView())
+                    rowDivider
+                    menuRow(L("Mis contribuciones"), "mappin.and.ellipse", MyContributionsUnifiedView())
+                    if vm.profile?.isPublic == false {
+                        rowDivider
+                        menuRow(L("Solicitudes de seguimiento"), "person.badge.plus", FollowRequestsView())
+                    }
                 }
 
                 sectionLabel(NSLocalizedString("profile_section_prefs", comment: ""))
+                settingsGroup {
                 menuRow(NSLocalizedString("profile_weather_alert", comment: ""), "bell.badge", WeekendAlertView())
+                if FeatureFlagsModel.shared.flags.isGymsEnabled { rowDivider; HomeGymSettingRow() }
+                rowDivider
                 LanguageSettingRow()
+                rowDivider
                 GuidesToggleRow().padding(.vertical, 8)
+                rowDivider
                 Button {
                     FirstTimeHint.resetAll()
                     showHintsReset = true
@@ -42,8 +53,9 @@ struct AccountSettingsView: View {
                         Spacer()
                     }.padding(.vertical, 12).contentShape(Rectangle())
                 }.buttonStyle(.plain)
+                }
 
-                Divider().overlay(Cumbre.rule).padding(.vertical, 8)
+                Spacer().frame(height: 16)
                 Button {
                     AppDependencies.shared.container.localCacheCleaner?.clearServerCaches()
                     authBridge.signOut {}
@@ -51,7 +63,8 @@ struct AccountSettingsView: View {
                 } label: {
                     Text(NSLocalizedString("profile_logout", comment: "")).font(Cumbre.mono(12, .bold)).tracking(0.8)
                         .foregroundStyle(Cumbre.ink).padding(.vertical, 14).frame(maxWidth: .infinity)
-                        .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
+                        .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 18))
+                        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Cumbre.rule, lineWidth: 1))
                 }.buttonStyle(.plain)
                 Button { showDeleteConfirm = true } label: {
                     Text(NSLocalizedString("profile_delete_account", comment: ""))
@@ -59,6 +72,7 @@ struct AccountSettingsView: View {
                         .padding(.vertical, 8).frame(maxWidth: .infinity)
                 }.buttonStyle(.plain)
                 selloDeVersion
+                Text(L("gym_osm_credit")).font(.system(size: 10)).foregroundStyle(Cumbre.ink3).frame(maxWidth: .infinity)
             }
             .padding(.horizontal, 20).padding(.top, 8).padding(.bottom, 24)
         }
@@ -100,10 +114,20 @@ struct AccountSettingsView: View {
             .padding(.vertical, 16)
     }
 
+    /// Grupo redondeado (radio 18, borde) como los nuevos Ajustes de Android.
+    private func settingsGroup<C: View>(@ViewBuilder _ content: () -> C) -> some View {
+        VStack(spacing: 0) { content() }
+            .padding(.horizontal, 12)
+            .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Cumbre.rule, lineWidth: 1))
+    }
+
+    private var rowDivider: some View { Divider().overlay(Cumbre.rule) }
+
     private func menuRow<Dest: View>(_ title: String, _ icon: String, _ dest: Dest) -> some View {
         NavigationLink(destination: dest) {
             HStack(spacing: 12) {
-                Image(systemName: icon).font(.system(size: 16)).foregroundStyle(Cumbre.terra).frame(width: 24)
+                TintedSymbol(symbol: icon, tint: Cumbre.terraFill, size: 32)
                 Text(title).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
                 Spacer()
                 Image(systemName: "chevron.right").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
@@ -114,3 +138,45 @@ struct AccountSettingsView: View {
 }
 
 // MARK: - Diario propio: stats pulsables + listas con borrar (refresco en vivo)
+
+/// «Mi rocódromo»: se elige (o se quita) y sale en el perfil como «Tu rocódromo». Se guarda en el servidor.
+struct HomeGymSettingRow: View {
+    @State private var picking = false
+    @State private var name: String?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Button { picking = true } label: {
+                HStack(spacing: 12) {
+                    TintedSymbol(symbol: "mappin", tint: Cumbre.terraFill, size: 32)
+                    Text(L("settings_home_gym") + (name.map { " · " + $0 } ?? "")).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                    Spacer()
+                }
+                .padding(.vertical, 12).contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            if name != nil {
+                Button { set(nil) } label: {
+                    HStack(spacing: 12) {
+                        TintedSymbol(symbol: "trash", tint: Cumbre.ink2, size: 32)
+                        Text(L("settings_home_gym_clear")).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
+                        Spacer()
+                    }
+                    .padding(.vertical, 12).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .task {
+            if let id = ProfilePrefs.homeGymId { name = AppDependencies.shared.container.gyms.getCachedGyms.invoke().first { $0.id == id }?.name }
+            if let h = try? await AppDependencies.shared.container.gyms.homeGym.mine() { name = h.name; ProfilePrefs.homeGymId = h.id }
+        }
+        .sheet(isPresented: $picking) { GymPickerSheet { g, _ in picking = false; set(g) } }
+    }
+
+    private func set(_ g: Gym?) {
+        ProfilePrefs.homeGymId = g?.id
+        name = g?.name
+        Task { _ = try? await AppDependencies.shared.container.gyms.homeGym.set(gymId: g.map { KotlinLong(value: $0.id) }) }
+    }
+}
