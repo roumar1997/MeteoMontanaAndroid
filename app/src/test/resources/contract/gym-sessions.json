@@ -5,6 +5,11 @@
     "boardProblems": [{"board": "kilter", "grade": "6c", "name": "Slab Master"}]
   },
   "createOnDateRequest": { "date": "2026-11-20" },
+  "boardSession": {
+    "date": "2026-11-20",
+    "ascents": [{"key": "board:moonboard:7a:40", "count": 2}],
+    "boardProblems": [{"board": "moonboard", "grade": "7a", "name": "Casa"}]
+  },
   "sessionEmpty": {
     "id": 12, "gymId": 5, "date": "2026-11-18", "startedAt": "2026-11-18T18:00:00Z", "source": "PRESENCE", "ascents": [], "boardProblems": []
   },

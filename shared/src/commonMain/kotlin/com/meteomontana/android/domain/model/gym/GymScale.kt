@@ -88,7 +88,7 @@ object GymTraining {
 
     fun summary(all: List<GymSession>, period: GymTrainingPeriod, date: LocalDate): GymTrainingSummary {
         val (from, to) = period.range(date)
-        val inRange = all.filter { it.date in from..to }.distinctBy { it.gymId to it.date }
+        val inRange = all.filter { it.date in from..to && it.hasGym }.distinctBy { it.gymId to it.date }
             .sortedWith(compareByDescending<GymSession> { it.date }.thenBy { it.gymId })
         return GymTrainingSummary(period, inRange, inRange.map { it.gymId }.toSet().size, inRange.sumOf { it.totalAscents })
     }
@@ -101,7 +101,7 @@ object GymTraining {
         val items = sessions.flatMap { it.ascents }.groupBy { it.key }
             .map { (key, list) -> GymAscent(key, list.sumOf { it.count }) }
             .sortedWith(compareByDescending<GymAscent> { it.count }.thenBy { it.key })
-        return GymAscentStats(period, from, to, sessions.size, items.sumOf { it.count }, items)
+        return GymAscentStats(period, from, to, sessions.count { it.hasGym }, items.sumOf { it.count }, items)
     }
 
     /** Suma [delta] a una clave (sin bajar de 0 ni pasar de [MAX_COUNT]) y devuelve la lista sin ceros. */

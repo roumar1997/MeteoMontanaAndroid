@@ -60,6 +60,7 @@ class GymOfflineQueueTest {
                     putBody = req.body.let { b -> (b as? io.ktor.http.content.TextContent)?.text ?: (b as io.ktor.http.content.ByteArrayContent).bytes().decodeToString() }
                     respond("""{"id":55,"gymId":7,"date":"2026-11-21","ascents":[{"key":"board:kilter:7b:40","count":1}],"boardProblems":[{"board":"kilter","grade":"7b","name":"Fanjulandia"}]}""", HttpStatusCode.OK, json)
                 }
+                req.method == HttpMethod.Get && req.url.encodedPath.endsWith("/me/board-sessions") -> respond("[]", HttpStatusCode.OK, json)
                 req.method == HttpMethod.Get -> respond("[${serverSession ?: ""}]".replace("[]", "[]"), HttpStatusCode.OK, json)
                 else -> respond("", HttpStatusCode.NoContent)
             }

@@ -44,6 +44,7 @@ data class BarSeg(val grade: String?, val hex: String?, val label: String, val c
 internal fun LogWorkoutButton(modifier: Modifier = Modifier, compact: Boolean = false, onSaved: () -> Unit = {}) {
     var picking by remember { mutableStateOf(false) }
     var sheetFor by remember { mutableStateOf<Pair<Gym, LocalDate>?>(null) }
+    var soloDay by remember { mutableStateOf<LocalDate?>(null) }
     if (compact) SmallAddWorkoutPill({ picking = true }, modifier) else
     Row(
         modifier.fillMaxWidth().clip(CircleShape).background(terraFillColor()).clickable { picking = true }.padding(vertical = 14.dp),
@@ -52,7 +53,12 @@ internal fun LogWorkoutButton(modifier: Modifier = Modifier, compact: Boolean = 
         Icon(Icons.Outlined.Add, null, tint = Color.White, modifier = Modifier.size(18.dp))
         Text(stringResource(R.string.gym_pick_eyebrow).uppercase(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(end = 2.dp))
     }
-    if (picking) GymPickerSheet(onPick = { gym, day -> picking = false; sheetFor = gym to day }, onDismiss = { picking = false })
+    if (picking) GymPickerSheet(onPick = { gym, day -> picking = false; sheetFor = gym to day }, onDismiss = { picking = false }, onSoloBoard = { day -> picking = false; soloDay = day })
+    soloDay?.let { day ->
+        val label = java.time.LocalDate.of(day.year, day.monthNumber, day.dayOfMonth)
+            .format(java.time.format.DateTimeFormatter.ofPattern("EEEE d MMM", Locale.getDefault()))
+        com.meteomontana.android.ui.screens.gyms.SoloBoardSheet(label, day, onDismiss = { soloDay = null; onSaved() })
+    }
     sheetFor?.let { (gym, day) ->
         val label = java.time.LocalDate.of(day.year, day.monthNumber, day.dayOfMonth)
             .format(java.time.format.DateTimeFormatter.ofPattern("EEEE d MMM", Locale.getDefault()))

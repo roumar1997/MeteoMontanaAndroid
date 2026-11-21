@@ -13,6 +13,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,6 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.meteomontana.android.R
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import com.meteomontana.android.domain.model.gym.AscentFilter
@@ -110,10 +114,17 @@ internal fun PerGymSections(gyms: List<GymSummaryGym>, colorHexFor: (Long, Strin
 
 /** Boards agrupados por tablero (logo, nombre y total) y, dentro, el reparto por grado. */
 @Composable
-internal fun BoardsSections(s: GymSummary, items: List<GymAscent>, expanded: Set<String>, onToggle: (BoardKind) -> Unit, onOpenGym: (Long) -> Unit) {
-    val groups = GymBreakdown.boardsByKind(items)
+internal fun BoardsSections(
+    s: GymSummary, items: List<GymAscent>, expanded: Set<String>, onToggle: (BoardKind) -> Unit, onOpenGym: (Long) -> Unit,
+    /** Si se pasa (perfil propio), cada tablero lleva un «+» para apuntar un board y salen los 4 aunque esten vacios. */
+    onAdd: ((BoardKind) -> Unit)? = null
+) {
+    val used = GymBreakdown.boardsByKind(items)
+    val groups = if (onAdd == null) used else used + BoardKind.entries.filter { k -> used.none { it.first == k } }.map { it to emptyList() }
     if (groups.isEmpty()) { EmptyCategory(); return }
-    groups.forEach { (kind, list) ->
+    groups.forEach { (kind, all) ->
+        var angle by androidx.compose.runtime.saveable.rememberSaveable(kind.name, "angle") { androidx.compose.runtime.mutableStateOf<Int?>(null) }
+        val list = com.meteomontana.android.domain.model.gym.BoardAngles.filter(all, kind, angle)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {
             val open = kind.name in expanded
             Row(
@@ -124,13 +135,20 @@ internal fun BoardsSections(s: GymSummary, items: List<GymAscent>, expanded: Set
                 Text(boardName(kind), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
                 GymBreakdown.maxGrade(list)?.let { MaxGradePill(it) }
                 Text(list.sumOf { it.count }.toString(), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+                onAdd?.let { add ->
+                    androidx.compose.material3.Icon(
+                        androidx.compose.material.icons.Icons.Outlined.Add, stringResource(R.string.gym_board_add_cd, boardName(kind)), tint = androidx.compose.ui.graphics.Color.White,
+                        modifier = Modifier.size(30.dp).clip(CircleShape).background(terraFillColor()).clickable { add(kind) }.padding(6.dp)
+                    )
+                }
                 androidx.compose.material3.Icon(
                     if (open) androidx.compose.material.icons.Icons.Outlined.ExpandLess else androidx.compose.material.icons.Icons.Outlined.ExpandMore,
                     stringResource(R.string.gym_board_toggle_cd), tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             if (open) {
-                BoardNamedSection(kind, s, onOpenGym)
+                BoardAngleFilter(kind, all, angle) { angle = it }
+                BoardNamedSection(kind, s, onOpenGym, all, angle)
                 ByGradeSection(list, { null }, titled = false)
             }
         }

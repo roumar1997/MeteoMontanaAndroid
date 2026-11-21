@@ -2367,4 +2367,14 @@
     </plurals>
     <string name="public_profile_unfollow_title">Unfollow %1$s?</string>
     <string name="public_profile_unfollow_confirm">Unfollow</string>
+
+    <!-- Round 12: Solo board, + in Boards, angle filter -->
+    <string name="gym_solo_board_title">Solo board</string>
+    <string name="gym_solo_board_sub">No gym: your home board or anywhere</string>
+    <string name="gym_solo_board_sheet">Boards · %1$s</string>
+    <string name="gym_solo_board_save">Save boards</string>
+    <string name="gym_board_add_cd">Log a %1$s ascent</string>
+    <string name="gym_board_angles">Angles</string>
+    <string name="gym_board_angles_all">All</string>
+    <string name="gym_board_angle_chip">%1$d° · %2$d</string>
 </resources>

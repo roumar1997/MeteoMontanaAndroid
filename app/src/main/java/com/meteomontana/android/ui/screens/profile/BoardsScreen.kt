@@ -54,6 +54,17 @@ fun BoardsScreen(
     val s = state.summary
     val items = GymBreakdown.filter(s.items, AscentFilter.BOARDS)
     var grades by remember { mutableStateOf(emptyList<String>()) }
+    // «+» de cada tablero (solo en el perfil propio): abre el registro de boards de HOY con ese tablero fijado, sin rocodromo.
+    val own = uid == null || uid == myUid
+    var addFor by remember { mutableStateOf<com.meteomontana.android.domain.model.gym.BoardKind?>(null) }
+    val onAddBoard: ((com.meteomontana.android.domain.model.gym.BoardKind) -> Unit)? = if (own) { k -> addFor = k } else null
+    addFor?.let { k ->
+        val now = remember { java.time.LocalDate.now() }
+        com.meteomontana.android.ui.screens.gyms.SoloBoardSheet(
+            now.format(java.time.format.DateTimeFormatter.ofPattern("EEEE d MMM", java.util.Locale.getDefault())),
+            kotlinx.datetime.LocalDate(now.year, now.monthValue, now.dayOfMonth), { addFor = null; viewModel.load(uid, myUid) }, k
+        )
+    }
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.common_back)) }
@@ -63,16 +74,16 @@ fun BoardsScreen(
             )
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 6.dp)) {
-            if (items.isEmpty()) Box(Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) {
+            if (items.isEmpty() && onAddBoard == null) Box(Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.gym_boards_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 val selected = grades.toSet()
-                GradeChipRow(
+                if (items.isNotEmpty()) GradeChipRow(
                     AscentEntries.grades(items), selected,
                     { g -> grades = if (g in selected) grades - g else grades + g }, { grades = emptyList() }
                 )
                 if (selected.isNotEmpty()) GradeEntriesList(AscentEntries.entries(s, AscentFilter.BOARDS, selected), onOpenGym)
-                else BoardsSections(s, items, state.expandedBoards, viewModel::toggleBoard, onOpenGym)
+                else BoardsSections(s, items, state.expandedBoards, viewModel::toggleBoard, onOpenGym, onAddBoard)
                 Box(Modifier.padding(bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current + 16.dp))
             }
         }

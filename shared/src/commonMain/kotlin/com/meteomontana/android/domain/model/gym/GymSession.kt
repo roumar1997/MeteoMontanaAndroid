@@ -24,6 +24,14 @@ data class GymSession(
     val boardProblems: List<BoardProblem> = emptyList()
 ) {
     val totalAscents: Int get() = ascents.sumOf { it.count }
+
+    /** false = «Solo board»: boards sin rocodromo (tablero de casa); cuenta en Boards y totales, pero no en ningun rocodromo ni en las rachas. */
+    val hasGym: Boolean get() = gymId != NO_GYM
+
+    companion object {
+        /** gymId de las sesiones «Solo board» (el servidor las guarda aparte: PUT me/board-sessions/{fecha}). */
+        const val NO_GYM = 0L
+    }
 }
 
 /**
@@ -45,8 +53,9 @@ data class GymStats(
 object GymStatsCalculator {
 
     fun compute(sessions: List<GymSession>, today: LocalDate): GymStats {
-        if (sessions.isEmpty()) return GymStats()
-        val unique = sessions.distinctBy { it.gymId to it.date }
+        val withGym = sessions.filter { it.hasGym }
+        if (withGym.isEmpty()) return GymStats()
+        val unique = withGym.distinctBy { it.gymId to it.date }
         val thisWeek = weekIndex(today)
         val ofYear = unique.filter { it.date.year == today.year }
         val top = ofYear.groupBy { it.gymId }

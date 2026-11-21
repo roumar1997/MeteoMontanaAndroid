@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -152,7 +153,11 @@ private enum class PickDay { TODAY, YESTERDAY, OTHER }
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GymPickerSheet(onPick: (Gym, LocalDate) -> Unit, onDismiss: () -> Unit, vm: GymPickerViewModel = hiltViewModel()) {
+fun GymPickerSheet(
+    onPick: (Gym, LocalDate) -> Unit, onDismiss: () -> Unit,
+    /** Si se pasa, arriba sale «Solo board» (boards sin rocódromo) y devuelve solo el día elegido. */
+    onSoloBoard: ((LocalDate) -> Unit)? = null, vm: GymPickerViewModel = hiltViewModel()
+) {
     val st by vm.state.collectAsStateWithLifecycle()
     val loc = rememberUserLocation()
     LaunchedEffect(loc?.lat, loc?.lon) { vm.setOrigin(loc?.lat, loc?.lon) }
@@ -200,6 +205,7 @@ fun GymPickerSheet(onPick: (Gym, LocalDate) -> Unit, onDismiss: () -> Unit, vm: 
                 Modifier.weight(1f, fill = false).heightIn(max = 420.dp).verticalScroll(rememberScrollState()).padding(top = Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                onSoloBoard?.let { solo -> SoloBoardRow { solo(date) } }
                 if (st.query.isNotBlank()) st.results.forEach { PickRow(it, it.gym.id == chosen?.id) { chosen = it.gym } }
                 else {
                     PickSection(stringResource(R.string.gym_pick_favorites), st.favorites, chosen) { chosen = it }
@@ -237,6 +243,22 @@ fun GymPickerSheet(onPick: (Gym, LocalDate) -> Unit, onDismiss: () -> Unit, vm: 
             },
             dismissButton = { TextButton(onClick = { datePicking = false }) { Text(stringResource(R.string.common_cancel).uppercase()) } }
         ) { DatePicker(pickerState) }
+    }
+}
+
+/** «Solo board»: boards sin rocódromo (tablero de casa); al tocarla se abre el registro de boards del día elegido. */
+@Composable
+private fun SoloBoardRow(onClick: () -> Unit) {
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surface, shape).border(1.dp, terraFillColor(), shape).clickable(onClick = onClick).padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(Icons.Outlined.GridView, null, tint = Color.White, modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(terraFillColor()).padding(9.dp))
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.gym_solo_board_title), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
+            Text(stringResource(R.string.gym_solo_board_sub), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

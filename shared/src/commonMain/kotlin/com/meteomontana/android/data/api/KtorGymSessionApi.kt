@@ -43,6 +43,15 @@ class KtorGymSessionApi(private val client: HttpClient) {
     suspend fun putAscents(sessionId: Long, body: GymAscentsRequestDto): GymSessionDto =
         client.put("gyms/sessions/$sessionId/ascents") { setBody(body) }.body()
 
+    /** Mis dias de boards SIN rocodromo («Solo board»). */
+    @Throws(Exception::class)
+    suspend fun boardDays(): List<com.meteomontana.android.data.api.dto.BoardDayDto> = client.get("me/board-sessions").body()
+
+    /** Sustituye lo hecho ese dia sin rocodromo (idempotente; ascents [] borra el dia). */
+    @Throws(Exception::class)
+    suspend fun putBoardDay(date: String, body: GymAscentsRequestDto): com.meteomontana.android.data.api.dto.BoardDayDto =
+        client.put("me/board-sessions/$date") { setBody(body) }.body()
+
     /** Borra una sesion propia con todo lo hecho en ella (404 si es ajena). */
     @Throws(Exception::class)
     suspend fun deleteSession(sessionId: Long) {

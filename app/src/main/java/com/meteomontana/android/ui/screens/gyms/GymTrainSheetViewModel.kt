@@ -2,7 +2,9 @@ package com.meteomontana.android.ui.screens.gyms
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.meteomontana.android.domain.model.gym.BoardAngleMemory
 import com.meteomontana.android.domain.model.gym.BoardKind
+import com.meteomontana.android.domain.model.gym.GymSession
 import com.meteomontana.android.domain.model.gym.BoardProblem
 import com.meteomontana.android.domain.model.gym.BoardProblems
 import com.meteomontana.android.domain.model.gym.GymAscent
@@ -27,16 +29,19 @@ data class GymTrainSheetState(val ascents: List<GymAscent> = emptyList(), val bo
 @HiltViewModel
 class GymTrainSheetViewModel @Inject constructor(
     private val training: GymTrainingUseCase,
-    private val record: RecordGymSessionUseCase
+    private val record: RecordGymSessionUseCase,
+    @dagger.hilt.android.qualifiers.ApplicationContext context: android.content.Context
 ) : ViewModel() {
+    /** Ultima inclinacion elegida en cada board (en el movil), para preseleccionarla. */
+    val angles = BoardAngleMemory(com.meteomontana.android.data.local.SharedPrefsKeyValueStore(context, "cumbre_board_prefs"))
+
     private val _state = MutableStateFlow(GymTrainSheetState())
     val state: StateFlow<GymTrainSheetState> = _state
 
     fun load(gymId: Long, date: kotlinx.datetime.LocalDate? = null) {
         val today = training.today()
         val day = date ?: today
-        val existing = training.summary(com.meteomontana.android.domain.model.gym.GymTrainingPeriod.YEAR, today)
-            .sessions.firstOrNull { it.gymId == gymId && it.date == day }
+        val existing = training.session(gymId, day)
         _state.update { GymTrainSheetState(ascents = existing?.ascents ?: emptyList(), boardProblems = existing?.boardProblems ?: emptyList(), hadAscents = existing?.ascents?.isNotEmpty() == true) }
     }
 
@@ -60,7 +65,7 @@ class GymTrainSheetViewModel @Inject constructor(
             // Hoy se apunta también en el servidor; otro día solo existe la ruta de «hoy», así que queda en el móvil.
             val list = _state.value.ascents
             // Con algo apuntado se da de alta el día (hoy también en el servidor); a cero solo se borra si ya había algo.
-            if (list.isNotEmpty() && day == training.today()) runCatching { record.execute(gymId, GymSessionSource.MANUAL) }
+            if (gymId != GymSession.NO_GYM && list.isNotEmpty() && day == training.today()) runCatching { record.execute(gymId, GymSessionSource.MANUAL) }
             if (list.isNotEmpty() || _state.value.hadAscents) runCatching { training.saveAscents(gymId, day, list, _state.value.boardProblems) }
             _state.update { it.copy(saving = false, saved = true) }
             onDone()

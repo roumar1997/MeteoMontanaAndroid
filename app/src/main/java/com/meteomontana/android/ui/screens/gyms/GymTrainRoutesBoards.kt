@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.gym.AscentKey
+import com.meteomontana.android.domain.model.gym.BoardAngleMemory
+import com.meteomontana.android.domain.model.gym.BoardAngles
 import com.meteomontana.android.domain.model.gym.BoardKind
 import com.meteomontana.android.domain.model.gym.BoardProblem
 import com.meteomontana.android.domain.model.gym.BoardProblems
@@ -76,19 +78,23 @@ internal fun RoutesTab(ascents: List<GymAscent>, adjust: (String, Int) -> Unit) 
     }
 }
 
-/** Pestaña «Boards»: el board (Kilter, Tension, Moonboard), la inclinación, los grados y lo ya añadido. */
+/**
+ * Pestaña «Boards»: el board (Kilter, Tension, Moonboard, System; fijo si viene de [fixedBoard]), la inclinación (las de ese board,
+ * con la última usada preseleccionada), los grados y lo ya añadido. Sirve dentro de «He entrenado» y para «Solo board».
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun BoardsTab(
     ascents: List<GymAscent>, problems: List<BoardProblem>, adjust: (String, Int) -> Unit,
-    addBoard: (BoardKind, String, Int?, String) -> Unit
+    addBoard: (BoardKind, String, Int?, String) -> Unit, angles: BoardAngleMemory, fixedBoard: BoardKind? = null
 ) {
-    var board by remember { mutableStateOf(BoardKind.KILTER) }
-    var angle by remember { mutableStateOf<Int?>(null) }
+    var board by remember { mutableStateOf(fixedBoard ?: BoardKind.KILTER) }
+    var angle by remember(board) { mutableStateOf(angles.initial(board)) }
     var selected by remember { mutableStateOf(listOf<String>()) }
     var name by remember { mutableStateOf("") }
     val boardItems = ascents.filter { GymAscentKeys.parse(it.key) is AscentKey.Board }
     AddedList(boardItems, adjust, BoardProblems.namesByKey(boardItems, problems))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    if (fixedBoard == null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         BoardKind.entries.forEach { b ->
             val sel = b == board
             Column(
@@ -103,14 +109,14 @@ internal fun BoardsTab(
             }
         }
     }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Eyebrow(stringResource(R.string.gym_sheet_incline), Modifier.weight(1f))
-        GymAscentKeys.BOARD_ANGLES.forEach { a ->
+    if (BoardAngles.anglesFor(board).isNotEmpty()) Eyebrow(stringResource(R.string.gym_sheet_incline))
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        BoardAngles.anglesFor(board).forEach { a ->
             val sel = angle == a
             Text("$a°", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (sel) Color.White else MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.clip(CircleShape).background(if (sel) terraFillColor() else MaterialTheme.colorScheme.surface)
                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                    .clickable { angle = if (sel) null else a }.padding(horizontal = 12.dp, vertical = 6.dp))
+                    .clickable { angle = if (sel) null else a; angles.remember(board, angle) }.padding(horizontal = 12.dp, vertical = 6.dp))
         }
     }
     Eyebrow(stringResource(R.string.gym_sheet_grade_pick))
@@ -122,7 +128,7 @@ internal fun BoardsTab(
     )
     val grade = GymAscentKeys.gradeOf(selected)
     AddButton(grade) {
-        grade?.let { addBoard(board, it, angle, name); selected = emptyList(); name = "" }
+        grade?.let { addBoard(board, it, angle, name); angles.remember(board, angle); selected = emptyList(); name = "" }
     }
     Text(stringResource(R.string.gym_sheet_board_note), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }

@@ -64,6 +64,7 @@ object GymBreakdown {
         var max: String? = null
         var total = 0
         for (s in sessions) {
+            if (!s.hasGym) { soloBoard(s, byKey, named, byMonth); total += s.totalAscents; max = s.ascents.fold(max) { m, a -> GymAscentKeys.harder(m, GymAscentKeys.maxGradeOfKey(a.key)) }; continue }
             val row = perGym.getOrPut(s.gymId) { IntArray(2) }
             row[0]++
             row[1] += s.totalAscents
@@ -88,10 +89,17 @@ object GymBreakdown {
             val key = monthKey(shiftMonths(today, -back))
             GymSummaryMonth(key, byMonth[key] ?: 0)
         }
-        return GymSummary(sessions.size, perGym.size, total, max, byGym, items, months, boardProblems = named.sortedByDescending { it.date })
+        return GymSummary(sessions.count { it.hasGym }, perGym.size, total, max, byGym, items, months, boardProblems = named.sortedByDescending { it.date })
     }
 
     private const val MAX_DAYS = 60
+
+    /** «Solo board»: suma a los totales, claves, meses y nombres (gymId 0), pero a ningun rocodromo. */
+    private fun soloBoard(s: GymSession, byKey: MutableMap<String, Int>, named: MutableList<NamedBoardProblem>, byMonth: MutableMap<String, Int>) {
+        s.boardProblems.forEach { named += NamedBoardProblem(s.gymId, s.date.toString(), it) }
+        byMonth[monthKey(s.date)] = (byMonth[monthKey(s.date)] ?: 0) + s.totalAscents
+        for (a in s.ascents) byKey[a.key] = (byKey[a.key] ?: 0) + a.count
+    }
 
     private fun sortedItems(m: Map<String, Int>?): List<GymAscent> =
         m.orEmpty().map { GymAscent(it.key, it.value) }.sortedByDescending { it.count }

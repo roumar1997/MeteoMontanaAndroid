@@ -50,6 +50,15 @@ fun BoardProblem.toDto() = BoardProblemDto(board.wire, grade, name)
 @Serializable
 data class GymAscentsRequestDto(val ascents: List<GymAscentDto>, val boardProblems: List<BoardProblemDto>? = null)
 
+/** Un dia de boards SIN rocodromo (GET/PUT me/board-sessions): no lleva gymId ni id. */
+@Serializable
+data class BoardDayDto(val date: String = "", val ascents: List<GymAscentDto> = emptyList(), val boardProblems: List<BoardProblemDto> = emptyList())
+
+/** Como una sesion con [GymSession.NO_GYM]. */
+fun BoardDayDto.toDomainOrNull(): GymSession? = runCatching {
+    GymSession(GymSession.NO_GYM, LocalDate.parse(date), GymSessionSource.MANUAL, 0, ascents.filter { it.count > 0 }.map { it.toDomain() }, boardProblems.mapNotNull { it.toDomainOrNull() })
+}.getOrNull()
+
 /** Cuerpo de POST gyms/{id}/sessions: la fecha local (yyyy-MM-dd) del entreno (Ayer / Otro dia apuntado sin red). */
 @Serializable
 data class GymSessionDateRequestDto(val date: String)

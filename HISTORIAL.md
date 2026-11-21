@@ -1,4 +1,5 @@
-# Cumbre — historial de sesiones (Android + backend)
+#- 2026-11-21 · Ronda 12 Android (rocódromos): «Solo board» (boards sin rocódromo, V119 aditiva, gymId 0 en el cliente con la cola offline de siempre), «+» en cada tablero de Boards, inclinaciones por board (Moon solo 25/40) con defecto y última usada, filtro de ángulos. Trampa: GymTraining.summary ya excluye gymId 0, así que la hoja de entreno cargaba el día vacío y el 2º guardado pisaba el 1º; GymTrainingUseCase.session() lo lee del repo. Backend develop 872423d.
+ Cumbre — historial de sesiones (Android + backend)
 
 > Registro terso por sesión. **No se carga en cada sesión**: se consulta cuando
 > hace falta contexto de por qué algo es como es. Lo que vive aquí no se puede

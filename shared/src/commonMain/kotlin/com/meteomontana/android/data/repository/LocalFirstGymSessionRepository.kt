@@ -5,7 +5,6 @@ import com.meteomontana.android.data.api.dto.GymAscentStatsDto
 import com.meteomontana.android.data.api.dto.GymAscentsRequestDto
 import com.meteomontana.android.data.api.dto.GymSessionDto
 import com.meteomontana.android.data.api.dto.toDomainOrNull
-import com.meteomontana.android.data.api.dto.toDomainOrNull
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.api.dto.toDto
 import com.meteomontana.android.domain.model.gym.BoardProblem
@@ -74,7 +73,7 @@ class LocalFirstGymSessionRepository(
         val from = LocalDate(2020, 1, 1).toString()
         syncPending()
         val remote = try {
-            api.mine(from, today().toString()).mapNotNull { it.toDomainOrNull() }
+            api.mine(from, today().toString()).mapNotNull { it.toDomainOrNull() } + boardDaysOrEmpty()
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
@@ -142,6 +141,11 @@ class LocalFirstGymSessionRepository(
 
     /** Da de alta la sesion en el servidor si hace falta (hoy con /today; otro dia con la fecha explicita) y sube lo hecho; null si aun no se puede. */
     private suspend fun push(s: GymSession, sendNames: Boolean): GymSession? {
+        if (!s.hasGym) { // «Solo board»: sin sesion en el servidor, el dia entero se sustituye (idempotente)
+            api.putBoardDay(s.date.toString(), GymAscentsRequestDto(s.ascents.map { it.toDto() }, s.boardProblems.map { it.toDto() }))
+            clearMark(s.gymId, s.date)
+            return s
+        }
         val id = s.id.takeIf { it != 0L } ?: if (s.date == today()) api.checkInToday(s.gymId).id else api.checkInOn(s.gymId, s.date.toString()).id
         if (id == 0L) return null
         val body = GymAscentsRequestDto(s.ascents.map { it.toDto() }, if (sendNames) s.boardProblems.map { it.toDto() } else null)
@@ -152,7 +156,17 @@ class LocalFirstGymSessionRepository(
         return updated
     }
 
+    /** Los dias «Solo board» del servidor; un servidor sin la ruta (o sin red) no debe romper el refresco. */
+    private suspend fun boardDaysOrEmpty(): List<GymSession> = try {
+        api.boardDays().mapNotNull { it.toDomainOrNull() }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        emptyList()
+    }
+
     private suspend fun deleteRemote(gymId: Long, date: LocalDate, id: Long) {
+        if (gymId == GymSession.NO_GYM) { api.putBoardDay(date.toString(), GymAscentsRequestDto(emptyList(), emptyList())); return }
         if (id != 0L) api.deleteSession(id) else if (date == today()) api.undoToday(gymId)
     }
 

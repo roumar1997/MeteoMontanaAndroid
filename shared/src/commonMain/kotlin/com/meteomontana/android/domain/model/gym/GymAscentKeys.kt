@@ -25,7 +25,6 @@ object GymAscentKeys {
     /** Grados que se ofrecen para bloques sin escala de colores y para boards. */
     val BLOCK_GRADES: List<String> = listOf("5", "6a", "6a+", "6b", "6b+", "6c", "7a", "7a+")
 
-    val BOARD_ANGLES: List<Int> = listOf(30, 40, 45)
 
     /** Todos los grados de la rejilla de «He entrenado» (vías y boards), de fácil a difícil. */
     val GRID_GRADES: List<String> = listOf("5", "5+", "6a", "6a+", "6b", "6b+", "6c", "6c+", "7a", "7a+", "7b", "7b+", "7c", "7c+", "8a", "8a+")

@@ -46,7 +46,7 @@ import java.util.Locale
 
 /** Buscador + lista de bloques con nombre de UN tablero. Sin texto enseña todos los nombrados; con texto, los que coinciden. */
 @Composable
-internal fun BoardNamedSection(kind: BoardKind, summary: GymSummary, onOpenGym: (Long) -> Unit) {
+internal fun BoardNamedSection(kind: BoardKind, summary: GymSummary, onOpenGym: (Long) -> Unit, boardItems: List<com.meteomontana.android.domain.model.gym.GymAscent> = emptyList(), angle: Int? = null) {
     var query by rememberSaveable(kind.name) { mutableStateOf("") }
     OutlinedTextField(
         value = query, onValueChange = { query = it.take(BoardProblems.MAX_NAME) }, singleLine = true,
@@ -54,7 +54,8 @@ internal fun BoardNamedSection(kind: BoardKind, summary: GymSummary, onOpenGym: 
         placeholder = { Text(stringResource(R.string.gym_board_search_hint, boardName(kind)), fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         leadingIcon = { Icon(Icons.Outlined.Search, null) }
     )
-    val found = BoardProblems.search(summary.boardProblems, kind, query)
+    val pool = com.meteomontana.android.domain.model.gym.BoardAngles.problemsAt(summary.boardProblems, boardItems, kind, angle)
+    val found = BoardProblems.search(pool, kind, query)
     if (found.isEmpty()) {
         if (query.isNotBlank()) Text(stringResource(R.string.gym_board_search_empty), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 6.dp))
         return
@@ -71,7 +72,7 @@ private fun NamedRow(p: NamedBoardProblem, gymName: String?, onOpenGym: (Long) -
     val shape = RoundedCornerShape(14.dp)
     Row(
         Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surface, shape).border(1.dp, MaterialTheme.colorScheme.outline, shape)
-            .clickable { onOpenGym(p.gymId) }.padding(horizontal = 12.dp, vertical = 10.dp),
+            .clickable(enabled = p.gymId != com.meteomontana.android.domain.model.gym.GymSession.NO_GYM) { onOpenGym(p.gymId) }.padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(

@@ -48,6 +48,9 @@ class GymTrainingUseCase(private val repo: GymSessionRepository) {
     /** Sesiones del periodo al instante, desde el móvil (sin red). */
     fun summary(period: GymTrainingPeriod, date: LocalDate): GymTrainingSummary = GymTraining.summary(repo.sessions(), period, date)
 
+    /** La sesión de [gymId] ese día en el móvil (también la de «Solo board», gymId 0); null si no hay. */
+    fun session(gymId: Long, date: LocalDate): GymSession? = repo.sessions().firstOrNull { it.gymId == gymId && it.date == date }
+
     @Throws(Exception::class)
     suspend fun refresh() { repo.refresh() }
 

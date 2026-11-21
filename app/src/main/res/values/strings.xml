@@ -2426,4 +2426,14 @@
     </plurals>
     <string name="public_profile_unfollow_title">¿Dejar de seguir a %1$s?</string>
     <string name="public_profile_unfollow_confirm">Dejar de seguir</string>
+
+    <!-- Ronda 12: Solo board, + en Boards, filtro por inclinación -->
+    <string name="gym_solo_board_title">Solo board</string>
+    <string name="gym_solo_board_sub">Sin rocódromo: tu board de casa o da igual dónde</string>
+    <string name="gym_solo_board_sheet">Boards · %1$s</string>
+    <string name="gym_solo_board_save">Guardar boards</string>
+    <string name="gym_board_add_cd">Apuntar un %1$s</string>
+    <string name="gym_board_angles">Ángulos</string>
+    <string name="gym_board_angles_all">Todos</string>
+    <string name="gym_board_angle_chip">%1$d° · %2$d</string>
 </resources>
