@@ -27,6 +27,24 @@ func L(_ key: String, _ args: Any...) -> String {
     return s
 }
 
+/// Plural de Android (`<plurals>`): busca `clave_one` si n es 1 y `clave_other` si no. Sin más datos, el hueco es n.
+func LP(_ key: String, _ n: Int, _ args: Any...) -> String {
+    let k = key + (n == 1 ? "_one" : "_other")
+    let s = NSLocalizedString(k, comment: "")
+    var out = s
+    let values: [Any] = args.isEmpty ? [n] : args
+    for (i, a) in values.enumerated() {
+        let v = String(describing: a)
+        let positional = "%\(i + 1)$@"
+        if out.contains(positional) {
+            out = out.replacingOccurrences(of: positional, with: v)
+        } else if let r = out.range(of: "%@") {
+            out.replaceSubrange(r, with: v)
+        }
+    }
+    return out
+}
+
 /// Orientación ("N", "SO"…): los códigos que viajan a la API no cambian; solo
 /// cómo se muestran (en inglés el oeste es W, no O).
 func aspectLabel(_ code: String) -> String {

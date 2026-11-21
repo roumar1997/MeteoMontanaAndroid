@@ -112,7 +112,7 @@ struct GymTags: View {
             if gym.closed {
                 GymTag(text: L("gym_closed_tag"), color: Cumbre.bad)
             } else if let open = GymPresentation.openStatusText(status) {
-                GymTag(text: open, color: status is GymOpenStatus.Open ? Cumbre.ok : Cumbre.ink2)
+                GymTag(text: open, color: (status is GymOpenStatus.Open || status is GymOpenStatus.AlwaysOpen) ? Cumbre.ok : Cumbre.ink2)
             }
         }
     }

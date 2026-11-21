@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 import Shared
 
 /// Textos derivados de una ficha de rocódromo. Espejo de `GymPresentation.kt`: las claves son las de
@@ -42,6 +42,7 @@ enum GymPresentation {
 
     /// «Abierto · hasta 23:00», «Cerrado · abre a las 10:00», «Cerrado»; nil si no hay horario (no se afirma nada).
     static func openStatusText(_ status: GymOpenStatus) -> String? {
+        if status is GymOpenStatus.AlwaysOpen { return L("gym_open_always") }
         if let open = status as? GymOpenStatus.Open { return L("gym_open_until", open.closesAt) }
         if let closed = status as? GymOpenStatus.Closed {
             if let opens = closed.opensAt { return L("gym_closed_opens", opens) }
@@ -117,6 +118,22 @@ enum GymPresentation {
         out.dateStyle = .medium
         out.timeStyle = .none
         return out.string(from: date)
+    }
+
+    /// «6A–6C» (o «6A» si coinciden); nil si no hay ningún grado.
+    static func gradeRange(_ from: String?, _ to: String?) -> String? {
+        let a = from.flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0.uppercased() }
+        let b = to.flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0.uppercased() }
+        guard let a else { return b }
+        guard let b, a != b else { return a }
+        return "(a)–(b)"
+    }
+
+    /// Color de un «#RRGGBB» del servidor (escala de colores); gris si no se entiende.
+    static func color(hex raw: String) -> Color {
+        let s = raw.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "#", with: "")
+        guard s.count == 6, let v = UInt32(s, radix: 16) else { return Color(hex: 0x8E9199) }
+        return Color(hex: v)
     }
 
     // MARK: - Enlaces

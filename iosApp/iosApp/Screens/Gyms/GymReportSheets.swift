@@ -5,11 +5,11 @@ import Shared
 private let gymIssueLabels: [(code: String, key: String)] = [
     ("IS_FREE", "gym_issue_free"), ("IS_PAID", "gym_issue_paid"), ("CLOSED", "gym_issue_closed"),
     ("IS_BOULDER", "gym_issue_boulder"), ("IS_ROPE", "gym_issue_rope"), ("WRONG_LOCATION", "gym_issue_location"),
-    ("OTHER", "gym_issue_other")
+    ("SCALE", "gym_issue_scale"), ("OTHER", "gym_issue_other")
 ]
 
 /// «Corregir datos» (maqueta): chips de lo que falla, comentario, foto opcional y «Enviar». Lo recibe un admin.
-/// Abajo, el acceso a «Añadir un muro que falta». Espejo de `GymReportSheet` de Android.
+/// Con «Escala» se abre el editor de colores o grados. Espejo de `GymReportSheet` de Android.
 struct GymReportSheet: View {
     let gym: Gym
     @StateObject private var vm = GymReportViewModel()
@@ -17,7 +17,8 @@ struct GymReportSheet: View {
     @State private var issues = Set<String>()
     @State private var comment = ""
     @State private var photo: UIImage?
-    @State private var addWallOpen = false
+    @State private var scaleGrades = false
+    @State private var picked: [String] = []
 
     var body: some View {
         ScrollView {
@@ -32,35 +33,28 @@ struct GymReportSheet: View {
                     }
                 }
                 GymSheetEyebrow(text: L("gym_comment"))
+                if wantsScale { GymScaleEditor(grades: $scaleGrades, picked: $picked) }
                 GymCommentField(text: $comment, hint: L("gym_comment_hint"), lines: 3)
                 GymPhotoRow(photo: $photo)
-                GymSendBlock(state: vm.state, enabled: !issues.isEmpty || !comment.trimmingCharacters(in: .whitespaces).isEmpty) {
-                    vm.sendCorrection(gymId: gym.id, issueCodes: issues, comment: comment, photo: photo)
+                GymSendBlock(state: vm.state, enabled: (!issues.isEmpty || !comment.trimmingCharacters(in: .whitespaces).isEmpty) && (!wantsScale || proposal != nil)) {
+                    vm.sendCorrection(gymId: gym.id, issueCodes: issues, comment: comment, photo: photo,
+                                      scale: wantsScale ? proposal : nil)
                 }
-                addWallCard
             }
             .padding(16)
         }
         .background(Cumbre.bg.ignoresSafeArea())
         .presentationDetents([.large])
         .gymCloseWhenSent(vm.state) { dismiss() }
-        .sheet(isPresented: $addWallOpen) { GymNewSheet(lat: gym.lat, lon: gym.lon) }
     }
 
     private func toggle(_ code: String) {
         if issues.contains(code) { issues.remove(code) } else { issues.insert(code) }
     }
 
-    /// Bloque suave terracota de la maqueta que abre el alta de un muro.
-    private var addWallCard: some View {
-        Button { addWallOpen = true } label: {
-            Text("＋  " + L("gym_add_missing")).font(Cumbre.serif(16, .bold)).foregroundStyle(Cumbre.ink)
-                .frame(maxWidth: .infinity, alignment: .leading).padding(14)
-                .background(Cumbre.terraBg, in: RoundedRectangle(cornerRadius: 16))
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Cumbre.terra.opacity(0.25), lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .padding(.top, 12)
+    private var wantsScale: Bool { issues.contains("SCALE") }
+    private var proposal: GymScale? {
+        GymScalePresets.shared.proposal(type: scaleGrades ? .grades : .colors, pickedNames: picked)
     }
 }
 

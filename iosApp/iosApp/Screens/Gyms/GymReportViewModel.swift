@@ -13,12 +13,12 @@ final class GymReportViewModel: ObservableObject {
 
     func reset() { state = .idle }
 
-    func sendCorrection(gymId: Int64, issueCodes: Set<String>, comment: String, photo: UIImage?) {
+    func sendCorrection(gymId: Int64, issueCodes: Set<String>, comment: String, photo: UIImage?, scale: GymScale? = nil) {
         let issues = GymReportIssue.allCases.filter { issueCodes.contains($0.code) }
         let trimmed = comment.trimmingCharacters(in: .whitespacesAndNewlines)
         send(photo) { url in
             _ = try await self.c.submitGymCorrection.execute(
-                correction: GymCorrection(gymId: gymId, issues: issues, comment: trimmed.isEmpty ? nil : trimmed, photoUrl: url))
+                correction: GymCorrection(gymId: gymId, issues: issues, comment: trimmed.isEmpty ? nil : trimmed, photoUrl: url, scale: scale))
         }
     }
 

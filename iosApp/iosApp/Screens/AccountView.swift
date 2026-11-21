@@ -208,6 +208,7 @@ struct AccountView: View {
     /// false cuando Perfil vive como pestaña (no hay sheet que cerrar).
     var showClose: Bool = true
     @StateObject private var vm = AccountViewModel()
+    @StateObject private var climb = ProfileClimbModel()
     /// La tarjeta «Rocódromo» solo existe con el interruptor `gyms_enabled` encendido.
     @ObservedObject private var featureFlags = FeatureFlagsModel.shared
     @Environment(\.dismiss) private var dismiss
@@ -234,24 +235,24 @@ struct AccountView: View {
                             .padding(.vertical, 8)
                             .background(Cumbre.terraBg)
                     }
-                    avatar
-                    names
-                    if let p = vm.profile, let bio = p.bio, !bio.isEmpty {
-                        Text(bio)
-                            .font(.system(size: 15))
-                            .foregroundStyle(Cumbre.ink2)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
+                    // Cabecera compacta (maqueta A, ronda 5): avatar a la izquierda (desplazado para que dragones y
+                    // hadas no se corten); nombre, @usuario y seguidos · seguidores a su lado. Sin descripción.
+                    HStack(alignment: .center, spacing: 12) {
+                        avatar.padding(.leading, 22)
+                        names.frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    // Todo más junto para que el diario y ESTADÍSTICAS se vean sin bajar (Álvaro, 2026-10-19).
-                    followCounters
-                        .guideTarget("profile.follows")
-                    diarySection
-                    if featureFlags.flags.isGymsEnabled { GymStatsCard() }
+                    .guideTarget("profile.follows")
+                    RewardsBlock(uid: nil)
+                    AccountProfileBody(vm: vm, climb: climb)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 8)
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
+            }
+            .refreshable {
+                await vm.load()
+                if featureFlags.flags.isGymsEnabled { await climb.load(uid: nil) }
             }
             .background(Cumbre.bg.ignoresSafeArea())
             .guideHost("profile")
@@ -261,7 +262,6 @@ struct AccountView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .topBarLeading) {
-                    GuideHelpButton(topicKey: "profile")
                     // Acceso admin (solo admins) con nº de pendientes, junto al "?".
                     if vm.profile?.isAdmin == true {
                         NavigationLink(destination: AdminView()) {
@@ -275,6 +275,7 @@ struct AccountView: View {
                     }
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
+                    GuideHelpButton(topicKey: "profile").foregroundStyle(Cumbre.terra)
                     if vm.profile != nil {
                         // Mi material: vivia enterrado en Editar perfil y es de
                         // lo que mas se cambia (dos crashpads un finde, tres el
@@ -287,7 +288,7 @@ struct AccountView: View {
                         }.foregroundStyle(Cumbre.terra)
                         NavigationLink(destination: AccountSettingsView(vm: vm)) {
                             Image(systemName: "gearshape")
-                        }.foregroundStyle(Cumbre.ink)
+                        }.foregroundStyle(Cumbre.terra)
                     }
                     if showClose {
                         Button(NSLocalizedString("common_close", comment: "")) { dismiss() }.foregroundStyle(Cumbre.terra)
@@ -296,6 +297,7 @@ struct AccountView: View {
             }
             .sheet(isPresented: $showGear) { MyGearSheet() }
             .task { await vm.load() }
+            .onAppear { if featureFlags.flags.isGymsEnabled { Task { await climb.load(uid: nil) } } }
             .fullScreenCover(isPresented: Binding(
                 get: { zoomUrl != nil },
                 set: { if !$0 { zoomUrl = nil } })) {
@@ -382,21 +384,35 @@ struct AccountView: View {
     }
 
     private var names: some View {
-        VStack(spacing: 2) {
-            HStack(spacing: 6) {
-                Text(displayName).font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
-                VerifiedCheck(uid: vm.profile?.uid, size: 19)
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 5) {
+                Text(displayName).font(Cumbre.serif(23, .bold)).foregroundStyle(Cumbre.ink).lineLimit(2)
+                VerifiedCheck(uid: vm.profile?.uid, size: 18)
             }
-            // @usuario y, al lado, ADMIN/PREMIUM (antes desplazaban los seguidores a la izquierda).
             HStack(spacing: 8) {
                 if let u = vm.profile?.username, !u.isEmpty {
-                    Text("@\(u)").font(Cumbre.mono(13)).foregroundStyle(Cumbre.ink3)
+                    Text("@\(u)").font(Cumbre.mono(12)).foregroundStyle(Cumbre.ink2).lineLimit(1)
                 }
                 badges
             }
+            if let f = vm.follow, let uid = vm.profile?.uid {
+                HStack(spacing: 10) {
+                    NavigationLink(destination: FollowListView(uid: uid, mode: .following)) {
+                        followInline(f.following, L("profile_following").lowercased())
+                    }.buttonStyle(.plain)
+                    NavigationLink(destination: FollowListView(uid: uid, mode: .followers)) {
+                        followInline(f.followers, L("profile_followers").lowercased())
+                    }.buttonStyle(.plain)
+                }
+                .padding(.top, 2)
+            }
+        }
+    }
 
-            // Título, insignias y nivel por aportaciones (tocar = elegir título y viero/bloquero).
-            RewardsBlock(uid: nil).padding(.top, 4)
+    private func followInline(_ value: Int64, _ label: String) -> some View {
+        HStack(spacing: 4) {
+            Text("\(value)").font(.system(size: 13, weight: .bold)).foregroundStyle(Cumbre.ink)
+            Text(label).font(.system(size: 13)).foregroundStyle(Cumbre.ink2).lineLimit(1)
         }
     }
 

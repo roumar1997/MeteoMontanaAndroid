@@ -91,6 +91,9 @@ final class GymDetailViewModel: ObservableObject {
         }
     }
 
+    /// Relee si hay entreno de hoy (tras guardar la hoja de entreno).
+    func refreshTrained() { trainedToday = c.recordGymSession.hasSessionToday(gymId: gymId) }
+
     func toggleFavorite() {
         let now = !favorite
         favorite = now
@@ -104,24 +107,29 @@ final class GymDetailViewModel: ObservableObject {
     }
 }
 
-/// Rocódromo donde se crea la quedada (el formulario enseña su nombre fijo en vez del buscador de escuela).
+
+/// Rocódromo donde se crea la quedada (el asistente lo enseña fijado y solo pregunta cuándo).
 struct GymPlace: Identifiable, Hashable {
     let id: Int64
     let name: String
 }
 
-/// Ficha completa de un rocódromo (maqueta aprobada): etiquetas, nombre, dirección y distancia, acciones
-/// (Cómo llegar, Web, Instagram), modalidad, horario, precio con su fecha, servicios, «Quién va hoy», crear quedada
-/// y «¿Algo no es así? Corregir». Lo que no se sabe sale como «Sin confirmar», nunca como «No».
+/// Ficha completa de un rocódromo. Orden (Android, ronda 6): cabecera, «Estoy aquí / Quién va hoy», 4 acciones,
+/// «He entrenado» + «Crear quedada», servicios, «Añadir foto» + «Corregir», modalidad, escala, horario, precio y notas.
 struct GymDetailView: View {
     let gymId: Int64
     @StateObject private var vm: GymDetailViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var reportOpen = false
+    @State private var trainOpen = false
+    @State private var privacyOpen = false
+    @State private var chatOpen = false
+    @State private var web: WebLink?
     @State private var meetupPlace: GymPlace?
     @State private var openMeetupId: String?
     @State private var userLat: Double?
     @State private var userLon: Double?
+    private let myUid = AppDependencies.shared.authBridge.currentUid()
 
     init(gymId: Int64) {
         self.gymId = gymId
@@ -130,8 +138,12 @@ struct GymDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            IconActionRow(count: 2) { w in
-                IconAction(symbol: "chevron.left", a11y: L("common_back")) { dismiss() }.frame(width: w)
+            IconActionRow(count: 4) { w in
+                IconAction(symbol: "chevron.left", a11y: L("common_close")) { dismiss() }.frame(width: w)
+                IconAction(symbol: "bubble.left.and.bubble.right", a11y: L("gym_chat_open")) { chatOpen = true }.frame(width: w)
+                IconAction(symbol: "mappin.and.ellipse", a11y: L("gym_map_open")) {
+                    if let gym = vm.gym { GymLinksIOS.openOnMap(gym) }
+                }.frame(width: w)
                 IconAction(symbol: vm.favorite ? "star.fill" : "star",
                            a11y: L(vm.favorite ? "gym_favorite_remove" : "gym_favorite_add"),
                            active: vm.favorite) { vm.toggleFavorite() }.frame(width: w)
@@ -151,12 +163,23 @@ struct GymDetailView: View {
         .toolbar(.hidden, for: .navigationBar)
         .task { await vm.load() }
         .task { await loadLocation() }
+        .task { await vm.loadPresence(myUid: myUid) }
         .sheet(isPresented: $reportOpen) { if let gym = vm.gym { GymReportSheet(gym: gym) } }
+        .sheet(isPresented: $privacyOpen) {
+            PresencePrivacySheet { privacyOpen = false; Task { await vm.togglePresence(myUid: myUid) } }
+        }
+        .sheet(isPresented: $trainOpen, onDismiss: { vm.refreshTrained() }) {
+            if let gym = vm.gym { GymTrainSheet(gym: gym, dateLabel: L("gym_train_today_label", GymDates.todayLong())) }
+        }
+        .sheet(item: $web) { link in SafariSheet(url: link.url).ignoresSafeArea() }
         .sheet(item: $meetupPlace) { place in
             CreateMeetupView(onCreated: { id in
                 meetupPlace = nil
                 openMeetupId = id
             }, gym: place)
+        }
+        .navigationDestination(isPresented: $chatOpen) {
+            if let gym = vm.gym { GymChatView(gymId: gym.id, gymName: gym.name) }
         }
         .navigationDestination(isPresented: Binding(get: { openMeetupId != nil }, set: { if !$0 { openMeetupId = nil } })) {
             if let id = openMeetupId { MeetupDetailView(meetupId: id) }
@@ -174,21 +197,44 @@ struct GymDetailView: View {
     private func detail(_ gym: Gym) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             header(gym)
-            actions(gym)
-            GymInfoSections(gym: gym)
-            GymPresenceSection(vm: vm)
-            GymActionPill(text: L(vm.trainedToday ? "gym_train_done" : "gym_train_today"), primary: !vm.trainedToday) {
-                vm.toggleTraining()
+            GymPresenceCard(people: vm.people, iAmHere: vm.iAmHere, busy: vm.presenceBusy, error: vm.presenceError,
+                            onJoin: { privacyOpen = true },
+                            onLeave: { Task { await vm.togglePresence(myUid: myUid) } })
+            GymQuickActions(gym: gym) { web = WebLink(url: $0) }.padding(.top, 4)
+            if let handle = gym.instagram, !handle.trimmingCharacters(in: .whitespaces).isEmpty,
+               let url = GymPresentation.instagramUrl(handle) {
+                Button { web = WebLink(url: url) } label: {
+                    Text(L("gym_instagram")).font(.system(size: 13)).foregroundStyle(Cumbre.ink2).padding(4)
+                }
+                .buttonStyle(.plain).frame(maxWidth: .infinity)
             }
-            .padding(.top, 8)
+            HStack(spacing: 8) {
+                GymActionPill(text: L(vm.trainedToday ? "gym_train_short_done" : "gym_train_short"), primary: !vm.trainedToday) {
+                    trainOpen = true
+                }
+                GymActionPill(text: L("gym_meetup_short")) { meetupPlace = GymPlace(id: gym.id, name: gym.name) }
+            }
+            .padding(.top, 4)
             if vm.trainedToday {
                 Button { vm.toggleTraining() } label: {
                     Text(L("gym_train_undo")).font(.system(size: 13)).foregroundStyle(Cumbre.ink2).padding(8)
                 }
                 .buttonStyle(.plain).frame(maxWidth: .infinity)
             }
-            GymActionPill(text: L("gym_create_meetup")) { meetupPlace = GymPlace(id: gym.id, name: gym.name) }
-            GymDashedPill(text: L("gym_fix_cta")) { reportOpen = true }.padding(.top, 12)
+            GymServicesSection(gym: gym)
+            HStack(alignment: .top, spacing: 8) {
+                GymPhotoContribute(gym: gym).frame(maxWidth: .infinity)
+                Button { reportOpen = true } label: {
+                    Text(L("gym_fix_cta")).font(.system(size: 13, weight: .semibold)).foregroundStyle(Cumbre.ink2)
+                        .lineLimit(2).multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity, minHeight: 44).padding(.horizontal, 8)
+                        .overlay(Capsule().stroke(Cumbre.ink2, lineWidth: 1))
+                }
+                .buttonStyle(.plain).frame(maxWidth: .infinity)
+            }
+            .padding(.top, 4)
+            GymInfoSections(gym: gym)
+            GymFooterNotes(gym: gym)
         }
         .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 32)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -208,22 +254,5 @@ struct GymDetailView: View {
     private func distanceKm(_ gym: Gym) -> Double? {
         guard let lat = userLat, let lon = userLon else { return nil }
         return Geo.shared.haversineKm(lat1: lat, lon1: lon, lat2: gym.lat, lon2: gym.lon)
-    }
-
-    /// «Cómo llegar» (primaria), «Web» e «Instagram» si la ficha los trae.
-    private func actions(_ gym: Gym) -> some View {
-        HStack(spacing: 8) {
-            GymActionPill(text: L("gym_directions"), icon: "gym_ic_directions", primary: true) {
-                openDirections(lat: gym.lat, lon: gym.lon)
-            }
-            if let site = gym.website, !site.trimmingCharacters(in: .whitespaces).isEmpty, let url = GymPresentation.webUrl(site) {
-                GymActionPill(text: L("gym_web")) { UIApplication.shared.open(url) }
-            }
-            if let handle = gym.instagram, !handle.trimmingCharacters(in: .whitespaces).isEmpty,
-               let url = GymPresentation.instagramUrl(handle) {
-                GymActionPill(text: L("gym_instagram"), icon: "gym_ic_instagram") { UIApplication.shared.open(url) }
-            }
-        }
-        .padding(.top, 4)
     }
 }

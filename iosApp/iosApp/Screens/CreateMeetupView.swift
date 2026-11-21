@@ -2,41 +2,55 @@ import SwiftUI
 import Shared
 import PhotosUI
 
+extension MeetupDraft {
+    /// Copia con cambios (Swift no ve los parámetros por defecto del `copy` de Kotlin).
+    func with(name: String? = nil, description: String?? = nil, privacy: String? = nil, photoUrl: String?? = nil,
+              schoolId: String? = nil, gymId: KotlinLong?? = nil, placeName: String? = nil) -> MeetupDraft {
+        doCopy(placeIsGym: placeIsGym, schoolId: schoolId ?? self.schoolId, gymId: gymId ?? self.gymId,
+               placeName: placeName ?? self.placeName, days: days, discipline: discipline, partners: partners,
+               gradeMin: gradeMin, gradeMax: gradeMax, gear: gear, privacy: privacy ?? self.privacy,
+               memberLimit: memberLimit, photoUrl: photoUrl ?? self.photoUrl, name: name ?? self.name,
+               description: description ?? self.description_)
+    }
+
+    static func empty() -> MeetupDraft {
+        MeetupDraft(placeIsGym: false, schoolId: "", gymId: nil, placeName: "", days: [], discipline: nil,
+                    partners: MeetupDraft.Companion.shared.DEFAULT_PARTNERS, gradeMin: nil, gradeMax: nil, gear: [:], privacy: "OPEN",
+                    memberLimit: nil, photoUrl: nil, name: "", description: nil)
+    }
+}
+
+/// Nueva quedada en 3 pasos (maqueta A): 1 dónde y cuándo, 2 qué y con quién, 3 material y detalles. Atrás conserva
+/// lo elegido. La lógica (qué falta, el grado, el material, la petición) vive en `MeetupDraft` de shared.
+/// Espejo de `CreateMeetupScreen.kt`.
 struct CreateMeetupView: View {
-    let onCreated: (String) -> Void   // meetupId
-    /// Datos que trae el asistente ("crea una quedada en Albarracín el sábado a las 9"): el formulario se abre ya
-    /// relleno y el usuario lo revisa y la crea con su botón.
-    var prefill: AssistantViewModel.MeetupRequest? = nil
-    @State private var prefillApplied = false
-    /// Quedada en un rocódromo: el lugar va fijo (sin buscador de escuela) y se envía gymId.
+    let onCreated: (String) -> Void
+    /// Lo que trae el asistente: el lugar (y el día) ya puestos.
+    var prefill: AssistantViewModel.MeetupRequest?
+    /// Desde la ficha de un rocódromo: el lugar va fijado y solo se pregunta cuándo.
     var gym: GymPlace?
 
     @Environment(\.dismiss) private var dismiss
-    @State private var name = ""
-    @State private var schoolId = ""
-    @State private var selectedDays = Set<String>()
-    @State private var privacy = "OPEN"
-    @State private var discipline: String? = nil
-    @State private var limitText = ""
+    @State private var draft = MeetupDraft.empty()
+    @State private var step = 1
+    @State private var placeLocked = false
+    @State private var prefillApplied = false
     @State private var submitting = false
     @State private var createError: String?
-    @State private var showGenderGate = false   // RC3: diálogo del gate No-Mixto
-    @State private var photoItem: PhotosPickerItem? = nil
-    @State private var photoImage: UIImage? = nil
-    @State private var photoUrl: String? = nil
+    @State private var showGenderGate = false
     @State private var uploadingPhoto = false
-    @State private var photoUploadError: String?
-    @State private var showSchoolPicker = false
-    @State private var schoolPickerQuery = ""
-    @State private var schoolPickerResults: [School] = []
-    @State private var schoolName = ""
     @State private var dayScores: [String: Int] = [:]
-    // Crear quedada en pausa: por el interruptor del servidor (`featureFlags`) o por un 503 FEATURE_DISABLED acabado de recibir.
     @ObservedObject private var featureFlags = FeatureFlagsModel.shared
     @State private var paused: FeatureNotice?
 
     private let createMeetup = AppDependencies.shared.container.createMeetup
     private let getRangeScores = AppDependencies.shared.container.getRangeScores
+
+    init(onCreated: @escaping (String) -> Void, prefill: AssistantViewModel.MeetupRequest? = nil, gym: GymPlace? = nil) {
+        self.onCreated = onCreated
+        self.prefill = prefill
+        self.gym = gym
+    }
 
     private var pausedNotice: FeatureNotice? {
         if !featureFlags.isEnabled(FeatureKey.shared.MEETUP_CREATE) {
@@ -45,446 +59,280 @@ struct CreateMeetupView: View {
         return paused
     }
 
-    private var canSubmit: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty &&
-        (!schoolId.trimmingCharacters(in: .whitespaces).isEmpty || gym != nil) &&
-        !selectedDays.isEmpty && !submitting
+    private var defaultName: String {
+        L("gym_meetup_default_name", draft.placeName.isEmpty ? L("create_meetup_title") : draft.placeName)
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // Toolbar
-                HStack {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark").foregroundColor(Cumbre.ink)
-                    }
-                    Text("Nueva quedada").font(.headline).padding(.leading, 8)
-                    Spacer()
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Button { if step > 1 { step -= 1 } else { dismiss() } } label: {
+                    Image(systemName: "chevron.left").font(.system(size: 18, weight: .semibold)).foregroundStyle(Cumbre.ink)
+                        .frame(width: 44, height: 44)
                 }
-                .padding(.horizontal, 16).padding(.vertical, 10)
-                .background(Cumbre.bg)
-                .overlay(Divider(), alignment: .bottom)
+                .buttonStyle(.plain).accessibilityLabel(L("common_back"))
+                Text(L("create_meetup_title")).font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            if let notice = pausedNotice {
+                FeatureOffNotice(message: notice.message).padding(16)
+                Spacer()
+            } else {
+                WizardProgress(step: step)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        switch step {
+                        case 1: MeetupPlaceStep(draft: $draft, dayScores: dayScores, placeLocked: placeLocked)
+                        case 2: MeetupDetailsStep(draft: $draft)
+                        default: MeetupFinalStep(draft: $draft, uploadingPhoto: $uploadingPhoto, defaultName: defaultName)
+                        }
+                        if let createError { Text(createError).font(.system(size: 12)).foregroundStyle(Cumbre.bad) }
+                    }
+                    .padding(.horizontal, 20).padding(.vertical, 10)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                Divider().overlay(Cumbre.rule)
+                HStack(spacing: 10) {
+                    if step > 1 {
+                        GymActionPill(text: L("mw_back")) { step -= 1 }.frame(maxWidth: 140)
+                    }
+                    if step < 3 {
+                        GymActionPill(text: L("mw_next"), primary: true, enabled: draft.canAdvance(step: Int32(step))) { step += 1 }
+                    } else {
+                        GymActionPill(text: submitting ? "…" : L("create_meetup_create"), primary: true,
+                                      enabled: !submitting && draft.canAdvance(step: 1)) { submit() }
+                    }
+                }
+                .padding(.horizontal, 20).padding(.vertical, 12)
+            }
+        }
+        .background(Cumbre.bg.ignoresSafeArea())
+        .navigationBarHidden(true)
+        .onAppear(perform: applyPrefill)
+        .onChange(of: draft.schoolId) { _, _ in loadDayScores() }
+        .onChange(of: draft.days) { _, _ in loadDayScores() }
+        .alert("Quedadas «No Mixto»", isPresented: $showGenderGate) {
+            Button("Entendido", role: .cancel) {}
+        } message: {
+            Text("Las quedadas «No Mixto» son solo para perfiles con género Mujer. Si eres mujer y aún no lo has indicado, ponlo en Perfil → Editar perfil y podrás crearlas y unirte.")
+        }
+    }
 
-                // Crear quedada en pausa (interruptor del servidor, o un 503 acabado de recibir): aviso en vez del formulario.
-                if let notice = pausedNotice {
-                    FeatureOffNotice(message: notice.message).padding(16)
-                    Spacer()
+    /// Lo que trae el asistente o la ficha se aplica UNA vez.
+    private func applyPrefill() {
+        guard !prefillApplied else { return }
+        prefillApplied = true
+        if let gym {
+            placeLocked = true
+            draft = draft.withGym(id: gym.id, name: gym.name)
+        } else if let p = prefill {
+            if !p.schoolId.isEmpty {
+                placeLocked = true
+                draft = draft.withSchool(id: p.schoolId, name: p.schoolName)
+            }
+            if let day = p.day { draft = draft.toggleDay(iso: day) }
+            draft = draft.with(name: p.name, description: .some(p.description))
+        }
+    }
+
+    private func submit() {
+        guard let uc = createMeetup, !submitting else { return }
+        submitting = true
+        createError = nil
+        let req = draft.toRequest(defaultName: defaultName)
+        Task {
+            do {
+                let meetup = try await uc.execute(req: req)
+                submitting = false
+                // Mi mochila pasa a la quedada al crearla (igual que al unirse), como en Android.
+                MeetupGearCopy.copyMyBackpack(meetupId: meetup.id)
+                onCreated(meetup.id)
+            } catch {
+                let msg = error.localizedDescription
+                if let off = FeatureOff.notice(from: error) {
+                    paused = off
+                } else if msg.contains("GENDER_REQUIRED") {
+                    showGenderGate = true
                 } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 20) {
-                            // Foto del grupo
-                            VStack(alignment: .leading, spacing: 6) {
-                                FieldLabel(L("FOTO DEL GRUPO (opcional)"))
-                                PhotosPicker(selection: $photoItem, matching: .images) {
-                                    ZStack {
-                                        if let img = photoImage {
-                                            Image(uiImage: img)
-                                                .resizable()
-                                                .scaledToFill()
-                                                .frame(maxWidth: .infinity)
-                                                .frame(height: 140)
-                                                .clipped()
-                                                .cornerRadius(4)
-                                        } else {
-                                            RoundedRectangle(cornerRadius: 4)
-                                                .fill(Cumbre.bg)
-                                                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2)))
-                                                .frame(maxWidth: .infinity)
-                                                .frame(height: 140)
-                                        }
-                                        if uploadingPhoto {
-                                            ProgressView().tint(Cumbre.terra)
-                                        } else if photoImage == nil {
-                                            VStack(spacing: 4) {
-                                                Image(systemName: "camera.fill").font(.title2).foregroundColor(Cumbre.ink.opacity(0.4))
-                                                Text("AÑADIR FOTO").font(.system(size: 10, weight: .bold, design: .monospaced))
-                                                    .tracking(1.8).foregroundColor(Cumbre.ink.opacity(0.4))
-                                            }
-                                        }
-                                    }
-                                }
-                                .onChange(of: photoItem) { item in
-                                    guard let item else { return }
-                                    // @MainActor: photoImage/uploadingPhoto son @State.
-                                    Task { @MainActor in
-                                        guard let data = try? await item.loadTransferable(type: Data.self),
-                                              let uiImg = UIImage(data: data) else { return }
-                                        photoImage = uiImg
-                                        uploadingPhoto = true
-                                        do {
-                                            let url = try await StorageUploader.uploadMeetupPhoto(
-                                                uiImg,
-                                                tempId: "new_\(Int(Date().timeIntervalSince1970))"
-                                            )
-                                            photoUrl = url
-                                        } catch {
-                                            photoUrl = nil
-                                            photoUploadError = L("No se pudo subir la foto. Inténtalo de nuevo.")
-                                        }
-                                        uploadingPhoto = false
-                                    }
-                                }
-                            }
-                            if let err = photoUploadError {
-                                Text(err).font(.caption).foregroundColor(.red)
-                            }
-    
-                            // Nombre
-                            VStack(alignment: .leading, spacing: 6) {
-                                FieldLabel(L("NOMBRE"))
-                                TextField("Ej. Quedar en Pedriza", text: $name)
-                                    .textFieldStyle(CumbreFieldStyle())
-                            }
-    
-                            // Escuela
-                            VStack(alignment: .leading, spacing: 6) {
-                                FieldLabel(gym != nil ? L("gym_meetup_place_label").uppercased() : L("ESCUELA"))
-                                Button { showSchoolPicker = true } label: {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "building.2").foregroundColor(Cumbre.ink.opacity(0.5))
-                                        Text(schoolName.isEmpty ? NSLocalizedString("create_meetup_school_search", comment: "") : schoolName)
-                                            .foregroundStyle(schoolName.isEmpty ? Cumbre.ink.opacity(0.4) : Cumbre.ink)
-                                            .font(.system(size: 15))
-                                        Spacer()
-                                        Image(systemName: "chevron.right").foregroundColor(Cumbre.ink.opacity(0.3))
-                                    }
-                                    .padding(10)
-                                    .background(Cumbre.bg)
-                                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
-                                }
-                                .disabled(gym != nil)
-                            }
-    
-                            // Días
-                            VStack(alignment: .leading, spacing: 6) {
-                                FieldLabel(L("DÍAS (elige uno o varios)"))
-                                DayPickerView(selected: $selectedDays, schoolId: schoolId, dayScores: dayScores)
-                            }
-    
-                            // Privacidad
-                            VStack(alignment: .leading, spacing: 6) {
-                                FieldLabel(L("PRIVACIDAD"))
-                                PrivacyPickerView(selected: $privacy)
-                            }
-                            if privacy == "WOMEN" {
-                                Text("Solo mujeres. Asegúrate de tener género = Mujer en tu perfil (Perfil → Editar perfil).")
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(Cumbre.ink.opacity(0.5))
-                            }
-    
-                            // Disciplina
-                            VStack(alignment: .leading, spacing: 6) {
-                                FieldLabel(L("DISCIPLINA (opcional)"))
-                                DisciplinePickerView(selected: $discipline)
-                            }
-    
-                            // Límite
-                            VStack(alignment: .leading, spacing: 6) {
-                                FieldLabel(L("LÍMITE DE PARTICIPANTES (opcional)"))
-                                TextField("Sin límite", text: $limitText)
-                                    .keyboardType(.numberPad)
-                                    .textFieldStyle(CumbreFieldStyle())
-                            }
-    
-                            // Error
-                            if let err = createError {
-                                Text(err).font(.caption).foregroundColor(.red)
-                            }
-                        }
-                        .padding(16)
-                    }
-    
-                    // Botón
-                    Divider()
-                    Button {
-                        guard canSubmit, let uc = createMeetup else { return }
-                        submitting = true
-                        createError = nil
-                        let req = CreateMeetupRequest(
-                            schoolId: gym != nil ? "" : schoolId.trimmingCharacters(in: .whitespaces),
-                            name: name.trimmingCharacters(in: .whitespaces),
-                            description: prefill?.description,
-                            discipline: discipline,
-                            privacy: privacy,
-                            memberLimit: {
-                                guard !limitText.isEmpty, let n = Int32(limitText) else { return nil }
-                                return KotlinInt(int: n)
-                            }(),
-                            photoUrl: photoUrl,
-                            days: selectedDays.sorted(),
-                            gymId: gym.map { KotlinLong(value: $0.id) }
-                        )
-                        Task {
-                            do {
-                                let meetup = try await uc.execute(req: req)
-                                submitting = false
-                                onCreated(meetup.id)
-                            } catch {
-                                let msg = error.localizedDescription
-                                if let off = FeatureOff.notice(from: error) {
-                                    paused = off   // el servidor acaba de decir que está en pausa
-                                } else if msg.contains("GENDER_REQUIRED") {
-                                    showGenderGate = true   // RC3: diálogo explicativo
-                                } else {
-                                    createError = msg
-                                }
-                                submitting = false
-                            }
-                        }
-                    } label: {
-                        HStack {
-                            if submitting {
-                                ProgressView().scaleEffect(0.8).tint(.white)
-                            } else {
-                                Text(NSLocalizedString("create_meetup_create", comment: "")).fontWeight(.bold)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Cumbre.terra)
-                    .disabled(!canSubmit)
-                    .padding(16)
-                    .background(Cumbre.bg)
+                    createError = msg
                 }
+                submitting = false
             }
-            .navigationBarHidden(true)
-            .onAppear {
-                if let gym, !prefillApplied {
-                    prefillApplied = true
-                    if name.isEmpty { name = L("gym_meetup_default_name", gym.name) }
-                    schoolName = gym.name
-                }
-                guard let p = prefill, !prefillApplied else { return }
-                prefillApplied = true
-                if name.isEmpty { name = p.name }
-                schoolId = p.schoolId
-                schoolName = p.schoolName
-                if let day = p.day { selectedDays.insert(day) }
-            }
-            .alert("Quedadas «No Mixto»", isPresented: $showGenderGate) {
-                Button("Entendido", role: .cancel) {}
-            } message: {
-                Text("Las quedadas «No Mixto» son solo para perfiles con género Mujer. Si eres mujer y aún no lo has indicado, ponlo en Perfil → Editar perfil y podrás crearlas y unirte.")
-            }
-            .sheet(isPresented: $showSchoolPicker) {
-                SchoolPickerSheet(
-                    query: $schoolPickerQuery,
-                    results: $schoolPickerResults,
-                    onQueryChange: { q in
-                        guard q.count >= 2 else { return }
-                        let uc = AppDependencies.shared.container.searchSchools
-                        Task {
-                            if let results = try? await uc.invoke(query: q, limit: 8) {
-                                schoolPickerResults = results
-                            }
-                        }
-                    },
-                    onSelect: { school in
-                        schoolId = school.id
-                        schoolName = school.name
-                        showSchoolPicker = false
-                        schoolPickerQuery = ""
-                        schoolPickerResults = []
-                    }
-                )
-            }
-            .onChange(of: selectedDays) { _ in loadDayScores() }
-            .onChange(of: schoolId) { _ in loadDayScores() }
         }
     }
 
     private func loadDayScores() {
-        let sid = schoolId.trimmingCharacters(in: .whitespaces)
-        guard !sid.isEmpty, !selectedDays.isEmpty else { dayScores = [:]; return }
+        let sid = draft.schoolId.trimmingCharacters(in: .whitespaces)
+        guard !draft.placeIsGym, !sid.isEmpty, !draft.days.isEmpty else { dayScores = [:]; return }
         Task {
-            do {
-                let results = try await getRangeScores.invoke(ids: [sid], dates: selectedDays.sorted())
-                var map: [String: Int] = [:]
-                if let school = results.first {
-                    for day in school.days { map[day.date] = Int(day.score) }
-                }
-                dayScores = map
-            } catch { dayScores = [:] }
+            guard let results = try? await getRangeScores.invoke(ids: [sid], dates: draft.days.sorted()) else { return }
+            var map: [String: Int] = [:]
+            if let school = results.first { for day in school.days { map[day.date] = Int(day.score) } }
+            dayScores = map
         }
     }
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────
+/// Paso 1 de 3: ¿Dónde vais a escalar? Días, Escuela | Rocódromo y buscador.
+struct MeetupPlaceStep: View {
+    @Binding var draft: MeetupDraft
+    let dayScores: [String: Int]
+    let placeLocked: Bool
+    @State private var query = ""
+    @State private var schools: [School] = []
+    @StateObject private var gyms = GymPickerViewModel()
 
-private struct FieldLabel: View {
-    let text: String
-    init(_ text: String) { self.text = text }
     var body: some View {
-        Text(text)
-            .font(.system(size: 10, weight: .bold, design: .monospaced))
-            .tracking(1.8)
-            .foregroundColor(Cumbre.ink.opacity(0.5))
+        if placeLocked && draft.hasPlace {
+            WizardQuestion(text: L("mw_step1_when_only"))
+            lockedCard
+            WizardEyebrow(text: L("mw_when"))
+            MeetupDayPicker(selected: draft.days, scores: dayScores) { draft = draft.toggleDay(iso: $0) }
+        } else {
+            WizardQuestion(text: L("mw_step1_q"))
+            WizardEyebrow(text: L("mw_when"))
+            MeetupDayPicker(selected: draft.days, scores: dayScores) { draft = draft.toggleDay(iso: $0) }
+            WizardEyebrow(text: L("mw_where"))
+            WizardSegmented(first: L("create_meetup_place_school"), second: L("create_meetup_place_gym"), firstSelected: !draft.placeIsGym,
+                            onFirst: { reset(); draft = draft.withPlaceKind(gym: false) },
+                            onSecond: { reset(); draft = draft.withPlaceKind(gym: true) })
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass").foregroundStyle(Cumbre.ink2)
+                TextField(L(draft.placeIsGym ? "gym_search_hint" : "mw_place_school_hint"), text: $query).font(.system(size: 15))
+            }
+            .padding(.horizontal, 14).padding(.vertical, 12).background(Cumbre.paper, in: Capsule())
+            .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
+            .onChange(of: query) { _, q in search(q) }
+            if draft.hasPlace {
+                WizardEyebrow(text: L(draft.placeIsGym ? "create_meetup_place_gym" : "create_meetup_place_school"))
+                placeCard(draft.placeName, nil, selected: true) { draft = draft.with(schoolId: "", gymId: .some(nil), placeName: "") }
+            }
+            if !draft.hasPlace || !query.isEmpty { results }
+        }
     }
-}
 
-private struct DayPickerView: View {
-    @Binding var selected: Set<String>
-    var schoolId: String = ""
-    var dayScores: [String: Int] = [:]
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(nextNDays(14), id: \.iso) { day in
-                    let on = selected.contains(day.iso)
-                    let score = dayScores[day.iso]
-                    Button {
-                        if on { selected.remove(day.iso) } else { selected.insert(day.iso) }
-                    } label: {
-                        VStack(spacing: 2) {
-                            Text(day.dow).font(.system(size: 10, weight: .bold))
-                            Text(day.short).font(.system(size: 10))
-                            if let s = score {
-                                Text("\(s)")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 4).padding(.vertical, 1)
-                                    .background(createScoreColor(s))
-                                    .clipShape(RoundedRectangle(cornerRadius: 2))
-                            }
-                        }
-                        .padding(.horizontal, 8).padding(.vertical, 5)
-                        .background(on ? Cumbre.terra : Cumbre.bg)
-                        .foregroundColor(on ? .white : Cumbre.ink.opacity(0.6))
-                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(on ? Cumbre.terra : Cumbre.ink.opacity(0.2), lineWidth: 1))
-                        .cornerRadius(4)
+    @ViewBuilder private var results: some View {
+        if draft.placeIsGym {
+            let list = (query.isEmpty ? gyms.nearby + gyms.favorites : gyms.results).filter { $0.gym.id != draft.gymId?.int64Value }
+            if !list.isEmpty {
+                WizardEyebrow(text: L(query.isEmpty ? "mw_nearby" : "mw_results"))
+                ForEach(list) { e in
+                    let place = [e.gym.city, e.gym.province].filter { !$0.isEmpty }
+                    let sub = [place.isEmpty ? nil : Array(Set(place)).sorted().joined(separator: ", "), GymPresentation.distanceText(e.distanceKm)]
+                        .compactMap { $0 }.joined(separator: " · ")
+                    placeCard(e.gym.name, sub.isEmpty ? nil : sub, selected: false) {
+                        query = ""
+                        draft = draft.withGym(id: e.gym.id, name: e.gym.name)
                     }
                 }
+            } else if !query.isEmpty {
+                Text(L("mw_no_results")).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
             }
-        }
-    }
-}
-
-private func createScoreColor(_ score: Int) -> Color {
-    if score >= 80 { return Color(red: 0.13, green: 0.77, blue: 0.37) }
-    if score >= 60 { return Color(red: 0.96, green: 0.62, blue: 0.04) }
-    if score >= 40 { return Color(red: 0.93, green: 0.27, blue: 0.27) }
-    return Color(red: 0.42, green: 0.44, blue: 0.50)
-}
-
-private struct PrivacyPickerView: View {
-    @Binding var selected: String
-    let options: [(String, String)] = [("OPEN",L("Abierta")),("FOLLOWERS",L("Solo seguidores")),("WOMEN",L("No mixto"))]
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(options, id: \.0) { (key, label) in
-                    ToggleChipView(label: label, selected: selected == key) { selected = key }
-                }
-            }
-        }
-    }
-}
-
-private struct DisciplinePickerView: View {
-    @Binding var selected: String?
-    let options: [(String?, String)] = [(nil,L("Cualquiera")),("BOULDER",L("Bloque")),("ROUTE",L("Vía")),("BOTH",L("Ambas"))]
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(0..<options.count, id: \.self) { i in
-                    let (key, label) = options[i]
-                    ToggleChipView(label: label, selected: selected == key) { selected = key }
-                }
-            }
-        }
-    }
-}
-
-private struct ToggleChipView: View {
-    let label: String; let selected: Bool; let action: () -> Void
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
-                if selected { Image(systemName: "checkmark").font(.caption2) }
-                Text(label).font(.system(size: 11, weight: .bold))
-            }
-            .padding(.horizontal, 10).padding(.vertical, 5)
-            .background(selected ? Cumbre.terra : Cumbre.bg)
-            .foregroundColor(selected ? .white : Cumbre.ink.opacity(0.6))
-            .overlay(RoundedRectangle(cornerRadius: 4).stroke(selected ? Cumbre.terra : Cumbre.ink.opacity(0.2), lineWidth: 1))
-            .cornerRadius(4)
-        }
-    }
-}
-
-private struct CumbreFieldStyle: TextFieldStyle {
-    func _body(configuration: TextField<_Label>) -> some View {
-        configuration
-            .padding(10)
-            .background(Cumbre.bg)
-            .overlay(RoundedRectangle(cornerRadius: 4).stroke(Cumbre.ink.opacity(0.2), lineWidth: 1))
-            .cornerRadius(4)
-    }
-}
-
-// ── Day generation (mirrors Android nextNDays) ─────────────────────────────
-
-private struct DayInfo { let dow: String; let short: String; let iso: String }
-
-private func nextNDays(_ n: Int) -> [DayInfo] {
-    let dowNames = CalendarLabels.weekdaysShortSunFirst().map { $0.uppercased() }
-    var result: [DayInfo] = []
-    let cal = Calendar.current
-    let today = cal.startOfDay(for: Date())
-    for i in 0..<n {
-        guard let date = cal.date(byAdding: .day, value: i, to: today) else { continue }
-        let comps = cal.dateComponents([.year, .month, .day, .weekday], from: date)
-        let y  = comps.year ?? 0
-        let mo = comps.month ?? 0
-        let d  = comps.day ?? 0
-        let wd = (comps.weekday ?? 1) - 1
-        let iso   = String(format: "%04d-%02d-%02d", y, mo, d)
-        let short = String(format: "%02d/%02d", d, mo)
-        result.append(DayInfo(dow: dowNames[wd], short: short, iso: iso))
-    }
-    return result
-}
-
-private struct SchoolPickerSheet: View {
-    @Binding var query: String
-    @Binding var results: [School]
-    let onQueryChange: (String) -> Void
-    let onSelect: (School) -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                TextField("Ej. Zarzalejo, Pedriza…", text: $query)
-                    .dismissKeyboardOnSubmit()
-                    .padding(10)
-                    .background(Cumbre.paper)
-                    .overlay(Rectangle().stroke(Cumbre.rule, lineWidth: 1))
-                    .padding(12)
-                    .onChange(of: query) { _, q in onQueryChange(q) }
-                List(results, id: \.id) { school in
-                    Button {
-                        onSelect(school)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(school.name).font(.system(size: 15)).foregroundStyle(Cumbre.ink)
-                            if let loc = school.location {
-                                Text(loc).font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
-                            }
-                        }
+        } else {
+            let list = schools.filter { $0.id != draft.schoolId }
+            if !list.isEmpty {
+                WizardEyebrow(text: L("mw_results"))
+                ForEach(list, id: \.id) { s in
+                    placeCard(s.name, s.location, selected: false) {
+                        query = ""
+                        schools = []
+                        draft = draft.withSchool(id: s.id, name: s.name)
                     }
                 }
-                .listStyle(.plain)
+            } else if query.count >= 2 {
+                Text(L("mw_no_results")).font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
             }
-            .navigationTitle("Buscar escuela")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(NSLocalizedString("common_cancel", comment: "")) { dismiss() }
+        }
+    }
+
+    private func reset() {
+        query = ""
+        schools = []
+        gyms.query = ""
+    }
+
+    private func search(_ q: String) {
+        if draft.placeIsGym { gyms.query = q; return }
+        guard q.count >= 2 else { schools = []; return }
+        Task {
+            if let r = try? await AppDependencies.shared.container.searchSchools.invoke(query: q, limit: 8), q == query {
+                var seen = Set<String>()
+                schools = r.filter { seen.insert($0.id).inserted }
+            }
+        }
+    }
+
+    private var lockedCard: some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.22)).frame(width: 42, height: 42)
+                .overlay(Image("gym_ic_gym").renderingMode(.template).resizable().scaledToFit().frame(width: 22, height: 22).foregroundStyle(.white))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L(draft.placeIsGym ? "create_meetup_place_gym" : "create_meetup_place_school").uppercased()).eyebrow(Color.white.opacity(0.85))
+                Text(draft.placeName).font(Cumbre.serif(18, .bold)).foregroundStyle(.white).lineLimit(2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(L("mw_fixed").uppercased()).eyebrow(Cumbre.terraFill)
+                .padding(.horizontal, 10).padding(.vertical, 5).background(Color.white, in: Capsule())
+        }
+        .padding(14)
+        .background(Cumbre.terraFill, in: RoundedRectangle(cornerRadius: 20))
+    }
+
+    private func placeCard(_ name: String, _ sub: String?, selected: Bool, _ action: @escaping () -> Void) -> some View {
+        WizardOptionCard(selected: selected, action: action) {
+            HStack(spacing: 12) {
+                RoundedRectangle(cornerRadius: 14).fill(draft.placeIsGym ? Cumbre.ink : Cumbre.terraFill).frame(width: 42, height: 42)
+                    .overlay(Image("gym_ic_gym").renderingMode(.template).resizable().scaledToFit().frame(width: 22, height: 22)
+                        .foregroundStyle(Cumbre.bg))
+                WizardCardTitle(title: name, subtitle: sub)
+            }
+        }
+    }
+}
+
+/// Próximos 14 días en tarjetas redondeadas (varios a la vez); con escuela, la nota del día debajo.
+struct MeetupDayPicker: View {
+    let selected: Set<String>
+    let scores: [String: Int]
+    let onToggle: (String) -> Void
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(0..<14, id: \.self) { i in
+                    let date = Calendar.current.date(byAdding: .day, value: i, to: Date()) ?? Date()
+                    let iso = Self.iso(date)
+                    let on = selected.contains(iso)
+                    Button { onToggle(iso) } label: {
+                        VStack(spacing: 0) {
+                            Text(i == 0 ? L("w_today").uppercased() : Self.dow(date)).eyebrow(on ? .white : Cumbre.ink2).lineLimit(1)
+                            Text("\(Calendar.current.component(.day, from: date))").font(Cumbre.serif(20, .bold))
+                                .foregroundStyle(on ? .white : Cumbre.ink)
+                            if let s = scores[iso] {
+                                Text("\(s)").font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
+                                    .padding(.horizontal, 6).padding(.vertical, 1).background(Cumbre.score(s), in: Capsule()).padding(.top, 2)
+                            }
+                        }
+                        .frame(width: 58).padding(.vertical, 10)
+                        .background(on ? Cumbre.terraFill : Cumbre.paper, in: RoundedRectangle(cornerRadius: 16))
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(on ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
+    }
+
+    static func iso(_ d: Date) -> String {
+        let c = Calendar.current.dateComponents([.year, .month, .day], from: d)
+        return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
+    }
+
+    static func dow(_ d: Date) -> String {
+        let f = DateFormatter()
+        f.locale = LanguageManager.shared.locale
+        f.dateFormat = "EEE"
+        return f.string(from: d).replacingOccurrences(of: ".", with: "").uppercased()
     }
 }
