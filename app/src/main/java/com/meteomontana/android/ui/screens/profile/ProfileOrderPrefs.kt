@@ -48,13 +48,13 @@ class AscentOrderPreference @Inject constructor(@ApplicationContext context: Con
 /** Orden de los rocodromos (ids «5,3,9»); servidor `me/gym-order`. */
 class GymOrderPreference @Inject constructor(@ApplicationContext context: Context) : OrderPreference(context, "gym_order")
 
-/** Tableros (Kilter, Moon...) de la pestaña Boards que la persona dejo plegados; solo en el movil. */
-class BoardsCollapsePreference @Inject constructor(@ApplicationContext context: Context) {
+/** Tableros (Kilter, Moon...) de la pestaña Boards que la persona dejo DESPLEGADOS (por defecto, todos plegados); solo en el movil. */
+class BoardsExpandedPreference @Inject constructor(@ApplicationContext context: Context) {
     private val store = SharedPrefsKeyValueStore(context, "cumbre_profile_prefs")
 
     fun get(): Set<String> = store.getString(KEY).orEmpty().split(",").filter { it.isNotBlank() }.toSet()
 
-    fun set(collapsed: Set<String>) = store.putString(KEY, collapsed.joinToString(","))
+    fun set(expanded: Set<String>) = store.putString(KEY, expanded.joinToString(","))
 
-    private companion object { const val KEY = "boards_collapsed" }
+    private companion object { const val KEY = "boards_expanded" }
 }

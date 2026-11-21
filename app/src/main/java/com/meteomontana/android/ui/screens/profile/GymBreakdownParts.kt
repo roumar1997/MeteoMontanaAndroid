@@ -46,10 +46,10 @@ import com.meteomontana.android.ui.theme.terraFillColor
 internal fun AscentsBody(
     s: GymSummary, filter: AscentFilter, items: List<GymAscent>,
     colorHex: (String) -> String?, colorHexFor: (Long, String) -> String?, onOpenGym: (Long) -> Unit,
-    collapsedBoards: Set<String> = emptySet(), onToggleBoard: (BoardKind) -> Unit = {}, onOpenBoards: () -> Unit = {}
+    expandedBoards: Set<String> = emptySet(), onToggleBoard: (BoardKind) -> Unit = {}, onOpenBoards: () -> Unit = {}
 ) {
     when {
-        filter == AscentFilter.BOARDS -> BoardsSections(s, items, collapsedBoards, onToggleBoard, onOpenGym)
+        filter == AscentFilter.BOARDS -> BoardsSections(s, items, expandedBoards, onToggleBoard, onOpenGym)
         GymBreakdown.hasGymBreakdown(s) -> {
             // Los boards no se reparten por rocodromo: en «Todo» van juntos en su propia pantalla (enlace al final).
             val gyms = GymBreakdown.gymsFilteredWithoutBoards(s, filter)
@@ -110,18 +110,19 @@ internal fun PerGymSections(gyms: List<GymSummaryGym>, colorHexFor: (Long, Strin
 
 /** Boards agrupados por tablero (logo, nombre y total) y, dentro, el reparto por grado. */
 @Composable
-internal fun BoardsSections(s: GymSummary, items: List<GymAscent>, collapsed: Set<String>, onToggle: (BoardKind) -> Unit, onOpenGym: (Long) -> Unit) {
+internal fun BoardsSections(s: GymSummary, items: List<GymAscent>, expanded: Set<String>, onToggle: (BoardKind) -> Unit, onOpenGym: (Long) -> Unit) {
     val groups = GymBreakdown.boardsByKind(items)
     if (groups.isEmpty()) { EmptyCategory(); return }
     groups.forEach { (kind, list) ->
         Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {
-            val open = kind.name !in collapsed
+            val open = kind.name in expanded
             Row(
                 Modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).clickable { onToggle(kind) }.padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 BoardLogo(kind)
                 Text(boardName(kind), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
+                GymBreakdown.maxGrade(list)?.let { MaxGradePill(it) }
                 Text(list.sumOf { it.count }.toString(), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
                 androidx.compose.material3.Icon(
                     if (open) androidx.compose.material.icons.Icons.Outlined.ExpandLess else androidx.compose.material.icons.Icons.Outlined.ExpandMore,

@@ -5,6 +5,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class GymAscentKeysTest {
+    @Test fun maxGradeOfAList() {
+        fun a(k: String) = GymAscent(k, 1)
+        assertEquals("7a", GymBreakdown.maxGrade(listOf(a("board:kilter:6c:40"), a("board:kilter:6b+/7a"), a("board:kilter:6c+"))))
+        assertEquals(null, GymBreakdown.maxGrade(emptyList()))
+        assertEquals(null, GymBreakdown.maxGrade(listOf(a("verde"))))
+    }
+
     @Test fun routeKeysRoundTrip() {
         val k = GymAscentKeys.route(RouteStyle.PARTNER, project = false, grade = "6A+")
         assertEquals("route:partner:sent:6a+", k)

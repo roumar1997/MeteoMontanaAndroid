@@ -350,3 +350,7 @@ Lógica nueva en `shared` (no reimplementar en Swift): `GymBreakdown.gymsFiltere
 
 - Entrenos de Ayer / Otro día apuntados sin red: al volver la conexión, `syncPending` los da de alta con `POST gyms/{id}/sessions` `{date}` (hoy sigue por `/today`) y sube ascensiones y nombres. iOS: misma ruta en su cola de pendientes (la lógica ya está en shared: `LocalFirstGymSessionRepository.push` y `KtorGymSessionApi.checkInOn`, con `@Throws`).
 - Banner «SIN CONEXIÓN» pegado: `AndroidNetworkMonitor` ponía offline en cada `onLost` aunque quedase otra red validada (wifi+datos) o llegase tarde el aviso de la red vieja. Ahora lleva el conjunto de redes validadas y hay conexión mientras quede alguna. iOS usa NWPathMonitor (estado, no eventos): sin cambios.
+
+### 20c. Boards plegados por defecto + grado máximo (2026-11-21, Android hecho; PENDIENTE PARA iOS)
+
+- Todas las secciones de board (Kilter, MoonBoard, Tension, System), en la pantalla Boards y en Ascensiones > Boards, empiezan **plegadas**; solo se recuerda lo que la persona despliega (pref nueva `boards_expanded`; la antigua de plegados se ignora). La cabecera enseña, junto al número, el **grado máximo hecho en ese board** como pastilla con el color del grado (la misma de «Máx bloque» del perfil). Lógica en shared: `GymBreakdown.maxGrade` (test en `GymAscentKeysTest`).

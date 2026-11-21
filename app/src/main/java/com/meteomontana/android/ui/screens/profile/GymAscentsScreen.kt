@@ -95,7 +95,7 @@ fun GymAscentsScreen(
             } else Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 GradeChipRow(AscentEntries.grades(items), grades, { g -> grades = if (g in grades) grades - g else grades + g }, { grades = emptySet() })
                 if (grades.isNotEmpty()) GradeEntriesList(AscentEntries.entries(s, filter, grades, includeBoards = false), onOpenGym)
-                else AscentsBody(s, filter, items, viewModel::colorHex, viewModel::colorHexFor, onOpenGym, state.collapsedBoards, viewModel::toggleBoard, onOpenBoards)
+                else AscentsBody(s, filter, items, viewModel::colorHex, viewModel::colorHexFor, onOpenGym, state.expandedBoards, viewModel::toggleBoard, onOpenBoards)
                 Box(Modifier.padding(bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current + 16.dp))
             }
         }

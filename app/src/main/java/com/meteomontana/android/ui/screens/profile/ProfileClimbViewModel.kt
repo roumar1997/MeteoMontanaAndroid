@@ -52,7 +52,7 @@ data class ProfileClimbState(
     /** Mis rocodromos favoritos: van primero mientras no se haya ordenado a mano. */
     val favorites: Set<Long> = emptySet(),
     /** Tableros plegados en la pestaña Boards (nombres de [com.meteomontana.android.domain.model.gym.BoardKind]). */
-    val collapsedBoards: Set<String> = emptySet(),
+    val expandedBoards: Set<String> = emptySet(),
     val streakWeeks: Int = 0,
     /** Grado máximo en roca y nº de escuelas del diario (para la línea «Roca» de Estadísticas). */
     val rockMax: String? = null,
@@ -88,7 +88,7 @@ class ProfileClimbViewModel @Inject constructor(
     private val gymOrderPref: GymOrderPreference,
     private val gymOrderUc: GymOrderUseCase,
     private val getFavorites: GetGymFavoritesUseCase,
-    private val boardsCollapsePref: BoardsCollapsePreference
+    private val boardsExpandedPref: BoardsExpandedPreference
 ) : ViewModel() {
     private val _state = MutableStateFlow(ProfileClimbState())
     val state: StateFlow<ProfileClimbState> = _state
@@ -98,7 +98,7 @@ class ProfileClimbViewModel @Inject constructor(
         val own = uid == null || uid == myUid
         val gyms = getCachedGyms().associateBy { it.id }
         if (own) _state.update { build(getSummary.local { gyms[it]?.name }, it.rockDays, gyms, own = true, it.favorites).copy(rockMax = it.rockMax, schools = it.schools, rockBoulders = it.rockBoulders, rockRoutes = it.rockRoutes, rockMaxBoulder = it.rockMaxBoulder, rockMaxRoute = it.rockMaxRoute) }
-        _state.update { it.copy(collapsedBoards = boardsCollapsePref.get()) }
+        _state.update { it.copy(expandedBoards = boardsExpandedPref.get()) }
         viewModelScope.launch {
             val favs = runCatching { getFavorites.execute() }.getOrDefault(_state.value.favorites)
             val rock = async { runCatching { if (own) getMyJournal() else getUserJournal(uid!!) }.getOrNull()?.let { JournalStatsCalculator.rockDays(it) } }
@@ -159,9 +159,9 @@ class ProfileClimbViewModel @Inject constructor(
 
     /** Pliega o despliega un tablero de la pestaña Boards y lo recuerda. */
     fun toggleBoard(kind: com.meteomontana.android.domain.model.gym.BoardKind) {
-        val next = _state.value.collapsedBoards.let { if (kind.name in it) it - kind.name else it + kind.name }
-        boardsCollapsePref.set(next)
-        _state.update { it.copy(collapsedBoards = next) }
+        val next = _state.value.expandedBoards.let { if (kind.name in it) it - kind.name else it + kind.name }
+        boardsExpandedPref.set(next)
+        _state.update { it.copy(expandedBoards = next) }
     }
 
     /** Elige (o quita, con null) mi rocódromo desde el hueco del perfil: se ve ya y se sube al servidor. */
@@ -182,7 +182,7 @@ class ProfileClimbViewModel @Inject constructor(
         val gymOrder = if (own) gymOrderPref.get() ?: summary.gymOrder else summary.gymOrder
         val sorted = summary.copy(byGym = GymOrder.sort(summary.byGym, GymOrder.parse(gymOrder), favorites))
         return ProfileClimbState(
-            summary = sorted, gymOrder = gymOrder, favorites = favorites, collapsedBoards = boardsCollapsePref.get(), rockDays = rockDays, segments = segs.sortedBy { it.order },
+            summary = sorted, gymOrder = gymOrder, favorites = favorites, expandedBoards = boardsExpandedPref.get(), rockDays = rockDays, segments = segs.sortedBy { it.order },
             homeGym = summary.homeGym ?: if (own) homeGymPref.get()?.let { gyms[it] }?.let { HomeGym(it.id, it.name, it.city) } else null,
             ascentOrder = if (own) ascentOrderPref.get() ?: summary.ascentOrder else summary.ascentOrder,
             streakWeeks = if (own) getStats.cached().streakWeeks else 0

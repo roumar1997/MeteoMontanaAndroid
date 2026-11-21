@@ -124,6 +124,10 @@ object GymBreakdown {
         return g.copy(items = items, ascents = items.sumOf { it.count })
     }
 
+    /** El grado mas dificil de [items] (un doble cuenta por su grado alto); null si no hay ninguno (p. ej. solo colores). */
+    fun maxGrade(items: List<GymAscent>): String? =
+        items.fold<GymAscent, String?>(null) { acc, a -> GymAscentKeys.harder(acc, GymAscentKeys.gradeOfKey(a.key)) }
+
     /** Cuantas ascensiones de board hay en [items] (todos los rocodromos juntos). */
     fun boardCount(items: List<GymAscent>): Int = items.filter { GymAscentKeys.parse(it.key) is AscentKey.Board }.sumOf { it.count }
 

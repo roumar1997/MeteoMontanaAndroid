@@ -72,7 +72,7 @@ fun BoardsScreen(
                     { g -> grades = if (g in selected) grades - g else grades + g }, { grades = emptyList() }
                 )
                 if (selected.isNotEmpty()) GradeEntriesList(AscentEntries.entries(s, AscentFilter.BOARDS, selected), onOpenGym)
-                else BoardsSections(s, items, state.collapsedBoards, viewModel::toggleBoard, onOpenGym)
+                else BoardsSections(s, items, state.expandedBoards, viewModel::toggleBoard, onOpenGym)
                 Box(Modifier.padding(bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current + 16.dp))
             }
         }
