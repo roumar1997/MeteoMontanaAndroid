@@ -337,6 +337,7 @@ class IosDependencyContainer(
     // Feed social "Comunidad" (pestaña nueva): página del feed, publicar/borrar
     // ascensos, likes y comentarios. Patrón exacto de Social.
     val getFeedPage = com.meteomontana.android.domain.usecase.feed.GetFeedPageUseCase(feedRepository)
+    val getFeedPostCount = com.meteomontana.android.domain.usecase.feed.GetFeedPostCountUseCase(feedRepository)
     val getFeedPost = com.meteomontana.android.domain.usecase.feed.GetFeedPostUseCase(feedRepository)
     val publishFeedPost = com.meteomontana.android.domain.usecase.feed.PublishFeedPostUseCase(feedRepository)
     val uploadFeedPhoto = com.meteomontana.android.domain.usecase.feed.UploadFeedPhotoUseCase(feedRepository)

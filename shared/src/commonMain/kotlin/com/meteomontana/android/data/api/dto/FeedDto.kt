@@ -103,6 +103,10 @@ data class FeedPostIdDto(val id: Long)
 @Serializable
 data class FeedLikeCountDto(val likeCount: Long)
 
+/** Respuesta de GET /api/feed/count: publicaciones que enseña el perfil (contrato feed-count.json). */
+@Serializable
+data class FeedCountDto(val count: Long = 0)
+
 /** Respuesta de POST /api/feed/{id}/photo. */
 @Serializable
 data class FeedPhotoUrlDto(val photoUrl: String? = null)

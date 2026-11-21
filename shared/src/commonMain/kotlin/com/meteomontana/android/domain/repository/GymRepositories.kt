@@ -76,6 +76,12 @@ interface GymSessionRepository {
     /** Fija (o quita, con null) mi rocódromo habitual en el servidor. Lanza si no hay red: quien llama conserva la caché local. */
     suspend fun setHomeGym(gymId: Long?): com.meteomontana.android.domain.model.gym.HomeGym?
 
+    /** Mi orden de categorias de Ascensiones segun el servidor; null si no lo ha elegido. Lanza si no hay red. */
+    suspend fun myAscentOrder(): String?
+
+    /** Guarda mi orden de categorias de Ascensiones en el servidor. Lanza si no hay red: quien llama conserva la cache local. */
+    suspend fun setAscentOrder(order: String): String?
+
     /** Ascensiones de un periodo: las del servidor y, si no hay red o ruta, las calculadas con las sesiones del movil. */
     suspend fun ascentStats(uid: String, period: GymTrainingPeriod, date: kotlinx.datetime.LocalDate, gymId: Long?): GymAscentStats
 }

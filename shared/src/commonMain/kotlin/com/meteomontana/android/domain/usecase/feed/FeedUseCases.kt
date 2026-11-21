@@ -34,6 +34,12 @@ class GetFeedPageUseCase(private val repo: FeedRepository) {
     ): List<FeedPost> = repo.getFeed(scope, before, limit, uid)
 }
 
+/** Cuantas publicaciones enseña un perfil (el propio si [uid] es null); sirve para la ficha «Publicaciones». */
+class GetFeedPostCountUseCase(private val repo: FeedRepository) {
+    @Throws(Exception::class)
+    suspend operator fun invoke(uid: String? = null): Int = repo.postCount(uid)
+}
+
 /** Post individual (push/campanita). Lanza si no existe (404). */
 class GetFeedPostUseCase(private val repo: FeedRepository) {
     @Throws(Exception::class)

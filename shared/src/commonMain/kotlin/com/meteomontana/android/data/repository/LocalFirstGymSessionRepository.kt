@@ -124,6 +124,10 @@ class LocalFirstGymSessionRepository(
     override suspend fun setHomeGym(gymId: Long?): com.meteomontana.android.domain.model.gym.HomeGym? =
         api.putHomeGym(gymId).homeGym?.toDomain()
 
+    override suspend fun myAscentOrder(): String? = api.ascentOrder().order?.takeIf { it.isNotBlank() }
+
+    override suspend fun setAscentOrder(order: String): String? = api.putAscentOrder(order).order?.takeIf { it.isNotBlank() }
+
     override suspend fun ascentStats(uid: String, period: GymTrainingPeriod, date: LocalDate, gymId: Long?): GymAscentStats =
         try {
             api.ascentStats(uid, period.name, date.toString(), gymId).toDomainOrNull()

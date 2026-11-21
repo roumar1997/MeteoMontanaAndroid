@@ -262,7 +262,7 @@
     <string name="chat_write">Escribe un mensaje</string>
     <string name="profile_add_workout_short">Entreno</string>
     <string name="gym_asc_order_title">Ordenar categorías</string>
-    <string name="gym_asc_order_hint">Elige qué va primero en tus ascensiones. Se guarda en este móvil.</string>
+    <string name="gym_asc_order_hint">Elige qué va primero en tus ascensiones. Los demás las verán en este orden.</string>
     <string name="gym_asc_order_cd">Ordenar categorías</string>
     <string name="gym_asc_see_all">Ver ascensiones</string>
     <string name="chat_empty_title">Rompe el hielo</string>

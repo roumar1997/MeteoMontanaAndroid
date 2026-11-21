@@ -390,7 +390,7 @@ internal fun Content(
         item {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp).guideTarget("profile.diary"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ProfileCells(stats.boulderCount, stats.routeCount, stats.maxBoulderGrade, stats.maxRouteGrade, onOpenBoulders, onOpenRoutes, onOpenMaxGrade)
-                ProfileMiniTiles(null, onOpenMyPosts, stats.schoolCount, onOpenAllSchools, stats.projectCount, onOpenProjects)
+                ProfileMiniTiles(com.meteomontana.android.ui.screens.community.rememberPostCount(null, visible), onOpenMyPosts, stats.schoolCount, onOpenAllSchools, stats.projectCount, onOpenProjects)
                 // Entrenos en rocódromo (solo con el interruptor `gyms_enabled` encendido).
                 if (gymsOn) {
                     Box(Modifier.guideTarget("profile.stats")) {

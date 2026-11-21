@@ -62,6 +62,8 @@ class KtorFeedRepository(
         return page.map { it.toDomain() }
     }
 
+    override suspend fun postCount(uid: String?): Int = api.postCount(uid).count.toInt()
+
     override suspend fun getPost(postId: Long): FeedPost = api.getPost(postId).toDomain()
     override suspend fun publish(
         blockId: String, lineId: String?, kind: String, discipline: String?, caption: String?

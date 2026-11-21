@@ -83,8 +83,8 @@ private fun MiniTile(icon: ImageVector, tint: Color, label: String, count: Int?,
 }
 
 /**
- * Tres fichas pequenas bajo los numeros: Publicaciones, Escuelas y Proyectos (con su cuenta). Publicaciones no tiene
- * cuenta barata en el servidor, asi que lleva solo la flecha ([posts] null). Proyectos solo cuando [onProjects] no es null
+ * Tres fichas pequenas bajo los numeros: Publicaciones, Escuelas y Proyectos (con su cuenta). Publicaciones lleva la cuenta que da el servidor (feed/count);
+ * mientras no llega (o si falla) lleva solo la flecha ([posts] null). Proyectos solo cuando [onProjects] no es null
  * (el de otra persona no lo enseña).
  */
 @Composable

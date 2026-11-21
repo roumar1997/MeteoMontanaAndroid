@@ -11,6 +11,8 @@ interface FeedRepository {
         limit: Int = 20,
         uid: String? = null
     ): List<FeedPost>
+    /** Publicaciones que enseña el perfil de [uid] (el propio si es null); 0 si es privado y no le sigues. */
+    suspend fun postCount(uid: String?): Int
     /** Post individual (push/campanita). Lanza si no existe (404). */
     suspend fun getPost(postId: Long): FeedPost
     /** Publica un ascenso; devuelve el id del post creado (idempotente en el server).

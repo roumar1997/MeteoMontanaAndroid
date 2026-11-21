@@ -122,3 +122,10 @@ Grado = francés de `FrenchGrade` (3 a 9c+). Cualquier otra forma con esos prefi
 - `DELETE /api/gyms/sessions/{sessionId}` (204; 404 si es ajena): borra la sesión con lo hecho. Las apps lo llaman al editar un entreno a cero.
 - `GET /api/users/{identifier}/gym-summary` (misma privacidad que gym-stats): `{sessions, gyms, ascents, maxGrade, byGym:[{gymId,name,sessions,ascents,maxGrade}], items:[{key,count}], byMonth:[{month,ascents}]}` (12 meses). El grado doble cuenta por su grado alto; los colores no tienen grado.
 - **Hecho (V115, develop)**: «Tu rocódromo» en el servidor: `PUT/GET /api/me/home-gym` y `homeGym` en `gym-summary` (muestra `summary` en `gym-sessions.json`). **Pendiente**:  El desglose por rocódromo no distingue bloques/vías (en «Ascensiones» solo «Todo» lo muestra).
+
+## 10. Ronda 7b: orden de Ascensiones y cuenta de publicaciones (backend `develop` 73963b4, staging `success`)
+
+- **V116 `user_ascent_order`** (`user_uid` PK, `order_csv`, `updated_at`; cae con el usuario). `GET/PUT /api/me/ascent-order` con `{order: "BOARDS,BLOCKS,ROUTES"}`; el servidor sanea (solo BLOCKS/ROUTES/BOARDS, sin repetir, mayúsculas) y, si no queda nada válido, no cambia nada.
+- `gym-summary` lleva `ascentOrder` (aditivo, `null` si no lo cambió) con la misma privacidad que el resto del resumen. Muestras `summary`/`summaryEmpty` de `gym-sessions.json` actualizadas en los dos repos.
+- **`GET /api/feed/count?uid=`** (uid o username; sin `uid` = el propio) → `{count}`: publicaciones que enseña el perfil (todas menos NEW_BLOCK/NEW_LINE, igual que la lista). 0 si el perfil es privado sin seguirlo o hay bloqueo. Muestra `feed-count.json`. Los posts viven en el backend (`feed_posts`), no en Firestore.
+- Tests: `AscentOrderUseCaseTest`, `FeedCountTest`, `GetGymSummaryUseCaseTest` (2 nuevos), `GymContractTest`.

@@ -53,11 +53,11 @@ fun GymAscentsScreen(
     LaunchedEffect(uid) { viewModel.load(uid, myUid) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     var filter by remember { mutableStateOf(AscentFilter.ALL) }
-    val ctx = androidx.compose.ui.platform.LocalContext.current
-    val prefs = remember { com.meteomontana.android.data.local.SharedPrefsKeyValueStore(ctx, "cumbre_profile_prefs") }
-    var order by remember { mutableStateOf(com.meteomontana.android.domain.model.gym.AscentTabOrder.parse(prefs.getString("ascent_tab_order"))) }
+    val own = uid == null || uid == myUid
+    // Propio: el que elegi (movil + servidor). Ajeno: el que eligio esa persona (viene en su resumen).
+    val order = com.meteomontana.android.domain.model.gym.AscentTabOrder.parse(state.ascentOrder)
     var reordering by remember { mutableStateOf(false) }
-    if (reordering) AscentOrderDialog(order, onChange = { order = it; prefs.putString("ascent_tab_order", com.meteomontana.android.domain.model.gym.AscentTabOrder.serialize(it)) }, onClose = { reordering = false })
+    if (reordering && own) AscentOrderDialog(order, onChange = { viewModel.setAscentOrder(com.meteomontana.android.domain.model.gym.AscentTabOrder.serialize(it)) }, onClose = { reordering = false })
     val s = state.summary
     val items = GymBreakdown.filter(s.items, filter)
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -67,7 +67,7 @@ fun GymAscentsScreen(
                 stringResource(R.string.gym_asc_title, s.ascents), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp,
                 color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f)
             )
-            IconButton(onClick = { reordering = true }) { Icon(androidx.compose.material.icons.Icons.Outlined.SwapVert, stringResource(R.string.gym_asc_order_cd)) }
+            if (own) IconButton(onClick = { reordering = true }) { Icon(androidx.compose.material.icons.Icons.Outlined.SwapVert, stringResource(R.string.gym_asc_order_cd)) }
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 6.dp)) {
             Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.outline.copy(alpha = 0.18f), RoundedCornerShape(24.dp)).padding(3.dp)) {

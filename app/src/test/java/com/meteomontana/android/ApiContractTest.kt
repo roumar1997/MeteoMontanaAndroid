@@ -335,6 +335,11 @@ class ApiContractTest {
         assertEquals(6, sum.ascents); assertEquals(5L, sum.homeGym!!.id); assertEquals("Chango", sum.homeGym!!.name); assertEquals("Madrid", sum.homeGym!!.city)
         assertEquals("Chango", sum.toDomain().homeGym!!.name)
         assertNull(parse("gym-sessions.json", "summaryEmpty", com.meteomontana.android.data.api.dto.GymSummaryDto.serializer()).homeGym)
+        assertEquals("BOARDS,BLOCKS,ROUTES", sum.ascentOrder); assertEquals("BOARDS,BLOCKS,ROUTES", sum.toDomain().ascentOrder)
+        assertNull(parse("gym-sessions.json", "summaryEmpty", com.meteomontana.android.data.api.dto.GymSummaryDto.serializer()).ascentOrder)
+        val feedCount = parse("feed-count.json", "count", com.meteomontana.android.data.api.dto.FeedCountDto.serializer())
+        assertEquals(7L, feedCount.count)
+        assertDtoKeysInGolden("feed-count.json", com.meteomontana.android.data.api.dto.FeedCountDto.serializer(), "count")
         assertDtoKeysInGolden("gym-sessions.json", com.meteomontana.android.data.api.dto.GymSummaryDto.serializer(), "summary")
     }
 

@@ -66,6 +66,15 @@ class HomeGymUseCase(private val repo: GymSessionRepository) {
     suspend fun set(gymId: Long?): com.meteomontana.android.domain.model.gym.HomeGym? = repo.setHomeGym(gymId)
 }
 
+/** Orden de las categorias de Ascensiones: leer el mio y guardarlo en el servidor para que los demas lo vean. */
+class AscentOrderUseCase(private val repo: GymSessionRepository) {
+    @Throws(Exception::class)
+    suspend fun mine(): String? = repo.myAscentOrder()
+
+    @Throws(Exception::class)
+    suspend fun set(order: String): String? = repo.setAscentOrder(order)
+}
+
 /** Resumen de TODO el historial de rocódromo (perfil propio y ajeno): primero el del móvil y luego el del servidor. */
 class GetGymSummaryUseCase(private val repo: GymSessionRepository) {
     /** Calculado con las sesiones del móvil (sin red); [name] da el nombre de cada rocódromo. */

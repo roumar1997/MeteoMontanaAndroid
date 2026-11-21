@@ -67,6 +67,15 @@ class KtorGymSessionApi(private val client: HttpClient) {
     suspend fun putHomeGym(gymId: Long?): com.meteomontana.android.data.api.dto.HomeGymResponseDto =
         client.put("me/home-gym") { setBody(com.meteomontana.android.data.api.dto.HomeGymRequestDto(gymId)) }.body()
 
+    /** Mi orden de categorias de Ascensiones en el servidor. */
+    @Throws(Exception::class)
+    suspend fun ascentOrder(): com.meteomontana.android.data.api.dto.AscentOrderDto = client.get("me/ascent-order").body()
+
+    /** Guarda mi orden de categorias de Ascensiones («BOARDS,BLOCKS,ROUTES»); los demas lo ven en mi resumen. */
+    @Throws(Exception::class)
+    suspend fun putAscentOrder(order: String): com.meteomontana.android.data.api.dto.AscentOrderDto =
+        client.put("me/ascent-order") { setBody(com.meteomontana.android.data.api.dto.AscentOrderDto(order)) }.body()
+
     @Throws(Exception::class)
     suspend fun stats(uidOrUsername: String, year: Int): GymStatsDto =
         client.get("users/$uidOrUsername/gym-stats") { parameter("year", year) }.body()

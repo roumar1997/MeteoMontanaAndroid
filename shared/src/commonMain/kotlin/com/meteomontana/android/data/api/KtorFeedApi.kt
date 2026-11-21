@@ -2,6 +2,7 @@ package com.meteomontana.android.data.api
 
 import com.meteomontana.android.data.api.dto.AddFeedCommentRequest
 import com.meteomontana.android.data.api.dto.FeedCommentDto
+import com.meteomontana.android.data.api.dto.FeedCountDto
 import com.meteomontana.android.data.api.dto.FeedLikeCountDto
 import com.meteomontana.android.data.api.dto.FeedPostDto
 import com.meteomontana.android.data.api.dto.FeedPostIdDto
@@ -42,6 +43,11 @@ class KtorFeedApi(private val client: HttpClient) {
             parameter("limit", limit)
             if (uid != null) parameter("uid", uid)
         }.body()
+
+    /** Cuantas publicaciones enseña el perfil de [uid] (el propio si es null); 0 si es privado y no le sigues. */
+    @Throws(Exception::class)
+    suspend fun postCount(uid: String?): FeedCountDto =
+        client.get("feed/count") { if (uid != null) parameter("uid", uid) }.body()
 
     /** Post individual (deep link de push/campanita). 404 si no existe/no visible. */
     suspend fun getPost(postId: Long): FeedPostDto =

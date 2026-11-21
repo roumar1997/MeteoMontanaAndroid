@@ -16,7 +16,9 @@ data class GymSummary(
     /** Ultimos 12 meses, del mas antiguo al actual: «2026-11» y cuantas ascensiones. */
     val byMonth: List<GymSummaryMonth> = emptyList(),
     /** Su rocódromo habitual («Tu rocódromo»), si lo ha elegido. */
-    val homeGym: HomeGym? = null
+    val homeGym: HomeGym? = null,
+    /** Orden de las categorias de sus Ascensiones («BOARDS,BLOCKS,ROUTES»); null si no lo cambio (vale [AscentTabOrder.default]). */
+    val ascentOrder: String? = null
 ) {
     val isEmpty: Boolean get() = sessions == 0
 }

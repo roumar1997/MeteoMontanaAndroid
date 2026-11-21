@@ -86,7 +86,9 @@ data class GymSummaryDto(
     val byGym: List<GymSummaryGymDto> = emptyList(),
     val items: List<GymAscentDto> = emptyList(),
     val byMonth: List<GymSummaryMonth> = emptyList(),
-    val homeGym: HomeGymDto? = null
+    val homeGym: HomeGymDto? = null,
+    /** Orden de las categorias de Ascensiones que eligio («BOARDS,BLOCKS,ROUTES»); null = el de siempre. */
+    val ascentOrder: String? = null
 )
 
 @Serializable
@@ -99,6 +101,10 @@ data class HomeGymRequestDto(val gymId: Long? = null)
 @Serializable
 data class HomeGymResponseDto(val homeGym: HomeGymDto? = null)
 
+/** PUT/GET me/ascent-order: {order} para fijar y en la respuesta (null = no ha elegido). */
+@Serializable
+data class AscentOrderDto(val order: String? = null)
+
 fun HomeGymDto.toDomain() = com.meteomontana.android.domain.model.gym.HomeGym(id, name, city?.takeIf { it.isNotBlank() })
 
 @Serializable
@@ -108,5 +114,6 @@ fun GymSummaryDto.toDomain() = GymSummary(
     sessions, gyms, ascents, maxGrade?.takeIf { it.isNotBlank() },
     byGym.map { GymSummaryGym(it.gymId, it.name, it.sessions, it.ascents, it.maxGrade?.takeIf { g -> g.isNotBlank() }) },
     items.filter { it.key.isNotBlank() && it.count > 0 }.map { GymAscent(it.key, it.count) }, byMonth,
-    homeGym?.takeIf { it.id != 0L && it.name.isNotBlank() }?.toDomain()
+    homeGym?.takeIf { it.id != 0L && it.name.isNotBlank() }?.toDomain(),
+    ascentOrder?.takeIf { it.isNotBlank() }
 )

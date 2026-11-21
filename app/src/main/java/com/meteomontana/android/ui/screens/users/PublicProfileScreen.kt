@@ -357,7 +357,7 @@ internal fun Body(
                     onOpenBoulders, onOpenRoutes, onOpenMaxGrade
                 )
                 com.meteomontana.android.ui.screens.profile.ProfileMiniTiles(
-                    null, onOpenPosts, s.stats.schoolCount, onOpenSchools, s.stats.projectCount, onOpenProjects
+                    com.meteomontana.android.ui.screens.community.rememberPostCount(p.uid), onOpenPosts, s.stats.schoolCount, onOpenSchools, s.stats.projectCount, onOpenProjects
                 )
                 if (gymsOn) com.meteomontana.android.ui.screens.profile.ClimbGradientCard(
                     climb, s.stats.maxGrade, onStats = onOpenStats,
