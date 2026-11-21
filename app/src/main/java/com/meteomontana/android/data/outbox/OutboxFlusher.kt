@@ -38,7 +38,8 @@ class OutboxFlusher @Inject constructor(
     private val addFavorite: com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase,
     private val removeFavorite: com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase,
     private val photoUploader: com.meteomontana.android.domain.port.PhotoUploader,
-    private val flushPendingHeight: com.meteomontana.android.domain.usecase.profile.FlushPendingHeightUseCase
+    private val flushPendingHeight: com.meteomontana.android.domain.usecase.profile.FlushPendingHeightUseCase,
+    private val gymSessions: com.meteomontana.android.domain.usecase.gym.RecordGymSessionUseCase
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val log = Logger.withTag("Outbox")
@@ -49,13 +50,16 @@ class OutboxFlusher @Inject constructor(
         scope.launch {
             networkMonitor.isOnline
                 .filter { it }
-                .collect { flush() }
+                .collect { flush(); syncGymSessions() }
         }
         // 2) Al arrancar la app, si ya hay conexión, intenta drenar también.
         scope.launch {
-            if (networkMonitor.isOnline.value) flush()
+            if (networkMonitor.isOnline.value) { flush(); syncGymSessions() }
         }
     }
+
+    /** Entrenos de rocodromo apuntados sin red (con sus boards y nombres): se suben al volver la conexion o al abrir la app. */
+    private suspend fun syncGymSessions() { runCatching { gymSessions.syncPending() } }
 
     private suspend fun flush() {
         val pending = outbox.all()

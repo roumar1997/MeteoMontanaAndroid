@@ -50,6 +50,7 @@ fun GymAscentsScreen(
     uid: String?,
     onBack: () -> Unit,
     onOpenGym: (Long) -> Unit = {},
+    onOpenBoards: () -> Unit = {},
     viewModel: ProfileClimbViewModel = hiltViewModel()
 ) {
     val myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
@@ -66,7 +67,8 @@ fun GymAscentsScreen(
         onChangeGyms = viewModel::setGymOrder, onClose = { reordering = false }
     )
     val s = state.summary
-    val items = GymBreakdown.filter(s.items, filter)
+    // «Todo» sin boards: no se reparten por rocodromo (van juntos en la pantalla Boards).
+    val items = if (filter == AscentFilter.ALL) GymBreakdown.withoutBoards(s.items) else GymBreakdown.filter(s.items, filter)
     // Grados elegidos en los chips (varios a la vez); al cambiar de pestana se empieza de nuevo.
     var grades by remember(filter) { mutableStateOf(emptySet<String>()) }
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -92,8 +94,8 @@ fun GymAscentsScreen(
                 Text(stringResource(R.string.gym_asc_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 GradeChipRow(AscentEntries.grades(items), grades, { g -> grades = if (g in grades) grades - g else grades + g }, { grades = emptySet() })
-                if (grades.isNotEmpty()) GradeEntriesList(AscentEntries.entries(s, filter, grades), onOpenGym)
-                else AscentsBody(s, filter, items, viewModel::colorHex, viewModel::colorHexFor, onOpenGym, state.collapsedBoards, viewModel::toggleBoard)
+                if (grades.isNotEmpty()) GradeEntriesList(AscentEntries.entries(s, filter, grades, includeBoards = false), onOpenGym)
+                else AscentsBody(s, filter, items, viewModel::colorHex, viewModel::colorHexFor, onOpenGym, state.collapsedBoards, viewModel::toggleBoard, onOpenBoards)
                 Box(Modifier.padding(bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current + 16.dp))
             }
         }

@@ -16,15 +16,17 @@ object AscentEntries {
      * Las ascensiones de [summary] que entran en [filter] y cuyo grado esta en [grades] (minusculas), una por sitio, dia y
      * clave: las de mas reciente a mas antigua y, al final, lo que no trae dia («antes»).
      */
-    fun entries(summary: GymSummary, filter: AscentFilter, grades: Set<String>): List<AscentEntry> {
+    fun entries(summary: GymSummary, filter: AscentFilter, grades: Set<String>, includeBoards: Boolean = true): List<AscentEntry> {
         if (grades.isEmpty()) return emptyList()
+        // «Todo» sin boards: los boards no se reparten por rocodromo (van en su pantalla).
+        val pick = { items: List<GymAscent> -> if (filter == AscentFilter.ALL && !includeBoards) GymBreakdown.withoutBoards(items) else GymBreakdown.filter(items, filter) }
         val out = mutableListOf<AscentEntry>()
         for (g in summary.byGym) {
-            val total = GymBreakdown.filter(g.items, filter).filter { GymAscentKeys.gradeOfKey(it.key) in grades }
+            val total = pick(g.items).filter { GymAscentKeys.gradeOfKey(it.key) in grades }
             val dated = LinkedHashMap<String, Int>()
             for (d in g.days) {
               val names = BoardProblems.namesByKey(d.items, d.boardProblems)
-              for (a in GymBreakdown.filter(d.items, filter)) {
+              for (a in pick(d.items)) {
                 if (GymAscentKeys.gradeOfKey(a.key) !in grades) continue
                 out += AscentEntry(g.gymId, g.name, d.date, a.key, a.count, names[a.key].orEmpty())
                 dated[a.key] = (dated[a.key] ?: 0) + a.count

@@ -103,6 +103,30 @@ object GymBreakdown {
             if (items.isEmpty()) null else g.copy(items = items, ascents = items.sumOf { it.count })
         }
 
+    /**
+     * Como [gymsFiltered] pero SIN boards en «Todo»: un problema de Kilter, MoonBoard, Tension o System es el mismo en cualquier
+     * rocodromo, asi que los boards no se reparten por rocodromo (van juntos en la pantalla Boards).
+     */
+    fun gymsFilteredWithoutBoards(summary: GymSummary, filter: AscentFilter): List<GymSummaryGym> =
+        if (filter != AscentFilter.ALL) gymsFiltered(summary, filter)
+        else summary.byGym.mapNotNull { g ->
+            val items = withoutBoards(g.items)
+            if (items.isEmpty()) null else g.copy(items = items, ascents = items.sumOf { it.count })
+        }
+
+    /** Las claves de [items] que NO son de un board. */
+    fun withoutBoards(items: List<GymAscent>): List<GymAscent> = items.filterNot { GymAscentKeys.parse(it.key) is AscentKey.Board }
+
+    /** La visita a UN rocodromo sin sus boards (van juntos en la pantalla Boards); si el servidor no manda claves, tal cual. */
+    fun visitWithoutBoards(g: GymSummaryGym): GymSummaryGym {
+        if (g.items.isEmpty()) return g
+        val items = withoutBoards(g.items)
+        return g.copy(items = items, ascents = items.sumOf { it.count })
+    }
+
+    /** Cuantas ascensiones de board hay en [items] (todos los rocodromos juntos). */
+    fun boardCount(items: List<GymAscent>): Int = items.filter { GymAscentKeys.parse(it.key) is AscentKey.Board }.sumOf { it.count }
+
     /** ¿El servidor mando el desglose por rocodromo? (si no, solo hay el total: se pinta como antes). */
     fun hasGymBreakdown(summary: GymSummary): Boolean = summary.byGym.any { it.items.isNotEmpty() }
 

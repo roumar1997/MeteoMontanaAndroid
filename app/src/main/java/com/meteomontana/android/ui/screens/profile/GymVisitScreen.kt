@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.meteomontana.android.R
+import com.meteomontana.android.domain.model.gym.GymBreakdown
 import com.meteomontana.android.domain.model.gym.GymSummaryGym
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.terraFillColor
@@ -73,7 +74,7 @@ fun GymVisitScreen(
         ) {
             if (g == null) Box(Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.gym_visit_empty), color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-            } else VisitBody(g, { key -> viewModel.colorHexFor(gymId, key) }, onOpenGym)
+            } else VisitBody(GymBreakdown.visitWithoutBoards(g), { key -> viewModel.colorHexFor(gymId, key) }, onOpenGym)
             Box(Modifier.padding(bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current + 16.dp))
         }
     }

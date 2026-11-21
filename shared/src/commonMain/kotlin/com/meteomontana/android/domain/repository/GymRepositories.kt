@@ -64,6 +64,9 @@ interface GymSessionRepository {
     suspend fun undoToday(gymId: Long)
     suspend fun refresh(): List<GymSession>
 
+    /** Sube lo apuntado sin red (altas, cambios y borrados de entrenos). No lanza por la red; [refresh] ya lo hace antes. */
+    suspend fun syncPending()
+
     /** Apunta lo hecho (por color o grado) en la sesion de ese dia; SUSTITUYE lo anterior. Primero local, luego el servidor. */
     /** [boardProblems] null = no tocar los nombres ya guardados (solo se podan los que ya no caben en los recuentos). */
     suspend fun saveAscents(gymId: Long, date: kotlinx.datetime.LocalDate, ascents: List<GymAscent>, boardProblems: List<com.meteomontana.android.domain.model.gym.BoardProblem>? = null): GymSession

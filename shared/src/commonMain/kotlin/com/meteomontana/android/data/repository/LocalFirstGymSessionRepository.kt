@@ -24,6 +24,8 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 
 /**
@@ -44,19 +46,24 @@ class LocalFirstGymSessionRepository(
     override suspend fun checkInToday(gymId: Long, source: GymSessionSource): GymSession {
         val session = GymSession(gymId, today(), source)
         save(load().filterNot { it.gymId == gymId && it.date == session.date } + session)
+        mark(gymId, session.date, UPSERT)
         try {
             api.checkInToday(gymId)
+            clearMark(gymId, session.date)
         } catch (e: CancellationException) {
             throw e
-        } catch (_: Exception) { /* sin ruta o sin red: queda la copia local */ }
+        } catch (_: Exception) { /* sin ruta o sin red: queda la copia local, pendiente de subir */ }
         return session
     }
 
     override suspend fun undoToday(gymId: Long) {
         val day = today()
+        val id = load().firstOrNull { it.gymId == gymId && it.date == day }?.id ?: 0L
         save(load().filterNot { it.gymId == gymId && it.date == day })
+        mark(gymId, day, DELETE + id)
         try {
             api.undoToday(gymId)
+            clearMark(gymId, day)
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) { /* idem */ }
@@ -65,6 +72,7 @@ class LocalFirstGymSessionRepository(
     override suspend fun refresh(): List<GymSession> {
         // Todo el historial (el perfil enseña totales de siempre), no solo el año en curso.
         val from = LocalDate(2020, 1, 1).toString()
+        syncPending()
         val remote = try {
             api.mine(from, today().toString()).mapNotNull { it.toDomainOrNull() }
         } catch (e: CancellationException) {
@@ -73,10 +81,12 @@ class LocalFirstGymSessionRepository(
             return load()
         }
         val local = load()
-        // El servidor manda (tiene el id); lo apuntado en el movil que aun no ha subido no se pierde.
-        val merged = remote.map { r ->
+        val pending = pending()
+        // El servidor manda (tiene el id); lo apuntado en el movil que aun no ha subido (pendiente) manda sobre el servidor.
+        val merged = remote.filterNot { pending[keyOf(it.gymId, it.date)]?.startsWith(DELETE) == true }.map { r ->
             val l = local.firstOrNull { it.gymId == r.gymId && it.date == r.date }
-            if (l != null && r.ascents.isEmpty() && l.ascents.isNotEmpty()) r.copy(ascents = l.ascents, boardProblems = l.boardProblems) else r
+            val localWins = l != null && (pending[keyOf(r.gymId, r.date)] == UPSERT || (r.ascents.isEmpty() && l.ascents.isNotEmpty()))
+            if (l != null && localWins) r.copy(ascents = l.ascents, boardProblems = l.boardProblems) else r
         } + local.filter { l -> remote.none { it.gymId == l.gymId && it.date == l.date } }
         save(merged)
         return merged
@@ -88,28 +98,83 @@ class LocalFirstGymSessionRepository(
         // Editar un entreno hasta dejarlo a cero BORRA la sesion (en el movil y en el servidor).
         if (clean.isEmpty() && existing.ascents.isNotEmpty()) {
             save(load().filterNot { it.gymId == gymId && it.date == date })
+            mark(gymId, date, DELETE + existing.id)
             try {
-                if (existing.id != 0L) api.deleteSession(existing.id) else if (date == today()) api.undoToday(gymId)
+                deleteRemote(gymId, date, existing.id)
+                clearMark(gymId, date)
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) { /* sin red: al refrescar el servidor la devolvera vacia, pero ya no cuenta como entreno con lo hecho */ }
+            } catch (_: Exception) { /* sin red: el borrado queda pendiente y se sube al volver la conexion */ }
             return GymSession(gymId, date)
         }
         val named = BoardProblems.prune(boardProblems ?: existing.boardProblems, clean)
         var updated = existing.copy(ascents = clean, boardProblems = named)
         save(load().filterNot { it.gymId == gymId && it.date == date } + updated)
+        // Pendiente de subir hasta que el servidor lo confirme: sin red se reintenta al abrir la app o al volver la conexion.
+        mark(gymId, date, UPSERT)
         try {
-            // Una sesion de hoy que solo existe en el movil se da de alta primero (idempotente) para tener su id.
-            val id = existing.id.takeIf { it != 0L } ?: if (date == today()) api.checkInToday(gymId).id else 0L
-            if (id != 0L) {
-                val remote = api.putAscents(id, GymAscentsRequestDto(clean.map { it.toDto() }, boardProblems?.let { named.map { p -> p.toDto() } })).toDomainOrNull()
-                updated = updated.copy(id = id, ascents = remote?.ascents ?: clean, boardProblems = remote?.boardProblems ?: named)
-                save(load().filterNot { it.gymId == gymId && it.date == date } + updated)
-            }
+            push(updated, sendNames = boardProblems != null)?.let { updated = it }
         } catch (e: CancellationException) {
             throw e
-        } catch (_: Exception) { /* sin red o sin ruta: queda en el movil y se sube al refrescar */ }
+        } catch (_: Exception) { /* sin red o sin ruta: queda en el movil y se sube despues */ }
         return updated
+    }
+
+    /** Sube lo que se apunto sin red (altas, cambios y borrados). Lo que falla sigue pendiente para la proxima vez. */
+    override suspend fun syncPending() {
+        for ((key, op) in pending()) {
+            val parsed = parseKey(key)
+            if (parsed == null) { clearMarkKey(key); continue }
+            val (gymId, date) = parsed
+            try {
+                if (op.startsWith(DELETE)) {
+                    deleteRemote(gymId, date, op.removePrefix(DELETE).toLongOrNull() ?: 0L)
+                    clearMark(gymId, date)
+                } else {
+                    val s = load().firstOrNull { it.gymId == gymId && it.date == date }
+                    if (s == null) clearMark(gymId, date) else push(s, sendNames = true)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) { /* sigue pendiente */ }
+        }
+    }
+
+    /** Da de alta la sesion en el servidor si hace falta (solo hoy tiene ruta) y sube lo hecho; null si aun no se puede. */
+    private suspend fun push(s: GymSession, sendNames: Boolean): GymSession? {
+        val id = s.id.takeIf { it != 0L } ?: if (s.date == today()) api.checkInToday(s.gymId).id else 0L
+        if (id == 0L) return null
+        val body = GymAscentsRequestDto(s.ascents.map { it.toDto() }, if (sendNames) s.boardProblems.map { it.toDto() } else null)
+        val remote = api.putAscents(id, body).toDomainOrNull()
+        val updated = s.copy(id = id, ascents = remote?.ascents ?: s.ascents, boardProblems = remote?.boardProblems ?: s.boardProblems)
+        save(load().filterNot { it.gymId == s.gymId && it.date == s.date } + updated)
+        clearMark(s.gymId, s.date)
+        return updated
+    }
+
+    private suspend fun deleteRemote(gymId: Long, date: LocalDate, id: Long) {
+        if (id != 0L) api.deleteSession(id) else if (date == today()) api.undoToday(gymId)
+    }
+
+    private fun keyOf(gymId: Long, date: LocalDate) = "$gymId|$date"
+
+    private fun parseKey(key: String): Pair<Long, LocalDate>? = runCatching {
+        key.substringBefore('|').toLong() to LocalDate.parse(key.substringAfter('|'))
+    }.getOrNull()
+
+    private fun pending(): Map<String, String> {
+        val raw = runCatching { store.getString(PENDING_KEY) }.getOrNull() ?: return emptyMap()
+        return runCatching { JSON.decodeFromString(PENDING, raw) }.getOrNull().orEmpty()
+    }
+
+    private fun mark(gymId: Long, date: LocalDate, op: String) = savePending(pending() + (keyOf(gymId, date) to op))
+
+    private fun clearMark(gymId: Long, date: LocalDate) = clearMarkKey(keyOf(gymId, date))
+
+    private fun clearMarkKey(key: String) = savePending(pending() - key)
+
+    private fun savePending(m: Map<String, String>) {
+        runCatching { store.putString(PENDING_KEY, JSON.encodeToString(PENDING, m)) }
     }
 
     override suspend fun summary(uidOrUsername: String): com.meteomontana.android.domain.model.gym.GymSummary? =
@@ -155,6 +220,11 @@ class LocalFirstGymSessionRepository(
 
     private companion object {
         const val KEY = "gym_sessions_v1"
+        /** Cambios hechos sin red que el servidor aun no ha confirmado: gymId|fecha -> U (alta o cambio) o D<id> (borrado). */
+        const val PENDING_KEY = "gym_sessions_pending_v1"
+        const val UPSERT = "U"
+        const val DELETE = "D"
+        val PENDING = MapSerializer(String.serializer(), String.serializer())
         val LIST = ListSerializer(GymSessionDto.serializer())
         val JSON = Json { ignoreUnknownKeys = true; coerceInputValues = true }
     }

@@ -23,6 +23,10 @@ class RecordGymSessionUseCase(private val repo: GymSessionRepository) {
     @Throws(Exception::class)
     suspend fun refresh() { repo.refresh() }
 
+    /** Sube los entrenos apuntados sin red (al volver la conexion o al abrir la app). */
+    @Throws(Exception::class)
+    suspend fun syncPending() { repo.syncPending() }
+
     fun hasSessionToday(gymId: Long): Boolean {
         val today = repo.today()
         return repo.sessions().any { it.gymId == gymId && it.date == today }

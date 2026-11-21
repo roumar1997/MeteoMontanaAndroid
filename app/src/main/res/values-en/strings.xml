@@ -376,6 +376,7 @@
     <string name="profile_my_proposals">My proposals</string>
     <string name="profile_private">Private</string>
     <string name="profile_projects">PROJECTS</string>
+    <string name="profile_boards">BOARDS</string>
     <string name="profile_public">Public</string>
     <string name="profile_requested">Requested</string>
     <string name="profile_routes">ROUTES</string>
@@ -2313,6 +2314,9 @@
     <string name="gym_asc_tab_blocks">Boulders</string>
     <string name="gym_asc_tab_routes">Routes</string>
     <string name="gym_asc_tab_boards">Boards</string>
+    <string name="gym_boards_title">Boards · %1$d</string>
+    <string name="gym_boards_empty">No boards logged yet</string>
+    <string name="gym_boards_link">Boards · all gyms</string>
     <string name="gym_asc_empty">No ascents logged yet</string>
     <string name="stats_hub_title">Statistics</string>
     <string name="stats_hub_tab_all">All</string>

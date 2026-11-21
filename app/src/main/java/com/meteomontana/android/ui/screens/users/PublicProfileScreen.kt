@@ -101,6 +101,8 @@ fun PublicProfileScreen(
     onOpenStatsTab: (String, String) -> Unit = { _, _ -> },
     /** Sesiones, rocódromos o ascensiones de su tarjeta: la pantalla de ascensiones de esa persona. */
     onOpenGymAscents: (String) -> Unit = {},
+    /** Sus boards (todos los rocódromos juntos), con la privacidad de su resumen. */
+    onOpenBoards: (String) -> Unit = {},
     /** Su rocódromo habitual («Su rocódromo»): abre la ficha. */
     onOpenGym: (Long) -> Unit = {},
     /** H: sus publicaciones en pantalla propia (como «Mis publicaciones»). */
@@ -223,6 +225,7 @@ fun PublicProfileScreen(
                 onOpenStats = { onOpenStats(s.profile.uid) },
                 onOpenStatsTab = { tab -> onOpenStatsTab(s.profile.uid, tab) },
                 onOpenGymAscents = { onOpenGymAscents(s.profile.uid) },
+                onOpenBoards = { onOpenBoards(s.profile.uid) },
                 onOpenGym = onOpenGym,
                 onRefresh = viewModel::load,
                 onOpenPosts = { onOpenPosts(s.profile.uid) },
@@ -262,6 +265,7 @@ internal fun Body(
     onOpenStats: () -> Unit = {},
     onOpenStatsTab: (String) -> Unit = {},
     onOpenGymAscents: () -> Unit = {},
+    onOpenBoards: () -> Unit = {},
     onOpenGym: (Long) -> Unit = {},
     onRefresh: () -> Unit = {},
     onOpenPosts: () -> Unit = {},
@@ -359,7 +363,8 @@ internal fun Body(
                     onOpenBoulders, onOpenRoutes, onOpenMaxGrade
                 )
                 com.meteomontana.android.ui.screens.profile.ProfileMiniTiles(
-                    com.meteomontana.android.ui.screens.community.rememberPostCount(p.uid), onOpenPosts, s.stats.schoolCount, onOpenSchools, s.stats.projectCount, onOpenProjects
+                    com.meteomontana.android.ui.screens.community.rememberPostCount(p.uid), onOpenPosts, s.stats.schoolCount, onOpenSchools, s.stats.projectCount, onOpenProjects,
+                    boards = if (gymsOn) com.meteomontana.android.domain.model.gym.GymBreakdown.boardCount(climb.summary.items) else null, onBoards = onOpenBoards
                 )
                 if (gymsOn) com.meteomontana.android.ui.screens.profile.ClimbGradientCard(
                     climb, s.stats.maxGrade, onStats = onOpenStats,

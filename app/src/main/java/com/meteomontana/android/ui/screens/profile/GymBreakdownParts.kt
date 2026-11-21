@@ -46,13 +46,16 @@ import com.meteomontana.android.ui.theme.terraFillColor
 internal fun AscentsBody(
     s: GymSummary, filter: AscentFilter, items: List<GymAscent>,
     colorHex: (String) -> String?, colorHexFor: (Long, String) -> String?, onOpenGym: (Long) -> Unit,
-    collapsedBoards: Set<String> = emptySet(), onToggleBoard: (BoardKind) -> Unit = {}
+    collapsedBoards: Set<String> = emptySet(), onToggleBoard: (BoardKind) -> Unit = {}, onOpenBoards: () -> Unit = {}
 ) {
     when {
         filter == AscentFilter.BOARDS -> BoardsSections(s, items, collapsedBoards, onToggleBoard, onOpenGym)
         GymBreakdown.hasGymBreakdown(s) -> {
-            val gyms = GymBreakdown.gymsFiltered(s, filter)
-            if (gyms.isEmpty()) EmptyCategory() else PerGymSections(gyms, colorHexFor, onOpenGym)
+            // Los boards no se reparten por rocodromo: en «Todo» van juntos en su propia pantalla (enlace al final).
+            val gyms = GymBreakdown.gymsFilteredWithoutBoards(s, filter)
+            val boards = GymBreakdown.boardCount(s.items)
+            if (gyms.isEmpty() && !(filter == AscentFilter.ALL && boards > 0)) EmptyCategory() else PerGymSections(gyms, colorHexFor, onOpenGym)
+            if (filter == AscentFilter.ALL && boards > 0) BoardsLinkRow(boards, onOpenBoards)
             if (filter == AscentFilter.ALL) ByMonthSection(s)
         }
         else -> {
@@ -60,6 +63,19 @@ internal fun AscentsBody(
             ByGradeSection(items, colorHex)
             if (filter == AscentFilter.ALL) ByMonthSection(s)
         }
+    }
+}
+
+/** Fila «Boards · todos los rocódromos · N ›» al final de «Todo»: abre la pantalla Boards. */
+@Composable
+private fun BoardsLinkRow(count: Int, onOpen: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 10.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)).clickable(onClick = onOpen).padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text(stringResource(R.string.gym_boards_link), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 2, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
+        Text(count.toString(), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)
+        Text("›", fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

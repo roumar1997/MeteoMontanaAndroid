@@ -230,6 +230,7 @@
     <string name="profile_max_boulder">MÁX BLOQUE</string>
     <string name="profile_max_route">MÁX VÍA</string>
     <string name="profile_projects">PROYECTOS</string>
+    <string name="profile_boards">BOARDS</string>
     <string name="profile_followers">Seguidores</string>
     <string name="profile_following">Siguiendo</string>
     <string name="profile_follow">Seguir</string>
@@ -2372,6 +2373,9 @@
     <string name="gym_asc_tab_blocks">Bloques</string>
     <string name="gym_asc_tab_routes">Vías</string>
     <string name="gym_asc_tab_boards">Boards</string>
+    <string name="gym_boards_title">Boards · %1$d</string>
+    <string name="gym_boards_empty">Aún no hay boards apuntados</string>
+    <string name="gym_boards_link">Boards · todos los rocódromos</string>
     <string name="gym_asc_empty">Aún no hay ascensiones apuntadas</string>
     <string name="stats_hub_title">Estadísticas</string>
     <string name="stats_hub_tab_all">Todo</string>

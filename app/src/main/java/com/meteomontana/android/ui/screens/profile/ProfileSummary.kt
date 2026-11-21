@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Landscape
 import androidx.compose.material.icons.outlined.Newspaper
 import androidx.compose.material3.Icon
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import com.meteomontana.android.R
 import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Ok
+import com.meteomontana.android.ui.theme.RainBlue
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.terraFillColor
 
@@ -69,33 +71,37 @@ internal fun ProfileLinkRow(icon: ImageVector, tint: Color, label: String, count
 }
 
 @Composable
-private fun MiniTile(icon: ImageVector, tint: Color, label: String, count: Int?, onClick: () -> Unit, modifier: Modifier) {
+private fun MiniTile(icon: ImageVector, tint: Color, label: String, count: Int?, onClick: () -> Unit, modifier: Modifier, compact: Boolean = false) {
     val shape = RoundedCornerShape(16.dp)
     Column(
         modifier.clip(shape).background(MaterialTheme.colorScheme.surface, shape).border(1.dp, MaterialTheme.colorScheme.outline, shape)
-            .clickable(onClick = onClick).padding(horizontal = 4.dp, vertical = 8.dp),
+            .clickable(onClick = onClick).padding(horizontal = if (compact) 2.dp else 4.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         TintedIcon(icon, tint, 30)
         Text(count?.toString() ?: "›", fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 18.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
-        Text(label.uppercase(), fontFamily = Mono, fontSize = 8.sp, letterSpacing = 0.8.sp, maxLines = 1, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label.uppercase(), fontFamily = Mono, fontSize = if (compact) 7.sp else 8.sp, letterSpacing = if (compact) 0.2.sp else 0.8.sp, maxLines = 1, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 /**
- * Tres fichas pequenas bajo los numeros: Publicaciones, Escuelas y Proyectos (con su cuenta). Publicaciones lleva la cuenta que da el servidor (feed/count);
+ * Fichas pequenas bajo los numeros: Publicaciones, Escuelas, Proyectos y Boards (con su cuenta; Boards cuenta las ascensiones de board de todos los rocodromos). Publicaciones lleva la cuenta que da el servidor (feed/count);
  * mientras no llega (o si falla) lleva solo la flecha ([posts] null). Proyectos solo cuando [onProjects] no es null
  * (el de otra persona no lo enseña).
  */
 @Composable
 internal fun ProfileMiniTiles(
     posts: Int?, onPosts: () -> Unit, schools: Int, onSchools: () -> Unit,
-    projects: Int, onProjects: (() -> Unit)?, modifier: Modifier = Modifier
+    projects: Int, onProjects: (() -> Unit)?, modifier: Modifier = Modifier,
+    /** Ascensiones de board de todos los rocódromos; null = sin ficha (rocódromos apagados). */
+    boards: Int? = null, onBoards: (() -> Unit)? = null
 ) {
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        MiniTile(Icons.Outlined.Newspaper, Purple, stringResource(R.string.feed_posts_section), posts, onPosts, Modifier.weight(1f))
-        MiniTile(Icons.Outlined.Landscape, Ok, stringResource(R.string.profile_schools), schools, onSchools, Modifier.weight(1f))
-        if (onProjects != null) MiniTile(Icons.Outlined.Flag, terraFillColor(), stringResource(R.string.profile_projects), projects, onProjects, Modifier.weight(1f))
+    val compact = boards != null && onBoards != null && onProjects != null // 4 fichas: etiquetas mas finas para que quepan en 360 dp
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 6.dp)) {
+        MiniTile(Icons.Outlined.Newspaper, Purple, stringResource(R.string.feed_posts_section), posts, onPosts, Modifier.weight(1f), compact)
+        MiniTile(Icons.Outlined.Landscape, Ok, stringResource(R.string.profile_schools), schools, onSchools, Modifier.weight(1f), compact)
+        if (onProjects != null) MiniTile(Icons.Outlined.Flag, terraFillColor(), stringResource(R.string.profile_projects), projects, onProjects, Modifier.weight(1f), compact)
+        if (boards != null && onBoards != null) MiniTile(Icons.Outlined.GridView, RainBlue, stringResource(R.string.profile_boards), boards, onBoards, Modifier.weight(1f), compact)
     }
 }
 

@@ -107,6 +107,8 @@ fun ProfileScreen(
     onOpenGym: (Long) -> Unit = {},
     /** Sesiones, rocódromos o ascensiones de la tarjeta: la pantalla de ascensiones. */
     onOpenGymAscents: () -> Unit = {},
+    /** Ficha «Boards» del perfil: todos los boards de todos los rocódromos juntos. */
+    onOpenBoards: () -> Unit = {},
     /** En la pestaña keep-alive: true cuando la pestaña Perfil está visible.
      *  Recarga al hacerse visible (los ON_RESUME no saltan al cambiar de tab). */
     visible: Boolean = true,
@@ -209,6 +211,7 @@ fun ProfileScreen(
                     onOpenGymTraining = onOpenGymTraining,
                     onOpenGym = onOpenGym,
                     onOpenGymAscents = onOpenGymAscents,
+                    onOpenBoards = onOpenBoards,
                     visible = visible,
                     onPhotoChanged = viewModel::load
                 )
@@ -316,6 +319,8 @@ internal fun Content(
     onOpenGymTraining: () -> Unit = {},
     onOpenGym: (Long) -> Unit = {},
     onOpenGymAscents: () -> Unit = {},
+    /** Ficha «Boards» del perfil: todos los boards de todos los rocódromos juntos. */
+    onOpenBoards: () -> Unit = {},
     /** Pestaña Perfil visible: la tarjeta de rocódromo se relee cada vez (la pestaña no se recompone al volver). */
     visible: Boolean = true,
     onPhotoChanged: () -> Unit = {}
@@ -390,7 +395,10 @@ internal fun Content(
         item {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp).guideTarget("profile.diary"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ProfileCells(stats.boulderCount, stats.routeCount, stats.maxBoulderGrade, stats.maxRouteGrade, onOpenBoulders, onOpenRoutes, onOpenMaxGrade)
-                ProfileMiniTiles(com.meteomontana.android.ui.screens.community.rememberPostCount(null, visible), onOpenMyPosts, stats.schoolCount, onOpenAllSchools, stats.projectCount, onOpenProjects)
+                ProfileMiniTiles(
+                    com.meteomontana.android.ui.screens.community.rememberPostCount(null, visible), onOpenMyPosts, stats.schoolCount, onOpenAllSchools, stats.projectCount, onOpenProjects,
+                    boards = if (gymsOn) com.meteomontana.android.domain.model.gym.GymBreakdown.boardCount(climb.summary.items) else null, onBoards = onOpenBoards
+                )
                 // Entrenos en rocódromo (solo con el interruptor `gyms_enabled` encendido).
                 if (gymsOn) {
                     Box(Modifier.guideTarget("profile.stats")) {

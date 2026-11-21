@@ -21,6 +21,9 @@ object GymNav {
     /** Ascensiones (por rocódromo, grado y mes) de una persona; sin uid, las mías. */
     const val ASCENTS = "gym-ascents?uid={uid}"
     fun ascents(uid: String? = null) = if (uid.isNullOrBlank()) "gym-ascents" else "gym-ascents?uid=$uid"
+    /** Todos los boards de una persona (de todos los rocódromos juntos); sin uid, los míos. */
+    const val BOARDS = "gym-boards?uid={uid}"
+    fun boards(uid: String? = null) = if (uid.isNullOrBlank()) "gym-boards" else "gym-boards?uid=$uid"
     /** Lo que una persona hizo EN un rocódromo (sesiones y ascensiones); sin uid, lo mío. */
     const val VISIT = "gym-visit/{gymId}?uid={uid}"
     fun visit(gymId: Long, uid: String? = null) = "gym-visit/$gymId?uid=" + (uid?.let { android.net.Uri.encode(it) } ?: "")
@@ -48,6 +51,17 @@ fun NavGraphBuilder.gymRoutes(sheetNav: NavHostController, popSheetOrDismiss: ()
         arguments = listOf(navArgument("uid") { type = NavType.StringType; nullable = true; defaultValue = null })
     ) { entry ->
         com.meteomontana.android.ui.screens.profile.GymAscentsScreen(
+            uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() },
+            onBack = popSheetOrDismiss,
+            onOpenBoards = { sheetNav.navigate(GymNav.boards(entry.arguments?.getString("uid")?.takeIf { u -> u.isNotBlank() })) },
+            onOpenGym = { sheetNav.navigate(GymNav.visit(it, entry.arguments?.getString("uid")?.takeIf { u -> u.isNotBlank() })) }
+        )
+    }
+    composable(
+        route = GymNav.BOARDS,
+        arguments = listOf(navArgument("uid") { type = NavType.StringType; nullable = true; defaultValue = null })
+    ) { entry ->
+        com.meteomontana.android.ui.screens.profile.BoardsScreen(
             uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() },
             onBack = popSheetOrDismiss,
             onOpenGym = { sheetNav.navigate(GymNav.visit(it, entry.arguments?.getString("uid")?.takeIf { u -> u.isNotBlank() })) }

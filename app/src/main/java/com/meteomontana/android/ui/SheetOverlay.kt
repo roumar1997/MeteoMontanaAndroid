@@ -230,6 +230,7 @@ private fun SheetNavHost(
                             onOpenStatsTab = { tab -> sheetNav.navigate(Routes.journalStats(tab = tab)) },
                             onOpenGymTraining = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.TRAINING) },
                             onOpenGymAscents = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.ascents()) },
+                            onOpenBoards = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.boards()) },
                             onOpenGym = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.detail(it)) }
                         )
                     }
@@ -399,6 +400,7 @@ private fun SheetNavHost(
                             onOpenStats = { uid -> sheetNav.navigate(Routes.journalStats(uid)) },
                             onOpenStatsTab = { uid, tab -> sheetNav.navigate(Routes.journalStats(uid, tab)) },
                             onOpenGymAscents = { uid -> sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.ascents(uid)) },
+                            onOpenBoards = { uid -> sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.boards(uid)) },
                             onOpenGym = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.detail(it)) },
                             onOpenPosts = { uid -> sheetNav.navigate(Routes.myPosts(uid)) },
                             // Sección Publicaciones (feed) del perfil:
