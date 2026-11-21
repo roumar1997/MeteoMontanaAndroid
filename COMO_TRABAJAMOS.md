@@ -83,6 +83,7 @@ documento**: los demás enlazan aquí, no la copian.
 - **Decido yo**: arreglos, orden interno del código, tests, documentación, commits en la rama y subidas a `develop`.
 - **Pregunto siempre**: lo que cambie lo que ve el usuario, pasar a `main`/producción, publicar en las tiendas, y usar el nivel de razonamiento **máximo**.
 - Las preguntas, pocas, numeradas y con mi recomendación delante. Se contesta por número.
+- **Maquetas siempre sobre la app real**: antes de maquetar, captura de la pantalla real (emulador o iPhone) y el cambio montado encima con los componentes, colores, fotos, avatares y efectos de verdad. Nada de dibujos inventados con datos sueltos: tiene que verse como quedaría en la app.
 
 ## 8. Modelos y agentes
 
