@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,8 +49,9 @@ import java.util.Locale
 
 /** Buscador + lista de bloques con nombre de UN tablero. Sin texto enseña todos los nombrados; con texto, los que coinciden. */
 @Composable
-internal fun BoardNamedSection(kind: BoardKind, summary: GymSummary, onOpenGym: (Long) -> Unit, boardItems: List<com.meteomontana.android.domain.model.gym.GymAscent> = emptyList(), angle: Int? = null) {
+internal fun BoardNamedSection(kind: BoardKind, summary: GymSummary, boardItems: List<com.meteomontana.android.domain.model.gym.GymAscent> = emptyList(), angle: Int? = null) {
     var query by rememberSaveable(kind.name) { mutableStateOf("") }
+    var detail by remember { mutableStateOf<RepeatedProblem?>(null) }
     OutlinedTextField(
         value = query, onValueChange = { query = it.take(BoardProblems.MAX_NAME) }, singleLine = true,
         modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp),
@@ -64,17 +66,18 @@ internal fun BoardNamedSection(kind: BoardKind, summary: GymSummary, onOpenGym: 
     }
     Text(stringResource(R.string.gym_board_named_title, found.size).uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        found.forEach { p -> NamedRow(p, summary.byGym.firstOrNull { it.gymId == p.lastGymId }?.name, onOpenGym) }
+        found.forEach { p -> NamedRow(p) { detail = p } }
     }
+    detail?.let { d -> NamedProblemSheet(d, summary) { detail = null } }
 }
 
 @Composable
-private fun NamedRow(p: RepeatedProblem, gymName: String?, onOpenGym: (Long) -> Unit) {
+private fun NamedRow(p: RepeatedProblem, onClick: () -> Unit) {
     val st = gradeChipStyle(p.grade.substringBefore('/'))
     val shape = RoundedCornerShape(14.dp)
     Row(
         Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surface, shape).border(1.dp, MaterialTheme.colorScheme.outline, shape)
-            .clickable(enabled = p.lastGymId != com.meteomontana.android.domain.model.gym.GymSession.NO_GYM) { onOpenGym(p.lastGymId) }.padding(horizontal = 12.dp, vertical = 10.dp),
+            .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
@@ -83,11 +86,9 @@ private fun NamedRow(p: RepeatedProblem, gymName: String?, onOpenGym: (Long) -> 
         )
         Column(Modifier.weight(1f)) {
             Text(p.name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onBackground)
-            Text(listOfNotNull(gymName, if (p.reps > 1) pluralStringResource(R.plurals.gym_board_reps_days, p.dates.size, p.dates.size) else null, stringResource(R.string.gym_board_reps_last, dayLabel(p.lastDate))).joinToString(" · "), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(listOfNotNull(if (p.reps > 1) pluralStringResource(R.plurals.gym_board_reps_days, p.dates.size, p.dates.size) else null, stringResource(R.string.gym_board_reps_last, dayLabel(p.lastDate))).joinToString(" · "), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (p.reps > 1) Text(stringResource(R.string.gym_board_reps_badge, p.reps), fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, color = MaterialTheme.colorScheme.primary)
     }
 }
 
-private fun dayLabel(iso: String): String =
-    runCatching { LocalDate.parse(iso).format(DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.getDefault())) }.getOrDefault(iso)

@@ -124,5 +124,5 @@ private fun VisitCell(value: String, label: String, modifier: Modifier) {
 }
 
 /** «mié 18 nov 2026» en el idioma del móvil; si la fecha no se entiende, el texto tal cual. */
-private fun dayLabel(iso: String): String =
+internal fun dayLabel(iso: String): String =
     runCatching { LocalDate.parse(iso).format(DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.getDefault())) }.getOrDefault(iso)

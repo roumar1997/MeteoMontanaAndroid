@@ -2359,6 +2359,11 @@
     <string name="gym_board_reps_label">Repetitions</string>
     <string name="gym_board_reps_minus_cd">Fewer repetitions</string>
     <string name="gym_board_reps_plus_cd">More repetitions</string>
+    <string name="gym_board_no_gym">No gym</string>
+    <plurals name="gym_board_day_reps">
+        <item quantity="one">%1$d repetition</item>
+        <item quantity="other">%1$d repetitions</item>
+    </plurals>
     <string name="gym_board_suggest_meta">%1$s · %2$s</string>
     <string name="gym_board_suggest_people">×%1$d</string>
     <string name="gym_asc_order_btn">Reorder</string>
@@ -2387,5 +2392,9 @@
     <string name="gym_board_add_cd">Log a %1$s ascent</string>
     <string name="gym_board_angles">Angles</string>
     <string name="gym_board_angles_all">All</string>
+    <plurals name="gym_board_blocks_n">
+        <item quantity="one">%1$d problem</item>
+        <item quantity="other">%1$d problems</item>
+    </plurals>
     <string name="gym_board_angle_chip">%1$d° · %2$d</string>
 </resources>

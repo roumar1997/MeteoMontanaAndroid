@@ -88,7 +88,7 @@ internal fun RoutesTab(ascents: List<GymAscent>, adjust: (String, Int) -> Unit) 
 internal fun BoardsTab(
     ascents: List<GymAscent>, problems: List<BoardProblem>, adjust: (String, Int) -> Unit,
     addBoard: (BoardKind, String, Int?, String, Int) -> Unit, angles: BoardAngleMemory, fixedBoard: BoardKind? = null,
-    assist: BoardNameAssist = BoardNameAssist.None
+    assist: BoardNameAssist = BoardNameAssist.None, showAdded: Boolean = true
 ) {
     var board by remember { mutableStateOf(fixedBoard ?: BoardKind.KILTER) }
     var angle by remember(board) { mutableStateOf(angles.initial(board)) }
@@ -96,7 +96,7 @@ internal fun BoardsTab(
     var name by remember { mutableStateOf("") }
     var reps by remember { mutableStateOf(1) }
     val boardItems = ascents.filter { GymAscentKeys.parse(it.key) is AscentKey.Board }
-    AddedList(boardItems, adjust, BoardProblems.namesByKey(boardItems, problems))
+    if (showAdded) AddedList(boardItems, adjust, BoardProblems.namesByKey(boardItems, problems))
     if (fixedBoard == null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         BoardKind.entries.forEach { b ->
             val sel = b == board
@@ -112,6 +112,17 @@ internal fun BoardsTab(
             }
         }
     }
+    OutlinedTextField(
+        value = name, onValueChange = { name = it.take(BoardProblems.MAX_NAME); assist.onQuery(board, name) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+        label = { Text(stringResource(R.string.gym_board_name_hint)) }, shape = RoundedCornerShape(14.dp),
+        supportingText = { Text("${name.length}/${BoardProblems.MAX_NAME}", fontSize = 11.sp) }
+    )
+    NameSuggestions(if (name.isBlank()) emptyList() else assist.suggestions) { s ->
+        name = s.name
+        selected = s.grade.split('/').filter { it in GymAscentKeys.GRID_GRADES }.take(2)
+        s.angle?.takeIf { it in BoardAngles.anglesFor(board) }?.let { angle = it }
+        assist.onClear()
+    }
     if (BoardAngles.anglesFor(board).isNotEmpty()) Eyebrow(stringResource(R.string.gym_sheet_incline))
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         BoardAngles.anglesFor(board).forEach { a ->
@@ -124,17 +135,6 @@ internal fun BoardsTab(
     }
     Eyebrow(stringResource(R.string.gym_sheet_grade_pick))
     GradeGrid(selected) { selected = GymAscentKeys.toggleGrade(selected, it) }
-    OutlinedTextField(
-        value = name, onValueChange = { name = it.take(BoardProblems.MAX_NAME); assist.onQuery(board, name) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
-        label = { Text(stringResource(R.string.gym_board_name_hint)) }, shape = RoundedCornerShape(14.dp),
-        supportingText = { Text("${name.length}/${BoardProblems.MAX_NAME}", fontSize = 11.sp) }
-    )
-    NameSuggestions(if (name.isBlank()) emptyList() else assist.suggestions) { s ->
-        name = s.name
-        selected = s.grade.split('/').filter { it in GymAscentKeys.GRID_GRADES }.take(2)
-        s.angle?.takeIf { it in BoardAngles.anglesFor(board) }?.let { angle = it }
-        assist.onClear()
-    }
     RepsStepper(reps) { reps = it }
     val grade = GymAscentKeys.gradeOf(selected)
     AddButton(grade) {

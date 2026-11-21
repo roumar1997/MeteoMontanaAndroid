@@ -11,8 +11,13 @@ data class RepeatedProblem(
     /** Rocodromo de la ultima vez ([GymSession.NO_GYM] = sin rocodromo). */
     val lastGymId: Long,
     /** Dias distintos en que se hizo, del mas reciente al mas antiguo. */
-    val dates: List<String>
+    val dates: List<String>,
+    /** Cada dia (y rocodromo) en que se hizo con sus repeticiones, del mas reciente al mas antiguo. */
+    val days: List<ProblemDay> = emptyList()
 )
+
+/** Un dia en que se hizo un bloque: [reps] veces en [gymId] ([GymSession.NO_GYM] = sin rocodromo). */
+data class ProblemDay(val date: String, val gymId: Long, val reps: Int)
 
 /** Sugerencia para autocompletar el nombre: nombre tal como se escribio, grado e inclinacion mas habituales y cuanta gente/veces. */
 data class BoardProblemSuggestion(val name: String, val grade: String, val angle: Int?, val count: Int, val mine: Boolean = false)
@@ -66,7 +71,9 @@ object BoardProblemRepeats {
             RepeatedProblem(
                 board, newest.problem.name, newest.problem.grade, g.size,
                 g.minOf { it.date }, newest.date, newest.gymId,
-                g.map { it.date }.distinct().sortedDescending()
+                g.map { it.date }.distinct().sortedDescending(),
+                g.groupingBy { it.date to it.gymId }.eachCount().map { (k, n) -> ProblemDay(k.first, k.second, n) }
+                    .sortedWith(compareByDescending<ProblemDay> { it.date }.thenBy { it.gymId })
             )
         }.sortedWith(compareByDescending<RepeatedProblem> { it.lastDate }.thenByDescending { it.reps }.thenBy { it.name })
     }

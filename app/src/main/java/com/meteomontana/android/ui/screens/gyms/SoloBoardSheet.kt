@@ -6,7 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -56,7 +57,7 @@ fun SoloBoardSheet(dateLabel: String, date: LocalDate, onDismiss: () -> Unit, bo
         onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = Color.Transparent, shape = CumbreSheetShape
     ) {
-        Column(Modifier.fillMaxWidth().cumbreSheetSurface().padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md)) {
+        Column(Modifier.fillMaxWidth().fillMaxHeight().imePadding().cumbreSheetSurface().padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md)) {
             Text(dateLabel.uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary)
             Text(
                 if (board != null) stringResource(R.string.gym_solo_board_sheet, boardName(board)) else stringResource(R.string.gym_solo_board_title),
@@ -64,9 +65,9 @@ fun SoloBoardSheet(dateLabel: String, date: LocalDate, onDismiss: () -> Unit, bo
             )
             Text(stringResource(R.string.gym_solo_board_sub), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = Spacing.sm))
             Column(
-                Modifier.weight(1f, fill = false).heightIn(max = 460.dp).verticalScroll(rememberScrollState()),
+                Modifier.weight(1f).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) { BoardsTab(state.ascents, state.boardProblems, vm::adjust, vm::addBoard, vm.angles, board, BoardNameAssist(state.suggestions, vm::onNameChanged, vm::clearSuggestions)) }
+            ) { BoardsTab(state.ascents, state.boardProblems, vm::adjust, vm::addBoard, vm.angles, board, BoardNameAssist(state.suggestions, vm::onNameChanged, vm::clearSuggestions), showAdded = false) }
             val total = state.ascents.sumOf { it.count }
             Row(Modifier.fillMaxWidth().padding(top = Spacing.sm), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(stringResource(R.string.gym_sheet_total).uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)

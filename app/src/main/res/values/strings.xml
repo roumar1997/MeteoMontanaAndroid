@@ -2418,6 +2418,11 @@
     <string name="gym_board_reps_label">Repeticiones</string>
     <string name="gym_board_reps_minus_cd">Menos repeticiones</string>
     <string name="gym_board_reps_plus_cd">Más repeticiones</string>
+    <string name="gym_board_no_gym">Sin rocódromo</string>
+    <plurals name="gym_board_day_reps">
+        <item quantity="one">%1$d repetición</item>
+        <item quantity="other">%1$d repeticiones</item>
+    </plurals>
     <string name="gym_board_suggest_meta">%1$s · %2$s</string>
     <string name="gym_board_suggest_people">×%1$d</string>
     <string name="gym_asc_order_btn">Ordenar</string>
@@ -2446,5 +2451,9 @@
     <string name="gym_board_add_cd">Apuntar un %1$s</string>
     <string name="gym_board_angles">Ángulos</string>
     <string name="gym_board_angles_all">Todos</string>
+    <plurals name="gym_board_blocks_n">
+        <item quantity="one">%1$d bloque</item>
+        <item quantity="other">%1$d bloques</item>
+    </plurals>
     <string name="gym_board_angle_chip">%1$d° · %2$d</string>
 </resources>

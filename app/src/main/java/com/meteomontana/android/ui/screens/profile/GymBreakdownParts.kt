@@ -148,7 +148,7 @@ internal fun BoardsSections(
             }
             if (open) {
                 BoardAngleFilter(kind, all, angle) { angle = it }
-                BoardNamedSection(kind, s, onOpenGym, all, angle)
+                BoardNamedSection(kind, s, all, angle)
                 ByGradeSection(list, { null }, titled = false)
             }
         }

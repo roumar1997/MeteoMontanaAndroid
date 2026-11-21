@@ -10,6 +10,7 @@ import com.meteomontana.android.domain.model.gym.BoardProblems
 import com.meteomontana.android.domain.model.gym.GymAscent
 import com.meteomontana.android.domain.model.gym.GymSession
 import com.meteomontana.android.domain.model.gym.NamedBoardProblem
+import com.meteomontana.android.domain.model.gym.ProblemDay
 import com.meteomontana.android.domain.port.KeyValueStore
 import com.meteomontana.android.domain.repository.BoardProblemCatalogRepository
 import com.meteomontana.android.domain.usecase.gym.SearchBoardProblemsUseCase
@@ -140,5 +141,17 @@ class BoardProblemRepeatsTest {
         val out = uc.search(BoardKind.KILTER, "fanj")
         assertEquals(listOf("Fanjulandia"), out.map { it.name })
         assertEquals("7b", out.single().grade)
+    }
+
+    @Test fun repeatedKeepsEachDayWithGymAndRepsNewestFirst() {
+        val all = listOf(
+            named("2026-11-01", "Fanjulandia", gym = 0), named("2026-11-05", "Fanjulandia", gym = 7),
+            named("2026-11-05", "fanjulandia", gym = 7), named("2026-11-05", "Fanjulandia", gym = 0)
+        )
+        val p = BoardProblemRepeats.repeated(all, BoardKind.KILTER, "").single()
+        assertEquals(4, p.reps)
+        assertEquals(
+            listOf(ProblemDay("2026-11-05", 0, 1), ProblemDay("2026-11-05", 7, 2), ProblemDay("2026-11-01", 0, 1)), p.days
+        )
     }
 }
