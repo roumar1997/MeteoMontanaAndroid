@@ -227,6 +227,7 @@ private fun SheetNavHost(
                             onOpenProjects = { sheetNav.navigate(Routes.projects(null)) },
                             onOpenMyPosts = { sheetNav.navigate(Routes.myPosts()) },
                             onOpenStats = { sheetNav.navigate(Routes.journalStats()) },
+                            onOpenStatsTab = { tab -> sheetNav.navigate(Routes.journalStats(tab = tab)) },
                             onOpenGymTraining = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.TRAINING) },
                             onOpenGymAscents = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.ascents()) },
                             onOpenGym = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.detail(it)) }
@@ -238,11 +239,17 @@ private fun SheetNavHost(
                         arguments = listOf(androidx.navigation.navArgument("uid") {
                             type = androidx.navigation.NavType.StringType
                             nullable = true; defaultValue = null
-                        })
+                        },
+                            androidx.navigation.navArgument("tab") {
+                                type = androidx.navigation.NavType.StringType
+                                nullable = true; defaultValue = null
+                            })
                     ) { entry ->
                         val statsUid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() }
                         com.meteomontana.android.ui.screens.profile.StatsHubScreen(
                             uid = statsUid,
+                            initialTab = entry.arguments?.getString("tab")?.takeIf { it.isNotBlank() },
+                            onOpenAscents = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.ascents(statsUid)) },
                             onBack = popSheetOrDismiss,
                             onOpenSchool = { school ->
                                 sheetNav.navigate(Routes.journalSectors(school))
@@ -390,6 +397,7 @@ private fun SheetNavHost(
                             onOpenSchoolEntries = { uid, schoolName -> sheetNav.navigate(Routes.journalSectors(schoolName, uid)) },
                             onOpenProjects = { uid -> sheetNav.navigate(Routes.projects(uid)) },
                             onOpenStats = { uid -> sheetNav.navigate(Routes.journalStats(uid)) },
+                            onOpenStatsTab = { uid, tab -> sheetNav.navigate(Routes.journalStats(uid, tab)) },
                             onOpenGymAscents = { uid -> sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.ascents(uid)) },
                             onOpenGym = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.detail(it)) },
                             onOpenPosts = { uid -> sheetNav.navigate(Routes.myPosts(uid)) },

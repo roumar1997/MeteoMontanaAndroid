@@ -124,10 +124,14 @@ class MeetupsViewModel @Inject constructor(
     private val _myGender = MutableStateFlow<String?>(null)
     val myGender = _myGender.asStateFlow()
 
+    /** Mi mochila del perfil (JSON): cuenta como material disponible en las quedadas donde estoy. */
+    private val _myMochila = MutableStateFlow<String?>(null)
+    val myMochila = _myMochila.asStateFlow()
+
     init {
         loadMeetups(relation = _list.value.filterRelation)
         viewModelScope.launch {
-            try { _myGender.value = getMyProfile().gender }
+            try { val me = getMyProfile(); _myGender.value = me.gender; _myMochila.value = me.gearJson }
             catch (_: Exception) {}
         }
         viewModelScope.launch {
@@ -285,6 +289,11 @@ class MeetupsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val meetup = createMeetup.execute(req)
+                // La mochila del organizador cuenta desde el principio (igual que al unirse).
+                runCatching {
+                    val myGear = getMyProfile().gearJson
+                    if (!myGear.isNullOrBlank() && parseGear(myGear).isNotEmpty()) updateMyGearUseCase.execute(meetup.id, myGear)
+                }
                 loadMeetups()
                 onSuccess(meetup)
             } catch (e: FeatureDisabledException) {

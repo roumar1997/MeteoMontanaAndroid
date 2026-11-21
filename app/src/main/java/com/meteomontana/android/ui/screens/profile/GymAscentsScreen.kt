@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,6 +53,11 @@ fun GymAscentsScreen(
     LaunchedEffect(uid) { viewModel.load(uid, myUid) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     var filter by remember { mutableStateOf(AscentFilter.ALL) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { com.meteomontana.android.data.local.SharedPrefsKeyValueStore(ctx, "cumbre_profile_prefs") }
+    var order by remember { mutableStateOf(com.meteomontana.android.domain.model.gym.AscentTabOrder.parse(prefs.getString("ascent_tab_order"))) }
+    var reordering by remember { mutableStateOf(false) }
+    if (reordering) AscentOrderDialog(order, onChange = { order = it; prefs.putString("ascent_tab_order", com.meteomontana.android.domain.model.gym.AscentTabOrder.serialize(it)) }, onClose = { reordering = false })
     val s = state.summary
     val items = GymBreakdown.filter(s.items, filter)
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -59,17 +65,15 @@ fun GymAscentsScreen(
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.common_back)) }
             Text(
                 stringResource(R.string.gym_asc_title, s.ascents), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f)
             )
+            IconButton(onClick = { reordering = true }) { Icon(androidx.compose.material.icons.Icons.Outlined.SwapVert, stringResource(R.string.gym_asc_order_cd)) }
         }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 6.dp)) {
             Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.outline.copy(alpha = 0.18f), RoundedCornerShape(24.dp)).padding(3.dp)) {
-                AscentFilter.entries.forEach { f ->
+                com.meteomontana.android.domain.model.gym.AscentTabOrder.tabs(order).forEach { f ->
                     TabButton(
-                        stringResource(when (f) {
-                            AscentFilter.ALL -> R.string.gym_asc_tab_all; AscentFilter.BLOCKS -> R.string.gym_asc_tab_blocks
-                            AscentFilter.ROUTES -> R.string.gym_asc_tab_routes; AscentFilter.BOARDS -> R.string.gym_asc_tab_boards
-                        }).uppercase(),
+                        ascentFilterLabel(f).uppercase(),
                         filter == f, Modifier.weight(1f)
                     ) { filter = f }
                 }

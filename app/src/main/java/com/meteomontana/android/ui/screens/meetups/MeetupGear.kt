@@ -109,10 +109,10 @@ internal fun gearItemsForDiscipline(discipline: String?): List<Pair<String, Stri
         "cuerda" to AppText.get(R.string.gear_ropes), "grigri" to AppText.get(R.string.gear_grigri))
 }
 
-internal fun gearLabel(key: String): String = when (key) {
-    "crashpads" -> "crashpads"
-    "cintas" -> "cintas"
-    "cuerda" -> "cuerdas"
+internal fun gearLabel(key: String, count: Int = 2): String = when (key) {
+    "crashpads" -> if (count == 1) "crashpad" else "crashpads"
+    "cintas" -> if (count == 1) "cinta" else "cintas"
+    "cuerda" -> if (count == 1) "cuerda" else "cuerdas"
     "grigri" -> "gri-gri"
     else -> key
 }
@@ -139,14 +139,14 @@ internal fun totalGear(members: List<MeetupMember>): Map<String, Int> {
 internal fun gearSummaryText(gearJson: String?): String {
     val gear = parseGear(gearJson)
     if (gear.isEmpty()) return ""
-    return gear.entries.joinToString(" · ") { "${it.value} ${gearLabel(it.key)}" }
+    return gear.entries.joinToString(" · ") { "${it.value} ${gearLabel(it.key, it.value)}" }
 }
 
 /** Texto compacto del total (para el banner del chat). */
 internal fun totalGearSummary(members: List<MeetupMember>): String {
     val totals = totalGear(members)
     if (totals.isEmpty()) return ""
-    return totals.entries.joinToString(" · ") { "${it.value} ${gearLabel(it.key)}" }
+    return totals.entries.joinToString(" · ") { "${it.value} ${gearLabel(it.key, it.value)}" }
 }
 
 // ── Gear section composable ─────────────────────────────────────────────────
@@ -185,7 +185,7 @@ internal fun GearSection(
                     ) {
                         Text("$count", style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        Text(gearLabel(key), style = MaterialTheme.typography.bodySmall,
+                        Text(gearLabel(key, count), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }

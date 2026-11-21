@@ -98,6 +98,7 @@ fun PublicProfileScreen(
     onOpenProjects: (String) -> Unit = {},
     /** G: estadísticas completas del usuario (privacidad: la impone el backend). */
     onOpenStats: (String) -> Unit = {},
+    onOpenStatsTab: (String, String) -> Unit = { _, _ -> },
     /** Sesiones, rocódromos o ascensiones de su tarjeta: la pantalla de ascensiones de esa persona. */
     onOpenGymAscents: (String) -> Unit = {},
     /** Su rocódromo habitual («Su rocódromo»): abre la ficha. */
@@ -220,6 +221,7 @@ fun PublicProfileScreen(
                 onOpenSchoolEntries = { schoolName -> onOpenSchoolEntries(s.profile.uid, schoolName) },
                 onOpenProjects = { onOpenProjects(s.profile.uid) },
                 onOpenStats = { onOpenStats(s.profile.uid) },
+                onOpenStatsTab = { tab -> onOpenStatsTab(s.profile.uid, tab) },
                 onOpenGymAscents = { onOpenGymAscents(s.profile.uid) },
                 onOpenGym = onOpenGym,
                 onRefresh = viewModel::load,
@@ -258,6 +260,7 @@ internal fun Body(
     onOpenSchoolEntries: (String) -> Unit = {},
     onOpenProjects: () -> Unit = {},
     onOpenStats: () -> Unit = {},
+    onOpenStatsTab: (String) -> Unit = {},
     onOpenGymAscents: () -> Unit = {},
     onOpenGym: (Long) -> Unit = {},
     onRefresh: () -> Unit = {},
@@ -351,12 +354,15 @@ internal fun Body(
             Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 com.meteomontana.android.ui.screens.profile.ProfileCells(
                     s.stats.boulderCount, s.stats.routeCount, s.stats.maxBoulderGrade, s.stats.maxRouteGrade,
-                    onOpenBoulders, onOpenRoutes, onOpenMaxGrade, schools = s.stats.schoolCount, onSchools = onOpenSchools
+                    onOpenBoulders, onOpenRoutes, onOpenMaxGrade
                 )
-                com.meteomontana.android.ui.screens.profile.ProfileThinRow(stringResource(R.string.feed_posts_section), null, onOpenPosts)
+                com.meteomontana.android.ui.screens.profile.ProfileMiniTiles(
+                    null, onOpenPosts, s.stats.schoolCount, onOpenSchools, s.stats.projectCount, onOpenProjects
+                )
                 if (gymsOn) com.meteomontana.android.ui.screens.profile.ClimbGradientCard(
                     climb, s.stats.maxGrade, onStats = onOpenStats,
-                    onSessions = onOpenGymAscents, onGyms = onOpenGymAscents, onAscents = onOpenGymAscents
+                    onSessions = { onOpenStatsTab("gym") }, onGyms = onOpenGymAscents, onAscents = onOpenGymAscents,
+                    onRock = { onOpenStatsTab("rock") }
                 ) else com.meteomontana.android.ui.components.StatsEntryButton(onClick = onOpenStats)
                 if (gymsOn) com.meteomontana.android.ui.screens.profile.HomeGymAndStreak(climb.homeGym, 0, onOpenGym, own = false)
             }

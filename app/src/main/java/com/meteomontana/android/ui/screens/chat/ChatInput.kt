@@ -14,6 +14,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.ui.draw.shadow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -47,29 +49,30 @@ fun ChatInputPill(
 ) {
     val canSend = enabled && text.isNotBlank()
     Row(
-        modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
+        modifier.fillMaxWidth().background(chatCardColor()).padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         TextField(
             value = text, onValueChange = onTextChange,
-            modifier = Modifier.weight(1f).clip(RoundedCornerShape(26.dp)).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(26.dp)),
+            modifier = Modifier.weight(1f).clip(RoundedCornerShape(26.dp)).border(1.5.dp, if (text.isBlank()) MaterialTheme.colorScheme.outline else terraFillColor(), RoundedCornerShape(26.dp)),
+            leadingIcon = { Icon(Icons.Outlined.Edit, null, tint = terraFillColor(), modifier = Modifier.size(18.dp)) },
             placeholder = { Text(placeholder, style = MaterialTheme.typography.bodyMedium) },
             maxLines = 4, shape = RoundedCornerShape(26.dp),
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surface, unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                disabledContainerColor = MaterialTheme.colorScheme.surface,
+                focusedContainerColor = MaterialTheme.colorScheme.background, unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                disabledContainerColor = MaterialTheme.colorScheme.background,
                 focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, disabledIndicatorColor = Color.Transparent
             )
         )
         Box(
-            Modifier.size(46.dp).clip(CircleShape)
-                .background(if (canSend) terraFillColor() else MaterialTheme.colorScheme.surfaceVariant)
+            Modifier.size(50.dp).shadow(if (canSend) 4.dp else 0.dp, CircleShape).clip(CircleShape)
+                .background(terraFillColor().copy(alpha = if (canSend) 1f else 0.4f))
                 .clickable(enabled = canSend, onClick = onSend),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 Icons.AutoMirrored.Outlined.Send, stringResource(R.string.common_send),
-                tint = if (canSend) Color.White else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp)
+                tint = Color.White, modifier = Modifier.size(22.dp)
             )
         }
     }
@@ -80,7 +83,7 @@ fun ChatInputPill(
 fun ChatLockedBar(onHere: @Composable () -> Unit, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(20.dp)
     Row(
-        modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp).clip(shape).background(MaterialTheme.colorScheme.surface)
+        modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp).clip(shape).background(chatCardColor())
             .border(1.dp, MaterialTheme.colorScheme.outline, shape).padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {

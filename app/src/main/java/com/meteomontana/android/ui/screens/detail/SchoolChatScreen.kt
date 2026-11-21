@@ -70,7 +70,8 @@ import com.meteomontana.android.ui.screens.chat.ChatDayDivider
 import com.meteomontana.android.ui.screens.chat.ChatInputPill
 import com.meteomontana.android.ui.screens.chat.ChatLockedBar
 import com.meteomontana.android.ui.screens.chat.chatDayStartIds
-import com.meteomontana.android.ui.screens.chat.chatBubbleShape
+import com.meteomontana.android.ui.screens.chat.chatBubbleSurface
+import com.meteomontana.android.ui.screens.chat.ChatEmptyState
 import com.meteomontana.android.ui.screens.chat.ChatTopBar
 import com.meteomontana.android.ui.screens.chat.ChatSubtitle
 import com.meteomontana.android.ui.screens.chat.ChatInitialAvatar
@@ -246,7 +247,7 @@ fun SchoolChatScreen(
         ) {
         if (notMarkedHere && viewModel.messages.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { MarkHereNotice(compact = false) }
-        }
+        } else if (viewModel.messages.isEmpty()) ChatEmptyState()
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
@@ -414,8 +415,7 @@ internal fun MessageBubble(
             }
             Column(
                 modifier = Modifier
-                    .clip(chatBubbleShape(isMine))
-                    .background(if (isMine) com.meteomontana.android.ui.theme.terraFillColor() else MaterialTheme.colorScheme.surface)
+                    .chatBubbleSurface(isMine)
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Text(

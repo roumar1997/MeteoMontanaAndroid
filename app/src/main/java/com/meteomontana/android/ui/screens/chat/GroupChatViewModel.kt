@@ -75,6 +75,9 @@ import com.meteomontana.android.domain.port.ChatService
 import com.meteomontana.android.domain.usecase.meetups.GetMeetupByConversationUseCase
 import com.meteomontana.android.domain.usecase.meetups.UpdateMyGearUseCase
 import com.meteomontana.android.domain.model.MeetupMember
+import com.meteomontana.android.domain.model.Meetup
+import com.meteomontana.android.domain.model.MeetupGearLine
+import com.meteomontana.android.domain.model.MeetupGearStatus
 import androidx.compose.material.icons.outlined.Luggage
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
@@ -127,6 +130,8 @@ data class GroupChatUiState(
     val schoolName: String? = null,
     val muted: Boolean = false,
     val gearSummary: String? = null,
+    /** Material pedido y cubierto (con la mochila de quien usa la app ya sumada); vacio si no se pidio. */
+    val gearLines: List<MeetupGearLine> = emptyList(),
     val members: List<MeetupMember> = emptyList(),
     val discipline: String? = null,
     val myGearJson: String? = null,
@@ -145,6 +150,7 @@ class GroupChatViewModel @Inject constructor(
     private val getMeetupByConversation: GetMeetupByConversationUseCase,
     private val notifyGroupMessage: com.meteomontana.android.domain.usecase.chat.NotifyGroupMessageUseCase,
     private val updateMyGearUseCase: UpdateMyGearUseCase,
+    private val getMyProfile: com.meteomontana.android.domain.usecase.profile.GetMyProfileUseCase,
     private val getMeetupInviteLink: com.meteomontana.android.domain.usecase.meetups.GetMeetupInviteLinkUseCase
 ) : ViewModel() {
     private val convId: String = checkNotNull(savedStateHandle["convId"])
@@ -157,6 +163,10 @@ class GroupChatViewModel @Inject constructor(
     val state: StateFlow<GroupChatUiState> = _state.asStateFlow()
 
     private val nameCache = mutableMapOf<String, String>()
+    private var myMochila: String? = null
+
+    private fun gearLinesOf(meetup: Meetup): List<MeetupGearLine> =
+        MeetupGearStatus.lines(MeetupGearStatus.withMochilas(meetup, mapOf(me to myMochila)))
     private val photoCache = mutableMapOf<String, String>()
 
     // Ventana en vivo creciente (igual que el chat 1-a-1): empieza en 50 y +50 al
@@ -172,6 +182,7 @@ class GroupChatViewModel @Inject constructor(
         // Quedada asociada a esta conversación (para abrir su detalle desde el
         // título y para el botón "Cómo llegar"). Si no es de una quedada, no pasa nada.
         viewModelScope.launch {
+            myMochila = runCatching { getMyProfile().gearJson }.getOrNull()
             val meetup = getMeetupByConversation.execute(convId)
             if (meetup != null) {
                 val members = meetup.members
@@ -186,6 +197,7 @@ class GroupChatViewModel @Inject constructor(
                     placeName = meetup.placeName ?: meetup.schoolName,
                     firstDay = meetup.days.firstOrNull(),
                     gearSummary = gear.ifEmpty { null },
+                    gearLines = gearLinesOf(meetup),
                     members = members,
                     discipline = meetup.discipline,
                     myGearJson = myGear
@@ -261,6 +273,7 @@ class GroupChatViewModel @Inject constructor(
                 val myGear = members.firstOrNull { it.uid == me }?.gearJson
                 _state.value = _state.value.copy(
                     gearSummary = gear.ifEmpty { null },
+                    gearLines = gearLinesOf(updated),
                     members = members,
                     myGearJson = myGear
                 )

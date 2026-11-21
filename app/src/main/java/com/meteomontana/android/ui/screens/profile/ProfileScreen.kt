@@ -101,6 +101,8 @@ fun ProfileScreen(
     // Fila "Mis publicaciones" → pantalla dedicada con el feed propio (scope=mine).
     onOpenMyPosts: () -> Unit = {},
     onOpenStats: () -> Unit = {},
+    /** Mitades de la tarjeta de degradado: Estadisticas abierta en la pestaña "rock" o "gym". */
+    onOpenStatsTab: (String) -> Unit = {},
     onOpenGymTraining: () -> Unit = {},
     onOpenGym: (Long) -> Unit = {},
     /** Sesiones, rocódromos o ascensiones de la tarjeta: la pantalla de ascensiones. */
@@ -203,6 +205,7 @@ fun ProfileScreen(
                     onOpenProjects = onOpenProjects,
                     onOpenMyPosts = onOpenMyPosts,
                     onOpenStats = onOpenStats,
+                    onOpenStatsTab = onOpenStatsTab,
                     onOpenGymTraining = onOpenGymTraining,
                     onOpenGym = onOpenGym,
                     onOpenGymAscents = onOpenGymAscents,
@@ -264,7 +267,7 @@ internal fun ProfileTopBar(
         com.meteomontana.android.ui.components.CumbrePillGroup(
             modifier = Modifier.align(Alignment.CenterEnd)
         ) {
-            com.meteomontana.android.ui.components.HelpButton(topicKey = "profile", compact = true)
+            com.meteomontana.android.ui.components.HelpButton(topicKey = "profile", compact = true, tint = MaterialTheme.colorScheme.primary)
             // Mi material: primero de los tres, igual que en iOS.
             if (onGear != null) IconButton(onClick = onGear) {
                 Icon(
@@ -279,7 +282,7 @@ internal fun ProfileTopBar(
             }
             if (onSettings != null) IconButton(onClick = onSettings) {
                 Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.profile_settings),
-                    tint = MaterialTheme.colorScheme.onBackground)
+                    tint = MaterialTheme.colorScheme.primary)
             }
             if (showClose) TextButton(onClick = onBack) {
                 Text(stringResource(R.string.common_close), color = MaterialTheme.colorScheme.primary,
@@ -309,6 +312,7 @@ internal fun Content(
     onOpenProjects: () -> Unit,
     onOpenMyPosts: () -> Unit = {},
     onOpenStats: () -> Unit = {},
+    onOpenStatsTab: (String) -> Unit = {},
     onOpenGymTraining: () -> Unit = {},
     onOpenGym: (Long) -> Unit = {},
     onOpenGymAscents: () -> Unit = {},
@@ -385,23 +389,25 @@ internal fun Content(
         }
         item {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp).guideTarget("profile.diary"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ProfileCells(
-                    stats.boulderCount, stats.routeCount, stats.maxBoulderGrade, stats.maxRouteGrade, onOpenBoulders, onOpenRoutes, onOpenMaxGrade,
-                    schools = stats.schoolCount, onSchools = onOpenAllSchools
-                )
-                ProfileThinRow(stringResource(R.string.feed_my_posts_section), null, onOpenMyPosts)
+                ProfileCells(stats.boulderCount, stats.routeCount, stats.maxBoulderGrade, stats.maxRouteGrade, onOpenBoulders, onOpenRoutes, onOpenMaxGrade)
+                ProfileMiniTiles(null, onOpenMyPosts, stats.schoolCount, onOpenAllSchools, stats.projectCount, onOpenProjects)
                 // Entrenos en rocódromo (solo con el interruptor `gyms_enabled` encendido).
                 if (gymsOn) {
                     Box(Modifier.guideTarget("profile.stats")) {
-                        ClimbGradientCard(climb, stats.maxGrade, onStats = onOpenStats, onSessions = onOpenGymAscents, onGyms = onOpenGymAscents, onAscents = onOpenGymAscents)
+                        ClimbGradientCard(
+                            climb, stats.maxGrade, onStats = onOpenStats, onSessions = { onOpenStatsTab("gym") }, onGyms = onOpenGymAscents,
+                            onAscents = onOpenGymAscents, onRock = { onOpenStatsTab("rock") }
+                        )
                     }
                     var pickingHome by remember { mutableStateOf(false) }
-                    HomeGymAndStreak(climb.homeGym, climb.streakWeeks, onOpenGym, onPick = { pickingHome = true })
+                    HomeGymAndStreak(
+                        climb.homeGym, climb.streakWeeks, onOpenGym, onPick = { pickingHome = true },
+                        trailing = { LogWorkoutButton(compact = true, onSaved = { climbVm.load(null, myUid) }) }
+                    )
                     if (pickingHome) com.meteomontana.android.ui.screens.gyms.GymPickerSheet(
                         onPick = { g, _ -> pickingHome = false; climbVm.setHomeGym(g) },
                         onDismiss = { pickingHome = false }
                     )
-                    LogWorkoutButton(onSaved = { climbVm.load(null, myUid) })
                 } else {
                     Box(Modifier.guideTarget("profile.stats")) { com.meteomontana.android.ui.components.StatsEntryButton(onClick = onOpenStats) }
                 }

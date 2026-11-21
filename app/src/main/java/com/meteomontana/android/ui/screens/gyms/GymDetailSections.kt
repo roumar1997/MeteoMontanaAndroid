@@ -74,15 +74,19 @@ internal fun GymInfoSections(gym: Gym) {
 
     SectionLabel(stringResource(R.string.gym_section_hours), R.drawable.ic_clock)
     val hours = GymPresentation.hoursLines(gym.openingHours)
-    if (hours.isEmpty()) Text(stringResource(R.string.gym_hours_unknown), fontSize = 14.sp, color = muted)
-    else Column { hours.forEach { Text(it, fontSize = 14.sp, lineHeight = 22.sp, color = body) } }
+    GymInfoCard(R.drawable.ic_clock, com.meteomontana.android.ui.theme.RainBlue) {
+        if (hours.isEmpty()) Text(stringResource(R.string.gym_hours_unknown), fontSize = 14.sp, color = muted)
+        else hours.forEach { Text(it, fontSize = 14.sp, lineHeight = 22.sp, color = body) }
+    }
 
     SectionLabel(stringResource(R.string.gym_section_price), R.drawable.ic_price)
     val price = GymPresentation.priceInfo(gym)
-    if (price.lines.isEmpty()) Text(stringResource(R.string.gym_price_unknown), fontSize = 14.sp, color = muted)
-    else Column {
-        price.lines.forEach { Text(it, fontSize = 14.sp, lineHeight = 22.sp, color = body) }
-        price.note?.let { Text(it, fontSize = 12.sp, color = muted, modifier = Modifier.padding(top = 2.dp)) }
+    GymInfoCard(R.drawable.ic_price, com.meteomontana.android.ui.theme.Ok) {
+        if (price.lines.isEmpty()) Text(stringResource(R.string.gym_price_unknown), fontSize = 14.sp, color = muted)
+        else {
+            price.lines.forEach { Text(it, fontSize = 14.sp, lineHeight = 22.sp, color = body) }
+            price.note?.let { Text(it, fontSize = 12.sp, color = muted, modifier = Modifier.padding(top = 2.dp)) }
+        }
     }
 
     }
@@ -94,10 +98,10 @@ internal fun GymServicesSection(gym: Gym) {
     Column {
     SectionLabel(stringResource(R.string.gym_section_services))
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        ServiceRow(R.drawable.ic_autobelay, R.string.gym_service_autobelay, gym.hasAutobelay)
-        ServiceRow(R.drawable.ic_gear_rental, R.string.gym_service_gear, gym.hasGearRental)
-        ServiceRow(R.drawable.ic_kids, R.string.gym_service_kids, gym.kidsFriendly)
-        ServiceRow(R.drawable.ic_beginner, R.string.gym_service_beginner, gym.beginnerFriendly)
+        ServiceRow(R.drawable.ic_autobelay, R.string.gym_service_autobelay, gym.hasAutobelay, androidx.compose.ui.graphics.Color(0xFF7B3FB0))
+        ServiceRow(R.drawable.ic_gear_rental, R.string.gym_service_gear, gym.hasGearRental, com.meteomontana.android.ui.theme.RainBlue)
+        ServiceRow(R.drawable.ic_kids, R.string.gym_service_kids, gym.kidsFriendly, com.meteomontana.android.ui.theme.Warn)
+        ServiceRow(R.drawable.ic_beginner, R.string.gym_service_beginner, gym.beginnerFriendly, com.meteomontana.android.ui.theme.Ok)
     }
     }
 }
@@ -160,15 +164,41 @@ internal fun GymFooterNotes(gym: Gym) {
     }
 }
 
+/** Tarjeta redondeada de un servicio: icono en cuadradito de color, nombre y «Sí» (verde), «No» (rojo) o «Sin datos» (gris) en pildora. */
 @Composable
-private fun ServiceRow(icon: Int, label: Int, value: Boolean?) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Icon(painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp))
-        Text(stringResource(label), fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
+private fun ServiceRow(icon: Int, label: Int, value: Boolean?, tint: androidx.compose.ui.graphics.Color) {
+    val shape = RoundedCornerShape(16.dp)
+    val chip = when (value) { true -> com.meteomontana.android.ui.theme.Ok; false -> MaterialTheme.colorScheme.error; null -> MaterialTheme.colorScheme.onSurfaceVariant }
+    Row(
+        Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surface).border(1.dp, MaterialTheme.colorScheme.outline, shape).padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        GymTintedIcon(icon, tint)
+        Text(stringResource(label), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
         Text(
-            GymPresentation.serviceValue(value), fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-            color = if (value == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground
+            GymPresentation.serviceValue(value), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = chip, maxLines = 1,
+            modifier = Modifier.clip(androidx.compose.foundation.shape.CircleShape).background(chip.copy(alpha = 0.13f)).padding(horizontal = 12.dp, vertical = 5.dp)
         )
+    }
+}
+
+/** Icono del servicio sobre un cuadradito redondeado tintado. */
+@Composable
+private fun GymTintedIcon(icon: Int, tint: androidx.compose.ui.graphics.Color) {
+    Box(Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).background(tint.copy(alpha = 0.14f)), contentAlignment = Alignment.Center) {
+        Icon(painterResource(icon), contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+    }
+}
+
+/** Tarjeta de horario o precio: icono de color a la izquierda y el texto a la derecha. */
+@Composable
+internal fun GymInfoCard(icon: Int, tint: androidx.compose.ui.graphics.Color, content: @Composable () -> Unit) {
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surface).border(1.dp, MaterialTheme.colorScheme.outline, shape).padding(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        GymTintedIcon(icon, tint)
+        Column(Modifier.weight(1f)) { content() }
     }
 }

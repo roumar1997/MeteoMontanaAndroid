@@ -41,9 +41,10 @@ data class BarSeg(val grade: String?, val hex: String?, val label: String, val c
  * [onSaved] avisa al guardar para que el perfil relea sus números.
  */
 @Composable
-internal fun LogWorkoutButton(modifier: Modifier = Modifier, onSaved: () -> Unit = {}) {
+internal fun LogWorkoutButton(modifier: Modifier = Modifier, compact: Boolean = false, onSaved: () -> Unit = {}) {
     var picking by remember { mutableStateOf(false) }
     var sheetFor by remember { mutableStateOf<Pair<Gym, LocalDate>?>(null) }
+    if (compact) SmallAddWorkoutPill({ picking = true }, modifier) else
     Row(
         modifier.fillMaxWidth().clip(CircleShape).background(terraFillColor()).clickable { picking = true }.padding(vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically

@@ -121,7 +121,9 @@ internal fun ProfileThinRow(label: String, count: Int?, onClick: () -> Unit, mod
 @Composable
 internal fun ClimbGradientCard(
     state: ProfileClimbState, rockMax: String?, onStats: () -> Unit,
-    onSessions: () -> Unit, onGyms: () -> Unit, onAscents: () -> Unit, modifier: Modifier = Modifier
+    onSessions: () -> Unit, onGyms: () -> Unit, onAscents: () -> Unit, modifier: Modifier = Modifier,
+    /** Mitad «Roca»: abre Estadisticas en su pestaña Roca (por defecto, [onStats]). */
+    onRock: () -> Unit = onStats
 ) {
     val shape = RoundedCornerShape(22.dp)
     val s = state.summary
@@ -153,7 +155,7 @@ internal fun ClimbGradientCard(
                     stringResource(R.string.profile_card_routes) to withMax(state.rockRoutes, state.rockMaxRoute),
                     stringResource(R.string.profile_card_schools) to state.schools.toString()
                 ),
-                Modifier.weight(1f).fillMaxHeight(), onStats
+                Modifier.weight(1f).fillMaxHeight(), onRock
             )
             CardHalf(
                 stringResource(R.string.profile_line_gym),
@@ -204,10 +206,12 @@ private fun CardHalf(title: String, big: String, lines: List<Pair<String, String
 @Composable
 internal fun HomeGymAndStreak(
     home: HomeGym?, streakWeeks: Int, onOpenGym: (Long) -> Unit, modifier: Modifier = Modifier,
-    own: Boolean = true, onPick: (() -> Unit)? = null
+    own: Boolean = true, onPick: (() -> Unit)? = null,
+    /** Lo ultimo de la fila (p. ej. el boton pequeño «+ Entreno»). */
+    trailing: (@Composable () -> Unit)? = null
 ) {
     val canPick = own && onPick != null && home == null
-    if (home == null && !canPick && streakWeeks <= 0) return
+    if (home == null && !canPick && streakWeeks <= 0 && trailing == null) return
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         if (canPick) Row(
             Modifier.weight(1f).clip(CumbreStatCardShape).border(1.dp, MaterialTheme.colorScheme.outline, CumbreStatCardShape)
@@ -243,6 +247,7 @@ internal fun HomeGymAndStreak(
                 Text(streakWeeks.toString(), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
             }
         }
+        trailing?.invoke()
     }
 }
 

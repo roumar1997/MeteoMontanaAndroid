@@ -139,15 +139,15 @@ fun GroupChatScreen(
         .consumeWindowInsets(androidx.compose.foundation.layout.PaddingValues(bottom = bottomInset))
         .imePadding()
     ) {
-        GroupChatHeader(
-            state, onBack = onBack, onOpenMeetup = onOpenMeetup,
+        GroupChatHeader(state, onBack = onBack, onOpenMeetup = onOpenMeetup, onToggleMute = { viewModel.toggleMute() })
+        GroupChatActions(
+            state, onOpenMeetup = onOpenMeetup,
             onDirections = { openDirections(context, state.schoolLat!!, state.schoolLon!!, state.schoolName) },
-            onInvite = { id -> viewModel.shareInvite(context, id, state.name) },
-            onToggleMute = { viewModel.toggleMute() }
+            onInvite = { id -> viewModel.shareInvite(context, id, state.name) }
         )
         if (state.meetupId != null) {
             var showEditGear by remember { mutableStateOf(false) }
-            GroupChatGearRow(state.gearSummary) { showEditGear = true }
+            GroupChatGearCard(state.gearLines, state.gearSummary) { showEditGear = true }
             if (showEditGear) {
                 EditGearDialog(
                     discipline = state.discipline,
@@ -164,9 +164,11 @@ fun GroupChatScreen(
 
         // reverseLayout: nuevo abajo siempre + historial hacia arriba natural
         // (ver nota en ChatScreen). Lista en orden inverso.
+        Box(Modifier.weight(1f)) {
+        if (state.messages.isEmpty() && !state.loading) ChatEmptyState()
         LazyColumn(
             state = listState,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxSize(),
             reverseLayout = true,
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -198,6 +200,7 @@ fun GroupChatScreen(
                     LoadOlderRow(onClick = { viewModel.loadOlder() })
                 }
             }
+        }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
@@ -309,9 +312,7 @@ internal fun GroupMessageBubble(
             }
             Column(modifier = Modifier
                 .widthIn(max = 280.dp)
-                .clip(chatBubbleShape(isMine))
-                .background(bg)
-                .border(1.dp, if (isMine) Color.Transparent else MaterialTheme.colorScheme.outline, chatBubbleShape(isMine))
+                .chatBubbleSurface(isMine)
                 .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 val replyText = msg.replyText

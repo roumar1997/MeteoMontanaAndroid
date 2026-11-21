@@ -185,6 +185,13 @@
     <string name="chat_new_group">New group</string>
     <string name="chat_title">Messages</string>
     <string name="chat_write">Write a message</string>
+    <string name="profile_add_workout_short">Workout</string>
+    <string name="gym_asc_order_title">Reorder categories</string>
+    <string name="gym_asc_order_hint">Choose what comes first in your ascents. Saved on this phone.</string>
+    <string name="gym_asc_order_cd">Reorder categories</string>
+    <string name="gym_asc_see_all">See ascents</string>
+    <string name="chat_empty_title">Break the ice</string>
+    <string name="chat_empty_sub">No messages yet. Write the first one.</string>
     <string name="common_all">All</string>
     <string name="common_back">Back</string>
     <string name="common_cancel">Cancel</string>

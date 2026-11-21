@@ -9,6 +9,10 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -48,25 +52,26 @@ fun ChatTopBar(
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     Row(
-        modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(horizontal = Spacing.xs, vertical = Spacing.xs),
+        modifier.fillMaxWidth().zIndex(1f).shadow(4.dp).background(chatCardColor()).padding(start = 8.dp, end = Spacing.xs, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.common_back), tint = MaterialTheme.colorScheme.onBackground)
-        }
+        Box(
+            Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.background).clickable(onClick = onBack),
+            contentAlignment = Alignment.Center
+        ) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.common_back), tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(22.dp)) }
+        Spacer(Modifier.width(10.dp))
         Row(
             Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).let { m -> if (onTitleClick != null) m.clickable(onClick = onTitleClick) else m },
             verticalAlignment = Alignment.CenterVertically
         ) {
             avatar()
             Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
-                Text(title, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(title, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 subtitle?.invoke()
             }
         }
         actions()
     }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 }
 
 /** Subtitulo de una linea de [ChatTopBar]. */
@@ -78,7 +83,7 @@ fun ChatSubtitle(text: String) {
 /** Avatar de letra (rocodromo, escuela): circulo de color con la inicial. */
 @Composable
 fun ChatInitialAvatar(name: String, color: Color) {
-    Box(Modifier.size(42.dp).clip(CircleShape).background(color), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(44.dp).clip(CircleShape).background(color), contentAlignment = Alignment.Center) {
         Text(name.take(1).uppercase(), color = Color.White, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 18.sp)
     }
 }

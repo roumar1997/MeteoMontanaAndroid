@@ -80,7 +80,7 @@ import com.meteomontana.android.R
  * un IconButton, para cabeceras donde la píldora no cabe todavía.
  */
 @Composable
-fun HelpButton(topicKey: String, modifier: Modifier = Modifier, compact: Boolean = false) {
+fun HelpButton(topicKey: String, modifier: Modifier = Modifier, compact: Boolean = false, tint: androidx.compose.ui.graphics.Color? = null) {
     var open by remember { mutableStateOf(false) }
     val guides = com.meteomontana.android.ui.guide.LocalGuideController.current
     val onClick = {
@@ -94,7 +94,7 @@ fun HelpButton(topicKey: String, modifier: Modifier = Modifier, compact: Boolean
             Icon(
                 Icons.AutoMirrored.Outlined.HelpOutline,
                 contentDescription = stringResource(R.string.help_sheet_v2_ayuda_2),
-                tint = MaterialTheme.colorScheme.onBackground
+                tint = tint ?: MaterialTheme.colorScheme.onBackground
             )
         }
     } else {

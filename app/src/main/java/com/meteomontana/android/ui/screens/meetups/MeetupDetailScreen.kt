@@ -202,7 +202,8 @@ fun MeetupDetailScreen(
                 }
             }
             else -> {
-                val meetup = state.meetup!!
+                val myMochila by viewModel.myMochila.collectAsStateWithLifecycle()
+                val meetup = com.meteomontana.android.domain.model.MeetupGearStatus.withMochilas(state.meetup!!, mapOf((myUid ?: "") to myMochila))
                 val isCreator = meetup.creatorUid == myUid
                 val canChat = isCreator || meetup.joined
                 Column(Modifier.fillMaxSize()) {

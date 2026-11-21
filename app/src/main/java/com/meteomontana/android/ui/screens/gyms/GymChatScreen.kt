@@ -56,6 +56,7 @@ import com.meteomontana.android.ui.components.PresencePrivacySheet
 import com.meteomontana.android.ui.screens.chat.ChatDayDivider
 import com.meteomontana.android.ui.screens.chat.ChatInitialAvatar
 import com.meteomontana.android.ui.screens.chat.ChatInputPill
+import com.meteomontana.android.ui.screens.chat.ChatEmptyState
 import com.meteomontana.android.ui.screens.chat.ChatSubtitle
 import com.meteomontana.android.ui.screens.chat.ChatTopBar
 import com.meteomontana.android.ui.screens.chat.ChatLockedBar
@@ -211,10 +212,7 @@ fun GymChatScreen(
             }
         )
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            if (viewModel.messages.isEmpty()) Text(
-                stringResource(R.string.gym_chat_empty), color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.Center).padding(Spacing.xl)
-            )
+            if (viewModel.messages.isEmpty()) ChatEmptyState()
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(Spacing.md)) {
                 val dayStarts = chatDayStartIds(viewModel.messages.map { it.id to it.createdAtMillis })
                 val msgs = viewModel.messages

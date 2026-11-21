@@ -124,9 +124,11 @@ fun ChatScreen(
         // al instante al abrir el chat, también desde una notificación, sin
         // auto-scroll manual) y el historial se sube de forma natural, también
         // con el teclado abierto. Por eso la lista va en orden inverso.
+        Box(Modifier.weight(1f)) {
+        if (state.messages.isEmpty() && !state.loading) ChatEmptyState()
         LazyColumn(
             state = listState,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxSize(),
             reverseLayout = true,
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -152,6 +154,7 @@ fun ChatScreen(
                     LoadOlderRow(onClick = { viewModel.loadOlder() })
                 }
             }
+        }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
 
@@ -294,10 +297,7 @@ private fun MessageBubble(
             horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start) {
             Column(modifier = Modifier
                 .widthIn(max = 280.dp)
-                .clip(chatBubbleShape(isMine))
-                .background(bg)
-                // Borde solo en las de la otra persona (en las mías el terracota ya delimita).
-                .border(1.dp, if (isMine) Color.Transparent else MaterialTheme.colorScheme.outline, chatBubbleShape(isMine))
+                .chatBubbleSurface(isMine)
                 .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 // Cita del mensaje al que responde este mensaje. Copiamos a locals

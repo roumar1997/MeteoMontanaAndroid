@@ -89,6 +89,8 @@ fun MeetupsScreen(
     val alertState by viewModel.alertState.collectAsStateWithLifecycle()
     val schoolResults by viewModel.schoolResults.collectAsStateWithLifecycle()
     val myGender by viewModel.myGender.collectAsStateWithLifecycle()
+    val myMochila by viewModel.myMochila.collectAsStateWithLifecycle()
+    val myUidForGear = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
     val dayScores by viewModel.dayScores.collectAsStateWithLifecycle()
     val uLat by viewModel.userLat.collectAsStateWithLifecycle()
     val uLon by viewModel.userLon.collectAsStateWithLifecycle()
@@ -415,7 +417,7 @@ fun MeetupsScreen(
                     } else {
                         items(displayedMeetups, key = { it.id }) { meetup ->
                             MeetupListItem(
-                                meetup = meetup,
+                                meetup = com.meteomontana.android.domain.model.MeetupGearStatus.withMochilas(meetup, mapOf((myUidForGear ?: "") to myMochila)),
                                 dayScoresMap = dayScores,
                                 distanceKm = distanceFor(meetup),
                                 onClick = {

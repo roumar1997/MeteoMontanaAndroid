@@ -260,6 +260,13 @@
     <string name="chat_new">Nuevo mensaje</string>
     <string name="chat_new_group">Nuevo grupo</string>
     <string name="chat_write">Escribe un mensaje</string>
+    <string name="profile_add_workout_short">Entreno</string>
+    <string name="gym_asc_order_title">Ordenar categorías</string>
+    <string name="gym_asc_order_hint">Elige qué va primero en tus ascensiones. Se guarda en este móvil.</string>
+    <string name="gym_asc_order_cd">Ordenar categorías</string>
+    <string name="gym_asc_see_all">Ver ascensiones</string>
+    <string name="chat_empty_title">Rompe el hielo</string>
+    <string name="chat_empty_sub">Aún no hay mensajes. Escribe el primero.</string>
     <string name="chat_load_older">Mensajes anteriores</string>
     <string name="chat_delete_confirm">¿Borrar esta conversación? Solo se borra para ti.</string>
     <string name="chat_mark_unread">Marcar no leído</string>

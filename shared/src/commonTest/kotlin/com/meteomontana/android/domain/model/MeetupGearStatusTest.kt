@@ -35,4 +35,31 @@ class MeetupGearStatusTest {
     fun noGearRequestedMeansNoLines() {
         assertTrue(MeetupGearStatus.lines(meetup("BOULDER", null, emptyList(), emptyList())).isEmpty())
     }
+
+    @Test
+    fun creatorMochilaCoversRopeTeam() {
+        val m = meetup("ROUTE", 1, emptyList(), emptyList())
+        val lines = MeetupGearStatus.lines(MeetupGearStatus.withMochilas(m, mapOf("u" to "{\"cuerda\":true,\"grigri\":true}")))
+        assertTrue(lines.all { it.ok })
+    }
+
+    @Test
+    fun missingGearStaysMissingWithoutMochila() {
+        val m = meetup("ROUTE", 1, emptyList(), emptyList())
+        val lines = MeetupGearStatus.lines(MeetupGearStatus.withMochilas(m, mapOf("u" to "{\"cuerda\":true,\"grigri\":false}")))
+        assertTrue(lines[0].ok)
+        assertFalse(lines[1].ok)
+    }
+
+    @Test
+    fun mochilaNeverLowersServerCoverage() {
+        val m = meetup("ROUTE", null, listOf(MeetupGear("QUICKDRAWS", 12)), listOf(MeetupGearCoverage("QUICKDRAWS", 12, 12, true)))
+        assertTrue(MeetupGearStatus.lines(MeetupGearStatus.withMochilas(m, emptyMap())).single().ok)
+    }
+
+    @Test
+    fun gearJsonReadsBooleansAndNumbers() {
+        val g = GearJson.parse("{\"cuerda\":true,\"grigri\":false,\"cintas\":12}")
+        assertEquals(mapOf("cuerda" to 1, "cintas" to 12), g)
+    }
 }
