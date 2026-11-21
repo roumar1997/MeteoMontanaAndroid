@@ -386,6 +386,7 @@ Lógica nueva en `shared` (no reimplementar en Swift): `BoardAngles` (`anglesFor
 | §16b / §17 / §18 / §19 / §20 / §20c Estadísticas (Todo/Roca/Rocódromo), Ascensiones por rocódromo, visita, Boards por tablero plegados con grado máximo, orden de categorías y rocódromos (servidor + móvil), filtro por grado, nombres de board, pantalla Boards global, cuenta de Publicaciones | hecho | `GymClimbScreens.swift`, `GymStatsParts.swift`, `ProfileClimbModel.swift` |
 | §20 / §20b Cola sin red (`syncPending`) | hecho | `ContributionOutboxFlusher.swift` |
 | §21 Solo board, «+» por tablero, inclinaciones por board con la última usada (`BoardAngleMemory` sobre UserDefaults), filtro de ángulos | hecho | `SoloBoardSheet.swift`, `GymTrainRoutesBoards.swift`, `GymPickerSheet.swift`, `GymStatsParts.swift`, `GymClimbScreens.swift` |
+| §23 Fila «Ángulo» siempre visible (variante B), detalle de bloque con nombre por días (`RepeatedProblem.days`), registro de boards a altura completa con el nombre primero y sin «Añadido hoy» · §24 `AttemptsCard`, `FlashBadge`, `AttemptsPill`, lista única `BoardBlocks.rows` con «Sin nombre», «Cerrar» y «GUARDAR», System fuera (`BoardKind.visible`), intentos con `BoardLogging.add` · §25 tarjeta «¿Cómo te salió?» (`AttemptsStyleLink`), `OnsightBadge`, chips de filtro de estilo · §25b una insignia por prioridad y nunca los dos `true` | hecho (2026-11-22) | `AttemptsBadges.swift`, `AttemptsCards.swift`, `BoardBlocksList.swift`, `GymTrainBoardsTab.swift`, `SoloBoardSheet.swift`, `FeedPublish.swift`, `JournalView.swift`, `AccountJournalLists.swift`, `EditAscentSheet.swift`, `JournalTicker.swift` |
 | §22 Repetir bloques con nombre (×N, Repeticiones − ×N +), autocompletar con el catálogo compartido (SearchBoardProblemsUseCase, 250 ms), lista agrupada «×N · N días · última» | hecho | `BoardNameAssist.swift`, `GymTrainSheet.swift`, `GymTrainRoutesBoards.swift`, `GymStatsParts.swift` |
 
 Hechos también (2026-11-21, segunda tanda): marcadores de anillo con gota (§12.12), tarjetas blancas con anillo de mojada (§12.13), pastillas seca/mojada y franja de 5 días (§13.7, §14.1), tarjeta de cristal de escuela en el mapa de Roca (§11.6, §12.11), círculo y chip de radio en Quedadas (§13.6; el círculo es solo el contorno, el mapa de iOS no pinta polígonos rellenos), «Rocódromos cerca» plegable (§14.9), hoja «¿Qué llevas tú?» (§13.5), seguidores en tarjetas (§15.8) y contadores «bloques»/«vías» en los grupos. «Corregir» de la tarjeta de cristal abre la hoja «Aportar» (piedra / escuela), como en Android.
@@ -400,7 +401,7 @@ Repetir el mismo bloque con nombre (vueltas de entreno en Kilter, Moon, Tension,
 4. **Lista de bloques con nombre** (Boards del perfil propio y ajeno): una fila por board + nombre normalizado (sin mayúsculas, acentos ni espacios de más) + grado, con «×N» (total de repeticiones) a la derecha y debajo «rocódromo · N días · última <fecha>». Mismo nombre con otro grado o en otra marca son filas aparte. Buscador y filtro por ángulo siguen funcionando (el ángulo se aplica antes de agrupar). Si el servidor manda el historial recortado, el «×N» solo cuenta lo recibido: ahora manda hasta 1000.
 5. **Catálogo compartido (backend V120)**: tabla `board_problem_catalog` (una fila por persona + board + nombre normalizado + grado + inclinación, así guardar dos veces no infla y la popularidad es «cuánta gente»). Se rellena con lo ya guardado (migración, sin inclinación) y en cada guardado de sesión o de «Solo board». La API devuelve solo `{board,name,grade,angle,count}`, nunca quién. La inclinación se deduce de las ascensiones: si ese board+grado solo tiene una inclinación en el guardado, se usa; si hay varias queda sin inclinación.
 
-## 23. Ronda 14 (2026-11-21, Android hecho; iOS pendiente)
+## 23. Ronda 14 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 Feedback de Álvaro sobre Boards. Lógica nueva en `shared`: `ProblemDay(date, gymId, reps)` y `RepeatedProblem.days` (cada día + rocódromo con sus repeticiones, más reciente primero; test `repeatedKeepsEachDayWithGymAndRepsNewestFirst`). iOS debe leer `days`, no recalcularlo.
 
@@ -410,7 +411,7 @@ Feedback de Álvaro sobre Boards. Lógica nueva en `shared`: `ProblemDay(date, g
 
 Capturas: `Desktop\rocodromos\capturas-android\ronda14` (03 ángulos, 04 detalle, 05 registro, 06 con teclado).
 
-## 24. Ronda 15 (2026-11-21, Android hecho; iOS pendiente)
+## 24. Ronda 15 (2026-11-21, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 Intentos opcionales (1 = FLASH), lista única de bloques en Boards y System fuera de la UI. **Backend en staging** (develop 1fabcc0, V121 y V122), aditivo: los campos nuevos se omiten del JSON si no hay dato y los golden (`gym-sessions.json`, `journal.json`) no cambian.
 
@@ -426,7 +427,7 @@ Backend: `GymAscent.attempts` y `GymBoardProblem.attempts` (opcionales), `GET gy
 
 Checklist iOS: `GymAscent/BoardProblem/ProblemDay` con `attempts` en los DTO; tarjeta de intentos con los mismos chips y estados; lista única con `BoardBlocks`; insignias FLASH/INTENTOS; ocultar System; «Cerrar» y «GUARDAR» en el registro; enlace flash↔1 en la hoja «Hecho». Capturas: `Desktop\rocodromos\capturas-android\ronda15`.
 
-## 25. Ronda 16 (2026-11-22, Android hecho; iOS pendiente)
+## 25. Ronda 16 (2026-11-22, Android hecho; iOS hecho, ver «Estado iOS rondas 2 a 13»)
 
 Hoja «Hecho» de escuelas: se quitan las dos tarjetas «A vista» / «Al flash» y la tarjeta de intentos y se sustituyen por UNA tarjeta bajo la etiqueta «ESTILO · OPCIONAL». Maqueta aprobada: `Desktop\rocodromos\maquetas-6\vista.png`. Capturas: `Desktop\rocodromos\capturas-android\ronda16` (`01-hecho.png`, `02-misvias.png`).
 
@@ -439,7 +440,7 @@ Checklist iOS:
 4. El registro de boards sigue solo con Flash + intentos (sin A vista).
 5. EN: «ONSIGHT», «How did it go?», «attempts».
 
-### 25b. Estilo excluyente de raíz (2026-11-22, Android y servidor hechos; iOS pendiente)
+### 25b. Estilo excluyente de raíz (2026-11-22, Android, servidor e iOS hechos)
 
 Síntoma: «La Renenaza» hecha con FLASH, desmarcada y vuelta a marcar con A VISTA enseñaba las DOS insignias. Causa: el servidor guarda dos booleanos (`a_vista`, `al_flash`) y los aceptaba tal cual (POST y PATCH /style); el build de la ronda 15 (hoja con A VISTA y FLASH independientes) los mandaba a la vez, y las filas lo pintaban en cascada (`if aVista` + `if alFlash`). Fix: servidor (develop, V123 limpia filas viejas) fuerza exclusión, gana A VISTA; Android pinta UNA insignia por prioridad (`AscentStyle.fromFlags`) y manda `alFlash && !aVista`.
 Checklist iOS: en las filas de Mis vías/bloques y perfil público, una sola insignia por prioridad (a vista gana; si no, flash; si no, intentos); al crear/editar nunca enviar los dos `true`.

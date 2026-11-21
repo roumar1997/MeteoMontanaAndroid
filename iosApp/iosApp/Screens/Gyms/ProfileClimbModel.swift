@@ -63,7 +63,7 @@ struct BarSeg: Hashable {
 @MainActor
 final class ProfileClimbModel: ObservableObject {
     @Published var summary = GymSummary(sessions: 0, gyms: 0, ascents: 0, maxGrade: nil, byGym: [], items: [], byMonth: [],
-                                        homeGym: nil, ascentOrder: nil, gymOrder: nil, boardProblems: [])
+                                        homeGym: nil, ascentOrder: nil, gymOrder: nil, boardProblems: [], boardAscents: [])
     /// `summary.byGym` ya ordenado (favoritos primero o el orden elegido).
     @Published var byGym: [GymSummaryGym] = []
     @Published var rockDays: Int?

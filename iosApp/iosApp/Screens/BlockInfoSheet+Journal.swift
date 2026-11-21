@@ -108,7 +108,7 @@ extension BlockInfoSheet {
     /// Marca/DESMARCA la vía en tu diario (toggle). La lógica (cola sin red, legado por nombre…) vive en
     /// `JournalTicker`; aquí solo se actualiza el estado de la hoja. Espejo del toggle de Android.
     func toggle(_ line: BlockLine, index: Int, sessionDate: String? = nil,
-                        aVista: Bool = false, alFlash: Bool = false, attempts: Int? = nil) async {
+                aVista: Bool = false, alFlash: Bool = false, attempts: Int? = nil) async {
         tickingLine = line.id
         let ref = journalRef(line, index: index)
         if tickedLines.contains(line.id) {
