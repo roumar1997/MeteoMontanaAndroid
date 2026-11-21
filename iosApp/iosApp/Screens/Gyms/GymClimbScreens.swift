@@ -327,7 +327,7 @@ struct GymBoardsView: View {
         .background(Cumbre.bg.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .sheet(item: $addFor, onDismiss: { Task { await climb.load(uid: uid) } }, content: { k in
-$1
+            SoloBoardSheet(dateLabel: GymDates.todayLong(), date: GymDates.local(Date()), board: k.kind)
         })
         .navigationDestination(item: $route) { r in ClimbRouteView(route: r, uid: uid) }
         .task { await climb.load(uid: uid) }

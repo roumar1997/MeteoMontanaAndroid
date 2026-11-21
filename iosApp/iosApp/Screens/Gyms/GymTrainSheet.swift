@@ -200,7 +200,8 @@ struct GymCounterRow: View {
     let accent: Color
     let count: Int
     let onMinus: () -> Void
-$1    private var done: Bool { !(count == 0) }
+    let onPlus: () -> Void
+    private var done: Bool { count >= 1 }
 
     var body: some View {
         HStack(spacing: 10) {

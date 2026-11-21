@@ -406,7 +406,6 @@ struct SchoolListView: View {
         }
     }
 
-
     /// Cabecera de grupo de «Vías/Bloques» (la vista vive en ExploreGroupHeader.swift).
     private func exploreGroupHeader(_ g: (schoolId: String, schoolName: String, hits: [LineSearchHit])) -> some View {
         ExploreGroupHeader(
@@ -504,7 +503,6 @@ extension LineSearchHit {
 
 // School (clase Kotlin) Identifiable por su id — para navigationDestination(item:).
 extension School: Identifiable {}
-
 
 /// P8: quita puntos consecutivos casi identicos (trazos antiguos fusionaban
 /// los guiones y la linea salia continua en el buscador).
