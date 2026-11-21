@@ -220,10 +220,13 @@ struct MeetupsView: View {
     @State private var filtersExpanded = false
     @State private var showWomenGateDialog = false
     @State private var activeSheet: MeetupSheet?
+    /// «Todas | Roca | Rocódromo» (0, 1, 2).
+    @State private var placeFilter = 0
 
     // Filters applied locally
     private var displayedMeetups: [Meetup] {
         var list = vm.meetups
+        if placeFilter == 1 { list = list.filter { !$0.isGymMeetup } } else if placeFilter == 2 { list = list.filter { $0.isGymMeetup } }
         if let priv = vm.filterPrivacy { list = list.filter { $0.privacy == priv } }
         if let maxKm = vm.filterMaxDistanceKm, let lat = vm.userLat, let lon = vm.userLon {
             list = list.filter { m in
@@ -322,6 +325,11 @@ struct MeetupsView: View {
                     hintKey: "meetups_alert_v2",
                     text: L("🔔 Toca la campana de arriba para crear ALERTAS: te avisamos cuando alguien cree una quedada en los dias, escuela o distancia que te interesan.")
                 )
+
+                GymSegmented(options: [L("meetups_place_all"), L("meetups_place_rock"), L("meetups_place_gym")], selected: placeFilter) {
+                    placeFilter = $0
+                }
+                .padding(.horizontal, 16).padding(.vertical, 8)
 
                 // ── Mapa desplegable (dentro del scroll) ──
                 MeetupsMapPanel(
