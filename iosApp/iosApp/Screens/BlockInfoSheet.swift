@@ -495,7 +495,7 @@ struct BlockInfoSheet: View {
                         Task {
                             // Primero el diario: el voto de grado solo lo acepta el servidor de quien ya la tiene en él.
                             await toggle(pt.line, index: pt.index, sessionDate: choice.sessionDate,
-                                         aVista: choice.aVista, alFlash: choice.alFlash)
+                                         aVista: choice.aVista, alFlash: choice.alFlash, attempts: choice.attempts)
                             if choice.publish {
                                 publishTickToFeed(pt.line, wasProject: pt.wasProject,
                                                   caption: choice.caption, photo: choice.photo)

@@ -95,16 +95,13 @@ struct AccountBlocksList: View {
     // el de grado — no necesita ruta nueva (Rodrigo, 2026-08-21).
     @State private var styleFilters: Set<String> = []
 
-    private func styleFilterChip(_ label: String, active: Bool, onTap: @escaping () -> Void) -> some View {
-        Button(action: onTap) {
-            Text(label).font(Cumbre.mono(11, .bold))
-                .foregroundStyle(active ? .white : Cumbre.ink2)
-                .padding(.horizontal, 10).padding(.vertical, 5)
-                .background(active ? Cumbre.terra : Color.clear,
-                            in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
-                .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius)
-                    .stroke(active ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
-        }.buttonStyle(.plain)
+    private func styleFilterChip<B: View>(_ badge: B, key: String) -> some View {
+        Button {
+            if !styleFilters.insert(key).inserted { styleFilters.remove(key) }
+        } label: {
+            badge.opacity(styleFilters.isEmpty || styleFilters.contains(key) ? 1 : 0.55)
+        }
+        .buttonStyle(.plain)
     }
 
     /// Buscar por nombre de vía, escuela, sector o nº de piedra (Álvaro, 2026-10-19).
@@ -160,12 +157,9 @@ struct AccountBlocksList: View {
                         // Filtro por ESTILO: solo si hay al menos una entrada marcada.
                         if entries.contains(where: { $0.aVista || $0.alFlash }) {
                             HStack(spacing: 6) {
-                                styleFilterChip(L("A VISTA"), active: styleFilters.contains("aVista")) {
-                                    if !styleFilters.insert("aVista").inserted { styleFilters.remove("aVista") }
-                                }
-                                styleFilterChip(L("AL FLASH"), active: styleFilters.contains("alFlash")) {
-                                    if !styleFilters.insert("alFlash").inserted { styleFilters.remove("alFlash") }
-                                }
+                                // Los mismos distintivos azul y dorado; apagado se ve más tenue.
+                                styleFilterChip(OnsightBadge(), key: "aVista")
+                                styleFilterChip(FlashBadge(), key: "alFlash")
                                 Spacer()
                             }
                             .padding(.horizontal, 16).padding(.bottom, 6)

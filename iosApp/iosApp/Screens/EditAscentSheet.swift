@@ -118,8 +118,11 @@ func saveAscentEdit(_ entry: JournalSession, date newDate: String, style: Ascent
         })
     }
     if style != AscentStyle(aVista: entry.aVista, alFlash: entry.alFlash) {
+        // Al flash = 1 intento; quitar el flash quita ese 1 (un 2 o más se queda). nil = no tocar.
+        let flash = Int32(AttemptsBridge.flash)
+        let attempts: KotlinInt? = style.alFlash ? KotlinInt(int: flash) : (entry.attempts?.int32Value == flash ? KotlinInt(int: 0) : nil)
         _ = await reporting(L("No se pudo cambiar el estilo"), {
-            try await container.updateJournalStyle.invoke(id: entry.id, aVista: style.aVista, alFlash: style.alFlash)
+            try await container.updateJournalStyle.invoke(id: entry.id, aVista: style.aVista, alFlash: style.alFlash, attempts: attempts)
         })
     }
 }

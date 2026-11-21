@@ -39,6 +39,8 @@ struct AscentChoice {
     var sessionDate: String?
     var aVista: Bool
     var alFlash: Bool
+    /// Intentos (nil = no lo dijo; 1 = a la primera).
+    var attempts: Int?
     /// Voto de grado (nil = no votar). Solo se manda después de guardar la vía en el diario.
     var gradeVote: String?
     var publish: Bool
@@ -58,10 +60,8 @@ struct AscentSheet: View {
     let onSave: (AscentChoice) -> Void
 
     @State private var sessionDate: String? = nil
-    // Estilo de ascensión: independientes entre sí, se puede marcar 1, el
-    // otro, los dos o ninguno (Rodrigo, 2026-08-21).
-    @State private var aVista = false
-    @State private var alFlash = false
+    // Estilo + intentos en UNA elección: A VISTA / FLASH = a la primera, N = N intentos sin estilo (AttemptsStyleLink, shared).
+    @State private var styleChoice = StyleAttempts(flash: false, attempts: nil, onsight: false)
     // Voto de grado elegido, y el que espera a que se diga la altura (solo la primera vez).
     @State private var vote: String? = nil
     @State private var pendingVote: String? = nil
@@ -125,7 +125,8 @@ struct AscentSheet: View {
         let photo = share ? photoStore.image(for: lineLabel) : nil
         CapturedPhotoStore.forget()   // consumida (o descartada): no re-adoptar después
         if publishEnabled { FeedSharePref.enabled = share }
-        onSave(AscentChoice(sessionDate: sessionDate, aVista: aVista, alFlash: alFlash,
+        onSave(AscentChoice(sessionDate: sessionDate, aVista: styleChoice.onsight,
+                            alFlash: styleChoice.flash && !styleChoice.onsight, attempts: styleChoice.attempts?.intValue,
                             gradeVote: vote, publish: share,
                             caption: share && !text.isEmpty ? text : nil, photo: photo))
     }
@@ -137,11 +138,7 @@ struct AscentSheet: View {
                 sectionLabel(L("CUÁNDO"))
                 dateSegment
                 sectionLabel(L("ESTILO · OPCIONAL"))
-                HStack(spacing: 8) {
-                    styleTile(icon: "eye", title: L("A vista"), subtitle: L("Primer intento, sin ver la beta"), isOn: Binding(get: { aVista }, set: { aVista = $0; if $0 { alFlash = false } }))
-                    styleTile(icon: "bolt", title: L("Al flash"), subtitle: L("Primer intento, con beta"), isOn: Binding(get: { alFlash }, set: { alFlash = $0; if $0 { aVista = false } }))
-                }
-                .fixedSize(horizontal: false, vertical: true)
+                AscentStyleCard(value: $styleChoice)
                 // TU ALTURA: con la que cuenta este encadene (+1,70 / −1,70). Si ya la dijiste, una línea; si no, aquí mismo.
                 sectionLabel(L("TU ALTURA"))
                 heightRow.guideTarget("ascent.height")
@@ -250,24 +247,6 @@ struct AscentSheet: View {
                 .frame(maxWidth: .infinity).padding(.vertical, 9).padding(.horizontal, 4)
                 .background(RoundedRectangle(cornerRadius: 9).fill(on ? Cumbre.bg : Color.clear))
                 .overlay(RoundedRectangle(cornerRadius: 9).stroke(on ? Cumbre.rule : Color.clear, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func styleTile(icon: String, title: String, subtitle: String, isOn: Binding<Bool>) -> some View {
-        let on = isOn.wrappedValue
-        return Button { isOn.wrappedValue.toggle() } label: {
-            VStack(alignment: .leading, spacing: 2) {
-                Image(systemName: icon).font(.system(size: 18))
-                Text(title).font(.system(size: 14, weight: .bold)).foregroundStyle(Cumbre.ink).padding(.top, 4)
-                Text(subtitle).font(.system(size: 11.5)).foregroundStyle(Cumbre.ink3)
-                    .multilineTextAlignment(.leading)
-            }
-            .foregroundStyle(on ? Cumbre.terra : Cumbre.ink2)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: 12).fill(on ? Cumbre.terra.opacity(0.11) : Cumbre.paper))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(on ? Cumbre.terra : Cumbre.rule, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }

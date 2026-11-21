@@ -27,7 +27,8 @@ enum BoardStyle {
         }
     }
 
-    static let all: [BoardKind] = [.kilter, .tension, .moonboard, .system]
+    /// Los que se ofrecen (System ya no se pinta; el servidor sigue aceptando su clave).
+    static let all: [BoardKind] = [BoardKind.kilter, .tension, .moonboard, .system].filter { $0.visible }
 }
 
 /// Logo-color de cada board: Kilter negro con celeste, Tension madera, Moonboard amarillo, System verde.
@@ -72,107 +73,6 @@ struct GymTrainRoutesTab: View {
             adjust(GymAscentKeys.shared.route(style: partner ? .partner : .solo, project: project, grade: grade), 1)
             selected = []
         }
-    }
-}
-
-/// Pestaña «Boards»: el board, la inclinación, el grado, el nombre opcional y lo ya añadido.
-struct GymTrainBoardsTab: View {
-    let ascents: [GymAscent]
-    let problems: [BoardProblem]
-    let adjust: (String, Int) -> Void
-    let addBoard: (BoardKind, String, Int?, String, Int) -> Void
-    /// Tablero fijado (el «+» de la pantalla Boards): sin selector de marca.
-    var fixedBoard: BoardKind?
-    var suggestions: [BoardProblemSuggestion] = []
-    var onQuery: (BoardKind, String) -> Void = { _, _ in }
-    var onClear: () -> Void = {}
-    @State private var reps = 1
-    @State private var board: BoardKind = .kilter
-    @State private var angle: Int?
-    @State private var started = false
-    @State private var selected: [String] = []
-    @State private var name = ""
-
-    var body: some View {
-        let items = ascents.filter { GymAscentKeys.shared.parse(key: $0.key) is AscentKeyBoard }
-        GymAddedList(list: items, names: BoardProblems.shared.namesByKey(items: items, problems: problems), adjust: adjust)
-        if fixedBoard == nil {
-        HStack(spacing: 8) {
-            ForEach(BoardStyle.all, id: \.self) { b in
-                let sel = b == board
-                Button {
-                    board = b
-                    angle = BoardAngleStore.memory.initial(board: b)?.intValue
-                    if name.trimmingCharacters(in: .whitespaces).isEmpty { onClear() } else { onQuery(b, name) }
-                } label: {
-                    VStack(spacing: 5) {
-                        BoardLogo(board: b)
-                        Text(BoardStyle.name(b)).font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink).lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                    }
-                    .frame(maxWidth: .infinity).padding(.vertical, 10)
-                    .background(sel ? BoardStyle.color(b).opacity(0.16) : Cumbre.paper, in: RoundedRectangle(cornerRadius: 16))
-                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(sel ? BoardStyle.color(b) : Cumbre.rule, lineWidth: sel ? 2 : 1))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        }
-        let angles = BoardAngles.shared.anglesFor(board: board).map { Int(truncating: $0) }
-        if !angles.isEmpty { GymEyebrow(text: L("gym_sheet_incline")) }
-        FlowLayoutView(spacing: 6) {
-            ForEach(angles, id: \.self) { a in
-                let sel = angle == a
-                Button { angle = sel ? nil : a; BoardAngleStore.remember(board, angle) } label: {
-                    Text("\(a)°").font(.system(size: 12, weight: .bold)).foregroundStyle(sel ? .white : Cumbre.ink)
-                        .padding(.horizontal, 12).padding(.vertical, 6)
-                        .background(sel ? Cumbre.terraFill : Cumbre.paper, in: Capsule())
-                        .overlay(Capsule().stroke(Cumbre.rule, lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        GymEyebrow(text: L("gym_sheet_grade_pick"))
-        GymGradeGrid(selected: selected) { selected = GymAscentKeys.shared.toggleGrade(selected: selected, tapped: $0) }
-        VStack(alignment: .leading, spacing: 3) {
-            TextField(L("gym_board_name_hint"), text: $name)
-                .font(.system(size: 15)).padding(12)
-                .background(Cumbre.bg, in: RoundedRectangle(cornerRadius: 14))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Cumbre.rule, lineWidth: 1))
-                .onChange(of: name) { _, new in
-                    let max = Int(BoardProblems.shared.MAX_NAME)
-                    if new.count > max { name = String(new.prefix(max)) }
-                    onQuery(board, name)
-                }
-            Text("\(name.count)/\(BoardProblems.shared.MAX_NAME)").font(.system(size: 11)).foregroundStyle(Cumbre.ink2).padding(.leading, 12)
-        }
-        if !name.trimmingCharacters(in: .whitespaces).isEmpty { BoardNameSuggestions(suggestions: suggestions, onPick: pick) }
-        BoardRepsStepper(reps: $reps)
-        let grade = GymAscentKeys.shared.gradeOf(selected: selected)
-        GymAddButton(grade: grade) {
-            guard let grade else { return }
-            addBoard(board, grade, angle, name, reps)
-            reps = 1
-            onClear()
-            BoardAngleStore.remember(board, angle)
-            selected = []
-            name = ""
-        }
-        Text(L("gym_sheet_board_note")).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
-            .onAppear {
-                guard !started else { return }
-                started = true
-                if let fixedBoard { board = fixedBoard }
-                angle = BoardAngleStore.memory.initial(board: board)?.intValue
-            }
-    }
-
-    /// Elegir una sugerencia rellena nombre, grado y, si se sabe, inclinación.
-    private func pick(_ s: BoardProblemSuggestion) {
-        name = s.name
-        selected = Array(s.grade.split(separator: "/").map(String.init).filter { GymAscentKeys.shared.GRID_GRADES.contains($0) }.prefix(2))
-        if let a = s.angle?.intValue, BoardAngles.shared.anglesFor(board: board).contains(where: { $0.intValue == a }) { angle = a }
-        onClear()
     }
 }
 

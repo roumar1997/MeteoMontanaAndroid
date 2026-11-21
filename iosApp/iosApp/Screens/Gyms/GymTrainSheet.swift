@@ -32,12 +32,13 @@ final class GymTrainSheetViewModel: ObservableObject {
         boardProblems = BoardProblems.shared.prune(problems: boardProblems, ascents: next)
     }
 
-    /// Apunta un board y, si lleva nombre (opcional, se recorta), también el nombre del bloque.
-    func addBoard(_ board: BoardKind, _ grade: String, _ angle: Int?, _ name: String, _ reps: Int) {
-        let n = BoardProblemRepeats.shared.clampReps(n: Int32(reps))
-        let key = GymAscentKeys.shared.board(board: board, grade: grade, angle: angle.map { KotlinInt(int: Int32($0)) })
-        ascents = GymTraining.shared.adjust(ascents: ascents, key: key, delta: n)
-        boardProblems = BoardProblemRepeats.shared.addRepeated(problems: boardProblems, board: board, grade: grade, name: name, reps: n)
+    /// Apunta un board con sus repeticiones e intentos (opcionales); la regla vive en shared (`BoardLogging`).
+    func addBoard(_ board: BoardKind, _ grade: String, _ angle: Int?, _ name: String, _ reps: Int, _ attempts: Int?) {
+        let log = BoardLogging.shared.add(log: BoardLog(ascents: ascents, problems: boardProblems), board: board, grade: grade,
+                                          angle: angle.map { KotlinInt(int: Int32($0)) }, name: name, reps: Int32(reps),
+                                          attempts: attempts.map { KotlinInt(int: Int32($0)) })
+        ascents = log.ascents
+        boardProblems = log.problems
         suggestions = []
     }
 
@@ -89,6 +90,7 @@ struct GymTrainSheet: View {
     var date: Kotlinx_datetimeLocalDate?
     var onSaved: () -> Void = {}
     @StateObject private var vm = GymTrainSheetViewModel()
+    @StateObject private var boardForm = BoardForm()
     @Environment(\.dismiss) private var dismiss
     @State private var tab: TrainTab = .blocks
 
@@ -106,7 +108,7 @@ struct GymTrainSheet: View {
                     case .blocks: GymTrainBlocksTab(gym: gym, ascents: vm.ascents, adjust: vm.adjust)
                     case .routes: GymTrainRoutesTab(ascents: vm.ascents, adjust: vm.adjust)
                     case .boards: GymTrainBoardsTab(ascents: vm.ascents, problems: vm.boardProblems, adjust: vm.adjust,
-                                                    addBoard: vm.addBoard, suggestions: vm.suggestions,
+                                                    addBoard: vm.addBoard, form: boardForm, suggestions: vm.suggestions,
                                                     onQuery: vm.onNameChanged, onClear: vm.clearSuggestions)
                     }
                 }

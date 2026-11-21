@@ -109,7 +109,7 @@ final class AccountViewModel: ObservableObject {
             schoolId: schoolId, schoolName: schoolName.nilIfBlank, sector: sector.nilIfBlank,
             blockName: blockName.trimmingCharacters(in: .whitespaces), grade: grade.nilIfBlank,
             notes: notes.nilIfBlank, date: df.string(from: Date()), discipline: discipline, lineId: nil, status: nil,
-            aVista: false, alFlash: false)
+            aVista: false, alFlash: false, attempts: nil)
         _ = try? await createEntry.invoke(req: req)
         await reloadJournal()
     }

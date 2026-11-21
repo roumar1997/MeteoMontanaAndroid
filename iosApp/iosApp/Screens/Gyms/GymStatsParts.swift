@@ -231,61 +231,11 @@ struct BoardsSections: View {
                     .accessibilityLabel(L("gym_board_toggle_cd"))
                     if open {
                         BoardAngleFilter(kind: kind, list: all, selected: Binding(get: { angles[kind.name] }, set: { angles[kind.name] = $0 }))
-                        BoardNamedSection(kind: kind, summary: summary, onOpenGym: onOpenGym, boardItems: all, angle: angle)
+                        BoardNamedSection(kind: kind, summary: summary, angle: angle)
                         ByGradeSection(items: list, colorHex: { _ in nil }, titled: false)
                     }
                 }
                 .padding(.top, 6)
-            }
-        }
-    }
-}
-
-/// Buscador + lista de bloques con nombre de UN tablero (la búsqueda sale de shared: BoardProblems.search).
-struct BoardNamedSection: View {
-    let kind: BoardKind
-    let summary: GymSummary
-    let onOpenGym: (Int64) -> Void
-    var boardItems: [GymAscent] = []
-    var angle: Int?
-    @State private var query = ""
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass").foregroundStyle(Cumbre.ink2)
-            TextField(L("gym_board_search_hint", BoardStyle.name(kind)), text: $query).font(.system(size: 14))
-        }
-        .padding(12)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Cumbre.rule, lineWidth: 1))
-        let pool = BoardAngles.shared.problemsAt(problems: summary.boardProblems, items: boardItems, board: kind,
-                                                 angle: angle.map { KotlinInt(int: Int32($0)) })
-        let found = BoardProblemRepeats.shared.repeated(all: pool, board: kind, query: query)
-        if found.isEmpty {
-            if !query.trimmingCharacters(in: .whitespaces).isEmpty {
-                Text(L("gym_board_search_empty")).font(.system(size: 13)).foregroundStyle(Cumbre.ink2).padding(.vertical, 6)
-            }
-        } else {
-            Text(L("gym_board_named_title", found.count).uppercased()).eyebrow(Cumbre.ink2).padding(.top, 4)
-            ForEach(Array(found.enumerated()), id: \.offset) { _, p in
-                let gymName = summary.byGym.first { $0.gymId == p.lastGymId }?.name
-                Button { onOpenGym(p.lastGymId) } label: {
-                    HStack(spacing: 12) {
-                        GymGradeBadge(grade: p.grade)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(p.name).font(.system(size: 14, weight: .semibold)).foregroundStyle(Cumbre.ink).lineLimit(2)
-                            Text([gymName, p.reps > 1 ? LP("gym_board_reps_days", p.dates.count) : nil,
-                                  L("gym_board_reps_last", GymDayText.long(p.lastDate))].compactMap { $0 }.joined(separator: " · "))
-                                .font(.system(size: 12)).foregroundStyle(Cumbre.ink2).lineLimit(1)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        if p.reps > 1 {
-                            Text(L("gym_board_reps_badge", p.reps)).font(.system(size: 15, weight: .bold)).foregroundStyle(Cumbre.terra)
-                        }
-                    }
-                    .padding(.horizontal, 12).padding(.vertical, 10).cardChrome(14)
-                }
-                .buttonStyle(.plain)
-                .disabled(p.lastGymId == GymSession.Companion.shared.NO_GYM)
             }
         }
     }

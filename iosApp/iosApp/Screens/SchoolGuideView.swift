@@ -319,7 +319,7 @@ struct SchoolGuideView: View {
         let r = ref(h)
         let wasProject = model.projectIds.contains(r.lineId)
         await JournalTicker.markDone(r, wasProject: wasProject, sessionDate: choice.sessionDate,
-                                     aVista: choice.aVista, alFlash: choice.alFlash)
+                                     aVista: choice.aVista, alFlash: choice.alFlash, attempts: choice.attempts)
         model.refreshJournal(schoolId: schoolId)
         if choice.publish {
             JournalTicker.publish(r, wasProject: wasProject, caption: choice.caption, photo: choice.photo)

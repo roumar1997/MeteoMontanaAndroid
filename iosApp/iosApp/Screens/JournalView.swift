@@ -68,7 +68,8 @@ final class JournalViewModel: ObservableObject {
             lineId: nil,
             status: nil,
             aVista: false,
-            alFlash: false
+            alFlash: false,
+            attempts: nil
         )
         _ = try? await createEntry.invoke(req: req)
         await load()
@@ -267,8 +268,9 @@ struct JournalRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.blockName).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
                 // Estilo de ascensión: etiqueta SOLO si lo hay (A VISTA / AL FLASH); se cambia en «Editar ascenso».
-                if entry.aVista || entry.alFlash {
-                    styleTag(entry.aVista ? L("A VISTA") : L("AL FLASH"))
+                let tries = entry.attempts?.intValue
+                if AscentStyleBadge.shows(aVista: entry.aVista, alFlash: entry.alFlash, attempts: tries) {
+                    AscentStyleBadge(aVista: entry.aVista, alFlash: entry.alFlash, attempts: tries)
                 }
                 // Escuela + nº de piedra + sector (resueltos del catálogo en vivo).
                 if !subtitle.isEmpty {
@@ -280,15 +282,6 @@ struct JournalRow: View {
                 }
             }
         }
-    }
-
-    /// Etiqueta pequeña de estilo (A VISTA / AL FLASH) en el color activo; solo se pinta si el estilo está puesto.
-    private func styleTag(_ label: String) -> some View {
-        Text(label).font(Cumbre.mono(9, .bold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 6).padding(.vertical, 2)
-            .background(Cumbre.terra, in: RoundedRectangle(cornerRadius: Cumbre.pillRadius))
-            .overlay(RoundedRectangle(cornerRadius: Cumbre.pillRadius).stroke(Cumbre.terra, lineWidth: 1))
     }
 
     var body: some View {

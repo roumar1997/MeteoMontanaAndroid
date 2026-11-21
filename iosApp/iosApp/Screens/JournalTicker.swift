@@ -34,7 +34,7 @@ enum JournalTicker {
 
     /// Apunta la vía como HECHA. Si era proyecto, primero quita el proyecto (pasa de Proyectos a Vías/Bloques).
     static func markDone(_ ref: JournalLineRef, wasProject: Bool, sessionDate: String? = nil,
-                         aVista: Bool = false, alFlash: Bool = false) async {
+                         aVista: Bool = false, alFlash: Bool = false, attempts: Int? = nil) async {
         if wasProject { await removeProject(ref) }
         JournalDoneStore.shared.add(ref.key)
         try? await container.dequeueJournalDelete(key: ref.key)   // cancela borrado pendiente
@@ -46,7 +46,8 @@ enum JournalTicker {
             discipline: ref.discipline,
             lineId: ref.lineId,             // id estable → enganche del diario por muro
             status: "DONE",
-            aVista: aVista, alFlash: alFlash)
+            // Estilo excluyente: si llegaran los dos, gana a vista.
+            aVista: aVista, alFlash: alFlash && !aVista, attempts: attempts.map { KotlinInt(int: Int32($0)) })
         let ok = (try? await container.createJournalEntry.invoke(req: req)) != nil
         if !ok { try? await container.enqueueJournal(req: req) }   // sin red → cola
     }
@@ -67,7 +68,7 @@ enum JournalTicker {
             blockName: ref.viaName, grade: ref.grade,
             notes: nil, date: today(),
             discipline: ref.discipline, lineId: ref.lineId, status: "PROJECT",
-            aVista: false, alFlash: false)
+            aVista: false, alFlash: false, attempts: nil)
         let ok = (try? await container.createJournalEntry.invoke(req: req)) != nil
         if !ok { try? await container.enqueueJournal(req: req) }
     }

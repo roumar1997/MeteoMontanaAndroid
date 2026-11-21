@@ -770,3 +770,33 @@
 
 /* Rocodromos rondas 2-11c (sincronizado de Android) */
 "w_any" = "Cualquiera";
+
+/* Rocodromos rondas 14-16 (sincronizado de Android) */
+"gym_board_no_gym" = "Sin rocódromo";
+"gym_board_day_reps_one" = "%1$@ repetición";
+"gym_board_day_reps_other" = "%1$@ repeticiones";
+"gym_board_blocks_n_one" = "%1$@ bloque";
+"gym_board_blocks_n_other" = "%1$@ bloques";
+"attempts_title" = "¿En cuántos intentos?";
+"attempts_optional" = "opcional";
+"attempts_flash_chip" = "1 · FLASH";
+"attempts_more" = "5+";
+"attempts_hint" = "Lo verá quien mire tu perfil";
+"flash_badge" = "FLASH";
+"onsight_badge" = "A VISTA";
+"ascent_flash_pill" = "FLASH";
+"ascent_how_title" = "¿Cómo te salió?";
+"ascent_how_attempts" = "intentos";
+"ascent_how_hint" = "A vista y Flash = a la primera. Lo verá quien mire tu perfil";
+"attempts_pill" = "🎯 %1$@ INTENTOS";
+"attempts_n_one" = "%1$@ intento";
+"attempts_n_other" = "%1$@ intentos";
+"gym_board_save" = "Guardar";
+"gym_boards_blocks" = "Bloques · %1$@";
+"gym_board_unnamed" = "Sin nombre";
+"gym_board_angle_tag" = "Ángulo";
+"gym_board_best" = "mejor: %1$@";
+"gym_board_in_attempts" = "en %1$@";
+"gym_board_flash_line" = "⚡ Flash";
+"gym_board_detail_reps_one" = "×%1$@ en %2$@ día";
+"gym_board_detail_reps_other" = "×%1$@ en %2$@ días";
