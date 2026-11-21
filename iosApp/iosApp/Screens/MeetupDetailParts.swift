@@ -287,87 +287,119 @@ struct GearSectionView: View {
 
 // MARK: - Edit gear sheet
 
+/// Hoja «¿Qué llevas tú?» (maqueta 5): una tarjeta por material con interruptor (o contador) y cuántos del grupo lo
+/// llevan. Solo el material que tiene sentido para el lugar (shared: `MeetupGearItem.forPlace`). Espejo de `EditGearDialog`.
 struct EditGearSheet: View {
     let discipline: String?
     let currentGearJson: String?
+    var gym = false
+    var placeName: String?
+    var members: [MeetupMember] = []
+    var myUid: String?
     let onSave: (String) -> Void
     let onCancel: () -> Void
 
-    @State private var gear: [String: Int] = [:]
+    @State private var mine: [String: Int] = [:]
+
+    private var keys: [String] {
+        MeetupGearItem.shared.forPlace(discipline: discipline, gym: gym).map { item in
+            switch item {
+            case "ROPE": return "cuerda"
+            case "GRIGRI": return "grigri"
+            case "QUICKDRAWS": return "cintas"
+            default: return "crashpads"
+            }
+        }
+    }
 
     var body: some View {
-        let items = gearItemsForDiscipline(discipline)
-
-        NavigationView {
-            VStack(spacing: 16) {
-                Text("Indica el material que llevas a la quedada")
-                    .font(.caption).foregroundColor(Cumbre.ink.opacity(0.6))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
-
-                ForEach(items, id: \.key) { item in
-                    if isBooleanGearKey(item.key) {
-                        HStack {
-                            Text(item.label).font(.subheadline).fontWeight(.medium)
-                            Spacer()
-                            Toggle("", isOn: Binding(
-                                get: { (gear[item.key] ?? 0) > 0 },
-                                set: { gear[item.key] = $0 ? 1 : 0 }
-                            )).labelsHidden()
-                        }
-                        .padding(.horizontal)
-                    } else {
-                        HStack {
-                            Text(item.label).font(.subheadline).fontWeight(.medium)
-                            Spacer()
-                            HStack(spacing: 8) {
-                                Button {
-                                    let cur = gear[item.key] ?? 0
-                                    if cur > 0 { gear[item.key] = cur - 1 }
-                                } label: {
-                                    Image(systemName: "minus.circle")
-                                        .font(.title3)
-                                        .foregroundColor(gear[item.key, default: 0] > 0 ? Cumbre.ink : Cumbre.ink.opacity(0.2))
-                                }
-                                .disabled(gear[item.key, default: 0] == 0)
-
-                                Text("\(gear[item.key] ?? 0)")
-                                    .font(.title3).fontWeight(.bold).monospacedDigit()
-                                    .frame(minWidth: 28)
-
-                                Button {
-                                    gear[item.key, default: 0] += 1
-                                } label: {
-                                    Image(systemName: "plus.circle")
-                                        .font(.title3).foregroundColor(Cumbre.terra)
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    if let placeName { Text(placeName.uppercased()).eyebrow(Cumbre.terra).lineLimit(1) }
+                    Text(L("meetup_gear_sheet_title")).font(Cumbre.serif(24, .bold)).foregroundStyle(Cumbre.ink)
                 }
-
                 Spacer()
-            }
-            .padding(.top)
-            .navigationTitle(NSLocalizedString("meetup_detail_my_gear", comment: ""))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancelar") { onCancel() }
+                Button(action: onCancel) {
+                    Image(systemName: "xmark").font(.system(size: 17)).foregroundStyle(Cumbre.ink).frame(width: 40, height: 40)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Guardar") { onSave(buildGearJson(gear)) }
-                        .fontWeight(.bold)
+                .buttonStyle(.plain).accessibilityLabel(L("common_close"))
+            }
+            ScrollView {
+                VStack(spacing: 10) {
+                    if keys.isEmpty {
+                        Text(L("meetup_gear_sheet_none")).font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(.vertical, 16)
+                    }
+                    ForEach(keys, id: \.self) { tile($0) }
+                }
+                .padding(.top, 16)
+            }
+            if !keys.isEmpty {
+                Button { onSave(buildGearJson(mine)) } label: {
+                    Text(L("common_save").uppercased()).font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
+                        .frame(maxWidth: .infinity).padding(.vertical, 15).background(Cumbre.terraFill, in: Capsule())
+                }
+                .buttonStyle(.plain).padding(.top, 16)
+            }
+        }
+        .padding(.horizontal, 16).padding(.top, 20).padding(.bottom, 16)
+        .background(Cumbre.bg.ignoresSafeArea())
+        .presentationDetents([.large])
+        .onAppear {
+            let current = parseGear(currentGearJson)
+            mine = Dictionary(uniqueKeysWithValues: keys.map { ($0, current[$0] ?? 0) })
+        }
+    }
+
+    private func icon(_ key: String) -> String {
+        switch key {
+        case "cuerda": return "link"
+        case "grigri": return "shield"
+        case "cintas": return "ruler"
+        default: return "rectangle.stack"
+        }
+    }
+
+    private func label(_ key: String) -> String {
+        switch key {
+        case "cuerda": return L("gear_rope")
+        case "grigri": return L("gear_grigri")
+        case "cintas": return L("gear_quickdraws")
+        default: return L("gear_crashpad")
+        }
+    }
+
+    private func tile(_ key: String) -> some View {
+        let value = mine[key] ?? 0
+        let on = value > 0
+        let others = members.filter { $0.uid != myUid }
+        let carriers = others.filter { (parseGear($0.gearJson)[key] ?? 0) > 0 }.count + (on ? 1 : 0)
+        let groupSize = max(1, members.count)
+        let sub = carriers == 0 ? L("meetup_gear_sheet_nobody")
+            : (carriers == 1 && on ? L("meetup_gear_sheet_only_you") : L("meetup_gear_sheet_group_of", carriers, groupSize))
+        return HStack(spacing: 12) {
+            Image(systemName: icon(key)).font(.system(size: 22)).foregroundStyle(on ? Cumbre.terraFill : Cumbre.ink2).frame(width: 28)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(label(key)).font(.system(size: 17, weight: .bold)).foregroundStyle(Cumbre.ink)
+                Text(sub).font(.system(size: 12)).foregroundStyle(carriers == 0 ? Cumbre.terraFill : Cumbre.ink2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if isBooleanGearKey(key) {
+                Toggle("", isOn: Binding(get: { on }, set: { mine[key] = $0 ? 1 : 0 })).labelsHidden().tint(Cumbre.terraFill)
+            } else {
+                HStack(spacing: 6) {
+                    StepperButton(symbol: "−", action: value > 0 ? { mine[key] = value - 1 } : nil, primary: false, size: 36)
+                    Text("\(value)").font(Cumbre.serif(20, .bold)).foregroundStyle(Cumbre.ink)
+                    StepperButton(symbol: "+", action: { mine[key] = min(Int(MeetupGearItem.shared.MAX_QTY), value + 1) }, primary: true, size: 36)
                 }
             }
-            .onAppear {
-                let current = parseGear(currentGearJson)
-                let items = gearItemsForDiscipline(discipline)
-                var initial: [String: Int] = [:]
-                for item in items { initial[item.key] = current[item.key] ?? 0 }
-                gear = initial
-            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 12)
+        .background(on ? Cumbre.terraBg : Cumbre.paper, in: RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(on ? Cumbre.terraFill : Cumbre.rule, lineWidth: on ? 2 : 1))
+        .contentShape(RoundedRectangle(cornerRadius: 18))
+        .onTapGesture {
+            if isBooleanGearKey(key) { mine[key] = on ? 0 : 1 } else if !on { mine[key] = 1 }
         }
     }
 }

@@ -14,6 +14,8 @@ struct MeetupsMapPanel: View {
     let userLon: Double?
     let maxDistanceKm: Double?
     let onSchoolSelected: (String) -> Void
+    /// Cambiar (o quitar) el radio desde el chip del mapa.
+    var onRadiusChange: (Double?) -> Void = { _ in }
 
     @State private var show = false
     // Satélite por defecto, paridad con el mapa de Escuelas (Álvaro,
@@ -124,6 +126,30 @@ struct MeetupsMapPanel: View {
         }
     }
 
+    /// Círculo del radio alrededor de tu ubicación (contorno terracota).
+    private var radiusRing: [CumbrePolyline] {
+        guard let lat = userLat, let lon = userLon, let km = maxDistanceKm else { return [] }
+        let dLat = km / 111.32
+        let dLon = km / (111.32 * max(0.01, cos(lat * .pi / 180)))
+        var pts = (0..<64).map { i -> CLLocationCoordinate2D in
+            let a = 2 * Double.pi * Double(i) / 64
+            return CLLocationCoordinate2D(latitude: lat + dLat * sin(a), longitude: lon + dLon * cos(a))
+        }
+        pts.append(pts[0])
+        return [CumbrePolyline(id: "radius", coordinates: pts, color: UIColor(red: 194 / 255, green: 65 / 255, blue: 12 / 255, alpha: 1), width: 3)]
+    }
+
+    /// Chip «Radio 25 km» que abre un menú para cambiarlo (25/50/100/200/500/Cualquiera).
+    private func radiusChip(_ km: Int) -> some View {
+        Menu {
+            ForEach([25, 50, 100, 200, 500], id: \.self) { v in Button("\(v) km") { onRadiusChange(Double(v)) } }
+            Button(L("w_any")) { onRadiusChange(nil) }
+        } label: {
+            Text(L("meetups_radius_chip", km)).font(.system(size: 13, weight: .bold)).foregroundStyle(.white)
+                .padding(.horizontal, 14).padding(.vertical, 8).background(Cumbre.terraFill, in: Capsule())
+        }
+    }
+
     private func mapBox(height: CGFloat, isFullscreen: Bool = false) -> some View {
         ZStack(alignment: .topTrailing) {
             MapLibreView(
@@ -134,12 +160,14 @@ struct MeetupsMapPanel: View {
                 onTapMarker: { id in
                     popup = groups.first(where: { $0.schoolId == id })
                 },
+                polylines: isFullscreen ? [] : radiusRing,
                 // A pantalla completa la brújula baja bajo la isla/notch,
                 // igual que en el mapa de Escuelas (Álvaro, 2026-09-01).
                 compassTopMargin: isFullscreen ? 106 : 56
             )
             .frame(maxWidth: .infinity, maxHeight: isFullscreen ? .infinity : height)
             .id("\(mapDistanceKm ?? -1)|\(disciplineFilter ?? "-")|\(groups.map { $0.schoolId }.sorted().joined())")
+            if !isFullscreen, let km = maxDistanceKm { radiusChip(Int(km)).frame(maxWidth: .infinity).padding(.top, 8) }
             VStack {
                 HStack {
                     Button { fullscreenMap.toggle() } label: {

@@ -340,7 +340,8 @@ struct MeetupsView: View {
                     onSchoolSelected: { schoolId in
                         let name = displayedMeetups.first(where: { $0.schoolId == schoolId })?.schoolName
                         vm.setFilterSchool(id: schoolId, name: name)
-                    }
+                    },
+                    onRadiusChange: { vm.filterMaxDistanceKm = $0 }
                 )
 
                 // ── Filters accordion ──

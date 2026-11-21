@@ -271,7 +271,8 @@ struct MeetupDetailView: View {
             if let m = vm.meetup {
                 EditGearSheet(
                     discipline: m.discipline,
-                    currentGearJson: m.members.first(where: { $0.uid == myUid })?.gearJson
+                    currentGearJson: m.members.first(where: { $0.uid == myUid })?.gearJson,
+                    gym: m.isGymMeetup, placeName: m.placeName ?? m.schoolName, members: Array(m.members), myUid: myUid
                 ) { json in
                     Task { await vm.updateMyGear(id: meetupId, gearJson: json) }
                     showEditGear = false

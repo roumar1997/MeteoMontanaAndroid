@@ -273,7 +273,9 @@ struct GroupChatView: View {
         .sheet(isPresented: $showEditGear) {
             EditGearSheet(
                 discipline: vm.discipline,
-                currentGearJson: vm.myGearJson
+                currentGearJson: vm.myGearJson,
+                gym: vm.meetup?.isGymMeetup ?? false, placeName: vm.meetup?.placeName ?? vm.meetup?.schoolName,
+                members: vm.members, myUid: vm.me
             ) { json in
                 vm.updateMyGear(json)
                 showEditGear = false
