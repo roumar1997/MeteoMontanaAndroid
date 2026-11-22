@@ -1,8 +1,8 @@
 {
   "_ayuda": "Lo lee el panel Estado Cumbre. Estados: pendiente (no hecho), hecho (programado, sin probar), probado (validado por Álvaro), publicado (en la tienda). Claude lo actualiza al terminar cada cosa.",
   "builds": {
-    "ios": "7.3 · build 365 validado por Álvaro (rondas 17-19 todo OK), listo para enviar a revisión",
-    "android": "7.3 (vc130) · AAB firmado y subido a Play (aviso screen.portrait: continuar; arreglar en la siguiente)",
+    "ios": "7.3 (build 365) enviada a revisión de Apple 2026-11-23",
+    "android": "7.3 (vc131, screen.portrait opcional) enviada a revisión de Play 2026-11-23",
     "note": "main 2d791e50 (2026-11-23, «sí, fusiona»): 7.3 rocódromos + boards. Backend prod 68ceb49 (V115–V123). Web privacidad 9760373."
   },
   "steps": [
