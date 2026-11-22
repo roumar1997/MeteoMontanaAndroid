@@ -1,21 +1,21 @@
 {
   "_ayuda": "Lo lee el panel Estado Cumbre. Estados: pendiente (no hecho), hecho (programado, sin probar), probado (validado por Álvaro), publicado (en la tienda). Claude lo actualiza al terminar cada cosa.",
   "builds": {
-    "ios": "7.3 · TestFlight build 365 (producción) en pruebas; tienda: 7.2.2 (build 359)",
-    "android": "7.3 (vc130) · AAB por firmar con firmar-7.3.0-vc130.ps1 y subir a Play",
-    "note": "main 7a53acc5 (2026-11-15, «sí, fusiona»). Backend prod 2789b41 (V100–V102 avisos con autor)."
+    "ios": "7.3 · build 365 validado por Álvaro (rondas 17-19 todo OK), listo para enviar a revisión",
+    "android": "7.3 (vc130) · AAB firmado y subido a Play (aviso screen.portrait: continuar; arreglar en la siguiente)",
+    "note": "main 2d791e50 (2026-11-23, «sí, fusiona»): 7.3 rocódromos + boards. Backend prod 68ceb49 (V115–V123). Web privacidad 9760373."
   },
   "steps": [
     {
-      "name": "Ronda 19 rocódromos: fila «GRADOS» plegable que filtra la lista de cada board y comentarios del feed con el estilo del chat (Android probado en emulador, iOS sin probar)",
+      "name": "Ronda 19 rocódromos: fila «GRADOS» plegable que filtra la lista de cada board y comentarios del feed con el estilo del chat (Android probado en emulador, iOS probado)",
       "done": false
     },
     {
-      "name": "Ronda 18 rocódromos: tarjeta al tocar marcadores en iOS, «Añadir un muro que falta» fuera del mapa, teclado cerrado al guardar boards, «Solo board» → «Boards» (Android probado en emulador, iOS sin probar)",
+      "name": "Ronda 18 rocódromos: tarjeta al tocar marcadores en iOS, «Añadir un muro que falta» fuera del mapa, teclado cerrado al guardar boards, «Solo board» → «Boards» (Android probado en emulador, iOS probado)",
       "done": false
     },
     {
-      "name": "Ronda 17 rocódromos: chips de intentos visibles en iOS y editar/borrar boards apuntados con ⋯ (Android e iOS hechos, sin probar)",
+      "name": "Ronda 17 rocódromos: chips de intentos visibles en iOS y editar/borrar boards apuntados con ⋯ (Android e iOS hechos, probado)",
       "done": false
     },
     {
