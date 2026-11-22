@@ -194,6 +194,8 @@ struct ChatLockedBar<Here: View>: View {
 
 /// Chat vacío: icono en círculo, título y una frase para animar a escribir el primero.
 struct ChatEmptyState: View {
+    var title: String = L("chat_empty_title")
+    var subtitle: String = L("chat_empty_sub")
     var body: some View {
         VStack(spacing: 0) {
             Circle().fill(Cumbre.terraFill.opacity(0.12)).frame(width: 84, height: 84)
