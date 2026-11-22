@@ -1,8 +1,8 @@
 {
   "_ayuda": "Lo lee el panel Estado Cumbre. Estados: pendiente (no hecho), hecho (programado, sin probar), probado (validado por Álvaro), publicado (en la tienda). Claude lo actualiza al terminar cada cosa.",
   "builds": {
-    "ios": "7.2 LISTA PARA DISTRIBUCIÓN (build 358) · 7.2.2 (build 359) en revisión de Apple",
-    "android": "7.2.1 (vc127) · AAB firmado en Desktop/AABs Play, lo sube Álvaro a Play",
+    "ios": "7.3 · TestFlight build 365 (producción) en pruebas; tienda: 7.2.2 (build 359)",
+    "android": "7.3 (vc130) · AAB por firmar con firmar-7.3.0-vc130.ps1 y subir a Play",
     "note": "main 7a53acc5 (2026-11-15, «sí, fusiona»). Backend prod 2789b41 (V100–V102 avisos con autor)."
   },
   "steps": [
