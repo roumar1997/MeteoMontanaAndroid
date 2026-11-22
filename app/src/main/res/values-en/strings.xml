@@ -2385,7 +2385,7 @@
     <string name="public_profile_unfollow_confirm">Unfollow</string>
 
     <!-- Round 12: Solo board, + in Boards, angle filter -->
-    <string name="gym_solo_board_title">Solo board</string>
+    <string name="gym_solo_board_title">Boards</string>
     <string name="gym_solo_board_sub">No gym: your home board or anywhere</string>
     <string name="gym_board_edit_title">Edit · %1$s</string>
     <string name="gym_board_edit_sub">Change anything and tap Save</string>

@@ -745,7 +745,7 @@
 "explore_group_count_other" = "%1$@ vías/bloques";
 
 /* Rocodromos rondas 2-11c (sincronizado de Android) */
-"gym_solo_board_title" = "Solo board";
+"gym_solo_board_title" = "Boards";
 "gym_solo_board_sub" = "Sin rocódromo: tu board de casa o da igual dónde";
 "gym_board_edit_title" = "Editar · %@";
 "gym_board_edit_sub" = "Cambia lo que quieras y pulsa Guardar";

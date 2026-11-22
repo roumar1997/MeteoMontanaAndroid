@@ -126,7 +126,11 @@ struct GymPickerSheet: View {
             .padding(.top, 8)
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
-                    if let onSoloBoard { soloRow { onSoloBoard(date) } }
+                    if let onSoloBoard {
+                        soloRow { onSoloBoard(date) }
+                        // Boards is its own path (opens the log at once): a rule keeps it apart from the gym list.
+                        Divider().overlay(Cumbre.rule).padding(.vertical, 4)
+                    }
                     if !vm.query.trimmingCharacters(in: .whitespaces).isEmpty {
                         ForEach(vm.results) { row($0) }
                     } else {
@@ -173,7 +177,7 @@ struct GymPickerSheet: View {
         }
     }
 
-    /// «Solo board»: boards sin rocódromo (tablero de casa).
+    /// «Boards»: boards sin rocódromo (tablero de casa).
     private func soloRow(_ action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 12) {
@@ -184,6 +188,7 @@ struct GymPickerSheet: View {
                     Text(L("gym_solo_board_sub")).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Cumbre.ink2)
             }
             .padding(12)
             .background(Cumbre.paper, in: RoundedRectangle(cornerRadius: 16))

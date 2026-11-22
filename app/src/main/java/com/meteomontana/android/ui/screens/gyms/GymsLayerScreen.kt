@@ -127,7 +127,7 @@ fun GymsLayerScreen(
             item {
                 GymsMapBox(
                     state, selectedId, { selectedId = it }, mapState, userLat, userLon, locationPermission, onRequestLocation,
-                    onOpenGym, actions, onCenter = { la, lo -> mapCenter = la to lo }, onAddWall = { addWallOpen = true }
+                    onOpenGym, actions, onCenter = { la, lo -> mapCenter = la to lo }
                 )
             }
         }
@@ -198,8 +198,7 @@ private fun GymsMapBox(
     onRequestLocation: () -> Unit,
     onOpenGym: (Long) -> Unit,
     actions: GymsActions,
-    onCenter: (Double, Double) -> Unit,
-    onAddWall: () -> Unit
+    onCenter: (Double, Double) -> Unit
 ) {
     Box(Modifier.fillMaxWidth().height(320.dp)) {
         GymsMap(
@@ -207,10 +206,10 @@ private fun GymsMapBox(
             selectedId = selectedId, onSelect = onSelect, mapState = mapState, onCenterChange = onCenter,
             onRequestLocation = onRequestLocation, locationPermission = locationPermission, modifier = Modifier.fillMaxSize()
         )
+        // Sin la píldora «Añadir un muro que falta» encima: tapaba marcadores (va al final de la lista).
         val selected = state.items.firstOrNull { it.gym.id == selectedId }
-        Column(Modifier.align(Alignment.BottomCenter).padding(horizontal = Spacing.md).padding(bottom = Spacing.sm)) {
-            if (selected == null) AddWallPill(onAddWall)
-            else SelectedGymCard(
+        if (selected != null) Column(Modifier.align(Alignment.BottomCenter).padding(horizontal = Spacing.md).padding(bottom = Spacing.sm)) {
+            SelectedGymCard(
                 selected, selected.gym.id in state.favorites, { onSelect(null) }, onOpenGym, { actions.toggleFavorite(selected.gym.id) }
             )
         }

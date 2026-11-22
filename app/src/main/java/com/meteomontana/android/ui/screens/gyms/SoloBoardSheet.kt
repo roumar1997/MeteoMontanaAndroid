@@ -68,6 +68,8 @@ fun SoloBoardSheet(
         onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = Color.Transparent, shape = CumbreSheetShape
     ) {
+        val hideKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
+        androidx.compose.runtime.DisposableEffect(Unit) { onDispose { hideKeyboard() } }
         Column(Modifier.fillMaxWidth().fillMaxHeight().imePadding().cumbreSheetSurface().padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md)) {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Column(Modifier.weight(1f)) {
@@ -80,7 +82,7 @@ fun SoloBoardSheet(
                 }
                 Text(
                     stringResource(R.string.common_close), color = terraFillColor(), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1,
-                    modifier = Modifier.clip(CircleShape).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable(onClick = onDismiss).padding(horizontal = 16.dp, vertical = 8.dp)
+                    modifier = Modifier.clip(CircleShape).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable { hideKeyboard(); onDismiss() }.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
             Text(stringResource(if (edit != null) R.string.gym_board_edit_sub else R.string.gym_solo_board_sub), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = Spacing.sm))
@@ -102,7 +104,7 @@ fun SoloBoardSheet(
             val canSave = !state.saving && (if (edit != null) editing != null && commit.ready else commit.ready || total > 0 || state.hadAscents)
             Box(
                 Modifier.fillMaxWidth().padding(top = Spacing.sm).clip(CircleShape).background(terraFillColor().copy(alpha = if (canSave) 1f else 0.4f))
-                    .clickable(enabled = canSave) { if (edit != null) commit.action() else { commit.action(); vm.save(GymSession.NO_GYM, onDismiss, date) } }.padding(vertical = 14.dp),
+                    .clickable(enabled = canSave) { hideKeyboard(); if (edit != null) commit.action() else { commit.action(); vm.save(GymSession.NO_GYM, onDismiss, date) } }.padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(

@@ -36,13 +36,15 @@ struct GymsLayerView: View {
             GymSearchField(text: queryBinding)
             if mapOpen {
                 GymsMapView(vm: vm, userLat: userLat, userLon: userLon, needsLocationPermission: needsLocationPermission,
-                            onRequestLocation: onRequestLocation, onOpenGym: onOpenGym, onAddWall: { addWallOpen = true })
+                            onRequestLocation: onRequestLocation, onOpenGym: onOpenGym)
             }
             GymMapToggleBar(open: $mapOpen).padding(.top, 4)
             GymFilterRow(vm: vm, open: $filtersOpen).padding(.top, 8).padding(.bottom, 8)
             if filtersOpen { GymFiltersPanel(vm: vm) { filtersOpen = false } }
             Divider().overlay(Cumbre.rule)
             content
+            // Like Android: always at the end of the list, never over the map (it covered markers).
+            GymDashedPill(text: L("gym_add_missing")) { addWallOpen = true }.padding(16)
         }
         .task(id: "\(userLat ?? 0),\(userLon ?? 0)") { vm.setOrigin(lat: userLat, lon: userLon) }
         .task { vm.ensureLoaded(); await vm.refreshFavorites() }
@@ -71,7 +73,6 @@ struct GymsLayerView: View {
                                onOpen: { onOpenGym(item.gym.id) }, onToggleFavorite: { vm.toggleFavorite(item.gym.id) })
                     Divider().overlay(Cumbre.rule)
                 }
-                GymDashedPill(text: L("gym_add_missing")) { addWallOpen = true }.padding(16)
             }
         }
     }

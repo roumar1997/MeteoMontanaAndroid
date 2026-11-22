@@ -4,7 +4,7 @@ import Shared
 
 /// Mapa de rocódromos (MapLibre): un marcador por ficha o un grupo con su número. La agrupación sale de `shared`
 /// (`GymClusterer`) para que iOS y Android agrupen igual. Tocar un grupo acerca la cámara a sus miembros; tocar un
-/// marcador abre la tarjeta de cristal. Mismo mapa que Escuelas: satélite por defecto, botón de capas y de ubicación.
+/// marcador abre la tarjeta de cristal (sin reconocedor de toque propio: le robaría el toque a los marcadores). Mismo mapa que Escuelas: satélite por defecto, botón de capas y de ubicación.
 /// Bajo cada marcador suelto va su nombre cuando hay zoom y sitio (`GymLabelPlanner` de shared). Espejo de `GymsMap.kt`.
 struct GymsMapView: View {
     @ObservedObject var vm: GymsViewModel
@@ -13,12 +13,10 @@ struct GymsMapView: View {
     let needsLocationPermission: Bool
     let onRequestLocation: () -> Void
     let onOpenGym: (Int64) -> Void
-    let onAddWall: () -> Void
 
     @Environment(\.colorScheme) private var scheme
     @State private var zoom = 5.0
     @State private var selectedId: Int64?
-    @State private var lastMarkerTap = Date.distantPast
     // Encuadre: cuando cambia QUÉ fichas se ven (filtros, capa) la cámara las abarca; no al cambiar solo la selección.
     @State private var fittedIds: [Int64] = []
     @State private var focusToken = 0
@@ -37,7 +35,6 @@ struct GymsMapView: View {
                          onZoomChange: { zoom = $0 },
                          onCameraChange: { center, z in vm.savedCenter = center; vm.savedZoom = z },
                          onTapMarker: tapMarker,
-                         onMapTap: { _ in tapEmpty() },
                          focusCoordinate: focusCoordinate, focusZoom: focusZoom, focusToken: focusToken,
                          focusFitCoordinates: focusFit, compassTopMargin: 56)
             .frame(height: mapHeight)
@@ -116,14 +113,8 @@ struct GymsMapView: View {
     // MARK: - Toques y encuadre
 
     private func tapMarker(_ id: String) {
-        lastMarkerTap = Date()
         guard let item = clusters.first(where: { $0.id == id }) else { return }
         if item.isCluster { zoomInto(item) } else { selectedId = item.gyms[0].id }
-    }
-
-    /// El toque en el mapa vacío cierra la tarjeta; el que acaba de tocar un marcador no cuenta.
-    private func tapEmpty() {
-        if Date().timeIntervalSince(lastMarkerTap) > 0.4 { selectedId = nil }
     }
 
     /// Tocar un grupo acerca la cámara a sus miembros; si están todos en el mismo punto, zoom directo por encima del grupo.
@@ -196,9 +187,6 @@ struct GymsMapView: View {
             GymMapCard(item: selected, isFavorite: vm.favorites.contains(selected.gym.id),
                        onToggleFavorite: { vm.toggleFavorite(selected.gym.id) },
                        onClose: { selectedId = nil }, onOpen: { onOpenGym(selected.gym.id) })
-                .padding(.horizontal, 12).padding(.bottom, 12)
-        } else {
-            GymDashedPill(text: L("gym_add_missing"), translucent: true, action: onAddWall)
                 .padding(.horizontal, 12).padding(.bottom, 12)
         }
     }

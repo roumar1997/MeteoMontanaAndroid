@@ -86,6 +86,8 @@ fun GymTrainSheet(gym: Gym, dateLabel: String, onDismiss: () -> Unit, date: kotl
         containerColor = Color.Transparent,
         shape = CumbreSheetShape
     ) {
+        val hideKeyboard = com.meteomontana.android.ui.components.rememberKeyboardDismisser()
+        androidx.compose.runtime.DisposableEffect(Unit) { onDispose { hideKeyboard() } }
         Column(Modifier.fillMaxWidth().cumbreSheetSurface().padding(horizontal = Spacing.lg).padding(top = Spacing.sm, bottom = Spacing.md)) {
             Text(dateLabel.uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary)
             Text(stringResource(R.string.gym_sheet_title, gym.name), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp,
@@ -116,7 +118,7 @@ fun GymTrainSheet(gym: Gym, dateLabel: String, onDismiss: () -> Unit, date: kotl
             Box(
                 Modifier.fillMaxWidth().padding(top = Spacing.sm).clip(CircleShape)
                     .background(terraFillColor().copy(alpha = if (total > 0 || state.hadAscents) 1f else 0.4f))
-                    .clickable(enabled = !state.saving && (total > 0 || state.hadAscents)) { vm.save(gym.id, onDismiss, date) }.padding(vertical = 14.dp),
+                    .clickable(enabled = !state.saving && (total > 0 || state.hadAscents)) { hideKeyboard(); vm.save(gym.id, onDismiss, date) }.padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(

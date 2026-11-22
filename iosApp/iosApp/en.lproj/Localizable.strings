@@ -2465,7 +2465,7 @@
 "explore_group_count_other" = "%1$@ routes/boulders";
 
 /* Rocodromos rondas 2-11c (sincronizado de Android) */
-"gym_solo_board_title" = "Solo board";
+"gym_solo_board_title" = "Boards";
 "gym_solo_board_sub" = "No gym: your home board or anywhere";
 "gym_board_edit_title" = "Edit · %@";
 "gym_board_edit_sub" = "Change anything and tap Save";

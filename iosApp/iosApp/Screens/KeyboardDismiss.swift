@@ -26,3 +26,8 @@ extension View {
         })
     }
 }
+
+/// Closes the keyboard from code (board sheets: on «Guardar» and when the sheet goes away).
+func hideKeyboard() {
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+}

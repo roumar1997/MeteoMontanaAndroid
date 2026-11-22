@@ -459,3 +459,16 @@ Lógica en `shared` (no reimplementar en Swift): `BoardEntry`, `BoardEditing` (e
 Servidor: sin cambios. `PUT /api/gyms/sessions/{id}/ascents` y `PUT /api/me/board-sessions/{fecha}` ya sustituyen lo hecho del día.
 
 Capturas: `Desktop\rocodromos\capturas-android\ronda17`.
+
+## 27. Ronda 18 (2026-11-22, Android hecho y probado en el emulador; iOS hecho, sin probar en el móvil)
+
+Tres fallos de la TestFlight 364:
+
+**1. Mapa de Rocódromos (iOS): los marcadores no abrían la tarjeta.** Causa: `GymsMapView` pasaba `onMapTap` a `MapLibreView` (para cerrar la tarjeta al tocar el mapa vacío) y eso activa su `UITapGestureRecognizer`, que le roba el toque a la selección de marcadores de MapLibre (lo avisa el propio comentario de `MapLibreView`). Ahora no se pasa: tocar un marcador abre la misma tarjeta que Android (Cómo llegar / Ver ficha / favorito) y se cierra con su «×».
+La píldora discontinua «Añadir un muro que falta» ya no va encima del mapa en ninguna plataforma (tapaba marcadores): sale siempre al final de la lista, también con la lista vacía o cargando, igual en Android (`GymsLayerScreen`) e iOS (`GymsLayerView`).
+
+**2. Teclado abierto tras GUARDAR en la hoja de boards.** Android (`SoloBoardSheet`, `GymTrainSheet`): `rememberKeyboardDismisser()` al pulsar GUARDAR / Cerrar y en el `onDispose` de la hoja. iOS (`SoloBoardSheet`, `GymTrainSheet`): `hideKeyboard()` (nuevo, `KeyboardDismiss.swift`) al pulsar GUARDAR / Cerrar y en `.onDisappear`.
+
+**3. «Solo board» pasa a «Boards»** (ES y EN; clave `gym_solo_board_title`, los identificadores del código no cambian). En el selector «¿Dónde has entrenado?» la fila Boards lleva una flecha (abre el registro directamente) y una raya la separa de Favoritos / Recientes / Cerca.
+
+Capturas: `Desktop\rocodromos\capturas-android\ronda18` (01 mapa sin píldora, 02 tarjeta al tocar un marcador, 03 selector con Boards separado, 04 hoja con teclado, 05 tras GUARDAR sin teclado).

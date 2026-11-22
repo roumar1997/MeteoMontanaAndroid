@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Check
@@ -205,7 +206,11 @@ fun GymPickerSheet(
                 Modifier.weight(1f, fill = false).heightIn(max = 420.dp).verticalScroll(rememberScrollState()).padding(top = Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                onSoloBoard?.let { solo -> SoloBoardRow { solo(date) } }
+                onSoloBoard?.let { solo ->
+                    SoloBoardRow { solo(date) }
+                    // Boards is its own path (opens the log at once): a rule keeps it apart from the gym list.
+                    androidx.compose.material3.HorizontalDivider(Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outline)
+                }
                 if (st.query.isNotBlank()) st.results.forEach { PickRow(it, it.gym.id == chosen?.id) { chosen = it.gym } }
                 else {
                     PickSection(stringResource(R.string.gym_pick_favorites), st.favorites, chosen) { chosen = it }
@@ -246,7 +251,7 @@ fun GymPickerSheet(
     }
 }
 
-/** «Solo board»: boards sin rocódromo (tablero de casa); al tocarla se abre el registro de boards del día elegido. */
+/** «Boards»: boards sin rocódromo (tablero de casa); al tocarla se abre el registro de boards del día elegido. */
 @Composable
 private fun SoloBoardRow(onClick: () -> Unit) {
     val shape = RoundedCornerShape(16.dp)
@@ -259,6 +264,7 @@ private fun SoloBoardRow(onClick: () -> Unit) {
             Text(stringResource(R.string.gym_solo_board_title), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
             Text(stringResource(R.string.gym_solo_board_sub), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

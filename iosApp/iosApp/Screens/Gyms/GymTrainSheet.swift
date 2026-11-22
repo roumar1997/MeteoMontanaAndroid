@@ -150,6 +150,7 @@ struct GymTrainSheet: View {
             .padding(.top, 8)
             let enabled = total > 0 || vm.hadAscents
             Button {
+                hideKeyboard()
                 vm.save(gymId: gym.id, date: date) { onSaved(); dismiss() }
             } label: {
                 Text((total == 0 && vm.hadAscents ? L("gym_sheet_remove_workout")
@@ -166,6 +167,7 @@ struct GymTrainSheet: View {
         .background(Cumbre.bg.ignoresSafeArea())
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+        .onDisappear { hideKeyboard() }
         .onAppear { vm.load(gymId: gym.id, date: date) }
     }
 }

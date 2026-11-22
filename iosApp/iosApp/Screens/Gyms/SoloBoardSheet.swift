@@ -39,7 +39,7 @@ struct SoloBoardSheet: View {
                         .font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                ClosePill { dismiss() }
+                ClosePill { hideKeyboard(); dismiss() }
             }
             Text(L(edit == nil ? "gym_solo_board_sub" : "gym_board_edit_sub")).font(.system(size: 12)).foregroundStyle(Cumbre.ink2).padding(.bottom, 8)
             ScrollView {
@@ -60,6 +60,7 @@ struct SoloBoardSheet: View {
         .background(Cumbre.bg.ignoresSafeArea())
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
+        .onDisappear { hideKeyboard() }
         .onAppear {
             if let edit {
                 vm.loadEdit(edit)
@@ -96,6 +97,7 @@ struct SoloBoardSheet: View {
         let ready = form.grade != nil
         let canSave = !vm.saving && (edit != nil ? vm.editing != nil && ready : ready || total > 0 || vm.hadAscents)
         return Button {
+            hideKeyboard()
             if edit != nil {
                 form.commit(saveEdit, onClear: vm.clearSuggestions)
             } else {
