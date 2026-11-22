@@ -110,3 +110,65 @@ Solo lo que entró desde el build 340.
 • Guía en PDF más compacta: fotos verticales con sus vías al lado y menos páginas en blanco.
 • Los sectores cargan sin parpadeos.
 ```
+
+## Descripción completa (7.3, 2026-11-23)
+
+```
+Cumbre te dice si hoy se puede escalar y dónde, y guarda todo lo que escalas: en roca, en el rocódromo y en el board.
+
+TIEMPO PENSADO PARA ESCALAR
+• Una nota de 0 a 100 por escuela según viento, lluvia, humedad y temperatura.
+• Roca seca o mojada: tiene en cuenta la lluvia que ya ha caído, no solo la prevista.
+• Previsión por horas y por días, y el mejor momento para ir.
+• Radar de lluvia en el mapa y comparador de escuelas.
+
+ESCUELAS, BLOQUES Y VÍAS
+• Guía de cada escuela, sector a sector y piedra a piedra, con foto, líneas y salida de cada vía.
+• Mapa en satélite con sectores, piedras y parkings, y «Cómo llegar».
+• Busca por grado, por nombre o cerca de ti, y filtra por orientación y altura (+1,70 / −1,70).
+• Vídeos de beta por altura y los bloques más repetidos de cada escuela.
+• Descarga la guía en PDF y úsala sin cobertura.
+• Aporta piedras y vías nuevas desde una foto.
+
+ROCÓDROMOS
+• Mapa y lista de rocódromos con horarios, precios y cómo llegar.
+• Pulsa «Aquí» y mira quién está entrenando ahora, con chat del rocódromo.
+• Apunta tu entreno: bloques por color o grado, y tus estadísticas por semana, mes y año.
+• Rocódromos favoritos y tu rocódromo habitual.
+
+BOARDS: KILTER, MOONBOARD Y TENSION
+• Apunta cada bloque con su nombre, grado, inclinación, intentos y repeticiones.
+• Te sugerimos el nombre mientras escribes.
+• Filtra por ángulo y por grado, y mira cuántas veces has repetido cada bloque.
+• Insignias de FLASH y A VISTA para lo que sale a la primera.
+
+TU DIARIO
+• Apunta lo que escalas: hecho, proyecto, estilo, intentos y notas.
+• Filtra por grado y modalidad y revisa tu progreso.
+
+COMUNIDAD
+• Perfiles, seguidores, feed con comentarios y chat entre escaladores.
+• Quedadas: organiza una salida con chat de grupo, nivel y el material que lleva cada uno.
+• Avisos del tiempo de tus escuelas favoritas.
+
+PENSADA PARA LA ROCA
+• Funciona sin cobertura con lo que ya has abierto, y guarda tus entrenos para subirlos después.
+• En español e inglés.
+• Guías «? AYUDA» en cada pantalla, que puedes desactivar.
+
+Hecha por escaladores, para escaladores.
+```
+
+## Novedades 7.3 — Android vc130 / iOS build 365, 2026-11-23
+
+```
+• Rocódromos: mapa y lista con horarios, precios y cómo llegar, favoritos y tu rocódromo habitual.
+• Pulsa «Aquí» en tu rocódromo, mira quién está entrenando y habla en su chat.
+• Apunta tus entrenos de rocódromo y mira tus estadísticas por semana, mes y año.
+• Boards: Kilter, Moonboard y Tension con nombre del bloque, grado, inclinación, intentos y repeticiones. Te sugerimos el nombre mientras escribes.
+• Filtra tus boards por ángulo y por grado, y mira cada bloque día a día. Edita o borra lo que apuntaste con los tres puntitos.
+• Nuevas insignias ⚡ FLASH y 👁 A VISTA, y número de intentos en tus vías y bloques.
+• Comentarios del feed renovados, con el estilo del chat.
+• Quedadas: el material que lleva cada uno.
+• Arreglos y mejoras.
+```
