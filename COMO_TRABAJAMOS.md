@@ -40,6 +40,7 @@ documento**: los demás enlazan aquí, no la copian.
   busca el mismo patrón en el resto de la app. **Todo error arreglado lleva su test.**
 - Todo se adapta a la pantalla: nada de medidas fijas. Hay que probar en la
   pantalla más estrecha.
+- **Lo que se toca sale con sus tests en todas las capas**: si una función nueva usa un endpoint, aunque ya existiera, el backend lleva su test de ese uso.
 - Código y nombres en **inglés**; textos, comentarios y documentos en **español**.
 
 ## 4. Antes de dar algo por bueno
@@ -53,6 +54,8 @@ documento**: los demás enlazan aquí, no la copian.
 3. Si se ve en pantalla, se instala y se mira de verdad.
 4. Se apunta una línea en `HISTORIAL.md`, se actualiza «Estado actual» en
    `CLAUDE.md` y se pone al día `estado-cumbre.json`.
+
+- **Datos de prueba**: en staging se deja el contenido realista (sirve para probar más adelante); lo que sea basura de una prueba (nombres tipo «Prueba18», valores absurdos) se borra al terminar.
 
 ## 5. Pruebas con Álvaro
 
@@ -100,6 +103,8 @@ Elijo el modelo de cada tarea:
 **Tripulación Mugiwara** (cómo nos llamamos): Álvaro es **Luffy** (capitán); Claude es **Zoro** (coordina y revisa). Ayudantes, por oficio: **Sanji** (arquitectura y decisiones difíciles, Opus alto), **Nami** (investigar y planear), **Robin** (leer código, inventarios, auditorías, docs), **Chopper** (arreglar fallos con su test), **Franky** (CI, frenos, Gradle, herramientas), **Usopp** (pruebas: Maestro, capturas), **Brook** (funciones nuevas de pantallas), **Jinbe** (despliegues y publicaciones). Cada ayudante se lanza con su nombre delante («Chopper: …») y así sale en el Taller.
 
 **Opus solo para mí (Zoro) y para Sanji o una revisión final.** Si lanzo un ayudante con Opus, lo digo antes y por qué. Lo normal es que en el Taller Sonnet y Haiku se lleven la mayor parte del gasto (2026-11-13: Álvaro vio un 100 % de Opus por lanzar todos los ayudantes con Opus).
+
+- **Un ayudante, una carpeta**: dos ayudantes nunca trabajan a la vez en el mismo worktree. Cada uno se lanza con `isolation: "worktree"` (o en su propia rama) y yo integro sus cambios al terminar.
 
 El mod «Taller» enseña qué se está usando. El resumen de cada tarea dice qué usé y por qué.
 
