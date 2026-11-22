@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Las actividades fijan portrait: sin esto Play lo da por requerido y
+         oculta la app en dispositivos solo-landscape (tablets, TV, etc.). -->
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
+
     <!-- Necesario para llamar a la API REST -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Ubicación aproximada (para Tab Tiempo) -->
