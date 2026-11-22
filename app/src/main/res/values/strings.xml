@@ -2446,6 +2446,11 @@
     <!-- Ronda 12: Solo board, + en Boards, filtro por inclinación -->
     <string name="gym_solo_board_title">Solo board</string>
     <string name="gym_solo_board_sub">Sin rocódromo: tu board de casa o da igual dónde</string>
+    <string name="gym_board_edit_title">Editar · %1$s</string>
+    <string name="gym_board_edit_sub">Cambia lo que quieras y pulsa Guardar</string>
+    <string name="gym_board_delete">Borrar</string>
+    <string name="gym_board_delete_title">¿Borrar este bloque?</string>
+    <string name="gym_board_delete_body">Se quita de ese día. No se puede deshacer.</string>
     <string name="gym_solo_board_sheet">Boards · %1$s</string>
     <string name="gym_solo_board_save">Guardar boards</string>
     <string name="gym_board_add_cd">Apuntar un %1$s</string>

@@ -193,6 +193,9 @@ struct BoardsSections: View {
     let onOpenGym: (Int64) -> Void
     /// Perfil propio: cada tablero lleva un «+» y salen los 4 aunque estén vacíos.
     var onAdd: ((BoardKind) -> Void)?
+    /// Own profile: edit or delete a logged block (§26).
+    var onEdit: ((BoardEntry) -> Void)?
+    var onDelete: ((BoardEntry) -> Void)?
     @State private var angles: [String: Int] = [:]
 
     var body: some View {
@@ -231,7 +234,7 @@ struct BoardsSections: View {
                     .accessibilityLabel(L("gym_board_toggle_cd"))
                     if open {
                         BoardAngleFilter(kind: kind, list: all, selected: Binding(get: { angles[kind.name] }, set: { angles[kind.name] = $0 }))
-                        BoardNamedSection(kind: kind, summary: summary, angle: angle)
+                        BoardNamedSection(kind: kind, summary: summary, angle: angle, onEdit: onEdit, onDelete: onDelete)
                         ByGradeSection(items: list, colorHex: { _ in nil }, titled: false)
                     }
                 }

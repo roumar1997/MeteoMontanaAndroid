@@ -444,3 +444,18 @@ Checklist iOS:
 
 Síntoma: «La Renenaza» hecha con FLASH, desmarcada y vuelta a marcar con A VISTA enseñaba las DOS insignias. Causa: el servidor guarda dos booleanos (`a_vista`, `al_flash`) y los aceptaba tal cual (POST y PATCH /style); el build de la ronda 15 (hoja con A VISTA y FLASH independientes) los mandaba a la vez, y las filas lo pintaban en cascada (`if aVista` + `if alFlash`). Fix: servidor (develop, V123 limpia filas viejas) fuerza exclusión, gana A VISTA; Android pinta UNA insignia por prioridad (`AscentStyle.fromFlags`) y manda `alFlash && !aVista`.
 Checklist iOS: en las filas de Mis vías/bloques y perfil público, una sola insignia por prioridad (a vista gana; si no, flash; si no, intentos); al crear/editar nunca enviar los dos `true`.
+
+## 26. Ronda 17 (2026-11-22, Android e iOS hechos, sin probar)
+
+**1. Chips de intentos en iOS.** En la 363 el «⚡ 1 · FLASH» se comía la fila (`layoutPriority(2)` + `maxWidth: .infinity`) y 2, 3, 4 y «5+ ▾» quedaban aplastados. Ahora las dos tarjetas («¿En cuántos intentos?» de boards y «¿Cómo te salió?» de escuelas) usan `WeightedRow` (`iosApp/Screens/WeightedRow.swift`), el equivalente de `Modifier.weight` de Compose, con los mismos pesos que Android: FLASH 2.4, 2/3/4 1, «5+ ▾» 1.4 y el texto «intentos» 1.3. Cada chip tiene siempre su parte del ancho, también en pantallas estrechas.
+
+**2. Editar y borrar un board apuntado.** Pantalla Boards del perfil propio → tocar un bloque (con nombre o «Sin nombre») → detalle con una fila por día. Cada fila lleva el «⋯» del diario (`EntryMoreMenu`, el mismo componente que usan ahora Mis vías/bloques) con «Editar ascenso» y «Borrar». Tocar la fila no hace nada.
+- **Editar ascenso**: abre el registro de boards con todo relleno: CUÁNDO (fecha editable, nunca futura; mismo selector que «Editar ascenso»), nombre, inclinación, grado, intentos y repeticiones. El tablero queda fijo. «GUARDAR» guarda.
+- **Borrar**: pide confirmación («¿Borrar este bloque?») y quita ese bloque de ese día.
+- En el perfil ajeno el detalle sigue siendo solo lectura.
+
+Lógica en `shared` (no reimplementar en Swift): `BoardEntry`, `BoardEditing` (entry, withAngle, contains, remove, replace) y `GymTrainingUseCase.boardEntry / editBoardEntry / deleteBoardEntry` (`@Throws`). Se reescribe el día entero con `saveAscents`: primero en el móvil y, sin red, se sube luego como el resto. Cambiar la fecha saca el bloque de su día y lo apunta en el nuevo (mismo rocódromo o «Solo board»). Si un día de rocódromo se queda sin nada, se borra esa sesión (regla de siempre de `saveAscents`). Tests: `BoardEditingTest`, `SoloBoardTest` (editar con cambio de fecha y borrar, sin red).
+
+Servidor: sin cambios. `PUT /api/gyms/sessions/{id}/ascents` y `PUT /api/me/board-sessions/{fecha}` ya sustituyen lo hecho del día.
+
+Capturas: `Desktop\rocodromos\capturas-android\ronda17`.

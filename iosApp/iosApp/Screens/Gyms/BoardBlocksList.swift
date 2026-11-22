@@ -8,6 +8,9 @@ struct BoardNamedSection: View {
     let summary: GymSummary
     var angle: Int?
     @State private var query = ""
+    /// Own profile: the ⋯ of each day in the detail edits or deletes it (§26).
+    var onEdit: ((BoardEntry) -> Void)?
+    var onDelete: ((BoardEntry) -> Void)?
     @State private var detail: NamedProblemPick?
 
     var body: some View {
@@ -29,22 +32,33 @@ struct BoardNamedSection: View {
         } else {
             Text(L("gym_boards_blocks", BoardBlocks.shared.total(rows: found)).uppercased()).eyebrow(Cumbre.ink2).padding(.top, 4)
             ForEach(Array(found.enumerated()), id: \.offset) { _, r in
-                if let p = r.problem {
-                    Button { detail = NamedProblemPick(problem: p) } label: { BoardBlockRowView(row: r) }.buttonStyle(.plain)
+                if r.isNamed || onEdit != nil {
+                    Button { detail = NamedProblemPick(row: r) } label: { BoardBlockRowView(row: r) }.buttonStyle(.plain)
                 } else {
                     BoardBlockRowView(row: r)
                 }
             }
         }
         Color.clear.frame(height: 0)
-            .sheet(item: $detail) { d in NamedProblemSheet(problem: d.problem, summary: summary, angle: angle) }
+            .sheet(item: $detail) { d in
+                NamedProblemSheet(problem: d.row, summary: summary, angle: angle,
+                                  onEditDay: onEdit == nil ? nil : { day in pass(d.row, day, onEdit) },
+                                  onDeleteDay: onDelete == nil ? nil : { day in pass(d.row, day, onDelete) })
+            }
+    }
+
+    /// Closes the detail and hands the day over; one sheet at a time, so it waits for the detail to go.
+    private func pass(_ row: BoardBlockRow, _ day: BoardBlockDay, _ action: ((BoardEntry) -> Void)?) {
+        let entry = BoardEditing.shared.entry(row: row, day: day, angleFilter: angle.map { KotlinInt(int: Int32($0)) })
+        detail = nil
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { action?(entry) }
     }
 }
 
 /// Bloque con nombre elegido para abrir su detalle.
 struct NamedProblemPick: Identifiable {
-    let problem: RepeatedProblem
-    var id: String { problem.board.name + "|" + problem.grade + "|" + problem.name }
+    let row: BoardBlockRow
+    var id: String { row.board.name + "|" + row.grade + "|" + (row.name ?? "") }
 }
 
 /// Una fila: grado, nombre (o «Sin nombre» en gris), «N días · última fecha», ×N y debajo FLASH dorado o «N intentos».
@@ -79,18 +93,21 @@ private struct BoardBlockRowView: View {
 }
 
 /// Detalle de un bloque con nombre: «Cerrar», línea «Kilter · 30° · ×5 en 2 días · ⚡ Flash / mejor: N intentos» y una fila por
-/// día (el más reciente primero) con ×reps, «en N intentos» o FLASH y, pequeño, el rocódromo. Solo lectura. Espejo de `NamedProblemSheet.kt`.
+/// día (el más reciente primero) con ×reps, «en N intentos» o FLASH y, pequeño, el rocódromo. Propio: el ⋯ de cada día lo edita o lo borra. Espejo de `NamedProblemSheet.kt`.
 struct NamedProblemSheet: View {
-    let problem: RepeatedProblem
+    let problem: BoardBlockRow
     let summary: GymSummary
     var angle: Int?
+    /// Own profile: the ⋯ of each day edits it or deletes it (§26).
+    var onEditDay: ((BoardBlockDay) -> Void)?
+    var onDeleteDay: ((BoardBlockDay) -> Void)?
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
                 GymGradeBadge(grade: problem.grade)
-                Text(problem.name).font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink).lineLimit(2)
+                Text(problem.name ?? L("gym_board_unnamed")).font(Cumbre.serif(22, .bold)).foregroundStyle(Cumbre.ink).lineLimit(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 ClosePill { dismiss() }
             }
@@ -116,7 +133,7 @@ struct NamedProblemSheet: View {
             .compactMap { $0 }.joined(separator: " · ")
     }
 
-    private func dayRow(_ d: ProblemDay) -> some View {
+    private func dayRow(_ d: BoardBlockDay) -> some View {
         let gym = d.gymId == GymSession.Companion.shared.NO_GYM ? L("gym_board_no_gym") : summary.byGym.first { $0.gymId == d.gymId }?.name
         return HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 1) {
@@ -131,6 +148,10 @@ struct NamedProblemSheet: View {
                 } else if let n = d.attempts?.intValue {
                     Text(L("gym_board_in_attempts", attemptsText(n))).font(.system(size: 11)).foregroundStyle(Cumbre.ink2).lineLimit(1)
                 }
+            }
+            if onEditDay != nil || onDeleteDay != nil {
+                EntryMoreMenu(onEdit: onEditDay.map { e -> () -> Void in { e(d) } }, onDelete: onDeleteDay.map { del -> () -> Void in { del(d) } },
+                              deleteLabel: L("gym_board_delete"))
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 10).cardChrome(14)

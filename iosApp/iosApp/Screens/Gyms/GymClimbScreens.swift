@@ -297,6 +297,9 @@ struct GymBoardsView: View {
     let uid: String?
     @StateObject private var climb = ProfileClimbModel()
     @State private var addFor: BoardPick?
+    @State private var editFor: BoardEditPick?
+    @State private var deleteFor: BoardEditPick?
+    @StateObject private var boardEdit = GymTrainSheetViewModel()
     @State private var grades = Set<String>()
     @State private var route: ClimbRoute?
 
@@ -317,7 +320,9 @@ struct GymBoardsView: View {
                             }
                         } else {
                             BoardsSections(summary: s, items: items, climb: climb, onOpenGym: { route = .visit($0) },
-                                           onAdd: uid == nil ? { addFor = BoardPick(kind: $0) } : nil)
+                                           onAdd: uid == nil ? { addFor = BoardPick(kind: $0) } : nil,
+                                           onEdit: uid == nil ? { editFor = BoardEditPick(entry: $0) } : nil,
+                                           onDelete: uid == nil ? { deleteFor = BoardEditPick(entry: $0) } : nil)
                         }
                     }
                 }
@@ -329,9 +334,27 @@ struct GymBoardsView: View {
         .sheet(item: $addFor, onDismiss: { Task { await climb.load(uid: uid) } }, content: { k in
             SoloBoardSheet(dateLabel: GymDates.todayLong(), date: GymDates.local(Date()), board: k.kind)
         })
+        .alert(L("gym_board_delete_title"), isPresented: Binding(get: { deleteFor != nil }, set: { if !$0 { deleteFor = nil } })) {
+            Button(L("gym_board_delete"), role: .destructive) {
+                if let p = deleteFor { boardEdit.deleteEntry(p.entry) { Task { await climb.load(uid: uid) } } }
+                deleteFor = nil
+            }
+            Button(L("common_cancel"), role: .cancel) { deleteFor = nil }
+        } message: {
+            Text(L("gym_board_delete_body"))
+        }
+        .sheet(item: $editFor, onDismiss: { Task { await climb.load(uid: uid) } }, content: { p in
+            SoloBoardSheet(dateLabel: GymDates.long(GymDates.date(p.entry.day)), date: p.entry.day, board: p.entry.board, edit: p.entry)
+        })
         .navigationDestination(item: $route) { r in ClimbRouteView(route: r, uid: uid) }
         .task { await climb.load(uid: uid) }
     }
+}
+
+/// Logged block opened to edit or delete (§26).
+struct BoardEditPick: Identifiable {
+    let entry: BoardEntry
+    var id: String { "\(entry.gymId)|\(entry.date)|\(entry.board.name)|\(entry.grade)|\(entry.name ?? "")" }
 }
 
 /// Lo que una persona ha hecho EN un rocódromo: totales, reparto con SU escala y días de entreno.

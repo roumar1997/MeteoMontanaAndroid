@@ -38,7 +38,6 @@ import com.meteomontana.android.domain.model.gym.BoardKind
 import com.meteomontana.android.domain.model.gym.BoardProblems
 import com.meteomontana.android.domain.model.gym.GymSummary
 import com.meteomontana.android.domain.model.gym.BoardProblemRepeats
-import com.meteomontana.android.domain.model.gym.RepeatedProblem
 import com.meteomontana.android.ui.screens.gyms.boardName
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.gradeChipStyle
@@ -51,9 +50,14 @@ import java.util.Locale
 
 /** Buscador + lista de bloques con nombre de UN tablero. Sin texto enseña todos los nombrados; con texto, los que coinciden. */
 @Composable
-internal fun BoardNamedSection(kind: BoardKind, summary: GymSummary, boardItems: List<com.meteomontana.android.domain.model.gym.GymAscent> = emptyList(), angle: Int? = null) {
+internal fun BoardNamedSection(
+    kind: BoardKind, summary: GymSummary, boardItems: List<com.meteomontana.android.domain.model.gym.GymAscent> = emptyList(), angle: Int? = null,
+    /** Own profile: the ⋯ of each day in the detail edits or deletes it (§26). */
+    onEdit: ((com.meteomontana.android.domain.model.gym.BoardEntry) -> Unit)? = null,
+    onDelete: ((com.meteomontana.android.domain.model.gym.BoardEntry) -> Unit)? = null
+) {
     var query by rememberSaveable(kind.name) { mutableStateOf("") }
-    var detail by remember { mutableStateOf<RepeatedProblem?>(null) }
+    var detail by remember { mutableStateOf<BoardBlockRow?>(null) }
     OutlinedTextField(
         value = query, onValueChange = { query = it.take(BoardProblems.MAX_NAME) }, singleLine = true,
         modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp),
@@ -68,9 +72,16 @@ internal fun BoardNamedSection(kind: BoardKind, summary: GymSummary, boardItems:
     }
     Text(stringResource(R.string.gym_boards_blocks, BoardBlocks.total(found)).uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        found.forEach { r -> BlockRow(r, r.problem?.let { p -> { detail = p } }) }
+        found.forEach { r -> BlockRow(r, if (r.isNamed || onEdit != null) { { detail = r } } else null) }
     }
-    detail?.let { d -> NamedProblemSheet(d, summary, angle) { detail = null } }
+    detail?.let { d ->
+        val toEntry = { day: com.meteomontana.android.domain.model.gym.BoardBlockDay -> com.meteomontana.android.domain.model.gym.BoardEditing.entry(d, day, angle) }
+        NamedProblemSheet(
+            d, summary, angle,
+            onEdit?.let { e -> { day -> detail = null; e(toEntry(day)) } },
+            onDelete?.let { del -> { day -> detail = null; del(toEntry(day)) } }
+        ) { detail = null }
+    }
 }
 
 /** Una fila de la lista: grado, nombre (o «Sin nombre» en gris), «N dias · ultima fecha», ×N y debajo FLASH dorado o «N intentos». */

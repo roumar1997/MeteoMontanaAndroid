@@ -2387,6 +2387,11 @@
     <!-- Round 12: Solo board, + in Boards, angle filter -->
     <string name="gym_solo_board_title">Solo board</string>
     <string name="gym_solo_board_sub">No gym: your home board or anywhere</string>
+    <string name="gym_board_edit_title">Edit · %1$s</string>
+    <string name="gym_board_edit_sub">Change anything and tap Save</string>
+    <string name="gym_board_delete">Delete</string>
+    <string name="gym_board_delete_title">Delete this block?</string>
+    <string name="gym_board_delete_body">It is removed from that day. This can\'t be undone.</string>
     <string name="gym_solo_board_sheet">Boards · %1$s</string>
     <string name="gym_solo_board_save">Save boards</string>
     <string name="gym_board_add_cd">Log a %1$s ascent</string>

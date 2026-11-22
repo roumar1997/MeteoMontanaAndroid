@@ -23,6 +23,17 @@ final class BoardForm: ObservableObject {
         angle = BoardAngleStore.memory.initial(board: board)?.intValue
     }
 
+    /// Block being edited: the form starts with its values.
+    func prefill(_ e: BoardEntry) {
+        started = true
+        board = e.board
+        angle = e.angle?.intValue
+        selected = e.gridGrades
+        name = e.name ?? ""
+        reps = min(max(Int(e.reps), 1), Int(BoardProblemRepeats.shared.MAX_REPS))
+        attempts = e.attempts?.intValue
+    }
+
     /// Añade lo del formulario (si hay grado) y lo deja limpio. Devuelve si añadió algo.
     @discardableResult
     func commit(_ addBoard: (BoardKind, String, Int?, String, Int, Int?) -> Void, onClear: () -> Void) -> Bool {

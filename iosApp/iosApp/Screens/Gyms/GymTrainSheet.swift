@@ -26,6 +26,33 @@ final class GymTrainSheetViewModel: ObservableObject {
         hadAscents = !(existing?.ascents.isEmpty ?? true)
     }
 
+    /// Block being edited (§26); nil = normal logging, or the block is not on this phone (the sheet stays disabled).
+    @Published var editing: BoardEntry?
+
+    func loadEdit(_ entry: BoardEntry) {
+        editing = c.gymTraining.boardEntry(entry: entry)
+    }
+
+    /// Saves the edited block on `date` with the new values (local first, queued offline) and closes.
+    func saveEdit(date: Kotlinx_datetimeLocalDate, grade: String, angle: Int?, name: String, reps: Int, attempts: Int?, onDone: @escaping () -> Void) {
+        guard let entry = editing, !saving else { return }
+        saving = true
+        Task {
+            _ = try? await c.gymTraining.editBoardEntry(entry: entry, date: date, grade: grade, angle: angle.map { KotlinInt(int: Int32($0)) },
+                                                        name: name, reps: Int32(reps), attempts: attempts.map { KotlinInt(int: Int32($0)) })
+            saving = false
+            onDone()
+        }
+    }
+
+    /// «Borrar» from the ⋯ menu of a day: takes the block out of that day.
+    func deleteEntry(_ entry: BoardEntry, onDone: @escaping () -> Void) {
+        Task {
+            _ = try? await c.gymTraining.deleteBoardEntry(entry: entry)
+            onDone()
+        }
+    }
+
     func adjust(_ key: String, _ delta: Int) {
         let next = GymTraining.shared.adjust(ascents: ascents, key: key, delta: Int32(delta))
         ascents = next

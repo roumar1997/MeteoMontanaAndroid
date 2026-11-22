@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.domain.model.gym.BoardAngleMemory
 import com.meteomontana.android.domain.model.gym.BoardKind
 import com.meteomontana.android.domain.model.gym.GymSession
+import com.meteomontana.android.domain.model.gym.BoardEntry
 import com.meteomontana.android.domain.model.gym.BoardLog
 import com.meteomontana.android.domain.model.gym.BoardLogging
 import com.meteomontana.android.domain.model.gym.BoardProblem
@@ -31,7 +32,9 @@ data class GymTrainSheetState(val ascents: List<GymAscent> = emptyList(), val bo
     /** Ya había algo apuntado al abrir la hoja: dejarla a cero BORRA el entreno. */
     val hadAscents: Boolean = false,
     /** Sugerencias del nombre del bloque mientras se escribe (lo propio y el catalogo compartido). */
-    val suggestions: List<BoardProblemSuggestion> = emptyList()
+    val suggestions: List<BoardProblemSuggestion> = emptyList(),
+    /** Block being edited (already taken out of [ascents]/[boardProblems]); null = normal logging. */
+    val editing: BoardEntry? = null
 )
 
 /** Hoja «He entrenado aquí hoy»: apunta lo hecho (bloques, vías, boards) y lo guarda junto con la sesión de hoy. */
@@ -54,6 +57,32 @@ class GymTrainSheetViewModel @Inject constructor(
         val existing = training.session(gymId, day)
         suggestJob?.cancel()
         _state.update { GymTrainSheetState(ascents = existing?.ascents ?: emptyList(), boardProblems = existing?.boardProblems ?: emptyList(), hadAscents = existing?.ascents?.isNotEmpty() == true) }
+    }
+
+    /** Opens [entry] to edit it (§26). Not on this phone: [GymTrainSheetState.editing] stays null and the sheet is disabled. */
+    fun loadEdit(entry: BoardEntry) {
+        suggestJob?.cancel()
+        _state.value = GymTrainSheetState(editing = training.boardEntry(entry))
+    }
+
+    /** Saves the edited block on [date] with the new values (local first, queued offline) and closes. */
+    fun saveEdit(date: kotlinx.datetime.LocalDate, grade: String, angle: Int?, name: String, reps: Int, attempts: Int?, onDone: () -> Unit) {
+        val entry = _state.value.editing ?: return
+        if (_state.value.saving) return
+        _state.update { it.copy(saving = true) }
+        viewModelScope.launch {
+            runCatching { training.editBoardEntry(entry, date, grade, angle, name, reps, attempts) }
+            _state.update { it.copy(saving = false, saved = true) }
+            onDone()
+        }
+    }
+
+    /** «Borrar» from the ⋯ menu of a day: takes the block out of that day. */
+    fun deleteEntry(entry: BoardEntry, onDone: () -> Unit) {
+        viewModelScope.launch {
+            runCatching { training.deleteBoardEntry(entry) }
+            onDone()
+        }
     }
 
     fun adjust(key: String, delta: Int) = _state.update {

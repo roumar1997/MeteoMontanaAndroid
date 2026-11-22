@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.ui.unit.sp
 
 
-import androidx.compose.material.icons.filled.MoreHoriz
 
 import androidx.compose.material.icons.outlined.Edit
 import com.meteomontana.android.domain.model.AscentStyle
@@ -305,7 +304,6 @@ internal fun EntryRow(
     // Sin deslizar (Álvaro, 2026-11-13): «Editar» al deslizar no respondía y a veces abría la piedra.
     // Todo va por el «⋯» (Editar ascenso / Borrar del diario), igual que en iOS.
     val canEdit = canDelete || onEdit != null
-    var menuOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
         Row(
             modifier = Modifier.fillMaxWidth()
@@ -382,33 +380,10 @@ internal fun EntryRow(
             }
             if (canEdit) {
                 // «⋯»: todo lo que se puede hacer con la entrada, con nombre y un botón grande.
-                Box {
-                    Box(
-                        Modifier.size(36.dp).clip(androidx.compose.foundation.shape.CircleShape)
-                            .background(com.meteomontana.android.ui.components.cumbrePillBg())
-                            .clickable { menuOpen = true },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Filled.MoreHoriz, contentDescription = stringResource(R.string.journal_more_options),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-                    }
-                    com.meteomontana.android.ui.components.CumbreDropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                        if (onEdit != null) {
-                            androidx.compose.material3.DropdownMenuItem(
-                                text = { Text(stringResource(R.string.journal_edit_ascent)) },
-                                leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null,
-                                    tint = com.meteomontana.android.ui.theme.Terra) },
-                                onClick = { menuOpen = false; showEditSheet = true })
-                        }
-                        if (canDelete) {
-                            androidx.compose.material3.DropdownMenuItem(
-                                text = { Text(stringResource(R.string.journal_delete_from_log), color = MaterialTheme.colorScheme.error) },
-                                leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error) },
-                                onClick = { menuOpen = false; confirmDelete = true })
-                        }
-                    }
-                }
+                com.meteomontana.android.ui.components.EntryMoreMenu(
+                    onEdit = if (onEdit != null) { { showEditSheet = true } } else null,
+                    onDelete = if (canDelete) { { confirmDelete = true } } else null
+                )
             } else if (e.schoolId != null) {
                 // Flecha que indica que la fila es pulsable → abre la piedra.
                 Icon(

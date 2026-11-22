@@ -87,6 +87,23 @@ class SoloBoardTest {
     }
 
     @Test
+    fun `editar un board cambia sus datos y su fecha y borrarlo lo quita, sin red`() = runTest {
+        val store = MemStore()
+        val uc = com.meteomontana.android.domain.usecase.gym.GymTrainingUseCase(repo(store, Server()))
+        repo(store, Server()).saveAscents(GymSession.NO_GYM, today, listOf(moon), listOf(BoardProblem(BoardKind.MOONBOARD, "7a", "Casa")))
+        val e = com.meteomontana.android.domain.model.gym.BoardEntry(GymSession.NO_GYM, today.toString(), BoardKind.MOONBOARD, "7a", "Casa", null, 1, null)
+        val yesterday = LocalDate(2026, 11, 20)
+        assertTrue(uc.editBoardEntry(e, yesterday, "7b", 40, "Casa 2", 2, 1))
+        assertEquals(null, uc.session(GymSession.NO_GYM, today))
+        val moved = uc.session(GymSession.NO_GYM, yesterday)!!
+        assertEquals(listOf(GymAscent("board:moonboard:7b:40", 2)), moved.ascents)
+        assertEquals(listOf("Casa 2", "Casa 2"), moved.boardProblems.map { it.name })
+        assertTrue(uc.deleteBoardEntry(e.copy(date = yesterday.toString(), grade = "7b", name = "Casa 2", reps = 2)))
+        assertEquals(null, uc.session(GymSession.NO_GYM, yesterday))
+        kotlin.test.assertFalse(uc.deleteBoardEntry(e))
+    }
+
+    @Test
     fun `refresh trae los dias solo board del servidor`() = runTest {
         val server = Server().apply { online = true }
         val all = repo(MemStore(), server).refresh()

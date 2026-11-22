@@ -60,6 +60,43 @@ class GymTrainingUseCase(private val repo: GymSessionRepository) {
                            boardProblems: List<com.meteomontana.android.domain.model.gym.BoardProblem>? = null): GymSession =
         repo.saveAscents(gymId, date, ascents, boardProblems)
 
+    /** The logged board block as it is on this phone (angle filled in when the day has only one); null if it is not here. */
+    fun boardEntry(entry: com.meteomontana.android.domain.model.gym.BoardEntry): com.meteomontana.android.domain.model.gym.BoardEntry? {
+        val s = session(entry.gymId, entry.day) ?: return null
+        val full = com.meteomontana.android.domain.model.gym.BoardEditing.withAngle(entry, s)
+        return full.takeIf { com.meteomontana.android.domain.model.gym.BoardEditing.contains(com.meteomontana.android.domain.model.gym.BoardLog(s.ascents, s.boardProblems), it) }
+    }
+
+    /** Deletes a logged board block from its day (§26); local first and queued offline. False if it is not on this phone. */
+    @Throws(Exception::class)
+    suspend fun deleteBoardEntry(entry: com.meteomontana.android.domain.model.gym.BoardEntry): Boolean {
+        val full = boardEntry(entry) ?: return false
+        val s = session(full.gymId, full.day) ?: return false
+        val rest = com.meteomontana.android.domain.model.gym.BoardEditing.remove(com.meteomontana.android.domain.model.gym.BoardLog(s.ascents, s.boardProblems), full)
+        repo.saveAscents(full.gymId, full.day, rest.ascents, rest.problems)
+        return true
+    }
+
+    /**
+     * Edits a logged board block (§26): it leaves its day and is logged again on [date] (the same day or another one, same gym)
+     * with the new grade, angle, name, reps and attempts. False if it is not on this phone.
+     */
+    @Throws(Exception::class)
+    suspend fun editBoardEntry(
+        entry: com.meteomontana.android.domain.model.gym.BoardEntry, date: LocalDate, grade: String, angle: Int?, name: String, reps: Int, attempts: Int?
+    ): Boolean {
+        val full = boardEntry(entry) ?: return false
+        val from = session(full.gymId, full.day) ?: return false
+        val rest = com.meteomontana.android.domain.model.gym.BoardEditing.remove(com.meteomontana.android.domain.model.gym.BoardLog(from.ascents, from.boardProblems), full)
+        val base = if (date == full.day) rest else {
+            repo.saveAscents(full.gymId, full.day, rest.ascents, rest.problems)
+            session(full.gymId, date).let { com.meteomontana.android.domain.model.gym.BoardLog(it?.ascents.orEmpty(), it?.boardProblems.orEmpty()) }
+        }
+        val log = com.meteomontana.android.domain.model.gym.BoardLogging.add(base, full.board, grade, angle, name, reps, attempts)
+        repo.saveAscents(full.gymId, date, log.ascents, log.problems)
+        return true
+    }
+
     @Throws(Exception::class)
     suspend fun ascentStats(uid: String, period: GymTrainingPeriod, date: LocalDate, gymId: Long?): GymAscentStats =
         repo.ascentStats(uid, period, date, gymId)

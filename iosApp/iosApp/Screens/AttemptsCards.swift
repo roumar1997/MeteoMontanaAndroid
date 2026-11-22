@@ -9,15 +9,15 @@ struct AttemptsCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             AttemptsCardTitle(title: L("attempts_title"))
-            HStack(spacing: 8) {
+            WeightedRow(spacing: 8) {
                 AttemptsFlashChip(on: selected == AttemptsBridge.flash, label: L("attempts_flash_chip")) {
                     selected = selected == AttemptsBridge.flash ? nil : AttemptsBridge.flash
                 }
-                .layoutPriority(2)
+                .rowWeight(2.4)
                 ForEach(AttemptsBridge.quick.dropFirst(), id: \.self) { n in
                     AttemptsNumberChip(label: "\(n)", on: selected == n) { selected = selected == n ? nil : n }
                 }
-                AttemptsMoreChip(selected: selected) { selected = $0 }
+                AttemptsMoreChip(selected: selected) { selected = $0 }.rowWeight(1.4)
             }
             Text(L("attempts_hint")).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
         }
@@ -36,21 +36,22 @@ struct AscentStyleCard: View {
         let n: Int? = (value.flash || value.onsight) ? nil : value.attempts?.intValue
         VStack(alignment: .leading, spacing: 10) {
             AttemptsCardTitle(title: L("ascent_how_title"))
-            HStack(spacing: 8) {
+            WeightedRow(spacing: 8) {
                 AttemptsOnsightChip(on: value.onsight) { value = AttemptsStyleLink.shared.setOnsight(current: value, on: !value.onsight) }
                 AttemptsFlashChip(on: value.flash, label: L("ascent_flash_pill")) {
                     value = AttemptsStyleLink.shared.setFlash(current: value, on: !value.flash)
                 }
             }
-            HStack(spacing: 8) {
+            WeightedRow(spacing: 8) {
                 ForEach(AttemptsBridge.quick.dropFirst(), id: \.self) { k in
                     AttemptsNumberChip(label: "\(k)", on: n == k) {
                         value = AttemptsStyleLink.shared.pick(current: value, picked: AttemptsBridge.kotlin(n == k ? nil : k))
                     }
                 }
                 AttemptsMoreChip(selected: n) { value = AttemptsStyleLink.shared.pick(current: value, picked: AttemptsBridge.kotlin($0)) }
+                    .rowWeight(1.4)
                 Text(L("ascent_how_attempts")).font(.system(size: 13)).foregroundStyle(Cumbre.ink2).lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .minimumScaleFactor(0.7).frame(maxWidth: .infinity, alignment: .leading).rowWeight(1.3)
             }
             Text(L("ascent_how_hint")).font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
         }
@@ -151,6 +152,5 @@ struct AttemptsMoreChip: View {
             .overlay(Capsule().stroke(on ? Cumbre.terraFill : Cumbre.rule, lineWidth: 1))
             .contentShape(Capsule())
         }
-        .layoutPriority(1)
     }
 }

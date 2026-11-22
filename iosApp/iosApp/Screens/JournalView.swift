@@ -331,24 +331,7 @@ struct JournalRow: View {
 
     /// «⋯»: todo lo que se puede hacer con la entrada, con nombre y un botón grande.
     private var moreMenu: some View {
-        Menu {
-            if onEdit != nil {
-                Button { showEditSheet = true } label: { Label(L("Editar ascenso"), systemImage: "pencil") }
-            }
-            if onDelete != nil {
-                Button(role: .destructive) { confirmDelete = true } label: {
-                    Label(L("Borrar del diario"), systemImage: "trash")
-                }
-            }
-        } label: {
-            Image(systemName: "ellipsis")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(Cumbre.ink2)
-                .frame(width: 36, height: 36)
-                .background(Cumbre.paper, in: Circle())
-                .contentShape(Circle())
-        }
-        .accessibilityLabel(L("Más opciones"))
+        EntryMoreMenu(onEdit: onEdit == nil ? nil : { showEditSheet = true }, onDelete: onDelete == nil ? nil : { confirmDelete = true })
     }
 }
 

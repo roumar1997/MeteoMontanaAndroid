@@ -90,15 +90,17 @@ internal fun BoardsTab(
     addBoard: (BoardKind, String, Int?, String, Int, Int?) -> Unit, angles: BoardAngleMemory, fixedBoard: BoardKind? = null,
     assist: BoardNameAssist = BoardNameAssist.None, showAdded: Boolean = true,
     /** Si se pasa, no hay boton «Añadir»: el boton Guardar de la hoja añade lo que haya en el formulario (ver [BoardCommit]). */
-    commit: BoardCommit? = null
+    commit: BoardCommit? = null,
+    /** Block being edited: the form starts with its values. */
+    initial: com.meteomontana.android.domain.model.gym.BoardEntry? = null
 ) {
-    var board by remember { mutableStateOf(fixedBoard ?: BoardKind.KILTER) }
-    var angle by remember(board) { mutableStateOf(angles.initial(board)) }
-    var selected by remember { mutableStateOf(listOf<String>()) }
-    var name by remember { mutableStateOf("") }
-    var reps by remember { mutableStateOf(1) }
+    var board by remember(initial) { mutableStateOf(initial?.board ?: fixedBoard ?: BoardKind.KILTER) }
+    var angle by remember(board, initial) { mutableStateOf(if (initial != null && initial.board == board) initial.angle else angles.initial(board)) }
+    var selected by remember(initial) { mutableStateOf(initial?.gridGrades ?: listOf()) }
+    var name by remember(initial) { mutableStateOf(initial?.name.orEmpty()) }
+    var reps by remember(initial) { mutableStateOf(initial?.reps?.coerceIn(1, BoardProblemRepeats.MAX_REPS) ?: 1) }
     // NADA preseleccionado: sin tocar no se apunta ningun intento ni flash.
-    var attempts by remember { mutableStateOf<Int?>(null) }
+    var attempts by remember(initial) { mutableStateOf(initial?.attempts) }
     val boardItems = ascents.filter { GymAscentKeys.parse(it.key) is AscentKey.Board }
     if (showAdded) AddedList(boardItems, adjust, BoardProblems.namesByKey(boardItems, problems))
     if (fixedBoard == null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

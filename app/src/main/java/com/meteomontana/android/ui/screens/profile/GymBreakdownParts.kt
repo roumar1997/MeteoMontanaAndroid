@@ -117,7 +117,10 @@ internal fun PerGymSections(gyms: List<GymSummaryGym>, colorHexFor: (Long, Strin
 internal fun BoardsSections(
     s: GymSummary, items: List<GymAscent>, expanded: Set<String>, onToggle: (BoardKind) -> Unit, onOpenGym: (Long) -> Unit,
     /** Si se pasa (perfil propio), cada tablero lleva un «+» para apuntar un board y salen los 4 aunque esten vacios. */
-    onAdd: ((BoardKind) -> Unit)? = null
+    onAdd: ((BoardKind) -> Unit)? = null,
+    /** Own profile: edit or delete a logged block (§26). */
+    onEdit: ((com.meteomontana.android.domain.model.gym.BoardEntry) -> Unit)? = null,
+    onDelete: ((com.meteomontana.android.domain.model.gym.BoardEntry) -> Unit)? = null
 ) {
     val used = GymBreakdown.boardsByKind(items)
     val groups = if (onAdd == null) used else used + BoardKind.selectable.filter { k -> used.none { it.first == k } }.map { it to emptyList() }
@@ -148,7 +151,7 @@ internal fun BoardsSections(
             }
             if (open) {
                 BoardAngleFilter(kind, all, angle) { angle = it }
-                BoardNamedSection(kind, s, all, angle)
+                BoardNamedSection(kind, s, all, angle, onEdit, onDelete)
                 ByGradeSection(list, { null }, titled = false)
             }
         }

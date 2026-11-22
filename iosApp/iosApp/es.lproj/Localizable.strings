@@ -747,6 +747,11 @@
 /* Rocodromos rondas 2-11c (sincronizado de Android) */
 "gym_solo_board_title" = "Solo board";
 "gym_solo_board_sub" = "Sin rocódromo: tu board de casa o da igual dónde";
+"gym_board_edit_title" = "Editar · %@";
+"gym_board_edit_sub" = "Cambia lo que quieras y pulsa Guardar";
+"gym_board_delete" = "Borrar";
+"gym_board_delete_title" = "¿Borrar este bloque?";
+"gym_board_delete_body" = "Se quita de ese día. No se puede deshacer.";
 "gym_solo_board_sheet" = "Boards · %1$@";
 "gym_solo_board_save" = "Guardar boards";
 "gym_board_add_cd" = "Apuntar un %1$@";

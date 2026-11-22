@@ -58,6 +58,26 @@ fun BoardsScreen(
     val own = uid == null || uid == myUid
     var addFor by remember { mutableStateOf<com.meteomontana.android.domain.model.gym.BoardKind?>(null) }
     val onAddBoard: ((com.meteomontana.android.domain.model.gym.BoardKind) -> Unit)? = if (own) { k -> addFor = k } else null
+    // Own profile: a day of a block's detail opens the same sheet prefilled, with GUARDAR and Borrar (§26).
+    var editFor by remember { mutableStateOf<com.meteomontana.android.domain.model.gym.BoardEntry?>(null) }
+    var deleteFor by remember { mutableStateOf<com.meteomontana.android.domain.model.gym.BoardEntry?>(null) }
+    val boardSheetVm: com.meteomontana.android.ui.screens.gyms.GymTrainSheetViewModel = hiltViewModel()
+    deleteFor?.let { e ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { deleteFor = null },
+            title = { Text(stringResource(R.string.gym_board_delete_title)) },
+            text = { Text(stringResource(R.string.gym_board_delete_body)) },
+            confirmButton = { androidx.compose.material3.TextButton({ deleteFor = null; boardSheetVm.deleteEntry(e) { viewModel.load(uid, myUid) } }) { Text(stringResource(R.string.gym_board_delete), color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { androidx.compose.material3.TextButton({ deleteFor = null }) { Text(stringResource(R.string.common_cancel)) } }
+        )
+    }
+    editFor?.let { e ->
+        val day = remember(e) { kotlinx.datetime.LocalDate.parse(e.date) }
+        val label = remember(e) {
+            java.time.LocalDate.of(day.year, day.monthNumber, day.dayOfMonth).format(java.time.format.DateTimeFormatter.ofPattern("EEEE d MMM", java.util.Locale.getDefault()))
+        }
+        com.meteomontana.android.ui.screens.gyms.SoloBoardSheet(label, day, { editFor = null; viewModel.load(uid, myUid) }, e.board, edit = e, vm = boardSheetVm)
+    }
     addFor?.let { k ->
         val now = remember { java.time.LocalDate.now() }
         com.meteomontana.android.ui.screens.gyms.SoloBoardSheet(
@@ -83,7 +103,7 @@ fun BoardsScreen(
                     { g -> grades = if (g in selected) grades - g else grades + g }, { grades = emptyList() }
                 )
                 if (selected.isNotEmpty()) GradeEntriesList(AscentEntries.entries(s, AscentFilter.BOARDS, selected), onOpenGym)
-                else BoardsSections(s, items, state.expandedBoards, viewModel::toggleBoard, onOpenGym, onAddBoard)
+                else BoardsSections(s, items, state.expandedBoards, viewModel::toggleBoard, onOpenGym, onAddBoard, if (own) { e -> editFor = e } else null, if (own) { e -> deleteFor = e } else null)
                 Box(Modifier.padding(bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current + 16.dp))
             }
         }

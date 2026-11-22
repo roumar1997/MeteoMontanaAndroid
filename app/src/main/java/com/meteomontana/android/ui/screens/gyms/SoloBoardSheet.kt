@@ -22,6 +22,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,10 +52,18 @@ import kotlinx.datetime.LocalDate
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SoloBoardSheet(dateLabel: String, date: LocalDate, onDismiss: () -> Unit, board: BoardKind? = null, vm: GymTrainSheetViewModel = hiltViewModel()) {
+fun SoloBoardSheet(
+    dateLabel: String, date: LocalDate, onDismiss: () -> Unit, board: BoardKind? = null,
+    /** Block opened from the detail sheet to edit or delete (its own day and gym). */
+    edit: com.meteomontana.android.domain.model.gym.BoardEntry? = null,
+    vm: GymTrainSheetViewModel = hiltViewModel()
+) {
     val state by vm.state.collectAsStateWithLifecycle()
-    LaunchedEffect(date) { vm.load(GymSession.NO_GYM, date) }
+    LaunchedEffect(date, edit) { if (edit != null) vm.loadEdit(edit) else vm.load(GymSession.NO_GYM, date) }
     val commit = androidx.compose.runtime.remember { BoardCommit() }
+    val editing = state.editing
+    // Editing: the date can change too (the block moves to that day, same gym).
+    var editDate by androidx.compose.runtime.remember(edit) { androidx.compose.runtime.mutableStateOf(edit?.day ?: date) }
     ModalBottomSheet(
         onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = Color.Transparent, shape = CumbreSheetShape
@@ -64,7 +73,8 @@ fun SoloBoardSheet(dateLabel: String, date: LocalDate, onDismiss: () -> Unit, bo
                 Column(Modifier.weight(1f)) {
                     Text(dateLabel.uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary)
                     Text(
-                        if (board != null) stringResource(R.string.gym_solo_board_sheet, boardName(board)) else stringResource(R.string.gym_solo_board_title),
+                        if (edit != null) stringResource(R.string.gym_board_edit_title, boardName(edit.board))
+                        else if (board != null) stringResource(R.string.gym_solo_board_sheet, boardName(board)) else stringResource(R.string.gym_solo_board_title),
                         fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground
                     )
                 }
@@ -73,17 +83,26 @@ fun SoloBoardSheet(dateLabel: String, date: LocalDate, onDismiss: () -> Unit, bo
                     modifier = Modifier.clip(CircleShape).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable(onClick = onDismiss).padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
-            Text(stringResource(R.string.gym_solo_board_sub), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = Spacing.sm))
+            Text(stringResource(if (edit != null) R.string.gym_board_edit_sub else R.string.gym_solo_board_sub), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = Spacing.sm))
             Column(
                 Modifier.weight(1f).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) { BoardsTab(state.ascents, state.boardProblems, vm::adjust, { b, g, a, n, r, t -> vm.addBoard(b, g, a, n, r, t) }, vm.angles, board, BoardNameAssist(state.suggestions, vm::onNameChanged, vm::clearSuggestions), showAdded = false, commit = commit) }
+            ) {
+                if (editing != null) BoardEditDateRow(editDate) { editDate = it }
+                if (edit == null) BoardsTab(
+                    state.ascents, state.boardProblems, vm::adjust, { b, g, a, n, r, t -> vm.addBoard(b, g, a, n, r, t) }, vm.angles, board,
+                    BoardNameAssist(state.suggestions, vm::onNameChanged, vm::clearSuggestions), showAdded = false, commit = commit
+                ) else if (editing != null) BoardsTab(
+                    emptyList(), emptyList(), vm::adjust, { _, g, a, n, r, t -> vm.saveEdit(editDate, g, a, n, r, t, onDismiss) }, vm.angles, editing.board,
+                    BoardNameAssist(state.suggestions, vm::onNameChanged, vm::clearSuggestions), showAdded = false, commit = commit, initial = editing
+                )
+            }
             val total = state.ascents.sumOf { it.count }
             // Guardar añade lo que haya en el formulario (si hay grado) y lo guarda todo; sin grado y a cero, quita el entreno.
-            val canSave = !state.saving && (commit.ready || total > 0 || state.hadAscents)
+            val canSave = !state.saving && (if (edit != null) editing != null && commit.ready else commit.ready || total > 0 || state.hadAscents)
             Box(
                 Modifier.fillMaxWidth().padding(top = Spacing.sm).clip(CircleShape).background(terraFillColor().copy(alpha = if (canSave) 1f else 0.4f))
-                    .clickable(enabled = canSave) { commit.action(); vm.save(GymSession.NO_GYM, onDismiss, date) }.padding(vertical = 14.dp),
+                    .clickable(enabled = canSave) { if (edit != null) commit.action() else { commit.action(); vm.save(GymSession.NO_GYM, onDismiss, date) } }.padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(

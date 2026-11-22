@@ -31,7 +31,8 @@ import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.gym.Attempts
 import com.meteomontana.android.domain.model.gym.GymSession
 import com.meteomontana.android.domain.model.gym.GymSummary
-import com.meteomontana.android.domain.model.gym.RepeatedProblem
+import com.meteomontana.android.domain.model.gym.BoardBlockDay
+import com.meteomontana.android.domain.model.gym.BoardBlockRow
 import androidx.compose.foundation.clickable
 import com.meteomontana.android.ui.components.CumbreSheetShape
 import com.meteomontana.android.ui.components.FlashBadge
@@ -46,11 +47,15 @@ import com.meteomontana.android.ui.theme.gradeChipStyle
 
 /**
  * Detalle de un bloque con nombre: cada dia en que se hizo (el mas reciente primero) con sus repeticiones y, en pequeno,
- * el rocodromo. No abre el rocodromo: es solo lectura. El dato sale de [RepeatedProblem.days] (shared).
+ * el rocodromo. Sin nombre: los de ese grado. En el perfil propio, el ⋯ de cada dia lo edita o lo borra (§26).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun NamedProblemSheet(p: RepeatedProblem, summary: GymSummary, angle: Int? = null, onDismiss: () -> Unit) {
+internal fun NamedProblemSheet(
+    p: BoardBlockRow, summary: GymSummary, angle: Int? = null,
+    /** Own profile: the ⋯ of each day edits it or deletes it (§26). */
+    onEditDay: ((BoardBlockDay) -> Unit)? = null, onDeleteDay: ((BoardBlockDay) -> Unit)? = null, onDismiss: () -> Unit
+) {
     val st = gradeChipStyle(p.grade.substringBefore('/'))
     ModalBottomSheet(
         onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -62,7 +67,7 @@ internal fun NamedProblemSheet(p: RepeatedProblem, summary: GymSummary, angle: I
                     p.grade.uppercase(), fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, color = if (st.dark) Color(0xFF1B1B1B) else Color.White,
                     modifier = Modifier.clip(RoundedCornerShape(9.dp)).background(st.stroke).padding(horizontal = 10.dp, vertical = 4.dp)
                 )
-                Text(p.name, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
+                Text(p.name ?: stringResource(R.string.gym_board_unnamed), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
                 Text(
                     stringResource(R.string.common_close), color = terraFillColor(), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1,
                     modifier = Modifier.clip(RoundedCornerShape(50)).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50)).clickable(onClick = onDismiss).padding(horizontal = 16.dp, vertical = 8.dp)
@@ -79,7 +84,8 @@ internal fun NamedProblemSheet(p: RepeatedProblem, summary: GymSummary, angle: I
                     val shape = RoundedCornerShape(14.dp)
                     val gym = if (d.gymId == GymSession.NO_GYM) stringResource(R.string.gym_board_no_gym) else summary.byGym.firstOrNull { it.gymId == d.gymId }?.name
                     Row(
-                        Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surface, shape).border(1.dp, MaterialTheme.colorScheme.outline, shape).padding(horizontal = 12.dp, vertical = 10.dp),
+                        Modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surface, shape).border(1.dp, MaterialTheme.colorScheme.outline, shape)
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Column(Modifier.weight(1f)) {
@@ -91,6 +97,10 @@ internal fun NamedProblemSheet(p: RepeatedProblem, summary: GymSummary, angle: I
                             if (Attempts.isFlash(d.attempts)) FlashBadge()
                             else d.attempts?.let { Text(stringResource(R.string.gym_board_in_attempts, attemptsText(it)), fontSize = 11.sp, maxLines = 1, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                         }
+                        if (onEditDay != null || onDeleteDay != null) com.meteomontana.android.ui.components.EntryMoreMenu(
+                            onEditDay?.let { e -> { e(d) } }, onDeleteDay?.let { del -> { del(d) } },
+                            deleteLabel = stringResource(R.string.gym_board_delete)
+                        )
                     }
                 }
             }
