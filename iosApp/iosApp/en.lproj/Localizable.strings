@@ -2525,3 +2525,11 @@
 "gym_board_flash_line" = "⚡ Flash";
 "gym_board_detail_reps_one" = "×%1$@ in %2$@ day";
 "gym_board_detail_reps_other" = "×%1$@ in %2$@ days";
+
+/* §28 Boards: GRADES row + feed comments empty state */
+"gym_board_grades_label" = "Grades";
+"gym_board_grades_top" = "Top";
+"gym_board_grades_hint" = "Tap a grade to filter the list";
+"gym_board_grades_toggle_cd" = "Show or hide the grades";
+"feed_comments_empty_title" = "Be the first to comment";
+"feed_comments_empty_sub" = "No comments yet. Cheer on whoever posted it.";

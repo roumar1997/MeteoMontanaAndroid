@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feed_comments_empty_title">Be the first to comment</string>
+    <string name="feed_comments_empty_sub">No comments yet. Cheer on whoever posted it.</string>
+</resources>

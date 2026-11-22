@@ -127,6 +127,7 @@ internal fun BoardsSections(
     if (groups.isEmpty()) { EmptyCategory(); return }
     groups.forEach { (kind, all) ->
         var angle by androidx.compose.runtime.saveable.rememberSaveable(kind.name, "angle") { androidx.compose.runtime.mutableStateOf<Int?>(null) }
+        var grade by androidx.compose.runtime.saveable.rememberSaveable(kind.name, "grade") { androidx.compose.runtime.mutableStateOf<String?>(null) }
         val list = com.meteomontana.android.domain.model.gym.BoardAngles.filter(all, kind, angle)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 6.dp)) {
             val open = kind.name in expanded
@@ -150,9 +151,9 @@ internal fun BoardsSections(
                 )
             }
             if (open) {
+                BoardGradeRow(kind, list, grade) { grade = it }
                 BoardAngleFilter(kind, all, angle) { angle = it }
-                BoardNamedSection(kind, s, all, angle, onEdit, onDelete)
-                ByGradeSection(list, { null }, titled = false)
+                BoardNamedSection(kind, s, all, angle, onEdit, onDelete, grade)
             }
         }
     }

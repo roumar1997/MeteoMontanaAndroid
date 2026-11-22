@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,13 +24,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -288,10 +287,10 @@ fun FeedPostDetailScreen(
                         val visible = state.comments.filter { "FEED_COMMENT:${it.id}" !in hiddenIds }
                         if (visible.isEmpty()) {
                             item {
-                                Text(
-                                    stringResource(R.string.feed_comments_empty),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(vertical = 12.dp)
+                                com.meteomontana.android.ui.screens.chat.ChatEmptyState(
+                                    Modifier.height(300.dp),
+                                    title = stringResource(R.string.feed_comments_empty_title),
+                                    subtitle = stringResource(R.string.feed_comments_empty_sub)
                                 )
                             }
                         }
@@ -311,7 +310,6 @@ fun FeedPostDetailScreen(
                                     }
                                 }
                             )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                         }
                     }
                     // Banner "Respondiendo a X" con ✕ (vuelve a comentario raíz).
@@ -343,24 +341,13 @@ fun FeedPostDetailScreen(
                     // Autocompletado de @menciones (encima del campo).
                     com.meteomontana.android.ui.components.MentionSuggestions(
                         text = text, onReplace = { text = it })
-                    // Campo de respuesta inline.
-                    Row(
-                        Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = text,
-                            onValueChange = { text = it },
-                            placeholder = { Text(stringResource(R.string.feed_comment_hint)) },
-                            modifier = Modifier.weight(1f),
-                            maxLines = 3,
-                            shape = RoundedCornerShape(2.dp)
-                        )
-                        IconButton(
-                            onClick = {
-                                val t = text.trim()
-                                if (t.isEmpty() || sending) return@IconButton
+                    // Same pill input as the gym chat (§28).
+                    com.meteomontana.android.ui.screens.chat.ChatInputPill(
+                        text = text, onTextChange = { text = it }, enabled = !sending,
+                        placeholder = stringResource(R.string.feed_comment_hint),
+                        onSend = {
+                            val t = text.trim()
+                            if (t.isNotEmpty() && !sending) {
                                 sending = true
                                 scope.launch {
                                     if (viewModel.addComment(t, replyTo?.id)) {
@@ -369,16 +356,9 @@ fun FeedPostDetailScreen(
                                     }
                                     sending = false
                                 }
-                            },
-                            enabled = text.isNotBlank() && !sending
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.Send,
-                                contentDescription = stringResource(R.string.common_send),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
+                            }
                         }
-                    }
+                    )
                 }
             }
         }

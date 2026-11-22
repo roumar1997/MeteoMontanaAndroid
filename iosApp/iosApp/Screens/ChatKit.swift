@@ -198,9 +198,9 @@ struct ChatEmptyState: View {
         VStack(spacing: 0) {
             Circle().fill(Cumbre.terraFill.opacity(0.12)).frame(width: 84, height: 84)
                 .overlay(Image(systemName: "bubble.left").font(.system(size: 34)).foregroundStyle(Cumbre.terraFill))
-            Text(L("chat_empty_title")).font(Cumbre.serif(20, .bold)).foregroundStyle(Cumbre.ink)
+            Text(title).font(Cumbre.serif(20, .bold)).foregroundStyle(Cumbre.ink)
                 .multilineTextAlignment(.center).padding(.top, 16)
-            Text(L("chat_empty_sub")).font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
+            Text(subtitle).font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
                 .multilineTextAlignment(.center).padding(.top, 6)
         }
         .padding(.horizontal, 32)

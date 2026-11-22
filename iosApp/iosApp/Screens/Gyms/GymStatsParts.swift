@@ -197,6 +197,7 @@ struct BoardsSections: View {
     var onEdit: ((BoardEntry) -> Void)?
     var onDelete: ((BoardEntry) -> Void)?
     @State private var angles: [String: Int] = [:]
+    @State private var grades: [String: String] = [:]
 
     var body: some View {
         let groups: [(BoardKind, [GymAscent])] = BoardStyle.all.compactMap { k in
@@ -233,9 +234,9 @@ struct BoardsSections: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel(L("gym_board_toggle_cd"))
                     if open {
+                        BoardGradeRow(items: list, selected: Binding(get: { grades[kind.name] }, set: { grades[kind.name] = $0 }))
                         BoardAngleFilter(kind: kind, list: all, selected: Binding(get: { angles[kind.name] }, set: { angles[kind.name] = $0 }))
-                        BoardNamedSection(kind: kind, summary: summary, angle: angle, onEdit: onEdit, onDelete: onDelete)
-                        ByGradeSection(items: list, colorHex: { _ in nil }, titled: false)
+                        BoardNamedSection(kind: kind, summary: summary, angle: angle, grade: grades[kind.name], onEdit: onEdit, onDelete: onDelete)
                     }
                 }
                 .padding(.top, 6)

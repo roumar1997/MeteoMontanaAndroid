@@ -5,11 +5,9 @@ import com.meteomontana.android.ui.components.SkeletonList
 import com.meteomontana.android.ui.components.SkeletonPersonRow
 import com.meteomontana.android.ui.components.VerifiedCheck
 
-import com.meteomontana.android.ui.components.userRing
 
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -33,7 +31,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.CloudOff
@@ -48,7 +45,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -65,7 +61,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
 import com.meteomontana.android.R
 import com.meteomontana.android.ui.components.cumbreSheetSurface
 import com.meteomontana.android.domain.model.FeedComment
@@ -75,6 +70,7 @@ import com.meteomontana.android.ui.components.TopoLine
 import com.meteomontana.android.ui.components.TopoPhotoCanvas
 import com.meteomontana.android.ui.screens.topo.parseLineStroke
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
+import com.meteomontana.android.ui.screens.chat.chatBubbleSurface
 import kotlinx.coroutines.launch
 
 /**
@@ -151,18 +147,14 @@ internal fun FeedCommentsSheet(
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             when (val list = comments) {
                 null -> SkeletonList(count = 4, dividers = false) { SkeletonPersonRow(avatar = 32.dp) }
-                else -> LazyColumn(
-                    Modifier.fillMaxWidth().weight(1f, fill = false)
+                else -> if (list.isEmpty()) com.meteomontana.android.ui.screens.chat.ChatEmptyState(
+                    Modifier.height(340.dp),
+                    title = stringResource(R.string.feed_comments_empty_title),
+                    subtitle = stringResource(R.string.feed_comments_empty_sub)
+                ) else LazyColumn(
+                    Modifier.fillMaxWidth().weight(1f, fill = false),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp)
                 ) {
-                    if (list.isEmpty()) {
-                        item {
-                            Text(
-                                stringResource(R.string.feed_comments_empty),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(16.dp)
-                            )
-                        }
-                    }
                     items(threadOrder(list.filter { "FEED_COMMENT:${it.id}" !in hiddenIds }), key = { it.id }) { comment ->
                         FeedCommentRow(
                             comment = comment,
@@ -187,7 +179,6 @@ internal fun FeedCommentsSheet(
                                 }
                             }
                         )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                     }
                 }
             }
@@ -221,24 +212,13 @@ internal fun FeedCommentsSheet(
             // Autocompletado de @menciones (encima del campo).
             com.meteomontana.android.ui.components.MentionSuggestions(
                 text = text, onReplace = { text = it })
-            // Campo de texto + enviar.
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    placeholder = { Text(stringResource(R.string.feed_comment_hint)) },
-                    modifier = Modifier.weight(1f),
-                    maxLines = 3,
-                    shape = RoundedCornerShape(2.dp)
-                )
-                IconButton(
-                    onClick = {
-                        val t = text.trim()
-                        if (t.isEmpty() || sending) return@IconButton
+            // Same pill input as the gym chat (§28).
+            com.meteomontana.android.ui.screens.chat.ChatInputPill(
+                text = text, onTextChange = { text = it }, enabled = !sending,
+                placeholder = stringResource(R.string.feed_comment_hint),
+                onSend = {
+                    val t = text.trim()
+                    if (t.isNotEmpty() && !sending) {
                         sending = true
                         scope.launch {
                             addComment(post.id, t, replyTo?.id).onSuccess { created ->
@@ -248,16 +228,9 @@ internal fun FeedCommentsSheet(
                             }
                             sending = false
                         }
-                    },
-                    enabled = text.isNotBlank() && !sending
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Outlined.Send,
-                        contentDescription = stringResource(R.string.common_send),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    }
                 }
-            }
+            )
         }
     }
 
@@ -329,24 +302,18 @@ internal fun FeedCommentRow(
     ) {
         val author = comment.author
         val authorUid = author?.uid ?: comment.uid
-        if (author?.photoUrl != null) {
-            AsyncImage(
-                model = author.photoUrl, contentDescription = null,
-                modifier = Modifier.userRing(authorUid, 28.dp).size(28.dp).clip(CircleShape)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                    .clickable { authorUid?.let(onOpenUser) }
-            )
-        } else {
-            Box(
-                Modifier.size(28.dp).clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { authorUid?.let(onOpenUser) }
-            )
-        }
+        val authorName = author?.displayName ?: author?.username?.let { "@$it" } ?: ""
+        // Same avatar as the chat: real photo or initial, with the user's halo/effects (§28).
+        com.meteomontana.android.ui.screens.chat.ChatSenderAvatarSlot(
+            show = true, photoUrl = author?.photoUrl, name = authorName, uid = authorUid.orEmpty()
+        ) { authorUid?.let(onOpenUser) }
         Column(Modifier.weight(1f)) {
+          Column(
+              Modifier.chatBubbleSurface(isMine = false).padding(horizontal = 12.dp, vertical = 8.dp)
+          ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    author?.displayName ?: author?.username?.let { "@$it" } ?: "",
+                    authorName,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.clickable { authorUid?.let(onOpenUser) }
@@ -366,6 +333,7 @@ internal fun FeedCommentRow(
                 color = MaterialTheme.colorScheme.onBackground,
                 onOpenUser = onOpenUser
             )
+          }
             // Acciones del comentario: like (corazón + contador) y responder.
             Row(
                 verticalAlignment = Alignment.CenterVertically,

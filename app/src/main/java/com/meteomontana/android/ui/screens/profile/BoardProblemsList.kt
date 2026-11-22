@@ -54,7 +54,9 @@ internal fun BoardNamedSection(
     kind: BoardKind, summary: GymSummary, boardItems: List<com.meteomontana.android.domain.model.gym.GymAscent> = emptyList(), angle: Int? = null,
     /** Own profile: the ⋯ of each day in the detail edits or deletes it (§26). */
     onEdit: ((com.meteomontana.android.domain.model.gym.BoardEntry) -> Unit)? = null,
-    onDelete: ((com.meteomontana.android.domain.model.gym.BoardEntry) -> Unit)? = null
+    onDelete: ((com.meteomontana.android.domain.model.gym.BoardEntry) -> Unit)? = null,
+    /** Grade picked in the «GRADOS» row (§28); null = all. */
+    grade: String? = null
 ) {
     var query by rememberSaveable(kind.name) { mutableStateOf("") }
     var detail by remember { mutableStateOf<BoardBlockRow?>(null) }
@@ -65,7 +67,7 @@ internal fun BoardNamedSection(
         leadingIcon = { Icon(Icons.Outlined.Search, null) }
     )
     // UNA sola lista «BLOQUES · N» con los de nombre y los sin nombre, del grado mas alto al mas bajo.
-    val found = BoardBlocks.rows(summary, kind, angle, query)
+    val found = com.meteomontana.android.domain.model.gym.BoardGrades.filter(BoardBlocks.rows(summary, kind, angle, query), grade)
     if (found.isEmpty()) {
         if (query.isNotBlank()) Text(stringResource(R.string.gym_board_search_empty), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 6.dp))
         return

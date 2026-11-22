@@ -7,6 +7,10 @@
   },
   "steps": [
     {
+      "name": "Ronda 19 rocódromos: fila «GRADOS» plegable que filtra la lista de cada board y comentarios del feed con el estilo del chat (Android probado en emulador, iOS sin probar)",
+      "done": false
+    },
+    {
       "name": "Ronda 18 rocódromos: tarjeta al tocar marcadores en iOS, «Añadir un muro que falta» fuera del mapa, teclado cerrado al guardar boards, «Solo board» → «Boards» (Android probado en emulador, iOS sin probar)",
       "done": false
     },

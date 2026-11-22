@@ -7,6 +7,8 @@ struct BoardNamedSection: View {
     let kind: BoardKind
     let summary: GymSummary
     var angle: Int?
+    /// Grade picked in the «GRADOS» row (§28); nil = all.
+    var grade: String?
     @State private var query = ""
     /// Own profile: the ⋯ of each day in the detail edits or deletes it (§26).
     var onEdit: ((BoardEntry) -> Void)?
@@ -24,7 +26,9 @@ struct BoardNamedSection: View {
         }
         .padding(12)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Cumbre.rule, lineWidth: 1))
-        let found = BoardBlocks.shared.rows(summary: summary, board: kind, angle: angle.map { KotlinInt(int: Int32($0)) }, query: query)
+        let found = BoardGrades.shared.filter(
+            rows: BoardBlocks.shared.rows(summary: summary, board: kind, angle: angle.map { KotlinInt(int: Int32($0)) }, query: query), grade: grade
+        )
         if found.isEmpty {
             if !query.trimmingCharacters(in: .whitespaces).isEmpty {
                 Text(L("gym_board_search_empty")).font(.system(size: 13)).foregroundStyle(Cumbre.ink2).padding(.vertical, 6)

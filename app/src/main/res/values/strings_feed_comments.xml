@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feed_comments_empty_title">Sé el primero en comentar</string>
+    <string name="feed_comments_empty_sub">Aún no hay comentarios. Anima a quien lo ha subido.</string>
+</resources>

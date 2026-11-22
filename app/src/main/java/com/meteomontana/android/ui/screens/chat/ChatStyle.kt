@@ -49,17 +49,21 @@ fun Modifier.chatBubbleSurface(isMine: Boolean): Modifier {
 
 /** Chat vacio: icono en circulo, titulo y una frase para animar a escribir el primero. */
 @Composable
-fun ChatEmptyState(modifier: Modifier = Modifier) {
+fun ChatEmptyState(
+    modifier: Modifier = Modifier,
+    title: String = stringResource(R.string.chat_empty_title),
+    subtitle: String = stringResource(R.string.chat_empty_sub)
+) {
     Column(modifier.fillMaxSize().padding(horizontal = 32.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.size(84.dp).clip(CircleShape).background(terraFillColor().copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
             Icon(Icons.Outlined.ChatBubbleOutline, null, tint = terraFillColor(), modifier = Modifier.size(38.dp))
         }
         Text(
-            stringResource(R.string.chat_empty_title), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 20.sp,
+            title, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 20.sp,
             textAlign = TextAlign.Center, modifier = Modifier.padding(top = 16.dp), color = MaterialTheme.colorScheme.onBackground
         )
         Text(
-            stringResource(R.string.chat_empty_sub), fontSize = 14.sp, textAlign = TextAlign.Center,
+            subtitle, fontSize = 14.sp, textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp)
         )
     }

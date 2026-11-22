@@ -472,3 +472,21 @@ La píldora discontinua «Añadir un muro que falta» ya no va encima del mapa e
 **3. «Solo board» pasa a «Boards»** (ES y EN; clave `gym_solo_board_title`, los identificadores del código no cambian). En el selector «¿Dónde has entrenado?» la fila Boards lleva una flecha (abre el registro directamente) y una raya la separa de Favoritos / Recientes / Cerca.
 
 Capturas: `Desktop\rocodromos\capturas-android\ronda18` (01 mapa sin píldora, 02 tarjeta al tocar un marcador, 03 selector con Boards separado, 04 hoja con teclado, 05 tras GUARDAR sin teclado).
+
+## 28. Ronda 19 (2026-11-22, Android hecho y probado en el emulador; iOS hecho, sin probar en el móvil)
+
+Dos maquetas aprobadas (`Desktop\rocodromos\maquetas-7`: `grados.png`, `comentarios.png`).
+
+**1. Fila «GRADOS» en cada tablero de la pantalla Boards.** Desaparece la caja de reparto por grado que iba debajo de la lista de bloques. En su lugar, justo bajo la cabecera del tablero (Kilter / Tension / Moon) y encima de «Ángulo», una fila «GRADOS»:
+- Plegada (por defecto): etiqueta, barra apilada con el color de cada grado proporcional a sus ascensiones, «Top 7B+» (con el color del grado) y chevron.
+- Desplegada (tocar la fila): una fila por grado con píldora + barra + cuenta, y debajo «Toca un grado para filtrar la lista».
+- Tocar un grado filtra la lista «BLOQUES · N» a ese grado (el elegido lleva borde y los demás se atenúan); tocarlo otra vez quita el filtro. Se combina con el filtro de ángulo (la fila cuenta lo del ángulo elegido).
+- Lógica en `shared`: `BoardGrades` (slices, top, maxCount, toggle, isSelected, filter) + `BoardGradesTest`. Android `BoardGradeRow.kt`, iOS `BoardGradeRow.swift`.
+
+**2. Comentarios del feed con el estilo del chat de rocódromo** (la hoja y también el detalle de la publicación, que usa la misma fila):
+- Campo: el mismo `ChatInputPill` del chat (píldora con lápiz y enviar redondo terracota).
+- Cada comentario: avatar del chat (`ChatSenderAvatarSlot`, foto con su aureola/efectos) y, en una burbuja (`chatBubbleSurface`), nombre, tiempo relativo y texto. Debajo siguen el corazón y RESPONDER; borrar y denunciar, igual que antes. Sin rayas entre comentarios.
+- Vacío: el `ChatEmptyState` del chat (círculo con bocadillo) con «Sé el primero en comentar» y «Aún no hay comentarios. Anima a quien lo ha subido.» (`ChatEmptyState` acepta ahora título y subtítulo; por defecto, los del chat).
+- Textos nuevos ES/EN: Android en `strings_board_grades.xml` y `strings_feed_comments.xml`; iOS al final de `Localizable.strings`.
+
+Capturas: `Desktop\rocodromos\capturas-android\ronda19` (01 grados plegado, 02 desplegado, 03 filtrado por 6C, 04 comentarios en el detalle). El vacío no se capturó: en staging no había a mano una publicación sin comentarios.

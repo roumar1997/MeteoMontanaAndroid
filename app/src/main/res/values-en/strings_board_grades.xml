@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gym_board_grades_label">Grades</string>
+    <string name="gym_board_grades_top">Top</string>
+    <string name="gym_board_grades_hint">Tap a grade to filter the list</string>
+    <string name="gym_board_grades_toggle_cd">Show or hide the grades</string>
+</resources>

@@ -805,3 +805,11 @@
 "gym_board_flash_line" = "⚡ Flash";
 "gym_board_detail_reps_one" = "×%1$@ en %2$@ día";
 "gym_board_detail_reps_other" = "×%1$@ en %2$@ días";
+
+/* §28 Boards: GRADOS row + feed comments empty state */
+"gym_board_grades_label" = "Grados";
+"gym_board_grades_top" = "Top";
+"gym_board_grades_hint" = "Toca un grado para filtrar la lista";
+"gym_board_grades_toggle_cd" = "Mostrar u ocultar los grados";
+"feed_comments_empty_title" = "Sé el primero en comentar";
+"feed_comments_empty_sub" = "Aún no hay comentarios. Anima a quien lo ha subido.";

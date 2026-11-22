@@ -124,12 +124,10 @@ struct FeedCommentsSheet: View {
         if let list = comments {
             let visible = list.filter { !moderation.hiddenIds.contains("FEED_COMMENT:\($0.id)") }
             ScrollView {
-                LazyVStack(spacing: 0) {
+                LazyVStack(spacing: 4) {
                     if visible.isEmpty {
-                        Text("Sé el primero en comentar.")
-                            .font(.system(size: 14)).foregroundStyle(Cumbre.ink3)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(16)
+                        ChatEmptyState(title: L("feed_comments_empty_title"), subtitle: L("feed_comments_empty_sub"))
+                            .frame(height: 340)
                     }
                     ForEach(feedThreadOrder(visible), id: \.id) { comment in
                         FeedCommentRow(
@@ -153,7 +151,6 @@ struct FeedCommentsSheet: View {
                                     text = mention + text
                                 }
                             })
-                        Divider().overlay(Cumbre.rule)
                     }
                 }
             }
@@ -179,42 +176,25 @@ struct FeedCommentsSheet: View {
         }
     }
 
+    /// Same pill input as the gym chat (§28).
     private var inputRow: some View {
-        HStack(spacing: 8) {
-            TextField("Escribe un comentario…", text: $text, axis: .vertical)
-                .lineLimit(1...3)
-                .font(.system(size: 14))
-                .foregroundStyle(Cumbre.ink)
-                .focused($commentFocused)
-                .padding(.horizontal, 10).padding(.vertical, 9)
-                .background(Cumbre.paper)
-                .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
-            Button {
-                let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !t.isEmpty, !sending else { return }
-                sending = true
-                // Resignar el foco antes de vaciar (ver nota en FeedPostDetailView):
-                // con axis:.vertical un `text = ""` con el campo enfocado no limpia
-                // lo visible → el mensaje se quedaba y se podía reenviar.
-                commentFocused = false
-                Task {
-                    if let created = await addComment(post.id, t, replyTo?.id) {
-                        comments = (comments ?? []) + [created]
-                        text = ""
-                        replyTo = nil
-                    }
-                    sending = false
+        ChatInputPill(text: $text, enabled: !sending, placeholder: L("Escribe un comentario…"), focused: $commentFocused) {
+            let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !t.isEmpty, !sending else { return }
+            sending = true
+            // Resignar el foco antes de vaciar (ver nota en FeedPostDetailView):
+            // con axis:.vertical un `text = ""` con el campo enfocado no limpia
+            // lo visible → el mensaje se quedaba y se podía reenviar.
+            commentFocused = false
+            Task {
+                if let created = await addComment(post.id, t, replyTo?.id) {
+                    comments = (comments ?? []) + [created]
+                    text = ""
+                    replyTo = nil
                 }
-            } label: {
-                Image(systemName: "paperplane")
-                    .font(.system(size: 17))
-                    .foregroundStyle(Cumbre.terra)
-                    .frame(width: 40, height: 40)
+                sending = false
             }
-            .buttonStyle(.plain)
-            .disabled(text.trimmingCharacters(in: .whitespaces).isEmpty || sending)
         }
-        .padding(.horizontal, 12).padding(.vertical, 10)
     }
 }
 
@@ -233,11 +213,12 @@ struct FeedCommentRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Button { if let u = authorUid { onOpenUser(u) } } label: {
-                AvatarCircle(url: comment.author?.photoUrl, size: 28, uid: comment.author?.uid)
+            // Same avatar as the chat: photo with the user's halo/effects (§28).
+            ChatSenderAvatarSlot(show: true, photoUrl: comment.author?.photoUrl, uid: authorUid ?? "") {
+                if let u = authorUid { onOpenUser(u) }
             }
-            .buttonStyle(.plain)
             VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 8) {
                     Button { if let u = authorUid { onOpenUser(u) } } label: {
                         HStack(spacing: 3) {
@@ -252,6 +233,9 @@ struct FeedCommentRow: View {
                         .font(Cumbre.mono(10)).foregroundStyle(Cumbre.ink3)
                 }
                 MentionText(text: comment.text, onOpenUser: onOpenUser)
+                }
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .chatBubbleSurface(mine: false)
                 // Acciones: like (corazón + contador) y responder.
                 HStack(spacing: 4) {
                     // Zona táctil ≥40pt (padding generoso), como las banderas.
@@ -303,6 +287,6 @@ struct FeedCommentRow: View {
         }
         .padding(.leading, isReply ? 44 : 16)
         .padding(.trailing, 16)
-        .padding(.vertical, 10)
+        .padding(.vertical, 6)
     }
 }
