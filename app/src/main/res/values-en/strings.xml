@@ -111,18 +111,6 @@
     <!-- Traducción exhaustiva 2026-09-17: cierra las 367 claves que existían
          en español pero no en inglés (Álvaro pidió una búsqueda exhaustiva
          tras notar que "no todo cambió" la última vez que se tocó el idioma). -->
-    <string name="add_block_sheet_description">DESCRIPTION (optional)</string>
-    <string name="add_block_sheet_latitude">LATITUDE</string>
-    <string name="add_block_sheet_longitude">LONGITUDE</string>
-    <string name="add_block_sheet_name">NAME</string>
-    <string name="add_block_sheet_name_hint_block">e.g.: The sticker</string>
-    <string name="add_block_sheet_name_hint_parking">e.g.: Main parking</string>
-    <string name="add_block_sheet_name_hint_zone">e.g.: Lower meadow</string>
-    <string name="add_block_sheet_title">Propose on the map</string>
-    <string name="add_block_sheet_type">TYPE</string>
-    <string name="add_block_sheet_type_block">Boulder</string>
-    <string name="add_block_sheet_type_parking">Parking</string>
-    <string name="add_block_sheet_type_zone">Zone</string>
     <string name="add_lines_add_new_route">+ ADD NEW ROUTE</string>
     <string name="add_lines_change_photo">CHANGE PHOTO OF THIS FACE</string>
     <string name="add_lines_description">Edit \"%1$s\": fix or add routes, add more photos, reorder and adjust the wall. An admin will review it (or it publishes directly if you\'re an admin).</string>
@@ -598,10 +586,6 @@
     <string name="radar_screen_debil">WEAK</string>
     <string name="school_list_screen_busca_escuelas_vias_y">Search schools, routes and boulders…</string>
     <string name="school_list_screen_vias_y_bloques">ROUTES AND BOULDERS</string>
-    <string name="school_list_screen_apoyanos">Support us</string>
-    <string name="school_list_screen_te_es_util_la">Does the app help you?</string>
-    <string name="school_list_screen_invitame_a_un_cafe">☕ BUY ME A COFFEE</string>
-    <string name="school_list_screen_cada_cafe_nos_acerca">Every coffee brings us closer to new features. Thank you so much!</string>
     <string name="submit_block_photo_flow_como_quieres_la_foto">How do you want the photo?</string>
     <string name="submit_block_photo_flow_elegir_de_galeria">PICK FROM GALLERY</string>
     <string name="submit_block_photo_flow_en_que_escuela_es">Which school is this boulder at?</string>
@@ -618,8 +602,6 @@
     <string name="share_stats_image_grado_maximo">MAX GRADE</string>
     <string name="share_stats_image_piramide_de_grados">GRADE PYRAMID</string>
     <string name="share_stats_image_ult_12_semanas">LAST 12 WEEKS</string>
-    <string name="block_card_line_one">route</string>
-    <string name="block_card_line_other">routes</string>
     <string name="report_dialog_also_block">Also block %1$s</string>
     <string name="approach_follow_screen_default_name">%1$s: approach</string>
     <string name="school_detail_screen_stale_forecast">FORECAST FROM %1$s</string>
@@ -974,9 +956,6 @@
     <string name="radar_screen_v2_radar">RADAR</string>
     <string name="school_filters_bar_v2_todas">All</string>
     <string name="school_list_screen_v2_error_1_s">Error: %1$s</string>
-    <string name="school_list_screen_v2_climbingteams_es_una_app_gratuita">ClimbingTeams is a free app made with love for the climbing community. If it helps you pick the best day on the rock, consider buying me a coffee to keep improving it.</string>
-    <string name="school_list_screen_v2_mantenida_con_amor_por_la">Kept up with love by the climbing community</string>
-    <string name="school_list_screen_v2_te_ayuda_la_app">Does the app help you?</string>
     <string name="school_list_screen_v2_elige_otra_para_comparar">Pick another to compare</string>
     <string name="school_list_screen_v2_1_s_seleccionada_2_s">%1$s selected%2$s</string>
     <string name="school_list_screen_v2_sin_resultados">No results</string>
@@ -1182,15 +1161,9 @@
     <string name="weekend_alert_screen_v3_mis_escuelas">MY SCHOOLS</string>
     <string name="school_filters_bar_v3_ordenar_por">SORT BY</string>
     <string name="school_filters_bar_v3_tipo_de_roca">ROCK TYPE</string>
-    <string name="school_list_screen_v3_mejor_dia_y_analisis_de">Best day and drying analysis</string>
-    <string name="school_list_screen_v3_prevision_de_7_dias">7-day forecast</string>
-    <string name="school_list_screen_v3_escuelas_cercanas_con_prevision">Nearby schools with forecast</string>
-    <string name="school_list_screen_v3_condiciones_de_escalada_en_tiempo">Real-time climbing conditions</string>
     <string name="school_list_screen_v3_dias_elegido">DAYS · %1$s selected%2$s</string>
     <string name="school_list_screen_v3_dias_elige_hasta_5_para">DAYS · pick up to 5 to compare the range</string>
     <string name="school_list_screen_v3_manten_pulsada_una_escuela_para">Long-press a school to compare it with others (up to 3). You can also tap the days above to see a multi-day range.</string>
-    <string name="school_list_screen_v3_usa_los_filtros_de_abajo">Use the filters below to find schools by distance, rock type or style (boulder/route).</string>
-    <string name="school_list_screen_v3_toca_ver_mapa_para_ver">Tap \"VIEW MAP\" to see all schools on the map, coloured by the day\'s index.</string>
     <string name="schools_map_panel_v3_ver_detalle">VIEW DETAILS ▸</string>
     <string name="my_submissions_screen_v3_mover_ubicacion">Move location</string>
     <string name="my_submissions_screen_v3_piedra_nueva">New boulder</string>

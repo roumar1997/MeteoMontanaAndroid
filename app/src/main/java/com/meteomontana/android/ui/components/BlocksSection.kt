@@ -36,8 +36,6 @@ import com.meteomontana.android.R
 @Composable
 fun BlocksSection(
     blocks: List<Block>,
-    onAddBlock: () -> Unit,
-    onBlockClick: (String) -> Unit = {},
     schoolLat: Double? = null,
     schoolLon: Double? = null,
     schoolName: String = "",
@@ -150,54 +148,3 @@ fun BlocksSection(
     }
 }
 
-@Composable
-private fun BlockCard(b: Block, onClick: () -> Unit) {
-    Column(modifier = Modifier
-        .width(160.dp)
-        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(2.dp))
-        .clickable(onClick = onClick)
-        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(2.dp))
-        .padding(8.dp)
-    ) {
-        // Etiqueta del tipo
-        Box(modifier = Modifier
-            .clip(RoundedCornerShape(2.dp))
-            .background(typeColor(b.type), RoundedCornerShape(2.dp))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-        ) {
-            Text(typeLabel(b.type), color = Color.White,
-                style = MaterialTheme.typography.labelMedium)
-        }
-        if (!b.photoPath.isNullOrBlank()) {
-            // Coil cargará el path (TODO: si es path-de-storage, pedir signed URL)
-            AsyncImage(
-                model = b.photoPath, contentDescription = null,
-                modifier = Modifier.fillMaxWidth().height(100.dp).padding(top = 6.dp)
-            )
-        }
-        Text(b.name,
-            modifier = Modifier.padding(top = 6.dp),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1)
-        if (b.lines.isNotEmpty()) {
-            Text("${b.lines.size} " + if (b.lines.size == 1) stringResource(R.string.block_card_line_one) else stringResource(R.string.block_card_line_other),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-private fun typeLabel(type: String) = when (type) {
-    "BLOCK"   -> AppText.get(R.string.w_boulder_caps)
-    "PARKING" -> "PARKING"
-    "ZONE"    -> AppText.get(R.string.w_zone_caps)
-    else      -> type
-}
-
-private fun typeColor(type: String) = when (type) {
-    "BLOCK"   -> Color(0xFFC2410C)   // terra
-    "PARKING" -> Color(0xFF5E6B4F)   // moss
-    "ZONE"    -> Color(0xFFB45309)   // warn
-    else      -> Color(0xFF5A574F)
-}

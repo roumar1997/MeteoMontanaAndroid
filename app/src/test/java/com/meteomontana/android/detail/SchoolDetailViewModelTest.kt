@@ -2,7 +2,6 @@ package com.meteomontana.android.detail
 
 import androidx.lifecycle.SavedStateHandle
 import com.meteomontana.android.data.api.dto.ContributionRequest
-import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.domain.model.FavoriteSchool
 import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.Contribution
@@ -12,7 +11,6 @@ import com.meteomontana.android.domain.port.FileReader
 import com.meteomontana.android.domain.port.PhotoUploader
 import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
-import com.meteomontana.android.domain.usecase.blocks.CreateBlockUseCase
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.contributions.SubmitContributionUseCase
 import com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase
@@ -61,7 +59,6 @@ class SchoolDetailViewModelTest {
     private lateinit var addFavorite: AddFavoriteUseCase
     private lateinit var removeFavorite: RemoveFavoriteUseCase
     private lateinit var getBlocks: GetBlocksUseCase
-    private lateinit var createBlock: CreateBlockUseCase
     private lateinit var submitContribution: SubmitContributionUseCase
     private lateinit var photoUploader: PhotoUploader
     private lateinit var fileReader: FileReader
@@ -100,7 +97,6 @@ class SchoolDetailViewModelTest {
         addFavorite = mockk()
         removeFavorite = mockk()
         getBlocks = mockk()
-        createBlock = mockk()
         submitContribution = mockk()
         photoUploader = mockk()
         fileReader = mockk()
@@ -159,8 +155,8 @@ class SchoolDetailViewModelTest {
         )
         return SchoolDetailViewModel(
             savedState(), loader, journal, contributions, tickFeed,
-            getNotes, createNote, addFavorite, removeFavorite, getBlocks,
-            createBlock, photoUploader, fileReader,
+            getNotes, createNote, addFavorite, removeFavorite,
+            photoUploader, fileReader,
             monthlyStatsRepo, savedSchoolRepo, offlineTiles,
             mockk(relaxed = true),  // cacheFotos — fotos de la escuela guardada
             outboxRepo,
@@ -310,30 +306,6 @@ class SchoolDetailViewModelTest {
         assertEquals("BOULDER", captured.captured.type)
     }
 
-    @Test fun `addBlock crea bloque y refresca blocks en el estado`() = runTest {
-        val req = CreateBlockRequest(
-            type = "PARKING", name = "Parking", lat = 40.0, lon = -3.0,
-            photoPath = null, description = null, lines = emptyList()
-        )
-        val createdBlock = Block(
-            id = "b1", schoolId = schoolId, type = "PARKING", name = "Parking",
-            lat = 40.0, lon = -3.0, photoPath = null, description = null,
-            createdByUid = "u1", createdAt = "2026-06-06", lines = emptyList()
-        )
-        coEvery { createBlock(schoolId, req) } returns createdBlock
-        coEvery { getBlocks(schoolId) } returnsMany listOf(emptyList(), listOf(createdBlock))
-
-        val vm = newVm()
-        advanceUntilIdle()
-
-        vm.addBlock(req)
-        advanceUntilIdle()
-
-        coVerify { createBlock(schoolId, req) }
-        val blocks = (vm.uiState.value as SchoolDetailUiState.Success).blocks
-        assertEquals(1, blocks.size)
-        assertEquals("b1", blocks.first().id)
-    }
 
 
     private fun dummyContribution() = Contribution(

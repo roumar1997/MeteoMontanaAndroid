@@ -468,18 +468,6 @@
     <string name="add_lines_grade_placeholder">Grado</string>
 
     <!-- Add block to school sheet -->
-    <string name="add_block_sheet_title">Proponer en el mapa</string>
-    <string name="add_block_sheet_type">TIPO</string>
-    <string name="add_block_sheet_type_block">Piedra</string>
-    <string name="add_block_sheet_type_parking">Parking</string>
-    <string name="add_block_sheet_type_zone">Zona</string>
-    <string name="add_block_sheet_name">NOMBRE</string>
-    <string name="add_block_sheet_name_hint_block">ej: La pegatina</string>
-    <string name="add_block_sheet_name_hint_parking">ej: Parking principal</string>
-    <string name="add_block_sheet_name_hint_zone">ej: Pradera inferior</string>
-    <string name="add_block_sheet_latitude">LATITUD</string>
-    <string name="add_block_sheet_longitude">LONGITUD</string>
-    <string name="add_block_sheet_description">DESCRIPCIÓN (opcional)</string>
 
     <!-- Journal schools list -->
     <string name="journal_schools_empty">Sin escuelas todavía</string>
@@ -657,10 +645,6 @@
     <string name="radar_screen_debil">DÉBIL</string>
     <string name="school_list_screen_busca_escuelas_vias_y">Busca escuelas, vías y bloques…</string>
     <string name="school_list_screen_vias_y_bloques">VÍAS Y BLOQUES</string>
-    <string name="school_list_screen_apoyanos">Apóyanos</string>
-    <string name="school_list_screen_te_es_util_la">¿Te es útil la app?</string>
-    <string name="school_list_screen_invitame_a_un_cafe">☕ INVÍTAME A UN CAFÉ</string>
-    <string name="school_list_screen_cada_cafe_nos_acerca">Cada café nos acerca a nuevas funciones. ¡Gracias de corazón!</string>
     <string name="submit_block_photo_flow_como_quieres_la_foto">¿Cómo quieres la foto?</string>
     <string name="submit_block_photo_flow_elegir_de_galeria">ELEGIR DE GALERÍA</string>
     <string name="submit_block_photo_flow_en_que_escuela_es">¿En qué escuela es esta piedra?</string>
@@ -677,8 +661,6 @@
     <string name="share_stats_image_grado_maximo">GRADO MÁXIMO</string>
     <string name="share_stats_image_piramide_de_grados">PIRÁMIDE DE GRADOS</string>
     <string name="share_stats_image_ult_12_semanas">ÚLT. 12 SEMANAS</string>
-    <string name="block_card_line_one">vía</string>
-    <string name="block_card_line_other">vías</string>
     <string name="report_dialog_also_block">También bloquear a %1$s</string>
     <string name="approach_follow_screen_default_name">%1$s: aproximación</string>
     <string name="school_detail_screen_stale_forecast">PREVISIÓN DE %1$s</string>
@@ -1033,9 +1015,6 @@
     <string name="radar_screen_v2_radar">RADAR</string>
     <string name="school_filters_bar_v2_todas">Todas</string>
     <string name="school_list_screen_v2_error_1_s">Error: %1$s</string>
-    <string name="school_list_screen_v2_climbingteams_es_una_app_gratuita">ClimbingTeams es una app gratuita hecha con amor para la comunidad escaladora. Si te ayuda a elegir el mejor día en la roca, considera invitarme a un café para seguir mejorándola.</string>
-    <string name="school_list_screen_v2_mantenida_con_amor_por_la">Mantenida con amor por la comunidad escaladora</string>
-    <string name="school_list_screen_v2_te_ayuda_la_app">¿Te ayuda la app?</string>
     <string name="school_list_screen_v2_elige_otra_para_comparar">Elige otra para comparar</string>
     <string name="school_list_screen_v2_1_s_seleccionada_2_s">%1$s seleccionada%2$s</string>
     <string name="school_list_screen_v2_sin_resultados">Sin resultados</string>
@@ -1241,15 +1220,9 @@
     <string name="weekend_alert_screen_v3_mis_escuelas">MIS ESCUELAS</string>
     <string name="school_filters_bar_v3_ordenar_por">ORDENAR POR</string>
     <string name="school_filters_bar_v3_tipo_de_roca">TIPO DE ROCA</string>
-    <string name="school_list_screen_v3_mejor_dia_y_analisis_de">Mejor día y análisis de secado</string>
-    <string name="school_list_screen_v3_prevision_de_7_dias">Previsión de 7 días</string>
-    <string name="school_list_screen_v3_escuelas_cercanas_con_prevision">Escuelas cercanas con previsión</string>
-    <string name="school_list_screen_v3_condiciones_de_escalada_en_tiempo">Condiciones de escalada en tiempo real</string>
     <string name="school_list_screen_v3_dias_elegido">DÍAS · %1$s elegido%2$s</string>
     <string name="school_list_screen_v3_dias_elige_hasta_5_para">DÍAS · elige hasta 5 para comparar el tramo</string>
     <string name="school_list_screen_v3_manten_pulsada_una_escuela_para">Mantén pulsada una escuela para compararla con otras (hasta 3). También puedes tocar los días de arriba para ver un tramo de varios días.</string>
-    <string name="school_list_screen_v3_usa_los_filtros_de_abajo">Usa los filtros de abajo para encontrar escuelas por distancia, tipo de roca o estilo (bloque/vía).</string>
-    <string name="school_list_screen_v3_toca_ver_mapa_para_ver">Toca \"VER MAPA\" para ver todas las escuelas en el mapa, coloreadas por su índice del día.</string>
     <string name="schools_map_panel_v3_ver_detalle">VER DETALLE ▸</string>
     <string name="my_submissions_screen_v3_mover_ubicacion">Mover ubicación</string>
     <string name="my_submissions_screen_v3_piedra_nueva">Piedra nueva</string>

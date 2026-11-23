@@ -74,7 +74,6 @@ fun SchoolDetailScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val success = state as? SchoolDetailUiState.Success
-    var addBlockOpen by remember { mutableStateOf(false) }
     var processionaryOpen by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
     // Deslizar hacia abajo para pedir otra vez quién hay en "Estoy aquí" —
@@ -196,7 +195,6 @@ fun SchoolDetailScreen(
                             notes = s.notes,
                             blocks = s.blocks,
                             onPublishNote = viewModel::publishNote,
-                            onAddBlock = { addBlockOpen = true },
                             onBlockClick = onOpenBlock,
                             viewModel = viewModel,
                             onMyProposals = onMyProposals,
@@ -211,17 +209,6 @@ fun SchoolDetailScreen(
     }
     }   // GuideHost
 
-    if (addBlockOpen && success != null) {
-        AddBlockToSchoolSheet(
-            schoolLat = success.school.lat,
-            schoolLon = success.school.lon,
-            onDismiss = { addBlockOpen = false },
-            onSave = { req ->
-                viewModel.addBlock(req)
-                addBlockOpen = false
-            }
-        )
-    }
 
     if (processionaryOpen && success != null) {
         com.meteomontana.android.ui.components.ProcessionaryInfoSheet(
@@ -245,7 +232,6 @@ internal fun Content(
     notes: List<Note>,
     blocks: List<Block>,
     onPublishNote: (String, com.meteomontana.android.domain.model.FileRef?) -> Unit,
-    onAddBlock: () -> Unit,
     onBlockClick: (String) -> Unit,
     viewModel: SchoolDetailViewModel,
     onMyProposals: () -> Unit,
@@ -399,7 +385,7 @@ internal fun Content(
             Column {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline, thickness = 1.dp)
                 BlocksSection(
-                    blocks = blocksState.value, onAddBlock = onAddBlock, onBlockClick = onBlockClick,
+                    blocks = blocksState.value,
                     schoolLat = school.lat, schoolLon = school.lon,
                     schoolName = school.name, schoolStyle = school.style, schoolId = school.id,
                     viewModel = viewModel, onMyProposals = onMyProposals,

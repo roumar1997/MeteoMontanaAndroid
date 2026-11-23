@@ -4,7 +4,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.meteomontana.android.data.api.dto.ContributionRequest
-import com.meteomontana.android.data.api.dto.CreateBlockRequest
 import com.meteomontana.android.data.stats.MonthlyStats
 import com.meteomontana.android.data.stats.MonthlyStatsRepository
 import com.meteomontana.android.data.saved.SavedSchoolRepository
@@ -17,8 +16,6 @@ import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
 import com.meteomontana.android.domain.journal.journalViaKey
-import com.meteomontana.android.domain.usecase.blocks.CreateBlockUseCase
-import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
 import com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase
 import com.meteomontana.android.domain.usecase.favorites.RemoveFavoriteUseCase
 import com.meteomontana.android.domain.usecase.notes.CreateNoteUseCase
@@ -53,8 +50,6 @@ class SchoolDetailViewModel @Inject constructor(
     private val createNote: CreateNoteUseCase,
     private val addFavorite: AddFavoriteUseCase,
     private val removeFavorite: RemoveFavoriteUseCase,
-    private val getBlocks: GetBlocksUseCase,
-    private val createBlock: CreateBlockUseCase,
     private val photoUploader: PhotoUploader,
     private val fileReader: FileReader,
     private val monthlyStatsRepo: MonthlyStatsRepository,
@@ -476,16 +471,6 @@ class SchoolDetailViewModel @Inject constructor(
         schoolId, targetBlockId, targetLineId, targetLat, targetLon, bloque
     )
 
-    fun addBlock(req: CreateBlockRequest) {
-        viewModelScope.launch {
-            try {
-                createBlock(schoolId, req)
-                val blocks = getBlocks(schoolId)
-                val cur = _uiState.value
-                if (cur is SchoolDetailUiState.Success) _uiState.value = cur.copy(blocks = blocks)
-            } catch (_: Throwable) {}
-        }
-    }
 
     /** Valora una vía (1-5 estrellas). Devuelve el resultado actualizado o null si falla. */
     suspend fun rateLine(blockId: String, lineId: String, stars: Int) = runCatching {

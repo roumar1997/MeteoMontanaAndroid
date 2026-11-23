@@ -38,7 +38,8 @@ class DeadCallbackGuardTest {
         val files = listOf(
             "screens/profile/ProfileClimbBlocks.kt",
             "screens/schools/SchoolListScreen.kt",
-            "components/TopoPhotoViewer.kt"
+            "components/TopoPhotoViewer.kt",
+            "components/BlocksSection.kt"
         )
         val dead = files.flatMap { f ->
             val src = source(f)
