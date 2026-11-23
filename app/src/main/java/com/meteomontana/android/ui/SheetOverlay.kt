@@ -227,7 +227,6 @@ private fun SheetNavHost(
                             onOpenMyPosts = { sheetNav.navigate(Routes.myPosts()) },
                             onOpenStats = { sheetNav.navigate(Routes.journalStats()) },
                             onOpenStatsTab = { tab -> sheetNav.navigate(Routes.journalStats(tab = tab)) },
-                            onOpenGymAscents = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.ascents()) },
                             onOpenBoards = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.boards()) },
                             onOpenGym = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.detail(it)) }
                         )
@@ -397,7 +396,6 @@ private fun SheetNavHost(
                             onOpenProjects = { uid -> sheetNav.navigate(Routes.projects(uid)) },
                             onOpenStats = { uid -> sheetNav.navigate(Routes.journalStats(uid)) },
                             onOpenStatsTab = { uid, tab -> sheetNav.navigate(Routes.journalStats(uid, tab)) },
-                            onOpenGymAscents = { uid -> sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.ascents(uid)) },
                             onOpenBoards = { uid -> sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.boards(uid)) },
                             onOpenGym = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.detail(it)) },
                             onOpenPosts = { uid -> sheetNav.navigate(Routes.myPosts(uid)) },

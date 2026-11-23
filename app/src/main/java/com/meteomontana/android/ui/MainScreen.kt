@@ -402,7 +402,6 @@ fun MainScreen(
                         onViaHit = { schoolId, viaId, viaName ->
                             openSheet(Routes.schoolDetail(schoolId, via = viaName, viaId = viaId))
                         },
-                        onProfileClick = { openSheet(Routes.PROFILE) },
                         onSubmitSchool = { openSheet(Routes.SUBMIT_SCHOOL) },
                         onSearchUsers = { openSheet(Routes.SEARCH_USERS) },
                         onNotifications = { openSheet(Routes.NOTIFICATIONS) },
@@ -448,7 +447,6 @@ fun MainScreen(
                         onOpenMyPosts = { openSheet(Routes.myPosts()) },
                         onOpenStats = { openSheet(Routes.journalStats()) },
                         onOpenStatsTab = { tab -> openSheet(Routes.journalStats(tab = tab)) },
-                        onOpenGymAscents = { openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.ascents()) },
                         onOpenBoards = { openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.boards()) },
                         onOpenGym = { openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.detail(it)) }
                     )

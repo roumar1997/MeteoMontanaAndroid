@@ -104,7 +104,6 @@ fun ProfileScreen(
     onOpenStatsTab: (String) -> Unit = {},
     onOpenGym: (Long) -> Unit = {},
     /** Sesiones, rocódromos o ascensiones de la tarjeta: la pantalla de ascensiones. */
-    onOpenGymAscents: () -> Unit = {},
     /** Ficha «Boards» del perfil: todos los boards de todos los rocódromos juntos. */
     onOpenBoards: () -> Unit = {},
     /** En la pestaña keep-alive: true cuando la pestaña Perfil está visible.
@@ -207,7 +206,6 @@ fun ProfileScreen(
                     onOpenStats = onOpenStats,
                     onOpenStatsTab = onOpenStatsTab,
                     onOpenGym = onOpenGym,
-                    onOpenGymAscents = onOpenGymAscents,
                     onOpenBoards = onOpenBoards,
                     visible = visible,
                     onPhotoChanged = viewModel::load
@@ -314,7 +312,6 @@ internal fun Content(
     onOpenStats: () -> Unit = {},
     onOpenStatsTab: (String) -> Unit = {},
     onOpenGym: (Long) -> Unit = {},
-    onOpenGymAscents: () -> Unit = {},
     /** Ficha «Boards» del perfil: todos los boards de todos los rocódromos juntos. */
     onOpenBoards: () -> Unit = {},
     /** Pestaña Perfil visible: la tarjeta de rocódromo se relee cada vez (la pestaña no se recompone al volver). */
@@ -399,8 +396,8 @@ internal fun Content(
                 if (gymsOn) {
                     Box(Modifier.guideTarget("profile.stats")) {
                         ClimbGradientCard(
-                            climb, stats.maxGrade, onStats = onOpenStats, onSessions = { onOpenStatsTab("gym") }, onGyms = onOpenGymAscents,
-                            onAscents = onOpenGymAscents, onRock = { onOpenStatsTab("rock") }
+                            climb, stats.maxGrade, onStats = onOpenStats, onSessions = { onOpenStatsTab("gym") },
+                            onRock = { onOpenStatsTab("rock") }
                         )
                     }
                     var pickingHome by remember { mutableStateOf(false) }

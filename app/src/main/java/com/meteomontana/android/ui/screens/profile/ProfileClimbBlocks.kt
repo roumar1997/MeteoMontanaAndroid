@@ -121,7 +121,7 @@ internal fun ProfileThinRow(label: String, count: Int?, onClick: () -> Unit, mod
 @Composable
 internal fun ClimbGradientCard(
     state: ProfileClimbState, rockMax: String?, onStats: () -> Unit,
-    onSessions: () -> Unit, onGyms: () -> Unit, onAscents: () -> Unit, modifier: Modifier = Modifier,
+    onSessions: () -> Unit, modifier: Modifier = Modifier,
     /** Mitad «Roca»: abre Estadisticas en su pestaña Roca (por defecto, [onStats]). */
     onRock: () -> Unit = onStats
 ) {

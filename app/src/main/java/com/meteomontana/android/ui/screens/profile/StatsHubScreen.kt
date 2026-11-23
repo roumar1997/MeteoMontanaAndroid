@@ -87,7 +87,7 @@ fun StatsHubScreen(
                     Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    ClimbGradientCard(state, state.rockMax, onStats = {}, onSessions = { tab = HubTab.GYM }, onGyms = { tab = HubTab.GYM }, onAscents = { tab = HubTab.GYM })
+                    ClimbGradientCard(state, state.rockMax, onStats = {}, onSessions = { tab = HubTab.GYM })
                     if (uid == null || uid == myUid) {
                         ProfileLinkRow(androidx.compose.material.icons.Icons.Outlined.Landscape, com.meteomontana.android.ui.theme.Ok, stringResource(R.string.stats_hub_open_schools), state.schools.takeIf { it > 0 }, onOpenAllSchools)
                         ProfileLinkRow(androidx.compose.material.icons.Icons.Outlined.Flag, com.meteomontana.android.ui.theme.terraFillColor(), stringResource(R.string.stats_hub_open_projects), null, onOpenProjects)
@@ -110,7 +110,7 @@ private fun GymStatsTab(state: ProfileClimbState, climb: ProfileClimbViewModel, 
         return
     }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        ClimbGradientCard(state, state.rockMax, onStats = {}, onSessions = {}, onGyms = {}, onAscents = {})
+        ClimbGradientCard(state, state.rockMax, onStats = {}, onSessions = {})
         ProfileLinkRow(androidx.compose.material.icons.Icons.Outlined.Sort, com.meteomontana.android.ui.theme.RainBlue, stringResource(R.string.gym_asc_see_all), s.ascents, onOpenAscents)
         ByGymSection(s, onOpenGym)
         ByGradeSection(s.items, climb::colorHex)

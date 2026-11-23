@@ -62,12 +62,10 @@ fun SchoolListScreen(
      */
     volverArribaSignal: Int = 0,
     onSchoolClick: (String) -> Unit,
-    onProfileClick: () -> Unit = {},
     onSubmitSchool: () -> Unit = {},
     onSearchUsers: () -> Unit = {},
     onNotifications: () -> Unit = {},
     onChats: () -> Unit = {},
-    onDonate: () -> Unit = {},
     onCompare: (List<String>) -> Unit = {},
     /** Avisa a la pantalla principal de si se está enseñando la bienvenida (debe tapar la barra de pestañas y la burbuja). */
     onOnboardingActive: (Boolean) -> Unit = {},

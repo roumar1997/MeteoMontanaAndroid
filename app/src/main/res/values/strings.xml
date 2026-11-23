@@ -2168,7 +2168,6 @@
         <item quantity="other">%1$d personas</item>
     </plurals>
     <string name="meetups_radius_chip">Radio %1$d km</string>
-    <string name="gym_train_edit_day">Editar este día</string>
     <string name="meetup_chat_n">Abrir chat · %1$d</string>
     <plurals name="gym_stats_visits">
         <item quantity="one">%1$d sesión</item>
@@ -2213,21 +2212,8 @@
     <string name="meetup_gear_sheet_only_you">Solo tú</string>
     <string name="meetup_gear_sheet_group_of">%1$d de %2$d del grupo lo llevan</string>
     <string name="meetup_open_chat">Chat de la quedada</string>
-    <string name="gym_train_title">Rocódromo</string>
-    <string name="gym_train_week">Semana</string>
-    <string name="gym_train_month">Mes</string>
-    <string name="gym_train_year">Año</string>
-    <string name="gym_train_kpi_sessions">sesiones</string>
-    <string name="gym_train_kpi_gyms">rocódromos</string>
-    <string name="gym_train_kpi_ascents">ascensiones</string>
     <string name="gym_train_today_label">Hoy · %1$s</string>
-    <string name="gym_train_by_colors">Escala por colores</string>
     <string name="gym_train_by_grade">Por grado</string>
-    <string name="gym_train_ascents_short">ascens.</string>
-    <string name="gym_train_empty">Aún no hay entrenos en este periodo.</string>
-    <string name="gym_train_log_hint">Toca + para apuntar lo que has hecho</string>
-    <string name="gym_train_chart_color">%1$s · por color</string>
-    <string name="gym_train_chart_grade">%1$s · por grado</string>
     <string name="gym_train_minus">Quitar uno</string>
     <string name="gym_train_plus">Añadir uno</string>
     <string name="gym_train_open">Ver entrenos</string>
@@ -2257,7 +2243,6 @@
         <item quantity="one">%1$d vez</item>
         <item quantity="other">%1$d veces</item>
     </plurals>
-    <string name="gym_train_trained_at">He entrenado en…</string>
     <string name="gym_chat_open">Chat del rocódromo</string>
     <string name="gym_chat_empty">Aún no hay mensajes. Sé el primero en escribir.</string>
     <string name="schools_card_fix">Corregir</string>

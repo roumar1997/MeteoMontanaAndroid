@@ -42,8 +42,7 @@ fun TopoPhotoViewer(
     lines: List<TopoLine>,
     modifier: Modifier = Modifier,
     /** Índice de la vía resaltada desde fuera (p. ej. al tocarla en la lista). */
-    focusedIndex: Int? = null,
-    onFocusChange: (Int?) -> Unit = {}
+    focusedIndex: Int? = null
 ) {
     var ratio by remember(photoUrl) { mutableStateOf(4f / 3f) }
     // El foco ya NO se activa tocando la foto (a Rodrigo no le convencia): solo

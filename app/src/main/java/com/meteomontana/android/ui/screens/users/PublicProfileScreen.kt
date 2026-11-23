@@ -100,7 +100,6 @@ fun PublicProfileScreen(
     onOpenStats: (String) -> Unit = {},
     onOpenStatsTab: (String, String) -> Unit = { _, _ -> },
     /** Sesiones, rocódromos o ascensiones de su tarjeta: la pantalla de ascensiones de esa persona. */
-    onOpenGymAscents: (String) -> Unit = {},
     /** Sus boards (todos los rocódromos juntos), con la privacidad de su resumen. */
     onOpenBoards: (String) -> Unit = {},
     /** Su rocódromo habitual («Su rocódromo»): abre la ficha. */
@@ -224,7 +223,6 @@ fun PublicProfileScreen(
                 onOpenProjects = { onOpenProjects(s.profile.uid) },
                 onOpenStats = { onOpenStats(s.profile.uid) },
                 onOpenStatsTab = { tab -> onOpenStatsTab(s.profile.uid, tab) },
-                onOpenGymAscents = { onOpenGymAscents(s.profile.uid) },
                 onOpenBoards = { onOpenBoards(s.profile.uid) },
                 onOpenGym = onOpenGym,
                 onRefresh = viewModel::load,
@@ -264,7 +262,6 @@ internal fun Body(
     onOpenProjects: () -> Unit = {},
     onOpenStats: () -> Unit = {},
     onOpenStatsTab: (String) -> Unit = {},
-    onOpenGymAscents: () -> Unit = {},
     onOpenBoards: () -> Unit = {},
     onOpenGym: (Long) -> Unit = {},
     onRefresh: () -> Unit = {},
@@ -368,7 +365,7 @@ internal fun Body(
                 )
                 if (gymsOn) com.meteomontana.android.ui.screens.profile.ClimbGradientCard(
                     climb, s.stats.maxGrade, onStats = onOpenStats,
-                    onSessions = { onOpenStatsTab("gym") }, onGyms = onOpenGymAscents, onAscents = onOpenGymAscents,
+                    onSessions = { onOpenStatsTab("gym") },
                     onRock = { onOpenStatsTab("rock") }
                 ) else com.meteomontana.android.ui.components.StatsEntryButton(onClick = onOpenStats)
                 if (gymsOn) com.meteomontana.android.ui.screens.profile.HomeGymAndStreak(climb.homeGym, 0, onOpenGym, own = false)

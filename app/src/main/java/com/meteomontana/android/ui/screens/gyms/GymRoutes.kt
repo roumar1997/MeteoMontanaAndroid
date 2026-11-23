@@ -17,7 +17,6 @@ import com.meteomontana.android.ui.screens.meetups.MeetupPrefill
 object GymNav {
     const val DETAIL = "gyms/{gymId}"
     fun detail(id: Long) = "gyms/$id"
-    const val TRAINING = "gym-training"
     /** Ascensiones (por rocódromo, grado y mes) de una persona; sin uid, las mías. */
     const val ASCENTS = "gym-ascents?uid={uid}"
     fun ascents(uid: String? = null) = if (uid.isNullOrBlank()) "gym-ascents" else "gym-ascents?uid=$uid"
@@ -45,7 +44,6 @@ fun NavGraphBuilder.gymRoutes(sheetNav: NavHostController, popSheetOrDismiss: ()
             onOpenChat = { gym -> sheetNav.navigate(GymNav.chat(gymId, gym.name)) }
         )
     }
-    composable(GymNav.TRAINING) { GymTrainingScreen(onBack = popSheetOrDismiss) }
     composable(
         route = GymNav.ASCENTS,
         arguments = listOf(navArgument("uid") { type = NavType.StringType; nullable = true; defaultValue = null })

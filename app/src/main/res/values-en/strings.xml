@@ -2109,7 +2109,6 @@
         <item quantity="other">%1$d people</item>
     </plurals>
     <string name="meetups_radius_chip">Radius %1$d km</string>
-    <string name="gym_train_edit_day">Edit this day</string>
     <string name="meetup_chat_n">Open chat · %1$d</string>
     <plurals name="gym_stats_visits">
         <item quantity="one">%1$d session</item>
@@ -2154,21 +2153,8 @@
     <string name="meetup_gear_sheet_only_you">Only you</string>
     <string name="meetup_gear_sheet_group_of">%1$d of %2$d in the group bring it</string>
     <string name="meetup_open_chat">Meetup chat</string>
-    <string name="gym_train_title">Climbing gym</string>
-    <string name="gym_train_week">Week</string>
-    <string name="gym_train_month">Month</string>
-    <string name="gym_train_year">Year</string>
-    <string name="gym_train_kpi_sessions">sessions</string>
-    <string name="gym_train_kpi_gyms">gyms</string>
-    <string name="gym_train_kpi_ascents">ascents</string>
     <string name="gym_train_today_label">Today · %1$s</string>
-    <string name="gym_train_by_colors">Colour scale</string>
     <string name="gym_train_by_grade">By grade</string>
-    <string name="gym_train_ascents_short">ascents</string>
-    <string name="gym_train_empty">No sessions in this period yet.</string>
-    <string name="gym_train_log_hint">Tap + to log what you climbed</string>
-    <string name="gym_train_chart_color">%1$s · by colour</string>
-    <string name="gym_train_chart_grade">%1$s · by grade</string>
     <string name="gym_train_minus">Remove one</string>
     <string name="gym_train_plus">Add one</string>
     <string name="gym_train_open">See training</string>
@@ -2198,7 +2184,6 @@
         <item quantity="one">%1$d time</item>
         <item quantity="other">%1$d times</item>
     </plurals>
-    <string name="gym_train_trained_at">I trained at…</string>
     <string name="gym_chat_open">Gym chat</string>
     <string name="gym_chat_empty">No messages yet. Be the first to write.</string>
     <string name="schools_card_fix">Fix</string>
