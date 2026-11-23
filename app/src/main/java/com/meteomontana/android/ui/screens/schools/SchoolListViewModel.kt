@@ -32,6 +32,7 @@ import com.meteomontana.android.ui.screens.detail.BOULDER_GRADES
 class SchoolListViewModel @Inject constructor(
     private val getSchoolCatalog: GetSchoolCatalogUseCase,
     private val getTodayScores: GetTodayScoresUseCase,
+    private val getRockDryOutlook: com.meteomontana.android.domain.usecase.forecast.GetRockDryOutlookUseCase,
     private val getRangeScores: GetRangeScoresUseCase,
     private val getMyFavorites: GetMyFavoritesUseCase,
     private val addFavorite: com.meteomontana.android.domain.usecase.favorites.AddFavoriteUseCase,
@@ -219,6 +220,7 @@ class SchoolListViewModel @Inject constructor(
         viewModelScope.launch {
             _isRefreshing.value = true
             _scores.value = emptyMap()   // fuerza scores frescos
+            getRockDryOutlook.clear()    // y «seca en ~X h» fresco
             reconcileFavorites(fallback = _favoriteIds.value)
             refreshFromNetwork()
             refreshUnread()

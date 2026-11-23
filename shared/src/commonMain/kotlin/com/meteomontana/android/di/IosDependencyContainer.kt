@@ -169,6 +169,7 @@ class IosDependencyContainer(
     val reportProcessionaryActiveNow = com.meteomontana.android.domain.usecase.schools.ReportProcessionaryActiveNowUseCase(schoolRepository)
     val clearProcessionaryActiveNow = com.meteomontana.android.domain.usecase.schools.ClearProcessionaryActiveNowUseCase(schoolRepository)
     val getForecast = GetForecastUseCase(forecastRepository)
+    val getRockDryOutlook = com.meteomontana.android.domain.usecase.forecast.GetRockDryOutlookUseCase(forecastRepository)
     val getForecastByLocation = GetForecastByLocationUseCase(forecastRepository)
     val getTodayScores = GetTodayScoresUseCase(forecastRepository)
     // Votación comunitaria (C2/C5) + fecha del diario (C3).

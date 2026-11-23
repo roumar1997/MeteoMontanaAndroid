@@ -39,7 +39,7 @@ class SwiftBoundaryThrowsTest {
         "domain/usecase/profile/WeekendAlertUseCases.kt",
         "domain/usecase/blocks/RateLineUseCase.kt",
         "domain/usecase/restriction/RestrictionUseCases.kt",
-        "domain/usecase/forecast/GetSectorHoursUseCase.kt",
+        "domain/usecase/forecast/GetSectorHoursUseCase.kt", "domain/usecase/forecast/GetRockDryOutlookUseCase.kt",
         "domain/usecase/journal/GoalUseCases.kt",
         "domain/usecase/admin/AdminHistoryUseCases.kt",
         "domain/usecase/profile/RewardsUseCases.kt",

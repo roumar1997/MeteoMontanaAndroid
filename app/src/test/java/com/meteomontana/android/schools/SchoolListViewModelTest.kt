@@ -104,7 +104,7 @@ class SchoolListViewModelTest {
     private val searchLines: com.meteomontana.android.domain.usecase.schools.SearchLinesUseCase = mockk(relaxed = true)
 
     private fun newVm() = SchoolListViewModel(
-        getSchoolCatalog, getTodayScores, getRangeScores, getMyFavorites, addFavorite, removeFavorite,
+        getSchoolCatalog, getTodayScores, mockk(relaxed = true), getRangeScores, getMyFavorites, addFavorite, removeFavorite,
         getMyNotifications, location, savedRepo, cachedRepo, etagStore, chatService, outbox, getPublicProfile,
         searchLines, appContext, com.meteomontana.android.ui.screens.schools.PhotoProposalSeed()
     )

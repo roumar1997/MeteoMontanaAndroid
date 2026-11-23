@@ -139,6 +139,10 @@ object CatalogUseCasesModule {
     fun provideGetForecastUseCase(repo: ForecastRepository) = GetForecastUseCase(repo)
 
     @Provides @Singleton
+    fun provideGetRockDryOutlookUseCase(repo: ForecastRepository) =
+        com.meteomontana.android.domain.usecase.forecast.GetRockDryOutlookUseCase(repo)
+
+    @Provides @Singleton
     fun provideGetForecastByLocationUseCase(repo: ForecastRepository) =
         GetForecastByLocationUseCase(repo)
 

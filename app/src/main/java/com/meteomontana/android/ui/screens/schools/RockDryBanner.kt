@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import com.meteomontana.android.R
-import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
+import com.meteomontana.android.domain.usecase.forecast.GetRockDryOutlookUseCase
 import com.meteomontana.android.domain.usecase.forecast.RockDayState
 import com.meteomontana.android.domain.usecase.forecast.RockDryOutlook
 import com.meteomontana.android.ui.theme.Ok
@@ -42,21 +42,10 @@ import javax.inject.Inject
 private val WetBlue = Color(0xFF2563C7)
 private val DubiousAmber = Color(0xFFD9962B)
 
-/** Carga (y recuerda) la previsión de una escuela para pintar «seca en ~X h» en la tarjeta del mapa. */
+/** Pinta «seca en ~X h» en las tarjetas; la caché con caducidad vive en el use case de `shared`. */
 @HiltViewModel
-class RockDryOutlookViewModel @Inject constructor(private val getForecast: GetForecastUseCase) : ViewModel() {
-    private val cache = HashMap<String, RockDryOutlook?>()
-
-    suspend fun outlook(schoolId: String): RockDryOutlook? {
-        if (cache.containsKey(schoolId)) return cache[schoolId]
-        val result = runCatching {
-            val f = getForecast(schoolId)
-            val today = java.time.LocalDate.now()
-            RockDryOutlook.of(f.current, f.days, LocalDate(today.year, today.monthValue, today.dayOfMonth))
-        }.getOrNull()
-        if (result != null) cache[schoolId] = result
-        return result
-    }
+class RockDryOutlookViewModel @Inject constructor(private val getRockDryOutlook: GetRockDryOutlookUseCase) : ViewModel() {
+    suspend fun outlook(schoolId: String): RockDryOutlook? = getRockDryOutlook(schoolId)
 }
 
 internal fun dayName(d: LocalDate, full: Boolean = true): String =

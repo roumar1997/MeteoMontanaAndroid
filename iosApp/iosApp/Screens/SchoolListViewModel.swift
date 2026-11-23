@@ -317,7 +317,10 @@ final class SchoolListViewModel: ObservableObject {
         await loadScores()
     }
 
-    func refresh() async { await load() }
+    func refresh() async {
+        RockDryOutlookCache.clear()
+        await load()
+    }
 
     /// Observa las escuelas guardadas offline (Flow de SQLDelight) para el filtro
     /// GUARDADOS. Idempotente: solo arranca un task.

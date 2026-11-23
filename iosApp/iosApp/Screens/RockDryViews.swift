@@ -4,15 +4,13 @@ import Shared
 /// Carga (y recuerda) la previsión de una escuela para pintar «seca en ~X h». El cálculo es de shared (`RockDryOutlook`).
 @MainActor
 enum RockDryOutlookCache {
-    private static var cache: [String: RockDryOutlook] = [:]
-
+    /// La caché (con caducidad de 30 min) vive en el use case de shared.
     static func outlook(_ schoolId: String) async -> RockDryOutlook? {
-        if let o = cache[schoolId] { return o }
-        guard let f = try? await AppDependencies.shared.container.getForecast.invoke(schoolId: schoolId) else { return nil }
-        let o = RockDryOutlook.Companion.shared.of(current: f.current, days: f.days, today: GymDates.local(Date()))
-        cache[schoolId] = o
-        return o
+        (try? await AppDependencies.shared.container.getRockDryOutlook.invoke(schoolId: schoolId))
     }
+
+    /// Tirar para refrescar: la próxima consulta vuelve a pedir la previsión.
+    static func clear() { AppDependencies.shared.container.getRockDryOutlook.clear() }
 }
 
 enum RockDryText {
