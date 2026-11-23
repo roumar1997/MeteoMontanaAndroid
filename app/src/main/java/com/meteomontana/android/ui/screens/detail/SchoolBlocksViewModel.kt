@@ -10,7 +10,6 @@ import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.LineSearchHit
 import com.meteomontana.android.domain.port.NetworkMonitor
 import com.meteomontana.android.domain.usecase.blocks.GetBlocksUseCase
-import com.meteomontana.android.domain.usecase.schools.ExploreLinesUseCase
 import com.meteomontana.android.domain.usecase.schools.GuideSector
 import com.meteomontana.android.domain.usecase.schools.GuideView
 import com.meteomontana.android.domain.usecase.schools.LinesFilter
@@ -47,7 +46,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class SchoolBlocksViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    exploreLines: ExploreLinesUseCase,
+    private val loadLines: LoadSchoolLinesUseCase,
+    private val loadBeta: LoadBetaLineIdsUseCase,
     private val getBlocks: GetBlocksUseCase,
     private val network: NetworkMonitor,
     private val maps: GuideMapSnapshots,
@@ -56,8 +56,6 @@ class SchoolBlocksViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val schoolId: String = checkNotNull(savedStateHandle["schoolId"])
-    private val loadLines = LoadSchoolLinesUseCase(exploreLines)
-    private val loadBeta = LoadBetaLineIdsUseCase(exploreLines)
     private val prefs = context.getSharedPreferences("guide_bookmarks", Context.MODE_PRIVATE)
 
     enum class Order(val shared: LinesOrder) { Repeated(LinesOrder.MOST_REPEATED), Rated(LinesOrder.BEST_RATED) }

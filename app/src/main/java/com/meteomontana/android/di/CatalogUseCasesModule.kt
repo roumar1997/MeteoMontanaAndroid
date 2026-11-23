@@ -93,6 +93,18 @@ object CatalogUseCasesModule {
     fun provideExploreLinesUseCase(repo: SchoolRepository) =
         com.meteomontana.android.domain.usecase.schools.ExploreLinesUseCase(repo)
 
+    /** Con el [BlockRepository]: sin red, la guía sale de las piedras guardadas (escuela descargada), igual que en iOS. */
+    @Provides @Singleton
+    fun provideLoadSchoolLinesUseCase(
+        explore: com.meteomontana.android.domain.usecase.schools.ExploreLinesUseCase,
+        blocks: BlockRepository
+    ) = com.meteomontana.android.domain.usecase.schools.LoadSchoolLinesUseCase(explore, blocks)
+
+    @Provides @Singleton
+    fun provideLoadBetaLineIdsUseCase(
+        explore: com.meteomontana.android.domain.usecase.schools.ExploreLinesUseCase
+    ) = com.meteomontana.android.domain.usecase.schools.LoadBetaLineIdsUseCase(explore)
+
     @Provides @Singleton
     fun provideConfirmProcessionaryUseCase(repo: SchoolRepository) =
         com.meteomontana.android.domain.usecase.schools.ConfirmProcessionaryUseCase(repo)
