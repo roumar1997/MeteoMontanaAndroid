@@ -92,7 +92,6 @@ fun ProfileScreen(
     onOpenFollowers: () -> Unit = {},
     onOpenFollowing: () -> Unit = {},
     onOpenFollowRequests: () -> Unit = {},
-    onOpenSchoolEntries: (String) -> Unit = {},
     onOpenBoulders: () -> Unit = {},
     onOpenRoutes: () -> Unit = {},
     onOpenAllSchools: () -> Unit = {},
@@ -103,7 +102,6 @@ fun ProfileScreen(
     onOpenStats: () -> Unit = {},
     /** Mitades de la tarjeta de degradado: Estadisticas abierta en la pestaña "rock" o "gym". */
     onOpenStatsTab: (String) -> Unit = {},
-    onOpenGymTraining: () -> Unit = {},
     onOpenGym: (Long) -> Unit = {},
     /** Sesiones, rocódromos o ascensiones de la tarjeta: la pantalla de ascensiones. */
     onOpenGymAscents: () -> Unit = {},
@@ -208,7 +206,6 @@ fun ProfileScreen(
                     onOpenMyPosts = onOpenMyPosts,
                     onOpenStats = onOpenStats,
                     onOpenStatsTab = onOpenStatsTab,
-                    onOpenGymTraining = onOpenGymTraining,
                     onOpenGym = onOpenGym,
                     onOpenGymAscents = onOpenGymAscents,
                     onOpenBoards = onOpenBoards,
@@ -316,7 +313,6 @@ internal fun Content(
     onOpenMyPosts: () -> Unit = {},
     onOpenStats: () -> Unit = {},
     onOpenStatsTab: (String) -> Unit = {},
-    onOpenGymTraining: () -> Unit = {},
     onOpenGym: (Long) -> Unit = {},
     onOpenGymAscents: () -> Unit = {},
     /** Ficha «Boards» del perfil: todos los boards de todos los rocódromos juntos. */

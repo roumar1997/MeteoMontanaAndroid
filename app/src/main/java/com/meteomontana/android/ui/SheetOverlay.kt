@@ -219,7 +219,6 @@ private fun SheetNavHost(
                                 }
                             },
                             onOpenFollowRequests = { sheetNav.navigate(Routes.FOLLOW_REQUESTS) },
-                            onOpenSchoolEntries = { schoolName -> sheetNav.navigate(Routes.journalSectors(schoolName)) },
                             onOpenBoulders = { sheetNav.navigate(Routes.journalEntries("discipline:BOULDER")) },
                             onOpenRoutes = { sheetNav.navigate(Routes.journalEntries("discipline:ROUTE")) },
                             onOpenAllSchools = { sheetNav.navigate(Routes.journalSchools(null)) },
@@ -228,7 +227,6 @@ private fun SheetNavHost(
                             onOpenMyPosts = { sheetNav.navigate(Routes.myPosts()) },
                             onOpenStats = { sheetNav.navigate(Routes.journalStats()) },
                             onOpenStatsTab = { tab -> sheetNav.navigate(Routes.journalStats(tab = tab)) },
-                            onOpenGymTraining = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.TRAINING) },
                             onOpenGymAscents = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.ascents()) },
                             onOpenBoards = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.boards()) },
                             onOpenGym = { sheetNav.navigate(com.meteomontana.android.ui.screens.gyms.GymNav.detail(it)) }

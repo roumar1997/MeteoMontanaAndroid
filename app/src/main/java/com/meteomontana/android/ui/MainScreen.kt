@@ -440,7 +440,6 @@ fun MainScreen(
                             }
                         },
                         onOpenFollowRequests = { openSheet(Routes.FOLLOW_REQUESTS) },
-                        onOpenSchoolEntries = { schoolName -> openSheet(Routes.journalSectors(schoolName)) },
                         onOpenBoulders = { openSheet(Routes.journalEntries("discipline:BOULDER")) },
                         onOpenRoutes = { openSheet(Routes.journalEntries("discipline:ROUTE")) },
                         onOpenAllSchools = { openSheet(Routes.journalSchools(null)) },
@@ -449,7 +448,6 @@ fun MainScreen(
                         onOpenMyPosts = { openSheet(Routes.myPosts()) },
                         onOpenStats = { openSheet(Routes.journalStats()) },
                         onOpenStatsTab = { tab -> openSheet(Routes.journalStats(tab = tab)) },
-                        onOpenGymTraining = { openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.TRAINING) },
                         onOpenGymAscents = { openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.ascents()) },
                         onOpenBoards = { openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.boards()) },
                         onOpenGym = { openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.detail(it)) }
