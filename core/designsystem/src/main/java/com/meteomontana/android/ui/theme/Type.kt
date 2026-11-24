@@ -7,7 +7,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import com.meteomontana.android.R
+import com.meteomontana.android.core.designsystem.R
 
 // =============================================================================
 // CUMBRE Typography — las tres familias van DENTRO del APK.
@@ -108,7 +108,7 @@ val Mono  = JetBrainsMonoFamily
 // index.html (eyebrow 0.62rem ≈ 10sp, etc.).
 // =============================================================================
 /** Sin el relleno de fuente de Android: con Inter cada texto salía más alto que en iOS (2026-11-05). */
-internal val NoFontPadding = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
+val NoFontPadding = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
 
 val CumbreTypography = Typography(
     displayLarge = TextStyle(platformStyle = NoFontPadding,        fontFamily = Serif, fontWeight = FontWeight.Bold,

@@ -191,10 +191,10 @@ class GuidePdf @Inject constructor(@ApplicationContext private val context: Cont
 
 /** Tipos de letra del PDF: los mismos `.ttf` que la app (y que iOS). */
 internal class Fonts(ctx: Context) {
-    val serif: Typeface = ResourcesCompat.getFont(ctx, R.font.source_serif4_bold) ?: Typeface.SERIF
-    val monoBold: Typeface = ResourcesCompat.getFont(ctx, R.font.jetbrains_mono_bold) ?: Typeface.MONOSPACE
-    val mono: Typeface = ResourcesCompat.getFont(ctx, R.font.jetbrains_mono_regular) ?: Typeface.MONOSPACE
-    private val inter: Typeface = ResourcesCompat.getFont(ctx, R.font.inter_variable) ?: Typeface.DEFAULT
+    val serif: Typeface = ResourcesCompat.getFont(ctx, com.meteomontana.android.core.designsystem.R.font.source_serif4_bold) ?: Typeface.SERIF
+    val monoBold: Typeface = ResourcesCompat.getFont(ctx, com.meteomontana.android.core.designsystem.R.font.jetbrains_mono_bold) ?: Typeface.MONOSPACE
+    val mono: Typeface = ResourcesCompat.getFont(ctx, com.meteomontana.android.core.designsystem.R.font.jetbrains_mono_regular) ?: Typeface.MONOSPACE
+    private val inter: Typeface = ResourcesCompat.getFont(ctx, com.meteomontana.android.core.designsystem.R.font.inter_variable) ?: Typeface.DEFAULT
 
     /** Inter con su peso (600 = semibold); en Android < 9 solo hay normal y negrita. */
     fun sans(weight: Int, italic: Boolean = false): Typeface =

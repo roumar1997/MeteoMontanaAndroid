@@ -203,7 +203,6 @@
     <string name="common_edit">Edit</string>
     <string name="common_error">Error</string>
     <string name="common_filters">FILTERS</string>
-    <string name="common_loading">Loading…</string>
     <string name="common_no">No</string>
     <string name="common_no_connection">No internet connection</string>
     <string name="common_none">None</string>
@@ -754,7 +753,6 @@
     <string name="sector_reorder_dialog_v2_este_sector_todavia_no_tiene">This sector doesn\'t have any boulders yet.</string>
     <string name="sector_reorder_dialog_v2_cerrar">✕ CLOSE</string>
     <string name="sector_reorder_dialog_v2_ordenar_piedras">SORT BOULDERS</string>
-    <string name="sheet_header_v2_cerrar">Close</string>
     <string name="topo_photo_canvas_v2_foto">Photo</string>
     <string name="topo_photo_viewer_v2_foto_de_la_piedra">Boulder photo</string>
     <string name="onboarding_overlay_v2_saltar">Skip</string>
@@ -1167,7 +1165,6 @@
     <string name="journal_entries_screen_v3_marca_el_de_una_via">Tick the ✓ of a route inside its boulder (in a school\'s detail) and it will show up here, with its grade and sector.</string>
     <string name="journal_sectors_screen_v3_1_bloque">1 boulder</string>
     <string name="my_gear_sheet_v3_mi_material">MY GEAR</string>
-    <string name="profile_screen_v3_estadisticas">STATS</string>
     <string name="stats_screen_v3_marca_vias_como_hechas_y">Mark routes as done and you\'ll see your pyramid, your streak and your progression here.</string>
     <string name="stats_screen_v3_tu_mejor_mes_ascensos_toca">Your best month: %1$s (%2$s ascents). Tap to see it ▾</string>
     <string name="stats_screen_v3_ver">  ·  VIEW ▸</string>
@@ -1694,7 +1691,6 @@
     <string name="featured_loading">Loading your achievements…</string>
     <string name="featured_none_synced">You have no synced achievements yet. Open My statistics once and come back.</string>
     <string name="schools_clear_short">CLEAR</string>
-    <string name="stats_entry_sub">Pyramid, yearly goal and achievements</string>
     <string name="stats_months_summary">%1$d in 12 months · avg %2$s a month · best: %3$s (%4$d)</string>
     <string name="ach_week_streak">%1$s weeks in a row climbing</string>
     <string name="ach_month_streak">%1$s months in a row climbing</string>

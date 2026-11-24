@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="common_loading">Loading…</string>
+    <string name="sheet_header_v2_cerrar">Close</string>
+    <string name="profile_screen_v3_estadisticas">STATS</string>
+    <string name="stats_entry_sub">Pyramid, yearly goal and achievements</string>
+</resources>

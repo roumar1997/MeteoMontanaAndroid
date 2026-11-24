@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComposableParamOrder:Skeleton.kt$Bone</ID>
+    <ID>ComposableParamOrder:Skeleton.kt$SkeletonList</ID>
+    <ID>CompositionLocalAllowlist:CumbreChrome.kt$LocalChromeBackdrop</ID>
+    <ID>CompositionLocalAllowlist:CumbreChrome.kt$LocalChromeTreatment</ID>
+    <ID>CompositionLocalAllowlist:CumbreChrome.kt$LocalTabBarInset</ID>
+    <ID>LambdaParameterEventTrailing:MentionText.kt$onOpenUser</ID>
+    <ID>LambdaParameterEventTrailing:MochilaCard.kt$onClick</ID>
+    <ID>MatchingDeclarationName:GradeColor.kt$GradeStyle</ID>
+    <ID>MaxLineLength:StatsEntryButton.kt$Text</ID>
+    <ID>MaxLineLength:StatsEntryButton.kt$bars.forEach { (h, c) -&gt; androidx.compose.foundation.layout.Box(Modifier.width(7.dp).height((30 * h).dp).clip(RoundedCornerShape(2.dp)).background(c)) }</ID>
+    <ID>ModifierComposed:Skeleton.kt$shimmer</ID>
+    <ID>ModifierMissing:Skeleton.kt$Bone</ID>
+    <ID>ModifierMissing:Skeleton.kt$BoneCircle</ID>
+    <ID>ModifierMissing:Skeleton.kt$SkeletonCard</ID>
+    <ID>ModifierMissing:Skeleton.kt$SkeletonFeedCard</ID>
+    <ID>ModifierMissing:Skeleton.kt$SkeletonForm</ID>
+    <ID>ModifierMissing:Skeleton.kt$SkeletonGradeRow</ID>
+    <ID>ModifierMissing:Skeleton.kt$SkeletonPersonRow</ID>
+    <ID>ModifierMissing:Skeleton.kt$SkeletonProfile</ID>
+    <ID>ModifierMissing:Skeleton.kt$SkeletonSchoolDetail</ID>
+    <ID>ModifierMissing:Skeleton.kt$SkeletonSchoolRow</ID>
+    <ID>ModifierMissing:Skeleton.kt$SkeletonWeather</ID>
+    <ID>ModifierWithoutDefault:MochilaCard.kt$modifier</ID>
+    <ID>UnusedParameter:Color.kt$score: Int</ID>
+  </CurrentIssues>
+</SmellBaseline>

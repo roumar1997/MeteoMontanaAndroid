@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupProperties
 
 /** Forma de todos los menús desplegables: esquinas de 10 dp, como las tarjetas de la app. */
-internal val CumbreMenuShape = RoundedCornerShape(10.dp)
+val CumbreMenuShape = RoundedCornerShape(10.dp)
 
 /**
  * Menú desplegable de la app («⋯», filtros, selectores): papel de Cumbre (`surface`) con borde de 1 dp (`outline`) y

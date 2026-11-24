@@ -48,7 +48,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
-import com.meteomontana.android.R
+import com.meteomontana.android.core.designsystem.R
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
