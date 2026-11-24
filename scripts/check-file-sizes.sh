@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.."
 LIMIT=600
 BASELINE=config/oversized-baseline.txt
 
-files() { git ls-files 'app/src/main/*.kt' 'shared/src/*.kt' 'iosApp/*.swift'; }
+files() { git ls-files 'app/src/main/*.kt' 'core/*/src/*.kt' 'feature/*/src/*.kt' 'build-logic/*.kt' 'shared/src/*.kt' 'iosApp/*.swift'; }
 count() { wc -l < "$1" | tr -d ' '; }
 
 # --shrink: reescribe la lista con lo que queda por encima de 600 y su tamaño ACTUAL (solo puede bajar; no añade nada nuevo).
