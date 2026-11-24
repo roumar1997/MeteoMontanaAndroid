@@ -131,6 +131,7 @@ androidComponents {
 dependencies {
     // Módulo shared KMP (domain/model, domain/port, domain/util)
     implementation(project(":shared"))
+    implementation(project(":core:navigation"))
 
     // Core Android + Compose
     implementation(libs.androidx.browser)

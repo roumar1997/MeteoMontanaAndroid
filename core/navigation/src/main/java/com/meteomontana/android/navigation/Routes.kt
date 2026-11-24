@@ -1,0 +1,97 @@
+package com.meteomontana.android.navigation
+
+/** Rutas de la app (cadenas de los NavHost; deep links y avisos dependen de ellas: no cambiarlas). */
+object Routes {
+    const val SCHOOL_DETAIL = "schools/{schoolId}?via={via}&viaId={viaId}&blockId={blockId}"
+    fun schoolDetail(id: String, via: String? = null, viaId: String? = null, blockId: String? = null): String {
+        val q = buildList {
+            via?.takeIf { it.isNotBlank() }?.let { add("via=${android.net.Uri.encode(it)}") }
+            viaId?.takeIf { it.isNotBlank() }?.let { add("viaId=${android.net.Uri.encode(it)}") }
+            // Post de piedra nueva del feed: abre directamente esa piedra.
+            blockId?.takeIf { it.isNotBlank() }?.let { add("blockId=${android.net.Uri.encode(it)}") }
+        }
+        return "schools/$id" + (if (q.isEmpty()) "" else "?" + q.joinToString("&"))
+    }
+    const val PROFILE = "profile"
+    const val EDIT_PROFILE = "profile/edit"
+    const val MY_SUBMISSIONS = "submissions/me"
+    const val SUBMIT_SCHOOL = "submissions/new"
+    const val SEARCH_USERS = "users/search"
+    const val NOTIFICATIONS = "notifications"
+    const val PUBLIC_PROFILE = "users/{uid}"
+    fun publicProfile(uid: String) = "users/$uid"
+    const val FOLLOW_LIST = "users/{uid}/follow-list/{mode}"
+    fun followList(uid: String, mode: String) = "users/$uid/follow-list/$mode"
+    const val FOLLOW_REQUESTS = "me/follow-requests"
+    const val CHAT_LIST = "chats"
+    const val CHAT = "chats/{uid}"
+    fun chat(uid: String) = "chats/$uid"
+    const val NEW_GROUP = "chats/new-group"
+    const val SCHOOL_CHAT = "school-chat/{schoolId}?name={name}"
+    fun schoolChat(schoolId: String, schoolName: String) =
+        "school-chat/$schoolId?name=" + android.net.Uri.encode(schoolName)
+    const val GROUP_CHAT = "group-chats/{convId}"
+    fun groupChat(convId: String) = "group-chats/$convId"
+    const val TOPO_EDITOR = "topo/{blockId}"
+    fun topoEditor(blockId: String) = "topo/$blockId"
+    const val JOURNAL_STATS = "journal/stats?uid={uid}&tab={tab}"
+    /** G: estadísticas propias (uid=null) o de OTRO usuario (perfil público
+     *  o seguimiento aceptado — la privacidad la impone el backend). */
+    fun journalStats(uid: String? = null, tab: String? = null): String =
+        "journal/stats?uid=" + (uid?.let { android.net.Uri.encode(it) } ?: "") + "&tab=" + (tab ?: "")
+    const val JOURNAL_ENTRIES = "journal/entries?filter={filter}&uid={uid}"
+    fun journalEntries(filter: String? = null, uid: String? = null): String {
+        val f = filter ?: ""
+        val u = uid ?: ""
+        return "journal/entries?filter=$f&uid=$u"
+    }
+    const val JOURNAL_SCHOOLS = "journal/schools?uid={uid}"
+    fun journalSchools(uid: String? = null): String = "journal/schools?uid=${uid ?: ""}"
+    // Pantalla intermedia: escuela → sectores → (al pulsar sector) sus bloques/vías.
+    const val JOURNAL_SECTORS = "journal/sectors?school={school}&uid={uid}"
+    fun journalSectors(schoolName: String, uid: String? = null): String =
+        "journal/sectors?school=${android.net.Uri.encode(schoolName)}&uid=${uid ?: ""}"
+    // Proyectos: bloques/vías que estás probando, aún no hechos.
+    const val PROJECTS = "journal/projects?uid={uid}"
+    fun projects(uid: String? = null): String = "journal/projects?uid=${uid ?: ""}"
+
+    // schoolId opcional (vacío = tab Tiempo, ubicación actual)
+    const val DAY_DETAIL = "day/{schoolId}/{dayIndex}"
+    fun dayDetail(schoolId: String, dayIndex: Int) = "day/$schoolId/$dayIndex"
+    const val DAY_DETAIL_BY_LOCATION = "day-loc/{lat}/{lon}/{dayIndex}"
+    fun dayDetailByLocation(lat: Double, lon: Double, dayIndex: Int) = "day-loc/$lat/$lon/$dayIndex"
+
+    const val SAVED_SCHOOLS = "saved"
+    const val WEEKEND_ALERT = "weekend-alert"
+    const val COMPARE = "compare/{ids}"
+    fun compare(ids: List<String>) = "compare/${ids.joinToString(",")}"
+
+    // Detalle de un post del feed Comunidad (push/campanita "feed_post").
+    const val FEED_POST = "feed/{postId}"
+    fun feedPost(postId: String) = "feed/$postId"
+
+    // "Mis publicaciones": pantalla dedicada con el feed propio (scope=mine).
+    const val MY_POSTS = "profile/my-posts?uid={uid}"
+    /** H: publicaciones propias (uid=null) o de OTRO usuario. */
+    fun myPosts(uid: String? = null): String =
+        "profile/my-posts" + (uid?.let { "?uid=" + android.net.Uri.encode(it) } ?: "")
+
+    const val MEETUP_DETAIL = "meetups/{meetupId}"
+    fun meetupDetail(id: String) = "meetups/$id"
+    const val CREATE_MEETUP = "meetups/new"
+    /** Patrón de crear quedada: los datos opcionales los trae el asistente y el formulario se abre ya relleno. */
+    const val CREATE_MEETUP_PATTERN = "meetups/new?schoolId={schoolId}&schoolName={schoolName}&day={day}&name={name}&desc={desc}"
+    fun createMeetup(schoolId: String, schoolName: String, day: String?, name: String, description: String?): String {
+        fun e(s: String) = android.net.Uri.encode(s)
+        val q = buildList {
+            add("schoolId=${e(schoolId)}")
+            add("schoolName=${e(schoolName)}")
+            add("name=${e(name)}")
+            day?.let { add("day=${e(it)}") }
+            description?.let { add("desc=${e(it)}") }
+        }
+        return "$CREATE_MEETUP?" + q.joinToString("&")
+    }
+    const val MEETUP_ALERT = "meetups/alert"
+
+}

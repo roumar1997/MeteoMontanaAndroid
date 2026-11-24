@@ -1,4 +1,5 @@
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         google {
             content {
@@ -24,4 +25,4 @@ rootProject.name = "MeteoMontana"
 include(":app")
 include(":shared")
 include(":baselineprofile")
- 
+include(":core:navigation")
