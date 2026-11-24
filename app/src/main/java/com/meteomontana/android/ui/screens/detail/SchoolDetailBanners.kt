@@ -111,7 +111,7 @@ internal fun StaleForecastBanner(timestamp: Long, onRetry: () -> Unit) {
 
 internal fun formatOfflineTimestamp(ms: Long): String {
     val date = java.util.Date(ms)
-    val fmt = java.text.SimpleDateFormat("d MMM HH:mm", java.util.Locale("es"))
+    val fmt = java.text.SimpleDateFormat("d MMM HH:mm", java.util.Locale.getDefault())
     return fmt.format(date)
 }
 

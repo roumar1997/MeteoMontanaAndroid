@@ -113,7 +113,7 @@ private fun renderStatsCard(
     // ── 4 métricas en rejilla 2×2 ────────────────────────────────────────────
     val metrics = listOf(
         s.daysOut.toString() to context.getString(R.string.share_stats_image_dias_de_roca),
-        "${s.currentStreakWeeks} sem" to context.getString(R.string.share_stats_image_racha),
+        com.meteomontana.android.util.AppText.get(R.string.stats_streak_weeks_short, s.currentStreakWeeks) to context.getString(R.string.share_stats_image_racha),
         s.projectsFallen.toString() to context.getString(R.string.share_stats_image_proyectos_caidos),
         (maxGrade ?: "—") to context.getString(R.string.share_stats_image_grado_maximo)
     )

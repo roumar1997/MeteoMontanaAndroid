@@ -268,6 +268,7 @@ func notificationDateLabel(_ createdAt: String, now: Date = Date()) -> String {
     if dayGap == 1 { return L("Ayer") }
     if dayGap < 7 { return L("hace %@ días", dayGap) }
     let out = DateFormatter()
+    out.locale = LanguageManager.shared.locale
     out.setLocalizedDateFormatFromTemplate("d MMM")
     return out.string(from: created)
 }

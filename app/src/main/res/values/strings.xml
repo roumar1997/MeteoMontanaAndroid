@@ -2496,4 +2496,5 @@
     <string name="share_meetup_school">Escuela: %1$s</string>
     <string name="share_meetup_participants">%1$d participantes</string>
     <string name="share_conditions_head">%1$s — condiciones en Cumbre</string>
+    <string name="stats_streak_weeks_short">%1$d sem</string>
 </resources>

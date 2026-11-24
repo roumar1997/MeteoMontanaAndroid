@@ -225,7 +225,7 @@ struct JournalRow: View {
         let iso = String(entry.date.prefix(10))
         let p = DateFormatter(); p.dateFormat = "yyyy-MM-dd"; p.locale = Locale(identifier: "en_US_POSIX")
         guard let d = p.date(from: iso) else { return iso }
-        let out = DateFormatter(); out.setLocalizedDateFormatFromTemplate("d MMM")
+        let out = DateFormatter(); out.locale = LanguageManager.shared.locale; out.setLocalizedDateFormatFromTemplate("d MMM")
         return out.string(from: d)
     }
 

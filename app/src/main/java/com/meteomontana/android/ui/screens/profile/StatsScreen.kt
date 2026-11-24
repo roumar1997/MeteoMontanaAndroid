@@ -203,7 +203,7 @@ fun StatsScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     MetricCard(stringResource(R.string.stats_screen_v3_dias_de_roca), s.daysOut.toString(),
                         Modifier.weight(1f).clickable { showDaysList = true })
-                    MetricCard(stringResource(R.string.w_streak_caps), "${s.currentStreakWeeks} sem", Modifier.weight(1f), terra = true)
+                    MetricCard(stringResource(R.string.w_streak_caps), stringResource(R.string.stats_streak_weeks_short, s.currentStreakWeeks), Modifier.weight(1f), terra = true)
                 }
                 if (showDaysList) {
                     // Bottom sheet suave (paridad iOS), no dialog a pantalla

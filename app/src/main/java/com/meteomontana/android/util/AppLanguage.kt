@@ -48,7 +48,6 @@ object AppLanguage {
             else -> systemLocale
         }
         Locale.setDefault(locale)
-        if (chosen == SYSTEM) return base
         val config = Configuration(base.resources.configuration).apply { setLocale(locale) }
         return base.createConfigurationContext(config)
     }

@@ -17,7 +17,7 @@ plugins {
 
 // Sello de compilacion (hora local) que se ensena en Ajustes.
 val selloDeCompilacion: String =
-    SimpleDateFormat("d MMM HH:mm", Locale("es")).format(Date())
+    SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.ROOT).format(Date())
 
 android {
     namespace = "com.meteomontana.android"

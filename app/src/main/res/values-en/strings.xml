@@ -1069,7 +1069,7 @@
     <string name="community_vote_ui_v3_solo_puede_votar_quien_la">Only people who have it in their logbook can vote (try it or tick it first).</string>
     <string name="community_vote_ui_v3_el_grado_que_se_muestra">The grade shown is the consensus (with 3+ votes). The bolter\'s grade stays as a reference.</string>
     <string name="community_vote_ui_v3_tu"> · you ✓</string>
-    <string name="forecast_body_v3_hum">HUM</string>
+    <string name="forecast_body_v3_hum">DAMP</string>
     <string name="forecast_body_v3_prob_lluvia">RAIN PROB</string>
     <string name="forecast_body_v3_rocio">DEW</string>
     <string name="forecast_body_v3_lluvia_72h">RAIN 72H</string>
@@ -2437,4 +2437,5 @@
     <string name="share_meetup_school">Crag: %1$s</string>
     <string name="share_meetup_participants">%1$d participants</string>
     <string name="share_conditions_head">%1$s — conditions on Cumbre</string>
+    <string name="stats_streak_weeks_short">%1$d wk</string>
 </resources>
