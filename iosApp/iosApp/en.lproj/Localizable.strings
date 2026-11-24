@@ -986,7 +986,7 @@
 "Óptimo entre %@–%@" = "Optimal between %@–%@";
 "Lista para escalar" = "Ready to climb";
 "Mejor esperar a que seque" = "Better wait for it to dry";
-"VIENTO %@ km/h  ·  HUM %@%" = "WIND %@ km/h  ·  HUM %@%";
+"VIENTO %@ km/h  ·  HUM %@%" = "WIND %@ km/h  ·  HUMIDITY %@%";
 "CONDICIONES AHORA" = "CONDITIONS NOW";
 "LLUVIA 24H" = "RAIN 24H";
 "NUBES" = "CLOUDS";
@@ -994,7 +994,7 @@
 "ROCÍO" = "DEW";
 "PROB LLUVIA" = "RAIN PROB";
 "SECA" = "DRY";
-"HÚM" = "HUM";
+"HÚM" = "DAMP";
 "MÁX %@°  ·  MÍN %@°  ·  %@ mm" = "MAX %@°  ·  MIN %@°  ·  %@ mm";
 "Despejado" = "Clear";
 "Parcialmente nublado" = "Partly cloudy";
@@ -2555,3 +2555,14 @@
 "Lo revisará el equipo de Cumbre y te avisaremos cuando esté revisado. Mientras tanto, ya no lo verás." = "The Cumbre team will review it and let you know once it has been reviewed. Meanwhile you will not see it.";
 "¿Qué pasa?" = "What is wrong?";
 "Cuéntanos qué pasa (opcional)" = "Tell us what happened (optional)";
+"hold_color_blanco" = "White";
+"hold_color_amarillo" = "Yellow";
+"hold_color_naranja" = "Orange";
+"hold_color_verde" = "Green";
+"hold_color_azul" = "Blue";
+"hold_color_morado" = "Purple";
+"hold_color_rosa" = "Pink";
+"hold_color_rojo" = "Red";
+"hold_color_marron" = "Brown";
+"hold_color_gris" = "Gray";
+"hold_color_negro" = "Black";

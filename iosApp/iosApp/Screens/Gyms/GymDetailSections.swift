@@ -138,7 +138,7 @@ struct GymScaleSection: View {
                             VStack(spacing: 3) {
                                 RoundedRectangle(cornerRadius: 10).fill(GymPresentation.color(hex: lv.hex)).frame(height: 34)
                                     .overlay(RoundedRectangle(cornerRadius: 10).stroke(Cumbre.rule, lineWidth: 1))
-                                Text(GymPresentation.gradeRange(lv.gradeFrom, lv.gradeTo) ?? lv.name.capitalized)
+                                Text(GymPresentation.gradeRange(lv.gradeFrom, lv.gradeTo) ?? holdColorLabel(lv.name))
                                     .font(.system(size: 10)).foregroundStyle(Cumbre.ink2).lineLimit(1)
                             }
                             .frame(maxWidth: .infinity)

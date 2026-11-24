@@ -56,6 +56,13 @@ func aspectLabel(_ code: String) -> String {
     }
 }
 
+/// Color de presas guardado como texto ("azul", "Rojo"…): solo se traduce al mostrarlo; lo desconocido sale tal cual.
+func holdColorLabel(_ raw: String) -> String {
+    let k = raw.trimmingCharacters(in: .whitespaces).lowercased().replacingOccurrences(of: "ó", with: "o")
+    let known = ["blanco", "amarillo", "naranja", "verde", "azul", "morado", "rosa", "rojo", "marron", "gris", "negro"]
+    return known.contains(k) ? L("hold_color_" + k) : raw.capitalized
+}
+
 /// Tipo de roca del catálogo (llega en español del servidor); solo se traduce al mostrarlo.
 func rockLabel(_ raw: String) -> String {
     switch raw.trimmingCharacters(in: .whitespaces).lowercased() {

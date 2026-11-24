@@ -146,7 +146,7 @@ private fun BlocksTab(gym: Gym, ascents: List<GymAscent>, adjust: (String, Int) 
     if (scale != null) scale.levels.forEach { lv ->
         val n = GymTraining.countOf(blocks, lv.name)
         CounterRow(
-            label = lv.name.replaceFirstChar { it.uppercase() }, sub = GymPresentation.gradeRange(lv.gradeFrom, lv.gradeTo),
+            label = com.meteomontana.android.util.CatalogLabels.holdColor(lv.name), sub = GymPresentation.gradeRange(lv.gradeFrom, lv.gradeTo),
             swatch = parseHex(lv.hex), accent = parseHex(lv.hex), count = n,
             onMinus = { adjust(lv.name, -1) }, onPlus = { adjust(lv.name, 1) }
         )

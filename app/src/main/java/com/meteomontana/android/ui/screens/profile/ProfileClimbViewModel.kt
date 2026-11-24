@@ -177,7 +177,7 @@ class ProfileClimbViewModel @Inject constructor(
         val colorHex = { key: String -> gyms.values.firstNotNullOfOrNull { it.scale?.takeIf { s -> s.isColors }?.levelNamed(key)?.hex } }
         val segs = GymBreakdown.byGrade(summary.items).map { (g, n) -> BarSeg(g, null, g.uppercase(), n, GymAscentKeys.gradeRank(g)) } +
             GymBreakdown.byColor(summary.items).mapNotNull { a ->
-                colorHex(a.key)?.let { BarSeg(null, it, a.key.replaceFirstChar { c -> c.uppercase() }, a.count, 1000) }
+                colorHex(a.key)?.let { BarSeg(null, it, com.meteomontana.android.util.CatalogLabels.holdColor(a.key), a.count, 1000) }
             }
         val gymOrder = if (own) gymOrderPref.get() ?: summary.gymOrder else summary.gymOrder
         val sorted = summary.copy(byGym = GymOrder.sort(summary.byGym, GymOrder.parse(gymOrder), favorites))

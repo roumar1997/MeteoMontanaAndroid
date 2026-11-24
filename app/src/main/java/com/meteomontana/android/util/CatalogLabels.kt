@@ -65,6 +65,20 @@ object CatalogLabels {
         else -> code
     }
 
+    /** Nombre de un color de presas guardado como texto ("azul", "Rojo"…): solo se traduce al mostrarlo; lo desconocido sale tal cual. */
+    fun holdColor(key: String): String {
+        val id = when (key.trim().lowercase().replace("ó", "o")) {
+            "blanco" -> R.string.hold_color_blanco; "amarillo" -> R.string.hold_color_amarillo
+            "naranja" -> R.string.hold_color_naranja; "verde" -> R.string.hold_color_verde
+            "azul" -> R.string.hold_color_azul; "morado" -> R.string.hold_color_morado
+            "rosa" -> R.string.hold_color_rosa; "rojo" -> R.string.hold_color_rojo
+            "marron" -> R.string.hold_color_marron; "gris" -> R.string.hold_color_gris
+            "negro" -> R.string.hold_color_negro
+            else -> return key.replaceFirstChar { it.uppercase() }
+        }
+        return AppText.get(id)
+    }
+
     /** Estilo de una escuela: "Bloque", "Vía" o "Bloque y vía" (según el catálogo). */
     fun style(raw: String): String = raw.split(",").joinToString(", ") { one ->
         when (one.trim().lowercase()) {

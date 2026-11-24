@@ -51,7 +51,7 @@ final class CompareViewModel: ObservableObject {
                 temp: Int(c.temperature), wind: Int(c.windSpeed), humidity: Int(c.humidity),
                 rainProb: Int(c.precipitationProbability), dryRock: c.dryRock,
                 optimal: f.bestWindow.map { "\(shortHour($0.start))–\(shortHour($0.end))h" },
-                bestDay: f.bestDay?.label, school: s))
+                bestDay: f.bestDay.map { CumbreTheme.scoreLabel(Int($0.score)) }, school: s))
         }
         items = result
         loading = false

@@ -685,7 +685,7 @@
     <string name="feed_publish_sheet_v2_propuesta_enviada">PROPOSAL SENT</string>
     <string name="first_time_hint_v2_entendido">Got it</string>
     <string name="forecast_body_v2_en_1_sd_2_s">In %1$sd (%2$s)</string>
-    <string name="forecast_body_v2_viento_1_s_km_h">WIND %1$s km/h  ·  HUM %2$s%%</string>
+    <string name="forecast_body_v2_viento_1_s_km_h">WIND %1$s km/h  ·  HUMIDITY %2$s%%</string>
     <string name="forecast_body_v2_optimo_entre_1_s_2">Optimal between %1$s–%2$s</string>
     <string name="grade_filter_bar_v2_mostrando_1_s_vias_de">Showing %1$s routes out of %2$s</string>
     <string name="grade_filter_bar_v2_quitar_todo">CLEAR ALL</string>
@@ -2438,4 +2438,15 @@
     <string name="share_meetup_participants">%1$d participants</string>
     <string name="share_conditions_head">%1$s — conditions on Cumbre</string>
     <string name="stats_streak_weeks_short">%1$d wk</string>
+    <string name="hold_color_blanco">White</string>
+    <string name="hold_color_amarillo">Yellow</string>
+    <string name="hold_color_naranja">Orange</string>
+    <string name="hold_color_verde">Green</string>
+    <string name="hold_color_azul">Blue</string>
+    <string name="hold_color_morado">Purple</string>
+    <string name="hold_color_rosa">Pink</string>
+    <string name="hold_color_rojo">Red</string>
+    <string name="hold_color_marron">Brown</string>
+    <string name="hold_color_gris">Gray</string>
+    <string name="hold_color_negro">Black</string>
 </resources>

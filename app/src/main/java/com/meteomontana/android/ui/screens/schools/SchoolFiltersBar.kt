@@ -101,7 +101,7 @@ fun SchoolFiltersBar(
                 ChipRow(
                     items = ORIENTATIONS,
                     isSelected = { it in orientations },
-                    label = { it },
+                    label = { com.meteomontana.android.util.CatalogLabels.aspect(it) },
                     onClick = onToggleOrientation
                 )
             }
