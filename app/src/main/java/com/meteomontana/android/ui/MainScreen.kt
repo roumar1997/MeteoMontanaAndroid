@@ -408,7 +408,7 @@ fun MainScreen(
                         onNotifications = { openSheet(Routes.NOTIFICATIONS) },
                         onChats = { openSheet(Routes.CHAT_LIST) },
                         onCompare = { ids -> openSheet(Routes.compare(ids)) },
-                        onGymClick = { id -> openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.detail(id)) },
+                        onGymClick = { id -> openSheet(com.meteomontana.android.ui.navigation.GymNav.detail(id)) },
                         onOnboardingActive = { onboardingActive = it }
                     )
                     }
@@ -449,10 +449,10 @@ fun MainScreen(
                         onOpenMyPosts = { openSheet(Routes.myPosts()) },
                         onOpenStats = { openSheet(Routes.journalStats()) },
                         onOpenStatsTab = { tab -> openSheet(Routes.journalStats(tab = tab)) },
-                        onOpenGymTraining = { openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.TRAINING) },
-                        onOpenGymAscents = { openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.ascents()) },
-                        onOpenBoards = { openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.boards()) },
-                        onOpenGym = { openSheet(com.meteomontana.android.ui.screens.gyms.GymNav.detail(it)) }
+                        onOpenGymTraining = { openSheet(com.meteomontana.android.ui.navigation.GymNav.TRAINING) },
+                        onOpenGymAscents = { openSheet(com.meteomontana.android.ui.navigation.GymNav.ascents()) },
+                        onOpenBoards = { openSheet(com.meteomontana.android.ui.navigation.GymNav.boards()) },
+                        onOpenGym = { openSheet(com.meteomontana.android.ui.navigation.GymNav.detail(it)) }
                     )
                     }
                 }

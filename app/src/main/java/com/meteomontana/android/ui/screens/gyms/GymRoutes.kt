@@ -1,70 +1,56 @@
 package com.meteomontana.android.ui.screens.gyms
 
 import androidx.navigation.NavGraphBuilder
-import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.meteomontana.android.navigation.Routes
+import com.meteomontana.android.ui.navigation.Destination
+import com.meteomontana.android.ui.navigation.GymNav
+import com.meteomontana.android.ui.navigation.Navigator
 import com.meteomontana.android.ui.screens.meetups.CreateMeetupScreen
 import com.meteomontana.android.ui.screens.meetups.MeetupPrefill
+import com.meteomontana.android.ui.screens.profile.BoardsScreen
+import com.meteomontana.android.ui.screens.profile.GymAscentsScreen
+import com.meteomontana.android.ui.screens.profile.GymVisitScreen
 
 /**
- * Pantallas de rocódromos dentro del overlay (`SheetNavHost`): la ficha y «crear quedada aquí». Van en su propio
- * fichero para que SheetOverlay no crezca con cada función.
+ * Pantallas de rocódromos dentro del overlay (`SheetNavHost`): la ficha, el entrenamiento, las ascensiones,
+ * los boards, la visita, el chat y «crear quedada aquí». Las rutas viven en [GymNav] (contrato de navegación).
  */
-/** Rutas de rocódromos dentro del overlay: la ficha y «crear quedada aquí» (la quedada propone «Quedada en <rocódromo>»). */
-object GymNav {
-    const val DETAIL = "gyms/{gymId}"
-    fun detail(id: Long) = "gyms/$id"
-    const val TRAINING = "gym-training"
-    /** Ascensiones (por rocódromo, grado y mes) de una persona; sin uid, las mías. */
-    const val ASCENTS = "gym-ascents?uid={uid}"
-    fun ascents(uid: String? = null) = if (uid.isNullOrBlank()) "gym-ascents" else "gym-ascents?uid=$uid"
-    /** Todos los boards de una persona (de todos los rocódromos juntos); sin uid, los míos. */
-    const val BOARDS = "gym-boards?uid={uid}"
-    fun boards(uid: String? = null) = if (uid.isNullOrBlank()) "gym-boards" else "gym-boards?uid=$uid"
-    /** Lo que una persona hizo EN un rocódromo (sesiones y ascensiones); sin uid, lo mío. */
-    const val VISIT = "gym-visit/{gymId}?uid={uid}"
-    fun visit(gymId: Long, uid: String? = null) = "gym-visit/$gymId?uid=" + (uid?.let { android.net.Uri.encode(it) } ?: "")
-    const val CHAT = "gyms/{gymId}/chat?name={name}"
-    fun chat(id: Long, name: String) = "gyms/$id/chat?name=${android.net.Uri.encode(name)}"
-    const val MEETUP = "gyms/{gymId}/meetup?name={name}"
-    fun meetup(id: Long, name: String) = "gyms/$id/meetup?name=${android.net.Uri.encode(name)}"
-}
-
-fun NavGraphBuilder.gymRoutes(sheetNav: NavHostController, popSheetOrDismiss: () -> Unit) {
+fun NavGraphBuilder.gymRoutes(nav: Navigator) {
     composable(
         route = GymNav.DETAIL,
         arguments = listOf(navArgument("gymId") { type = NavType.StringType })
     ) { entry ->
         val gymId = entry.arguments?.getString("gymId")?.toLongOrNull() ?: -1L
         GymDetailScreen(
-            onBack = popSheetOrDismiss,
-            onCreateMeetup = { gym -> sheetNav.navigate(GymNav.meetup(gymId, gym.name)) },
-            onOpenChat = { gym -> sheetNav.navigate(GymNav.chat(gymId, gym.name)) }
+            onBack = nav::back,
+            onCreateMeetup = { gym -> nav.navigate(Destination.GymMeetup(gymId, gym.name)) },
+            onOpenChat = { gym -> nav.navigate(Destination.GymChat(gymId, gym.name)) }
         )
     }
-    composable(GymNav.TRAINING) { GymTrainingScreen(onBack = popSheetOrDismiss) }
+    composable(GymNav.TRAINING) { GymTrainingScreen(onBack = nav::back) }
     composable(
         route = GymNav.ASCENTS,
         arguments = listOf(navArgument("uid") { type = NavType.StringType; nullable = true; defaultValue = null })
     ) { entry ->
-        com.meteomontana.android.ui.screens.profile.GymAscentsScreen(
-            uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() },
-            onBack = popSheetOrDismiss,
-            onOpenBoards = { sheetNav.navigate(GymNav.boards(entry.arguments?.getString("uid")?.takeIf { u -> u.isNotBlank() })) },
-            onOpenGym = { sheetNav.navigate(GymNav.visit(it, entry.arguments?.getString("uid")?.takeIf { u -> u.isNotBlank() })) }
+        val uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() }
+        GymAscentsScreen(
+            uid = uid,
+            onBack = nav::back,
+            onOpenBoards = { nav.navigate(Destination.GymBoards(uid)) },
+            onOpenGym = { nav.navigate(Destination.GymVisit(it, uid)) }
         )
     }
     composable(
         route = GymNav.BOARDS,
         arguments = listOf(navArgument("uid") { type = NavType.StringType; nullable = true; defaultValue = null })
     ) { entry ->
-        com.meteomontana.android.ui.screens.profile.BoardsScreen(
-            uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() },
-            onBack = popSheetOrDismiss,
-            onOpenGym = { sheetNav.navigate(GymNav.visit(it, entry.arguments?.getString("uid")?.takeIf { u -> u.isNotBlank() })) }
+        val uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() }
+        BoardsScreen(
+            uid = uid,
+            onBack = nav::back,
+            onOpenGym = { nav.navigate(Destination.GymVisit(it, uid)) }
         )
     }
     composable(
@@ -74,11 +60,11 @@ fun NavGraphBuilder.gymRoutes(sheetNav: NavHostController, popSheetOrDismiss: ()
             navArgument("uid") { type = NavType.StringType; nullable = true; defaultValue = null }
         )
     ) { entry ->
-        com.meteomontana.android.ui.screens.profile.GymVisitScreen(
+        GymVisitScreen(
             uid = entry.arguments?.getString("uid")?.takeIf { it.isNotBlank() },
             gymId = entry.arguments?.getString("gymId")?.toLongOrNull() ?: -1L,
-            onBack = popSheetOrDismiss,
-            onOpenGym = { sheetNav.navigate(GymNav.detail(it)) }
+            onBack = nav::back,
+            onOpenGym = { nav.navigate(Destination.GymDetail(it)) }
         )
     }
     composable(
@@ -92,9 +78,9 @@ fun NavGraphBuilder.gymRoutes(sheetNav: NavHostController, popSheetOrDismiss: ()
             gymId = entry.arguments?.getString("gymId")?.toLongOrNull() ?: -1L,
             gymName = entry.arguments?.getString("name").orEmpty(),
             myUid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: "",
-            onBack = popSheetOrDismiss,
-            onOpenChat = { uid -> sheetNav.navigate(Routes.chat(uid)) },
-            onOpenProfile = { uid -> sheetNav.navigate(Routes.publicProfile(uid)) },
+            onBack = nav::back,
+            onOpenChat = { uid -> nav.navigate(Destination.Chat(uid)) },
+            onOpenProfile = { uid -> nav.navigate(Destination.PublicProfile(uid)) },
             bottomInset = com.meteomontana.android.ui.components.LocalTabBarInset.current
         )
     }
@@ -114,12 +100,9 @@ fun NavGraphBuilder.gymRoutes(sheetNav: NavHostController, popSheetOrDismiss: ()
                 ),
                 description = null, gymId = a?.getString("gymId")?.toLongOrNull()
             ),
-            onBack = popSheetOrDismiss,
-            onCreated = { id ->
-                sheetNav.popBackStack()
-                sheetNav.navigate(Routes.meetupDetail(id))
-            },
-            onEditProfile = { sheetNav.navigate(Routes.EDIT_PROFILE) }
+            onBack = nav::back,
+            onCreated = { id -> nav.replace(Destination.MeetupDetail(id)) },
+            onEditProfile = { nav.navigate(Destination.EditProfile) }
         )
     }
 }
