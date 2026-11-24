@@ -7,6 +7,10 @@
   },
   "steps": [
     {
+      "name": "Módulos Android paso 2: build-logic, :core:navigation y :core:designsystem (rama refactor/android-modulos-paso2; pendiente de probar en el móvil)",
+      "done": false
+    },
+    {
       "name": "Módulos Android paso 1: contrato de navegación (Destination/Navigator), grafo del overlay por función y ui/components sin depender de pantallas (rama refactor/android-modulos-paso1, vc132; pendiente de probar en el móvil)",
       "done": false
     },
