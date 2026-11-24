@@ -48,7 +48,7 @@ import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.domain.model.Note
 import com.meteomontana.android.domain.model.School
-import com.meteomontana.android.ui.components.BlocksSection
+import com.meteomontana.android.ui.screens.schools.map.BlocksSection
 import com.meteomontana.android.ui.components.MonthlyStatsSection
 import com.meteomontana.android.ui.components.NotesSection
 import com.meteomontana.android.ui.guide.guideTarget

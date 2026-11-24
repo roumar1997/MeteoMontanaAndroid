@@ -17,7 +17,7 @@ import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.BlockLine
 import com.meteomontana.android.domain.model.LineSearchHit
 import com.meteomontana.android.domain.model.School
-import com.meteomontana.android.ui.components.AscentSheet
+import com.meteomontana.android.ui.screens.detail.AscentSheet
 import com.meteomontana.android.ui.components.CommunityVoteViewModel
 import com.meteomontana.android.ui.screens.detail.guide.GuideActions
 import com.meteomontana.android.ui.screens.detail.guide.GuideScroller

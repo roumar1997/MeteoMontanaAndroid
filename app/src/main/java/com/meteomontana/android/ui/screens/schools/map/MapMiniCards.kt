@@ -1,5 +1,8 @@
-package com.meteomontana.android.ui.components
+package com.meteomontana.android.ui.screens.schools.map
 
+import com.meteomontana.android.ui.components.CumbreSearchField
+import com.meteomontana.android.ui.components.rememberKeyboardDismisser
+import com.meteomontana.android.ui.components.MochilaCard
 import androidx.compose.material3.HorizontalDivider
 import com.meteomontana.android.ui.theme.terraFillColor
 

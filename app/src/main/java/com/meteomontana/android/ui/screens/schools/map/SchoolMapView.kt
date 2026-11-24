@@ -1,5 +1,10 @@
-package com.meteomontana.android.ui.components
+package com.meteomontana.android.ui.screens.schools.map
 
+import com.meteomontana.android.ui.components.ApproachesSection
+import com.meteomontana.android.ui.components.rememberDeviceHeading
+import com.meteomontana.android.ui.components.MapViewLifecycleEffect
+import com.meteomontana.android.ui.components.SchoolPlacesRows
+import com.meteomontana.android.ui.components.rememberUserLocation
 import com.meteomontana.android.data.map.withMapLibre
 
 import com.meteomontana.android.util.AppText

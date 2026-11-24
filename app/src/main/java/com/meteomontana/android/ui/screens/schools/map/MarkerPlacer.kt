@@ -1,5 +1,16 @@
-package com.meteomontana.android.ui.components
+package com.meteomontana.android.ui.screens.schools.map
 
+import com.meteomontana.android.ui.components.fadedIf
+import com.meteomontana.android.ui.components.PIEDRA_COLOR
+import com.meteomontana.android.ui.components.cachedIcon
+import com.meteomontana.android.ui.components.ghostBitmap
+import com.meteomontana.android.ui.components.wallPointBitmap
+import com.meteomontana.android.ui.components.schoolBitmap
+import com.meteomontana.android.ui.components.parkingBitmap
+import com.meteomontana.android.ui.components.blockBitmap
+import com.meteomontana.android.ui.components.blockKindBitmap
+import com.meteomontana.android.ui.components.zoneBitmap
+import com.meteomontana.android.ui.components.userDotBitmap
 import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

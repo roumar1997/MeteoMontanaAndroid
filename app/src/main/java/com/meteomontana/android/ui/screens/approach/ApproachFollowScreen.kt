@@ -42,7 +42,7 @@ import com.meteomontana.android.domain.model.Approach
 import com.meteomontana.android.domain.model.ApproachPin
 import com.meteomontana.android.ui.components.MapViewLifecycleEffect
 import com.meteomontana.android.ui.components.FullScreenPhotoDialog
-import com.meteomontana.android.ui.components.parseWallPath
+import com.meteomontana.android.ui.screens.schools.map.parseWallPath
 import com.meteomontana.android.ui.components.pinBitmap
 import com.meteomontana.android.ui.components.rememberUserLocation
 import com.meteomontana.android.ui.theme.EyebrowTextStyle

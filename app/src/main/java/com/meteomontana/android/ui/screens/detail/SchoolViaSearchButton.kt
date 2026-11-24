@@ -28,7 +28,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.Block
-import com.meteomontana.android.ui.components.SchoolViaSearchBar
+import com.meteomontana.android.ui.screens.schools.map.SchoolViaSearchBar
 import com.meteomontana.android.ui.theme.Terra
 
 /**

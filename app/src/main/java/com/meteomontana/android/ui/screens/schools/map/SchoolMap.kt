@@ -1,5 +1,12 @@
-package com.meteomontana.android.ui.components
+package com.meteomontana.android.ui.screens.schools.map
 
+import com.meteomontana.android.ui.components.BlockDetailDialog
+import com.meteomontana.android.ui.screens.detail.CumbreSuccessDialog
+import com.meteomontana.android.ui.screens.detail.PendingTick
+import com.meteomontana.android.ui.components.GradeFilterBar
+import com.meteomontana.android.ui.components.OrientationFilterViewModel
+import com.meteomontana.android.ui.components.OrientationMenu
+import com.meteomontana.android.ui.screens.detail.PendingTickSheet
 import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
 import androidx.lifecycle.compose.collectAsStateWithLifecycle

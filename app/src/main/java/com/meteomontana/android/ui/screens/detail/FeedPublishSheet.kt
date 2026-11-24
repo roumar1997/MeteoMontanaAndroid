@@ -1,5 +1,18 @@
-package com.meteomontana.android.ui.components
+package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.ui.components.AscentPhotoButton
+import com.meteomontana.android.ui.components.formatShortDate
+import com.meteomontana.android.ui.components.AscentHeightRow
+import com.meteomontana.android.ui.components.HEIGHT_GUIDE
+import com.meteomontana.android.ui.components.effectiveShare
+import com.meteomontana.android.ui.components.AscentShareRow
+import com.meteomontana.android.ui.components.SUFFIXES
+import com.meteomontana.android.ui.components.ALL_GRADES
+import com.meteomontana.android.ui.components.nextGradeVote
+import com.meteomontana.android.ui.components.CumbreSheetShape
+import com.meteomontana.android.ui.components.cumbreSheetSurface
+import com.meteomontana.android.ui.components.LocalFeatureFlags
+import com.meteomontana.android.ui.components.gradeParts
 import com.meteomontana.android.util.CalendarLabels
 import com.meteomontana.android.domain.model.FeatureKey
 import com.meteomontana.android.ui.theme.terraFillColor
@@ -71,9 +84,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.Block
-import com.meteomontana.android.ui.screens.detail.SchoolDetailViewModel
-import com.meteomontana.android.ui.screens.detail.ProposeContributionFlow
-import com.meteomontana.android.ui.screens.detail.AddLinesFlow
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Spacing

@@ -1,4 +1,4 @@
-package com.meteomontana.android.ui.components
+package com.meteomontana.android.ui.screens.schools.map
 
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue

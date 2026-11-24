@@ -417,7 +417,7 @@ internal fun MapBody(
                 .padding(Spacing.sm)
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                com.meteomontana.android.ui.components.SideMapButton(
+                com.meteomontana.android.ui.screens.schools.map.SideMapButton(
                     active = true,
                     onClick = { isSatellite = !isSatellite }
                 ) {
@@ -431,7 +431,7 @@ internal fun MapBody(
                 // Botón de ubicación EN EL MAPA, igual que en iOS (Álvaro,
                 // 2026-10-01): con ubicación → icono relleno terracota; sin
                 // ella → pide el permiso o lleva a Ajustes si está denegado.
-                com.meteomontana.android.ui.components.SideMapButton(
+                com.meteomontana.android.ui.screens.schools.map.SideMapButton(
                     active = true,
                     onClick = onRequestLocation
                 ) {

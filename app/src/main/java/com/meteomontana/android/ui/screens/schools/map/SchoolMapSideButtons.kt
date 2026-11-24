@@ -1,8 +1,10 @@
-package com.meteomontana.android.ui.components
+package com.meteomontana.android.ui.screens.schools.map
 
 import com.meteomontana.android.util.AppText
-import androidx.compose.foundation.background
+import com.meteomontana.android.ui.theme.terraFillColor
+import com.meteomontana.android.data.map.MapStyles
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,9 +30,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -46,10 +45,9 @@ import android.net.Uri
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.CloseFullscreen
 import androidx.compose.material.icons.outlined.GpsFixed
+import androidx.compose.material.icons.outlined.NearMe
 import androidx.compose.material.icons.outlined.OpenInFull
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Map
@@ -67,6 +65,7 @@ import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.ui.screens.detail.SchoolDetailViewModel
 import com.meteomontana.android.ui.screens.detail.ProposeContributionFlow
 import com.meteomontana.android.ui.screens.detail.AddLinesFlow
+import com.meteomontana.android.ui.guide.guideTarget
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Spacing
@@ -85,55 +84,55 @@ import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import com.meteomontana.android.domain.util.Geo
 
-/** Hoja de ascenso al marcar una vía como hecha: guarda en el diario, publica si se pide y vota el grado. Sacada de SchoolMap (2026-11-05). */
+/** Botonera lateral del mapa de una escuela (estilo Radar): centrar, satélite/topográfico, capas y «dónde estoy». */
 @Composable
-internal fun PendingTickSheet(pt: PendingTick, viewModel: com.meteomontana.android.ui.screens.detail.SchoolDetailViewModel, onClose: () -> Unit) {
-    val fichaCtx = LocalContext.current
-    val ascentVoteVm: CommunityVoteViewModel = androidx.hilt.navigation.compose.hiltViewModel()
-    val myHeight by ascentVoteVm.myHeight.collectAsStateWithLifecycle()
-    androidx.compose.runtime.LaunchedEffect(Unit) { ascentVoteVm.loadMyHeight() }
-    AscentSheet(
-        lineName = pt.line.name.ifBlank { stringResource(R.string.school_map_v3_via_2, pt.index + 1) },
-        setterGrade = pt.line.grade,
-        wasProject = pt.wasProject,
-        myHeight = myHeight,
-        onSetHeight = { ascentVoteVm.setMyHeight(it) },
-        initialShare = com.meteomontana.android.data.local.FeedSharePref.enabled(fichaCtx),
-        onSave = { choice ->
-            onClose()
-            viewModel.viewModelScope.launch {
-                // Primero el diario (el voto de grado exige tener la vía en él), luego publicar y votar.
-                val r = viewModel.toggleLine(
-                    pt.block, pt.line, pt.index, pt.schoolName, pt.sectorName, markDone = true,
-                    sessionDate = choice.sessionDate, aVista = choice.aVista, alFlash = choice.alFlash, attempts = choice.attempts)
-                if (r.getOrNull() == true) {
-                    if (choice.publish) {
-                        viewModel.publishTickToFeed(
-                            pt.block, pt.line, pt.wasProject, choice.caption,
-                            photoUri = choice.photoUri?.toString(),
-                            onFeatureOff = { msg ->
-                                com.meteomontana.android.ui.components.showFeatureOffToast(fichaCtx, msg)
-                            },
-                            onPublishFailed = {
-                                android.widget.Toast.makeText(
-                                    fichaCtx,
-                                    AppText.get(R.string.school_map_v3_no_se_pudo_publicar_el),
-                                    android.widget.Toast.LENGTH_LONG
-                                ).show()
-                            },
-                            onPhotoUploadFailed = {
-                                android.widget.Toast.makeText(
-                                    fichaCtx, R.string.feed_photo_upload_failed,
-                                    android.widget.Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        )
-                    }
-                    val grade = choice.gradeVote
-                    if (grade != null && pt.line.id.isNotEmpty()) ascentVoteVm.voteGrade(pt.line.id, grade)
-                }
+internal fun SchoolMapSideButtons(
+    hiddenTypes: Set<String>,
+    onRecenter: () -> Unit,
+    onToggleStyle: () -> Unit,
+    onToggleLayer: (String) -> Unit,
+    /** null = sin ubicación (no sale el botón). */
+    onGoToMe: (() -> Unit)?,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        // ARRIBA a la derecha, bajo PROPONER — centrada se solapaba
+        // con el botón de ubicación (abajo a la derecha).
+        modifier = modifier
+            .padding(top = 48.dp, end = Spacing.sm, bottom = Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Re-centrar en la escuela (vuelta al encuadre inicial).
+        SideMapButton(active = true, onClick = onRecenter) {
+            androidx.compose.material3.Icon(
+                androidx.compose.material.icons.Icons.Outlined.GpsFixed,
+                contentDescription = stringResource(R.string.school_map_view_v2_centrar_en_la_escuela),
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(20.dp))
+        }
+        SideMapButton(active = true, onClick = onToggleStyle) {
+            androidx.compose.material3.Icon(
+                androidx.compose.material.icons.Icons.Outlined.Layers,
+                contentDescription = stringResource(R.string.school_map_view_topografico_satelite),
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(20.dp))
+        }
+        SideMapButton(active = "PARKING" !in hiddenTypes,
+            onClick = { onToggleLayer("PARKING") }) { ParkingShapeIcon() }
+        SideMapButton(active = "BLOCK" !in hiddenTypes,
+            onClick = { onToggleLayer("BLOCK") }) { StoneShapeIcon() }
+        SideMapButton(active = "ZONE" !in hiddenTypes,
+            onClick = { onToggleLayer("ZONE") }) { ZoneShapeIcon() }
+        if (onGoToMe != null) {
+            SideMapButton(active = true, onClick = onGoToMe) {
+                // Flecha de navegación (como la de iOS) en vez del circulito «◎».
+                androidx.compose.material3.Icon(
+                    androidx.compose.material.icons.Icons.Outlined.NearMe,
+                    contentDescription = null,
+                    tint = Color(0xFF1A56DB),
+                    modifier = Modifier.size(20.dp))
             }
-        },
-        onDismiss = { onClose() }
-    )
+        }
+    }
 }

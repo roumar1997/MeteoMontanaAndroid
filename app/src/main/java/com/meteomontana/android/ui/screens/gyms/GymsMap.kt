@@ -39,7 +39,7 @@ import com.meteomontana.android.domain.model.gym.GymLabelPlanner
 import com.meteomontana.android.domain.model.gym.GymMapItem
 import com.meteomontana.android.domain.model.gym.LabelCandidate
 import com.meteomontana.android.ui.components.MapViewLifecycleEffect
-import com.meteomontana.android.ui.components.SideMapButton
+import com.meteomontana.android.ui.screens.schools.map.SideMapButton
 import com.meteomontana.android.ui.components.userDotBitmap
 import com.meteomontana.android.ui.screens.schools.DARK_RASTER_STYLE
 import com.meteomontana.android.ui.screens.schools.OSM_RASTER_STYLE

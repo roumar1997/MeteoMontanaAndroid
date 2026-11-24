@@ -1,4 +1,4 @@
-package com.meteomontana.android.ui.components
+package com.meteomontana.android.ui.screens.schools.map
 
 import com.meteomontana.android.util.AppText
 import androidx.compose.foundation.background
