@@ -18,7 +18,7 @@ import com.meteomontana.android.ui.components.rainBlue
 @Composable
 internal fun SchoolDryPill(schoolId: String, dry: Boolean) {
     val vm: RockDryOutlookViewModel = hiltViewModel()
-    val outlook by produceState<RockDryOutlook?>(null, schoolId) { value = vm.outlook(schoolId) }
+    val outlook by produceState(vm.cached(schoolId), schoolId) { value = vm.outlook(schoolId) }
     val o = outlook
     val blue = rainBlue()
     val green = okColor()

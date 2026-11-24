@@ -28,6 +28,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.usecase.forecast.GetForecastUseCase
 import com.meteomontana.android.domain.usecase.forecast.RockDayState
@@ -45,10 +49,23 @@ private val DubiousAmber = Color(0xFFD9962B)
 /** Carga (y recuerda) la previsión de una escuela para pintar «seca en ~X h» en la tarjeta del mapa. */
 @HiltViewModel
 class RockDryOutlookViewModel @Inject constructor(private val getForecast: GetForecastUseCase) : ViewModel() {
-    private val cache = HashMap<String, RockDryOutlook?>()
+    private val cache = java.util.concurrent.ConcurrentHashMap<String, RockDryOutlook>()
+    // Una sola petición por escuela aunque varias tarjetas la pidan a la vez (al desplazar la lista).
+    private val inFlight = HashMap<String, Deferred<RockDryOutlook?>>()
+
+    /** Lo ya calculado, sin esperar: la tarjeta que vuelve a entrar en pantalla pinta el texto bueno a la primera. */
+    fun cached(schoolId: String): RockDryOutlook? = cache[schoolId]
 
     suspend fun outlook(schoolId: String): RockDryOutlook? {
-        if (cache.containsKey(schoolId)) return cache[schoolId]
+        cache[schoolId]?.let { return it }
+        val job = inFlight.getOrPut(schoolId) {
+            // El cálculo de la previsión sale del hilo principal.
+            viewModelScope.async(Dispatchers.Default) { load(schoolId) }
+        }
+        return try { job.await() } finally { if (job.isCompleted) inFlight.remove(schoolId) }
+    }
+
+    private suspend fun load(schoolId: String): RockDryOutlook? {
         val result = runCatching {
             val f = getForecast(schoolId)
             val today = java.time.LocalDate.now()
