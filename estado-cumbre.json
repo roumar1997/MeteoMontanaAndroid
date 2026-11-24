@@ -7,6 +7,10 @@
   },
   "steps": [
     {
+      "name": "Módulos Android paso 1: contrato de navegación (Destination/Navigator), grafo del overlay por función y ui/components sin depender de pantallas (rama refactor/android-modulos-paso1, vc132; pendiente de probar en el móvil)",
+      "done": false
+    },
+    {
       "name": "Ronda 19 rocódromos: fila «GRADOS» plegable que filtra la lista de cada board y comentarios del feed con el estilo del chat (Android probado en emulador, iOS probado)",
       "done": false
     },

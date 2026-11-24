@@ -67,6 +67,11 @@ fun NavGraphBuilder.gymRoutes(nav: Navigator) {
             onOpenGym = { nav.navigate(Destination.GymDetail(it)) }
         )
     }
+    gymSocialRoutes(nav)
+}
+
+/** Chat del rocódromo y «crear quedada aquí». */
+private fun NavGraphBuilder.gymSocialRoutes(nav: Navigator) {
     composable(
         route = GymNav.CHAT,
         arguments = listOf(

@@ -51,7 +51,6 @@ import com.meteomontana.android.navigation.Routes
 import com.meteomontana.android.navigation.Tab
 import com.meteomontana.android.navigation.mainTabs
 import com.meteomontana.android.ui.navigation.Destination
-import com.meteomontana.android.ui.navigation.LocalNavigator
 import com.meteomontana.android.ui.navigation.SheetNavigator
 import com.meteomontana.android.ui.screens.chat.chatRoutes
 import com.meteomontana.android.ui.screens.community.communityRoutes
@@ -149,7 +148,6 @@ private fun SheetNavHost(
         SheetNavigator(sheetNav, navController, popSheetOrDismiss)
     }
     androidx.compose.runtime.CompositionLocalProvider(
-        LocalNavigator provides nav,
         LocalOpenGym provides { id -> nav.navigate(Destination.GymDetail(id)) }
     ) {
         NavHost(

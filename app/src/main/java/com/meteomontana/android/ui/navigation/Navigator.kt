@@ -1,6 +1,5 @@
 package com.meteomontana.android.ui.navigation
 
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.navigation.NavHostController
 
 /** Puerto de navegación: las pantallas dicen ADÓNDE quieren ir, no CÓMO. */
@@ -13,9 +12,6 @@ interface Navigator {
     /** Sustituye la pantalla actual por [destination] (p. ej. al crear un grupo o una quedada). */
     fun replace(destination: Destination)
 }
-
-/** Navigator del overlay en curso, para las piezas que no reciben callbacks. */
-val LocalNavigator = staticCompositionLocalOf<Navigator?> { null }
 
 /**
  * Implementación del overlay: casi todo se apila en el NavHost del overlay

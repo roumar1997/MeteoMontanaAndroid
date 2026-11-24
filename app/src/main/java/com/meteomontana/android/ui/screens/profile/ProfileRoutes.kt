@@ -59,6 +59,11 @@ fun NavGraphBuilder.profileRoutes(nav: Navigator) {
             onOpenGym = { nav.navigate(Destination.GymVisit(it, statsUid)) }
         )
     }
+    journalRoutes(nav)
+}
+
+/** Diario: listados de ascensiones, escuelas, sectores y proyectos. */
+private fun NavGraphBuilder.journalRoutes(nav: Navigator) {
     composable(Routes.EDIT_PROFILE) { EditProfileScreen(onBack = nav::back) }
     composable(Routes.WEEKEND_ALERT) { WeekendAlertScreen(onBack = nav::back) }
     composable(
