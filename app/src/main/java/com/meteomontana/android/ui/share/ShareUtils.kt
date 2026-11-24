@@ -25,7 +25,7 @@ fun shareMeetup(
     inviteLink: String? = null
 ) {
     val daysText = days.joinToString(", ") { formatShareDay(it) }
-    val plazas = memberLimit?.let { AppText.get(R.string.share_utils_v4_plazas, memberCount, it) } ?: "$memberCount participantes"
+    val plazas = memberLimit?.let { AppText.get(R.string.share_utils_v4_plazas, memberCount, it) } ?: AppText.get(R.string.share_meetup_participants, memberCount)
     val discText = discipline?.let {
         when (it) {
             "BOULDER" -> AppText.get(R.string.share_utils_v4_bloque); "ROUTE" -> AppText.get(R.string.share_utils_v4_via); "BOTH" -> AppText.get(R.string.share_utils_v4_bloque_via); else -> ""
@@ -33,8 +33,8 @@ fun shareMeetup(
     } ?: ""
 
     val text = buildString {
-        append("Quedada: $meetupName\n")
-        schoolName?.let { append("Escuela: $it\n") }
+        append(AppText.get(R.string.share_meetup_name, meetupName)).append("\n")
+        schoolName?.let { append(AppText.get(R.string.share_meetup_school, it)).append("\n") }
         append("$daysText$discText · $plazas\n\n")
         if (!inviteLink.isNullOrBlank()) {
             append(AppText.get(R.string.share_utils_v4_unete_desde_aqui_n, inviteLink))

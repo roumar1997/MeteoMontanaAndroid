@@ -364,7 +364,7 @@ internal fun EntryRow(
                 // Escuela · Piedra N · sector · fecha («12 oct»): la fecha ya no es un botón escondido.
                 val subtitle = listOfNotNull(
                     e.schoolName?.takeIf { it.isNotBlank() },
-                    info?.boulderNumber?.takeIf { it.isNotBlank() }?.let { "Piedra $it" },
+                    info?.boulderNumber?.takeIf { it.isNotBlank() }?.let { AppText.get(R.string.journal_boulder_n, it) },
                     info?.sector?.takeIf { it.isNotBlank() },
                     shortJournalDate(e.date)
                 ).joinToString(" · ")

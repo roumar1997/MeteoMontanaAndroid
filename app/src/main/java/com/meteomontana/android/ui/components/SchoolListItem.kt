@@ -355,7 +355,7 @@ private fun RainSummaryTag(range: com.meteomontana.android.domain.model.RangeSco
         } else {
             val rainyDays = range.days.filter { it.rainy }.joinToString(" ") { weekdayLetter(it.date) }
             Text(
-                text = "LLUEVE $rainyDays",
+                text = stringResource(R.string.school_rain_days, rainyDays),
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp
                 ),
@@ -363,7 +363,7 @@ private fun RainSummaryTag(range: com.meteomontana.android.domain.model.RangeSco
             )
             if (range.maxRainMm > 0.0) {
                 Text(
-                    text = "máx %.1f mm".format(range.maxRainMm),
+                    text = stringResource(R.string.school_rain_max, range.maxRainMm),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

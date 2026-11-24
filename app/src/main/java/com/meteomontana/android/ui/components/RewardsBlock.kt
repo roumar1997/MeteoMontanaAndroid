@@ -311,14 +311,14 @@ fun RewardsBlock(uid: String?, viewModel: RewardsViewModel = hiltViewModel(key =
     LaunchedEffect(sheet) { if (sheet) viewModel.loadMineIds() }
     badgeInfo?.let { res ->
         androidx.compose.material3.AlertDialog(onDismissRequest = { badgeInfo = null },
-            confirmButton = { androidx.compose.material3.TextButton(onClick = { badgeInfo = null }) { Text("OK") } },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { badgeInfo = null }) { Text(androidx.compose.ui.res.stringResource(com.meteomontana.android.R.string.common_ok)) } },
             text = { Text(stringResource(res)) })
     }
     // En el perfil de otra persona, tocar su título cuenta qué es y cómo se consigue (Álvaro, 2026-10-19).
     var titleInfoOpen by remember { mutableStateOf(false) }
     if (titleInfoOpen) {
         androidx.compose.material3.AlertDialog(onDismissRequest = { titleInfoOpen = false },
-            confirmButton = { androidx.compose.material3.TextButton(onClick = { titleInfoOpen = false }) { Text("OK") } },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { titleInfoOpen = false }) { Text(androidx.compose.ui.res.stringResource(com.meteomontana.android.R.string.common_ok)) } },
             text = { Text(titleInfoText(rewards)) })
     }
 

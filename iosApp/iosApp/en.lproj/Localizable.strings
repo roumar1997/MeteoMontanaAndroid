@@ -2533,3 +2533,25 @@
 "gym_board_grades_toggle_cd" = "Show or hide the grades";
 "feed_comments_empty_title" = "Be the first to comment";
 "feed_comments_empty_sub" = "No comments yet. Cheer on whoever posted it.";
+
+/* i18n gaps */
+"group_chat_screen_v3_como_llegar" = "Get directions";
+"group_chat_screen_v4_invitar_al_grupo" = "Invite to the group";
+"group_chat_screen_v2_sin_material_indicado" = "No gear listed";
+"Acoso" = "Harassment";
+"ACTIVAR" = "TURN ON";
+"Sin ubicación — toca para activarla" = "No location — tap to turn it on";
+"ORIENTACIÓN" = "ORIENTATION";
+"Vías/Bloques" = "Routes/Boulders";
+"Sin filtro" = "No filter";
+"Buscando…" = "Searching…";
+"%@ vías/bloques encontrados" = "%@ routes/boulders found";
+"Mantén pulsada una escuela para compararla con otras (hasta 3). También puedes abrir HOY para ver un tramo de varios días." = "Long-press a school to compare it with others (up to 3). You can also open TODAY to see a multi-day range.";
+"Mostrar:" = "Show:";
+"Ofensivo o insultante" = "Offensive or insulting";
+"Foto inapropiada" = "Inappropriate photo";
+"Nombre o usuario ofensivo" = "Offensive name or username";
+"Gracias por avisar" = "Thanks for letting us know";
+"Lo revisará el equipo de Cumbre y te avisaremos cuando esté revisado. Mientras tanto, ya no lo verás." = "The Cumbre team will review it and let you know once it has been reviewed. Meanwhile you will not see it.";
+"¿Qué pasa?" = "What is wrong?";
+"Cuéntanos qué pasa (opcional)" = "Tell us what happened (optional)";

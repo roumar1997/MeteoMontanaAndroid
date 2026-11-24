@@ -2488,4 +2488,12 @@
         <item quantity="one">×%1$d en %2$d día</item>
         <item quantity="other">×%1$d en %2$d días</item>
     </plurals>
+    <string name="school_rain_days">LLUEVE %1$s</string>
+    <string name="school_rain_max">máx %1$.1f mm</string>
+    <string name="block_unnamed">SIN NOMBRE</string>
+    <string name="journal_boulder_n">Piedra %1$s</string>
+    <string name="share_meetup_name">Quedada: %1$s</string>
+    <string name="share_meetup_school">Escuela: %1$s</string>
+    <string name="share_meetup_participants">%1$d participantes</string>
+    <string name="share_conditions_head">%1$s — condiciones en Cumbre</string>
 </resources>

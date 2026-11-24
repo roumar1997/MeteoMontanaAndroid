@@ -813,3 +813,8 @@
 "gym_board_grades_toggle_cd" = "Mostrar u ocultar los grados";
 "feed_comments_empty_title" = "Sé el primero en comentar";
 "feed_comments_empty_sub" = "Aún no hay comentarios. Anima a quien lo ha subido.";
+
+/* i18n gaps */
+"group_chat_screen_v3_como_llegar" = "Cómo llegar";
+"group_chat_screen_v4_invitar_al_grupo" = "Invitar al grupo";
+"group_chat_screen_v2_sin_material_indicado" = "Sin material indicado";

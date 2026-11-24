@@ -106,7 +106,7 @@ fun StatsScreen(
                                     context = shareCtx,
                                     periodLabel = state.year?.let { y -> AppText.get(R.string.stats_screen_v3_mi_en_roca, y) }
                                         ?: AppText.get(R.string.stats_screen_v3_mi_diario_en_roca),
-                                    disciplineLabel = if (state.discipline == "ROUTE") AppText.get(R.string.add_block_sheet_v3_via) else "BLOQUE",
+                                    disciplineLabel = if (state.discipline == "ROUTE") AppText.get(R.string.add_block_sheet_v3_via) else AppText.get(R.string.w_boulder_caps2),
                                     summary = sum,
                                     maxGrade = sum.pyramid.firstOrNull()?.first,
                                     progression = state.progression

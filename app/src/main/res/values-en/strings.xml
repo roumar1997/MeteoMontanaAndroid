@@ -2429,4 +2429,12 @@
         <item quantity="one">×%1$d in %2$d day</item>
         <item quantity="other">×%1$d in %2$d days</item>
     </plurals>
+    <string name="school_rain_days">RAINS %1$s</string>
+    <string name="school_rain_max">max %1$.1f mm</string>
+    <string name="block_unnamed">UNNAMED</string>
+    <string name="journal_boulder_n">Boulder %1$s</string>
+    <string name="share_meetup_name">Meetup: %1$s</string>
+    <string name="share_meetup_school">Crag: %1$s</string>
+    <string name="share_meetup_participants">%1$d participants</string>
+    <string name="share_conditions_head">%1$s — conditions on Cumbre</string>
 </resources>
