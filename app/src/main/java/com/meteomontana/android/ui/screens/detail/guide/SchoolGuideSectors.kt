@@ -88,7 +88,7 @@ import com.meteomontana.android.ui.components.TopoPhotoCanvas
 import com.meteomontana.android.ui.components.startTypeLabel
 import com.meteomontana.android.ui.screens.detail.GradePill
 import com.meteomontana.android.ui.screens.detail.SchoolBlocksViewModel
-import com.meteomontana.android.ui.screens.topo.parseLineStroke
+import com.meteomontana.android.ui.components.parseLineStroke
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Mono
 import com.meteomontana.android.ui.theme.Ok

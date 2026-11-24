@@ -70,7 +70,7 @@ import com.meteomontana.android.domain.model.FeedPost
 import com.meteomontana.android.domain.usecase.feed.FeedKind
 import com.meteomontana.android.ui.components.TopoLine
 import com.meteomontana.android.ui.components.TopoPhotoCanvas
-import com.meteomontana.android.ui.screens.topo.parseLineStroke
+import com.meteomontana.android.ui.components.parseLineStroke
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import kotlinx.coroutines.launch
 

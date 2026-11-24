@@ -41,7 +41,7 @@ import com.meteomontana.android.domain.model.Block
 import com.meteomontana.android.domain.model.BlockLine
 import com.meteomontana.android.ui.components.TopoLine
 import com.meteomontana.android.ui.components.toTopoLines
-import com.meteomontana.android.ui.screens.topo.parseLineStroke
+import com.meteomontana.android.ui.components.parseLineStroke
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing

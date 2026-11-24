@@ -2,8 +2,8 @@ package com.meteomontana.android.ui.screens.detail
 
 import android.net.Uri
 import androidx.compose.ui.geometry.Offset
-import com.meteomontana.android.ui.screens.topo.LineStroke
-import com.meteomontana.android.ui.screens.topo.toJson
+import com.meteomontana.android.ui.components.LineStroke
+import com.meteomontana.android.ui.components.toJson
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID

@@ -171,7 +171,7 @@ internal fun SpotlightResults(
                         // P8: dedup de puntos consecutivos casi identicos — en
                         // trazos a mano antiguos los duplicados fusionaban los
                         // guiones y la linea salia CONTINUA solo aqui.
-                        val rawStroke = com.meteomontana.android.ui.screens.topo
+                        val rawStroke = com.meteomontana.android.ui.components
                             .parseLineStroke(h.linePath)
                         val stroke = rawStroke.copy(points = rawStroke.points
                             .filterIndexed { i, pt ->

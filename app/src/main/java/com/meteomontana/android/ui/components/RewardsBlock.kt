@@ -373,7 +373,7 @@ internal const val MIN_USERS_FOR_PERCENT = 5
 @Composable
 internal fun FeaturedAchievement(id: String?, rarity: AchievementRarity?) {
     val a = id?.let { AchievementsCalculator.byId(it) } ?: return
-    val color = com.meteomontana.android.ui.screens.profile.tierColor(a.tier)
+    val color = tierColor(a.tier)
     val enough = rarity != null && rarity.totalUsers >= MIN_USERS_FOR_PERCENT
     val pct = if (enough) rarity?.percentById?.get(a.id) ?: 0 else 0
     Column(
@@ -381,7 +381,7 @@ internal fun FeaturedAchievement(id: String?, rarity: AchievementRarity?) {
             .border(1.dp, color, RoundedCornerShape(8.dp)).padding(horizontal = 14.dp, vertical = 7.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("★ " + com.meteomontana.android.ui.screens.profile.achievementText(a), fontWeight = FontWeight.SemiBold, fontSize = 13.sp,
+        Text("★ " + achievementText(a), fontWeight = FontWeight.SemiBold, fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center)
         Text(
             stringResource(tierNameRes(a.tier)).uppercase() + if (enough) " · " + (if (pct < 1) stringResource(R.string.ach_pct_lt1) else stringResource(R.string.ach_pct, pct)) else "",
@@ -461,7 +461,7 @@ internal fun TierPick(title: String, color: Color, on: Boolean, count: Int, onCl
 @Composable
 internal fun AchievementPickRow(a: com.meteomontana.android.domain.usecase.journal.Achievement, rarity: AchievementRarity?,
                                on: Boolean, onClick: () -> Unit) {
-    val color = com.meteomontana.android.ui.screens.profile.tierColor(a.tier)
+    val color = tierColor(a.tier)
     val enough = rarity != null && rarity.totalUsers >= MIN_USERS_FOR_PERCENT
     val pct = if (enough) rarity?.percentById?.get(a.id) ?: 0 else 0
     val shape = RoundedCornerShape(10.dp)
@@ -473,7 +473,7 @@ internal fun AchievementPickRow(a: com.meteomontana.android.domain.usecase.journ
     ) {
         androidx.compose.foundation.layout.Box(Modifier.width(5.dp).height(56.dp).background(color))
         Column(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            Text(com.meteomontana.android.ui.screens.profile.achievementText(a), fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
+            Text(achievementText(a), fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurface)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 TierChip(stringResource(tierNameRes(a.tier)).uppercase(), color, true)

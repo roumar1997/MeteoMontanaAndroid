@@ -27,7 +27,7 @@ import com.meteomontana.android.domain.model.BlockLine
 import com.meteomontana.android.domain.model.DrawOp
 import com.meteomontana.android.domain.util.TopoLineData
 import com.meteomontana.android.domain.util.renderTopo
-import com.meteomontana.android.ui.screens.topo.parseLineStroke
+import com.meteomontana.android.ui.components.parseLineStroke
 import org.json.JSONArray
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.R

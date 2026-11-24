@@ -1,4 +1,4 @@
-package com.meteomontana.android.ui.screens.topo
+package com.meteomontana.android.ui.components
 
 import androidx.compose.ui.geometry.Offset
 import org.json.JSONArray

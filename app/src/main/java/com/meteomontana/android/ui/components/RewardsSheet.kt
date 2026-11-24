@@ -128,7 +128,7 @@ internal fun RewardsSheet(rewards: UserRewards, mineIds: Set<String>?, rarity: A
             ) {
                 Text(stringResource(R.string.featured_pick), style = EyebrowTextStyle, color = Terra, modifier = Modifier.weight(1f))
                 Text(rewards.featuredAchievement?.let { AchievementsCalculator.byId(it) }
-                    ?.let { com.meteomontana.android.ui.screens.profile.achievementText(it) } ?: stringResource(R.string.featured_none),
+                    ?.let { achievementText(it) } ?: stringResource(R.string.featured_none),
                     fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
                     modifier = Modifier.weight(1f, fill = false).padding(horizontal = 8.dp))
                 Text(if (featuredOpen) "▴" else "▾", color = Terra)
@@ -143,7 +143,7 @@ internal fun RewardsSheet(rewards: UserRewards, mineIds: Set<String>?, rarity: A
                     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         TierPick(stringResource(R.string.ach_filter_all), Terra, tierFilter == null, allUnlocked.size) { tierFilter = null }
                         allUnlocked.map { it.tier }.distinct().sortedBy { it.ordinal }.forEach { t ->
-                            TierPick(stringResource(tierNameRes(t)).uppercase(), com.meteomontana.android.ui.screens.profile.tierColor(t),
+                            TierPick(stringResource(tierNameRes(t)).uppercase(), tierColor(t),
                                 tierFilter == t.ordinal, allUnlocked.count { it.tier == t }) { tierFilter = if (tierFilter == t.ordinal) null else t.ordinal }
                         }
                     }

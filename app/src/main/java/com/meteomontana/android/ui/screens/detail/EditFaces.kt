@@ -116,7 +116,7 @@ internal fun initialEditFaces(block: Block): List<EditFace> =
                     BoulderBloqueForm(
                         name = l.name, grade = l.grade,
                         startType = startTypeForBoulderUi(l.startType?.toString()),
-                        linePath = com.meteomontana.android.ui.screens.topo.parseLineStroke(l.linePath).points,
+                        linePath = com.meteomontana.android.ui.components.parseLineStroke(l.linePath).points,
                         existingLineId = l.id,
                         description = l.lineDescription,
                         variant = l.variant

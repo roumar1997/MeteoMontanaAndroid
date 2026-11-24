@@ -41,7 +41,6 @@ import coil.compose.AsyncImage
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.FileRef
 import com.meteomontana.android.domain.model.Note
-import com.meteomontana.android.ui.screens.community.relativeTime
 
 /** Foto redonda con la aureola de su titulo (o la inicial si no tiene foto): la misma que el feed. */
 @Composable

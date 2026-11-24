@@ -1,6 +1,7 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.community
 
+import com.meteomontana.android.ui.components.relativeTime
 import com.meteomontana.android.ui.components.SkeletonList
 import com.meteomontana.android.ui.components.SkeletonPersonRow
 import com.meteomontana.android.ui.components.VerifiedCheck
@@ -68,7 +69,7 @@ import com.meteomontana.android.domain.model.FeedPost
 import com.meteomontana.android.domain.usecase.feed.FeedKind
 import com.meteomontana.android.ui.components.TopoLine
 import com.meteomontana.android.ui.components.TopoPhotoCanvas
-import com.meteomontana.android.ui.screens.topo.parseLineStroke
+import com.meteomontana.android.ui.components.parseLineStroke
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.screens.chat.chatBubbleSurface
 import kotlinx.coroutines.launch

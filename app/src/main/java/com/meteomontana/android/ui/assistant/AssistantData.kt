@@ -102,7 +102,7 @@ class AssistantData @Inject constructor(
         val schools = runCatching { getSchools() }.getOrDefault(emptyList())
         val places = schools.associate { it.id to SchoolPlace(it.region, it.country) }
         return p.achievementsText(AchievementsCalculator.compute(journal, places, today)) {
-            com.meteomontana.android.ui.screens.profile.achievementText(it, AppLanguage.wrap(context).resources)
+            com.meteomontana.android.ui.components.achievementText(it, AppLanguage.wrap(context).resources)
         }
     }
 

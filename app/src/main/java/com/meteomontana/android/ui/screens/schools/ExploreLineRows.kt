@@ -229,7 +229,7 @@ internal fun ExploreLineRow(
 @Composable
 internal fun MiniTopoThumbnail(photoUrl: String, linePath: String?, grade: String?, modifier: Modifier = Modifier) {
     val points = remember(linePath) {
-        val raw = com.meteomontana.android.ui.screens.topo.parseLineStroke(linePath).points
+        val raw = com.meteomontana.android.ui.components.parseLineStroke(linePath).points
         val out = mutableListOf<androidx.compose.ui.geometry.Offset>()
         raw.forEach { pt ->
             val last = out.lastOrNull()

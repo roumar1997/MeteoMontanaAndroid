@@ -4,7 +4,7 @@ import com.meteomontana.android.domain.model.LineSearchHit
 import com.meteomontana.android.domain.usecase.schools.GuideBlock
 import com.meteomontana.android.domain.usecase.schools.GuideSector
 import com.meteomontana.android.domain.util.gradeScore
-import com.meteomontana.android.ui.screens.topo.parseLineStroke
+import com.meteomontana.android.ui.components.parseLineStroke
 import com.meteomontana.android.domain.util.TopoLineData
 
 /** Una cara de la piedra: una foto y las vías dibujadas sobre ELLA (numeradas 1, 2, 3… como en la ficha). */
