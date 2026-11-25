@@ -114,6 +114,7 @@ internal fun CumbreSuccessDialog(
         onDismissRequest = onClose,
         properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        com.meteomontana.android.ui.components.DialogSystemBars()
         Box(
             modifier = Modifier
                 .fillMaxWidth()
