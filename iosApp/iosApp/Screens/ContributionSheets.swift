@@ -36,7 +36,7 @@ struct ContributionTypePicker: View {
                         L("Tienes una piedra sin terminar en esta escuela. Sigue donde lo dejaste."),
                         "arrow.uturn.backward.circle", enabled: true) { onPick("BOULDER_DRAFT") }
                 }
-                row(L("PIEDRA"), L("Una roca con sus vías. Podrás añadir fotos y dibujar las líneas."), "mountain.2.fill", enabled: true) { onPick("BOULDER") }
+                row(L("PIEDRA"), L("Una roca con sus bloques o vías. Podrás añadir fotos y dibujar las líneas."), "mountain.2.fill", enabled: true) { onPick("BOULDER") }
                 // Atajo: si la foto sabe donde se hizo, la piedra se coloca
                 // sola y no hay que tocar el mapa. Aqui la escuela ya se
                 // conoce, asi que -a diferencia del mismo atajo desde la lista

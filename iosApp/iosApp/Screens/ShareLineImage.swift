@@ -96,7 +96,7 @@ enum ShareLineImage {
             border.lineWidth = 3; border.stroke()
 
             // ── Cabecera ────────────────────────────────────────────────────
-            let kind = block.discipline.uppercased() == "ROUTE" ? L("VÍA") : L("BLOQUE")
+            let kind = block.discipline.uppercased() == "ROUTE" ? lineNoun("ROUTE").uppercased() : L("BLOQUE")
             drawText(L("%@ EN CUMBRE", kind), at: CGRect(x: pad, y: 60, width: availW, height: 44),
                      font: mono(30, bold: true), color: terra, kern: 4, align: .left)
 
@@ -159,7 +159,7 @@ enum ShareLineImage {
                 let gradeW: CGFloat = gradeTxt != nil
                     ? (gradeTxt! as NSString).size(withAttributes: [.font: gradeFont]).width + 18 : 0
                 let tx = pad + 56
-                let nm = (l.name?.isEmpty == false) ? l.name! : L("Vía %@", idx + 1)
+                let nm = (l.name?.isEmpty == false) ? l.name! : "\(lineNoun(block.discipline, capitalised: true)) \(idx + 1)"
                 drawText(nm, at: CGRect(x: tx, y: listY, width: rightLimit - tx - gradeW, height: 48),
                          font: nameFont, color: ink, kern: 0, align: .left)
                 if let g = gradeTxt {
@@ -169,7 +169,7 @@ enum ShareLineImage {
                 listY += rowH
             }
             if lines.count > maxRows {
-                drawText(L("+%@ vías más", lines.count - maxRows),
+                drawText(L("+%@ %@ más", lines.count - maxRows, lineNoun(block.discipline, plural: true)),
                          at: CGRect(x: pad + 56, y: listY, width: availW - 56, height: 48),
                          font: UIFont.systemFont(ofSize: 32), color: inkSoft, kern: 0, align: .left)
                 listY += rowH
@@ -266,7 +266,7 @@ enum ShareLineImage {
     private static func shareLineText(block: Block, line: BlockLine, schoolName: String?,
                                       sectorName: String? = nil, appWording: Bool = false) -> String {
         let isRoute = block.discipline.uppercased() == "ROUTE"
-        let kind = isRoute ? L("vía") : "bloque"
+        let kind = lineNoun(block.discipline)
         let article = isRoute ? "esta" : "este"
         let grade = (line.grade?.isEmpty == false) ? " \(line.grade!)" : ""
         var place = block.name

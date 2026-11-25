@@ -18,7 +18,7 @@ class StonePhotoWords(lang: String) {
     val open = t("ABRIR", "OPEN")
     val stop = t("Parar", "Stop")
     val close = t("Cerrar", "Close")
-    val noLines = t("Esta piedra aún no tiene vías para abrir.", "This boulder has no climbs to open yet.")
+    val noLines = t("Esta piedra aún no tiene ascensos para abrir.", "This boulder has no climbs to open yet.")
     val noPhotoToCompare = t("sin foto para comparar", "no photo to compare")
     val byLooksOnly = t(
         "La foto no dice dónde se hizo: la he comparado con las piedras de la escuela, solo por cómo se ven.",

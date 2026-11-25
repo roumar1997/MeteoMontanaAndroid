@@ -10,12 +10,12 @@ extension BoulderFormSheet {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("Rellena los datos de la piedra. Podrás añadir fotos y dibujar las líneas de cada vía sobre ellas.")
+                    Text(L("Rellena los datos de la piedra. Podrás añadir fotos y dibujar las líneas de cada ascenso sobre ellas."))
                         .font(.system(size: 13)).foregroundStyle(Cumbre.ink2)
 
                     FirstTimeHint(
                         hintKey: "boulder_form_guide",
-                        text: L("Pasos: 1) Añade una foto de la piedra, 2) marca sus vías con grado, 3) dibuja las líneas sobre la foto, 4) envía.")
+                        text: L("Pasos: 1) Añade una foto de la piedra, 2) marca sus ascensos con grado, 3) dibuja las líneas sobre la foto, 4) envía.")
                     )
 
                     // ── Modalidad: BLOQUE o VÍA ────────────────────────────────────

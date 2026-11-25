@@ -81,7 +81,7 @@ fun AssistantPresenter.bySector(hits: List<LineSearchHit>): List<HitSector> {
 
 fun AssistantPresenter.hitsIntro(total: Int, needsLocationForDistance: Boolean, rated: Boolean = false): String {
     var text = if (rated) {
-        if (total == 0) t("Todavía nadie ha valorado vías con esos filtros.", "Nobody has rated routes with those filters yet.")
+        if (total == 0) t("Todavía nadie ha valorado ascensos con esos filtros.", "Nobody has rated climbs with those filters yet.")
         else t("Las mejor valoradas ($total):", "Top rated ($total):")
     } else {
         if (total == 0) t("No he encontrado vías o bloques con esos filtros.", "I found no routes or boulders with those filters.")

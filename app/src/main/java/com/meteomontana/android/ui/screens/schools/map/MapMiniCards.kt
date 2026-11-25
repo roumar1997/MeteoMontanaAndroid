@@ -3,6 +3,8 @@ package com.meteomontana.android.ui.screens.schools.map
 import com.meteomontana.android.ui.components.CumbreSearchField
 import com.meteomontana.android.ui.components.rememberKeyboardDismisser
 import com.meteomontana.android.ui.components.MochilaCard
+import com.meteomontana.android.util.AppText
+
 import androidx.compose.material3.HorizontalDivider
 import com.meteomontana.android.ui.theme.terraFillColor
 
@@ -314,7 +316,7 @@ internal fun MiniBlockCard(
     val kindText = buildString {
         append(if (isParking) "Parking" else "Sector")
         if (!isParking && stoneCount > 0) append(stringResource(R.string.map_mini_cards_v3_piedra, stoneCount, if (stoneCount == 1) "" else "s"))
-    }.let { base -> if (isStone) stringResource(R.string.map_card_stone_lines, block.lines.size) else base }
+    }.let { base -> if (isStone) stringResource(R.string.map_card_stone_lines, AppText.lineCount(block.lines.size, block.discipline)) else base }
     val shape = RoundedCornerShape(24.dp)
     val hasStonesButton = !isParking && !isStone && stoneCount > 0
 

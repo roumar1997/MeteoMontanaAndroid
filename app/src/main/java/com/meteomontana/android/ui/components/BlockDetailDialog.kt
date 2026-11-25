@@ -383,13 +383,13 @@ fun BlockDetailDialog(
                 if (onTickLine != null && !isProposal && block.lines.isNotEmpty()) {
                     com.meteomontana.android.ui.components.FirstTimeHint(
                         hintKey = "via_tick",
-                        text = stringResource(R.string.block_detail_dialog_v4_toca_el_circulo_de_una)
+                        text = stringResource(if (block.discipline.equals("ROUTE", true)) R.string.block_detail_dialog_v4_toca_el_circulo_de_una else R.string.block_detail_dialog_v4_toca_el_circulo_de_una_boulder)
                     )
                 }
                 if (onToggleProject != null && !isProposal && block.lines.isNotEmpty()) {
                     com.meteomontana.android.ui.components.FirstTimeHint(
                         hintKey = "via_project",
-                        text = stringResource(R.string.block_detail_dialog_v4_toca_la_p_de_una)
+                        text = stringResource(if (block.discipline.equals("ROUTE", true)) R.string.block_detail_dialog_v4_toca_la_p_de_una else R.string.block_detail_dialog_v4_toca_la_p_de_una_boulder)
                     )
                 }
                 // Las caras, en su orden (el mismo de las pestañas de salto de arriba).

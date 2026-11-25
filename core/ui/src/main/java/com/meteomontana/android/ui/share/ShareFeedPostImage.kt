@@ -135,7 +135,7 @@ private suspend fun renderPostToUri(context: Context, post: FeedPost): Uri? {
 private fun kindEyebrow(post: FeedPost): String = when (post.kind) {
     FeedKind.PROJECT_DONE -> AppText.get(R.string.share_feed_post_image_v4_proyecto_conseguido)
     FeedKind.NEW_BLOCK -> AppText.get(R.string.share_feed_post_image_v4_piedra_nueva)
-    FeedKind.NEW_LINE -> AppText.get(R.string.share_feed_post_image_v4_via_nueva)
+    FeedKind.NEW_LINE -> AppText.get(com.meteomontana.android.ui.components.newLineLabelRes(post.discipline))
     else -> when {
         post.discipline.equals("ROUTE", ignoreCase = true) -> AppText.get(R.string.share_feed_post_image_v4_via_hecha)
         post.discipline.equals("BOULDER", ignoreCase = true) -> AppText.get(R.string.share_feed_post_image_v4_bloque_hecho)

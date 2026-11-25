@@ -59,7 +59,7 @@ extension AssistantViewModel {
             guard let id = hit.lineId, let summary = try? await container.getGradeVotes.invoke(lineId: id) else { continue }
             lines.append(AssistantPresenter.heightGradeLine(name: hit.lineName ?? hit.blockName, summary: summary))
         }
-        return lines.isEmpty ? L("No he encontrado votos de grado para esas vías.") : lines.joined(separator: "\n")
+        return lines.isEmpty ? L("No he encontrado votos de grado para esos ascensos.") : lines.joined(separator: "\n")
     }
 
     // MARK: - Foto de una piedra

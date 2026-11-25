@@ -418,14 +418,14 @@ final class AssistantViewModel: ObservableObject {
         }
         // Apuntar en el diario: se busca la vía por su nombre y se pide confirmar CUÁL.
         guard let name = u?.q, !name.isEmpty else {
-            messages.append(AssistantMessage(isUser: false, text: L("¿Qué vía quieres apuntar? Dime su nombre."), chips: chips))
+            messages.append(AssistantMessage(isUser: false, text: L("¿Qué ascenso quieres apuntar? Dime su nombre."), chips: chips))
             return
         }
         let status = kind == "LOG_PROJECT" ? "PROJECT" : "DONE"
         let found = try await container.searchLines.invoke(query: name)
         let matches = AssistantActions.shared.matchLines(hits: found, name: name, schoolId: answer.resolvedSchool?.id)
         guard !matches.isEmpty else {
-            messages.append(AssistantMessage(isUser: false, text: L("No encuentro ninguna vía llamada «%@».", name), chips: chips))
+            messages.append(AssistantMessage(isUser: false, text: L("No encuentro ningún ascenso llamado «%@».", name), chips: chips))
             return
         }
         let journal = (try? await container.getMyJournal.invoke()) ?? []
@@ -462,7 +462,7 @@ final class AssistantViewModel: ObservableObject {
         }
         guard !actions.isEmpty else {
             messages.append(AssistantMessage(
-                isUser: false, text: L("No encuentro ninguna de esas vías: %@.", missing.joined(separator: ", ")), chips: chips))
+                isUser: false, text: L("No encuentro ninguno de esos ascensos: %@.", missing.joined(separator: ", ")), chips: chips))
             return
         }
         messages.append(AssistantMessage(

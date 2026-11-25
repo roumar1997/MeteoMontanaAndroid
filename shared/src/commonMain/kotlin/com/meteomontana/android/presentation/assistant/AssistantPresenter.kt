@@ -167,8 +167,8 @@ class AssistantPresenter(lang: String, internal val labels: AssistantLabels) {
         if (missing.isEmpty()) return head
         return head + " " + t("No encuentro: ${missing.joinToString(", ")}.", "I can't find: ${missing.joinToString(", ")}.")
     }
-    fun noneOfTheseFound(names: List<String>) = t("No encuentro ninguna de esas vías: ${names.joinToString(", ")}.",
-        "I can't find any of those routes: ${names.joinToString(", ")}.")
+    fun noneOfTheseFound(names: List<String>) = t("No encuentro ninguno de esos ascensos: ${names.joinToString(", ")}.",
+        "I can't find any of those climbs: ${names.joinToString(", ")}.")
     fun couldNotLog(name: String) = t("No se pudo apuntar «$name».", "Couldn't log “$name”.")
     fun logAll(count: Int) = t("Apuntar las $count", "Log all $count")
     fun doneWord() = t("hecha", "sent")
@@ -183,7 +183,7 @@ class AssistantPresenter(lang: String, internal val labels: AssistantLabels) {
         val place = "$name$grade · ${hit.schoolName}"
         val day = dateRange(date, null)
         return if (kind == "LOG_PROJECT") t("¿Apunto «$place» como proyecto el $day?", "Log “$place” as a project on $day?")
-        else t("¿Apunto «$place» como hecha el $day?", "Log “$place” as sent on $day?")
+        else t("¿Apunto «$place» como hecho el $day?", "Log “$place” as sent on $day?")
     }
 
     /** Lo que se le dice al usuario cuando la acción ya está hecha. */
@@ -388,7 +388,7 @@ class AssistantPresenter(lang: String, internal val labels: AssistantLabels) {
             ).joinToString(" · ")
         }
     }
-    fun noHeightVotes() = t("No he encontrado votos de grado para esas vías.", "I haven't found grade votes for those routes.")
+    fun noHeightVotes() = t("No he encontrado votos de grado para esos ascensos.", "I haven't found grade votes for those climbs.")
 
     // ── Objetivo y logros ─────────────────────────────────────────────────────────────────────────────────────────
 
@@ -436,8 +436,8 @@ class AssistantPresenter(lang: String, internal val labels: AssistantLabels) {
 
     fun connectError() = t("No se pudo conectar. Inténtalo otra vez.", "Couldn't connect. Try again.")
     fun cantAnswer() = t("Ahora mismo no puedo responder.", "I can't answer right now.")
-    fun whichLineToLog() = t("¿Qué vía quieres apuntar? Dime su nombre.", "Which route do you want to log? Tell me its name.")
-    fun noLineNamed(name: String) = t("No encuentro ninguna vía llamada «$name».", "I can't find any route called “$name”.")
+    fun whichLineToLog() = t("¿Qué ascenso quieres apuntar? Dime su nombre.", "Which climb do you want to log? Tell me its name.")
+    fun noLineNamed(name: String) = t("No encuentro ningún ascenso llamado «$name».", "I can't find any climb called “$name”.")
     fun alreadyLogged(name: String) = t("Ya tienes «$name» apuntada.", "You already have “$name” logged.")
     fun whichOfTheseToLog() = t("¿Cuál de estas quieres apuntar?", "Which of these do you want to log?")
     fun couldNotDo() = t("No se pudo hacer. Inténtalo otra vez.", "That didn't work. Please try again.")
@@ -446,8 +446,8 @@ class AssistantPresenter(lang: String, internal val labels: AssistantLabels) {
         "You already have 3 schools in your weekend alert. Remove one in the weather alert settings.")
     fun weekendAlertDone(school: String) = t("Hecho: te avisaré del fin de semana en $school.", "Done: I'll alert you about the weekend at $school.")
     fun loggedOffline(line: String) = t("Sin conexión: apuntaré «$line» cuando vuelvas a tener red.", "Offline: I'll log “$line” when you're back online.")
-    fun loggedDone(line: String) = t("Hecho: «$line» apuntada como hecha.", "Done: “$line” logged as sent.")
-    fun loggedProject(line: String) = t("Hecho: «$line» apuntada como proyecto.", "Done: “$line” logged as a project.")
+    fun loggedDone(line: String) = t("Hecho: «$line» apuntado como hecho.", "Done: “$line” logged as sent.")
+    fun loggedProject(line: String) = t("Hecho: «$line» apuntado como proyecto.", "Done: “$line” logged as a project.")
 
     // ── Chat ──────────────────────────────────────────────────────────────────────────────────────────────────
 

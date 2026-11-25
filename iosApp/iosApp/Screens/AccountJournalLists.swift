@@ -120,7 +120,7 @@ struct AccountBlocksList: View {
                 EmptyStateView(
                     icon: "book",
                     title: routeOnly == true ? L("Aún no has registrado vías") : L("Aún no has registrado bloques"),
-                    message: L("Marca el ✓ de una vía dentro de su piedra (en el detalle de una escuela) y aparecerá aquí.")
+                    message: L("Marca el ✓ de un ascenso dentro de su piedra (en el detalle de una escuela) y aparecerá aquí, con su grado y sector.")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -128,7 +128,7 @@ struct AccountBlocksList: View {
                     LazyVStack(spacing: 0) {
                         FirstTimeHint(
                             hintKey: "journal_tap_via",
-                            text: L("Toca una vía para ir directamente a su piedra en la escuela.")
+                            text: L("Toca un ascenso para ir directamente a su piedra en la escuela.")
                         )
                         // Filtro por GRADO. Estaba escrito en JournalView, que
                         // es una pantalla a la que no se llega desde el perfil:

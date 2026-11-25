@@ -113,7 +113,7 @@
     <string name="w_boulder_caps2">BLOQUE</string>
     <string name="share_line_image_v2_1_s_en_cumbre">%1$s EN CUMBRE</string>
     <string name="w_project_caps">PROYECTO</string>
-    <string name="share_line_image_v2_1_s_vias_mas">+%1$s vías más</string>
+    <string name="share_line_image_v2_1_s_vias_mas">+%1$s %2$s más</string>
     <string name="share_utils_v4_perfil_de_en_cumbre_n">Perfil de %1$s en Cumbre:\n</string>
     <string name="share_utils_v3_compartir_perfil">Compartir perfil</string>
     <string name="share_profile_image_v2_escala_conmigo_en_cumbre">ESCALA CONMIGO EN CUMBRE</string>
@@ -203,4 +203,7 @@
     <string name="hold_color_marron">Marron</string>
     <string name="hold_color_gris">Gris</string>
     <string name="hold_color_negro">Negro</string>
+    <string name="feed_kind_new_line_boulder">BLOQUE NUEVO</string>
+    <string name="feed_kind_new_line_route">VÍA NUEVA</string>
+    <string name="feed_kind_new_line_generic">ASCENSO NUEVO</string>
 </resources>

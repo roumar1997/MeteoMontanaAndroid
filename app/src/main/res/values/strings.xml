@@ -44,10 +44,9 @@
     <string name="feed_kind_tick">HECHO</string>
     <string name="feed_kind_project_done">PROYECTO CONSEGUIDO</string>
     <string name="feed_kind_new_block">PIEDRA NUEVA</string>
-    <string name="feed_kind_new_line">VÍA NUEVA</string>
     <string name="feed_empty_following">Aún no sigues a nadie.\nSigue a otros escaladores para ver su actividad aquí.</string>
     <string name="feed_empty_following_cta">BUSCAR USUARIOS</string>
-    <string name="feed_empty_all">Todavía no hay actividad.\nMarca una vía como hecha y estrena el feed.</string>
+    <string name="feed_empty_all">Todavía no hay actividad.\nMarca un ascenso como hecho y estrena el feed.</string>
     <string name="feed_like">Me gusta</string>
     <string name="feed_comments_title">Comentarios</string>
     <string name="feed_comment_hint">Escribe un comentario…</string>
@@ -67,7 +66,6 @@
     <string name="feed_delete_post">Eliminar publicación</string>
     <string name="feed_delete_post_confirm">¿Eliminar esta publicación del feed?</string>
     <string name="feed_publish_checkbox">Publicar en el feed</string>
-    <string name="feed_mark_done_title">¿Marcar como hecha?</string>
     <string name="feed_mark_done_button">MARCAR</string>
     <string name="feed_time_now">ahora</string>
     <string name="feed_time_min">hace %d min</string>
@@ -391,7 +389,6 @@
     <string name="hint_days">Toca los días para ver la previsión de varios días</string>
     <string name="hint_offline">Guarda escuelas para verlas sin conexión</string>
     <string name="hint_propose">Puedes proponer piedras, parkings o sectores nuevos</string>
-    <string name="hint_tick">Toca una vía para apuntarla en tu diario</string>
     <string name="hint_swipe_chat">Desliza para borrar o marcar no leído</string>
 
     <!-- Map -->
@@ -402,11 +399,10 @@
     <string name="block_routes">VÍAS</string>
     <string name="block_add_routes">+ AÑADIR VÍAS</string>
     <string name="block_edit_routes">✎ EDITAR / AÑADIR VÍAS</string>
-    <string name="block_delete_confirm">¿Eliminar este bloque? Se borrarán sus vías.</string>
 
     <!-- Add lines flow (edit boulder/wall) -->
     <string name="add_lines_title">Editar piedra</string>
-    <string name="add_lines_description">Edita \"%1$s\": corrige o añade vías, añade más fotos, reordena y ajusta el muro. Un admin lo revisará (o se publica directo si eres admin).</string>
+    <string name="add_lines_description">Edita \"%1$s\": corrige o añade ascensos, añade más fotos, reordena y ajusta el muro. Un admin lo revisará (o se publica directo si eres admin).</string>
     <string name="add_lines_wall_traced">✓ MURO TRAZADO (%1$d PUNTOS) · RE-TRAZAR</string>
     <string name="add_lines_wall_retrace">✎ RE-TRAZAR EL MURO EN EL MAPA</string>
     <string name="add_lines_wall_trace">✎ TRAZAR EL MURO EN EL MAPA</string>
@@ -419,31 +415,31 @@
     <string name="add_lines_photo_alt">Foto %1$d de la piedra</string>
     <string name="add_lines_new_photo_pick_other">✓ FOTO NUEVA · ELEGIR OTRA</string>
     <string name="add_lines_change_photo">CAMBIAR FOTO DE ESTA CARA</string>
-    <string name="add_lines_new_photo_redraw_note">Foto nueva: redibuja las vías de esta cara sobre ella antes de enviar.</string>
+    <string name="add_lines_new_photo_redraw_note">Foto nueva: redibuja las líneas de esta cara sobre ella antes de enviar.</string>
     <string name="add_lines_no_photo">Sin foto en esta cara</string>
     <string name="add_lines_select_photo">SELECCIONAR FOTO</string>
-    <string name="add_lines_routes_of_photo">VÍAS DE ESTA FOTO</string>
+    <string name="add_lines_routes_of_photo">ASCENSOS DE ESTA FOTO</string>
     <string name="add_lines_routes_numbering_note">Nº = posición en el muro (%1$s). Reordena con ▲▼.</string>
     <string name="add_lines_direction_ltr_short">izq→der</string>
     <string name="add_lines_direction_rtl_short">der→izq</string>
-    <string name="add_lines_existing_route">VÍA EXISTENTE</string>
+    <string name="add_lines_existing_route">ASCENSO EXISTENTE</string>
     <string name="add_lines_new_route">NUEVA</string>
-    <string name="add_lines_add_new_route">+ AÑADIR VÍA NUEVA</string>
+    <string name="add_lines_add_new_route">+ AÑADIR ASCENSO NUEVO</string>
     <!-- Fila de vía PLEGADA en los editores (una sola ficha abierta a la vez). -->
     <string name="via_sin_nombre">Sin nombre</string>
-    <string name="via_editar">Editar esta vía</string>
-    <string name="via_borrar">Borrar esta vía</string>
+    <string name="via_editar">Editar este ascenso</string>
+    <string name="via_borrar">Borrar este ascenso</string>
     <string name="via_anadir_otra">AÑADIR OTRA +</string>
     <string name="add_lines_edit_lines_on_photo">✎ EDITAR LÍNEAS SOBRE LA FOTO</string>
     <string name="add_lines_draw_lines_on_photo">✎ DIBUJAR LÍNEAS SOBRE LA FOTO</string>
     <string name="add_lines_need_photo_note">Añade una foto a esta cara para poder dibujar las líneas.</string>
     <string name="add_lines_submit_error">No se pudo enviar la propuesta. Inténtalo de nuevo.</string>
     <string name="add_lines_reorder_title">Reordenar fotos</string>
-    <string name="add_lines_reorder_wall_note">Las fotos se recorren en este orden (%1$s) para numerar las vías del muro.</string>
+    <string name="add_lines_reorder_wall_note">Las fotos se recorren en este orden (%1$s) para numerar los ascensos del muro.</string>
     <string name="add_lines_reorder_simple_note">Ordena las fotos de la piedra.</string>
-    <string name="add_lines_reorder_photo_routes">FOTO %1$d · %2$d vías</string>
-    <string name="add_lines_reorder_hide_routes">▾ ocultar vías</string>
-    <string name="add_lines_reorder_show_routes">▸ ver vías</string>
+    <string name="add_lines_reorder_photo_routes">FOTO %1$d · %2$d ascensos</string>
+    <string name="add_lines_reorder_hide_routes">▾ ocultar ascensos</string>
+    <string name="add_lines_reorder_show_routes">▸ ver ascensos</string>
     <string name="add_lines_reorder_no_image">Esta foto aún no tiene imagen.</string>
     <string name="add_lines_route_drawn">✓ Línea dibujada</string>
     <string name="add_lines_route_name_placeholder">Nombre (opcional)</string>
@@ -493,7 +489,7 @@
     <string name="force_update_title">Hay una versión nueva obligatoria</string>
     <string name="force_update_body">Esta versión de Cumbre ya no es compatible. Actualiza para seguir usándola.</string>
     <string name="force_update_button">ACTUALIZAR AHORA</string>
-    <string name="line_variant_caption">Si esta vía es una variante de otra con el mismo nombre (directa, extensión, desde el pie…). Se mostrará como «Nombre (variante)».</string>
+    <string name="line_variant_caption">Si este ascenso es una variante de otro con el mismo nombre (directa, extensión, desde el pie…). Se mostrará como «Nombre (variante)».</string>
 
     <!-- Donate -->
     <string name="donate_title">¿Te ayuda la app?</string>
@@ -505,7 +501,6 @@
     <string name="search_users_hint">Nombre o @usuario…</string>
 
     <!-- Empty states -->
-    <string name="empty_journal">Marca vías como hechas en el detalle de una escuela y aparecerán aquí.</string>
     <string name="empty_saved">Guarda escuelas para verlas sin conexión.</string>
     <string name="empty_chat">Busca a alguien para empezar a hablar.</string>
     <string name="empty_proposals">Todavía no has propuesto nada.</string>
@@ -520,7 +515,7 @@
     <string name="a11y_zoom_photo">Ampliar foto de perfil</string>
 
     <!-- Extraccion exhaustiva de textos hardcodeados (Alvaro, 2026-09-17) -->
-    <string name="block_detail_pickers_elige_la_via_a">Elige la vía a corregir</string>
+    <string name="block_detail_pickers_elige_la_via_a">Elige el ascenso a corregir</string>
     <string name="community_vote_ui_hacia_donde_mira_esta">¿HACIA DÓNDE MIRA ESTA PARED?</string>
     <string name="community_vote_ui_sin_votos_todavia_se">Sin votos todavía. ¡Sé el primero!</string>
     <string name="community_vote_ui_que_grado_le_das">¿QUÉ GRADO LE DAS?</string>
@@ -528,8 +523,8 @@
     <string name="favorites_grid_table_favoritos_7_dias">FAVORITOS · 7 DÍAS</string>
     <string name="feed_publish_sheet_un_admin_la_revisara">Un admin la revisará en </string>
     <string name="forecast_body_puedo_escalar_hoy">¿PUEDO ESCALAR HOY?</string>
-    <string name="grade_filter_bar_esta_escuela_todavia_no">Esta escuela todavía no tiene vías con grado.</string>
-    <string name="grade_filter_bar_1_via">1 vía</string>
+    <string name="grade_filter_bar_esta_escuela_todavia_no">Esta escuela todavía no tiene ascensos con grado.</string>
+    <string name="grade_filter_bar_1_via">1 ascenso</string>
     <string name="line_comments_section_se_el_primero_en">Sé el primero en comentar.</string>
     <string name="school_search_lines_cd">Buscar vías y bloques</string>
     <string name="map_mini_cards_buscar_vias_bloques">Buscar vías, sectores, parkings…</string>
@@ -557,7 +552,7 @@
     <string name="add_line_row_descripcion_opcional">Descripción (opcional)</string>
     <string name="add_lines_flow_como_quieres_la_foto">¿Cómo quieres la foto?</string>
     <string name="add_lines_flow_elegir_de_galeria">ELEGIR DE GALERÍA</string>
-    <string name="boulder_form_dialog_rellena_los_datos_de">Rellena los datos de la piedra. Podrás añadir fotos y dibujar las líneas de cada vía sobre ellas.</string>
+    <string name="boulder_form_dialog_rellena_los_datos_de">Rellena los datos de la piedra. Podrás añadir fotos y dibujar las líneas de cada ascenso sobre ellas.</string>
     <string name="boulder_form_dialog_es_una_piedra_de">¿Es una piedra de boulder (sentadas, bloques cortos) o de vía (escalada deportiva, más larga)?</string>
     <string name="boulder_form_dialog_orientacion_de_la_piedra">ORIENTACIÓN DE LA PIEDRA (opcional)</string>
     <string name="boulder_form_dialog_muro_sector_y_numeracion">Muro, sector y numeración</string>
@@ -569,8 +564,8 @@
     <string name="boulder_form_dialog_anade_una_foto_para">Añade una foto para poder dibujar las líneas</string>
     <string name="boulder_form_dialog_posicion_desde_el_mapa">✓ POSICIÓN DESDE EL MAPA</string>
     <string name="boulder_form_dialog_descripcion_opcional">Descripción (opcional)</string>
-    <string name="edit_line_flow_corregir_via">Corregir vía</string>
-    <string name="edit_line_flow_datos_de_la_via">DATOS DE LA VÍA</string>
+    <string name="edit_line_flow_corregir_via">Corregir ascenso</string>
+    <string name="edit_line_flow_datos_de_la_via">DATOS DEL ASCENSO</string>
     <string name="fotos_offline_dialogs_guardar_tambien_las_fotos">¿Guardar también las fotos?</string>
     <string name="place_form_dialog_posicion_desde_el_mapa">✓ POSICIÓN DESDE EL MAPA</string>
     <string name="propose_contribution_flow_no_se_pudo_guardar">No se pudo guardar sin conexión</string>
@@ -607,7 +602,7 @@
     <string name="profile_screen_eliminar_tu_cuenta">¿Eliminar tu cuenta?</string>
     <string name="profile_screen_se_borraran_tu_perfil">Se borrarán tu perfil, diario, favoritas, seguimientos y propuestas de forma permanente. Esta acción no se puede deshacer.</string>
     <string name="projects_screen_sin_proyectos_todavia">Sin proyectos todavía</string>
-    <string name="projects_screen_marca_la_p_de">Marca la P de una vía dentro de su piedra para probarla como proyecto.</string>
+    <string name="projects_screen_marca_la_p_de">Marca la P de un ascenso dentro de su piedra para probarlo como proyecto.</string>
     <string name="stats_screen_mis_estadisticas">MIS ESTADÍSTICAS</string>
     <string name="stats_screen_tus_dias_de_roca">TUS DÍAS DE ROCA</string>
     <string name="stats_screen_ver_estadisticas_de_este">VER ESTADÍSTICAS DE ESTE DÍA ▸</string>
@@ -708,7 +703,7 @@
     <string name="forecast_body_v2_en_1_sd_2_s">En %1$sd (%2$s)</string>
     <string name="forecast_body_v2_viento_1_s_km_h">VIENTO %1$s km/h  ·  HUM %2$s%%</string>
     <string name="forecast_body_v2_optimo_entre_1_s_2">Óptimo entre %1$s–%2$s</string>
-    <string name="grade_filter_bar_v2_mostrando_1_s_vias_de">Mostrando %1$s vías de %2$s</string>
+    <string name="grade_filter_bar_v2_mostrando_1_s_vias_de">Mostrando %1$s ascensos de %2$s</string>
     <string name="grade_filter_bar_v2_quitar_todo">QUITAR TODO</string>
     <string name="grade_filter_bar_v2_filtrar_por_grado">FILTRAR POR GRADO</string>
     <string name="hourly_heatmap_v2_ventana_optima">VENTANA ÓPTIMA</string>
@@ -1047,7 +1042,7 @@
     <string name="forecast_body_v3_condiciones_ahora">CONDICIONES AHORA</string>
     <string name="forecast_body_v3_mejor_esperar_a_que_seque">Mejor esperar a que seque</string>
     <string name="forecast_body_v3_lista_para_escalar">Lista para escalar</string>
-    <string name="grade_filter_bar_v3_vias">%1$s vías</string>
+    <string name="grade_filter_bar_v3_vias">%1$s ascensos</string>
     <string name="map_mini_cards_v3_piedra"> · %1$s piedra%2$s</string>
     <string name="notes_section_v3_foto">📷 FOTO</string>
     <string name="notes_section_v3_este_usuario">este usuario</string>
@@ -1070,8 +1065,8 @@
     <string name="school_presence_row_v3_ya_no_estoy">Ya no estoy</string>
     <string name="approach_follow_screen_v3_sigue_la_linea_si_te">Sigue la línea. Si te alejas del camino, comprueba las chinchetas.</string>
     <string name="group_chat_screen_v3_ver_detalles">Ver detalles ›</string>
-    <string name="feed_post_card_v3_vias_en_otras_fotos">+%1$s VÍAS EN OTRAS FOTOS</string>
-    <string name="feed_post_card_v3_1_via_en_otra_foto">+1 VÍA EN OTRA FOTO</string>
+    <string name="feed_post_card_v3_vias_en_otras_fotos">+%1$s %2$s EN OTRAS FOTOS</string>
+    <string name="feed_post_card_v3_1_via_en_otra_foto">+1 %1$s EN OTRA FOTO</string>
     <string name="compare_screen_v3_mejor_dia">MEJOR DÍA</string>
     <string name="compare_screen_v3_optimo">ÓPTIMO</string>
     <string name="compare_screen_v3_prob_lluvia">PROB. LLUVIA</string>
@@ -1100,11 +1095,11 @@
     <string name="propose_picker_dialogs_v3_el_punto_donde_se_aparca">El punto donde se aparca para llegar a la escuela. Otros escaladores verán \"Cómo llegar\" con indicaciones.</string>
     <string name="propose_picker_dialogs_v3_una_zona_que_agrupa_varias">Una zona que agrupa varias piedras (ej: \"La Isla\", \"Vertedero\"). Luego podrás asignar piedras al sector.</string>
     <string name="propose_picker_dialogs_v3_elige_una_foto_tuya_de">Elige una foto tuya de la piedra: se coloca sola en el punto donde la hiciste.</string>
-    <string name="propose_picker_dialogs_v3_una_roca_con_sus_vias">Una roca con sus vías de escalada. Podrás añadir fotos y dibujar las líneas de cada vía.</string>
+    <string name="propose_picker_dialogs_v3_una_roca_con_sus_vias">Una roca con sus bloques o vías de escalada. Podrás añadir fotos y dibujar las líneas de cada ascenso.</string>
     <string name="propose_picker_dialogs_v3_tienes_una_piedra_sin_terminar">Tienes una piedra sin terminar en esta escuela. Sigue donde lo dejaste.</string>
     <string name="school_correction_dialogs_v3_sin_especificar">sin especificar</string>
     <string name="school_detail_screen_v3_hace_dias">hace %1$s días</string>
-    <string name="school_detail_screen_v3_toca_una_piedra_en_el">Toca una piedra en el mapa para ver sus vías. El círculo ○ marca una vía como hecha y la guarda en tu diario.</string>
+    <string name="school_detail_screen_v3_toca_una_piedra_en_el">Toca una piedra en el mapa para ver sus bloques o vías. El círculo ○ marca un ascenso como hecho y lo guarda en tu diario.</string>
     <string name="school_detail_screen_v3_despliega_el_mapa_de_abajo">Despliega el mapa de abajo y usa + PROPONER para añadir piedras, parkings o sectores que falten. Un admin lo revisa.</string>
     <string name="school_detail_screen_v3_toca_arriba_para_guardar_esta">Toca ↓ (arriba) para guardar esta escuela y verla sin conexión, incluyendo el mapa y las piedras.</string>
     <string name="create_meetup_screen_v3_limite_de_participantes_opcional">LÍMITE DE PARTICIPANTES (opcional)</string>
@@ -1126,11 +1121,11 @@
     <string name="edit_profile_screen_v3_tocar_la_foto_para_cambiarla">Tocar la foto para cambiarla</string>
     <string name="edit_profile_screen_v3_subiendo_foto">Subiendo foto…</string>
     <string name="edit_profile_screen_v3_recortar_foto">Recortar foto</string>
-    <string name="journal_entries_screen_v3_toca_una_via_para_ir">Toca una vía para ir directamente a su piedra en la escuela.</string>
-    <string name="journal_entries_screen_v3_marca_el_de_una_via">Marca el ✓ de una vía dentro de su piedra (en el detalle de una escuela) y aparecerá aquí, con su grado y sector.</string>
+    <string name="journal_entries_screen_v3_toca_una_via_para_ir">Toca un ascenso para ir directamente a su piedra en la escuela.</string>
+    <string name="journal_entries_screen_v3_marca_el_de_una_via">Marca el ✓ de un ascenso dentro de su piedra (en el detalle de una escuela) y aparecerá aquí, con su grado y sector.</string>
     <string name="journal_sectors_screen_v3_1_bloque">1 bloque</string>
     <string name="my_gear_sheet_v3_mi_material">MI MATERIAL</string>
-    <string name="stats_screen_v3_marca_vias_como_hechas_y">Marca vías como hechas y aquí verás tu pirámide, tu racha y tu progresión.</string>
+    <string name="stats_screen_v3_marca_vias_como_hechas_y">Marca ascensos como hechos y aquí verás tu pirámide, tu racha y tu progresión.</string>
     <string name="stats_screen_v3_tu_mejor_mes_ascensos_toca">Tu mejor mes: %1$s (%2$s ascensos). Toca para verlo ▾</string>
     <string name="stats_screen_v3_ver">  ·  VER ▸</string>
     <string name="stats_screen_v3_media_dia">MEDIA/DÍA</string>
@@ -1156,8 +1151,8 @@
     <string name="schools_map_panel_v3_ver_detalle">VER DETALLE ▸</string>
     <string name="my_submissions_screen_v3_mover_ubicacion">Mover ubicación</string>
     <string name="my_submissions_screen_v3_piedra_nueva">Piedra nueva</string>
-    <string name="my_submissions_screen_v3_anadir_vias">Añadir vías</string>
-    <string name="my_submissions_screen_v3_corregir_via">Corregir vía</string>
+    <string name="my_submissions_screen_v3_anadir_vias">Añadir ascensos</string>
+    <string name="my_submissions_screen_v3_corregir_via">Corregir ascenso</string>
     <string name="submit_school_screen_v3_ubicacion">UBICACIÓN</string>
     <string name="submit_school_screen_v3_region">REGIÓN</string>
     <string name="submit_school_screen_v3_pais">PAÍS</string>
@@ -1195,11 +1190,11 @@
     <string name="boulder_form_dialog_v4_trazar_el_muro_en_el">✎ TRAZAR EL MURO EN EL MAPA</string>
     <string name="boulder_form_dialog_v4_trazar_el_muro_1_punto">TRAZAR EL MURO (1 PUNTO, FALTAN MÁS)</string>
     <string name="boulder_form_dialog_v4_muro_de_puntos_re_trazar">✓ MURO DE %1$s PUNTOS · RE-TRAZAR</string>
-    <string name="boulder_form_dialog_v4_pasos_1_anade_una_foto">Pasos: 1) Añade una foto de la piedra, 2) marca sus vías con grado, 3) dibuja las líneas sobre la foto, 4) envía.</string>
-    <string name="boulder_form_dialog_v4_no_se_pudo_enviar_revisa">No se pudo enviar. Revisa la conexión — la foto y las vías siguen aquí.</string>
+    <string name="boulder_form_dialog_v4_pasos_1_anade_una_foto">Pasos: 1) Añade una foto de la piedra, 2) marca sus ascensos con grado, 3) dibuja las líneas sobre la foto, 4) envía.</string>
+    <string name="boulder_form_dialog_v4_no_se_pudo_enviar_revisa">No se pudo enviar. Revisa la conexión — la foto y los ascensos siguen aquí.</string>
     <string name="boulder_form_dialog_v4_no_se_pudo_usar_esa">No se pudo usar esa foto. Prueba a elegirla otra vez.</string>
-    <string name="contribution_topo_dialog_v4_toca_punto_a_punto_para">Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Con UNIR en NO, el trazo va libre aunque pases pegado a otra vía.</string>
-    <string name="contribution_topo_dialog_v4_toca_punto_a_punto_para_2">Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Cerca de otra vía, el trazo se pega a ella (tramo compartido).</string>
+    <string name="contribution_topo_dialog_v4_toca_punto_a_punto_para">Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Con UNIR en NO, el trazo va libre aunque pases pegado a otra línea.</string>
+    <string name="contribution_topo_dialog_v4_toca_punto_a_punto_para_2">Toca punto a punto para colocar la línea, o arrastra para trazarla a mano. Cerca de otra línea, el trazo se pega a ella (tramo compartido).</string>
     <string name="contribution_topo_dialog_v4_ver_todas">VER TODAS</string>
     <string name="contribution_topo_dialog_v4_solo_esta">SOLO ESTA</string>
     <string name="contribution_topo_dialog_v4_unir_no">UNIR: NO</string>
@@ -1414,15 +1409,15 @@
     <string name="filter_beta_sends">Solo encadenes</string>
 
     <string name="ascent_height_ask">¿Quieres poner tu altura?</string>
-    <string name="ascent_height_hint">Ayuda a la comunidad: quien mida parecido a ti sabrá cuánta gente de su altura encadena cada vía. Se guarda en tu perfil, no tienes que ponerla allí.</string>
+    <string name="ascent_height_hint">Ayuda a la comunidad: quien mida parecido a ti sabrá cuánta gente de su altura encadena cada ascenso. Se guarda en tu perfil, no tienes que ponerla allí.</string>
 
-    <string name="ascent_height_share_why">Si la compartes, ayudas a mucha más gente: cuantas más alturas haya, más claro se ve qué vías van mejor a quien mide como tú.</string>    <string name="ascent_height_change">CAMBIAR</string>
+    <string name="ascent_height_share_why">Si la compartes, ayudas a mucha más gente: cuantas más alturas haya, más claro se ve qué ascensos van mejor a quien mide como tú.</string>    <string name="ascent_height_change">CAMBIAR</string>
     <string name="ascent_height_none">Prefieres no decir tu altura</string>
     <string name="ascent_height_short">Mides menos de 1,70</string>
     <string name="ascent_height_tall">Mides más de 1,70</string>
     <string name="ascent_height">TU ALTURA</string>
     <string name="map_card_open_stone">Abrir piedra</string>
-    <string name="map_card_stone_lines">Piedra · %1$d vías</string>
+    <string name="map_card_stone_lines">Piedra · %1$s</string>
     <string name="detail_tab_routes">VÍAS</string>
     <string name="detail_tab_boulders_routes">BLOQUES/VÍAS</string>
     <string name="detail_tab_weather">TIEMPO</string>
@@ -1444,8 +1439,8 @@
     <string name="blocks_beta_tall">▶ +1,70</string>
     <string name="blocks_beta_short">▶ −1,70</string>
     <string name="blocks_load_failed">No se han podido cargar los bloques</string>
-    <string name="blocks_none_drawn">Esta escuela aún no tiene vías dibujadas.</string>
-    <string name="blocks_none_match">Ninguna vía cumple esos filtros.</string>
+    <string name="blocks_none_drawn">Esta escuela aún no tiene ascensos dibujados.</string>
+    <string name="blocks_none_match">Ningún ascenso cumple esos filtros.</string>
     <string name="blocks_count_one">1 VÍA</string>
     <string name="blocks_count_other">%1$d VÍAS</string>
     <string name="blocks_repeated_hint">✓ = personas que la han hecho</string>
@@ -1669,7 +1664,7 @@
     <string name="map_card_hide_stones">Ocultar piedras</string>
     <string name="map_card_follow_path">Seguir camino</string>
     <!-- GUÍA de la escuela (pestaña BLOQUES) y su PDF — espejo de SchoolGuideView / GuidePDF de iOS -->
-    <string name="sguide_search">Buscar vía o piedra</string>
+    <string name="sguide_search">Buscar bloque, vía o piedra</string>
     <string name="sguide_face">Cara</string>
     <string name="sguide_face_with">Cara %1$s</string>
     <string name="sguide_north">Norte</string>
@@ -1690,26 +1685,22 @@
     <string name="sguide_pdf_failed">No se ha podido crear el PDF</string>
     <string name="sguide_most_repeated">Más repetidas</string>
     <string name="sguide_top_rated">Mejor valoradas</string>
-    <string name="sguide_none_repeated">Nadie ha apuntado todavía ninguna de estas vías.</string>
-    <string name="sguide_none_rated">Nadie ha valorado todavía ninguna de estas vías.</string>
-    <string name="sguide_count_lines_one">1 VÍA</string>
-    <string name="sguide_count_lines">%1$d VÍAS</string>
+    <string name="sguide_none_repeated">Nadie ha apuntado todavía ninguno de estos ascensos.</string>
+    <string name="sguide_none_rated">Nadie ha valorado todavía ninguno de estos ascensos.</string>
     <string name="sguide_count_blocks_one">1 PIEDRA</string>
     <string name="sguide_count_blocks">%1$d PIEDRAS</string>
     <string name="sguide_count_sectors_one">1 SECTOR</string>
     <string name="sguide_count_sectors">%1$d SECTORES</string>
     <string name="sguide_blocks_one">1 piedra</string>
     <string name="sguide_blocks">%1$d piedras</string>
-    <string name="sguide_lines_one">1 vía</string>
-    <string name="sguide_lines">%1$d vías</string>
     <string name="sguide_done_of">%1$d/%2$d hechas</string>
-    <string name="sguide_all_lines">TODAS LAS VÍAS · TOCA UNA PARA IR A SU PIEDRA</string>
+    <string name="sguide_all_lines">TODOS LOS ASCENSOS · TOCA UNO PARA IR A SU PIEDRA</string>
     <string name="sguide_stone">PIEDRA %1$s</string>
     <string name="sguide_face_of">Cara %1$d de %2$d</string>
     <string name="sguide_face_of_cont">Cara %1$d de %2$d · sigue</string>
     <string name="sguide_show_on_map">Ver en mapa</string>
     <string name="sguide_directions">Cómo llegar</string>
-    <string name="sguide_unmark_title">¿Quitar esta vía de tu diario?</string>
+    <string name="sguide_unmark_title">¿Quitar este ascenso de tu diario?</string>
     <string name="sguide_unmark">Quitar del diario</string>
     <string name="sguide_zoom_photo">Ver foto en grande</string>
     <string name="sguide_tap_sector">Toca un sector para ir a él</string>
@@ -1717,7 +1708,7 @@
     <string name="sguide_done">Hecha</string>
     <string name="sguide_project">Proyecto</string>
     <string name="sguide_pdf_tag">GUÍA DE ESCALADA</string>
-    <string name="sguide_pdf_lines">VÍAS</string>
+    <string name="sguide_pdf_lines">ASCENSOS</string>
     <string name="sguide_pdf_blocks">PIEDRAS</string>
     <string name="sguide_pdf_sectors">SECTORES</string>
     <string name="sguide_pdf_downloaded">DESCARGADA DESDE LA APP CUMBRE</string>
@@ -2294,4 +2285,6 @@
     <string name="school_rain_max">máx %1$.1f mm</string>
     <string name="block_unnamed">SIN NOMBRE</string>
     <string name="journal_boulder_n">Piedra %1$s</string>
+    <string name="block_detail_dialog_v4_toca_la_p_de_una_boulder">Toca la P de un bloque para marcarlo como PROYECTO (lo estás probando, aún no te ha salido).</string>
+    <string name="block_detail_dialog_v4_toca_el_circulo_de_una_boulder">Toca el círculo de un bloque para apuntarlo como hecho en tu diario.</string>
 </resources>

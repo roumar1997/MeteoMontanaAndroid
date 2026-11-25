@@ -268,7 +268,7 @@ struct AscentSheet: View {
                         if votes.myHeight != nil, let p = pendingVote { vote = p; pendingVote = nil }
                     }
                 }
-                Text(L("Ayuda a la comunidad: quien mida parecido a ti sabrá cuánta gente de su altura encadena cada vía. Se guarda en tu perfil, no tienes que ponerla allí."))
+                Text(L("Ayuda a la comunidad: quien mida parecido a ti sabrá cuánta gente de su altura encadena cada ascenso. Se guarda en tu perfil, no tienes que ponerla allí."))
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
             }
         } else {
@@ -282,7 +282,7 @@ struct AscentSheet: View {
                 }.buttonStyle(.plain)
             }
             if votes.myHeight == .unspecified {
-                Text(L("Si la compartes, ayudas a mucha más gente: cuantas más alturas haya, más claro se ve qué vías van mejor a quien mide como tú."))
+                Text(L("Si la compartes, ayudas a mucha más gente: cuantas más alturas haya, más claro se ve qué ascensos van mejor a quien mide como tú."))
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink2).padding(.top, 4)
             }
         }

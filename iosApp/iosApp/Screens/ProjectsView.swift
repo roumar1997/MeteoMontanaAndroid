@@ -64,7 +64,7 @@ struct ProjectsView: View {
                 EmptyStateView(
                     icon: "flag",
                     title: L("Sin proyectos todavía"),
-                    message: L("Marca la P de una vía dentro de su piedra para probarla como proyecto.")
+                    message: L("Marca la P de un ascenso dentro de su piedra para probarlo como proyecto.")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -128,7 +128,7 @@ struct ProjectsView: View {
                 Image(systemName: "flag").font(.system(size: 30)).foregroundStyle(Cumbre.ink3)
                 Text(discipline == "ROUTE" ? L("Aún no tienes vías como proyecto") : L("Aún no tienes bloques como proyecto"))
                     .font(Cumbre.serif(17, .bold)).foregroundStyle(Cumbre.ink)
-                Text(L("Marca la P de una vía dentro de su piedra para probarla como proyecto."))
+                Text(L("Marca la P de un ascenso dentro de su piedra para probarlo como proyecto."))
                     .font(.system(size: 13)).foregroundStyle(Cumbre.ink2).multilineTextAlignment(.center)
             }
             .padding(32)

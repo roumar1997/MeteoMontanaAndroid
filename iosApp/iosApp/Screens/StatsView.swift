@@ -145,7 +145,7 @@ struct StatsView: View {
                 if let p = store.progression { progressionSection(p) }
 
                 if store.summary == nil && !store.loading {
-                    infoCard(L("Marca vías como hechas y aquí verás tu pirámide, tu racha y tu progresión."))
+                    infoCard(L("Marca ascensos como hechos y aquí verás tu pirámide, tu racha y tu progresión."))
                 }
 
             }

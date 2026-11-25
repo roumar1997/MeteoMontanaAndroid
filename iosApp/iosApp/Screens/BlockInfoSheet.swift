@@ -216,11 +216,11 @@ struct BlockInfoSheet: View {
                         if !block.lines.isEmpty {
                             FirstTimeHint(
                                 hintKey: "via_tick",
-                                text: L("Toca el círculo de una vía para apuntarla como hecha en tu diario.")
+                                text: (block.discipline.uppercased() == "ROUTE" ? L("Toca el círculo de una vía para apuntarla como hecha en tu diario.") : L("Toca el círculo de un bloque para apuntarlo como hecho en tu diario."))
                             )
                             FirstTimeHint(
                                 hintKey: "via_project",
-                                text: L("Toca la P de una vía para marcarla como PROYECTO (la estás probando, aún no te ha salido).")
+                                text: (block.discipline.uppercased() == "ROUTE" ? L("Toca la P de una vía para marcarla como PROYECTO (la estás probando, aún no te ha salido).") : L("Toca la P de un bloque para marcarlo como PROYECTO (lo estás probando, aún no te ha salido)."))
                             )
                         }
                         ForEach(Array(orderedFaces.enumerated()), id: \.offset) { faceIdx, face in
@@ -264,7 +264,7 @@ struct BlockInfoSheet: View {
                                         // Nombre corto junto al grado y, debajo, la variante/descripción en pequeño: así la fila
                                         // no cambia de alto y las estrellas no se mueven (Álvaro, 2026-10-18).
                                         VStack(alignment: .leading, spacing: 2) {
-                                            Text(l.name.isEmpty ? L("Vía %@", idx + 1) : l.name)
+                                            Text(l.name.isEmpty ? "\(lineNoun(block.discipline, capitalised: true)) \(idx + 1)" : l.name)
                                                 .font(.system(size: 14)).foregroundStyle(Cumbre.ink).lineLimit(2)
                                             if let v = l.variant, !v.trimmingCharacters(in: .whitespaces).isEmpty {
                                                 Text(v).font(.system(size: 12)).foregroundStyle(Cumbre.ink3).lineLimit(2)

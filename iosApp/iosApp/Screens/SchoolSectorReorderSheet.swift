@@ -85,12 +85,12 @@ struct SchoolSectorReorderSheet: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(b.name.isEmpty ? L("(sin número)") : b.name).font(Cumbre.serif(16, .semibold)).foregroundStyle(Cumbre.ink)
                 if lines.isEmpty {
-                    Text(L("Sin vías dibujadas")).font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
+                    Text(L("Sin ascensos dibujados")).font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                 } else {
                     Text(lines.prefix(3).map { l in l.grade.map { "\(l.name) \($0)" } ?? l.name }.joined(separator: " · ")
                          + (lines.count > 3 ? " …" : ""))
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink2).lineLimit(2)
-                    Text(L("%@ vías", lines.count) + (range.map { " · \($0)" } ?? ""))
+                    Text(L("%@ ascensos", lines.count) + (range.map { " · \($0)" } ?? ""))
                         .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.ink3)
                 }
                 if let d = b.descriptionText, !d.isEmpty {

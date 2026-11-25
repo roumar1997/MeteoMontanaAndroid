@@ -165,6 +165,11 @@ rebote**: esto es una guía de escalada, no un juguete.
 
 ---
 
+### 1.10 Vocabulario
+
+- Genérico: ascenso. Contextual: vía o bloque según discipline de la piedra. Nunca «vía» genérica.
+  Una función: `LineKind` / `LineWords` en `shared` (EN: climb / route / boulder). Para contar líneas de una escuela mixta, desglose «N bloques · N vías».
+
 ## 2 · Componentes (anatomía espejo)
 
 Cada componente debe existir con **el mismo nombre y la misma anatomía**

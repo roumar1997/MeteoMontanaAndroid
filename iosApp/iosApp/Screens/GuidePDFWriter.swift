@@ -89,7 +89,7 @@ final class GuidePDFWriter {
         // Cifras en tres tarjetas.
         let lines = input.sectors.reduce(0) { $0 + Int($1.lineCount) }
         let stones = input.sectors.reduce(0) { $0 + $1.blocks.count }
-        let stats: [(String, String)] = [("\(lines)", L("VÍAS")), ("\(stones)", L("PIEDRAS")),
+        let stats: [(String, String)] = [("\(lines)", L("ASCENSOS")), ("\(stones)", L("PIEDRAS")),
                                          ("\(input.sectors.count)", L("SECTORES"))]
         let cardW = (P.contentW - 20) / 3
         for (i, st) in stats.enumerated() {
@@ -179,7 +179,7 @@ final class GuidePDFWriter {
         P.text(eyebrow, P.mono(9), P.terra, x: P.margin, y: y, width: 120)
         y += 14
         // Cifras del sector, a la derecha del título.
-        let chips = [L("%@ piedras", s.blocks.count), L("%@ vías", Int(s.lineCount))]
+        let chips = [L("%@ piedras", s.blocks.count), s.linesLabel(lang: LanguageManager.shared.effectiveCode)]
         var cx = P.page.width - P.margin
         for c in chips.reversed() {
             let size = P.pillSize(c, .systemFont(ofSize: 9.5, weight: .semibold), padH: 10, padV: 6)

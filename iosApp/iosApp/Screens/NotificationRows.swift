@@ -63,6 +63,10 @@ struct NotificationRowView: View {
     }
 
     private func action(many: Bool, subject: String?) -> String {
+        if let phrased = NotificationPhrases.shared.action(type: n.type, many: many, postPhrase: n.postPhrase,
+                                                           lang: LanguageManager.shared.effectiveCode) {
+            return phrased
+        }
         switch n.type {
         case "NEW_FOLLOWER": return L("empezó a seguirte")
         case "FOLLOW_REQUEST": return L("quiere seguirte")

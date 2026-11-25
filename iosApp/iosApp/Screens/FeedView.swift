@@ -563,7 +563,7 @@ struct FeedView: View {
         case .mine:
             return L("Aún no has publicado ningún ascenso.")
         default:
-            return L("Todavía no hay actividad.\nMarca una vía como hecha y estrena el feed.")
+            return L("Todavía no hay actividad.\nMarca un ascenso como hecho y estrena el feed.")
         }
     }
 }

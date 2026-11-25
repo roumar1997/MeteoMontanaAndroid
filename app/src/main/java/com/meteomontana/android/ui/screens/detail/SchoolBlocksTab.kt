@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.detail
 
+import com.meteomontana.android.util.AppText
+
 import androidx.compose.material.icons.outlined.Check
 import com.meteomontana.android.ui.theme.Terra
 import androidx.compose.foundation.verticalScroll
@@ -232,7 +234,7 @@ private fun Header(state: SchoolBlocksViewModel.UiState, vm: SchoolBlocksViewMod
         androidx.activity.compose.BackHandler(enabled = state.filtersOpen) { vm.toggleFilters() }
         if (state.filtersOpen) FilterPanel(state, vm)
         state.guideView?.let { g ->
-            val lines = if (g.lineCount == 1) stringResource(R.string.sguide_count_lines_one) else stringResource(R.string.sguide_count_lines, g.lineCount)
+            val lines = g.linesLabel(AppText.lang()).uppercase()
             val blocks = if (g.blockCount == 1) stringResource(R.string.sguide_count_blocks_one) else stringResource(R.string.sguide_count_blocks, g.blockCount)
             val sectors = if (g.sectorCount == 1) stringResource(R.string.sguide_count_sectors_one) else stringResource(R.string.sguide_count_sectors, g.sectorCount)
             Text("$lines · $blocks · $sectors", fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 10.sp,

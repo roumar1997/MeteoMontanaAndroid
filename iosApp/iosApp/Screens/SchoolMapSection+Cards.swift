@@ -20,7 +20,7 @@ extension SchoolMapSection {
         var kindText = isParking ? L("Parking") : L("Sector")
         if !isParking && stoneCount > 0 { kindText += L(" · %@ piedra%@", stoneCount, stoneCount == 1 ? "" : "s") }
         if isStone {
-            kindText = mb.lines.count == 1 ? L("Piedra · 1 vía") : L("Piedra · %@ vías", mb.lines.count)
+            kindText = L("Piedra · %@", lineCount(mb.lines.count, mb.discipline))
         }
         let distance: String? = userCoord.map { u in
             let km = Geo.shared.haversineKm(lat1: u.latitude, lon1: u.longitude, lat2: mb.lat, lon2: mb.lon)

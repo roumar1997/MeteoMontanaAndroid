@@ -48,8 +48,8 @@ object HelpCatalog {
                 HelpItem("El índice y por qué", "Arriba ves el veredicto (SÍ/NO) y el índice /100. Toca \"¿Por qué este índice?\" para ver los factores (temperatura, humedad, viento, lluvia, secado de la roca…).", icon = "info"),
                 HelpItem("Próximas horas y días", "Desliza la fila de \"Próximas 16 horas\" y mira los próximos 7 días con el mejor día marcado.", icon = "clock"),
                 HelpItem("Guardar offline", "El icono de descarga guarda la escuela (previsión + mapa + piedras) para verla sin conexión.", icon = "download"),
-                HelpItem("Mapa de la escuela", "Markers: P = parking, Z = sector, piedra y muros. Toca un sector (Z) para mostrar/ocultar sus piedras. Toca una piedra para ver sus vías.", icon = "map"),
-                HelpItem("Marcar una vía hecha", "Dentro de una piedra, toca el círculo (○ → ✓) de una vía para apuntarla en tu diario. Funciona sin conexión.", icon = "tick"),
+                HelpItem("Mapa de la escuela", "Markers: P = parking, Z = sector, piedra y muros. Toca un sector (Z) para mostrar/ocultar sus piedras. Toca una piedra para ver sus bloques o vías.", icon = "map"),
+                HelpItem("Marcar un ascenso hecho", "Dentro de una piedra, toca el círculo (○ → ✓) de un bloque o una vía para apuntarlo en tu diario. Funciona sin conexión.", icon = "tick"),
                 HelpItem("Proponer / corregir", "Con + PROPONER añades parking, piedra, sector o corriges una posición; un admin lo revisa.", icon = "plus"),
                 HelpItem("¿Qué piedra es esta?", "El icono de cámara junto a AYUDA: haz una foto a una piedra o elige una de la galería y te enseña las 3 piedras de esta escuela que más se parecen. Si la foto tiene ubicación, mira las que hay cerca; si no (capturas, fotos reenviadas), compara solo por cómo se ven. Todo se hace en el móvil: la foto no se envía a ningún sitio.", icon = "camera", id = "detail.photo"),
                 HelpItem("Cuando estés en la roca", "Pulsa «Aquí» para que otros sepan que estás, y usa el símbolo del chat para hablar con quien vaya a esa escuela.", icon = "chat"),
@@ -65,7 +65,7 @@ object HelpCatalog {
             items = listOf(
                 HelpItem("Elige qué proponer", "Parking, piedra, sector o corregir la posición de algo existente.", icon = "plus"),
                 HelpItem("Fija la posición", "Cuando salga \"Pulsa en el mapa\", toca el punto exacto donde está.", icon = "map"),
-                HelpItem("Piedra con vías", "Añade una o varias fotos (caras) y, en cada una, sus vías (nombre, grado, tipo). Dibuja cada vía arrastrando sobre la foto.", icon = "edit"),
+                HelpItem("Piedra con ascensos", "Añade una o varias fotos (caras) y, en cada una, sus ascensos (nombre, grado, tipo). Dibuja cada línea arrastrando sobre la foto.", icon = "edit"),
                 HelpItem("Muros largos", "Elige geometría MURO, traza el muro tocando puntos en el mapa y elige el sentido de numeración.", icon = "wall")
             )
         ),
@@ -90,7 +90,7 @@ object HelpCatalog {
             title = "Tu diario",
             intro = "Aquí se guardan las vías y bloques que marcas como hechos.",
             items = listOf(
-                HelpItem("Cómo se añade", "Marca el ✓ de una vía dentro de su piedra (en el detalle de la escuela) y aparece aquí.", icon = "tick"),
+                HelpItem("Cómo se añade", "Marca el ✓ de un ascenso dentro de su piedra (en el detalle de la escuela) y aparece aquí.", icon = "tick"),
                 HelpItem("Filtra", "Cambia entre BLOQUES y VÍAS arriba.", icon = "filter"),
                 HelpItem("Abre la piedra", "Toca una entrada para abrir su piedra en la escuela.", icon = "map"),
                 HelpItem("Borrar", "Puedes borrar tus propias entradas.", icon = "edit")
@@ -146,12 +146,12 @@ object HelpCatalog {
         HelpTopic(
             key = "community",
             title = "Comunidad",
-            intro = "El feed social de Cumbre: cuando alguien marca una vía como hecha (y decide publicarla) aparece aquí, con la foto de la piedra y su línea dibujada.",
+            intro = "El feed social de Cumbre: cuando alguien marca un ascenso como hecho (y decide publicarlo) aparece aquí, con la foto de la piedra y su línea dibujada.",
             items = listOf(
                 HelpItem("Vistas", "SIGUIENDO muestra la actividad de la gente a la que sigues; TODOS la de toda la comunidad; MÍAS tus publicaciones; RANKING el ranking de contribuidores.", icon = "filter"),
-                HelpItem("Publicar un ascenso", "Al marcar una vía como hecha puedes publicarla en el feed o guardarla solo en tu diario. En Perfil puedes elegir Preguntar / Siempre / Nunca.", icon = "tick"),
+                HelpItem("Publicar un ascenso", "Al marcar un ascenso como hecho puedes publicarlo en el feed o guardarlo solo en tu diario. En Perfil puedes elegir Preguntar / Siempre / Nunca.", icon = "tick"),
                 HelpItem("Me gusta y comentarios", "Toca el corazón para dar me gusta y el bocadillo para comentar un ascenso.", icon = "chat"),
-                HelpItem("Abrir la piedra", "Toca la foto o el nombre de la vía para abrir su piedra en la escuela.", icon = "map"),
+                HelpItem("Abrir la piedra", "Toca la foto o el nombre del ascenso para abrir su piedra en la escuela.", icon = "map"),
                 HelpItem("Compartir", "Con el icono de compartir generas una imagen del ascenso lista para historias o WhatsApp.", icon = "star"),
                 HelpItem("Denunciar", "La bandera denuncia una publicación o comentario inapropiado; un admin lo revisa.", icon = "info")
             )
@@ -185,8 +185,8 @@ object HelpCatalog {
                 HelpItem("The index and why", "At the top you see the verdict (YES/NO) and the index /100. Tap \"Why this index?\" to see the factors (temperature, humidity, wind, rain, rock drying…).", icon = "info"),
                 HelpItem("Upcoming hours and days", "Scroll the \"Next 16 hours\" row and check the next 7 days with the best day highlighted.", icon = "clock"),
                 HelpItem("Save offline", "The download icon saves the school (forecast + map + boulders) to use without internet.", icon = "download"),
-                HelpItem("School map", "Markers: P = parking, Z = sector, boulder and walls. Tap a sector (Z) to show/hide its boulders. Tap a boulder to see its routes.", icon = "map"),
-                HelpItem("Mark a route done", "Inside a boulder, tap the circle (○ → ✓) of a route to log it in your journal. Works offline.", icon = "tick"),
+                HelpItem("School map", "Markers: P = parking, Z = sector, boulder and walls. Tap a sector (Z) to show/hide its boulders. Tap a boulder to see its climbs.", icon = "map"),
+                HelpItem("Mark a climb done", "Inside a boulder, tap the circle (○ → ✓) of a climb to log it in your journal. Works offline.", icon = "tick"),
                 HelpItem("Propose / correct", "With + PROPOSE you can add parking, boulder, sector or correct a position; an admin reviews it.", icon = "plus"),
                 HelpItem("Which boulder is this?", "The camera icon next to HELP: take a photo of a boulder or pick one from your gallery and it shows the 3 boulders of this crag that look most alike. If the photo has a location it checks the ones nearby; if not (screenshots, forwarded photos), it compares by looks only. Everything happens on your phone: the photo isn't sent anywhere.", icon = "camera", id = "detail.photo"),
                 HelpItem("When you're at the crag", "Tap \"Here\" so others know you're there, and use the chat symbol to talk to whoever is heading to that crag.", icon = "chat"),
@@ -202,7 +202,7 @@ object HelpCatalog {
             items = listOf(
                 HelpItem("Choose what to propose", "Parking, boulder, sector or correct the position of something existing.", icon = "plus"),
                 HelpItem("Set the position", "When \"Tap on the map\" appears, tap the exact spot where it is.", icon = "map"),
-                HelpItem("Boulder with routes", "Add one or more photos (faces) and, on each one, its routes (name, grade, type). Draw each route by dragging on the photo.", icon = "edit"),
+                HelpItem("Boulder with climbs", "Add one or more photos (faces) and, on each one, its climbs (name, grade, type). Draw each line by dragging on the photo.", icon = "edit"),
                 HelpItem("Long walls", "Choose WALL geometry, trace the wall by tapping points on the map and choose the numbering direction.", icon = "wall")
             )
         ),
@@ -227,7 +227,7 @@ object HelpCatalog {
             title = "Your journal",
             intro = "Here you'll find the routes and boulders you've marked as done.",
             items = listOf(
-                HelpItem("How to add", "Tap the ✓ of a route inside its boulder (in the school detail) and it appears here.", icon = "tick"),
+                HelpItem("How to add", "Tap the ✓ of a climb inside its boulder (in the school detail) and it appears here.", icon = "tick"),
                 HelpItem("Filter", "Switch between BOULDERS and ROUTES at the top.", icon = "filter"),
                 HelpItem("Open the boulder", "Tap an entry to open its boulder in the school.", icon = "map"),
                 HelpItem("Delete", "You can delete your own entries.", icon = "edit")
@@ -283,12 +283,12 @@ object HelpCatalog {
         HelpTopic(
             key = "community",
             title = "Community",
-            intro = "Cumbre's social feed: when someone ticks a route (and chooses to post it) it shows up here, with the boulder photo and its line drawn on top.",
+            intro = "Cumbre's social feed: when someone ticks a climb (and chooses to post it) it shows up here, with the boulder photo and its line drawn on top.",
             items = listOf(
                 HelpItem("Views", "FOLLOWING shows activity from people you follow; ALL from the whole community; MINE your posts; RANKING the contributor leaderboard.", icon = "filter"),
-                HelpItem("Post a send", "When you tick a route you can post it to the feed or keep it in your journal only. In Profile you can choose Ask / Always / Never.", icon = "tick"),
+                HelpItem("Post a send", "When you tick a climb you can post it to the feed or keep it in your journal only. In Profile you can choose Ask / Always / Never.", icon = "tick"),
                 HelpItem("Likes and comments", "Tap the heart to like and the bubble to comment on a send.", icon = "chat"),
-                HelpItem("Open the boulder", "Tap the photo or the route name to open its boulder in the school.", icon = "map"),
+                HelpItem("Open the boulder", "Tap the photo or the climb name to open its boulder in the school.", icon = "map"),
                 HelpItem("Share", "The share icon generates an image of the send ready for stories or WhatsApp.", icon = "star"),
                 HelpItem("Report", "The flag reports an inappropriate post or comment; an admin reviews it.", icon = "info")
             )

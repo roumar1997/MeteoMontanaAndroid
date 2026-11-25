@@ -268,7 +268,7 @@ struct SchoolDetailView: View {
                 )
                 FirstTimeHint(
                     hintKey: "detail_tick",
-                    text: L("Toca una piedra en el mapa para ver sus vías. El círculo ○ marca una vía como hecha y la guarda en tu diario.")
+                    text: L("Toca una piedra en el mapa para ver sus bloques o vías. El círculo ○ marca un ascenso como hecho y lo guarda en tu diario.")
                 )
                 if vm.offlineForecast {
                     HStack(spacing: 6) {

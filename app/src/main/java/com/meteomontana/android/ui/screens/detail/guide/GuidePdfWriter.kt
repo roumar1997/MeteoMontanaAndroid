@@ -241,7 +241,7 @@ internal class GuidePdfWriter(
         // Cifras del sector, a la derecha del título.
         val chips = listOf(
             AppText.get(R.string.sguide_blocks, s.blocks.size),
-            AppText.get(R.string.sguide_lines, s.lineCount)
+            s.linesLabel(AppText.lang())
         )
         var cx = W - MARGIN
         val cp = tp(9.5f, f.sans(600), DARK)

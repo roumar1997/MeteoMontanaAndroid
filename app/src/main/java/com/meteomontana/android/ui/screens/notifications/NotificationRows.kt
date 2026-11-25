@@ -85,8 +85,9 @@ internal fun notificationText(g: NotificationGroup): AnnotatedString {
                 withStyle(bold) { append(stringResource(R.string.notif_n_more, g.others)) }
             }
             append(" ")
+            val phrased = com.meteomontana.android.domain.model.NotificationPhrases.action(n.type, many, n.postPhrase, com.meteomontana.android.util.AppText.lang())
             append(
-                when (n.type) {
+                if (phrased != null) phrased else when (n.type) {
                     "NEW_FOLLOWER" -> stringResource(R.string.notif_act_follow)
                     "FOLLOW_REQUEST" -> stringResource(R.string.notif_act_request)
                     "FOLLOW_ACCEPTED" -> stringResource(R.string.notif_act_accepted)
