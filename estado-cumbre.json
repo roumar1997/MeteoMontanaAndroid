@@ -7,6 +7,10 @@
   },
   "steps": [
     {
+      "name": "Módulos Android paso 3: :core:ui (util) y remember en SchoolListItem (rama refactor/android-modulos-paso3; pendiente de probar en el móvil)",
+      "done": false
+    },
+    {
       "name": "Módulos Android paso 2: build-logic, :core:navigation y :core:designsystem (rama refactor/android-modulos-paso2; pendiente de probar en el móvil)",
       "done": false
     },
