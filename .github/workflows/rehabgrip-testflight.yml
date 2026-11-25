@@ -1,0 +1,217 @@
+name: "RehabGrip TestFlight (manual)"
+
+# Compila RehabGrip (repo público roumar1997/RehabGrip) en RELEASE, firmada con
+# el mismo certificado de distribución y API Key que Cumbre, y la sube a
+# App Store Connect. Reutiliza .github/scripts/asc_make_profile.js (bundle id
+# por variable de entorno). Mismas trampas que ios-prod-ipa.yml: firma MANUAL
+# (sin -allowProvisioningUpdates), keychain con timeout largo y veredicto de
+# altool solo por "UPLOAD SUCCEEDED".
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: "Máquina (macos-15-intel por defecto; macos-15 = Apple)"
+        required: false
+        default: "macos-15-intel"
+      ref:
+        description: "Rama/tag/commit de RehabGrip"
+        required: false
+        default: "master"
+      build_number:
+        description: "CFBundleVersion (debe ser mayor que el último subido)"
+        required: true
+
+concurrency:
+  group: rehabgrip-testflight
+  cancel-in-progress: true
+
+env:
+  BUNDLE_ID: com.alvarofanjul.rehabgrip
+  PROFILE_NAME: "RehabGrip App Store CI"
+  TEAM_ID: 3CP2YRJ579
+
+jobs:
+  build-upload:
+    runs-on: ${{ inputs.runner || 'macos-15-intel' }}
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout Cumbre (scripts de CI)
+        uses: actions/checkout@v7
+        with:
+          path: cumbre
+
+      - name: Checkout RehabGrip
+        uses: actions/checkout@v7
+        with:
+          repository: roumar1997/RehabGrip
+          ref: ${{ inputs.ref }}
+          path: rehabgrip
+
+      - name: Validar build_number
+        env:
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          echo "$BUILD_NUMBER" | grep -Eq '^[0-9]+(\.[0-9]+){0,2}$' || { echo "::error::build_number no válido: $BUILD_NUMBER"; exit 1; }
+
+      - name: Seleccionar Xcode más reciente
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Cache Kotlin/Native (~/.konan)
+        uses: actions/cache@v6
+        with:
+          path: ~/.konan
+          key: konan-rehabgrip-${{ runner.os }}-${{ hashFiles('rehabgrip/gradle/libs.versions.toml') }}
+          restore-keys: konan-rehabgrip-${{ runner.os }}-
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Instalar certificado de distribución
+        env:
+          CERT_P12: ${{ secrets.DISTRIBUTION_CERTIFICATE_P12 }}
+          CERT_PASSWORD: ${{ secrets.DISTRIBUTION_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "$CERT_P12" | base64 -d > /tmp/distribution.p12
+          security create-keychain -p "ci-keychain" ci.keychain
+          security default-keychain -s ci.keychain
+          security unlock-keychain -p "ci-keychain" ci.keychain
+          security import /tmp/distribution.p12 -k ci.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "ci-keychain" ci.keychain
+          security list-keychains -d user -s ci.keychain
+          # Sin esto el keychain se bloquea a los 5 min y codesign se cuelga.
+          security set-keychain-settings -t 3600 -u ci.keychain
+
+      - name: Preparar API Key de App Store Connect
+        env:
+          API_KEY_B64: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$API_KEY_B64" | tr -d '\r' | base64 -d > ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
+          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
+
+      - name: Generar e instalar perfil App Store (firma manual)
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          API_KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8" \
+            node cumbre/.github/scripts/asc_make_profile.js
+
+      - name: XcodeGen generate
+        working-directory: rehabgrip/iosApp
+        run: xcodegen generate
+
+      - name: Compilar framework KMP (shared → iphoneos arm64)
+        working-directory: rehabgrip
+        run: |
+          chmod +x gradlew
+          # Pre-compila para que la fase "Compile Kotlin framework" de Xcode
+          # sea un no-op incremental. Mismas vars que exige la tarea.
+          CONFIGURATION=Release \
+          SDK_NAME=iphoneos \
+          ARCHS=arm64 \
+          TARGET_BUILD_DIR=/tmp/kmp-pre-build \
+          FRAMEWORKS_FOLDER_PATH=Frameworks \
+          EXPANDED_CODE_SIGN_IDENTITY=- \
+          EXPANDED_CODE_SIGN_IDENTITY_HASH=- \
+          CODE_SIGNING_ALLOWED=NO \
+          PLATFORM_NAME=iphoneos \
+          METAL_LIBRARY_OUTPUT_DIR=/tmp \
+          ./gradlew :shared:embedAndSignAppleFrameworkForXcode --stacktrace
+
+      - name: Archive (iphoneos, RELEASE, firma manual)
+        working-directory: rehabgrip
+        env:
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          xcodebuild archive \
+            -project iosApp/RehabGrip.xcodeproj \
+            -scheme RehabGrip \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$GITHUB_WORKSPACE/build/RehabGrip.xcarchive" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
+
+      - name: Comprobar CFBundleVersion
+        env:
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          PLIST="build/RehabGrip.xcarchive/Products/Applications/RehabGrip.app/Info.plist"
+          V=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST")
+          echo "CFBundleVersion=$V"
+          [ "$V" = "$BUILD_NUMBER" ] || { echo "::error::CFBundleVersion $V != $BUILD_NUMBER"; exit 1; }
+
+      - name: Crear ExportOptions.plist
+        run: |
+          printf '%s\n' \
+            '<?xml version="1.0" encoding="UTF-8"?>' \
+            '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+            '<plist version="1.0"><dict>' \
+            '  <key>method</key><string>app-store-connect</string>' \
+            "  <key>teamID</key><string>$TEAM_ID</string>" \
+            '  <key>signingStyle</key><string>manual</string>' \
+            '  <key>provisioningProfiles</key>' \
+            "  <dict><key>$BUNDLE_ID</key><string>$PROFILE_NAME</string></dict>" \
+            '  <key>uploadSymbols</key><true/>' \
+            '  <key>destination</key><string>export</string>' \
+            '</dict></plist>' > ExportOptions.plist
+
+      - name: Exportar .ipa firmado a disco
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/RehabGrip.xcarchive \
+            -exportPath build/export \
+            -exportOptionsPlist ExportOptions.plist
+
+      - name: Subir a App Store Connect (altool --verbose)
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        run: |
+          IPA="$(ls build/export/*.ipa | head -1)"
+          echo "Subiendo: $IPA"
+          # altool puede dar exit 0 con ERROR o imprimir ERROR en reintentos que
+          # acaban bien: el único veredicto fiable es "UPLOAD SUCCEEDED".
+          set -o pipefail
+          xcrun altool --upload-app -f "$IPA" -t ios \
+            --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID" --verbose 2>&1 | tee /tmp/altool.log || true
+          if ! grep -qi "UPLOAD SUCCEEDED" /tmp/altool.log; then
+            echo "::error::altool no reportó UPLOAD SUCCEEDED (ver log de arriba)."
+            exit 1
+          fi
+          echo "Subida a App Store Connect OK."
+
+      - name: Volcar logs de distribución (solo si algo falla)
+        if: failure()
+        run: |
+          find "$TMPDIR" /var/folders -type d -name "*.xcdistributionlogs" 2>/dev/null | while read -r d; do
+            find "$d" -type f \( -name "*.log" -o -name "*.txt" \) 2>/dev/null | while read -r f; do
+              echo "----- $f -----"; cat "$f" 2>/dev/null || true
+            done
+          done
+
+      - name: Upload .ipa (artifact)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rehabgrip-ipa
+          path: build/export/*.ipa
+          if-no-files-found: warn
+          retention-days: 7
