@@ -10,11 +10,14 @@
     <ID>CyclomaticComplexMethod:ShareProfileImage.kt$private fun renderProfileCard( context: Context, displayLabel: String, username: String?, avatar: Bitmap?, topGrade: String?, bio: String?, boulders: Int?, routes: Int?, schools: Int? ): Bitmap</ID>
     <ID>CyclomaticComplexMethod:ShareStatsImage.kt$private fun renderStatsCard( context: Context, periodLabel: String, disciplineLabel: String, s: JournalStatsCalculator.Summary, maxGrade: String?, progression: JournalStatsCalculator.Progression?, logo: Bitmap? ): Bitmap</ID>
     <ID>LambdaParameterEventTrailing:GuideUi.kt$onClick</ID>
+    <ID>LambdaParameterInRestartableEffect:HelpSheet.kt$onDismiss</ID>
+    <ID>LongMethod:HelpSheet.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun HelpSheet(topicKey: String, onDismiss: () -&gt; Unit)</ID>
     <ID>LongMethod:ShareFeedPostImage.kt$private fun renderPostCard( context: Context, post: FeedPost, photo: Bitmap?, startLabel: String? = null, /** false cuando la imagen principal es la foto de celebración (sin trazo). */ drawLine: Boolean = true, /** Foto de celebración en miniatura (esquina superior derecha), o null. */ corner: Bitmap? = null ): Bitmap</ID>
     <ID>LongMethod:ShareLineImage.kt$private fun renderLineCard( context: Context, block: Block, line: BlockLine, schoolName: String, lines: List&lt;BlockLine&gt;, photo: Bitmap, tickedIds: Set&lt;String&gt;, projectIds: Set&lt;String&gt;, orientationBadge: String?, setterGradeRef: String? ): Bitmap</ID>
     <ID>LongMethod:ShareProfileImage.kt$private fun renderProfileCard( context: Context, displayLabel: String, username: String?, avatar: Bitmap?, topGrade: String?, bio: String?, boulders: Int?, routes: Int?, schools: Int? ): Bitmap</ID>
     <ID>LongMethod:ShareStatsImage.kt$private fun renderStatsCard( context: Context, periodLabel: String, disciplineLabel: String, s: JournalStatsCalculator.Summary, maxGrade: String?, progression: JournalStatsCalculator.Progression?, logo: Bitmap? ): Bitmap</ID>
     <ID>MatchingDeclarationName:LinePath.kt$LineStroke</ID>
+    <ID>MaxLineLength:HelpSheet.kt$fun</ID>
     <ID>MaxLineLength:MeetupGear.kt$"ROUTE" -&gt; listOf("cintas" to AppText.get(R.string.gear_quickdraws), "cuerda" to AppText.get(R.string.gear_ropes), "grigri" to AppText.get(R.string.gear_grigri))</ID>
     <ID>MaxLineLength:MeetupGearSheet.kt$)</ID>
     <ID>MaxLineLength:MeetupGearSheet.kt$Column</ID>
@@ -43,5 +46,6 @@
     <ID>UnusedParameter:StepperButton.kt$description: String</ID>
     <ID>UnusedPrivateProperty:ShareLineImage.kt$private const val APPSTORE_URL = "https://apps.apple.com/app/id6785776686"</ID>
     <ID>UnusedPrivateProperty:ShareLineImage.kt$private const val PLAY_URL = "https://play.google.com/store/apps/details?id=com.meteomontana.android"</ID>
+    <ID>ViewModelInjection:HelpSheet.kt$vm</ID>
   </CurrentIssues>
 </SmellBaseline>

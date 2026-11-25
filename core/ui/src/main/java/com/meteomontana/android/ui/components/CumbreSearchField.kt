@@ -31,7 +31,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 
 /**
  * Buscador en píldora con las medidas de iOS (≈42 dp de alto, letra 17). El `OutlinedTextField` de Material

@@ -173,4 +173,16 @@
     <string name="meetup_gear_sheet_nobody">Nobody has it yet</string>
     <string name="meetup_gear_sheet_only_you">Only you</string>
     <string name="meetup_gear_sheet_group_of">%1$d of %2$d in the group bring it</string>
+    <string name="help_sheet_v2_ayuda_2">Help</string>
+    <string name="help_sheet_v2_ayuda">HELP</string>
+    <string name="help_sheet_v2_sugerir_algo_reportar_un_fallo">Suggest something / report a bug</string>
+    <string name="help_sheet_v3_pistas_reactivadas_vuelve_a_cada">Hints re-enabled — go back to each screen to see them</string>
+    <string name="profile_show_hints">Show hints again</string>
+    <string name="help_sheet_v2_sugerir_algo_o_reportar_un">Suggest something or report a bug</string>
+    <string name="help_sheet_gracias_lo_hemos_recibido">Thanks! We\'ve received it.</string>
+    <string name="help_sheet_v2_cuentanos_que_te_gustaria_que">Tell us what you\'d like the app to do or what isn\'t working well.</string>
+    <string name="help_sheet_escribe_aqui">Write here…</string>
+    <string name="help_sheet_v2_no_se_pudo_enviar_intentalo">Couldn\'t send it. Try again.</string>
+    <string name="help_sheet_v2_enviar">SEND</string>
+    <string name="help_sheet_v2_cancelar">CANCEL</string>
 </resources>

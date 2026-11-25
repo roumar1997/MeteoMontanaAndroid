@@ -200,7 +200,7 @@ internal fun ProfileSettingsScreen(
                 LanguageRow()
                 if (com.meteomontana.android.ui.components.LocalFeatureFlags.current.isGymsEnabled) { SettingsDivider(); HomeGymRow() }
                 SettingsDivider()
-                MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(R.string.profile_show_hints)) {
+                MenuRow(Icons.AutoMirrored.Outlined.HelpOutline, stringResource(com.meteomontana.android.core.ui.R.string.profile_show_hints)) {
                     com.meteomontana.android.ui.components.resetAllHints(ctx)
                     android.widget.Toast.makeText(ctx, ctx.getString(R.string.profile_screen_v3_pistas_reactivadas), android.widget.Toast.LENGTH_SHORT).show()
                 }

@@ -246,7 +246,6 @@
     <string name="profile_logout">Cerrar sesión</string>
     <string name="profile_delete_account">Eliminar cuenta</string>
     <string name="profile_delete_confirm">¿Seguro que quieres eliminar tu cuenta? Se borrarán todos tus datos. Esta acción no se puede deshacer.</string>
-    <string name="profile_show_hints">Volver a ver las pistas</string>
     <string name="profile_admin_panel">Panel Admin</string>
     <string name="profile_admin_pending">%d PENDIENTES</string>
     <string name="profile_public">Público</string>
@@ -538,8 +537,6 @@
     <string name="forecast_body_puedo_escalar_hoy">¿PUEDO ESCALAR HOY?</string>
     <string name="grade_filter_bar_esta_escuela_todavia_no">Esta escuela todavía no tiene vías con grado.</string>
     <string name="grade_filter_bar_1_via">1 vía</string>
-    <string name="help_sheet_gracias_lo_hemos_recibido">¡Gracias! Lo hemos recibido.</string>
-    <string name="help_sheet_escribe_aqui">Escribe aquí…</string>
     <string name="line_comments_section_se_el_primero_en">Sé el primero en comentar.</string>
     <string name="school_search_lines_cd">Buscar vías y bloques</string>
     <string name="map_mini_cards_buscar_vias_bloques">Buscar vías, sectores, parkings…</string>
@@ -723,14 +720,6 @@
     <string name="grade_filter_bar_v2_mostrando_1_s_vias_de">Mostrando %1$s vías de %2$s</string>
     <string name="grade_filter_bar_v2_quitar_todo">QUITAR TODO</string>
     <string name="grade_filter_bar_v2_filtrar_por_grado">FILTRAR POR GRADO</string>
-    <string name="help_sheet_v2_cancelar">CANCELAR</string>
-    <string name="help_sheet_v2_enviar">ENVIAR</string>
-    <string name="help_sheet_v2_no_se_pudo_enviar_intentalo">No se pudo enviar. Inténtalo otra vez.</string>
-    <string name="help_sheet_v2_cuentanos_que_te_gustaria_que">Cuéntanos qué te gustaría que hiciera la app o qué no funciona bien.</string>
-    <string name="help_sheet_v2_sugerir_algo_o_reportar_un">Sugerir algo o reportar un fallo</string>
-    <string name="help_sheet_v2_sugerir_algo_reportar_un_fallo">Sugerir algo / reportar un fallo</string>
-    <string name="help_sheet_v2_ayuda">AYUDA</string>
-    <string name="help_sheet_v2_ayuda_2">Ayuda</string>
     <string name="hourly_heatmap_v2_ventana_optima">VENTANA ÓPTIMA</string>
     <string name="line_comments_section_v2_denunciar_comentario">DENUNCIAR COMENTARIO</string>
     <string name="line_comments_section_v2_enviar">Enviar</string>
@@ -1092,7 +1081,6 @@
     <string name="forecast_body_v3_mejor_esperar_a_que_seque">Mejor esperar a que seque</string>
     <string name="forecast_body_v3_lista_para_escalar">Lista para escalar</string>
     <string name="grade_filter_bar_v3_vias">%1$s vías</string>
-    <string name="help_sheet_v3_pistas_reactivadas_vuelve_a_cada">Pistas reactivadas — vuelve a cada pantalla para verlas</string>
     <string name="map_mini_cards_v3_piedra"> · %1$s piedra%2$s</string>
     <string name="notes_section_v3_foto">📷 FOTO</string>
     <string name="notes_section_v3_este_usuario">este usuario</string>

@@ -2,7 +2,6 @@ package com.meteomontana.android.ui.components
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.meteomontana.android.BuildConfig
 import com.meteomontana.android.domain.usecase.suggestion.SubmitSuggestionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +25,7 @@ class SuggestionViewModel @Inject constructor(
         _state.value = SuggestionSendState.SENDING
         viewModelScope.launch {
             _state.value = runCatching {
-                submitSuggestion(message.trim(), "ANDROID", BuildConfig.VERSION_NAME)
+                submitSuggestion(message.trim(), "ANDROID", com.meteomontana.android.util.AppBuild.versionName)
             }.fold(
                 onSuccess = { SuggestionSendState.SENT },
                 onFailure = { SuggestionSendState.ERROR }

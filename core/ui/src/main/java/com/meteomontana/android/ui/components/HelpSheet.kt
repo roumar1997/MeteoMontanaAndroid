@@ -70,7 +70,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 
 /**
  * Botón de ayuda de una pantalla. [topicKey] = clave del [HelpCatalog] y de la guía ("schools", "detail", "profile"…).

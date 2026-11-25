@@ -367,7 +367,6 @@
     <string name="profile_routes">ROUTES</string>
     <string name="profile_saved_schools">Saved schools</string>
     <string name="profile_schools">SCHOOLS</string>
-    <string name="profile_show_hints">Show hints again</string>
     <string name="profile_title">Account</string>
     <string name="profile_unfollow">Following</string>
     <string name="profile_weather_alert">Weather alert</string>
@@ -479,8 +478,6 @@
     <string name="forecast_body_puedo_escalar_hoy">CAN I CLIMB TODAY?</string>
     <string name="grade_filter_bar_esta_escuela_todavia_no">This school doesn\'t have graded routes yet.</string>
     <string name="grade_filter_bar_1_via">1 route</string>
-    <string name="help_sheet_gracias_lo_hemos_recibido">Thanks! We\'ve received it.</string>
-    <string name="help_sheet_escribe_aqui">Write here…</string>
     <string name="line_comments_section_se_el_primero_en">Be the first to comment.</string>
     <string name="school_search_lines_cd">Search routes and boulders</string>
     <string name="map_mini_cards_buscar_vias_bloques">Search routes, sectors, parking…</string>
@@ -664,14 +661,6 @@
     <string name="grade_filter_bar_v2_mostrando_1_s_vias_de">Showing %1$s routes out of %2$s</string>
     <string name="grade_filter_bar_v2_quitar_todo">CLEAR ALL</string>
     <string name="grade_filter_bar_v2_filtrar_por_grado">FILTER BY GRADE</string>
-    <string name="help_sheet_v2_cancelar">CANCEL</string>
-    <string name="help_sheet_v2_enviar">SEND</string>
-    <string name="help_sheet_v2_no_se_pudo_enviar_intentalo">Couldn\'t send it. Try again.</string>
-    <string name="help_sheet_v2_cuentanos_que_te_gustaria_que">Tell us what you\'d like the app to do or what isn\'t working well.</string>
-    <string name="help_sheet_v2_sugerir_algo_o_reportar_un">Suggest something or report a bug</string>
-    <string name="help_sheet_v2_sugerir_algo_reportar_un_fallo">Suggest something / report a bug</string>
-    <string name="help_sheet_v2_ayuda">HELP</string>
-    <string name="help_sheet_v2_ayuda_2">Help</string>
     <string name="hourly_heatmap_v2_ventana_optima">OPTIMAL WINDOW</string>
     <string name="line_comments_section_v2_denunciar_comentario">REPORT COMMENT</string>
     <string name="line_comments_section_v2_enviar">Send</string>
@@ -1033,7 +1022,6 @@
     <string name="forecast_body_v3_mejor_esperar_a_que_seque">Better wait for it to dry</string>
     <string name="forecast_body_v3_lista_para_escalar">Ready to climb</string>
     <string name="grade_filter_bar_v3_vias">%1$s routes</string>
-    <string name="help_sheet_v3_pistas_reactivadas_vuelve_a_cada">Hints re-enabled — go back to each screen to see them</string>
     <string name="map_mini_cards_v3_piedra"> · %1$s boulder%2$s</string>
     <string name="notes_section_v3_foto">📷 PHOTO</string>
     <string name="notes_section_v3_este_usuario">this user</string>

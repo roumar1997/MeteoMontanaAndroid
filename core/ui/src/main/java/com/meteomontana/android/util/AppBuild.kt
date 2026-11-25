@@ -16,10 +16,15 @@ object AppBuild {
     var googleWebClientId: String = ""
         private set
 
-    fun init(apiBaseUrl: String, isDebug: Boolean, googleWebClientId: String) {
+    /** Versión de la app (p. ej. «7.4.0»), para las sugerencias. */
+    var versionName: String = ""
+        private set
+
+    fun init(apiBaseUrl: String, isDebug: Boolean, googleWebClientId: String, versionName: String) {
         this.apiBaseUrl = apiBaseUrl
         this.isDebug = isDebug
         this.googleWebClientId = googleWebClientId
+        this.versionName = versionName
     }
 
     /** Raíz pública de la web del API (sin `api/`), para enlaces compartidos. */
