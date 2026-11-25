@@ -98,7 +98,7 @@ suspend fun shareLineAsImage(
     // Enlace que ABRE la app directamente en esta piedra (landing /s/v/... con
     // Open Graph → "abrir en app" o descargar si no la tienen). Recupera el
     // deep-link que el compartir de texto ya tenía.
-    val base = com.meteomontana.android.BuildConfig.API_BASE_URL.removeSuffix("api/")
+    val base = com.meteomontana.android.util.AppBuild.webBaseUrl
     val link = "${base}s/v/${block.schoolId}/${line.id}"
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "image/png"

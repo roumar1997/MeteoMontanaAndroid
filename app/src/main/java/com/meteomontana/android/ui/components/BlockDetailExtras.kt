@@ -242,7 +242,7 @@ private fun shareLine(
         if (schoolName.isNotBlank()) append(" · ").append(schoolName)
         if (!sectorName.isNullOrBlank()) append(" · ").append(sectorName)
     }
-    val base = com.meteomontana.android.BuildConfig.API_BASE_URL.removeSuffix("api/")
+    val base = com.meteomontana.android.util.AppBuild.webBaseUrl
     val link = "${base}s/v/${block.schoolId}/${line.id}"
     val text = context.getString(
         if (isRoute) R.string.share_line_extra_route else R.string.share_line_extra_boulder,

@@ -127,7 +127,7 @@ internal fun shareSchool(
 ) {
     // Formato WhatsApp (los *asteriscos* son negrita allí) + nuestro enlace
     // inteligente: abre la app si la tienes, o la página con las stores si no.
-    val base = com.meteomontana.android.BuildConfig.API_BASE_URL.removeSuffix("api/")
+    val base = com.meteomontana.android.util.AppBuild.webBaseUrl
     val sb = StringBuilder()
     sb.append("🧗 *").append(school.name).append("*")
     school.region?.let { sb.append(" · ").append(com.meteomontana.android.util.CatalogLabels.region(it)) }

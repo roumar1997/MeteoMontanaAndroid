@@ -104,6 +104,6 @@ private fun formatShareDay(iso: String): String {
  * dominio de prod — en staging se abre la landing web, que es lo esperado.
  */
 fun shareBaseUrl(): String =
-    if (com.meteomontana.android.BuildConfig.DEBUG)
+    if (com.meteomontana.android.util.AppBuild.isDebug)
         "https://meteomontanaapi-staging.up.railway.app"
     else "https://api.climbingteams.com"
