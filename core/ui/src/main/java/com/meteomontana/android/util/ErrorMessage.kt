@@ -7,7 +7,7 @@ import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import androidx.compose.ui.res.stringResource
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 
 /**
  * Convierte cualquier excepción de red/HTTP en un mensaje legible.

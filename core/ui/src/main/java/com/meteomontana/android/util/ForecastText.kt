@@ -1,6 +1,6 @@
 package com.meteomontana.android.util
 
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 
 /**
  * Textos que genera el SERVIDOR en español dentro de la previsión (el desglose

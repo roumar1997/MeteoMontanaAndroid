@@ -182,7 +182,7 @@ fun MeetupAlertScreen(
             SectionLabel(stringResource(R.string.w_discipline_caps))
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 AlertChip(stringResource(R.string.w_both), discipline == null, enabled = enabled) { if (enabled) discipline = null }
-                AlertChip(stringResource(R.string.w_boulder), discipline == "BOULDER", enabled = enabled) { if (enabled) discipline = "BOULDER" }
+                AlertChip(stringResource(com.meteomontana.android.core.ui.R.string.w_boulder), discipline == "BOULDER", enabled = enabled) { if (enabled) discipline = "BOULDER" }
                 AlertChip(stringResource(R.string.school_map_v3_via), discipline == "ROUTE", enabled = enabled) { if (enabled) discipline = "ROUTE" }
             }
 

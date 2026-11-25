@@ -1276,7 +1276,6 @@
     <string name="marker_placer_v4_nueva_posicion">Nueva posición</string>
     <string name="monthly_stats_section_v4_muy_malo">Muy malo</string>
     <string name="mountain_bulletin_section_v4_no_se_esperan">No se esperan</string>
-    <string name="school_list_item_v4_muy_bueno">MUY BUENO</string>
     <string name="school_presence_row_v4_no_se_pudo_cargar_quien">No se pudo cargar quién hay aquí. Comprueba tu conexión.</string>
     <string name="sector_reorder_dialog_v4_no_se_pudo_guardar">No se pudo guardar.</string>
     <string name="sector_reorder_dialog_v4_no_se_pudo_calcular_el">No se pudo calcular el orden.</string>
@@ -1366,15 +1365,6 @@
     <string name="share_utils_v4_via"> · Vía</string>
     <string name="share_utils_v4_bloque"> · Bloque</string>
     <string name="share_utils_v4_plazas">%1$s/%2$s plazas</string>
-    <string name="error_message_v4_error_desconocido">Error desconocido</string>
-    <string name="error_message_v4_error_interno_del_servidor">Error interno del servidor.</string>
-    <string name="error_message_v4_error_http">Error HTTP %1$s</string>
-    <string name="error_message_v4_recurso_no_encontrado">Recurso no encontrado.</string>
-    <string name="error_message_v4_sin_permiso_para_esta_accion">Sin permiso para esta acción.</string>
-    <string name="error_message_v4_sesion_expirada_vuelve_a_iniciar">Sesión expirada. Vuelve a iniciar sesión.</string>
-    <string name="error_message_v4_sin_conexion_a_internet">Sin conexión a internet.</string>
-    <string name="error_message_v4_no_se_puede_conectar_al">No se puede conectar al servidor.</string>
-    <string name="error_message_v4_el_servidor_no_responde_esta">El servidor no responde. ¿Está el back arrancado?</string>
 
     <!-- undefined -->
     <string name="kind_route">vía</string>
@@ -1406,10 +1396,6 @@
     <string name="w_good">Bueno</string>
     <string name="w_fair">Regular</string>
     <string name="w_poor">Malo</string>
-    <string name="w_excellent_caps">EXCELENTE</string>
-    <string name="w_good_caps">BUENO</string>
-    <string name="w_fair_caps">REGULAR</string>
-    <string name="w_poor_caps">MALO</string>
     <string name="w_sky_caps">CIELO</string>
     <string name="w_precip_caps">PRECIPITACIONES</string>
     <string name="w_storms_caps">TORMENTAS</string>
@@ -1419,8 +1405,6 @@
     <string name="school_map_view_sector_fallback">Sector</string>
     <string name="school_map_view_parking_fallback">Parking</string>
     <string name="w_all">Todas</string>
-    <string name="w_route">Vía</string>
-    <string name="w_boulder">Bloque</string>
     <string name="w_school_caps">ESCUELA</string>
     <string name="w_user">Usuario</string>
     <string name="w_group">Grupo</string>
@@ -1501,12 +1485,6 @@
     <string name="explore_group_count_one">1 vía/bloque</string>
     <string name="explore_group_count_other">%d vías/bloques</string>
     <string name="w_show_caps_tristate">MOSTRAR</string>
-    <string name="rock_granite">Granito</string>
-    <string name="rock_limestone">Caliza</string>
-    <string name="rock_sandstone">Arenisca</string>
-    <string name="rock_basalt">Basalto</string>
-    <string name="rock_conglomerate">Conglomerado</string>
-    <string name="rock_slate">Pizarra</string>
 
     <!-- Filtro MOSTRAR -->
     <string name="w_favourites">Favoritos</string>
@@ -1541,13 +1519,9 @@
     <string name="language_system">Automático (idioma del móvil)</string>
     <string name="language_es">Español</string>
     <string name="language_en">English</string>
-    <string name="aspect_sw">SO</string>
-    <string name="aspect_w">O</string>
-    <string name="aspect_nw">NO</string>
     <string name="aspect_wall">PARED %1$s</string>
 
     <!-- Código de idioma para lógica dependiente del idioma -->
-    <string name="lang_code">es</string>
 
     <!-- Guías por pantalla y botón "? AYUDA" (2026-10-14) -->
     <string name="guide_help">AYUDA</string>

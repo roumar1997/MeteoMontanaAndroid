@@ -1217,7 +1217,6 @@
     <string name="marker_placer_v4_nueva_posicion">New position</string>
     <string name="monthly_stats_section_v4_muy_malo">Very poor</string>
     <string name="mountain_bulletin_section_v4_no_se_esperan">None expected</string>
-    <string name="school_list_item_v4_muy_bueno">VERY GOOD</string>
     <string name="school_presence_row_v4_no_se_pudo_cargar_quien">Could not load who\'s here. Check your connection.</string>
     <string name="sector_reorder_dialog_v4_no_se_pudo_guardar">Could not save.</string>
     <string name="sector_reorder_dialog_v4_no_se_pudo_calcular_el">Could not work out the order.</string>
@@ -1307,15 +1306,6 @@
     <string name="share_utils_v4_via"> · Route</string>
     <string name="share_utils_v4_bloque"> · Boulder</string>
     <string name="share_utils_v4_plazas">%1$s/%2$s spots</string>
-    <string name="error_message_v4_error_desconocido">Unknown error</string>
-    <string name="error_message_v4_error_interno_del_servidor">Internal server error.</string>
-    <string name="error_message_v4_error_http">HTTP error %1$s</string>
-    <string name="error_message_v4_recurso_no_encontrado">Resource not found.</string>
-    <string name="error_message_v4_sin_permiso_para_esta_accion">You don\'t have permission for this action.</string>
-    <string name="error_message_v4_sesion_expirada_vuelve_a_iniciar">Session expired. Sign in again.</string>
-    <string name="error_message_v4_sin_conexion_a_internet">No internet connection.</string>
-    <string name="error_message_v4_no_se_puede_conectar_al">Cannot connect to the server.</string>
-    <string name="error_message_v4_el_servidor_no_responde_esta">The server is not responding. Try again in a moment.</string>
 
     <!-- undefined -->
     <string name="kind_route">route</string>
@@ -1347,10 +1337,6 @@
     <string name="w_good">Good</string>
     <string name="w_fair">Fair</string>
     <string name="w_poor">Poor</string>
-    <string name="w_excellent_caps">EXCELLENT</string>
-    <string name="w_good_caps">GOOD</string>
-    <string name="w_fair_caps">FAIR</string>
-    <string name="w_poor_caps">POOR</string>
     <string name="w_sky_caps">SKY</string>
     <string name="w_precip_caps">PRECIPITATION</string>
     <string name="w_storms_caps">STORMS</string>
@@ -1360,8 +1346,6 @@
     <string name="school_map_view_sector_fallback">Sector</string>
     <string name="school_map_view_parking_fallback">Parking</string>
     <string name="w_all">All</string>
-    <string name="w_route">Route</string>
-    <string name="w_boulder">Boulder</string>
     <string name="w_school_caps">SCHOOL</string>
     <string name="w_user">User</string>
     <string name="w_group">Group</string>
@@ -1442,12 +1426,6 @@
     <string name="explore_group_count_one">1 route/boulder</string>
     <string name="explore_group_count_other">%d routes/boulders</string>
     <string name="w_show_caps_tristate">SHOW</string>
-    <string name="rock_granite">Granite</string>
-    <string name="rock_limestone">Limestone</string>
-    <string name="rock_sandstone">Sandstone</string>
-    <string name="rock_basalt">Basalt</string>
-    <string name="rock_conglomerate">Conglomerate</string>
-    <string name="rock_slate">Slate</string>
 
     <!-- Filtro MOSTRAR -->
     <string name="w_favourites">Favourites</string>
@@ -1482,13 +1460,9 @@
     <string name="language_system">Automatic (phone language)</string>
     <string name="language_es">Español</string>
     <string name="language_en">English</string>
-    <string name="aspect_sw">SW</string>
-    <string name="aspect_w">W</string>
-    <string name="aspect_nw">NW</string>
     <string name="aspect_wall">WALL FACING %1$s</string>
 
     <!-- Código de idioma para lógica dependiente del idioma -->
-    <string name="lang_code">en</string>
 
     <!-- Per-screen guides and the "? HELP" button (2026-10-14) -->
     <string name="guide_help">HELP</string>

@@ -40,8 +40,8 @@ data class ExploreGroup(
 // Orden y etiquetas alineados con iOS (Todas/Bloque/Vía).
 enum class StyleFilter(@androidx.annotation.StringRes val labelRes: Int, val apiValue: String?) {
     All(R.string.w_all, null),
-    Boulder(R.string.w_boulder, "Bloque"),   // apiValue: valor del catálogo, NO se traduce
-    Via(R.string.w_route, "Vía")
+    Boulder(com.meteomontana.android.core.ui.R.string.w_boulder, "Bloque"),   // apiValue: valor del catálogo, NO se traduce
+    Via(com.meteomontana.android.core.ui.R.string.w_route, "Vía")
 }
 
 // iOS muestra "Mejor score" primero.

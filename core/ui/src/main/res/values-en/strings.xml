@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="cal_months_short">
+        <item>Jan</item>
+        <item>Feb</item>
+        <item>Mar</item>
+        <item>Apr</item>
+        <item>May</item>
+        <item>Jun</item>
+        <item>Jul</item>
+        <item>Aug</item>
+        <item>Sep</item>
+        <item>Oct</item>
+        <item>Nov</item>
+        <item>Dec</item>
+    </string-array>
+    <string-array name="cal_months_long">
+        <item>January</item>
+        <item>February</item>
+        <item>March</item>
+        <item>April</item>
+        <item>May</item>
+        <item>June</item>
+        <item>July</item>
+        <item>August</item>
+        <item>September</item>
+        <item>October</item>
+        <item>November</item>
+        <item>December</item>
+    </string-array>
+    <string-array name="cal_days_short_mon">
+        <item>Mon</item>
+        <item>Tue</item>
+        <item>Wed</item>
+        <item>Thu</item>
+        <item>Fri</item>
+        <item>Sat</item>
+        <item>Sun</item>
+    </string-array>
+    <string-array name="cal_days_long_mon">
+        <item>Monday</item>
+        <item>Tuesday</item>
+        <item>Wednesday</item>
+        <item>Thursday</item>
+        <item>Friday</item>
+        <item>Saturday</item>
+        <item>Sunday</item>
+    </string-array>
+    <string-array name="cal_days_letter_mon">
+        <item>M</item>
+        <item>T</item>
+        <item>W</item>
+        <item>T</item>
+        <item>F</item>
+        <item>S</item>
+        <item>S</item>
+    </string-array>
+    <string name="rock_granite">Granite</string>
+    <string name="rock_limestone">Limestone</string>
+    <string name="rock_sandstone">Sandstone</string>
+    <string name="rock_basalt">Basalt</string>
+    <string name="rock_conglomerate">Conglomerate</string>
+    <string name="rock_slate">Slate</string>
+    <string name="lang_code">en</string>
+    <string name="aspect_sw">SW</string>
+    <string name="aspect_w">W</string>
+    <string name="aspect_nw">NW</string>
+    <string name="w_boulder">Boulder</string>
+    <string name="w_route">Route</string>
+    <string name="w_excellent_caps">EXCELLENT</string>
+    <string name="school_list_item_v4_muy_bueno">VERY GOOD</string>
+    <string name="w_good_caps">GOOD</string>
+    <string name="w_fair_caps">FAIR</string>
+    <string name="w_poor_caps">POOR</string>
+    <string name="error_message_v4_el_servidor_no_responde_esta">The server is not responding. Try again in a moment.</string>
+    <string name="error_message_v4_no_se_puede_conectar_al">Cannot connect to the server.</string>
+    <string name="error_message_v4_sin_conexion_a_internet">No internet connection.</string>
+    <string name="error_message_v4_sesion_expirada_vuelve_a_iniciar">Session expired. Sign in again.</string>
+    <string name="error_message_v4_sin_permiso_para_esta_accion">You don\'t have permission for this action.</string>
+    <string name="error_message_v4_recurso_no_encontrado">Resource not found.</string>
+    <string name="error_message_v4_error_http">HTTP error %1$s</string>
+    <string name="error_message_v4_error_interno_del_servidor">Internal server error.</string>
+    <string name="error_message_v4_error_desconocido">Unknown error</string>
+</resources>

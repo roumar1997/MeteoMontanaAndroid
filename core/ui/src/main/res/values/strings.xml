@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="cal_months_short">
+        <item>Ene</item>
+        <item>Feb</item>
+        <item>Mar</item>
+        <item>Abr</item>
+        <item>May</item>
+        <item>Jun</item>
+        <item>Jul</item>
+        <item>Ago</item>
+        <item>Sep</item>
+        <item>Oct</item>
+        <item>Nov</item>
+        <item>Dic</item>
+    </string-array>
+    <string-array name="cal_months_long">
+        <item>enero</item>
+        <item>febrero</item>
+        <item>marzo</item>
+        <item>abril</item>
+        <item>mayo</item>
+        <item>junio</item>
+        <item>julio</item>
+        <item>agosto</item>
+        <item>septiembre</item>
+        <item>octubre</item>
+        <item>noviembre</item>
+        <item>diciembre</item>
+    </string-array>
+    <string-array name="cal_days_short_mon">
+        <item>Lun</item>
+        <item>Mar</item>
+        <item>Mié</item>
+        <item>Jue</item>
+        <item>Vie</item>
+        <item>Sáb</item>
+        <item>Dom</item>
+    </string-array>
+    <string-array name="cal_days_long_mon">
+        <item>lunes</item>
+        <item>martes</item>
+        <item>miércoles</item>
+        <item>jueves</item>
+        <item>viernes</item>
+        <item>sábado</item>
+        <item>domingo</item>
+    </string-array>
+    <string-array name="cal_days_letter_mon">
+        <item>L</item>
+        <item>M</item>
+        <item>X</item>
+        <item>J</item>
+        <item>V</item>
+        <item>S</item>
+        <item>D</item>
+    </string-array>
+    <string name="rock_granite">Granito</string>
+    <string name="rock_limestone">Caliza</string>
+    <string name="rock_sandstone">Arenisca</string>
+    <string name="rock_basalt">Basalto</string>
+    <string name="rock_conglomerate">Conglomerado</string>
+    <string name="rock_slate">Pizarra</string>
+    <string name="lang_code">es</string>
+    <string name="aspect_sw">SO</string>
+    <string name="aspect_w">O</string>
+    <string name="aspect_nw">NO</string>
+    <string name="w_boulder">Bloque</string>
+    <string name="w_route">Vía</string>
+    <string name="w_excellent_caps">EXCELENTE</string>
+    <string name="school_list_item_v4_muy_bueno">MUY BUENO</string>
+    <string name="w_good_caps">BUENO</string>
+    <string name="w_fair_caps">REGULAR</string>
+    <string name="w_poor_caps">MALO</string>
+    <string name="error_message_v4_el_servidor_no_responde_esta">El servidor no responde. ¿Está el back arrancado?</string>
+    <string name="error_message_v4_no_se_puede_conectar_al">No se puede conectar al servidor.</string>
+    <string name="error_message_v4_sin_conexion_a_internet">Sin conexión a internet.</string>
+    <string name="error_message_v4_sesion_expirada_vuelve_a_iniciar">Sesión expirada. Vuelve a iniciar sesión.</string>
+    <string name="error_message_v4_sin_permiso_para_esta_accion">Sin permiso para esta acción.</string>
+    <string name="error_message_v4_recurso_no_encontrado">Recurso no encontrado.</string>
+    <string name="error_message_v4_error_http">Error HTTP %1$s</string>
+    <string name="error_message_v4_error_interno_del_servidor">Error interno del servidor.</string>
+    <string name="error_message_v4_error_desconocido">Error desconocido</string>
+</resources>

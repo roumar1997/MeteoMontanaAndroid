@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>SpreadOperator:AppText.kt$AppText$(id, *args.map { it ?: "" }.toTypedArray())</ID>
+    <ID>SpreadOperator:AppText.kt$AppText$(id, count, *args.map { it ?: "" }.toTypedArray())</ID>
+  </CurrentIssues>
+</SmellBaseline>

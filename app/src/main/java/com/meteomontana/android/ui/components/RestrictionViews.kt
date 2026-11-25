@@ -131,7 +131,7 @@ fun RestrictionsPill(restrictions: SchoolRestrictions?, onClick: () -> Unit) {
 fun restrictionWhenText(r: Restriction): String {
     val kind = stringResource(kindLabel(r.kind))
     if (r.permanent) return stringResource(R.string.restriction_permanent, kind)
-    val months = androidx.compose.ui.res.stringArrayResource(R.array.cal_months_short)
+    val months = androidx.compose.ui.res.stringArrayResource(com.meteomontana.android.core.ui.R.array.cal_months_short)
     val end = r.endDay?.let { d -> r.endMonth?.let { m -> "$d ${months[m - 1]}" } } ?: return kind
     return stringResource(R.string.restriction_until, kind, end)
 }

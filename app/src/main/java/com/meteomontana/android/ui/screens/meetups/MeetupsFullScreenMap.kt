@@ -290,8 +290,8 @@ internal fun FullScreenMeetupsMap(
                 ) {
                     Text(stringResource(R.string.meetups_map_panel_v2_modalidad), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     DisciplineFilterPill(stringResource(R.string.w_both), disciplineFilter == null) { onDisciplineFilterChange(null) }
-                    DisciplineFilterPill(stringResource(R.string.w_boulder), disciplineFilter == "BOULDER") { onDisciplineFilterChange("BOULDER") }
-                    DisciplineFilterPill(stringResource(R.string.w_route), disciplineFilter == "ROUTE") { onDisciplineFilterChange("ROUTE") }
+                    DisciplineFilterPill(stringResource(com.meteomontana.android.core.ui.R.string.w_boulder), disciplineFilter == "BOULDER") { onDisciplineFilterChange("BOULDER") }
+                    DisciplineFilterPill(stringResource(com.meteomontana.android.core.ui.R.string.w_route), disciplineFilter == "ROUTE") { onDisciplineFilterChange("ROUTE") }
                 }
             }
         }

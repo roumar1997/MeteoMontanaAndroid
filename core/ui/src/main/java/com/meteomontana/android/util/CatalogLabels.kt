@@ -1,6 +1,6 @@
 package com.meteomontana.android.util
 
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 
 /**
  * Etiquetas de valores del CATÁLOGO que llegan del servidor en español

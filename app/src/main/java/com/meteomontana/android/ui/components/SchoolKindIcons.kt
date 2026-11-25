@@ -38,7 +38,7 @@ fun SchoolKindIcons(kind: SchoolKind, modifier: Modifier = Modifier, height: Dp 
         if (kind.hasRoutes) {
             Image(
                 painter = painterResource(R.drawable.kind_route),
-                contentDescription = stringResource(R.string.w_route),
+                contentDescription = stringResource(com.meteomontana.android.core.ui.R.string.w_route),
                 colorFilter = ColorFilter.tint(Terra),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.height(height).aspectRatio(ROUTE_ASPECT)
@@ -47,7 +47,7 @@ fun SchoolKindIcons(kind: SchoolKind, modifier: Modifier = Modifier, height: Dp 
         if (kind.hasBoulders) {
             Image(
                 painter = painterResource(R.drawable.kind_boulder),
-                contentDescription = stringResource(R.string.w_boulder),
+                contentDescription = stringResource(com.meteomontana.android.core.ui.R.string.w_boulder),
                 colorFilter = ColorFilter.tint(Terra),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.height(height).aspectRatio(BOULDER_ASPECT)

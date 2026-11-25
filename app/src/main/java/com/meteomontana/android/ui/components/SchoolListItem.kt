@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -247,8 +248,10 @@ internal fun ScoreRing(score: Int?, wet: Boolean = false, diameter: Dp = 58.dp) 
 /** Las próximas horas como barras con su color, su hora debajo y la mejor hora dicha con palabras. */
 @Composable
 private fun HourBars(scores: List<Int>) {
-    val now = java.time.LocalTime.now().hour
-    val best = scores.indices.maxByOrNull { scores[it] } ?: 0
+    // La hora y las etiquetas se calculan una vez por lista de scores (no en cada recomposición).
+    val now = remember(scores) { java.time.LocalTime.now().hour }
+    val best = remember(scores) { scores.indices.maxByOrNull { scores[it] } ?: 0 }
+    val hourLabels = remember(now, scores.size) { List(scores.size) { i -> "%02d".format((now + i) % 24) } }
     val bestHour = (now + best) % 24
     val bestText = if (best == 0) stringResource(R.string.schools_card_best_now, scores[best])
                    else stringResource(R.string.schools_card_best_at, bestHour, scores[best])
@@ -272,7 +275,7 @@ private fun HourBars(scores: List<Int>) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
             scores.indices.forEach { i ->
                 Text(
-                    "%02d".format((now + i) % 24),
+                    hourLabels[i],
                     fontFamily = Mono, fontSize = 9.5.sp,
                     fontWeight = if (i == 0) FontWeight.Bold else FontWeight.Normal,
                     color = if (i == 0) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -299,11 +302,12 @@ fun DayRangeRow(
     range: com.meteomontana.android.domain.model.RangeScore,
     modifier: Modifier = Modifier
 ) {
+    val letters = remember(range) { range.days.map { weekdayLetter(it.date) } }
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(3.dp)
     ) {
-        range.days.forEach { d ->
+        range.days.forEachIndexed { i, d ->
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     modifier = Modifier
@@ -327,7 +331,7 @@ fun DayRangeRow(
                 }
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = weekdayLetter(d.date),
+                    text = letters[i],
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                     color = if (d.rainy) MaterialTheme.colorScheme.error
                             else MaterialTheme.colorScheme.onSurfaceVariant
@@ -353,7 +357,7 @@ private fun RainSummaryTag(range: com.meteomontana.android.domain.model.RangeSco
                 color = okColor()
             )
         } else {
-            val rainyDays = range.days.filter { it.rainy }.joinToString(" ") { weekdayLetter(it.date) }
+            val rainyDays = remember(range) { range.days.filter { it.rainy }.joinToString(" ") { weekdayLetter(it.date) } }
             Text(
                 text = "LLUEVE $rainyDays",
                 style = MaterialTheme.typography.labelMedium.copy(
@@ -363,7 +367,7 @@ private fun RainSummaryTag(range: com.meteomontana.android.domain.model.RangeSco
             )
             if (range.maxRainMm > 0.0) {
                 Text(
-                    text = "máx %.1f mm".format(range.maxRainMm),
+                    text = remember(range.maxRainMm) { "máx %.1f mm".format(range.maxRainMm) },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

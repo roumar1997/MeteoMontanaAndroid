@@ -133,6 +133,7 @@ dependencies {
     implementation(project(":shared"))
     implementation(project(":core:navigation"))
     implementation(project(":core:designsystem"))
+    implementation(project(":core:ui"))
 
     // Core Android + Compose
     implementation(libs.androidx.browser)

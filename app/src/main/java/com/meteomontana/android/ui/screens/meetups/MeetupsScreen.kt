@@ -349,8 +349,8 @@ fun MeetupsScreen(
                                 FilterGroupLabel(stringResource(R.string.w_discipline2_caps))
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp),
                                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    val disciplines = listOf(null to stringResource(R.string.w_any), "BOULDER" to stringResource(R.string.w_boulder),
-                                        "ROUTE" to stringResource(R.string.w_route), "BOTH" to stringResource(R.string.w_both))
+                                    val disciplines = listOf(null to stringResource(R.string.w_any), "BOULDER" to stringResource(com.meteomontana.android.core.ui.R.string.w_boulder),
+                                        "ROUTE" to stringResource(com.meteomontana.android.core.ui.R.string.w_route), "BOTH" to stringResource(R.string.w_both))
                                     disciplines.forEach { (key, label) ->
                                         FilterChip(label, state.filterDiscipline == key) {
                                             viewModel.setFilterDiscipline(key)

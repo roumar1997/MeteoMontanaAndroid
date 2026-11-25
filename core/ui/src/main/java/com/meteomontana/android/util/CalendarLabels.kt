@@ -1,6 +1,6 @@
 package com.meteomontana.android.util
 
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 
 /**
  * Nombres de meses y días en el idioma de la app, desde recursos (no desde

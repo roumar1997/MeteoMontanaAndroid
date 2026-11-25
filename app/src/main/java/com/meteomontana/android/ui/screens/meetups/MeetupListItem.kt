@@ -348,8 +348,8 @@ internal fun privacyLabel(privacy: String) = when (privacy) {
 }
 
 internal fun disciplineLabel(discipline: String) = when (discipline) {
-    "BOULDER" -> AppText.get(R.string.w_boulder)
-    "ROUTE"   -> AppText.get(R.string.w_route)
+    "BOULDER" -> AppText.get(com.meteomontana.android.core.ui.R.string.w_boulder)
+    "ROUTE"   -> AppText.get(com.meteomontana.android.core.ui.R.string.w_route)
     "BOTH"    -> AppText.get(R.string.meetups_screen_v4_bloque_via)
     else      -> discipline
 }

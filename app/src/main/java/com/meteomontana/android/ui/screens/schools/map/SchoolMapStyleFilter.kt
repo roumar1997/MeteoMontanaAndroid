@@ -104,7 +104,7 @@ internal fun StyleFilterRow(
     // Compactos y SIN fila propia: van a la derecha de la fila «FILTRAR POR GRADO» (paridad con iOS, Álvaro 2026-11-15).
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         // Mismas etiquetas que styleLabelForDiscipline (antes "Bloque" fijo: en inglés no casaba).
-        listOf(stringResource(R.string.w_route), stringResource(R.string.w_boulder)).forEachIndexed { i, opt ->
+        listOf(stringResource(com.meteomontana.android.core.ui.R.string.w_route), stringResource(com.meteomontana.android.core.ui.R.string.w_boulder)).forEachIndexed { i, opt ->
             val active = opt in selected
             val fg = if (active) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
             Row(
@@ -135,7 +135,7 @@ internal fun StyleFilterRow(
 
 /** "ROUTE" en el backend = estilo "Vía"; "BOULDER" = "Bloque". */
 internal fun styleLabelForDiscipline(discipline: String): String =
-    if (discipline.uppercase() == "ROUTE") AppText.get(R.string.w_route) else AppText.get(R.string.w_boulder)
+    if (discipline.uppercase() == "ROUTE") AppText.get(com.meteomontana.android.core.ui.R.string.w_route) else AppText.get(com.meteomontana.android.core.ui.R.string.w_boulder)
 
 /**
  * ¿Esta piedra/sector pasa el filtro Vía/Bloque? Vacío = sin filtrar. Un
