@@ -1,4 +1,4 @@
-package com.meteomontana.android.ui.screens.meetups
+package com.meteomontana.android.ui.meetups
 
 import com.meteomontana.android.ui.components.SkeletonList
 import com.meteomontana.android.ui.components.SkeletonCard
@@ -69,20 +69,17 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import com.google.firebase.auth.FirebaseAuth
 import com.meteomontana.android.domain.model.MeetupMember
-import com.meteomontana.android.ui.screens.chat.openDirections
 import androidx.compose.ui.res.stringResource
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.SourceSerif4Family
 import com.meteomontana.android.ui.theme.Spacing
 
 // Material de una quedada: leer y sumar el de cada persona, la sección, el diálogo para editarlo y sus controles.
 
-internal fun parseGear(json: String?): Map<String, Int> {
+fun parseGear(json: String?): Map<String, Int> {
     if (json.isNullOrBlank()) return emptyMap()
     return try {
         json.trim('{', '}').split(",").mapNotNull { pair ->
@@ -96,20 +93,20 @@ internal fun parseGear(json: String?): Map<String, Int> {
     } catch (_: Exception) { emptyMap() }
 }
 
-internal fun buildGearJson(gear: Map<String, Int>): String {
+fun buildGearJson(gear: Map<String, Int>): String {
     val entries = gear.filter { it.value > 0 }
     if (entries.isEmpty()) return "{}"
     return "{" + entries.entries.joinToString(",") { "\"${it.key}\":${it.value}" } + "}"
 }
 
-internal fun gearItemsForDiscipline(discipline: String?): List<Pair<String, String>> = when (discipline) {
+fun gearItemsForDiscipline(discipline: String?): List<Pair<String, String>> = when (discipline) {
     "BOULDER" -> listOf("crashpads" to AppText.get(R.string.gear_crashpads))
     "ROUTE" -> listOf("cintas" to AppText.get(R.string.gear_quickdraws), "cuerda" to AppText.get(R.string.gear_ropes), "grigri" to AppText.get(R.string.gear_grigri))
     else -> listOf("crashpads" to AppText.get(R.string.gear_crashpads), "cintas" to AppText.get(R.string.gear_quickdraws),
         "cuerda" to AppText.get(R.string.gear_ropes), "grigri" to AppText.get(R.string.gear_grigri))
 }
 
-internal fun gearLabel(key: String, count: Int = 2): String = when (key) {
+fun gearLabel(key: String, count: Int = 2): String = when (key) {
     "crashpads" -> if (count == 1) "crashpad" else "crashpads"
     "cintas" -> if (count == 1) "cinta" else "cintas"
     "cuerda" -> if (count == 1) "cuerda" else "cuerdas"
@@ -122,10 +119,10 @@ internal fun gearLabel(key: String, count: Int = 2): String = when (key) {
  * crashpads son cantidad (cuántas llevas). Al sumar entre miembros de una
  * quedada, cada "sí" cuenta como 1 → "5 cuerdas" si 5 personas dijeron que sí.
  */
-internal fun isBooleanGearKey(key: String): Boolean = key == "cuerda" || key == "grigri"
+fun isBooleanGearKey(key: String): Boolean = key == "cuerda" || key == "grigri"
 
 /** Suma el material de todos los miembros. */
-internal fun totalGear(members: List<MeetupMember>): Map<String, Int> {
+fun totalGear(members: List<MeetupMember>): Map<String, Int> {
     val totals = mutableMapOf<String, Int>()
     members.forEach { m ->
         parseGear(m.gearJson).forEach { (k, v) ->
@@ -136,14 +133,14 @@ internal fun totalGear(members: List<MeetupMember>): Map<String, Int> {
 }
 
 /** Texto compacto del material de un miembro (e.g. "2 crashpads, 12 cintas"). */
-internal fun gearSummaryText(gearJson: String?): String {
+fun gearSummaryText(gearJson: String?): String {
     val gear = parseGear(gearJson)
     if (gear.isEmpty()) return ""
     return gear.entries.joinToString(" · ") { "${it.value} ${gearLabel(it.key, it.value)}" }
 }
 
 /** Texto compacto del total (para el banner del chat). */
-internal fun totalGearSummary(members: List<MeetupMember>): String {
+fun totalGearSummary(members: List<MeetupMember>): String {
     val totals = totalGear(members)
     if (totals.isEmpty()) return ""
     return totals.entries.joinToString(" · ") { "${it.value} ${gearLabel(it.key, it.value)}" }
@@ -153,7 +150,7 @@ internal fun totalGearSummary(members: List<MeetupMember>): String {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun GearSection(
+fun GearSection(
     meetup: com.meteomontana.android.domain.model.Meetup,
     myUid: String?,
     isCreator: Boolean,
@@ -234,7 +231,7 @@ internal fun GearSection(
 
 /** Sí/no para material que no se cuenta (cuerda, grigri): lo llevas o no. */
 @Composable
-internal fun GearToggle(label: String, checked: Boolean, onToggle: () -> Unit) {
+fun GearToggle(label: String, checked: Boolean, onToggle: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -247,7 +244,7 @@ internal fun GearToggle(label: String, checked: Boolean, onToggle: () -> Unit) {
 }
 
 @Composable
-internal fun GearStepper(label: String, value: Int, onMinus: () -> Unit, onPlus: () -> Unit) {
+fun GearStepper(label: String, value: Int, onMinus: () -> Unit, onPlus: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,

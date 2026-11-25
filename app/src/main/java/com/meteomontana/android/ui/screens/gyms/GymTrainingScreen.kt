@@ -57,7 +57,7 @@ import com.meteomontana.android.domain.model.gym.GymTrainingPeriod
 import com.meteomontana.android.ui.components.LocalTabBarInset
 import com.meteomontana.android.ui.components.rememberUserLocation
 import com.meteomontana.android.ui.screens.meetups.MeetupGymPickerViewModel
-import com.meteomontana.android.ui.screens.meetups.StepperButton
+import com.meteomontana.android.ui.meetups.StepperButton
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.Spacing
 import com.meteomontana.android.ui.theme.terraFillColor

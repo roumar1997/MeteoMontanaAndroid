@@ -82,7 +82,7 @@ fun GymDetailScreen(
             count = 4,
             modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(horizontal = Spacing.sm, vertical = Spacing.xs)
         ) { item ->
-            IconAction(description = stringResource(R.string.common_close), onClick = onBack, modifier = item,
+            IconAction(description = stringResource(com.meteomontana.android.core.ui.R.string.common_close), onClick = onBack, modifier = item,
                 icon = Icons.AutoMirrored.Outlined.ArrowBack)
             IconAction(description = stringResource(R.string.gym_chat_open), onClick = { gym?.let(onOpenChat) }, modifier = item,
                 icon = Icons.Outlined.Forum)

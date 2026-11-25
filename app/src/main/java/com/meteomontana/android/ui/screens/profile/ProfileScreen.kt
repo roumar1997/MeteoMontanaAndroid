@@ -288,7 +288,7 @@ internal fun ProfileTopBar(
                     tint = MaterialTheme.colorScheme.primary)
             }
             if (showClose) TextButton(onClick = onBack) {
-                Text(stringResource(R.string.common_close), color = MaterialTheme.colorScheme.primary,
+                Text(stringResource(com.meteomontana.android.core.ui.R.string.common_close), color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.labelLarge)
             }
         }

@@ -103,7 +103,7 @@ internal fun CompareBar(
         IconButton(onClick = onClear) {
             Icon(
                 Icons.Outlined.Close,
-                contentDescription = stringResource(R.string.common_close),
+                contentDescription = stringResource(com.meteomontana.android.core.ui.R.string.common_close),
                 tint = androidx.compose.ui.graphics.Color.White
             )
         }

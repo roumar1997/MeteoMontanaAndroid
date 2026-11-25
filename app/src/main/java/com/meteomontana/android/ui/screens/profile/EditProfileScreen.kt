@@ -116,8 +116,8 @@ private fun EditForm(
     // editable ahí para esa quedada concreta). Mismo formato que meetup gear.
     val gearState = remember {
         mutableMapOf<String, Int>().apply {
-            val current = com.meteomontana.android.ui.screens.meetups.parseGear(s.profile.gearJson)
-            com.meteomontana.android.ui.screens.meetups.gearItemsForDiscipline(null).forEach { (key, _) ->
+            val current = com.meteomontana.android.ui.meetups.parseGear(s.profile.gearJson)
+            com.meteomontana.android.ui.meetups.gearItemsForDiscipline(null).forEach { (key, _) ->
                 put(key, current[key] ?: 0)
             }
         }
@@ -217,7 +217,7 @@ private fun EditForm(
                     topGrade = topGrade.takeIf { it.isNotBlank() },
                     isPublic = isPublic,
                     gender = gender.takeIf { it.isNotBlank() },
-                    gearJson = com.meteomontana.android.ui.screens.meetups.buildGearJson(gearState)
+                    gearJson = com.meteomontana.android.ui.meetups.buildGearJson(gearState)
                 ))
             },
             modifier = Modifier.fillMaxWidth(),
@@ -246,15 +246,15 @@ private fun GearSelector(gearState: MutableMap<String, Int>, version: Int, onCha
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(6.dp))
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            com.meteomontana.android.ui.screens.meetups.gearItemsForDiscipline(null).forEach { (key, label) ->
-                if (com.meteomontana.android.ui.screens.meetups.isBooleanGearKey(key)) {
-                    com.meteomontana.android.ui.screens.meetups.GearToggle(
+            com.meteomontana.android.ui.meetups.gearItemsForDiscipline(null).forEach { (key, label) ->
+                if (com.meteomontana.android.ui.meetups.isBooleanGearKey(key)) {
+                    com.meteomontana.android.ui.meetups.GearToggle(
                         label = label,
                         checked = (gearState[key] ?: 0) > 0,
                         onToggle = { gearState[key] = if ((gearState[key] ?: 0) > 0) 0 else 1; onChange() }
                     )
                 } else {
-                    com.meteomontana.android.ui.screens.meetups.GearStepper(
+                    com.meteomontana.android.ui.meetups.GearStepper(
                         label = label,
                         value = gearState[key] ?: 0,
                         onMinus = {

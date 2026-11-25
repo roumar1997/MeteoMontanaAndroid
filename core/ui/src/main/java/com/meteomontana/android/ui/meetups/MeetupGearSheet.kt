@@ -1,4 +1,4 @@
-package com.meteomontana.android.ui.screens.meetups
+package com.meteomontana.android.ui.meetups
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,7 +41,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 import com.meteomontana.android.domain.model.MeetupGearItem
 import com.meteomontana.android.domain.model.MeetupMember
 import com.meteomontana.android.ui.components.CumbreSheetShape
@@ -67,7 +67,7 @@ private fun gearIcon(key: String): ImageVector = when (key) {
 }
 
 /** Material que se ofrece según el lugar y la modalidad (misma regla que al crear la quedada: `forPlace`). */
-internal fun gearKeysForPlace(discipline: String?, gym: Boolean): List<String> =
+fun gearKeysForPlace(discipline: String?, gym: Boolean): List<String> =
     MeetupGearItem.forPlace(discipline, gym).map(::legacyKey)
 
 private fun labelRes(key: String): Int = when (key) {
@@ -84,7 +84,7 @@ private fun labelRes(key: String): Int = when (key) {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun EditGearDialog(
+fun EditGearDialog(
     discipline: String?,
     currentGearJson: String?,
     onDismiss: () -> Unit,

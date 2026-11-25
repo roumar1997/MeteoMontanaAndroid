@@ -184,7 +184,7 @@ private fun NotePhotoDialog(note: Note, onDismiss: () -> Unit) {
                     style = MaterialTheme.typography.labelMedium,
                     color = Color.White.copy(alpha = 0.7f))
                 Spacer(Modifier.height(16.dp))
-                Text("✕ ${stringResource(R.string.common_close).uppercase()}",
+                Text("✕ ${stringResource(com.meteomontana.android.core.ui.R.string.common_close).uppercase()}",
                     style = MaterialTheme.typography.labelLarge,
                     color = Color.White,
                     modifier = Modifier.clickable(onClick = onDismiss))

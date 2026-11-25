@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.ui.meetups.StepperButton
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -123,20 +124,3 @@ internal fun WizardStepper(
     }
 }
 
-@Composable
-internal fun StepperButton(symbol: String, onClick: (() -> Unit)?, primary: Boolean, description: String, size: Int = 42) {
-    val enabled = onClick != null
-    val bg = if (primary) terraFillColor() else MaterialTheme.colorScheme.background
-    Box(
-        Modifier.size(size.dp).clip(CircleShape)
-            .background(bg.copy(alpha = if (enabled) 1f else 0.4f), CircleShape)
-            .then(if (primary) Modifier else Modifier.border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
-            .clickable(enabled = enabled, role = Role.Button, onClick = { onClick?.invoke() }),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            symbol, fontWeight = FontWeight.Bold, fontSize = 22.sp, textAlign = TextAlign.Center,
-            color = if (primary) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.4f)
-        )
-    }
-}

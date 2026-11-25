@@ -182,7 +182,7 @@ fun GymPickerSheet(
                     Text(stringResource(R.string.gym_pick_eyebrow).uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary)
                     Text(stringResource(R.string.gym_pick_title), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 24.sp, color = MaterialTheme.colorScheme.onBackground)
                 }
-                IconButton(onClick = onDismiss) { Icon(Icons.Outlined.Close, stringResource(R.string.common_close)) }
+                IconButton(onClick = onDismiss) { Icon(Icons.Outlined.Close, stringResource(com.meteomontana.android.core.ui.R.string.common_close)) }
             }
             TextField(
                 value = st.query, onValueChange = vm::search, singleLine = true, shape = CircleShape,
@@ -244,7 +244,7 @@ fun GymPickerSheet(
                         other = LocalDate(d.year, d.monthValue, d.dayOfMonth); day = PickDay.OTHER
                     }
                     datePicking = false
-                }) { Text(stringResource(R.string.common_save).uppercase()) }
+                }) { Text(stringResource(com.meteomontana.android.core.ui.R.string.common_save).uppercase()) }
             },
             dismissButton = { TextButton(onClick = { datePicking = false }) { Text(stringResource(R.string.common_cancel).uppercase()) } }
         ) { DatePicker(pickerState) }

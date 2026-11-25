@@ -39,8 +39,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.MeetupGearLine
-import com.meteomontana.android.ui.screens.meetups.formatDayMonth
-import com.meteomontana.android.ui.screens.meetups.gearLabelRes
+import com.meteomontana.android.ui.meetups.formatDayMonth
+import com.meteomontana.android.ui.meetups.gearLabelRes
 import com.meteomontana.android.ui.theme.Ok
 import com.meteomontana.android.ui.theme.Serif
 import com.meteomontana.android.ui.theme.terraFillColor

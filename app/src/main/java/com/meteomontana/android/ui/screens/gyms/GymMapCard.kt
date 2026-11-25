@@ -79,7 +79,7 @@ internal fun GymMapCard(
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Outlined.Close, stringResource(R.string.common_close),
+                    Icons.Outlined.Close, stringResource(com.meteomontana.android.core.ui.R.string.common_close),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp)
                 )
             }

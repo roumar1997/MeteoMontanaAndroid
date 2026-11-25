@@ -354,7 +354,7 @@ fun BetaLinksThread(
                             if (ok) justAdded = true
                         }
                     }
-                ) { Text(stringResource(R.string.common_save)) }
+                ) { Text(stringResource(com.meteomontana.android.core.ui.R.string.common_save)) }
             },
             dismissButton = { TextButton({ pastingUrlFor = null }) { Text(stringResource(R.string.common_cancel)) } }
         )

@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.ui.meetups.parseGear
 import com.meteomontana.android.util.AppText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

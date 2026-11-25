@@ -154,4 +154,23 @@
     <string name="guides_toggle_hint">A “?” blinks the first time you open a screen. You can change this in Settings.</string>
     <string name="first_time_hint_v2_entendido">Got it</string>
     <string name="verified">Verified</string>
+    <string name="gear_rope">Rope</string>
+    <string name="gear_grigri">Gri-gri</string>
+    <string name="gear_quickdraws">Quickdraws</string>
+    <string name="gear_crashpad">Crashpads</string>
+    <string name="gear_crashpads">Crashpads</string>
+    <string name="gear_ropes">Ropes</string>
+    <string name="meetup_detail_material">GEAR</string>
+    <string name="meetup_detail_no_material">No one has listed gear yet. Tap below to add yours.</string>
+    <string name="meetup_detail_no_gear">no gear</string>
+    <string name="meetup_detail_edit_gear">Edit my gear</string>
+    <string name="w_less">Less</string>
+    <string name="w_more">More</string>
+    <string name="meetup_gear_sheet_title">What are you bringing?</string>
+    <string name="common_close">Close</string>
+    <string name="meetup_gear_sheet_none">No gear needed here.</string>
+    <string name="common_save">Save</string>
+    <string name="meetup_gear_sheet_nobody">Nobody has it yet</string>
+    <string name="meetup_gear_sheet_only_you">Only you</string>
+    <string name="meetup_gear_sheet_group_of">%1$d of %2$d in the group bring it</string>
 </resources>

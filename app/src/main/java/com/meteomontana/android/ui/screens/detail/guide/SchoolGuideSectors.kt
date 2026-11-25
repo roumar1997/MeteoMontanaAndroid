@@ -503,7 +503,7 @@ private fun ZoomDialog(face: GuideFace, onDismiss: () -> Unit) {
                     .graphicsLayer(scaleX = scale, scaleY = scale, translationX = offset.x, translationY = offset.y),
                 contentAlignment = Alignment.Center
             ) { FaceTopo(face) }
-            Icon(Icons.Outlined.Close, stringResource(R.string.common_close),
+            Icon(Icons.Outlined.Close, stringResource(com.meteomontana.android.core.ui.R.string.common_close),
                 Modifier.align(Alignment.TopEnd).padding(16.dp).size(34.dp).clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.2f)).clickable(onClick = onDismiss).padding(8.dp),
                 tint = Color.White)

@@ -298,7 +298,7 @@ private fun OverviewFullScreen(ov: GuideOverview, onDismiss: () -> Unit, onSecto
             ) { OverviewCanvas(ov, labelScale = 1f / scale, onSector = onSector) }
             Column(Modifier.align(Alignment.TopEnd).padding(16.dp), horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Outlined.Close, stringResource(R.string.common_close),
+                Icon(Icons.Outlined.Close, stringResource(com.meteomontana.android.core.ui.R.string.common_close),
                     Modifier.size(34.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.2f))
                         .clickable(onClick = onDismiss).padding(8.dp), tint = Color.White)
                 Text(stringResource(R.string.sguide_tap_sector), color = Color.White, fontSize = 11.5.sp,

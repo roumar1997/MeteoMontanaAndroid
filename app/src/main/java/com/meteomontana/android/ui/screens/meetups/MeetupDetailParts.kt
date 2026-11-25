@@ -1,5 +1,6 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.ui.meetups.MemberAvatar
 import com.meteomontana.android.ui.components.SkeletonList
 import com.meteomontana.android.ui.components.SkeletonCard
 import com.meteomontana.android.ui.components.SkeletonPersonRow
@@ -115,19 +116,6 @@ internal fun MemberRow(member: MeetupMember, canKick: Boolean,
     }
 }
 
-@Composable
-internal fun MemberAvatar(photoUrl: String?, size: androidx.compose.ui.unit.Dp) {
-    Box(Modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
-        contentAlignment = Alignment.Center) {
-        if (photoUrl != null) {
-            AsyncImage(model = photoUrl, contentDescription = null,
-                modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-        } else {
-            Icon(Icons.Outlined.Person, null, tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(size * 0.6f))
-        }
-    }
-}
 
 @Composable
 internal fun EditDescriptionDialog(initial: String, saving: Boolean,
@@ -140,7 +128,7 @@ internal fun EditDescriptionDialog(initial: String, saving: Boolean,
             placeholder = { Text(stringResource(R.string.meetup_detail_screen_v2_material_nivel_punto_de_encuentro)) },
             minLines = 3, maxLines = 8) },
         confirmButton = { TextButton(onClick = { onSave(text) }, enabled = !saving) {
-            if (saving) CircularProgressIndicator(Modifier.size(16.dp)) else Text(stringResource(R.string.common_save).uppercase()) } },
+            if (saving) CircularProgressIndicator(Modifier.size(16.dp)) else Text(stringResource(com.meteomontana.android.core.ui.R.string.common_save).uppercase()) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel).uppercase()) } })
 }
 

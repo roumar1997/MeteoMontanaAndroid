@@ -190,7 +190,6 @@
     <string name="common_all">All</string>
     <string name="common_back">Back</string>
     <string name="common_cancel">Cancel</string>
-    <string name="common_close">Close</string>
     <string name="common_confirm">Confirm</string>
     <string name="common_delete">Delete</string>
     <string name="common_directions">DIRECTIONS</string>
@@ -206,7 +205,6 @@
     <string name="common_ok">OK</string>
     <string name="common_report">Report</string>
     <string name="common_retry">RETRY</string>
-    <string name="common_save">Save</string>
     <string name="common_search">Search</string>
     <string name="common_send">Send</string>
     <string name="common_view_school">View school</string>
@@ -280,9 +278,7 @@
     <string name="empty_proposals">You haven\'t proposed anything yet.</string>
     <string name="empty_saved">Save schools to view them offline.</string>
     <string name="gear_cintas">Slings</string>
-    <string name="gear_crashpads">Crashpads</string>
     <string name="gear_cuerda">Ropes</string>
-    <string name="gear_grigri">Gri-gri</string>
     <string name="hint_compare">Long-press a school to compare it with others</string>
     <string name="hint_days">Tap the days to see the forecast for several days</string>
     <string name="hint_offline">Save schools to view them offline</string>
@@ -309,17 +305,13 @@
     <string name="meetup_detail_delete_confirm">The meetup and its group chat will be deleted. Continue?</string>
     <string name="meetup_detail_description_hint">Add details: gear, level, meeting point…</string>
     <string name="meetup_detail_details">DETAILS</string>
-    <string name="meetup_detail_edit_gear">Edit my gear</string>
     <string name="meetup_detail_follow_gate">You can only join if you follow the organizer or they follow you.</string>
     <string name="meetup_detail_full">This meetup is full.</string>
     <string name="meetup_detail_join">JOIN THE MEETUP</string>
     <string name="meetup_detail_kick">Remove</string>
     <string name="meetup_detail_leave">LEAVE THE MEETUP</string>
     <string name="meetup_detail_leave_confirm">Are you sure you want to leave this meetup?</string>
-    <string name="meetup_detail_material">GEAR</string>
     <string name="meetup_detail_my_gear">My gear</string>
-    <string name="meetup_detail_no_gear">no gear</string>
-    <string name="meetup_detail_no_material">No one has listed gear yet. Tap below to add yours.</string>
     <string name="meetup_detail_no_material_chat">No gear listed</string>
     <string name="meetup_detail_organized_by">ORGANIZED BY</string>
     <string name="meetup_detail_participants">PARTICIPANTS</string>
@@ -1380,13 +1372,9 @@
     <!-- Presencia, material de quedada y contador -->
     <string name="presence_error_remove">Could not remove your presence. Check your connection.</string>
     <string name="presence_error_mark">Could not mark your presence. Check your connection.</string>
-    <string name="gear_quickdraws">Quickdraws</string>
-    <string name="gear_ropes">Ropes</string>
-    <string name="w_more">More</string>
 
     <!-- Detalle de quedada -->
     <string name="w_organizer">Organizer</string>
-    <string name="w_less">Less</string>
 
     <!-- Selector de idioma y orientaciones -->
     <string name="settings_language">Language</string>
@@ -1981,8 +1969,6 @@
     <string name="mw_photo_add">Add a photo (optional)</string>
     <string name="mw_photo_change">Change photo</string>
     <string name="mw_name_label">Name (optional)</string>
-    <string name="gear_rope">Rope</string>
-    <string name="gear_crashpad">Crashpads</string>
     <string name="meetup_facts_rope_team">Rope team route</string>
     <string name="meetup_facts_level">Level %1$s</string>
     <string name="meetup_gear_title">Minimum gear</string>
@@ -2045,11 +2031,6 @@
         <item quantity="one">%1$d month ago</item>
         <item quantity="other">%1$d months ago</item>
     </plurals>
-    <string name="meetup_gear_sheet_title">What are you bringing?</string>
-    <string name="meetup_gear_sheet_none">No gear needed here.</string>
-    <string name="meetup_gear_sheet_nobody">Nobody has it yet</string>
-    <string name="meetup_gear_sheet_only_you">Only you</string>
-    <string name="meetup_gear_sheet_group_of">%1$d of %2$d in the group bring it</string>
     <string name="meetup_open_chat">Meetup chat</string>
     <string name="gym_train_title">Climbing gym</string>
     <string name="gym_train_week">Week</string>

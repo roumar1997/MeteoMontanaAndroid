@@ -345,7 +345,7 @@ internal fun MiniBlockCard(
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Outlined.Close, stringResource(R.string.common_close), tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                Icon(Icons.Outlined.Close, stringResource(com.meteomontana.android.core.ui.R.string.common_close), tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp))
             }
         }

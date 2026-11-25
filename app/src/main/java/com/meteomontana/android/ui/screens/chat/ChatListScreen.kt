@@ -409,7 +409,7 @@ private fun ChatSearchBar(
             leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
             trailingIcon = {
                 if (query.isNotEmpty()) IconButton(onClick = { onQuery("") }) {
-                    Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.common_close),
+                    Icon(Icons.Outlined.Close, contentDescription = stringResource(com.meteomontana.android.core.ui.R.string.common_close),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },

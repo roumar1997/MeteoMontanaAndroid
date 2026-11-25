@@ -81,7 +81,7 @@ fun SoloBoardSheet(
                     )
                 }
                 Text(
-                    stringResource(R.string.common_close), color = terraFillColor(), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1,
+                    stringResource(com.meteomontana.android.core.ui.R.string.common_close), color = terraFillColor(), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1,
                     modifier = Modifier.clip(CircleShape).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable { hideKeyboard(); onDismiss() }.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }

@@ -173,7 +173,7 @@ fun UsernameGate(viewModel: UsernameGateViewModel = hiltViewModel()) {
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                 } else {
-                    Text(stringResource(R.string.common_save).uppercase(), style = EyebrowTextStyle)
+                    Text(stringResource(com.meteomontana.android.core.ui.R.string.common_save).uppercase(), style = EyebrowTextStyle)
                 }
             }
         }

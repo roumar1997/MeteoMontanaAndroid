@@ -1,5 +1,8 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.ui.meetups.gearLabelRes
+import com.meteomontana.android.ui.meetups.formatDayMonth
+import com.meteomontana.android.ui.meetups.monthNames
 import com.meteomontana.android.ui.components.SkeletonList
 import com.meteomontana.android.ui.components.SkeletonCard
 import com.meteomontana.android.util.CalendarLabels
@@ -303,7 +306,6 @@ internal fun MeetupSchoolFilterDialog(
 
 // ── Helpers ──
 
-internal fun monthNames() = CalendarLabels.monthsShort().map { it.lowercase() }
 
 internal fun nextNDaysFilter(n: Int): List<Pair<String, String>> {
     val dayNames = CalendarLabels.daysShortSunFirst().map { it.lowercase() }
@@ -325,13 +327,6 @@ internal fun nextNDaysFilter(n: Int): List<Pair<String, String>> {
     return result
 }
 
-internal fun formatDayMonth(iso: String): String {
-    val parts = iso.split("-")
-    if (parts.size != 3) return iso
-    val month = parts[1].toIntOrNull() ?: return iso
-    val day = parts[2].toIntOrNull() ?: return iso
-    return "$day ${monthNames().getOrElse(month - 1) { "?" }}"
-}
 
 /** Color de la nota en las quedadas (lista y crear): verde, ámbar, rojo o gris. */
 internal fun scoreColor(score: Int): Color = when {

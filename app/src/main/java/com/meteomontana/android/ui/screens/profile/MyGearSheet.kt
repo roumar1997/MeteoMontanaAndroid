@@ -35,10 +35,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.meteomontana.android.ui.components.CumbreSheetHeader
-import com.meteomontana.android.ui.screens.meetups.buildGearJson
-import com.meteomontana.android.ui.screens.meetups.gearItemsForDiscipline
-import com.meteomontana.android.ui.screens.meetups.isBooleanGearKey
-import com.meteomontana.android.ui.screens.meetups.parseGear
+import com.meteomontana.android.ui.meetups.buildGearJson
+import com.meteomontana.android.ui.meetups.gearItemsForDiscipline
+import com.meteomontana.android.ui.meetups.isBooleanGearKey
+import com.meteomontana.android.ui.meetups.parseGear
 import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.Spacing
 import androidx.compose.ui.res.stringResource

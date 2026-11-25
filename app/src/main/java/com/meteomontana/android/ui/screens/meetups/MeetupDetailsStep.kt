@@ -1,5 +1,7 @@
 package com.meteomontana.android.ui.screens.meetups
 
+import com.meteomontana.android.ui.meetups.StepperButton
+import com.meteomontana.android.ui.meetups.gearLabelRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,12 +35,6 @@ import com.meteomontana.android.ui.theme.EyebrowTextStyle
 import com.meteomontana.android.ui.theme.gradeChipStyle
 import com.meteomontana.android.ui.theme.terraFillColor
 
-internal fun gearLabelRes(item: String): Int = when (item) {
-    MeetupGearItem.ROPE -> R.string.gear_rope
-    MeetupGearItem.GRIGRI -> R.string.gear_grigri
-    MeetupGearItem.QUICKDRAWS -> R.string.gear_quickdraws
-    else -> R.string.gear_crashpad
-}
 
 /**
  * Paso 2 de 3: ¿Qué vais a hacer? Bloque y Vía son casillas (se pueden marcar las dos), el grado del grupo es un rango

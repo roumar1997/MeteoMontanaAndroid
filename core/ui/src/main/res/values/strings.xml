@@ -154,4 +154,23 @@
     <string name="guides_toggle_hint">Un “?” parpadea la primera vez que entras. Puedes cambiarlo en Ajustes.</string>
     <string name="first_time_hint_v2_entendido">Entendido</string>
     <string name="verified">Verificado</string>
+    <string name="gear_rope">Cuerda</string>
+    <string name="gear_grigri">Gri-gri</string>
+    <string name="gear_quickdraws">Cintas</string>
+    <string name="gear_crashpad">Crashpads</string>
+    <string name="gear_crashpads">Crashpads</string>
+    <string name="gear_ropes">Cuerdas</string>
+    <string name="meetup_detail_material">MATERIAL</string>
+    <string name="meetup_detail_no_material">Nadie ha indicado material todavía. Pulsa abajo para añadir el tuyo.</string>
+    <string name="meetup_detail_no_gear">sin material</string>
+    <string name="meetup_detail_edit_gear">Editar mi material</string>
+    <string name="w_less">Menos</string>
+    <string name="w_more">Más</string>
+    <string name="meetup_gear_sheet_title">¿Qué llevas tú?</string>
+    <string name="common_close">Cerrar</string>
+    <string name="meetup_gear_sheet_none">Aquí no hace falta llevar material.</string>
+    <string name="common_save">Guardar</string>
+    <string name="meetup_gear_sheet_nobody">Nadie lo lleva todavía</string>
+    <string name="meetup_gear_sheet_only_you">Solo tú</string>
+    <string name="meetup_gear_sheet_group_of">%1$d de %2$d del grupo lo llevan</string>
 </resources>

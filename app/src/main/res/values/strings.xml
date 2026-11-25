@@ -4,9 +4,7 @@
 
     <!-- Common -->
     <string name="common_cancel">Cancelar</string>
-    <string name="common_save">Guardar</string>
     <string name="common_delete">Eliminar</string>
-    <string name="common_close">Cerrar</string>
     <string name="common_back">Volver</string>
     <string name="common_retry">REINTENTAR</string>
     <string name="common_search">Buscar</string>
@@ -309,13 +307,9 @@
     <string name="meetup_detail_organized_by">ORGANIZA</string>
     <string name="meetup_detail_details">DETALLES</string>
     <string name="meetup_detail_description_hint">Añade detalles: material, nivel, punto de encuentro…</string>
-    <string name="meetup_detail_material">MATERIAL</string>
-    <string name="meetup_detail_no_material">Nadie ha indicado material todavía. Pulsa abajo para añadir el tuyo.</string>
     <string name="meetup_detail_no_material_chat">Sin material indicado</string>
-    <string name="meetup_detail_edit_gear">Editar mi material</string>
     <string name="meetup_detail_add_gear">+ Añadir</string>
     <string name="meetup_detail_my_gear">Mi material</string>
-    <string name="meetup_detail_no_gear">sin material</string>
     <string name="meetup_detail_participants">PARTICIPANTES</string>
     <string name="meetup_detail_join">UNIRSE A LA QUEDADA</string>
     <string name="meetup_detail_leave">SALIR DE LA QUEDADA</string>
@@ -353,10 +347,8 @@
     <string name="meetup_alert_days">Te avisamos cuando alguien cree una quedada estos días:</string>
 
     <!-- Gear items -->
-    <string name="gear_crashpads">Crashpads</string>
     <string name="gear_cintas">Cintas</string>
     <string name="gear_cuerda">Cuerdas</string>
-    <string name="gear_grigri">Gri-gri</string>
 
     <!-- Submit school -->
     <string name="submit_school_title">Enviar escuela</string>
@@ -1439,13 +1431,9 @@
     <!-- Presencia, material de quedada y contador -->
     <string name="presence_error_remove">No se pudo quitar la presencia. Comprueba tu conexión.</string>
     <string name="presence_error_mark">No se pudo marcar la presencia. Comprueba tu conexión.</string>
-    <string name="gear_quickdraws">Cintas</string>
-    <string name="gear_ropes">Cuerdas</string>
-    <string name="w_more">Más</string>
 
     <!-- Detalle de quedada -->
     <string name="w_organizer">Organizador</string>
-    <string name="w_less">Menos</string>
 
     <!-- Selector de idioma y orientaciones -->
     <string name="settings_language">Idioma</string>
@@ -2040,8 +2028,6 @@
     <string name="mw_photo_add">Añadir foto (opcional)</string>
     <string name="mw_photo_change">Cambiar foto</string>
     <string name="mw_name_label">Nombre (opcional)</string>
-    <string name="gear_rope">Cuerda</string>
-    <string name="gear_crashpad">Crashpads</string>
     <string name="meetup_facts_rope_team">Vía de cordada</string>
     <string name="meetup_facts_level">Nivel %1$s</string>
     <string name="meetup_gear_title">Material mínimo</string>
@@ -2104,11 +2090,6 @@
         <item quantity="one">hace %1$d mes</item>
         <item quantity="other">hace %1$d meses</item>
     </plurals>
-    <string name="meetup_gear_sheet_title">¿Qué llevas tú?</string>
-    <string name="meetup_gear_sheet_none">Aquí no hace falta llevar material.</string>
-    <string name="meetup_gear_sheet_nobody">Nadie lo lleva todavía</string>
-    <string name="meetup_gear_sheet_only_you">Solo tú</string>
-    <string name="meetup_gear_sheet_group_of">%1$d de %2$d del grupo lo llevan</string>
     <string name="meetup_open_chat">Chat de la quedada</string>
     <string name="gym_train_title">Rocódromo</string>
     <string name="gym_train_week">Semana</string>

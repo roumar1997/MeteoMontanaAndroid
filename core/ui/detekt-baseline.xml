@@ -3,6 +3,7 @@
   <ManuallySuppressedIssues/>
   <CurrentIssues>
     <ID>CompositionLocalAllowlist:GuideUi.kt$LocalGuideController</ID>
+    <ID>CyclomaticComplexMethod:MeetupGearSheet.kt$@Composable private fun GearTile(key: String, value: Int, groupPeople: Int, groupSize: Int, onChange: (Int) -&gt; Unit)</ID>
     <ID>CyclomaticComplexMethod:ShareConditionsImage.kt$private fun renderConditionsCard(context: Context, school: School, forecast: Forecast?): Bitmap</ID>
     <ID>CyclomaticComplexMethod:ShareFeedPostImage.kt$private fun renderPostCard( context: Context, post: FeedPost, photo: Bitmap?, startLabel: String? = null, /** false cuando la imagen principal es la foto de celebración (sin trazo). */ drawLine: Boolean = true, /** Foto de celebración en miniatura (esquina superior derecha), o null. */ corner: Bitmap? = null ): Bitmap</ID>
     <ID>CyclomaticComplexMethod:ShareLineImage.kt$private fun renderLineCard( context: Context, block: Block, line: BlockLine, schoolName: String, lines: List&lt;BlockLine&gt;, photo: Bitmap, tickedIds: Set&lt;String&gt;, projectIds: Set&lt;String&gt;, orientationBadge: String?, setterGradeRef: String? ): Bitmap</ID>
@@ -14,6 +15,11 @@
     <ID>LongMethod:ShareProfileImage.kt$private fun renderProfileCard( context: Context, displayLabel: String, username: String?, avatar: Bitmap?, topGrade: String?, bio: String?, boulders: Int?, routes: Int?, schools: Int? ): Bitmap</ID>
     <ID>LongMethod:ShareStatsImage.kt$private fun renderStatsCard( context: Context, periodLabel: String, disciplineLabel: String, s: JournalStatsCalculator.Summary, maxGrade: String?, progression: JournalStatsCalculator.Progression?, logo: Bitmap? ): Bitmap</ID>
     <ID>MatchingDeclarationName:LinePath.kt$LineStroke</ID>
+    <ID>MaxLineLength:MeetupGear.kt$"ROUTE" -&gt; listOf("cintas" to AppText.get(R.string.gear_quickdraws), "cuerda" to AppText.get(R.string.gear_ropes), "grigri" to AppText.get(R.string.gear_grigri))</ID>
+    <ID>MaxLineLength:MeetupGearSheet.kt$)</ID>
+    <ID>MaxLineLength:MeetupGearSheet.kt$Column</ID>
+    <ID>MaxLineLength:MeetupGearSheet.kt$Icon(gearIcon(key), null, tint = if (on) terraFillColor() else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(28.dp))</ID>
+    <ID>MaxLineLength:MeetupGearSheet.kt$placeName?.let { Text(it.uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.primary, maxLines = 1) }</ID>
     <ID>MaxLineLength:ShareConditionsImage.kt$c.drawText(context.getString(R.string.share_conditions_image_v2_1_s_c_2_s, cur.temperature.toInt(), cur.humidity.toInt(), cur.windSpeed.toInt()), dataX, 404f, line)</ID>
     <ID>MaxLineLength:ShareConditionsImage.kt$c.drawText(context.getString(R.string.share_conditions_image_v2_mejor_ventana_1_s_2, wnd.start, wnd.end, wnd.avgScore), pad, 552f, wndPaint)</ID>
     <ID>MaxLineLength:ShareConditionsImage.kt$c.drawText(if (cur.dryRock) context.getString(R.string.forecast_body_v3_roca_seca_dot) else context.getString(R.string.forecast_body_v3_roca_mojada_dot), dataX, 456f, rockLine)</ID>
@@ -23,11 +29,18 @@
     <ID>MaxLineLength:ShareUtils.kt$val details = listOfNotNull(rockType?.let { CatalogLabels.rock(it) }, style?.let { CatalogLabels.style(it) }, temperature).joinToString(" · ")</ID>
     <ID>ModifierComposed:GuideUi.kt$guideTarget</ID>
     <ID>ModifierComposed:GuideUi.kt$pulseRing</ID>
+    <ID>ModifierMissing:MeetupGear.kt$GearSection</ID>
+    <ID>ModifierMissing:MeetupGear.kt$GearStepper</ID>
+    <ID>ModifierMissing:MeetupGear.kt$GearToggle</ID>
+    <ID>ModifierMissing:MeetupShared.kt$MemberAvatar</ID>
     <ID>ModifierMissing:PersonAvatar.kt$PersonAvatar</ID>
+    <ID>ModifierMissing:StepperButton.kt$StepperButton</ID>
     <ID>ModifierMissing:UserBadges.kt$VerifiedCheck</ID>
     <ID>ModifierWithoutDefault:GuideUi.kt$modifier</ID>
     <ID>SpreadOperator:AppText.kt$AppText$(id, *args.map { it ?: "" }.toTypedArray())</ID>
     <ID>SpreadOperator:AppText.kt$AppText$(id, count, *args.map { it ?: "" }.toTypedArray())</ID>
+    <ID>UnusedParameter:MeetupGear.kt$myUid: String?</ID>
+    <ID>UnusedParameter:StepperButton.kt$description: String</ID>
     <ID>UnusedPrivateProperty:ShareLineImage.kt$private const val APPSTORE_URL = "https://apps.apple.com/app/id6785776686"</ID>
     <ID>UnusedPrivateProperty:ShareLineImage.kt$private const val PLAY_URL = "https://play.google.com/store/apps/details?id=com.meteomontana.android"</ID>
   </CurrentIssues>

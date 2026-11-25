@@ -73,7 +73,7 @@ fun CumbreSearchField(
             )
         }
         if (value.isNotEmpty()) {
-            Icon(Icons.Outlined.Close, stringResource(R.string.common_close),
+            Icon(Icons.Outlined.Close, stringResource(com.meteomontana.android.core.ui.R.string.common_close),
                 Modifier.size(18.dp).clip(CircleShape).clickable { onValueChange("") }, tint = muted)
         }
     }

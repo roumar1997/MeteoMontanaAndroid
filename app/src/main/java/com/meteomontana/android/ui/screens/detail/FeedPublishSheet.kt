@@ -173,7 +173,7 @@ internal fun CumbreSuccessDialog(
                         .clickable(onClick = onClose)
                         .padding(vertical = Spacing.md),
                         contentAlignment = Alignment.Center) {
-                        Text(stringResource(R.string.common_close).uppercase(), style = EyebrowTextStyle,
+                        Text(stringResource(com.meteomontana.android.core.ui.R.string.common_close).uppercase(), style = EyebrowTextStyle,
                             color = MaterialTheme.colorScheme.onSurface)
                     }
                     Box(modifier = Modifier.weight(1.5f)

@@ -100,7 +100,7 @@ fun TopoEditorScreen(
                         containerColor = inkButtonColor(), contentColor = Color.White
                     ),
                     shape = MaterialTheme.shapes.small
-                ) { Text(if (state.saving) stringResource(R.string.topo_editor_saving) else stringResource(R.string.common_save)) }
+                ) { Text(if (state.saving) stringResource(R.string.topo_editor_saving) else stringResource(com.meteomontana.android.core.ui.R.string.common_save)) }
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outline)
