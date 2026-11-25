@@ -121,7 +121,7 @@ internal fun StyleFilterRow(
                 // Vía = mosquetón/cuerda (eslabón); Bloque = piedra/crashpad (cubo).
                 // Los mismos dibujos de la app: mosquetón (vía) y crashpad (bloque), como en la lista de escuelas y el mapa.
                 androidx.compose.foundation.Image(
-                    painter = androidx.compose.ui.res.painterResource(if (i == 0) com.meteomontana.android.R.drawable.kind_route else com.meteomontana.android.R.drawable.kind_boulder),
+                    painter = androidx.compose.ui.res.painterResource(if (i == 0) com.meteomontana.android.core.map.R.drawable.kind_route else com.meteomontana.android.core.map.R.drawable.kind_boulder),
                     contentDescription = null,
                     colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(fg),
                     contentScale = androidx.compose.ui.layout.ContentScale.Fit,

@@ -22,7 +22,7 @@ import kotlin.math.sin
  */
 
 /** Color terra de las piedras: el muro usa el MISMO color (solo que como línea). */
-internal const val PIEDRA_COLOR = "#C2410C"
+const val PIEDRA_COLOR = "#C2410C"
 
 /**
  * Caché de iconos de marcador. Sin ella, cada re-sincronización registra
@@ -40,7 +40,7 @@ internal const val PIEDRA_COLOR = "#C2410C"
  */
 private val iconCache = HashMap<Pair<Int, String>, Icon>()
 
-internal fun cachedIcon(
+fun cachedIcon(
     factory: IconFactory,
     key: String,
     make: () -> Bitmap
@@ -53,7 +53,7 @@ internal fun cachedIcon(
 }
 
 /** Versión atenuada (alpha ~35%) del bitmap si [faded]; tal cual si no. */
-internal fun Bitmap.fadedIf(faded: Boolean): Bitmap {
+fun Bitmap.fadedIf(faded: Boolean): Bitmap {
     if (!faded) return this
     val out = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val c = Canvas(out)
@@ -63,7 +63,7 @@ internal fun Bitmap.fadedIf(faded: Boolean): Bitmap {
 }
 
 /** Marker fantasma terra con ★ para la posición candidata. */
-internal fun ghostBitmap(): Bitmap {
+fun ghostBitmap(): Bitmap {
     val size = 64
     val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val c = Canvas(bmp)
@@ -84,7 +84,7 @@ internal fun ghostBitmap(): Bitmap {
 }
 
 /** Punto numerado de la polilínea del muro en construcción (preview del trazado). */
-internal fun wallPointBitmap(number: Int): Bitmap {
+fun wallPointBitmap(number: Int): Bitmap {
     val size = 56
     val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val c = Canvas(bmp)
@@ -105,7 +105,7 @@ internal fun wallPointBitmap(number: Int): Bitmap {
 }
 
 /** Símbolo de escuela: triángulo terra estilo "montaña" para marcar el centro. */
-internal fun schoolBitmap(label: String): Bitmap {
+fun schoolBitmap(label: String): Bitmap {
     val size = 72
     val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val c = Canvas(bmp)
@@ -133,7 +133,7 @@ internal fun schoolBitmap(label: String): Bitmap {
 }
 
 /** Cuadrado azul con "P" blanca — símbolo internacional de parking. */
-internal fun parkingBitmap(): Bitmap {
+fun parkingBitmap(): Bitmap {
     val size = 64
     val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val c = Canvas(bmp)
@@ -165,7 +165,7 @@ internal fun parkingBitmap(): Bitmap {
  * Pin de piedra (BLOCK). Polígono irregular terra con el nombre dentro.
  * Usa el mismo helper compartido que el mapa del admin para coherencia visual.
  */
-internal fun blockBitmap(label: String): Bitmap = pinBitmapBoulder(
+fun blockBitmap(label: String): Bitmap = pinBitmapBoulder(
     label = label.takeIf { it.isNotBlank() } ?: "?",
     fillColor = android.graphics.Color.parseColor("#C2410C"),
     sizeDp = 22   // ↓ Más pequeñas: en zonas con muchas piedras juntas, no se solapan tanto.
@@ -178,13 +178,13 @@ internal fun blockBitmap(label: String): Bitmap = pinBitmapBoulder(
  * el resto de pines. Devuelve null si la modalidad no es conocida (el llamador
  * cae al polígono de roca de siempre).
  */
-internal fun blockKindBitmap(ctx: android.content.Context, label: String, discipline: String): Bitmap? {
+fun blockKindBitmap(ctx: android.content.Context, label: String, discipline: String): Bitmap? {
     val route = discipline.equals("ROUTE", ignoreCase = true)
     if (!route && !discipline.equals("BOULDER", ignoreCase = true)) return null
     val opts = android.graphics.BitmapFactory.Options().apply { inScaled = false }
     val src = android.graphics.BitmapFactory.decodeResource(
         ctx.resources,
-        if (route) com.meteomontana.android.R.drawable.kind_route else com.meteomontana.android.R.drawable.kind_boulder,
+        if (route) com.meteomontana.android.core.map.R.drawable.kind_route else com.meteomontana.android.core.map.R.drawable.kind_boulder,
         opts
     ) ?: return null
 
@@ -235,7 +235,7 @@ internal fun blockKindBitmap(ctx: android.content.Context, label: String, discip
 }
 
 /** Pin verde para zonas (tipo ZONE). */
-internal fun zoneBitmap(): Bitmap {
+fun zoneBitmap(): Bitmap {
     val size = 68
     // Altura doble: el dibujo va en la mitad SUPERIOR y la inferior queda
     // transparente → como el ancla del Marker es el centro del bitmap, el
@@ -265,7 +265,7 @@ internal fun zoneBitmap(): Bitmap {
  * [headingDeg] (brújula) añade un cono de dirección hacia donde apunta el
  * móvil — para orientarse buscando la piedra.
  */
-internal fun userDotBitmap(headingDeg: Float? = null): Bitmap {
+fun userDotBitmap(headingDeg: Float? = null): Bitmap {
     val sizePx = 72
     val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bmp)
@@ -294,7 +294,7 @@ internal fun userDotBitmap(headingDeg: Float? = null): Bitmap {
 }
 
 /** Bitmap circular con relleno [colorInt], borde blanco, letra centrada. Para PARKING/ZONE. */
-internal fun pinBitmap(colorInt: Int, letter: String, sizeDp: Int = 40): Bitmap {
+fun pinBitmap(colorInt: Int, letter: String, sizeDp: Int = 40): Bitmap {
     val size = (sizeDp * 3).coerceAtLeast(64)
     val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bmp)
@@ -321,7 +321,7 @@ internal fun pinBitmap(colorInt: Int, letter: String, sizeDp: Int = 40): Bitmap 
  * en los radios (parece roca natural). Relleno [fillColor], borde blanco grueso,
  * sombra inferior sutil y el [label] centrado en blanco.
  */
-internal fun pinBitmapBoulder(label: String, fillColor: Int, sizeDp: Int = 44): Bitmap {
+fun pinBitmapBoulder(label: String, fillColor: Int, sizeDp: Int = 44): Bitmap {
     val size = (sizeDp * 3).coerceAtLeast(80)
     val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bmp)

@@ -202,7 +202,7 @@ private fun SearchKindBadge(kind: SchoolSearchKind) {
                 SchoolSearchKind.PARKING -> ParkingShapeIcon()
                 else -> androidx.compose.foundation.Image(
                     painter = androidx.compose.ui.res.painterResource(
-                        if (kind == SchoolSearchKind.ROUTE) R.drawable.kind_route else R.drawable.kind_boulder),
+                        if (kind == SchoolSearchKind.ROUTE) com.meteomontana.android.core.map.R.drawable.kind_route else com.meteomontana.android.core.map.R.drawable.kind_boulder),
                     contentDescription = null,
                     colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(com.meteomontana.android.ui.theme.Terra),
                     modifier = Modifier.height(18.dp)

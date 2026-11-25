@@ -212,7 +212,7 @@ class GuideMapSnapshots @Inject constructor(@ApplicationContext private val cont
     private fun stoneIcon(c: Canvas, x: Float, y: Float, radius: Float, b: Block) {
         c.drawCircle(x, y, radius, fill(WHITE))
         c.drawCircle(x, y, radius, stroke(TERRA, 2.5f))
-        val res = if (b.discipline.uppercase() == "ROUTE") R.drawable.kind_route else R.drawable.kind_boulder
+        val res = if (b.discipline.uppercase() == "ROUTE") com.meteomontana.android.core.map.R.drawable.kind_route else com.meteomontana.android.core.map.R.drawable.kind_boulder
         val icon = ContextCompat.getDrawable(context, res)?.mutate() ?: return
         icon.setTint(TERRA)
         val inset = radius - radius * 0.62f

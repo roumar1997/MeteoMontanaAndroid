@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:MapMarkerFactory.kt$fun blockKindBitmap(ctx: android.content.Context, label: String, discipline: String): Bitmap?</ID>
+    <ID>LambdaParameterInRestartableEffect:MapViewLifecycle.kt$onDisposed</ID>
+    <ID>MutableStateParam:MapViewLifecycle.kt$mapViewRef</ID>
+    <ID>ParameterNaming:MapViewLifecycle.kt$onDisposed</ID>
+    <ID>UnusedParameter:MapMarkerFactory.kt$label: String</ID>
+  </CurrentIssues>
+</SmellBaseline>
