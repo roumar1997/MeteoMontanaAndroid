@@ -106,7 +106,7 @@ fun StatsScreen(
                                     context = shareCtx,
                                     periodLabel = state.year?.let { y -> AppText.get(R.string.stats_screen_v3_mi_en_roca, y) }
                                         ?: AppText.get(R.string.stats_screen_v3_mi_diario_en_roca),
-                                    disciplineLabel = if (state.discipline == "ROUTE") AppText.get(R.string.add_block_sheet_v3_via) else "BLOQUE",
+                                    disciplineLabel = if (state.discipline == "ROUTE") AppText.get(com.meteomontana.android.core.ui.R.string.add_block_sheet_v3_via) else AppText.get(com.meteomontana.android.core.ui.R.string.w_boulder_caps2),
                                     summary = sum,
                                     maxGrade = sum.pyramid.firstOrNull()?.first,
                                     progression = state.progression
@@ -151,7 +151,7 @@ fun StatsScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically) {
                 FilterChip(stringResource(com.meteomontana.android.core.ui.R.string.w_boulder_caps2), state.discipline == "BOULDER") { viewModel.setDiscipline("BOULDER") }
-                FilterChip(stringResource(R.string.add_block_sheet_v3_via), state.discipline == "ROUTE") { viewModel.setDiscipline("ROUTE") }
+                FilterChip(stringResource(com.meteomontana.android.core.ui.R.string.add_block_sheet_v3_via), state.discipline == "ROUTE") { viewModel.setDiscipline("ROUTE") }
                 var gradeMenuOpen by remember { mutableStateOf(false) }
                 Box {
                     VotableChip(text = state.grade?.uppercase() ?: stringResource(R.string.w_grade_caps)) { gradeMenuOpen = true }
@@ -203,7 +203,7 @@ fun StatsScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     MetricCard(stringResource(R.string.stats_screen_v3_dias_de_roca), s.daysOut.toString(),
                         Modifier.weight(1f).clickable { showDaysList = true })
-                    MetricCard(stringResource(R.string.w_streak_caps), "${s.currentStreakWeeks} sem", Modifier.weight(1f), terra = true)
+                    MetricCard(stringResource(R.string.w_streak_caps), stringResource(com.meteomontana.android.core.ui.R.string.stats_streak_weeks_short, s.currentStreakWeeks), Modifier.weight(1f), terra = true)
                 }
                 if (showDaysList) {
                     // Bottom sheet suave (paridad iOS), no dialog a pantalla

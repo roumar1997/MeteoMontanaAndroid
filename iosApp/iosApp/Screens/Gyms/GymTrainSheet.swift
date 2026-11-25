@@ -208,7 +208,7 @@ private struct GymTrainBlocksTab: View {
         if let scale {
             ForEach(scale.levels, id: \.name) { lv in
                 let color = GymPresentation.color(hex: lv.hex)
-                GymCounterRow(label: lv.name.capitalized, sub: GymPresentation.gradeRange(lv.gradeFrom, lv.gradeTo),
+                GymCounterRow(label: holdColorLabel(lv.name), sub: GymPresentation.gradeRange(lv.gradeFrom, lv.gradeTo),
                               swatch: color, accent: color, count: Int(GymTraining.shared.countOf(ascents: blocks, key: lv.name)),
                               onMinus: { adjust(lv.name, -1) }, onPlus: { adjust(lv.name, 1) })
             }

@@ -103,5 +103,5 @@ class GymTrainingViewModel @Inject constructor(
         }
     }
 
-    fun gymName(id: Long): String = _state.value.gyms[id]?.name ?: "Rocódromo"
+    fun gymName(id: Long): String = _state.value.gyms[id]?.name ?: com.meteomontana.android.util.AppText.get(com.meteomontana.android.R.string.gym_train_title)
 }

@@ -96,7 +96,7 @@ struct ByGradeSection: View {
                 ForEach(colors, id: \.key) { a in
                     let hex = colorHex(a.key)
                     let c = hex.map { GymPresentation.color(hex: $0) } ?? Cumbre.ink2
-                    row(a.key.capitalized, c, ["#FFFFFF", "#F2C21A"].contains(hex?.uppercased() ?? "") ? Color(hex: 0x1B1B1B) : .white,
+                    row(holdColorLabel(a.key), c, ["#FFFFFF", "#F2C21A"].contains(hex?.uppercased() ?? "") ? Color(hex: 0x1B1B1B) : .white,
                         Int(a.count), top)
                 }
             }

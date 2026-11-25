@@ -321,7 +321,7 @@ internal fun AscentSheet(
                             .atZone(java.time.ZoneOffset.UTC).toLocalDate().toString()
                     }
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text(androidx.compose.ui.res.stringResource(com.meteomontana.android.R.string.common_ok)) }
             }
         ) { androidx.compose.material3.DatePicker(state = state) }
     }

@@ -133,7 +133,7 @@ internal fun BlockLineItem(
             // hueco que queda, así las acciones de la derecha nunca se salen ni se mueven.
             Column(Modifier.weight(1f)) {
                 Text(
-                    line.name.ifBlank { stringResource(R.string.school_map_v3_via_2, "${idx + 1}") },
+                    line.name.ifBlank { stringResource(com.meteomontana.android.core.ui.R.string.school_map_v3_via_2, "${idx + 1}") },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2

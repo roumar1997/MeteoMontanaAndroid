@@ -128,7 +128,7 @@ internal fun GymScaleSection(scale: com.meteomontana.android.domain.model.gym.Gy
                             Box(Modifier.fillMaxWidth().height(34.dp).clip(RoundedCornerShape(10.dp)).background(parseHex(lv.hex))
                                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp)))
                             val range = GymPresentation.gradeRange(lv.gradeFrom, lv.gradeTo)
-                            Text(range ?: lv.name.replaceFirstChar { it.uppercase() }, fontSize = 10.sp, color = muted, maxLines = 1,
+                            Text(range ?: com.meteomontana.android.util.CatalogLabels.holdColor(lv.name), fontSize = 10.sp, color = muted, maxLines = 1,
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
                         }
                     }

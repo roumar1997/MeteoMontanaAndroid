@@ -91,7 +91,7 @@ internal fun PendingTickSheet(pt: PendingTick, viewModel: com.meteomontana.andro
     val myHeight by ascentVoteVm.myHeight.collectAsStateWithLifecycle()
     androidx.compose.runtime.LaunchedEffect(Unit) { ascentVoteVm.loadMyHeight() }
     AscentSheet(
-        lineName = pt.line.name.ifBlank { stringResource(R.string.school_map_v3_via_2, pt.index + 1) },
+        lineName = pt.line.name.ifBlank { stringResource(com.meteomontana.android.core.ui.R.string.school_map_v3_via_2, pt.index + 1) },
         setterGrade = pt.line.grade,
         wasProject = pt.wasProject,
         myHeight = myHeight,

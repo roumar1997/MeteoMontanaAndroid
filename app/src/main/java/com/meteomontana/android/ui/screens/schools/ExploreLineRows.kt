@@ -208,7 +208,7 @@ internal fun ExploreLineRow(
             // Vídeos de beta (por altura) y cuánta gente la ha hecho: se ve por qué sale con el filtro de ALTURA.
             com.meteomontana.android.ui.components.CommunityBadgesRow(h, Modifier.padding(vertical = 3.dp))
             if (!h.orientation.isNullOrBlank()) {
-                Text(h.orientation!!, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                Text(com.meteomontana.android.util.CatalogLabels.aspect(h.orientation!!), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 Text(stringResource(R.string.explore_no_orientation),

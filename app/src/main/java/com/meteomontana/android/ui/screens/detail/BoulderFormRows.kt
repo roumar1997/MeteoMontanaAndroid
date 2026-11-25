@@ -237,7 +237,7 @@ internal fun OrientationPickRow(label: String, selected: String?, onPick: (Strin
                         RoundedCornerShape(6.dp))
                     .clickable { onPick(a) }
                     .padding(horizontal = 10.dp, vertical = 6.dp)) {
-                    Text(a, style = EyebrowTextStyle.copy(fontSize = androidx.compose.ui.unit.TextUnit(10f, androidx.compose.ui.unit.TextUnitType.Sp)),
+                    Text(com.meteomontana.android.util.CatalogLabels.aspect(a), style = EyebrowTextStyle.copy(fontSize = androidx.compose.ui.unit.TextUnit(10f, androidx.compose.ui.unit.TextUnitType.Sp)),
                         color = if (active) androidx.compose.ui.graphics.Color.White
                                 else com.meteomontana.android.ui.theme.Terra)
                 }

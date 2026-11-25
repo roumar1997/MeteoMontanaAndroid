@@ -185,4 +185,22 @@
     <string name="help_sheet_v2_no_se_pudo_enviar_intentalo">No se pudo enviar. Inténtalo otra vez.</string>
     <string name="help_sheet_v2_enviar">ENVIAR</string>
     <string name="help_sheet_v2_cancelar">CANCELAR</string>
+    <string name="share_conditions_head">%1$s — condiciones en Cumbre</string>
+    <string name="add_block_sheet_v3_via">VÍA</string>
+    <string name="school_map_v3_via_2">Vía %1$s</string>
+    <string name="stats_streak_weeks_short">%1$d sem</string>
+    <string name="share_meetup_participants">%1$d participantes</string>
+    <string name="share_meetup_name">Quedada: %1$s</string>
+    <string name="share_meetup_school">Escuela: %1$s</string>
+    <string name="hold_color_blanco">Blanco</string>
+    <string name="hold_color_amarillo">Amarillo</string>
+    <string name="hold_color_naranja">Naranja</string>
+    <string name="hold_color_verde">Verde</string>
+    <string name="hold_color_azul">Azul</string>
+    <string name="hold_color_morado">Morado</string>
+    <string name="hold_color_rosa">Rosa</string>
+    <string name="hold_color_rojo">Rojo</string>
+    <string name="hold_color_marron">Marron</string>
+    <string name="hold_color_gris">Gris</string>
+    <string name="hold_color_negro">Negro</string>
 </resources>

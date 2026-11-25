@@ -111,7 +111,7 @@ internal fun ByGradeSection(items: List<com.meteomontana.android.domain.model.gy
             val c = colorHex(a.key)?.let { parseHex(it) } ?: MaterialTheme.colorScheme.onSurfaceVariant
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    a.key.replaceFirstChar { it.uppercase() }, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1,
+                    com.meteomontana.android.util.CatalogLabels.holdColor(a.key), fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1,
                     color = if (c.luminance() > 0.6f) Color(0xFF1B1B1B) else Color.White,
                     modifier = Modifier.weight(0.26f).clip(RoundedCornerShape(9.dp)).background(c).padding(horizontal = 8.dp, vertical = 3.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center

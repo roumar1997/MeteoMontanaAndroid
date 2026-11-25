@@ -90,7 +90,7 @@ internal fun SchoolGuideHost(
         val myHeight by votes.myHeight.collectAsStateWithLifecycle()
         LaunchedEffect(Unit) { votes.loadMyHeight() }
         AscentSheet(
-            lineName = line.name.ifBlank { stringResource(R.string.school_map_v3_via_2, index + 1) },
+            lineName = line.name.ifBlank { stringResource(com.meteomontana.android.core.ui.R.string.school_map_v3_via_2, index + 1) },
             setterGrade = line.grade,
             wasProject = wasProject,
             myHeight = myHeight,

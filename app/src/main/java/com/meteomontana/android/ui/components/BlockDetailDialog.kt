@@ -368,7 +368,7 @@ fun BlockDetailDialog(
                         // llevaba solo la palabra y el nombre iba suelto al
                         // lado, y se leían como dos cosas distintas.
                         Text(
-                            stringResource(R.string.block_detail_dialog_v2_sector) + (sectorName ?: "SIN NOMBRE").uppercase(),
+                            stringResource(R.string.block_detail_dialog_v2_sector) + (sectorName ?: stringResource(R.string.block_unnamed)).uppercase(),
                             style = EyebrowTextStyle, color = Color.White
                         )
                     }

@@ -1061,7 +1061,6 @@
     <string name="school_map_v3_publicado_de_confianza">Eres de confianza: se publica directamente y aparecerá al recargar la página.</string>
     <string name="propose_success_trusted_body">Eres de confianza: tu aportación se publica directamente y aparecerá al recargar la página.</string>
     <string name="school_map_v3_no_se_pudo_publicar_el">No se pudo publicar el ascenso (queda en tu diario)</string>
-    <string name="school_map_v3_via_2">Vía %1$s</string>
     <string name="school_map_v3_no_se_pudo_enviar_la">No se pudo enviar la propuesta: %1$s</string>
     <string name="school_map_view_v3_posicion_fijada_para_pulsa_otra">✓ POSICIÓN FIJADA PARA \"%1$s\" · PULSA OTRA VEZ PARA RECORREGIR O ACEPTAR</string>
     <string name="school_map_view_v3_has_pulsado_ahora_pulsa_la">✓ HAS PULSADO \"%1$s\" · AHORA PULSA LA NUEVA POSICIÓN EN EL MAPA</string>
@@ -1120,7 +1119,6 @@
     <string name="meetup_detail_screen_v3_sin_detalles">Sin detalles</string>
     <string name="meetup_detail_screen_v3_anade_detalles_material_nivel_hora">Añade detalles (material, nivel, hora...)</string>
     <string name="notifications_screen_v3_aqui_te_avisaremos_de_nuevos">Aquí te avisaremos de nuevos seguidores, solicitudes, mensajes y novedades de tus propuestas.</string>
-    <string name="add_block_sheet_v3_via">VÍA</string>
     <string name="add_block_sheet_v3_notas_opcional">NOTAS (opcional)</string>
     <string name="add_block_sheet_v3_sector_opcional">SECTOR (opcional)</string>
     <string name="edit_profile_screen_v3_no_indicar">No indicar</string>
@@ -2292,4 +2290,8 @@
         <item quantity="one">×%1$d en %2$d día</item>
         <item quantity="other">×%1$d en %2$d días</item>
     </plurals>
+    <string name="school_rain_days">LLUEVE %1$s</string>
+    <string name="school_rain_max">máx %1$.1f mm</string>
+    <string name="block_unnamed">SIN NOMBRE</string>
+    <string name="journal_boulder_n">Piedra %1$s</string>
 </resources>

@@ -306,7 +306,7 @@ fun AddBlockSheet(
             ModalityToggle(selected = discipline, onSelect = { discipline = it })
 
             // ─── NOMBRE con autocomplete (bloques/vías previos + de la escuela) ───
-            Label(if (discipline == "ROUTE") stringResource(R.string.add_block_sheet_v3_via) else "BLOQUE")
+            Label(if (discipline == "ROUTE") stringResource(com.meteomontana.android.core.ui.R.string.add_block_sheet_v3_via) else "BLOQUE")
             OutlinedTextField(
                 value = blockName, onValueChange = { blockName = it },
                 placeholder = { Text(stringResource(R.string.add_block_sheet_v2_ej_el_pollito)) },
@@ -407,7 +407,7 @@ private fun Label(text: String) {
 private fun ModalityToggle(selected: String, onSelect: (String) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         ModalityOption(stringResource(com.meteomontana.android.core.ui.R.string.w_boulder_caps2), selected == "BOULDER", Modifier.weight(1f)) { onSelect("BOULDER") }
-        ModalityOption(stringResource(R.string.add_block_sheet_v3_via), selected == "ROUTE", Modifier.weight(1f)) { onSelect("ROUTE") }
+        ModalityOption(stringResource(com.meteomontana.android.core.ui.R.string.add_block_sheet_v3_via), selected == "ROUTE", Modifier.weight(1f)) { onSelect("ROUTE") }
     }
 }
 

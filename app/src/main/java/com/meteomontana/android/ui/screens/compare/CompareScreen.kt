@@ -123,7 +123,7 @@ class CompareViewModel @Inject constructor(
                                 rainProb = fc.current.precipitationProbability,
                                 dryRock = fc.current.dryRock,
                                 optimal = fc.bestWindow?.let { "${shortHour(it.start)}–${shortHour(it.end)}h" },
-                                bestDay = fc.bestDay?.label
+                                bestDay = fc.bestDay?.let { com.meteomontana.android.util.CatalogLabels.scoreLabel(it.score) }
                             )
                         }
                     }.map { it.await() }

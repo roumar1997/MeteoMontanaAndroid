@@ -54,7 +54,7 @@ internal fun BoardEditDateRow(date: LocalDate, onPick: (LocalDate) -> Unit) {
                     onPick(LocalDate(d.year, d.monthValue, d.dayOfMonth))
                 }
                 open = false
-            }) { Text("OK") }
+            }) { Text(androidx.compose.ui.res.stringResource(com.meteomontana.android.R.string.common_ok)) }
         }) { DatePicker(state = state) }
     }
     Eyebrow(stringResource(R.string.ascent_when))

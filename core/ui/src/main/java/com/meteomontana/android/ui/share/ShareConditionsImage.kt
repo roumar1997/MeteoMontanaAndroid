@@ -32,7 +32,7 @@ fun shareSchoolAsImage(context: Context, school: School, forecast: Forecast?) {
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "image/png"
         putExtra(Intent.EXTRA_STREAM, uri)
-        putExtra(Intent.EXTRA_TEXT, "${school.name} — condiciones en Cumbre\n\nDescarga Cumbre:\nAndroid: https://play.google.com/store/apps/details?id=com.meteomontana.android\niOS: https://apps.apple.com/app/cumbre/id0000000000")
+        putExtra(Intent.EXTRA_TEXT, context.getString(R.string.share_conditions_head, school.name) + "\n\n" + context.getString(R.string.share_utils_v4_descarga_cumbre_n) + "Android: https://play.google.com/store/apps/details?id=com.meteomontana.android\niOS: https://apps.apple.com/app/cumbre/id0000000000")
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_utils_v3_compartir_condiciones)))

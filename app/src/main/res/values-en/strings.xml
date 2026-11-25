@@ -647,7 +647,7 @@
     <string name="feed_publish_sheet_v2_te_avisaremos_por_email_y">We\'ll notify you by email and push\nnotification when there\'s a response.</string>
     <string name="feed_publish_sheet_v2_propuesta_enviada">PROPOSAL SENT</string>
     <string name="forecast_body_v2_en_1_sd_2_s">In %1$sd (%2$s)</string>
-    <string name="forecast_body_v2_viento_1_s_km_h">WIND %1$s km/h  ·  HUM %2$s%%</string>
+    <string name="forecast_body_v2_viento_1_s_km_h">WIND %1$s km/h  ·  HUMIDITY %2$s%%</string>
     <string name="forecast_body_v2_optimo_entre_1_s_2">Optimal between %1$s–%2$s</string>
     <string name="grade_filter_bar_v2_mostrando_1_s_vias_de">Showing %1$s routes out of %2$s</string>
     <string name="grade_filter_bar_v2_quitar_todo">CLEAR ALL</string>
@@ -980,7 +980,7 @@
     <string name="community_vote_ui_v3_solo_puede_votar_quien_la">Only people who have it in their logbook can vote (try it or tick it first).</string>
     <string name="community_vote_ui_v3_el_grado_que_se_muestra">The grade shown is the consensus (with 3+ votes). The bolter\'s grade stays as a reference.</string>
     <string name="community_vote_ui_v3_tu"> · you ✓</string>
-    <string name="forecast_body_v3_hum">HUM</string>
+    <string name="forecast_body_v3_hum">DAMP</string>
     <string name="forecast_body_v3_prob_lluvia">RAIN PROB</string>
     <string name="forecast_body_v3_rocio">DEW</string>
     <string name="forecast_body_v3_lluvia_72h">RAIN 72H</string>
@@ -1002,7 +1002,6 @@
     <string name="school_map_v3_publicado_de_confianza">You are a trusted contributor: it is published right away and will show up when you reload the page.</string>
     <string name="propose_success_trusted_body">You are a trusted contributor: your contribution is published right away and will show up when you reload the page.</string>
     <string name="school_map_v3_no_se_pudo_publicar_el">Could not publish the ascent (it stays in your logbook)</string>
-    <string name="school_map_v3_via_2">Route %1$s</string>
     <string name="school_map_v3_no_se_pudo_enviar_la">Could not send the proposal: %1$s</string>
     <string name="school_map_view_v3_posicion_fijada_para_pulsa_otra">✓ POSITION SET FOR \"%1$s\" · TAP AGAIN TO REDO OR ACCEPT</string>
     <string name="school_map_view_v3_has_pulsado_ahora_pulsa_la">✓ YOU TAPPED \"%1$s\" · NOW TAP THE NEW POSITION ON THE MAP</string>
@@ -1061,7 +1060,6 @@
     <string name="meetup_detail_screen_v3_sin_detalles">No details</string>
     <string name="meetup_detail_screen_v3_anade_detalles_material_nivel_hora">Add details (gear, level, time...)</string>
     <string name="notifications_screen_v3_aqui_te_avisaremos_de_nuevos">Here we\'ll let you know about new followers, requests, messages and news about your proposals.</string>
-    <string name="add_block_sheet_v3_via">ROUTE</string>
     <string name="add_block_sheet_v3_notas_opcional">NOTES (optional)</string>
     <string name="add_block_sheet_v3_sector_opcional">SECTOR (optional)</string>
     <string name="edit_profile_screen_v3_no_indicar">Prefer not to say</string>
@@ -2233,4 +2231,8 @@
         <item quantity="one">×%1$d in %2$d day</item>
         <item quantity="other">×%1$d in %2$d days</item>
     </plurals>
+    <string name="school_rain_days">RAINS %1$s</string>
+    <string name="school_rain_max">max %1$.1f mm</string>
+    <string name="block_unnamed">UNNAMED</string>
+    <string name="journal_boulder_n">Boulder %1$s</string>
 </resources>

@@ -165,7 +165,7 @@ fun GoalSheet(year: Int, initial: YearGoal?, onSave: (String?, String?, Int?, In
             Text(stringResource(R.string.goal_grade_label), style = EyebrowTextStyle.copy(fontSize = 9.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("BOULDER" to com.meteomontana.android.core.ui.R.string.w_boulder_caps2, "ROUTE" to R.string.add_block_sheet_v3_via).forEach { (d, label) ->
+                listOf("BOULDER" to com.meteomontana.android.core.ui.R.string.w_boulder_caps2, "ROUTE" to com.meteomontana.android.core.ui.R.string.add_block_sheet_v3_via).forEach { (d, label) ->
                     val on = discipline == d
                     Text(stringResource(label), color = if (on) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontFamily = Mono, fontWeight = FontWeight.Bold, fontSize = 11.sp,

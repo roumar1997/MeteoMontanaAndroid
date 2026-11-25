@@ -201,7 +201,7 @@ private fun SessionCard(
             if (open) {
                 if (scale != null) Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     scale.levels.forEach { lv ->
-                        CounterRow(lv.name.replaceFirstChar { it.uppercase() }, parseHex(lv.hex), GymTraining.countOf(s.ascents, lv.name), { onAdjust(lv.name, -1) }, { onAdjust(lv.name, 1) })
+                        CounterRow(com.meteomontana.android.util.CatalogLabels.holdColor(lv.name), parseHex(lv.hex), GymTraining.countOf(s.ascents, lv.name), { onAdjust(lv.name, -1) }, { onAdjust(lv.name, 1) })
                     }
                 } else FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     gradeKeys(s).forEach { g ->
@@ -268,7 +268,7 @@ private fun MiniPill(a: GymAscent, hex: String?) {
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         if (hex != null) Box(Modifier.size(10.dp).clip(CircleShape).background(parseHex(hex)))
-        else Text(a.key.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        else Text(com.meteomontana.android.util.CatalogLabels.holdColor(a.key).uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Bold)
         Text(a.count.toString(), fontSize = 12.sp, fontWeight = FontWeight.Bold)
     }
 }
@@ -294,7 +294,7 @@ private fun GymChart(gym: Gym?, stats: GymAscentStats, visits: Int) {
         }
         items.forEach { a ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(a.key.uppercase(), style = com.meteomontana.android.ui.theme.EyebrowTextStyle, modifier = Modifier.width(84.dp), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Text(com.meteomontana.android.util.CatalogLabels.holdColor(a.key).uppercase(), style = com.meteomontana.android.ui.theme.EyebrowTextStyle, modifier = Modifier.width(84.dp), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 Box(Modifier.weight(1f).height(14.dp).clip(CircleShape).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))) {
                     if (a.count > 0) Box(
                         Modifier.fillMaxWidth(a.count.toFloat() / max).height(14.dp).clip(CircleShape)

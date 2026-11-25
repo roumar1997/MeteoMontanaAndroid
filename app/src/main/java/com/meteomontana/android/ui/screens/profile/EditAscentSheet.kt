@@ -82,7 +82,7 @@ internal fun EditAscentSheet(
                         date = Instant.ofEpochMilli(ms).atZone(ZoneOffset.UTC).toLocalDate().toString()
                     }
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text(androidx.compose.ui.res.stringResource(com.meteomontana.android.R.string.common_ok)) }
             }
         ) { DatePicker(state = pickerState) }
     }

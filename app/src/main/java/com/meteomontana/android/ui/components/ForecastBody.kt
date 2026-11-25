@@ -252,7 +252,7 @@ fun ConditionsGrid(cur: Current) {
             ConditionCell(stringResource(R.string.forecast_body_v3_lluvia_72h), "${cur.precip72h}", "mm", Modifier.weight(1f))
             ConditionCell(stringResource(R.string.forecast_body_v3_rocio), cur.dewPoint?.let { "${it.toInt()}" } ?: "—", "°", Modifier.weight(1f))
             ConditionCell(stringResource(R.string.forecast_body_v3_prob_lluvia), "${cur.precipitationProbability}", "%", Modifier.weight(1f))
-            ConditionCell("ROCA", if (cur.dryRock) stringResource(R.string.schools_rock_dry) else stringResource(R.string.forecast_body_v3_hum), "", Modifier.weight(1f))
+            ConditionCell(stringResource(R.string.w_rock_caps), if (cur.dryRock) stringResource(R.string.schools_rock_dry) else stringResource(R.string.forecast_body_v3_hum), "", Modifier.weight(1f))
         }
     }
 }

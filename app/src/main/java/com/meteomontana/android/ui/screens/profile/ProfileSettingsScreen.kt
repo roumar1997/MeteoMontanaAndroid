@@ -243,7 +243,7 @@ internal fun ProfileSettingsScreen(
             // Que version es esta. Sin esto, "no me ha llegado el arreglo" y
             // "no lo has arreglado" son indistinguibles.
             Text(
-                stringResource(R.string.profile_screen_v2_cumbre) + com.meteomontana.android.BuildConfig.VERSION_NAME +
+                stringResource(R.string.profile_screen_v2_cumbre).trimEnd() + " " + com.meteomontana.android.BuildConfig.VERSION_NAME +
                     " (vc" + com.meteomontana.android.BuildConfig.VERSION_CODE + ") · " +
                     com.meteomontana.android.BuildConfig.BUILD_TIME +
                     if (com.meteomontana.android.BuildConfig.DEBUG) " · staging" else "",

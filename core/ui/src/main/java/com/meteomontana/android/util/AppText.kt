@@ -26,7 +26,9 @@ object AppText {
     var overrideSource: Source? = null
 
     fun init(context: Context) {
-        appContext = context.applicationContext
+        // Se guarda el contexto TAL CUAL: `applicationContext` devuelve siempre la Application original
+        // (con el idioma con el que arrancó el proceso) y se ignoraba el idioma recién elegido.
+        appContext = context
     }
 
     fun array(@ArrayRes id: Int): List<String> =

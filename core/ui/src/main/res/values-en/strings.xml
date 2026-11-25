@@ -185,4 +185,22 @@
     <string name="help_sheet_v2_no_se_pudo_enviar_intentalo">Couldn\'t send it. Try again.</string>
     <string name="help_sheet_v2_enviar">SEND</string>
     <string name="help_sheet_v2_cancelar">CANCEL</string>
+    <string name="share_conditions_head">%1$s — conditions on Cumbre</string>
+    <string name="add_block_sheet_v3_via">ROUTE</string>
+    <string name="school_map_v3_via_2">Route %1$s</string>
+    <string name="stats_streak_weeks_short">%1$d wk</string>
+    <string name="share_meetup_participants">%1$d participants</string>
+    <string name="share_meetup_name">Meetup: %1$s</string>
+    <string name="share_meetup_school">Crag: %1$s</string>
+    <string name="hold_color_blanco">White</string>
+    <string name="hold_color_amarillo">Yellow</string>
+    <string name="hold_color_naranja">Orange</string>
+    <string name="hold_color_verde">Green</string>
+    <string name="hold_color_azul">Blue</string>
+    <string name="hold_color_morado">Purple</string>
+    <string name="hold_color_rosa">Pink</string>
+    <string name="hold_color_rojo">Red</string>
+    <string name="hold_color_marron">Brown</string>
+    <string name="hold_color_gris">Gray</string>
+    <string name="hold_color_negro">Black</string>
 </resources>
