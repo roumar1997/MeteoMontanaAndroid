@@ -725,7 +725,6 @@
     <string name="feed_publish_sheet_v2_ver_mis_propuestas">VER MIS PROPUESTAS</string>
     <string name="feed_publish_sheet_v2_te_avisaremos_por_email_y">Te avisaremos por email y notificación\npush cuando haya respuesta.</string>
     <string name="feed_publish_sheet_v2_propuesta_enviada">PROPUESTA ENVIADA</string>
-    <string name="first_time_hint_v2_entendido">Entendido</string>
     <string name="forecast_body_v2_en_1_sd_2_s">En %1$sd (%2$s)</string>
     <string name="forecast_body_v2_viento_1_s_km_h">VIENTO %1$s km/h  ·  HUM %2$s%%</string>
     <string name="forecast_body_v2_optimo_entre_1_s_2">Óptimo entre %1$s–%2$s</string>
@@ -1459,12 +1458,6 @@
     <!-- Código de idioma para lógica dependiente del idioma -->
 
     <!-- Guías por pantalla y botón "? AYUDA" (2026-10-14) -->
-    <string name="guide_help">AYUDA</string>
-    <string name="guide_exit">SALIR</string>
-    <string name="guide_next">SIGUIENTE</string>
-    <string name="guide_done">ENTENDIDO</string>
-    <string name="guides_toggle_title">Explicarme cada pantalla</string>
-    <string name="guides_toggle_hint">Un “?” parpadea la primera vez que entras. Puedes cambiarlo en Ajustes.</string>
 
     <!-- Bienvenida de una sola pantalla -->
     <string name="welcome_eyebrow">BIENVENIDO</string>

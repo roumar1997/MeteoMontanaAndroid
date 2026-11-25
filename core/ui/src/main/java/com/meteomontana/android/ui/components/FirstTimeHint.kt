@@ -25,7 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.meteomontana.android.ui.theme.Spacing
 import androidx.compose.ui.res.stringResource
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 
 /** Reinicia TODAS las pistas (coach-marks) → volverán a salir una vez. Lo usa
  *  el "Volver a ver las pistas" del perfil. */

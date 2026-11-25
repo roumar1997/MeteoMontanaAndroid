@@ -63,7 +63,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 import com.meteomontana.android.domain.usecase.help.GuideCatalog
 import com.meteomontana.android.domain.usecase.help.GuideStep
 import com.meteomontana.android.ui.theme.Mono
@@ -272,7 +272,7 @@ fun GuidePill(topicKey: String, modifier: Modifier = Modifier, onClick: () -> Un
 }
 
 /** Anillo que se expande y se desvanece detrás del botón. Solo existe (y anima) mientras toca parpadear. */
-internal fun Modifier.pulseRing(): Modifier = composed {
+fun Modifier.pulseRing(): Modifier = composed {
     val ring = rememberInfiniteTransition(label = "guide-pulse")
     val t by ring.animateFloat(0f, 1f, infiniteRepeatable(tween(1300, easing = LinearEasing), RepeatMode.Restart), label = "t")
     drawBehind {

@@ -146,4 +146,11 @@
     <string name="share_utils_v4_mejor_momento_n">Mejor momento: %1$s\n</string>
     <string name="share_utils_v4_ndescarga_cumbre_n">\nDescarga Cumbre:\n</string>
     <string name="share_utils_v3_compartir_escuela">Compartir escuela</string>
+    <string name="guide_exit">SALIR</string>
+    <string name="guide_next">SIGUIENTE</string>
+    <string name="guide_done">ENTENDIDO</string>
+    <string name="guide_help">AYUDA</string>
+    <string name="guides_toggle_title">Explicarme cada pantalla</string>
+    <string name="guides_toggle_hint">Un “?” parpadea la primera vez que entras. Puedes cambiarlo en Ajustes.</string>
+    <string name="first_time_hint_v2_entendido">Entendido</string>
 </resources>

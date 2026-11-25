@@ -666,7 +666,6 @@
     <string name="feed_publish_sheet_v2_ver_mis_propuestas">VIEW MY PROPOSALS</string>
     <string name="feed_publish_sheet_v2_te_avisaremos_por_email_y">We\'ll notify you by email and push\nnotification when there\'s a response.</string>
     <string name="feed_publish_sheet_v2_propuesta_enviada">PROPOSAL SENT</string>
-    <string name="first_time_hint_v2_entendido">Got it</string>
     <string name="forecast_body_v2_en_1_sd_2_s">In %1$sd (%2$s)</string>
     <string name="forecast_body_v2_viento_1_s_km_h">WIND %1$s km/h  ·  HUM %2$s%%</string>
     <string name="forecast_body_v2_optimo_entre_1_s_2">Optimal between %1$s–%2$s</string>
@@ -1400,12 +1399,6 @@
     <!-- Código de idioma para lógica dependiente del idioma -->
 
     <!-- Per-screen guides and the "? HELP" button (2026-10-14) -->
-    <string name="guide_help">HELP</string>
-    <string name="guide_exit">LEAVE</string>
-    <string name="guide_next">NEXT</string>
-    <string name="guide_done">GOT IT</string>
-    <string name="guides_toggle_title">Explain each screen to me</string>
-    <string name="guides_toggle_hint">A “?” blinks the first time you open a screen. You can change this in Settings.</string>
 
     <!-- Single-screen welcome -->
     <string name="welcome_eyebrow">WELCOME</string>

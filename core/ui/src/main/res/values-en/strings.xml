@@ -146,4 +146,11 @@
     <string name="share_utils_v4_mejor_momento_n">Best time: %1$s\n</string>
     <string name="share_utils_v4_ndescarga_cumbre_n">\nGet Cumbre:\n</string>
     <string name="share_utils_v3_compartir_escuela">Share school</string>
+    <string name="guide_exit">LEAVE</string>
+    <string name="guide_next">NEXT</string>
+    <string name="guide_done">GOT IT</string>
+    <string name="guide_help">HELP</string>
+    <string name="guides_toggle_title">Explain each screen to me</string>
+    <string name="guides_toggle_hint">A “?” blinks the first time you open a screen. You can change this in Settings.</string>
+    <string name="first_time_hint_v2_entendido">Got it</string>
 </resources>
