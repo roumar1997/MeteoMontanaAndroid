@@ -91,7 +91,7 @@ import com.meteomontana.android.ui.meetups.MemberAvatar
 import com.meteomontana.android.ui.meetups.EditGearDialog
 import com.meteomontana.android.ui.meetups.gearItemsForDiscipline
 import com.meteomontana.android.ui.meetups.parseGear
-import com.meteomontana.android.R
+import com.meteomontana.android.feature.chat.R
 import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
 import com.meteomontana.android.push.MutedChatsStore
 import dagger.hilt.android.lifecycle.HiltViewModel

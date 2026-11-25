@@ -109,7 +109,7 @@ fun MeetupAlertScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(com.meteomontana.android.feature.chat.R.string.common_back))
             }
             Icon(Icons.Outlined.NotificationsActive, contentDescription = null,
                 modifier = Modifier.size(20.dp).padding(end = 4.dp),

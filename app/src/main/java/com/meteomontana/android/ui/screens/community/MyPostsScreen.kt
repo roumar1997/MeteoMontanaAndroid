@@ -45,7 +45,7 @@ fun MyPostsScreen(
             IconButton(onClick = onBack) {
                 Icon(
                     Icons.Outlined.ArrowBack,
-                    contentDescription = stringResource(R.string.common_back),
+                    contentDescription = stringResource(com.meteomontana.android.feature.chat.R.string.common_back),
                     tint = MaterialTheme.colorScheme.onBackground
                 )
             }

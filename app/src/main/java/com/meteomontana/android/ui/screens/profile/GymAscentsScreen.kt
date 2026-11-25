@@ -73,7 +73,7 @@ fun GymAscentsScreen(
     var grades by remember(filter) { mutableStateOf(emptySet<String>()) }
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.common_back)) }
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(com.meteomontana.android.feature.chat.R.string.common_back)) }
             Text(
                 stringResource(R.string.gym_asc_title, s.ascents), fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp,
                 color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f)

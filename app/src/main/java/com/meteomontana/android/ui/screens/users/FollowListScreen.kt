@@ -206,7 +206,7 @@ fun FollowListScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
+                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(com.meteomontana.android.feature.chat.R.string.common_back),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
             Text(viewModel.title, style = MaterialTheme.typography.headlineMedium,

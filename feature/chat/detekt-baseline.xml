@@ -1,0 +1,63 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComposableParamOrder:ChatListScreen.kt$ConvRow</ID>
+    <ID>ComposableParamOrder:ChatListScreen.kt$SwipeableConvRow</ID>
+    <ID>ComposableParamOrder:ChatTopBar.kt$ChatTopBar</ID>
+    <ID>CyclomaticComplexMethod:ChatListScreen.kt$@Composable fun ChatListScreen( onBack: () -&gt; Unit, onOpenChat: (otherUid: String) -&gt; Unit, onOpenGroup: (convId: String) -&gt; Unit = {}, onNewGroup: () -&gt; Unit = {}, viewModel: ChatListViewModel = hiltViewModel() )</ID>
+    <ID>CyclomaticComplexMethod:ChatScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable fun ChatScreen( onBack: () -&gt; Unit, onOpenProfile: (String) -&gt; Unit = {}, // Espacio ya reservado abajo por el host (cápsula de tabs + navbar). Se // descuenta del imePadding para que el campo quede PEGADO al teclado, no // flotando esa altura por encima. Ver FeedPostDetailScreen. bottomInset: androidx.compose.ui.unit.Dp = 0.dp, viewModel: ChatViewModel = hiltViewModel() )</ID>
+    <ID>CyclomaticComplexMethod:GroupChatScreen.kt$@Composable fun GroupChatScreen( onBack: () -&gt; Unit, onOpenMeetup: (String) -&gt; Unit = {}, onOpenProfile: (String) -&gt; Unit = {}, // Ver ChatScreen/FeedPostDetailScreen: descuenta lo reservado por el host // para pegar el campo al teclado. bottomInset: androidx.compose.ui.unit.Dp = 0.dp, viewModel: GroupChatViewModel = hiltViewModel() )</ID>
+    <ID>CyclomaticComplexMethod:GroupChatScreen.kt$@Composable fun GroupMessageBubble( msg: ChatService.ChatMessage, myUid: String, senderName: String, senderPhoto: String?, showName: Boolean, showAvatar: Boolean, onOpenProfile: () -&gt; Unit, nameFor: (String) -&gt; String, onReply: (ChatService.ChatMessage) -&gt; Unit )</ID>
+    <ID>CyclomaticComplexMethod:NewGroupScreen.kt$@Composable fun NewGroupScreen( onBack: () -&gt; Unit, onCreated: (convId: String) -&gt; Unit, viewModel: NewGroupViewModel = hiltViewModel() )</ID>
+    <ID>LongMethod:ChatListScreen.kt$@Composable fun ChatListScreen( onBack: () -&gt; Unit, onOpenChat: (otherUid: String) -&gt; Unit, onOpenGroup: (convId: String) -&gt; Unit = {}, onNewGroup: () -&gt; Unit = {}, viewModel: ChatListViewModel = hiltViewModel() )</ID>
+    <ID>LongMethod:ChatScreen.kt$@OptIn(ExperimentalLayoutApi::class) @Composable fun ChatScreen( onBack: () -&gt; Unit, onOpenProfile: (String) -&gt; Unit = {}, // Espacio ya reservado abajo por el host (cápsula de tabs + navbar). Se // descuenta del imePadding para que el campo quede PEGADO al teclado, no // flotando esa altura por encima. Ver FeedPostDetailScreen. bottomInset: androidx.compose.ui.unit.Dp = 0.dp, viewModel: ChatViewModel = hiltViewModel() )</ID>
+    <ID>LongMethod:GroupChatScreen.kt$@Composable fun GroupChatScreen( onBack: () -&gt; Unit, onOpenMeetup: (String) -&gt; Unit = {}, onOpenProfile: (String) -&gt; Unit = {}, // Ver ChatScreen/FeedPostDetailScreen: descuenta lo reservado por el host // para pegar el campo al teclado. bottomInset: androidx.compose.ui.unit.Dp = 0.dp, viewModel: GroupChatViewModel = hiltViewModel() )</ID>
+    <ID>LongMethod:GroupChatScreen.kt$@Composable fun GroupMessageBubble( msg: ChatService.ChatMessage, myUid: String, senderName: String, senderPhoto: String?, showName: Boolean, showAvatar: Boolean, onOpenProfile: () -&gt; Unit, nameFor: (String) -&gt; String, onReply: (ChatService.ChatMessage) -&gt; Unit )</ID>
+    <ID>LongMethod:NewGroupScreen.kt$@Composable fun NewGroupScreen( onBack: () -&gt; Unit, onCreated: (convId: String) -&gt; Unit, viewModel: NewGroupViewModel = hiltViewModel() )</ID>
+    <ID>MatchingDeclarationName:NewGroupScreen.kt$NewGroupViewModel : ViewModel</ID>
+    <ID>MaxLineLength:ChatInput.kt$Text(stringResource(R.string.chat_locked_title), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onBackground)</ID>
+    <ID>MaxLineLength:ChatInput.kt$focusedContainerColor = MaterialTheme.colorScheme.background</ID>
+    <ID>MaxLineLength:ChatInput.kt$focusedIndicatorColor = Color.Transparent</ID>
+    <ID>MaxLineLength:ChatInput.kt$modifier = Modifier.weight(1f).clip(RoundedCornerShape(26.dp)).border(1.5.dp, if (text.isBlank()) MaterialTheme.colorScheme.outline else terraFillColor(), RoundedCornerShape(26.dp))</ID>
+    <ID>MaxLineLength:ChatListScreen.kt$Text(stringResource(f.label), color = fg, fontSize = 13.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)</ID>
+    <ID>MaxLineLength:ChatScreen.kt$ChatInputPill(text = text, onTextChange = { text = it }, onSend = { if (text.isNotBlank()) { viewModel.send(text); text = "" } })</ID>
+    <ID>MaxLineLength:ChatScreen.kt$if (who.isNotBlank()) stringResource(R.string.chat_screen_v3_respondiendo_a, who) else stringResource(R.string.chat_screen_v3_respondiendo)</ID>
+    <ID>MaxLineLength:ChatScreen.kt$painter = androidx.compose.ui.res.painterResource(com.meteomontana.android.core.designsystem.R.drawable.logo_cumbre)</ID>
+    <ID>MaxLineLength:ChatStyle.kt$Column</ID>
+    <ID>MaxLineLength:ChatTopBar.kt$)</ID>
+    <ID>MaxLineLength:ChatTopBar.kt$Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).let { m -&gt; if (onTitleClick != null) m.clickable(onClick = onTitleClick) else m }</ID>
+    <ID>MaxLineLength:ChatTopBar.kt$Text(title, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 18.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)</ID>
+    <ID>MaxLineLength:ChatTopBar.kt$modifier.fillMaxWidth().zIndex(1f).shadow(4.dp).background(chatCardColor()).padding(start = 8.dp, end = Spacing.xs, top = 10.dp, bottom = 10.dp)</ID>
+    <ID>MaxLineLength:GroupChatHeader.kt$)</ID>
+    <ID>MaxLineLength:GroupChatHeader.kt$Box</ID>
+    <ID>MaxLineLength:GroupChatHeader.kt$ChatActionPill(Icons.Outlined.Groups, pluralStringResource(R.plurals.chat_header_people, state.members.size, state.members.size), { onOpenMeetup(id) })</ID>
+    <ID>MaxLineLength:GroupChatHeader.kt$GearChip(if (l.ok) "✓ $label" else stringResource(R.string.meetup_list_gear_missing, label.lowercase()), if (l.ok) Ok else MaterialTheme.colorScheme.error)</ID>
+    <ID>MaxLineLength:GroupChatHeader.kt$Text(stringResource(R.string.meetup_detail_my_gear), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1)</ID>
+    <ID>MaxLineLength:GroupChatHeader.kt$else</ID>
+    <ID>MaxLineLength:GroupChatHeader.kt$tint = if (state.muted) MaterialTheme.colorScheme.onSurfaceVariant else terraFillColor()</ID>
+    <ID>MaxLineLength:GroupChatHeader.kt$val subtitle = listOfNotNull(state.firstDay?.let { formatDayMonth(it) }, pluralStringResource(R.plurals.chat_header_people, people, people)).joinToString(" · ")</ID>
+    <ID>MaxLineLength:GroupChatScreen.kt$ChatInputPill(text = text, onTextChange = { text = it }, onSend = { if (text.isNotBlank()) { viewModel.send(text); text = "" } })</ID>
+    <ID>MaxLineLength:GroupChatScreen.kt$Text</ID>
+    <ID>MaxLineLength:GroupChatScreen.kt$nameFor = { uid -&gt; if (uid == state.myUid) AppText.get(R.string.school_presence_row_v3_tu) else state.memberNames[uid] ?: "" }</ID>
+    <ID>MaxLineLength:GroupChatScreen.kt$val who = if (reply.fromUid == state.myUid) stringResource(R.string.school_presence_row_v3_tu) else (state.memberNames[reply.fromUid] ?: "")</ID>
+    <ID>MaxLineLength:GroupChatViewModel.kt$GroupChatViewModel$context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.share_utils_v3_invitar_al_grupo)))</ID>
+    <ID>ModifierMissing:ChatFormat.kt$ChatDayDivider</ID>
+    <ID>ModifierMissing:ChatGroupAvatar.kt$ChatSenderAvatarSlot</ID>
+    <ID>ModifierMissing:ChatListScreen.kt$ChatListScreen</ID>
+    <ID>ModifierMissing:ChatScreen.kt$ChatScreen</ID>
+    <ID>ModifierMissing:ChatScreen.kt$LoadOlderRow</ID>
+    <ID>ModifierMissing:ChatTopBar.kt$ChatInitialAvatar</ID>
+    <ID>ModifierMissing:ChatTopBar.kt$ChatSubtitle</ID>
+    <ID>ModifierMissing:GroupChatHeader.kt$GroupChatActions</ID>
+    <ID>ModifierMissing:GroupChatHeader.kt$GroupChatGearCard</ID>
+    <ID>ModifierMissing:GroupChatHeader.kt$GroupChatHeader</ID>
+    <ID>ModifierMissing:GroupChatScreen.kt$GroupChatScreen</ID>
+    <ID>ModifierMissing:GroupChatScreen.kt$GroupMessageBubble</ID>
+    <ID>ModifierMissing:NewGroupScreen.kt$NewGroupScreen</ID>
+    <ID>ParameterNaming:NewGroupScreen.kt$onCreated</ID>
+    <ID>UnusedParameter:GroupChatScreen.kt$label: String?</ID>
+    <ID>UnusedPrivateProperty:ChatScreen.kt$val bg = if (isMine) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface</ID>
+    <ID>UnusedPrivateProperty:GroupChatScreen.kt$val bg = if (isMine) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface</ID>
+  </CurrentIssues>
+</SmellBaseline>

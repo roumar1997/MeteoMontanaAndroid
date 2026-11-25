@@ -137,7 +137,7 @@ fun PublicProfileScreen(
                     .clickable(onClick = onBack),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Outlined.ChevronLeft, contentDescription = stringResource(R.string.common_back),
+                Icon(Icons.Outlined.ChevronLeft, contentDescription = stringResource(com.meteomontana.android.feature.chat.R.string.common_back),
                     tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(28.dp))
             }
             Text(stringResource(R.string.public_profile_screen_v2_perfil), style = MaterialTheme.typography.titleLarge,
@@ -320,7 +320,7 @@ internal fun Body(
         // Cabecera compacta (maqueta B): sin descripción; seguidos · seguidores junto al nombre y SEGUIR a la derecha.
         Column {
             com.meteomontana.android.ui.screens.profile.CompactProfileHeader(
-                name = p.displayName ?: p.username ?: stringResource(R.string.w_user),
+                name = p.displayName ?: p.username ?: stringResource(com.meteomontana.android.feature.chat.R.string.w_user),
                 handle = "@${p.username ?: p.displayName?.lowercase()?.replace(" ", "_") ?: "usuario"}",
                 uid = p.uid, followers = s.status.followers, following = s.status.following,
                 onFollowers = if (locked) ({}) else onFollowersClick, onFollowing = if (locked) ({}) else onFollowingClick,
@@ -332,7 +332,7 @@ internal fun Body(
             var confirmUnfollow by remember { mutableStateOf(false) }
             if (confirmUnfollow) androidx.compose.material3.AlertDialog(
                 onDismissRequest = { confirmUnfollow = false },
-                title = { Text(stringResource(R.string.public_profile_unfollow_title, p.displayName ?: p.username ?: stringResource(R.string.w_user))) },
+                title = { Text(stringResource(R.string.public_profile_unfollow_title, p.displayName ?: p.username ?: stringResource(com.meteomontana.android.feature.chat.R.string.w_user))) },
                 confirmButton = {
                     androidx.compose.material3.TextButton(onClick = { confirmUnfollow = false; onToggleFollow() }) {
                         Text(stringResource(R.string.public_profile_unfollow_confirm), color = MaterialTheme.colorScheme.error)

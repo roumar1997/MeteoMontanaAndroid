@@ -62,7 +62,7 @@ fun GymVisitScreen(
     val title = g?.name ?: viewModel.gym(gymId)?.name ?: "—"
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.common_back)) }
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(com.meteomontana.android.feature.chat.R.string.common_back)) }
             Text(
                 title, fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 22.sp, maxLines = 2,
                 color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f)

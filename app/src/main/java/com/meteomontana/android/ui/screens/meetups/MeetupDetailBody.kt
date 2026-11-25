@@ -102,7 +102,7 @@ internal fun MeetupHero(
         Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)))))
         Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.md).padding(top = Spacing.md, bottom = Spacing.md)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                HeroRoundButton(Icons.Outlined.ArrowBack, stringResource(R.string.common_back), onBack)
+                HeroRoundButton(Icons.Outlined.ArrowBack, stringResource(com.meteomontana.android.feature.chat.R.string.common_back), onBack)
                 Box(Modifier.weight(1f))
                 if (canChat) HeroRoundButton(Icons.Outlined.Chat, stringResource(R.string.meetup_open_chat), onChat)
                 // Cómo llegar y compartir con los mismos iconos que el resto de la app (flecha de ruta y compartir de iOS).
@@ -215,7 +215,7 @@ internal fun ParticipantsCard(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.meetup_detail_participants), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
             if (canEditGear) Text(
-                stringResource(R.string.meetup_detail_my_gear) + " ›", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = terraFillColor(),
+                stringResource(com.meteomontana.android.feature.chat.R.string.meetup_detail_my_gear) + " ›", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = terraFillColor(),
                 modifier = Modifier.clickable(onClick = onEditGear).padding(vertical = 4.dp)
             )
         }

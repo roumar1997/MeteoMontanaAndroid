@@ -136,6 +136,7 @@ dependencies {
     implementation(project(":core:ui"))
     implementation(project(":core:map"))
     implementation(project(":core:data"))
+    implementation(project(":feature:chat"))
 
     // Core Android + Compose
     implementation(libs.androidx.browser)

@@ -52,7 +52,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import androidx.compose.ui.res.stringResource
-import com.meteomontana.android.R
+import com.meteomontana.android.feature.chat.R
 
 @HiltViewModel
 class NewGroupViewModel @Inject constructor(

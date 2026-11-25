@@ -89,7 +89,7 @@ import com.meteomontana.android.ui.meetups.MemberAvatar
 import com.meteomontana.android.ui.meetups.EditGearDialog
 import com.meteomontana.android.ui.meetups.gearItemsForDiscipline
 import com.meteomontana.android.ui.meetups.parseGear
-import com.meteomontana.android.R
+import com.meteomontana.android.feature.chat.R
 import com.meteomontana.android.domain.usecase.social.GetPublicProfileUseCase
 import com.meteomontana.android.push.MutedChatsStore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -240,7 +240,7 @@ fun GroupChatScreen(
 }
 
 /** Abre Google Maps con indicaciones a las coordenadas de la escuela. */
-internal fun openDirections(
+fun openDirections(
     context: android.content.Context,
     lat: Double, lon: Double, label: String?
 ) {
@@ -252,7 +252,7 @@ internal fun openDirections(
 }
 
 @Composable
-internal fun GroupMessageBubble(
+fun GroupMessageBubble(
     msg: ChatService.ChatMessage,
     myUid: String,
     senderName: String,

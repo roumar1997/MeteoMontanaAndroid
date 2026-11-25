@@ -76,7 +76,7 @@ fun GymTrainingScreen(onBack: () -> Unit, viewModel: GymTrainingViewModel = hilt
     val sessions = st.summary.sessions
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.common_back)) }
+            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(com.meteomontana.android.feature.chat.R.string.common_back)) }
             Text(
                 stringResource(R.string.gym_train_title), fontFamily = Serif, fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.headlineSmall

@@ -16,7 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.meteomontana.android.R
+import com.meteomontana.android.feature.chat.R
 import com.meteomontana.android.domain.port.ChatService
 import com.meteomontana.android.ui.theme.Mono
 import java.text.SimpleDateFormat

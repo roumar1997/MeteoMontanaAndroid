@@ -90,7 +90,7 @@ fun JournalSchoolsScreen(
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back),
+                Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(com.meteomontana.android.feature.chat.R.string.common_back),
                     tint = MaterialTheme.colorScheme.onBackground)
             }
             Text(stringResource(R.string.schools_title), style = MaterialTheme.typography.headlineMedium,

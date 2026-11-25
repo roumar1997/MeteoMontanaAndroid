@@ -65,7 +65,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.res.stringResource
 import com.meteomontana.android.ui.components.userRing
 import coil.compose.AsyncImage
-import com.meteomontana.android.R
+import com.meteomontana.android.feature.chat.R
 import com.meteomontana.android.domain.port.ChatService
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -208,7 +208,7 @@ fun ChatScreen(
 
 /** Fila "Mensajes anteriores" en la cima del historial: carga otra página al pulsar. */
 @Composable
-internal fun LoadOlderRow(onClick: () -> Unit) {
+fun LoadOlderRow(onClick: () -> Unit) {
     Box(
         Modifier.fillMaxWidth().padding(vertical = 4.dp),
         contentAlignment = Alignment.Center

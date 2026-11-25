@@ -24,7 +24,7 @@ import com.meteomontana.android.ui.components.ProcessionaryIcon
 @Composable
 internal fun BackPill(onBack: () -> Unit, modifier: Modifier = Modifier) {
     IconAction(onClick = onBack, modifier = modifier, icon = Icons.Outlined.ChevronLeft,
-        description = stringResource(R.string.common_back))
+        description = stringResource(com.meteomontana.android.feature.chat.R.string.common_back))
 }
 
 /**

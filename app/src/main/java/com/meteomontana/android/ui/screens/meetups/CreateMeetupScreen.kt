@@ -128,7 +128,7 @@ fun CreateMeetupScreen(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            IconButton(onClick = goBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.common_back)) }
+            IconButton(onClick = goBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(com.meteomontana.android.feature.chat.R.string.common_back)) }
             Text(
                 stringResource(R.string.create_meetup_title), modifier = Modifier.weight(1f),
                 fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold,

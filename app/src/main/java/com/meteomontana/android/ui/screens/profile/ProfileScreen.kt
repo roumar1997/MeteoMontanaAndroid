@@ -383,7 +383,7 @@ internal fun Content(
         item {
             Column {
                 CompactProfileHeader(
-                    name = profile.displayName ?: profile.username ?: stringResource(R.string.school_presence_row_v3_tu),
+                    name = profile.displayName ?: profile.username ?: stringResource(com.meteomontana.android.feature.chat.R.string.school_presence_row_v3_tu),
                     handle = "@${profile.username ?: profile.displayName?.lowercase()?.replace(" ", "_") ?: "tu_username"}",
                     uid = profile.uid, followers = followers, following = following,
                     onFollowers = onOpenFollowers, onFollowing = onOpenFollowing, avatarSlot = avatarSlot,
@@ -447,7 +447,7 @@ internal fun Header(
         // Nombre grande serif.
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                p.displayName ?: p.username ?: stringResource(R.string.school_presence_row_v3_tu),
+                p.displayName ?: p.username ?: stringResource(com.meteomontana.android.feature.chat.R.string.school_presence_row_v3_tu),
                 fontFamily = com.meteomontana.android.ui.theme.Serif, fontWeight = FontWeight.Bold, fontSize = 24.sp,
                 color = MaterialTheme.colorScheme.onBackground
             )

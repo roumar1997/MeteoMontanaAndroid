@@ -228,7 +228,7 @@ private fun MeetupGearStatusRow(meetup: Meetup) {
         Text(stringResource(R.string.meetup_list_material).uppercase(), style = EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
         lines.forEach { l ->
             val label = stringResource(gearLabelRes(l.item))
-            val text = if (l.ok) "✓ $label" else stringResource(R.string.meetup_list_gear_missing, label.lowercase())
+            val text = if (l.ok) "✓ $label" else stringResource(com.meteomontana.android.feature.chat.R.string.meetup_list_gear_missing, label.lowercase())
             val c = if (l.ok) ok else bad
             Text(text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = c, maxLines = 1,
                 modifier = Modifier.clip(CircleShape).background(c.copy(alpha = 0.12f)).padding(horizontal = 9.dp, vertical = 3.dp))

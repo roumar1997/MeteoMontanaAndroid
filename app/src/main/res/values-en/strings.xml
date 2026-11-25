@@ -173,22 +173,17 @@
     <string name="block_routes">ROUTES</string>
     <string name="chat_delete_confirm">Delete this conversation? It will only be deleted for you.</string>
     <string name="chat_empty">No messages yet</string>
-    <string name="chat_load_older">Older messages</string>
     <string name="chat_mark_unread">Mark as unread</string>
     <string name="chat_message">MESSAGE</string>
     <string name="chat_new">New message</string>
     <string name="chat_new_group">New group</string>
     <string name="chat_title">Messages</string>
-    <string name="chat_write">Write a message</string>
     <string name="profile_add_workout_short">Workout</string>
     <string name="gym_asc_order_title">Reorder</string>
     <string name="gym_asc_order_hint">Choose what comes first in your ascents. Others will see them in this order.</string>
     <string name="gym_asc_order_cd">Reorder categories</string>
     <string name="gym_asc_see_all">See ascents</string>
-    <string name="chat_empty_title">Break the ice</string>
-    <string name="chat_empty_sub">No messages yet. Write the first one.</string>
     <string name="common_all">All</string>
-    <string name="common_back">Back</string>
     <string name="common_cancel">Cancel</string>
     <string name="common_confirm">Confirm</string>
     <string name="common_delete">Delete</string>
@@ -206,7 +201,6 @@
     <string name="common_report">Report</string>
     <string name="common_retry">RETRY</string>
     <string name="common_search">Search</string>
-    <string name="common_send">Send</string>
     <string name="common_view_school">View school</string>
     <string name="common_yes">Yes</string>
     <string name="compare_best_day">Best day</string>
@@ -311,7 +305,6 @@
     <string name="meetup_detail_kick">Remove</string>
     <string name="meetup_detail_leave">LEAVE THE MEETUP</string>
     <string name="meetup_detail_leave_confirm">Are you sure you want to leave this meetup?</string>
-    <string name="meetup_detail_my_gear">My gear</string>
     <string name="meetup_detail_no_material_chat">No gear listed</string>
     <string name="meetup_detail_organized_by">ORGANIZED BY</string>
     <string name="meetup_detail_participants">PARTICIPANTS</string>
@@ -500,8 +493,6 @@
     <string name="school_map_view_topografico_satelite">Topographic/Satellite</string>
     <string name="approach_follow_screen_verificada">✓ VERIFIED</string>
     <string name="approach_follow_screen_sin_verificar">⚠ UNVERIFIED</string>
-    <string name="chat_list_screen_no_leido">Unread</string>
-    <string name="new_group_screen_sigue_a_alguien_o">Follow someone (or have them follow you) to add members.</string>
     <string name="day_detail_screen_sin_datos_horarios_para">No hourly data for this day.</string>
     <string name="day_detail_screen_indice_del_dia">DAY INDEX</string>
     <string name="add_line_row_descripcion_opcional">Description (optional)</string>
@@ -722,30 +713,9 @@
     <string name="onboarding_overlay_v2_saltar">Skip</string>
     <string name="approach_follow_screen_v2_cerrar">CLOSE</string>
     <string name="approach_follow_screen_v2_sin_verificar">UNVERIFIED</string>
-    <string name="chat_list_screen_v2_borrar">Delete</string>
-    <string name="chat_list_screen_v2_sigue_a_alguien_o_que">Follow someone (or have them follow you) to be able to message them.</string>
-    <string name="chat_list_screen_v2_buscar_entre_seguidores_seguidos">Search among followers/following…</string>
-    <string name="chat_list_screen_v2_nuevo_mensaje">New message</string>
-    <string name="chat_list_screen_v2_aun_no_tienes_conversaciones">You don\'t have any conversations yet</string>
-    <string name="chat_list_screen_v2_nuevo_mensaje_2">New message</string>
-    <string name="chat_list_screen_v2_nuevo_grupo">New group</string>
-    <string name="chat_list_screen_v2_chats">Chats</string>
-    <string name="chat_screen_v2_cancelar_respuesta">Cancel reply</string>
-    <string name="chat_screen_v2_no_puedes_escribir_este_perfil">You can\'t message: this profile is private and doesn\'t follow you</string>
-    <string name="group_chat_screen_v2_cancelar_respuesta">Cancel reply</string>
-    <string name="group_chat_screen_v2_ya_no_eres_miembro_de">You\'re no longer a member of this group</string>
     <string name="group_chat_screen_v2_editar_mi_material">Edit my gear</string>
     <string name="group_chat_screen_v2_sin_material">no gear</string>
     <string name="group_chat_screen_v2_anadir">+ Add</string>
-    <string name="group_chat_screen_v2_sin_material_indicado">No gear listed</string>
-    <string name="new_group_screen_v2_crear_grupo">CREATE GROUP</string>
-    <string name="new_group_screen_v2_seleccionado">Selected</string>
-    <string name="new_group_screen_v2_ningun_contacto_coincide_con_1">No contact matches «%1$s».</string>
-    <string name="new_group_screen_v2_buscar_contacto">Search contact</string>
-    <string name="new_group_screen_v2_elige_miembros_1_s">CHOOSE MEMBERS (%1$s)</string>
-    <string name="new_group_screen_v2_nombre_del_grupo">Group name</string>
-    <string name="new_group_screen_v2_nuevo_grupo">New group</string>
-    <string name="new_group_screen_v2_volver">Back</string>
     <string name="compare_screen_v2_hoy_mejor">BEST TODAY</string>
     <string name="compare_screen_v2_error_1_s">Error: %1$s</string>
     <string name="day_detail_screen_v2_1_s_km_h">%1$s km/h</string>
@@ -983,7 +953,6 @@
     <string name="favorites_widget_v2_1_s_mas_en_la">+ %1$s MORE IN THE APP</string>
     <string name="favorites_widget_v2_inicia_sesion">Sign in to see your schools</string>
     <string name="favorites_widget_v2_marca_favoritas">Favorite schools in the app</string>
-    <string name="share_utils_v3_invitar_al_grupo">Invite to the group</string>
     <string name="map_mini_cards_v3_ver_piedras">SHOW BOULDERS</string>
     <string name="map_mini_cards_v3_ocultar_piedras">HIDE BOULDERS</string>
     <string name="meetup_alert_screen_v3_cualquier_escuela">Any school</string>
@@ -998,8 +967,6 @@
     <string name="topo_editor_screen_v3_sin_datos">(no data)</string>
     <string name="forecast_body_v3_roca_seca">● DRY ROCK</string>
     <string name="forecast_body_v3_roca_humeda">● HUMID ROCK</string>
-    <string name="chat_screen_v3_respondiendo_a">Replying to %1$s</string>
-    <string name="chat_screen_v3_respondiendo">Replying</string>
     <string name="boulder_form_dialog_v3_muro_de_puntos">Wall of %1$s points</string>
     <string name="boulder_form_dialog_v3_con_sector_suffix"> · with sector</string>
     <string name="boulder_form_dialog_v3_con_sector_asignado">Sector assigned</string>
@@ -1041,13 +1008,9 @@
     <string name="school_map_view_v3_has_pulsado_ahora_pulsa_la">✓ YOU TAPPED \"%1$s\" · NOW TAP THE NEW POSITION ON THE MAP</string>
     <string name="school_map_view_v3_pulsa_el_marker_piedra_parking">ℹ TAP THE MARKER (BOULDER / PARKING / ZONE / SCHOOL) YOU WANT TO MOVE</string>
     <string name="school_map_view_v3_pulsa_en_el_mapa_en">ℹ TAP THE MAP AT THE CHOSEN POSITION</string>
-    <string name="school_presence_row_v3_tu">You</string>
     <string name="school_presence_row_v3_estoy_aqui">I\'m here</string>
     <string name="school_presence_row_v3_ya_no_estoy">I\'m no longer here</string>
     <string name="approach_follow_screen_v3_sigue_la_linea_si_te">Follow the line. If you stray from the path, check the pins.</string>
-    <string name="chat_list_screen_v3_desliza_una_conversacion_a_la">Swipe a conversation: left to delete it, right to mark it as unread.</string>
-    <string name="chat_list_screen_v3_toca_el_lapiz_para_escribir">Tap the pencil to message someone you follow or who follows you, or create a group with the people icon.</string>
-    <string name="group_chat_screen_v3_como_llegar">Get directions</string>
     <string name="group_chat_screen_v3_ver_detalles">See details ›</string>
     <string name="feed_post_card_v3_vias_en_otras_fotos">+%1$s ROUTES IN OTHER PHOTOS</string>
     <string name="feed_post_card_v3_1_via_en_otra_foto">+1 ROUTE IN ANOTHER PHOTO</string>
@@ -1167,7 +1130,6 @@
     <string name="sector_reorder_dialog_v4_no_se_pudo_calcular_el">Could not work out the order.</string>
     <string name="sector_reorder_dialog_v4_sin_numero">(no number)</string>
     <string name="sector_reorder_dialog_v4_sin_sector">NO SECTOR</string>
-    <string name="group_chat_screen_v4_invitar_al_grupo">Invite to the group</string>
     <string name="add_lines_flow_v4_no_se_pudo_subir_la">Could not upload photo %1$s. Check your connection and retry (otherwise the faces would get mixed into one).</string>
     <string name="add_lines_flow_v4_no_se_pudo_preparar_una">Could not prepare one of the photos. Choose it again.</string>
     <string name="boulder_form_dialog_v4_dibujar_lineas">✎ DRAW LINES</string>
@@ -1235,7 +1197,6 @@
     <!-- undefined -->
     <string name="share_line_extra_route">🧗 Check out this route: «%1$s»%2$s\n📍 %3$s\n👉 See it on Cumbre (photo with the line drawn):\n%4$s</string>
     <string name="share_line_extra_boulder">🧗 Check out this boulder: «%1$s»%2$s\n📍 %3$s\n👉 See it on Cumbre (photo with the line drawn):\n%4$s</string>
-    <string name="share_group_invite">🧗 I invite you to the meetup *%1$s* on Cumbre\n👉 Join from here:\n%2$s</string>
     <string name="blocks_section_photo_far">That photo was taken %1$s km from %2$s. Pick a photo taken at this school.</string>
 
     <!-- Quinta pasada: etiquetas de una sola palabra -->
@@ -1268,10 +1229,6 @@
     <string name="school_map_view_parking_fallback">Parking</string>
     <string name="w_all">All</string>
     <string name="w_school_caps">SCHOOL</string>
-    <string name="w_user">User</string>
-    <string name="w_group">Group</string>
-    <string name="w_unmute">Unmute</string>
-    <string name="w_mute">Mute</string>
     <string name="w_compare">Compare</string>
     <string name="w_rock_caps">ROCK</string>
     <string name="w_distance_caps">DISTANCE</string>
@@ -1619,13 +1576,6 @@
     <string name="profile_photo_view">View photo</string>
     <string name="profile_photo_error_title">Couldn\'t change the photo</string>
     <string name="profile_photo_error_body">Check your connection and try again.</string>
-    <string name="chat_search_hint">Search your conversations</string>
-    <string name="chat_filter_all">All</string>
-    <string name="chat_filter_unread">Unread</string>
-    <string name="chat_filter_groups">Groups</string>
-    <string name="chat_no_match">No conversation matches.</string>
-    <string name="chat_day_today">Today</string>
-    <string name="chat_day_yesterday">Yesterday</string>
     <string name="search_users_suggested">They follow you, you don\'t</string>
     <string name="search_users_recent">Recent</string>
     <string name="search_users_count">%1$d people</string>
@@ -1970,10 +1920,6 @@
     <string name="meetup_gear_group">Group gear</string>
     <string name="meetup_gear_covered">%1$d of %2$d covered</string>
     <string name="meetup_detail_organized_by_short">Organizer</string>
-    <plurals name="chat_header_people">
-        <item quantity="one">%1$d person</item>
-        <item quantity="other">%1$d people</item>
-    </plurals>
     <string name="meetups_radius_chip">Radius %1$d km</string>
     <string name="gym_train_edit_day">Edit this day</string>
     <string name="meetup_chat_n">Open chat · %1$d</string>
@@ -2126,8 +2072,6 @@
     <string name="gym_train_short">Did you train today?</string>
     <string name="gym_train_short_done">Workout logged</string>
     <string name="gym_meetup_short">Create meetup</string>
-    <string name="chat_locked_title">Only people who are here can write</string>
-    <string name="chat_locked_sub">You can read the chat</string>
     <string name="chat_here_tag">here</string>
     <string name="gym_chat_here_now">%1$d here now</string>
     <string name="gym_sheet_grade_pick">Grade · tap one or two in a row</string>
@@ -2199,7 +2143,6 @@
     <string name="profile_card_max">Max</string>
     <string name="meetup_rope_route_label">Rope team route</string>
     <string name="meetup_list_material">Gear</string>
-    <string name="meetup_list_gear_missing">Missing %1$s</string>
     <string name="gym_order_cats">Categories</string>
     <string name="gym_order_gyms">Gyms</string>
     <string name="gym_order_gyms_hint">Favorites come first until you reorder them by hand.</string>

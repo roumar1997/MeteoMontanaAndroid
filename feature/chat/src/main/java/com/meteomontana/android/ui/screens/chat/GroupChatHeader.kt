@@ -37,7 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.meteomontana.android.R
+import com.meteomontana.android.feature.chat.R
 import com.meteomontana.android.domain.model.MeetupGearLine
 import com.meteomontana.android.ui.meetups.formatDayMonth
 import com.meteomontana.android.ui.meetups.gearLabelRes
@@ -51,7 +51,7 @@ import com.meteomontana.android.ui.theme.terraFillColor
  * [GroupChatGearCard].
  */
 @Composable
-internal fun GroupChatHeader(
+fun GroupChatHeader(
     state: GroupChatUiState, onBack: () -> Unit, onOpenMeetup: (String) -> Unit, onToggleMute: () -> Unit
 ) {
     val tint = if (state.isGym) listOf(Color(0xFF3B6FD6), Color(0xFF7A45C4)) else listOf(Color(0xFF1FA84E), Color(0xFF1F7F8C))
@@ -86,7 +86,7 @@ internal fun GroupChatHeader(
 /** Fila de pildoras bajo la cabecera: cómo llegar, invitar y ver quién va (abre la quedada). */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun GroupChatActions(state: GroupChatUiState, onDirections: () -> Unit, onInvite: (String) -> Unit, onOpenMeetup: (String) -> Unit) {
+fun GroupChatActions(state: GroupChatUiState, onDirections: () -> Unit, onInvite: (String) -> Unit, onOpenMeetup: (String) -> Unit) {
     val id = state.meetupId ?: return
     FlowRow(
         Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
@@ -118,7 +118,7 @@ private fun ChatActionPill(icon: ImageVector, label: String, onClick: () -> Unit
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun GroupChatGearCard(lines: List<MeetupGearLine>, summary: String?, onEdit: () -> Unit) {
+fun GroupChatGearCard(lines: List<MeetupGearLine>, summary: String?, onEdit: () -> Unit) {
     val shape = RoundedCornerShape(18.dp)
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 8.dp).clip(shape).background(chatCardColor())

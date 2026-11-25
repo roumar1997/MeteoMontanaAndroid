@@ -277,7 +277,7 @@ private fun RecentCard(r: RecentUser, onClick: () -> Unit) {
             Box(Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant))
         }
         Column(Modifier.weight(1f)) {
-            Text(r.name.ifBlank { stringResource(R.string.w_user) }, style = MaterialTheme.typography.titleMedium,
+            Text(r.name.ifBlank { stringResource(com.meteomontana.android.feature.chat.R.string.w_user) }, style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground)
             r.username?.takeIf { it.isNotBlank() }?.let {
                 Text("@$it", style = com.meteomontana.android.ui.theme.EyebrowTextStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -310,7 +310,7 @@ private fun UserRow(user: PublicProfile, onClick: () -> Unit) {
             Text(
                 user.displayName?.takeIf { it.isNotBlank() }
                     ?: user.username?.takeIf { it.isNotBlank() }
-                    ?: stringResource(R.string.w_user),
+                    ?: stringResource(com.meteomontana.android.feature.chat.R.string.w_user),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )

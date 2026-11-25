@@ -55,7 +55,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.meteomontana.android.ui.components.userRing
 import coil.compose.AsyncImage
 import androidx.compose.ui.res.stringResource
-import com.meteomontana.android.R
+import com.meteomontana.android.feature.chat.R
 
 @Composable
 fun ChatListScreen(

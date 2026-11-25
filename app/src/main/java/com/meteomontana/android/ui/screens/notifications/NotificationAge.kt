@@ -57,7 +57,7 @@ internal fun notificationDateLabel(createdAt: String): String {
         NotificationAge.Now -> stringResource(R.string.feed_time_now)
         is NotificationAge.Minutes -> stringResource(R.string.feed_time_min, age.n)
         is NotificationAge.Hours -> stringResource(R.string.feed_time_hours, age.n)
-        NotificationAge.Yesterday -> stringResource(R.string.chat_day_yesterday)
+        NotificationAge.Yesterday -> stringResource(com.meteomontana.android.feature.chat.R.string.chat_day_yesterday)
         is NotificationAge.Days -> stringResource(R.string.feed_time_days, age.n)
         is NotificationAge.Date -> shortJournalDate(age.iso)
     }

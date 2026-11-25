@@ -324,7 +324,7 @@ fun SchoolChatScreen(
                                     .fillMaxWidth()
                                     .clickable(enabled = !isMe) {
                                         showAllPresent = false
-                                        onOpenChat(person.uid, person.displayName ?: person.username ?: AppText.get(R.string.w_user))
+                                        onOpenChat(person.uid, person.displayName ?: person.username ?: AppText.get(com.meteomontana.android.feature.chat.R.string.w_user))
                                     }
                                     .padding(horizontal = Spacing.md, vertical = Spacing.sm),
                                 verticalAlignment = Alignment.CenterVertically
@@ -338,7 +338,7 @@ fun SchoolChatScreen(
                                 }
                                 Spacer(Modifier.padding(start = Spacing.sm))
                                 Text(
-                                    if (isMe) stringResource(R.string.school_presence_row_v3_tu) else (person.displayName ?: person.username ?: "Usuario"),
+                                    if (isMe) stringResource(com.meteomontana.android.feature.chat.R.string.school_presence_row_v3_tu) else (person.displayName ?: person.username ?: "Usuario"),
                                     style = MaterialTheme.typography.bodyLarge.copy(fontFamily = Serif),
                                     color = MaterialTheme.colorScheme.onBackground,
                                     modifier = Modifier.weight(1f)
