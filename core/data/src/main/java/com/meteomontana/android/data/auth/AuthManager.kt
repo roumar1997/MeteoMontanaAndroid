@@ -13,7 +13,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingExcept
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
-import com.meteomontana.android.R
+import com.meteomontana.android.core.data.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -74,7 +74,8 @@ class AuthManager @Inject constructor(
         try {
             // Web client ID (client_type=3) — Firebase lo añade auto a strings.xml
             // como `default_web_client_id` cuando aplicas el plugin google-services.
-            val webClientId = context.getString(R.string.default_web_client_id)
+            // Vive en el R de :app, así que lo pasa MeteoMontanaApp a AppBuild.
+            val webClientId = com.meteomontana.android.util.AppBuild.googleWebClientId
 
             val googleIdOption = GetGoogleIdOption.Builder()
                 .setFilterByAuthorizedAccounts(false)

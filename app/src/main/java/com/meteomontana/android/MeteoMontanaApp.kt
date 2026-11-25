@@ -25,7 +25,7 @@ class MeteoMontanaApp : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         com.meteomontana.android.util.AppText.init(this)
-        com.meteomontana.android.util.AppBuild.init(BuildConfig.API_BASE_URL, BuildConfig.DEBUG)
+        com.meteomontana.android.util.AppBuild.init(BuildConfig.API_BASE_URL, BuildConfig.DEBUG, getString(R.string.default_web_client_id))
         com.meteomontana.android.data.api.ApiLanguage.code = com.meteomontana.android.util.AppLanguage.effective(this)
         // Lo que no hace falta para pintar la primera pantalla espera a que el hilo principal quede libre.
         android.os.Looper.myQueue().addIdleHandler {

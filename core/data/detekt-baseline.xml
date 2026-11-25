@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:PdfFinisher.kt$PdfFinisher$!d.contains("/Subtype /Image") || !d.contains("/ColorSpace /DeviceRGB") || !Regex("/BitsPerComponent\\s+8").containsMatchIn(d) || !d.contains("/Filter /FlateDecode") || d.contains("/SMask") || d.contains("/DecodeParms") || d.contains("/Mask")</ID>
+    <ID>CyclomaticComplexMethod:PdfFinisher.kt$PdfFinisher$private fun recompressImage(pdf: ByteArray, text: CharSequence, id: Int, range: IntRange, jpeg: JpegEncoder): ByteArray?</ID>
+    <ID>LoopWithTooManyJumpStatements:PdfFinisher.kt$PdfFinisher$while</ID>
+    <ID>SwallowedException:AuthManager.kt$AuthManager$e: GoogleIdTokenParsingException</ID>
+    <ID>TooGenericExceptionCaught:AuthManager.kt$AuthManager$e: Throwable</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -135,6 +135,7 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:ui"))
     implementation(project(":core:map"))
+    implementation(project(":core:data"))
 
     // Core Android + Compose
     implementation(libs.androidx.browser)

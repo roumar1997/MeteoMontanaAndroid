@@ -12,9 +12,14 @@ object AppBuild {
     var isDebug: Boolean = false
         private set
 
-    fun init(apiBaseUrl: String, isDebug: Boolean) {
+    /** Client ID web de Google (`default_web_client_id`, lo genera google-services en `:app`). */
+    var googleWebClientId: String = ""
+        private set
+
+    fun init(apiBaseUrl: String, isDebug: Boolean, googleWebClientId: String) {
         this.apiBaseUrl = apiBaseUrl
         this.isDebug = isDebug
+        this.googleWebClientId = googleWebClientId
     }
 
     /** Raíz pública de la web del API (sin `api/`), para enlaces compartidos. */

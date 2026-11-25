@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="auth_unsupported_credential">Unsupported credential type</string>
+    <string name="auth_invalid_token">Invalid token</string>
+    <string name="auth_no_google_account">There is no Google account on this device. Add one in Settings and try again.</string>
+    <string name="auth_signin_cancelled">Sign-in cancelled</string>
+    <string name="auth_signin_failed">Could not sign in. Please try again.</string>
+</resources>
