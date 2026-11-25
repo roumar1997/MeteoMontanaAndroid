@@ -63,7 +63,9 @@ data class Notification(
     /** Nombre de la via/piedra/quedada del aviso. */
     val subject: String? = null,
     val iFollowActor: Boolean = false,
-    val followRequested: Boolean = false
+    val followRequested: Boolean = false,
+    /** Frase del post del aviso («tu vía «X» (6a) en …»); null con servidores viejos. */
+    val postPhrase: String? = null
 )
 
 data class Inbox(val unreadCount: Long, val items: List<Notification>)

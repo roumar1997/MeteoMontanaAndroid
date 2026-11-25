@@ -166,7 +166,7 @@ private fun renderLineCard(
     )
 
     // ── Cabecera ───────────────────────────────────────────────────────────
-    val kind = if (block.discipline.equals("ROUTE", ignoreCase = true)) "VÍA" else AppText.get(R.string.w_boulder_caps2)
+    val kind = if (block.discipline.equals("ROUTE", ignoreCase = true)) AppText.lineNoun("ROUTE").uppercase() else AppText.get(R.string.w_boulder_caps2)
     c.drawText(
         context.getString(R.string.share_line_image_v2_1_s_en_cumbre, kind), pad, pad + 40f,
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -242,7 +242,7 @@ private fun renderLineCard(
         // Nombre + grado (recortado para no pisar el estado).
         var tx = pad + 56f
         val namePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 42f }
-        val name = bl.name.ifBlank { "Vía ${idx + 1}" }
+        val name = bl.name.ifBlank { "${AppText.lineNoun(block.discipline, capitalised = true)} ${idx + 1}" }
         val gradeTxt = bl.grade?.takeIf { it.isNotBlank() }
         val gradePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = INK_SOFT; textSize = 36f; isFakeBoldText = true
@@ -257,7 +257,7 @@ private fun renderLineCard(
     }
     if (lines.size > maxRows) {
         c.drawText(
-            context.getString(R.string.share_line_image_v2_1_s_vias_mas, lines.size - maxRows), pad + 56f, y + 20f,
+            context.getString(R.string.share_line_image_v2_1_s_vias_mas, lines.size - maxRows, AppText.lineNoun(block.discipline, plural = true)), pad + 56f, y + 20f,
             Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK_SOFT; textSize = 34f }
         )
         y += rowH

@@ -1,6 +1,8 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.meteomontana.android.ui.screens.community
 
+import com.meteomontana.android.util.AppText
+
 import com.meteomontana.android.ui.components.VerifiedCheck
 
 import com.meteomontana.android.ui.components.userRing
@@ -197,8 +199,8 @@ internal fun FeedPostCard(
                 // incompleta: "dibujé 8 y salen 3" (Rodrigo, 2026-08-17).
                 if (post.otherFacesLines > 0) {
                     Text(
-                        text = if (post.otherFacesLines == 1) stringResource(R.string.feed_post_card_v3_1_via_en_otra_foto)
-                               else stringResource(R.string.feed_post_card_v3_vias_en_otras_fotos, post.otherFacesLines),
+                        text = if (post.otherFacesLines == 1) stringResource(R.string.feed_post_card_v3_1_via_en_otra_foto, AppText.lineNoun(post.discipline).uppercase())
+                               else stringResource(R.string.feed_post_card_v3_vias_en_otras_fotos, post.otherFacesLines, AppText.lineNoun(post.discipline, plural = true).uppercase()),
                         style = EyebrowTextStyle,
                         color = Color.White,
                         modifier = Modifier
@@ -392,12 +394,19 @@ internal fun FeedPostCard(
 /** Hoja de comentarios de un post (patrón de los comentarios de vías).
  *  Recibe lambdas (no el VM) para poder reutilizarse desde el perfil público. */
 
+/** «BLOQUE NUEVO» / «VÍA NUEVA» / «ASCENSO NUEVO» según la modalidad del post. */
+internal fun newLineLabelRes(discipline: String?): Int = when (com.meteomontana.android.domain.model.LineKind.of(discipline)) {
+    com.meteomontana.android.domain.model.LineKind.BOULDER -> R.string.feed_kind_new_line_boulder
+    com.meteomontana.android.domain.model.LineKind.ROUTE -> R.string.feed_kind_new_line_route
+    com.meteomontana.android.domain.model.LineKind.UNKNOWN -> R.string.feed_kind_new_line_generic
+}
+
 @Composable
 internal fun kindLabel(kind: String, discipline: String? = null): String = stringResource(
     when (kind) {
         FeedKind.PROJECT_DONE -> R.string.feed_kind_project_done
         FeedKind.NEW_BLOCK -> R.string.feed_kind_new_block
-        FeedKind.NEW_LINE -> R.string.feed_kind_new_line
+        FeedKind.NEW_LINE -> newLineLabelRes(discipline)
         else -> when {
             discipline.equals("BOULDER", ignoreCase = true) -> R.string.feed_kind_tick_boulder
             discipline.equals("ROUTE", ignoreCase = true) -> R.string.feed_kind_tick_route

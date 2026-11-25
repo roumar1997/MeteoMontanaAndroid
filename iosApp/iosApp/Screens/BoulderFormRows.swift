@@ -84,7 +84,7 @@ struct BoulderBlockRow: View {
                 .padding(.horizontal, 10).padding(.vertical, 8)
                 .background(Cumbre.paper)
                 .overlay(RoundedRectangle(cornerRadius: 2).stroke(Cumbre.rule, lineWidth: 1))
-            Text("Si esta vía es una variante de otra con el mismo nombre (directa, extensión, desde el pie…). Se mostrará como «Nombre (variante)».")
+            Text(L("Si este ascenso es una variante de otro con el mismo nombre (directa, extensión, desde el pie…). Se mostrará como «Nombre (variante)»."))
                 .font(.system(size: 12))
                 .foregroundStyle(Cumbre.ink3)
             TextField("Descripción (opcional)", text: $block.descriptionText, axis: .vertical)
@@ -133,7 +133,7 @@ struct ReorderFacesSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(isWall ? L("Las fotos se recorren en este orden (%@) para numerar las vías del muro.", direction == "LTR" ? L("izq→der") : L("der→izq"))
+                    Text(isWall ? L("Las fotos se recorren en este orden (%@) para numerar los ascensos del muro.", direction == "LTR" ? L("izq→der") : L("der→izq"))
                          : L("Ordena las fotos de la piedra."))
                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink2).padding(.bottom, 4)
                     ForEach(0..<facePhotos.count, id: \.self) { i in
@@ -142,9 +142,9 @@ struct ReorderFacesSheet: View {
                                 Text("\(i + 1)").font(Cumbre.mono(12, .bold)).foregroundStyle(.white)
                                     .frame(width: 28, height: 28).background(Circle().fill(Cumbre.terraFill))
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(L("FOTO %@ · %@ vías", i + 1, faceBlocks[i].count))
+                                    Text(L("FOTO %@ · %@ ascensos", i + 1, faceBlocks[i].count))
                                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink)
-                                    Text(expanded == i ? L("▾ ocultar") : L("▸ ver vías"))
+                                    Text(expanded == i ? L("▾ ocultar ascensos") : L("▸ ver ascensos"))
                                         .font(Cumbre.mono(10, .bold)).foregroundStyle(Cumbre.terra)
                                 }
                                 Spacer()

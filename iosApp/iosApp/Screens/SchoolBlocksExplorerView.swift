@@ -37,7 +37,7 @@ struct SchoolBlocksExplorerView: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: 160)
             } else if !model.hasLines {
-                Text(L("Esta escuela aún no tiene vías dibujadas."))
+                Text(L("Esta escuela aún no tiene ascensos dibujados."))
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
                     .frame(maxWidth: .infinity, minHeight: 120)
                     .padding(.horizontal, 16)
@@ -74,7 +74,7 @@ struct SchoolBlocksExplorerView: View {
             HStack(spacing: 8) {
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass").font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
-                    TextField(L("Buscar vía o piedra"), text: $model.query)
+                    TextField(L("Buscar bloque, vía o piedra"), text: $model.query)
                         .textFieldStyle(.plain).font(.system(size: 14))
                         .dismissKeyboardOnSubmit()
                     if !model.query.isEmpty {
@@ -116,7 +116,7 @@ struct SchoolBlocksExplorerView: View {
     /// "14 VÍAS · 6 PIEDRAS · 2 SECTORES" (lo que queda tras los filtros).
     private var countLine: String {
         if let g = model.guideView {
-            let lines = g.lineCount == 1 ? L("1 VÍA") : L("%@ VÍAS", g.lineCount)
+            let lines = g.linesLabel(lang: LanguageManager.shared.effectiveCode).uppercased()
             let blocks = g.blockCount == 1 ? L("1 PIEDRA") : L("%@ PIEDRAS", g.blockCount)
             let sectors = g.sectorCount == 1 ? L("1 SECTOR") : L("%@ SECTORES", g.sectorCount)
             return "\(lines) · \(blocks) · \(sectors)"
@@ -378,8 +378,8 @@ struct SchoolBlocksExplorerView: View {
             .padding(.horizontal, 16)
 
             if items.isEmpty {
-                Text(model.order == .repeated ? L("Nadie ha apuntado todavía ninguna de estas vías.")
-                                              : L("Nadie ha valorado todavía ninguna de estas vías."))
+                Text(model.order == .repeated ? L("Nadie ha apuntado todavía ninguno de estos ascensos.")
+                                              : L("Nadie ha valorado todavía ninguno de estos ascensos."))
                     .font(.system(size: 13)).foregroundStyle(Cumbre.ink3)
                     .padding(.horizontal, 16)
             } else {

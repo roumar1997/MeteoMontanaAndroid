@@ -149,7 +149,8 @@ fun FollowStatusDto.toDomain() = FollowStatus(followers, following, iFollowThem,
 fun TopContributorDto.toDomain() = TopContributor(uid, username, displayName, photoUrl, approvedCount)
 fun NotificationDto.toDomain() = Notification(
     id, type, title, body, targetType, targetId, readAt, createdAt,
-    actorUid, actorName, actorPhotoUrl, thumbUrl, subject, iFollowActor, followRequested
+    actorUid, actorName, actorPhotoUrl, thumbUrl, subject, iFollowActor, followRequested,
+    postPhrase = postPhrase
 )
 fun InboxDto.toDomain() = Inbox(unreadCount, items.map { it.toDomain() })
 

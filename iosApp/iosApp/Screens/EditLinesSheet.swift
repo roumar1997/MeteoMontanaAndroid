@@ -172,7 +172,7 @@ struct EditLinesSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text(L("Edita «%@»: corrige o añade vías, añade más fotos, reordénalas y ajusta el muro. Un admin lo revisará.", block.name))
+                    Text(L("Edita «%@»: corrige o añade ascensos, añade más fotos, reordénalas y ajusta el muro. Un admin lo revisará.", block.name))
                         .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
 
                     // ── Modalidad (Bloque/Vía) ────────────────────────────────────
@@ -382,7 +382,7 @@ struct EditLinesSheet: View {
                 .padding(16)
             }
             .background(Cumbre.bg.ignoresSafeArea())
-            .navigationTitle("Editar vías")
+            .navigationTitle(L("Editar ascensos"))
             .navigationBarTitleDisplayMode(.inline)
             // Cancelar y Enviar viven ARRIBA y no se mueven con el scroll: el
             // formulario es largo y buscar el botón de enviar al fondo era un

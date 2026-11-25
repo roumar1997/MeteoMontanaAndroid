@@ -12,7 +12,7 @@ extension SchoolMapSection {
     var searchBar: some View {
         VStack(alignment: .leading, spacing: 4) {
             if showsSearch {
-                TextField("Buscar vías/bloques…", text: $vm.searchQuery)
+                TextField(L("Buscar bloques/vías…"), text: $vm.searchQuery)
                     .textFieldStyle(.plain)
                     .font(.system(size: 14))
                     .padding(.horizontal, 12).padding(.vertical, 9)

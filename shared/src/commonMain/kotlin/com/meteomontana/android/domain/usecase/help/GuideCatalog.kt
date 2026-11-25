@@ -44,7 +44,7 @@ object GuideCatalog {
         // No es de una pantalla: la lanza la hoja de ascenso la PRIMERA vez si no has dicho tu altura (Álvaro, 2026-11-05).
         "ascent_height" to listOf(
             GuideStep("ascent.height", "Esto es importante",
-                "Dinos si mides más o menos de 1,70. Así quien mida parecido a ti sabrá cuánta gente de su altura encadena cada vía. Se guarda en tu perfil y solo se ve sumado, nunca tu nombre.")
+                "Dinos si mides más o menos de 1,70. Así quien mida parecido a ti sabrá cuánta gente de su altura encadena cada ascenso. Se guarda en tu perfil y solo se ve sumado, nunca tu nombre.")
         ),
         "schools" to listOf(
             GuideStep("schools.score", "La nota de hoy",
@@ -58,7 +58,7 @@ object GuideCatalog {
             GuideStep("detail.hoy", "Hoy, de un vistazo",
                 "SÍ o NO, la nota y el estado de la roca. Tócala para ver las próximas 16 horas y por qué sale esa nota."),
             GuideStep("detail.tabs", "Cuatro pestañas",
-                "MAPA: sectores, parkings y piedras. BLOQUES: busca vías por grado, sector o beta. TIEMPO: los próximos días. NOTAS: lo que cuenta la comunidad."),
+                "MAPA: sectores, parkings y piedras. BLOQUES: busca ascensos por grado, sector o beta. TIEMPO: los próximos días. NOTAS: lo que cuenta la comunidad."),
             GuideStep("detail.photo", "¿Qué piedra es esta?",
                 "Haz una foto a una piedra (o elige una de la galería) y te digo cuál de esta escuela es. También desde casa, con fotos sin ubicación.")
         ),
@@ -72,11 +72,11 @@ object GuideCatalog {
         ),
         "detail_blocks" to listOf(
             GuideStep("detail_blocks.search", "Busca por nombre",
-                "Escribe el nombre de una vía, un bloque o un sector."),
+                "Escribe el nombre de un bloque, una vía, una piedra o un sector."),
             GuideStep("detail_blocks.filters", "Grado y beta",
-                "FILTROS: uno o varios grados, y las vías con vídeo de beta para +1,70 o −1,70 (o las dos)."),
+                "FILTROS: uno o varios grados, y los ascensos con vídeo de beta para +1,70 o −1,70 (o las dos)."),
             GuideStep("detail_blocks.podium", "Las más repetidas",
-                "El podio son las 3 vías que más gente ha hecho. Debajo, el resto por sectores: toca un sector para abrirlo.")
+                "El podio son los 3 ascensos que más gente ha hecho. Debajo, el resto por sectores: toca un sector para abrirlo.")
         ),
         "detail_weather" to listOf(
             GuideStep("detail_weather.heat", "El día de un vistazo",
@@ -106,7 +106,7 @@ object GuideCatalog {
             GuideStep("community.ranking", "Ranking",
                 "El trofeo abre el ranking de quienes más aportan al catálogo."),
             GuideStep("community.post", "Reacciona y abre la piedra",
-                "Toca el corazón o el bocadillo para reaccionar, y la foto o el nombre de la vía para abrir su piedra en la escuela.")
+                "Toca el corazón o el bocadillo para reaccionar, y la foto o el nombre del ascenso para abrir su piedra en la escuela.")
         ),
         "meetups" to listOf(
             GuideStep("meetups.create", "Crea una quedada",
@@ -143,7 +143,7 @@ object GuideCatalog {
             GuideStep("detail.hoy", "Today at a glance",
                 "YES or NO, the score and the rock's condition. Tap it to see the next 16 hours and why the score is what it is."),
             GuideStep("detail.tabs", "Four tabs",
-                "MAP: sectors, car parks and boulders. BOULDERS: find routes by grade, sector or beta. WEATHER: the next days. NOTES: what the community says."),
+                "MAP: sectors, car parks and boulders. BOULDERS: find climbs by grade, sector or beta. WEATHER: the next days. NOTES: what the community says."),
             GuideStep("detail.photo", "Which boulder is this?",
                 "Take a photo of a boulder (or pick one from your gallery) and I'll tell you which one of this crag it is. Works from home too, with photos without location.")
         ),
@@ -157,11 +157,11 @@ object GuideCatalog {
         ),
         "detail_blocks" to listOf(
             GuideStep("detail_blocks.search", "Search by name",
-                "Type the name of a route, a boulder or a sector."),
+                "Type the name of a boulder, a route, a rock or a sector."),
             GuideStep("detail_blocks.filters", "Grade and beta",
-                "FILTERS: one or more grades, and routes with a beta video for +1.70 m or −1.70 m (or both)."),
+                "FILTERS: one or more grades, and climbs with a beta video for +1.70 m or −1.70 m (or both)."),
             GuideStep("detail_blocks.podium", "Most repeated",
-                "The podium is the 3 routes most people have done. Below, the rest by sector: tap a sector to open it.")
+                "The podium is the 3 climbs most people have done. Below, the rest by sector: tap a sector to open it.")
         ),
         "detail_weather" to listOf(
             GuideStep("detail_weather.heat", "The day at a glance",
@@ -191,7 +191,7 @@ object GuideCatalog {
             GuideStep("community.ranking", "Ranking",
                 "The trophy opens the ranking of the people who contribute most to the catalogue."),
             GuideStep("community.post", "React and open the boulder",
-                "Tap the heart or the bubble to react, and the photo or the route name to open its boulder at the crag.")
+                "Tap the heart or the bubble to react, and the photo or the climb name to open its boulder at the crag.")
         ),
         "meetups" to listOf(
             GuideStep("meetups.create", "Create a meetup",

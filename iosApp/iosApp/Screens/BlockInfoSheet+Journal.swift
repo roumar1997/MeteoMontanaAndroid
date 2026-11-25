@@ -86,7 +86,7 @@ extension BlockInfoSheet {
 
     /// Etiqueta "vía · grado" de la hoja de publicar.
     func feedTickLabel(_ line: BlockLine, index: Int) -> String {
-        var label = line.name.isEmpty ? L("Vía %@", index + 1) : line.name
+        var label = line.name.isEmpty ? "\(lineNoun(block.discipline, capitalised: true)) \(index + 1)" : line.name
         if let g = line.grade, !g.isEmpty { label += " · \(g)" }
         return label
     }

@@ -39,7 +39,7 @@ struct SchoolViaSearchSheet: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass").foregroundStyle(Cumbre.ink3)
-                TextField(L("Buscar vías, sectores, parkings…"), text: $vm.searchQuery)
+                TextField(L("Buscar bloques, vías, sectores, parkings…"), text: $vm.searchQuery)
                     .textFieldStyle(.plain)
                     .font(.system(size: 16))
                     .focused($focused)
@@ -119,7 +119,7 @@ struct SchoolViaSearchSheet: View {
         if h.kind == .sector { return L("Sector") }
         if h.kind == .parking { return L("Parking") }
         if let p = h.parentName { return p }
-        return h.lineCount > 0 ? L("%@ vías", Int(h.lineCount)) : ""
+        return h.lineCount > 0 ? L("%@ ascensos", Int(h.lineCount)) : ""
     }
 
     private func gradeOf(_ h: SchoolSearchHit) -> String? {

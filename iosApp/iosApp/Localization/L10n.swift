@@ -1,4 +1,15 @@
 import Foundation
+import Shared
+
+/// Nombre de una línea según la modalidad de su piedra: bloque / vía / ascenso (regla de DESIGN.md).
+func lineNoun(_ discipline: String?, plural: Bool = false, capitalised: Bool = false) -> String {
+    LineWords.shared.nounOf(discipline: discipline, lang: LanguageManager.shared.effectiveCode, plural: plural, capitalised: capitalised)
+}
+
+/// "1 bloque", "3 vías", "2 ascensos".
+func lineCount(_ n: Int, _ discipline: String?) -> String {
+    LineWords.shared.countOf(n: Int32(n), discipline: discipline, lang: LanguageManager.shared.effectiveCode)
+}
 
 /// Texto traducible con datos variables.
 ///

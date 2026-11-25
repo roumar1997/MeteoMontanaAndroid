@@ -25,7 +25,7 @@ struct SchoolGuideView: View {
     var body: some View {
         LazyVStack(alignment: .leading, spacing: 10) {
             if guide.sectors.isEmpty {
-                Text(L("Ninguna vía cumple esos filtros."))
+                Text(L("Ningún ascenso cumple esos filtros."))
                     .font(.system(size: 14)).foregroundStyle(Cumbre.ink2)
                     .frame(maxWidth: .infinity).padding(.vertical, 24)
             }
@@ -41,7 +41,7 @@ struct SchoolGuideView: View {
                 Task { await saveAscent(item.hit, choice: choice) }
             }
         }
-        .confirmationDialog(L("¿Quitar esta vía de tu diario?"),
+        .confirmationDialog(L("¿Quitar este ascenso de tu diario?"),
                             isPresented: Binding(get: { unmarking != nil }, set: { if !$0 { unmarking = nil } }),
                             titleVisibility: .visible) {
             Button(L("Quitar del diario"), role: .destructive) {
@@ -86,7 +86,7 @@ struct SchoolGuideView: View {
         let done = Int(s.doneCount(doneIds: model.doneIds))
         let total = Int(s.lineCount)
         let pieces = s.blocks.count == 1 ? L("1 piedra") : L("%@ piedras", s.blocks.count)
-        let lines = total == 1 ? L("1 vía") : L("%@ vías", total)
+        let lines = s.linesLabel(lang: LanguageManager.shared.effectiveCode)
         return HStack(spacing: 10) {
             Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Cumbre.ink3)
                 .rotationEffect(.degrees(open ? 90 : 0))
@@ -133,7 +133,7 @@ struct SchoolGuideView: View {
         }
         let intro = model.sectorIntros[s.key] ?? GuideSectorIntro(s)
         VStack(alignment: .leading, spacing: 8) {
-            Text(L("TODAS LAS VÍAS · TOCA UNA PARA IR A SU PIEDRA")).eyebrow()
+            Text(L("TODOS LOS ASCENSOS · TOCA UNO PARA IR A SU PIEDRA")).eyebrow()
             ForEach(intro.grades, id: \.self) { g in
                 HStack(alignment: .top, spacing: 8) {
                     GradePill(grade: g, split: nil).frame(width: 46, alignment: .leading)

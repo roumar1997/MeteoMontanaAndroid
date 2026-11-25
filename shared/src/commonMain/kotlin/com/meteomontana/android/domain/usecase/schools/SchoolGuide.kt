@@ -1,6 +1,8 @@
 package com.meteomontana.android.domain.usecase.schools
 
+import com.meteomontana.android.domain.model.LineKind
 import com.meteomontana.android.domain.model.LineSearchHit
+import com.meteomontana.android.domain.model.LineWords
 import kotlin.math.PI
 import kotlin.math.cos
 
@@ -18,15 +20,24 @@ data class GuideBlock(val blockId: String, val blockName: String, val lines: Lis
  */
 data class GuideSector(val sector: String?, val blocks: List<GuideBlock>, val unknownFace: Boolean = false) {
     val lineCount: Int get() = blocks.sumOf { it.lines.size }
+    /** "3 bloques · 2 vías" (solo los tipos que haya). */
+    fun linesLabel(lang: String): String = linesBreakdown(blocks.flatMap { it.lines }, lang)
     /** Clave estable para plegar/desplegar (el nombre puede ser null). */
     val key: String get() = if (unknownFace) "#unknown-face" else sector ?: ""
     /** Cuántas de sus vías están en [doneIds]. */
     fun doneCount(doneIds: Set<String>): Int = blocks.sumOf { b -> b.lines.count { it.lineId in doneIds } }
 }
 
+internal fun linesBreakdown(lines: List<LineSearchHit>, lang: String): String {
+    val kinds = lines.groupingBy { LineKind.of(it.discipline) }.eachCount()
+    return LineWords.breakdown(kinds[LineKind.BOULDER] ?: 0, kinds[LineKind.ROUTE] ?: 0, lang, kinds[LineKind.UNKNOWN] ?: 0)
+}
+
 /** Lo que pinta la guía: los sectores y los totales de la cabecera ("14 VÍAS · 6 PIEDRAS · 2 SECTORES"). */
 data class GuideView(val sectors: List<GuideSector>) {
     val lineCount: Int get() = sectors.sumOf { it.lineCount }
+    /** "3 bloques · 2 vías" (solo los tipos que haya). */
+    fun linesLabel(lang: String): String = linesBreakdown(sectors.flatMap { s -> s.blocks.flatMap { it.lines } }, lang)
     val blockCount: Int get() = sectors.sumOf { it.blocks.size }
     val sectorCount: Int get() = sectors.count { !it.unknownFace }
 }

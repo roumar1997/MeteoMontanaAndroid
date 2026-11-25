@@ -181,7 +181,7 @@ private fun BlockCard(b: Block, onClick: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1)
         if (b.lines.isNotEmpty()) {
-            Text("${b.lines.size} " + if (b.lines.size == 1) stringResource(R.string.block_card_line_one) else stringResource(R.string.block_card_line_other),
+            Text(AppText.lineCount(b.lines.size, b.discipline),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

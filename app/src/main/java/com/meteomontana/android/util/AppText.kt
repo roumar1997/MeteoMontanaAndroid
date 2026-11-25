@@ -38,6 +38,17 @@ object AppText {
         else appContext.getString(id, *args.map { it ?: "" }.toTypedArray())
     }
 
+    /** "es" o "en": el idioma en que se pinta la app (los tests JVM van en español). */
+    fun lang(): String = if (overrideSource != null) AppLanguage.ES else AppLanguage.effective(appContext)
+
+    /** Nombre de la línea según la modalidad de su piedra: bloque / vía / ascenso (ver [LineWords]). */
+    fun lineNoun(discipline: String?, plural: Boolean = false, capitalised: Boolean = false): String =
+        com.meteomontana.android.domain.model.LineWords.nounOf(discipline, lang(), plural, capitalised)
+
+    /** "1 bloque", "3 vías", "2 ascensos". */
+    fun lineCount(n: Int, discipline: String?): String =
+        com.meteomontana.android.domain.model.LineWords.countOf(n, discipline, lang())
+
     /** Texto con singular / plural ("1 persona", "5 personas"). */
     fun plural(@androidx.annotation.PluralsRes id: Int, count: Int, vararg args: Any?): String =
         appContext.resources.getQuantityString(id, count, *args.map { it ?: "" }.toTypedArray())

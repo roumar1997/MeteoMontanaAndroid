@@ -74,7 +74,7 @@ struct GradeFilterBar: View {
 
             if expanded {
                 if availableGrades.isEmpty {
-                    Text("Esta escuela todavía no tiene vías con grado.")
+                    Text(L("Esta escuela todavía no tiene ascensos con grado."))
                         .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                         .padding(.horizontal, 16)
                 } else {
@@ -88,7 +88,7 @@ struct GradeFilterBar: View {
                     }
 
                     if isActive {
-                        Text(L("Mostrando %@ vías de %@", result.matchingLines, result.totalLines))
+                        Text(L("Mostrando %@ ascensos de %@", result.matchingLines, result.totalLines))
                             .font(.system(size: 12)).foregroundStyle(Cumbre.ink2)
                             .padding(.horizontal, 16)
 
@@ -148,7 +148,7 @@ struct GradeFilterBar: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 9).padding(.vertical, 3)
                     .background(RoundedRectangle(cornerRadius: 2).fill(accent))
-                Text(matches.count == 1 ? L("1 vía") : L("%@ vías", matches.count))
+                Text(matches.count == 1 ? L("1 ascenso") : L("%@ ascensos", matches.count))
                     .font(.system(size: 12)).foregroundStyle(Cumbre.ink3)
                 Spacer()
                 Image(systemName: isOpen ? "chevron.down" : "chevron.right")

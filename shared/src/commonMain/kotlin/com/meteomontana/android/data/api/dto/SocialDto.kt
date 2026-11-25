@@ -49,7 +49,9 @@ data class NotificationDto(
     val thumbUrl: String? = null,
     val subject: String? = null,
     val iFollowActor: Boolean = false,
-    val followRequested: Boolean = false
+    val followRequested: Boolean = false,
+    /** Aditivo: «tu bloque «X» (6a) en Albarracín», ya en el idioma del destinatario. */
+    val postPhrase: String? = null
 )
 
 @Serializable

@@ -43,10 +43,10 @@ func contributionSummary(_ c: Contribution, blocks: [Block]) -> String {
         let nuevas = max(vias.count - corrige, 0)
         let esMuro = (c.geometry ?? "").uppercased() == "LINE"
         if target == nil {
-            return (esMuro ? "Muro NUEVO" : "Piedra NUEVA") + " con \(vias.count) vía\(vias.count == 1 ? "" : "s")"
+            return (esMuro ? "Muro NUEVO" : "Piedra NUEVA") + " con \(vias.count) ascenso\(vias.count == 1 ? "" : "s")"
         }
         var parts: [String] = []
-        if nuevas > 0 { parts.append("añade \(nuevas) vía\(nuevas == 1 ? "" : "s")") }
+        if nuevas > 0 { parts.append("añade \(nuevas) ascenso\(nuevas == 1 ? "" : "s")") }
         if corrige > 0 { parts.append("corrige \(corrige)") }
         if parts.isEmpty { parts.append("cambios en el trazado/orden") }
         return (esMuro ? "Muro" : "Piedra") + " «\(target!.name)»: " + parts.joined(separator: " y ")

@@ -12,7 +12,7 @@ data class ViaCatalogInfo(
     val sector: String?,
     val grade: String? = null,
     // true = la entrada tenía un lineId estable que YA NO existe en el catálogo
-    // (la vía/piedra se borró). La UI la pinta en gris como "vía eliminada", pero
+    // (la vía/piedra se borró). La UI la pinta en gris como eliminada, pero
     // NO se elimina del perfil (no se castiga al usuario por un borrado de catálogo).
     val deleted: Boolean = false,
     // Foto de la cara donde está la vía y su trazo (JSON de puntos), para la miniatura de las listas del diario

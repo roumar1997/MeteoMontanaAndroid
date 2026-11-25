@@ -148,16 +148,16 @@ fun AssistantPresenter.savedNote(createdAtMs: Long, nowMs: Long = kotlinx.dateti
 
 fun AssistantPresenter.recommendationIntro(r: AssistantRecommendation): String {
     if (r.schools.isEmpty()) {
-        return if (r.filtered) t("No he encontrado escuelas con vías de ese grado en la zona.", "I found no crags with routes of that grade nearby.")
+        return if (r.filtered) t("No he encontrado escuelas con ascensos de ese grado en la zona.", "I found no crags with climbs of that grade nearby.")
         else t("No he encontrado escuelas en la zona.", "I couldn't find any schools in the area.")
     }
     // Pedido por cantidad ("las escuelas con más 7a"): no es una falta de previsión.
     if (r.byCount) return t("Las escuelas con más vías o bloques de ese grado:", "The schools with the most routes or boulders of that grade:")
     if (!r.forecastAvailable) {
-        return if (r.filtered) t("Aún no hay previsión para esas fechas. Te ordeno las escuelas por número de vías de ese grado.",
-            "There's no forecast for those dates yet. I'm ranking crags by number of routes of that grade.")
-        else t("Aún no hay previsión para esas fechas. Te ordeno las escuelas por número de vías.",
-            "There's no forecast for those dates yet. I'm ranking the schools by number of routes.")
+        return if (r.filtered) t("Aún no hay previsión para esas fechas. Te ordeno las escuelas por número de ascensos de ese grado.",
+            "There's no forecast for those dates yet. I'm ranking crags by number of climbs of that grade.")
+        else t("Aún no hay previsión para esas fechas. Te ordeno las escuelas por número de ascensos.",
+            "There's no forecast for those dates yet. I'm ranking the schools by number of climbs.")
     }
     // Una sola escuela y varios días ("¿qué día voy a Albarracín?"): se dice cuál es el mejor.
     val only = r.schools.singleOrNull()
