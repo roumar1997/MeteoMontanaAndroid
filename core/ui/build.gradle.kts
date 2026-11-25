@@ -2,6 +2,7 @@
 // idioma de la app y navegador interno. Sin pantallas (ver ARCHITECTURE.md).
 plugins {
     alias(libs.plugins.cumbre.android.library.compose)
+    alias(libs.plugins.cumbre.android.hilt)
 }
 
 android {

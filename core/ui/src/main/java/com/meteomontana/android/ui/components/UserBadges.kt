@@ -34,7 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 import com.meteomontana.android.domain.model.UserBadge
 import com.meteomontana.android.domain.usecase.profile.GetUserBadgesUseCase
 import dagger.hilt.EntryPoint

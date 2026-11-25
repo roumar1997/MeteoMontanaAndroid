@@ -153,4 +153,5 @@
     <string name="guides_toggle_title">Explain each screen to me</string>
     <string name="guides_toggle_hint">A “?” blinks the first time you open a screen. You can change this in Settings.</string>
     <string name="first_time_hint_v2_entendido">Got it</string>
+    <string name="verified">Verified</string>
 </resources>

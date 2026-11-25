@@ -153,4 +153,5 @@
     <string name="guides_toggle_title">Explicarme cada pantalla</string>
     <string name="guides_toggle_hint">Un “?” parpadea la primera vez que entras. Puedes cambiarlo en Ajustes.</string>
     <string name="first_time_hint_v2_entendido">Entendido</string>
+    <string name="verified">Verificado</string>
 </resources>

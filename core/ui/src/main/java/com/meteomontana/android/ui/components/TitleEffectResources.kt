@@ -22,7 +22,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 import com.meteomontana.android.domain.model.TitleEffectCatalog
 import com.meteomontana.android.domain.model.TitleEffectSpec
 import com.meteomontana.android.domain.usecase.titleeffects.ObserveTitleEffectsUseCase
@@ -67,7 +67,7 @@ fun rememberTitleEffectCatalog(): TitleEffectCatalog {
  * guarda en disco). null = aún no hay nada que pintar para esa figura.
  */
 @Composable
-internal fun rememberEffectSprites(spec: TitleEffectSpec): State<List<ImageBitmap?>> {
+fun rememberEffectSprites(spec: TitleEffectSpec): State<List<ImageBitmap?>> {
     val context = LocalContext.current
     val state = remember(spec) {
         mutableStateOf(spec.sprites.map { s ->
@@ -95,7 +95,7 @@ private suspend fun loadRemote(context: Context, url: String): ImageBitmap? = ru
  * que no recompone nada.
  */
 @Composable
-internal fun rememberEffectClock(animated: Boolean): State<Float> {
+fun rememberEffectClock(animated: Boolean): State<Float> {
     val time = remember { mutableFloatStateOf(0f) }
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle

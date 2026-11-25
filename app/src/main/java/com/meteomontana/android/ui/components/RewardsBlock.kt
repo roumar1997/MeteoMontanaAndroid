@@ -143,24 +143,6 @@ fun rewardTitle(level: Int): String = stringResource(when (level) {
     35 -> R.string.title_l35; 40 -> R.string.title_l40; 45 -> R.string.title_l45; else -> R.string.title_l50
 })
 
-/** Cada título tiene su color y su icono (Álvaro, 2026-10-18: «que cada título tenga su propio estilo»). */
-/** Color del título de un nivel (para la aureola de las fotos). */
-fun titleColor(level: Int): Color = rewardStyle(level).first
-
-internal fun rewardStyle(level: Int): Pair<Color, ImageVector> = when (level) {
-    0 -> Color(0xFF73787F) to Icons.Filled.Eco
-    1 -> Color(0xFFCC5C33) to Icons.Filled.BackHand
-    5 -> Color(0xFF338C4D) to Icons.Filled.Hiking
-    10 -> Color(0xFF2973BF) to Icons.Filled.Map
-    15 -> Color(0xFF0D8C8C) to Icons.Filled.GpsFixed
-    20 -> Color(0xFF5C599E) to Icons.Filled.Shield
-    25 -> Color(0xFFD97A1A) to Icons.Filled.Gesture
-    30 -> Color(0xFFB82E38) to Icons.Filled.Landscape
-    35 -> Color(0xFF454FB3) to Icons.Filled.Timeline
-    40 -> Color(0xFF8C409E) to Icons.Filled.MenuBook
-    45 -> Color(0xFF4D738C) to Icons.Filled.Air
-    else -> Color(0xFFB8860B) to Icons.Filled.WorkspacePremium
-}
 
 /** Píldora de un título con su color e icono; apagada con candado si aún no se ha desbloqueado. */
 @Composable
@@ -221,12 +203,6 @@ internal fun RewardTitle(level: Int) {
 /** «#RRGGBB» → Color (null si no es válido). */
 internal fun colorFromHex(hex: String?): Color? = colorFromHexOrNull(hex)
 
-/** «#RRGGBB» → Color (null si no es válido). Lo usa también la aureola de las fotos. */
-fun colorFromHexOrNull(hex: String?): Color? = runCatching {
-    val h = hex?.trim()?.removePrefix("#") ?: return null
-    if (h.length != 6) return null
-    Color(0xFF000000 or h.toLong(16))
-}.getOrNull()
 
 /**
  * Título especial puesto por un admin (p. ej. «Reina Hada»): brilla como «Señor de la Cumbre», con destellos y borde,

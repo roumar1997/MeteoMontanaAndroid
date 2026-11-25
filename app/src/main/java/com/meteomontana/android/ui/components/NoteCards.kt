@@ -42,25 +42,6 @@ import com.meteomontana.android.R
 import com.meteomontana.android.domain.model.FileRef
 import com.meteomontana.android.domain.model.Note
 
-/** Foto redonda con la aureola de su titulo (o la inicial si no tiene foto): la misma que el feed. */
-@Composable
-internal fun PersonAvatar(photoUrl: String?, name: String?, uid: String?, size: androidx.compose.ui.unit.Dp) {
-    if (photoUrl != null) {
-        AsyncImage(
-            model = photoUrl, contentDescription = null, contentScale = ContentScale.Crop,
-            modifier = Modifier.userRing(uid, size).size(size).clip(CircleShape)
-                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-        )
-    } else {
-        Box(
-            Modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(name?.trim()?.firstOrNull()?.uppercase().orEmpty(),
-                style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
 
 /** Una nota con el aspecto de una publicacion del feed: autor, texto, foto y votos de utilidad. */
 @Composable
