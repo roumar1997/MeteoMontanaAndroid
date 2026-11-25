@@ -26,10 +26,14 @@
     <ID>MaxLineLength:ShareConditionsImage.kt$c.drawText(context.getString(R.string.share_conditions_image_v2_1_s_c_2_s, cur.temperature.toInt(), cur.humidity.toInt(), cur.windSpeed.toInt()), dataX, 404f, line)</ID>
     <ID>MaxLineLength:ShareConditionsImage.kt$c.drawText(context.getString(R.string.share_conditions_image_v2_mejor_ventana_1_s_2, wnd.start, wnd.end, wnd.avgScore), pad, 552f, wndPaint)</ID>
     <ID>MaxLineLength:ShareConditionsImage.kt$c.drawText(if (cur.dryRock) context.getString(R.string.forecast_body_v3_roca_seca_dot) else context.getString(R.string.forecast_body_v3_roca_mojada_dot), dataX, 456f, rockLine)</ID>
-    <ID>MaxLineLength:ShareConditionsImage.kt$putExtra(Intent.EXTRA_TEXT, "${school.name} — condiciones en Cumbre\n\nDescarga Cumbre:\nAndroid: https://play.google.com/store/apps/details?id=com.meteomontana.android\niOS: https://apps.apple.com/app/cumbre/id0000000000")</ID>
+    <ID>MaxLineLength:ShareConditionsImage.kt$putExtra(Intent.EXTRA_TEXT, context.getString(R.string.share_conditions_head, school.name) + "\n\n" + context.getString(R.string.share_utils_v4_descarga_cumbre_n) + "Android: https://play.google.com/store/apps/details?id=com.meteomontana.android\niOS: https://apps.apple.com/app/cumbre/id0000000000")</ID>
+    <ID>MaxLineLength:ShareLineImage.kt$context.getString(R.string.share_line_image_v2_1_s_vias_mas, lines.size - maxRows, AppText.lineNoun(block.discipline, plural = true))</ID>
     <ID>MaxLineLength:ShareLineImage.kt$val bmp = renderLineCard(context, block, line, schoolName, linesToDraw, photoBmp, tickedIds, projectIds, orientationBadge, setterGradeRef)</ID>
+    <ID>MaxLineLength:ShareLineImage.kt$val kind = if (block.discipline.equals("ROUTE", ignoreCase = true)) AppText.lineNoun("ROUTE").uppercase() else AppText.get(R.string.w_boulder_caps2)</ID>
+    <ID>MaxLineLength:ShareStatsImage.kt$com.meteomontana.android.util.AppText.get(R.string.stats_streak_weeks_short, s.currentStreakWeeks) to context.getString(R.string.share_stats_image_racha)</ID>
     <ID>MaxLineLength:ShareUtils.kt$"BOULDER" -&gt; AppText.get(R.string.share_utils_v4_bloque)</ID>
     <ID>MaxLineLength:ShareUtils.kt$val details = listOfNotNull(rockType?.let { CatalogLabels.rock(it) }, style?.let { CatalogLabels.style(it) }, temperature).joinToString(" · ")</ID>
+    <ID>MaxLineLength:ShareUtils.kt$val plazas = memberLimit?.let { AppText.get(R.string.share_utils_v4_plazas, memberCount, it) } ?: AppText.get(R.string.share_meetup_participants, memberCount)</ID>
     <ID>ModifierComposed:GuideUi.kt$guideTarget</ID>
     <ID>ModifierComposed:GuideUi.kt$pulseRing</ID>
     <ID>ModifierMissing:MeetupGear.kt$GearSection</ID>
