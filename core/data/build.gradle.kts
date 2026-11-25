@@ -27,4 +27,6 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.mediapipe.tasks.vision)
     implementation(libs.coil.compose)
+
+    testImplementation(libs.junit)
 }
