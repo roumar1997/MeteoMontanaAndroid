@@ -122,7 +122,7 @@ internal fun ProfileAvatar(p: PrivateProfile, canChangePhoto: Boolean, onPhotoCh
                 }
             } else {
                 Image(
-                    painter = painterResource(R.drawable.logo_cumbre),
+                    painter = painterResource(com.meteomontana.android.core.designsystem.R.drawable.logo_cumbre),
                     contentDescription = stringResource(R.string.profile_photo_title),
                     modifier = Modifier.size(76.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)

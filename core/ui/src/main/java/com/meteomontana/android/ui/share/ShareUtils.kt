@@ -4,7 +4,7 @@ import com.meteomontana.android.util.CatalogLabels
 import com.meteomontana.android.util.AppText
 import android.content.Context
 import android.content.Intent
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 import androidx.compose.ui.res.stringResource
 
 private const val PLAY_URL = "https://play.google.com/store/apps/details?id=com.meteomontana.android"

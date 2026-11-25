@@ -47,7 +47,7 @@ internal fun RowScope.HeaderActions(
     IconAction(onClick = onDirections, modifier = item, icon = Icons.Outlined.Directions,
         description = stringResource(R.string.common_directions))
     IconAction(onClick = onShare, modifier = item, icon = Icons.Outlined.IosShare,
-        description = stringResource(R.string.common_share))
+        description = stringResource(com.meteomontana.android.core.ui.R.string.common_share))
     IconAction(
         onClick = onToggleFavorite, modifier = item, icon = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder, active = isFavorite,
         description = if (isFavorite) stringResource(R.string.school_detail_screen_quitar_de_favoritos)

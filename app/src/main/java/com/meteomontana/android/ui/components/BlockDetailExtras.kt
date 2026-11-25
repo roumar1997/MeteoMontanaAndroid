@@ -252,6 +252,6 @@ private fun shareLine(
         putExtra(android.content.Intent.EXTRA_TEXT, text)
     }
     runCatching {
-        context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.share_utils_v3_compartir_1_s, context.getString(if (isRoute) R.string.kind_route else R.string.kind_boulder))))
+        context.startActivity(android.content.Intent.createChooser(intent, context.getString(com.meteomontana.android.core.ui.R.string.share_utils_v3_compartir_1_s, context.getString(if (isRoute) com.meteomontana.android.core.ui.R.string.kind_route else com.meteomontana.android.core.ui.R.string.kind_boulder))))
     }
 }

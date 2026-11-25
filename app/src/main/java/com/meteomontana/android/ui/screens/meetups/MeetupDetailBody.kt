@@ -103,7 +103,7 @@ internal fun MeetupHero(
                 if (canChat) HeroRoundButton(Icons.Outlined.Chat, stringResource(R.string.meetup_open_chat), onChat)
                 // Cómo llegar y compartir con los mismos iconos que el resto de la app (flecha de ruta y compartir de iOS).
                 onDirections?.let { HeroRoundButton(null, stringResource(R.string.common_directions), it, drawable = R.drawable.ic_directions) }
-                HeroRoundButton(null, stringResource(R.string.common_share), onShare, drawable = R.drawable.ic_share_ios)
+                HeroRoundButton(null, stringResource(com.meteomontana.android.core.ui.R.string.common_share), onShare, drawable = R.drawable.ic_share_ios)
                 if (canReport) HeroRoundButton(Icons.Outlined.Flag, stringResource(R.string.common_report), onReport)
             }
             FlowRow(Modifier.padding(top = Spacing.xl), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

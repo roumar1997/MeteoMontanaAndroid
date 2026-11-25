@@ -238,7 +238,7 @@ private fun ChatSheetHeader(name: String, avatarUrl: String?, userUid: String?, 
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
             } else {
                 androidx.compose.foundation.Image(
-                    painter = androidx.compose.ui.res.painterResource(R.drawable.logo_cumbre), contentDescription = null,
+                    painter = androidx.compose.ui.res.painterResource(com.meteomontana.android.core.designsystem.R.drawable.logo_cumbre), contentDescription = null,
                     modifier = Modifier.size(36.dp).clip(CircleShape).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                 )
             }

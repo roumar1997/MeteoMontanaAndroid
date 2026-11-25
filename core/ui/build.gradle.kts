@@ -15,4 +15,6 @@ dependencies {
     implementation(libs.androidx.browser)
     implementation(libs.androidx.compose.ui)
     implementation(libs.ktor.client.core)
+    implementation(libs.coil.compose)
+    implementation(libs.androidx.compose.material3)
 }

@@ -2,7 +2,26 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
+    <ID>CyclomaticComplexMethod:ShareConditionsImage.kt$private fun renderConditionsCard(context: Context, school: School, forecast: Forecast?): Bitmap</ID>
+    <ID>CyclomaticComplexMethod:ShareFeedPostImage.kt$private fun renderPostCard( context: Context, post: FeedPost, photo: Bitmap?, startLabel: String? = null, /** false cuando la imagen principal es la foto de celebración (sin trazo). */ drawLine: Boolean = true, /** Foto de celebración en miniatura (esquina superior derecha), o null. */ corner: Bitmap? = null ): Bitmap</ID>
+    <ID>CyclomaticComplexMethod:ShareLineImage.kt$private fun renderLineCard( context: Context, block: Block, line: BlockLine, schoolName: String, lines: List&lt;BlockLine&gt;, photo: Bitmap, tickedIds: Set&lt;String&gt;, projectIds: Set&lt;String&gt;, orientationBadge: String?, setterGradeRef: String? ): Bitmap</ID>
+    <ID>CyclomaticComplexMethod:ShareProfileImage.kt$private fun renderProfileCard( context: Context, displayLabel: String, username: String?, avatar: Bitmap?, topGrade: String?, bio: String?, boulders: Int?, routes: Int?, schools: Int? ): Bitmap</ID>
+    <ID>CyclomaticComplexMethod:ShareStatsImage.kt$private fun renderStatsCard( context: Context, periodLabel: String, disciplineLabel: String, s: JournalStatsCalculator.Summary, maxGrade: String?, progression: JournalStatsCalculator.Progression?, logo: Bitmap? ): Bitmap</ID>
+    <ID>LongMethod:ShareFeedPostImage.kt$private fun renderPostCard( context: Context, post: FeedPost, photo: Bitmap?, startLabel: String? = null, /** false cuando la imagen principal es la foto de celebración (sin trazo). */ drawLine: Boolean = true, /** Foto de celebración en miniatura (esquina superior derecha), o null. */ corner: Bitmap? = null ): Bitmap</ID>
+    <ID>LongMethod:ShareLineImage.kt$private fun renderLineCard( context: Context, block: Block, line: BlockLine, schoolName: String, lines: List&lt;BlockLine&gt;, photo: Bitmap, tickedIds: Set&lt;String&gt;, projectIds: Set&lt;String&gt;, orientationBadge: String?, setterGradeRef: String? ): Bitmap</ID>
+    <ID>LongMethod:ShareProfileImage.kt$private fun renderProfileCard( context: Context, displayLabel: String, username: String?, avatar: Bitmap?, topGrade: String?, bio: String?, boulders: Int?, routes: Int?, schools: Int? ): Bitmap</ID>
+    <ID>LongMethod:ShareStatsImage.kt$private fun renderStatsCard( context: Context, periodLabel: String, disciplineLabel: String, s: JournalStatsCalculator.Summary, maxGrade: String?, progression: JournalStatsCalculator.Progression?, logo: Bitmap? ): Bitmap</ID>
+    <ID>MatchingDeclarationName:LinePath.kt$LineStroke</ID>
+    <ID>MaxLineLength:ShareConditionsImage.kt$c.drawText(context.getString(R.string.share_conditions_image_v2_1_s_c_2_s, cur.temperature.toInt(), cur.humidity.toInt(), cur.windSpeed.toInt()), dataX, 404f, line)</ID>
+    <ID>MaxLineLength:ShareConditionsImage.kt$c.drawText(context.getString(R.string.share_conditions_image_v2_mejor_ventana_1_s_2, wnd.start, wnd.end, wnd.avgScore), pad, 552f, wndPaint)</ID>
+    <ID>MaxLineLength:ShareConditionsImage.kt$c.drawText(if (cur.dryRock) context.getString(R.string.forecast_body_v3_roca_seca_dot) else context.getString(R.string.forecast_body_v3_roca_mojada_dot), dataX, 456f, rockLine)</ID>
+    <ID>MaxLineLength:ShareConditionsImage.kt$putExtra(Intent.EXTRA_TEXT, "${school.name} — condiciones en Cumbre\n\nDescarga Cumbre:\nAndroid: https://play.google.com/store/apps/details?id=com.meteomontana.android\niOS: https://apps.apple.com/app/cumbre/id0000000000")</ID>
+    <ID>MaxLineLength:ShareLineImage.kt$val bmp = renderLineCard(context, block, line, schoolName, linesToDraw, photoBmp, tickedIds, projectIds, orientationBadge, setterGradeRef)</ID>
+    <ID>MaxLineLength:ShareUtils.kt$"BOULDER" -&gt; AppText.get(R.string.share_utils_v4_bloque)</ID>
+    <ID>MaxLineLength:ShareUtils.kt$val details = listOfNotNull(rockType?.let { CatalogLabels.rock(it) }, style?.let { CatalogLabels.style(it) }, temperature).joinToString(" · ")</ID>
     <ID>SpreadOperator:AppText.kt$AppText$(id, *args.map { it ?: "" }.toTypedArray())</ID>
     <ID>SpreadOperator:AppText.kt$AppText$(id, count, *args.map { it ?: "" }.toTypedArray())</ID>
+    <ID>UnusedPrivateProperty:ShareLineImage.kt$private const val APPSTORE_URL = "https://apps.apple.com/app/id6785776686"</ID>
+    <ID>UnusedPrivateProperty:ShareLineImage.kt$private const val PLAY_URL = "https://play.google.com/store/apps/details?id=com.meteomontana.android"</ID>
   </CurrentIssues>
 </SmellBaseline>

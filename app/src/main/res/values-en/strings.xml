@@ -92,17 +92,12 @@
     <string name="submissions_empty_contributions">No contributions yet</string>
     <string name="submissions_empty_message">From a school map (+ PROPOSE) or with "+ Submit school" you can propose parkings, boulders, sectors or new schools. You\'ll see their status here.</string>
     <!-- Tipo de inicio (mismas claves que el editor de topos) -->
-    <string name="topo_editor_start_sit">Sit</string>
-    <string name="topo_editor_start_semi">Semi-sit</string>
     <string name="line_variant_hint">Variant (optional)</string>
     <string name="force_update_eyebrow">UPDATE REQUIRED</string>
     <string name="force_update_title">A new version is required</string>
     <string name="force_update_body">This version of Cumbre is no longer supported. Update to keep using it.</string>
     <string name="force_update_button">UPDATE NOW</string>
     <string name="line_variant_caption">If this route is a variant of another with the same name (direct, extension, low start…). Shown as “Name (variant)”.</string>
-    <string name="topo_editor_start_stand">Stand</string>
-    <string name="topo_editor_start_jump">Dyno</string>
-    <string name="topo_editor_start_trav">Trav.</string>
     <string name="a11y_toggle_theme">Switch between light and dark theme</string>
     <string name="a11y_fullscreen_map">Full-screen map</string>
     <string name="a11y_change_photo">Change profile photo</string>
@@ -214,7 +209,6 @@
     <string name="common_save">Save</string>
     <string name="common_search">Search</string>
     <string name="common_send">Send</string>
-    <string name="common_share">Share</string>
     <string name="common_view_school">View school</string>
     <string name="common_yes">Yes</string>
     <string name="compare_best_day">Best day</string>
@@ -576,7 +570,6 @@
     <string name="projects_screen_sin_proyectos_todavia">No projects yet</string>
     <string name="projects_screen_marca_la_p_de">Tick the P on a route inside its boulder to try it as a project.</string>
     <string name="stats_screen_mis_estadisticas">MY STATS</string>
-    <string name="stats_screen_compartir_estadisticas">Share stats</string>
     <string name="stats_screen_tus_dias_de_roca">YOUR ROCK DAYS</string>
     <string name="stats_screen_ver_estadisticas_de_este">VIEW STATS FOR THIS DAY ▸</string>
     <string name="stats_screen_piramide_de_grados">GRADE PYRAMID</string>
@@ -611,12 +604,6 @@
     <string name="follow_requests_screen_quiere_seguirte_toca_para">wants to follow you · tap to see their profile</string>
     <string name="weather_screen_necesitamos_tu_ubicacion">We need your location</string>
     <string name="weather_screen_para_mostrarte_el_tiempo">To show you the weather where you are.</string>
-    <string name="share_conditions_image_proximas_16_horas">NEXT 16 HOURS</string>
-    <string name="share_profile_image_grado_maximo">MAX GRADE</string>
-    <string name="share_stats_image_racha">STREAK</string>
-    <string name="share_stats_image_grado_maximo">MAX GRADE</string>
-    <string name="share_stats_image_piramide_de_grados">GRADE PYRAMID</string>
-    <string name="share_stats_image_ult_12_semanas">LAST 12 WEEKS</string>
     <string name="block_card_line_one">route</string>
     <string name="block_card_line_other">routes</string>
     <string name="report_dialog_also_block">Also block %1$s</string>
@@ -624,7 +611,6 @@
     <string name="school_detail_screen_stale_forecast">FORECAST FROM %1$s</string>
     <string name="my_gear_sheet_add_gear_cd">Add a %1$s</string>
     <string name="stats_screen_max_grade_suffix"> · max %1$s</string>
-    <string name="share_stats_image_cumbre_format">CUMBRE · %1$s</string>
     <string name="boulder_form_dialog_numbering_note">No. = position on the wall (%1$s). Reorder with ▲▼.</string>
     <string name="approaches_title">APPROACHES</string>
     <string name="approaches_default_name">Approach</string>
@@ -651,8 +637,6 @@
     <string name="beta_platform_youtube">View on YouTube</string>
     <string name="beta_platform_generic">View link</string>
     <string name="beta_author_prefix">by %1$s</string>
-    <string name="share_stats_image_dias_de_roca">ROCK DAYS</string>
-    <string name="share_stats_image_proyectos_caidos">PROJECTS SENT</string>
 
     <!-- Segunda pasada exhaustiva (Alvaro, 2026-09-17): textos sin tilde que la primera busqueda no detecto -->
     <string name="approaches_section_v2_seguir">FOLLOW</string>
@@ -1014,28 +998,12 @@
     <string name="public_profile_screen_v2_perfil">Profile</string>
     <string name="weather_screen_v2_dar_permiso">GRANT PERMISSION</string>
     <string name="weather_screen_v2_error_1_s">Error: %1$s</string>
-    <string name="share_conditions_image_v2_cumbre">⛰ CUMBRE</string>
-    <string name="share_conditions_image_v2_mejor_ventana_1_s_2">Best window: %1$s–%2$s (%3$s/100)</string>
-    <string name="share_conditions_image_v2_1_s_c_2_s">%1$s°C · %2$s%% hum · %3$s km/h</string>
-    <string name="share_conditions_image_v2_condiciones_de_escalada">CLIMBING CONDITIONS</string>
-    <string name="share_feed_post_image_v2_cumbre">⛰ CUMBRE</string>
-    <string name="share_feed_post_image_v2_por_1_s">by %1$s</string>
-    <string name="share_line_image_v2_1_s_vias_mas">+%1$s more routes</string>
-    <string name="share_line_image_v2_1_s_en_cumbre">%1$s ON CUMBRE</string>
-    <string name="share_profile_image_v2_cumbre">⛰ CUMBRE</string>
-    <string name="share_profile_image_v2_descarga_cumbre">Download Cumbre</string>
-    <string name="share_profile_image_v2_escala_conmigo_en_cumbre">CLIMB WITH ME ON CUMBRE</string>
     <string name="favorites_widget_v2_toca_para_abrir">TAP TO OPEN</string>
     <string name="favorites_widget_v2_favoritas_hoy">FAVORITES TODAY</string>
     <string name="favorites_widget_v2_1_s_mas_en_la">+ %1$s MORE IN THE APP</string>
     <string name="favorites_widget_v2_inicia_sesion">Sign in to see your schools</string>
     <string name="favorites_widget_v2_marca_favoritas">Favorite schools in the app</string>
-    <string name="share_utils_v3_compartir_quedada">Share meetup</string>
-    <string name="share_utils_v3_compartir_escuela">Share school</string>
-    <string name="share_utils_v3_compartir_perfil">Share profile</string>
-    <string name="share_utils_v3_compartir_1_s">Share %1$s</string>
     <string name="share_utils_v3_invitar_al_grupo">Invite to the group</string>
-    <string name="share_utils_v3_compartir_condiciones">Share conditions</string>
     <string name="map_mini_cards_v3_ver_piedras">SHOW BOULDERS</string>
     <string name="map_mini_cards_v3_ocultar_piedras">HIDE BOULDERS</string>
     <string name="meetup_alert_screen_v3_cualquier_escuela">Any school</string>
@@ -1050,8 +1018,6 @@
     <string name="topo_editor_screen_v3_sin_datos">(no data)</string>
     <string name="forecast_body_v3_roca_seca">● DRY ROCK</string>
     <string name="forecast_body_v3_roca_humeda">● HUMID ROCK</string>
-    <string name="forecast_body_v3_roca_seca_dot">● DRY ROCK</string>
-    <string name="forecast_body_v3_roca_mojada_dot">● WET ROCK</string>
     <string name="chat_screen_v3_respondiendo_a">Replying to %1$s</string>
     <string name="chat_screen_v3_respondiendo">Replying</string>
     <string name="boulder_form_dialog_v3_muro_de_puntos">Wall of %1$s points</string>
@@ -1286,34 +1252,10 @@
     <string name="radar_view_model_v4_no_se_pudo_cargar_el">Could not load the radar. Check your connection.</string>
     <string name="submit_block_photo_flow_v4_esta_foto_no_trae_ubicacion">This photo has no location: place the point on the map yourself.</string>
     <string name="submit_school_screen_v4_pegar_coordenadas_google_maps">PASTE COORDINATES (GOOGLE MAPS)</string>
-    <string name="share_feed_post_image_v4_bloque_hecho">BOULDER DONE</string>
-    <string name="share_feed_post_image_v4_via_hecha">ROUTE DONE</string>
-    <string name="share_feed_post_image_v4_via_nueva">NEW ROUTE</string>
-    <string name="share_feed_post_image_v4_piedra_nueva">NEW BOULDER</string>
-    <string name="share_feed_post_image_v4_proyecto_conseguido">PROJECT SENT</string>
-    <string name="share_feed_post_image_v4_miralo_en_cumbre">Check it out on Cumbre: %1$s</string>
-    <string name="share_stats_image_v4_mejor_mes">Best month: %1$s</string>
-    <string name="share_stats_image_v4_mejor_mes_ascensos">Best month: %1$s (%2$s ascents)</string>
-    <string name="share_stats_image_v4_mis_estadisticas_de_escalada_en">My climbing stats on Cumbre:\nhttps://api.climbingteams.com/app</string>
-    <string name="share_utils_v4_perfil_de_en_cumbre_n">%1$s\'s profile on Cumbre:\n</string>
-    <string name="share_utils_v4_ndescarga_cumbre_n">\nGet Cumbre:\n</string>
-    <string name="share_utils_v4_mejor_momento_n">Best time: %1$s\n</string>
-    <string name="share_utils_v4_100_para_escalar_hoy"> — %1$s/100 for climbing today</string>
-    <string name="share_utils_v4_descarga_cumbre_n">Get Cumbre:\n</string>
-    <string name="share_utils_v4_buscala_en_cumbre_pestana_quedadas">👉 Find it in Cumbre (Meetups tab)\n\n</string>
-    <string name="share_utils_v4_unete_desde_aqui_n">👉 Join from here:\n%1$s</string>
-    <string name="share_utils_v4_bloque_via"> · Boulder + Route</string>
-    <string name="share_utils_v4_via"> · Route</string>
-    <string name="share_utils_v4_bloque"> · Boulder</string>
-    <string name="share_utils_v4_plazas">%1$s/%2$s spots</string>
 
     <!-- undefined -->
-    <string name="kind_route">route</string>
-    <string name="kind_boulder">boulder</string>
     <string name="share_line_extra_route">🧗 Check out this route: «%1$s»%2$s\n📍 %3$s\n👉 See it on Cumbre (photo with the line drawn):\n%4$s</string>
     <string name="share_line_extra_boulder">🧗 Check out this boulder: «%1$s»%2$s\n📍 %3$s\n👉 See it on Cumbre (photo with the line drawn):\n%4$s</string>
-    <string name="share_line_image_route">🧗 Check out this route: «%1$s»%2$s\n📍 %3$s\n👉 See it in the app:\n%4$s</string>
-    <string name="share_line_image_boulder">🧗 Check out this boulder: «%1$s»%2$s\n📍 %3$s\n👉 See it in the app:\n%4$s</string>
     <string name="share_group_invite">🧗 I invite you to the meetup *%1$s* on Cumbre\n👉 Join from here:\n%2$s</string>
     <string name="blocks_section_photo_far">That photo was taken %1$s km from %2$s. Pick a photo taken at this school.</string>
 
@@ -1372,10 +1314,7 @@
     <string name="w_following">Following</string>
     <string name="w_date_caps">DATE</string>
     <string name="w_grade_caps">GRADE</string>
-    <string name="w_boulder_caps2">BOULDER</string>
     <string name="w_logbook">Logbook</string>
-    <string name="w_boulders_caps">BOULDERS</string>
-    <string name="w_routes_caps">ROUTES</string>
     <string name="w_all_caps2">ALL</string>
     <string name="w_streak_caps">STREAK</string>
     <string name="w_today_caps">TODAY</string>
@@ -1389,10 +1328,6 @@
     <string name="w_community">Community</string>
     <string name="w_followers">Followers</string>
     <string name="w_unblock">Unblock</string>
-    <string name="w_ascent">Ascent</string>
-    <string name="w_done_caps">DONE</string>
-    <string name="w_project_caps">PROJECT</string>
-    <string name="w_schools_caps">SCHOOLS</string>
 
     <!-- Calendario y textos de detalle del día -->
     <string name="w_total">Total</string>

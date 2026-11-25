@@ -62,7 +62,7 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
                 modifier = Modifier.padding(top = 40.dp)
             ) {
                 Image(
-                    painter = painterResource(R.drawable.logo_cumbre),
+                    painter = painterResource(com.meteomontana.android.core.designsystem.R.drawable.logo_cumbre),
                     contentDescription = stringResource(R.string.login_screen_v2_meteomontana),
                     modifier = Modifier
                         .size(120.dp)

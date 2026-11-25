@@ -98,7 +98,7 @@ fun StatsScreen(
                 state.summary?.takeIf { state.isOwn }?.let { sum ->
                     androidx.compose.material3.Icon(
                         Icons.Outlined.Share,
-                        contentDescription = stringResource(R.string.stats_screen_compartir_estadisticas),
+                        contentDescription = stringResource(com.meteomontana.android.core.ui.R.string.stats_screen_compartir_estadisticas),
                         tint = Terra,
                         modifier = Modifier.clickable {
                             shareScope.launch {
@@ -150,7 +150,7 @@ fun StatsScreen(
             // ── Filtros: disciplina + año desplegable + mes ──────────────────
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically) {
-                FilterChip(stringResource(R.string.w_boulder_caps2), state.discipline == "BOULDER") { viewModel.setDiscipline("BOULDER") }
+                FilterChip(stringResource(com.meteomontana.android.core.ui.R.string.w_boulder_caps2), state.discipline == "BOULDER") { viewModel.setDiscipline("BOULDER") }
                 FilterChip(stringResource(R.string.add_block_sheet_v3_via), state.discipline == "ROUTE") { viewModel.setDiscipline("ROUTE") }
                 var gradeMenuOpen by remember { mutableStateOf(false) }
                 Box {

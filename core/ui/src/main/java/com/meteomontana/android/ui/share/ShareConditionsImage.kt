@@ -14,7 +14,7 @@ import androidx.core.content.FileProvider
 import com.meteomontana.android.domain.model.Forecast
 import com.meteomontana.android.domain.model.School
 import java.io.File
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 
 /**
  * Genera una card de condiciones estilo Cumbre (papel/tinta/terracota) como

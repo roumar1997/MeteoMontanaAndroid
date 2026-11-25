@@ -149,7 +149,7 @@ internal fun shareSchool(
         putExtra(android.content.Intent.EXTRA_TEXT, sb.toString())
         putExtra(android.content.Intent.EXTRA_SUBJECT, school.name)
     }
-    context.startActivity(android.content.Intent.createChooser(intent, context.getString(R.string.share_utils_v3_compartir_escuela)))
+    context.startActivity(android.content.Intent.createChooser(intent, context.getString(com.meteomontana.android.core.ui.R.string.share_utils_v3_compartir_escuela)))
 }
 
 internal val CONTADOR_DETALLES = java.util.concurrent.atomic.AtomicInteger(0)

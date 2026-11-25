@@ -103,7 +103,7 @@ internal fun BlockDetailHeader(
                 androidx.compose.material3.IconButton(onClick = { onShareBlock() }) {
                     androidx.compose.material3.Icon(
                         Icons.Outlined.Share,
-                        contentDescription = stringResource(R.string.common_share),
+                        contentDescription = stringResource(com.meteomontana.android.core.ui.R.string.common_share),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }

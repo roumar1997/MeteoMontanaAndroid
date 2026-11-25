@@ -150,7 +150,7 @@ private fun EditForm(
                     }
                 } else {
                     Image(
-                        painter = painterResource(R.drawable.logo_cumbre),
+                        painter = painterResource(com.meteomontana.android.core.designsystem.R.drawable.logo_cumbre),
                         contentDescription = stringResource(R.string.a11y_change_photo),
                         modifier = Modifier.size(80.dp).clip(CircleShape).clickable { openPicker() }
                     )

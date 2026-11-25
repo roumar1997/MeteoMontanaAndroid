@@ -13,7 +13,7 @@ import android.graphics.Typeface
 import androidx.core.content.FileProvider
 import com.meteomontana.android.domain.usecase.journal.JournalStatsCalculator
 import java.io.File
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 import androidx.compose.ui.res.stringResource
 
 /* Paleta Cumbre (= ShareProfileImage/ShareLineImage). */
@@ -44,7 +44,7 @@ suspend fun shareStatsAsImage(
     // Logo real de la app (N9: la imagen salia "seca" sin marca).
     val logo = runCatching {
         android.graphics.BitmapFactory.decodeResource(
-            context.resources, com.meteomontana.android.R.drawable.logo_cumbre)
+            context.resources, com.meteomontana.android.core.designsystem.R.drawable.logo_cumbre)
     }.getOrNull()
     val bmp = renderStatsCard(context, periodLabel, disciplineLabel, summary, maxGrade, progression, logo)
     val dir = File(context.cacheDir, "share").apply { mkdirs() }

@@ -308,7 +308,7 @@ internal fun Body(
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                         .clickable { zoomPhoto = p.photoUrl })
             } else {
-                Image(painter = painterResource(R.drawable.logo_cumbre), contentDescription = null,
+                Image(painter = painterResource(com.meteomontana.android.core.designsystem.R.drawable.logo_cumbre), contentDescription = null,
                     modifier = Modifier.size(76.dp).clip(CircleShape)
                         .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
             }

@@ -22,7 +22,7 @@ import com.meteomontana.android.domain.util.TopoLineData
 import com.meteomontana.android.domain.util.renderTopo
 import com.meteomontana.android.ui.components.parseLineStroke
 import java.io.File
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 import androidx.compose.ui.res.stringResource
 
 /* ── Paleta Cumbre (ARGB para Canvas, = ShareLineImage) ────────────────────── */

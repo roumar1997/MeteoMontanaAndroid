@@ -19,7 +19,7 @@ import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import java.io.File
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 import androidx.compose.ui.res.stringResource
 
 /* Paleta Cumbre (= ShareLineImage) */

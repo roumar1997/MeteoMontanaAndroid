@@ -354,7 +354,7 @@ private fun ConvRow(
         } else {
             androidx.compose.foundation.Image(
                 painter = androidx.compose.ui.res.painterResource(
-                    com.meteomontana.android.R.drawable.logo_cumbre),
+                    com.meteomontana.android.core.designsystem.R.drawable.logo_cumbre),
                 contentDescription = null,
                 modifier = Modifier.size(44.dp).clip(CircleShape)
                     .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)

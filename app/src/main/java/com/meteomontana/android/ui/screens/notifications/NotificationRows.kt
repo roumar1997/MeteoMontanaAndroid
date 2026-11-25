@@ -153,7 +153,7 @@ private fun NotificationAvatar(n: Notification) {
         val shape = CircleShape
         when {
             n.type == "TEAM_MESSAGE" -> androidx.compose.foundation.Image(
-                painterResource(R.drawable.logo_cumbre), contentDescription = null,
+                painterResource(com.meteomontana.android.core.designsystem.R.drawable.logo_cumbre), contentDescription = null,
                 modifier = Modifier.align(Alignment.CenterStart).size(size).clip(shape)
             )
             n.actorPhotoUrl != null -> AsyncImage(

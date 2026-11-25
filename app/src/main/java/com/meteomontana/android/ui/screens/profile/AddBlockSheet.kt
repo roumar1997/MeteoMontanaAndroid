@@ -406,7 +406,7 @@ private fun Label(text: String) {
 @Composable
 private fun ModalityToggle(selected: String, onSelect: (String) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ModalityOption(stringResource(R.string.w_boulder_caps2), selected == "BOULDER", Modifier.weight(1f)) { onSelect("BOULDER") }
+        ModalityOption(stringResource(com.meteomontana.android.core.ui.R.string.w_boulder_caps2), selected == "BOULDER", Modifier.weight(1f)) { onSelect("BOULDER") }
         ModalityOption(stringResource(R.string.add_block_sheet_v3_via), selected == "ROUTE", Modifier.weight(1f)) { onSelect("ROUTE") }
     }
 }

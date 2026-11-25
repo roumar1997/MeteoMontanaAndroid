@@ -2,7 +2,7 @@ package com.meteomontana.android.ui.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 
 /**
  * Mapeo ÚNICO tipo de inicio → etiqueta traducida (SIT/STAND/JUMP/TRAV).

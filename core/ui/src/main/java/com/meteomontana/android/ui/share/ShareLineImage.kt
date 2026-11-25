@@ -25,7 +25,7 @@ import com.meteomontana.android.domain.util.gradeArgb
 import com.meteomontana.android.domain.util.renderTopo
 import com.meteomontana.android.ui.components.parseLineStroke
 import java.io.File
-import com.meteomontana.android.R
+import com.meteomontana.android.core.ui.R
 import androidx.compose.ui.res.stringResource
 
 /* ── Paleta Cumbre (ARGB para Canvas, = ShareConditionsImage) ──────────────── */
@@ -335,7 +335,7 @@ private fun centerCropSrc(pw: Int, ph: Int, dstRatio: Float): Rect {
 }
 
 /** Ejecuta un DrawOp de renderTopo sobre un Canvas nativo, desplazado (dx,dy). */
-internal fun drawOpNative(op: DrawOp, c: Canvas, dx: Float, dy: Float) {
+fun drawOpNative(op: DrawOp, c: Canvas, dx: Float, dy: Float) {
     when (op) {
         is DrawOp.LinePath -> {
             val path = Path()

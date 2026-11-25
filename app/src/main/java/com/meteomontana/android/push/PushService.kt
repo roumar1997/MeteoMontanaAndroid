@@ -101,7 +101,7 @@ class PushService : FirebaseMessagingService() {
 
     /** Logo de Cumbre (a color) como icono grande por defecto de las notificaciones. */
     private fun appLogoBitmap(): android.graphics.Bitmap? = runCatching {
-        val src = decodeSampled { o -> BitmapFactory.decodeResource(resources, R.drawable.logo_cumbre, o) }
+        val src = decodeSampled { o -> BitmapFactory.decodeResource(resources, com.meteomontana.android.core.designsystem.R.drawable.logo_cumbre, o) }
             ?: return null
         toCircle(src)
     }.getOrNull()
