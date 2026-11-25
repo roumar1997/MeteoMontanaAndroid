@@ -99,6 +99,7 @@ fun EditLineFlow(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        com.meteomontana.android.ui.components.DialogSystemBars()
         Column(
             modifier = Modifier
                 .fillMaxWidth()

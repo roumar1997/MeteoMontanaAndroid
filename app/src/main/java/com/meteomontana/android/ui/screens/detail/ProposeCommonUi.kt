@@ -291,6 +291,7 @@ internal fun CumbreDialog(
             decorFitsSystemWindows = false
         )
     ) {
+        com.meteomontana.android.ui.components.DialogSystemBars()
         val contenidoScroll = rememberScrollState()
         if (header != null) {
             // El acabado y la altura van FUERA; dentro, la barra fija y luego

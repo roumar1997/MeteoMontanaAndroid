@@ -72,6 +72,19 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.LIGHT  -> false
                 ThemeMode.SYSTEM -> system
             }
+            // Barras del sistema con el tema DE LA APP (no el del sistema): con la app
+            // en oscuro y el sistema en claro los iconos salían oscuros sobre fondo oscuro.
+            androidx.compose.runtime.DisposableEffect(isDark) {
+                enableEdgeToEdge(
+                    statusBarStyle = androidx.activity.SystemBarStyle.auto(
+                        android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT
+                    ) { isDark },
+                    navigationBarStyle = androidx.activity.SystemBarStyle.auto(
+                        android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT
+                    ) { isDark }
+                )
+                onDispose {}
+            }
             MeteoMontanaTheme(darkTheme = isDark) {
                 // El armazón envuelve TODA la app: la barra de pestañas necesita
                 // leer el contenido que tiene detrás, y para eso los dos tienen

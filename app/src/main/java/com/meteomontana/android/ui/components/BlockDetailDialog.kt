@@ -527,6 +527,7 @@ fun BlockDetailDialog(
             onDismissRequest = { gradeVoteLine = null },
             properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
         ) {
+        com.meteomontana.android.ui.components.DialogSystemBars()
             androidx.compose.material3.Surface(
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.background

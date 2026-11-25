@@ -295,6 +295,7 @@ internal fun AddLinesFlow(
             decorFitsSystemWindows = false
         )
     ) {
+        com.meteomontana.android.ui.components.DialogSystemBars()
         // Barra FIJA arriba (fuera del scroll) + contenido que scrollea: el
         // formulario es largo y buscar ENVIAR al final era un viaje. Espejo del
         // .toolbar del sheet de iOS (Álvaro, 2026-08-24).

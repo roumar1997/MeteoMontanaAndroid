@@ -140,6 +140,7 @@ fun ContributionTopoDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
     ) {
+        com.meteomontana.android.ui.components.DialogSystemBars()
         Column(
             modifier = Modifier
                 .fillMaxSize()
