@@ -39,6 +39,11 @@ class ProfileCache(context: Context) {
         prefs.edit().putString(KEY, json.encodeToString(Snapshot.serializer(), snap)).apply()
     }
 
+    /** Días distintos en roca (sale del diario, que no está en [Cached]): para pintarlos sin conexión. */
+    fun saveRockDays(days: Int) = prefs.edit().putInt(KEY_ROCK_DAYS, days).apply()
+
+    fun loadRockDays(): Int? = if (prefs.contains(KEY_ROCK_DAYS)) prefs.getInt(KEY_ROCK_DAYS, 0) else null
+
     /** Último perfil/stats cacheado, o null si nunca cargó online. */
     fun load(): Cached? {
         val raw = prefs.getString(KEY, null) ?: return null
@@ -101,5 +106,8 @@ class ProfileCache(context: Context) {
     @Serializable
     private data class SchoolStatSnap(val schoolName: String, val blockCount: Int, val maxGrade: String?)
 
-    private companion object { const val KEY = "profile_snapshot" }
+    private companion object {
+        const val KEY = "profile_snapshot"
+        const val KEY_ROCK_DAYS = "rock_days"
+    }
 }

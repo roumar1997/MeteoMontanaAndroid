@@ -88,7 +88,9 @@ class ProfileClimbViewModel @Inject constructor(
     private val gymOrderPref: GymOrderPreference,
     private val gymOrderUc: GymOrderUseCase,
     private val getFavorites: GetGymFavoritesUseCase,
-    private val boardsExpandedPref: BoardsExpandedPreference
+    private val boardsExpandedPref: BoardsExpandedPreference,
+    /** Copia local de las stats del diario: sin conexión el perfil enseña lo último que se vio, no ceros. */
+    private val profileCache: com.meteomontana.android.data.local.ProfileCache
 ) : ViewModel() {
     private val _state = MutableStateFlow(ProfileClimbState())
     val state: StateFlow<ProfileClimbState> = _state
@@ -109,8 +111,11 @@ class ProfileClimbViewModel @Inject constructor(
             val summary = remote?.let { r -> r.copy(byGym = r.byGym.map { g -> g.copy(name = g.name ?: gyms[g.gymId]?.name) }) }
                 ?: if (own) getSummary.local { gyms[it]?.name } else GymSummary()
             if (own) { syncHomeGym(remote); syncAscentOrder(remote); syncGymOrder(remote) }
-            val js = jstats.await()
-            _state.update { build(summary, rock.await() ?: it.rockDays, gyms, own, favs).copy(
+            // Sin conexión las llamadas fallan: lo propio cae a la última copia guardada (antes salían ceros).
+            val js = jstats.await() ?: if (own) runCatching { profileCache.load()?.stats }.getOrNull() else null
+            val rockDays = rock.await()?.also { if (own) runCatching { profileCache.saveRockDays(it) } }
+                ?: if (own) runCatching { profileCache.loadRockDays() }.getOrNull() else null
+            _state.update { build(summary, rockDays ?: it.rockDays, gyms, own, favs).copy(
                 rockMax = js?.maxGrade, schools = js?.schoolCount ?: it.schools, rockBoulders = js?.boulderCount ?: it.rockBoulders,
                 rockRoutes = js?.routeCount ?: it.rockRoutes, rockMaxBoulder = js?.maxBoulderGrade, rockMaxRoute = js?.maxRouteGrade
             ) }
