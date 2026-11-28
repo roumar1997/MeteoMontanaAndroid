@@ -227,14 +227,7 @@ struct AccountView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 10) {
-                    if vm.offline {
-                        Text(NSLocalizedString("common_offline_data", comment: ""))
-                            .font(Cumbre.mono(10, .bold)).tracking(0.8)
-                            .foregroundStyle(Cumbre.ink2)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(Cumbre.terraBg)
-                    }
+                    // Sin franja propia de «sin conexión»: ya la pone la franja global de la app.
                     // Cabecera compacta (maqueta A, ronda 5): avatar a la izquierda (desplazado para que dragones y
                     // hadas no se corten); nombre, @usuario y seguidos · seguidores a su lado. Sin descripción.
                     HStack(alignment: .center, spacing: 12) {

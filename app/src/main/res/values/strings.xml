@@ -18,7 +18,6 @@
     <string name="common_all">Todos</string>
     <string name="common_none">Ninguno</string>
     <string name="common_offline">SIN CONEXIÓN</string>
-    <string name="common_offline_data">SIN CONEXIÓN · datos guardados</string>
     <string name="common_no_connection">Sin conexión a internet</string>
     <string name="common_directions">CÓMO LLEGAR</string>
     <string name="common_view_school">Ver escuela</string>

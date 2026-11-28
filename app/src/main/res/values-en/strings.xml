@@ -193,7 +193,6 @@
     <string name="common_no_connection">No internet connection</string>
     <string name="common_none">None</string>
     <string name="common_offline">OFFLINE</string>
-    <string name="common_offline_data">OFFLINE · saved data</string>
     <string name="common_ok">OK</string>
     <string name="common_report">Report</string>
     <string name="common_retry">RETRY</string>

@@ -327,7 +327,7 @@ internal fun Content(
 ) {
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
     val density = androidx.compose.ui.platform.LocalDensity.current
-    val headerIndex = if (offline) 1 else 0
+    val headerIndex = 0
     val gymsOn = com.meteomontana.android.ui.components.LocalFeatureFlags.current.isGymsEnabled
     val climbVm: ProfileClimbViewModel = hiltViewModel()
     val climb by climbVm.state.collectAsStateWithLifecycle()
@@ -365,19 +365,7 @@ internal fun Content(
             top = 6.dp,
             bottom = com.meteomontana.android.ui.components.LocalTabBarInset.current)
     ) {
-        if (offline) {
-            item {
-                Text(
-                    stringResource(R.string.common_offline_data),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.tertiaryContainer)
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-        }
+        // Sin franja propia de «sin conexión»: ya la pone la franja global de la app (NetworkBanner).
         // Cabecera compacta (maqueta A): avatar a la izquierda; nombre, @usuario y seguidos · seguidores a su lado. Sin
         // descripción. Debajo, el título con sus efectos (tocar = elegir título y viero/bloquero).
         item {
