@@ -274,8 +274,8 @@
     <string name="hint_offline">Save schools to view them offline</string>
     <string name="hint_propose">You can propose new boulders, parkings or sectors</string>
     <string name="hint_swipe_chat">Swipe to delete or mark as unread</string>
-    <string name="journal_schools_block_count_one">%1$d block</string>
-    <string name="journal_schools_block_count_other">%1$d blocks</string>
+    <string name="journal_schools_block_count_one">%1$d boulder</string>
+    <string name="journal_schools_block_count_other">%1$d boulders</string>
     <string name="journal_schools_empty">No schools yet</string>
     <string name="login_apple">Continue with Apple</string>
     <string name="login_google">Continue with Google</string>
@@ -335,7 +335,7 @@
     <string name="photo_place_hint">Tap on the map where the boulder is. It opens centered where the photo was taken; move it if it doesn\'t land exactly.</string>
     <string name="profile_admin_panel">Admin Panel</string>
     <string name="profile_admin_pending">%d PENDING</string>
-    <string name="profile_blocks">BLOCKS</string>
+    <string name="profile_blocks">BOULDERS</string>
     <string name="profile_delete_account">Delete account</string>
     <string name="profile_delete_confirm">Are you sure you want to delete your account? All your data will be deleted. This action can\'t be undone.</string>
     <string name="profile_edit">Edit profile</string>
@@ -531,7 +531,7 @@
     <string name="meetups_map_panel_topografico_satelite">Topographic/Satellite</string>
     <string name="notifications_screen_borrar_todas">Delete all?</string>
     <string name="notifications_screen_se_eliminaran_todas_tus">All your notifications will be deleted. This can\'t be undone.</string>
-    <string name="add_block_sheet_anadir_bloque">Add block</string>
+    <string name="add_block_sheet_anadir_bloque">Add boulder</string>
     <string name="add_block_sheet_que_tal_fue">How did it go?</string>
     <string name="edit_profile_screen_cuentate_en_una_linea">Tell us about yourself in one line</string>
     <string name="edit_profile_screen_grado_maximo">MAX GRADE</string>
@@ -931,7 +931,7 @@
     <string name="follow_requests_screen_v2_error_1_s">Error: %1$s</string>
     <string name="follow_requests_screen_v2_solicitudes">Requests</string>
     <string name="follow_requests_screen_v2_volver">Back</string>
-    <string name="public_profile_screen_v2_1_s_bloque_2_s">%1$s block%2$s</string>
+    <string name="public_profile_screen_v2_1_s_bloque_2_s">%1$s boulder%2$s</string>
     <string name="public_profile_screen_v2_sigue_a_este_usuario_para">Follow this user to see their profile.</string>
     <string name="public_profile_screen_v2_perfil_privado">Private profile</string>
     <string name="public_profile_screen_v2_te_sigue">Follows you</string>
@@ -2183,7 +2183,7 @@
     <string name="gym_board_edit_title">Edit · %1$s</string>
     <string name="gym_board_edit_sub">Change anything and tap Save</string>
     <string name="gym_board_delete">Delete</string>
-    <string name="gym_board_delete_title">Delete this block?</string>
+    <string name="gym_board_delete_title">Delete this boulder?</string>
     <string name="gym_board_delete_body">It is removed from that day. This can\'t be undone.</string>
     <string name="gym_solo_board_sheet">Boards · %1$s</string>
     <string name="gym_solo_board_save">Save boards</string>

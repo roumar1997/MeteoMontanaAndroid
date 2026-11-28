@@ -23,7 +23,9 @@ enum RockDryText {
         let f = DateFormatter()
         f.locale = LanguageManager.shared.locale
         f.dateFormat = full ? "EEEE" : "EEE"
-        return f.string(from: GymDates.date(d)).replacingOccurrences(of: ".", with: "").lowercased()
+        let name = f.string(from: GymDates.date(d)).replacingOccurrences(of: ".", with: "")
+        // En español en minúscula dentro de la frase; en inglés, con mayúscula.
+        return LanguageManager.shared.locale.identifier.hasPrefix("en") ? name : name.lowercased()
     }
 
     /// Texto principal y secundario del estado de la roca (espejo de `rockDryTexts`).

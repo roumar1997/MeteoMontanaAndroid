@@ -76,9 +76,12 @@ class RockDryOutlookViewModel @Inject constructor(private val getForecast: GetFo
     }
 }
 
-internal fun dayName(d: LocalDate, full: Boolean = true): String =
-    java.time.DayOfWeek.of(d.dayOfWeek.ordinal + 1)
-        .getDisplayName(if (full) TextStyle.FULL else TextStyle.SHORT, Locale.getDefault()).lowercase()
+internal fun dayName(d: LocalDate, full: Boolean = true, locale: Locale = Locale.getDefault()): String {
+    val name = java.time.DayOfWeek.of(d.dayOfWeek.ordinal + 1)
+        .getDisplayName(if (full) TextStyle.FULL else TextStyle.SHORT, locale)
+    // En español los días van en minúscula dentro de la frase; en inglés, con mayúscula.
+    return if (locale.language == "en") name else name.lowercase(locale)
+}
 
 private fun stateColor(s: RockDayState) = when (s) {
     RockDayState.WET -> WetBlue

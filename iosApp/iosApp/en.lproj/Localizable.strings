@@ -107,7 +107,7 @@
 
 /* Profile */
 "profile_title" = "Account";
-"profile_blocks" = "BLOCKS";
+"profile_blocks" = "BOULDERS";
 "profile_routes" = "ROUTES";
 "profile_schools" = "SCHOOLS";
 "profile_max_boulder" = "MAX BOULDER";
@@ -280,17 +280,17 @@
 "AÑADIR OTRA +" = "ADD ANOTHER +";
 "Añade una foto o una nota." = "Add a photo or a note.";
 "Añade una foto para poder dibujar las líneas." = "Add a photo to be able to draw the lines.";
-"Añadir bloque" = "Add block";
+"Añadir bloque" = "Add boulder";
 "Añadir enlace de beta" = "Add beta link";
-"Aún no has registrado bloques." = "You haven't logged any blocks yet.";
-"Aún no hay bloques en ninguna escuela." = "There are no blocks in any school yet.";
+"Aún no has registrado bloques." = "You haven't logged any boulders yet.";
+"Aún no hay bloques en ninguna escuela." = "There are no boulders in any school yet.";
 "Aún no hay contribuciones aprobadas.\n¡Sé el primero en proponer algo!" = "No contributions approved yet.\nBe the first to propose something!";
 "BETA" = "BETA";
 "BLOQUE" = "BOULDER";
 "BOLETÍN DE MONTAÑA · AEMET" = "MOUNTAIN BULLETIN · AEMET";
 "BOULDER" = "BOULDER";
 "Bloquear (no verás su contenido)" = "Block (you won't see their content)";
-"Bloques" = "Blocks";
+"Bloques" = "Boulders";
 "CARGAR MÁS" = "LOAD MORE";
 "COMENTARIOS" = "COMMENTS";
 "Cada casilla = 1 semana · terra = saliste" = "Each cell = 1 week · terracotta = you went out";
@@ -378,8 +378,8 @@
 "Si estás mirando la pared, ella mira al contrario." = "If you're facing the wall, it faces the opposite way.";
 "Sigue a alguien (o que te sigan) para añadir miembros." = "Follow someone (or have them follow you) to add members.";
 "Sigue a este usuario para ver su diario y estadísticas." = "Follow this user to see their journal and stats.";
-"Sin bloques registrados aquí." = "No blocks logged here.";
-"Sin bloques registrados." = "No blocks logged.";
+"Sin bloques registrados aquí." = "No boulders logged here.";
+"Sin bloques registrados." = "No boulders logged.";
 "Sin conexión.\nEl feed necesita internet." = "No connection.\nThe feed needs internet.";
 "Sin datos horarios para este día." = "No hourly data for this day.";
 "Sin destinatario → se enviará a TODOS los usuarios." = "No recipient → it will be sent to ALL users.";
@@ -2470,7 +2470,7 @@
 "gym_board_edit_title" = "Edit · %@";
 "gym_board_edit_sub" = "Change anything and tap Save";
 "gym_board_delete" = "Delete";
-"gym_board_delete_title" = "Delete this block?";
+"gym_board_delete_title" = "Delete this boulder?";
 "gym_board_delete_body" = "It is removed from that day. This can't be undone.";
 "gym_solo_board_sheet" = "Boards · %1$@";
 "gym_solo_board_save" = "Save boards";
