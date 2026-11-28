@@ -34,7 +34,7 @@ struct AssistantBubble: View {
     }
 
     private var bubble: some View {
-        Image(Self.imageName)
+        Image(AssistantBubble.imageName)
             .resizable().scaledToFit()
             .frame(width: 58, height: 58)
             .shadow(color: .black.opacity(0.28), radius: 3, x: 0, y: 2)
@@ -102,7 +102,7 @@ extension AssistantBubble {
 struct AssistantAvatar: View {
     let size: CGFloat
     var body: some View {
-        Image(Self.imageName)
+        Image(AssistantBubble.imageName)
             .resizable().scaledToFit()
             .frame(width: size, height: size)
             .clipShape(Circle())
