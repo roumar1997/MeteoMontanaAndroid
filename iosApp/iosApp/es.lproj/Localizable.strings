@@ -156,6 +156,7 @@
 "meetups_title" = "Quedadas";
 "meetups_create" = "Crear quedada";
 "meetups_empty" = "Sin quedadas activas";
+"meetups_offline" = "Sin conexión. Las quedadas se cargarán cuando vuelvas a tener cobertura";
 "meetups_view_map" = "VER MAPA DE QUEDADAS";
 "meetups_filter_all" = "Todos";
 "meetups_filter_following" = "Seguidos";

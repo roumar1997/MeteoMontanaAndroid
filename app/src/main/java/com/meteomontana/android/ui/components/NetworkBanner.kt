@@ -26,6 +26,13 @@ class NetworkBannerViewModel @Inject constructor(
     val isOnline = networkMonitor.isOnline
 }
 
+/** true mientras hay conexión (la misma señal que usa el banner global). */
+@Composable
+fun rememberIsOnline(viewModel: NetworkBannerViewModel = hiltViewModel()): Boolean {
+    val online by viewModel.isOnline.collectAsStateWithLifecycle()
+    return online
+}
+
 /**
  * Banner global "● SIN CONEXIÓN" que se muestra solo cuando NetworkMonitor reporta offline.
  * Pónlo arriba del NavHost en MainScreen para que aparezca en todas las pantallas.

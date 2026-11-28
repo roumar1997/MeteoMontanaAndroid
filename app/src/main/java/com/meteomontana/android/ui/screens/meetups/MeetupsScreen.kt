@@ -109,6 +109,10 @@ fun MeetupsScreen(
     // Antes se quedaba con el de la primera carga (gris activa / activa desactivada).
     LaunchedEffect(visible) { if (visible) viewModel.loadAlertState() }
 
+    // Sin conexión no es un fallo: se dice claro y, al volver la cobertura, la lista se carga sola.
+    val online = com.meteomontana.android.ui.components.rememberIsOnline()
+    LaunchedEffect(online) { if (online && state.error != null && state.meetups.isEmpty()) viewModel.loadMeetups() }
+
     // Filtros aplicados localmente (recomputa cuando llega la ubicación)
     val displayedMeetups = remember(placeFilter, gymCoords, state.meetups, state.filterPrivacy, state.maxDistanceKm, state.filterDays, state.filterDiscipline, uLat, uLon) {
         var list = when (placeFilter) {
@@ -216,8 +220,10 @@ fun MeetupsScreen(
             state.error != null && displayedMeetups.isEmpty() -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(R.string.meetups_screen_v2_no_se_pudo_cargar), style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(if (online) R.string.meetups_screen_v2_no_se_pudo_cargar else R.string.meetups_offline),
+                            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = Spacing.lg))
                         Spacer(Modifier.height(Spacing.sm))
                         TextButton(onClick = { viewModel.loadMeetups() }) { Text(stringResource(R.string.common_retry)) }
                     }

@@ -156,6 +156,7 @@
 "meetups_title" = "Meetups";
 "meetups_create" = "Create meetup";
 "meetups_empty" = "No active meetups";
+"meetups_offline" = "You're offline. Meetups will load when you're back in coverage";
 "meetups_view_map" = "VIEW MEETUPS MAP";
 "meetups_filter_all" = "All";
 "meetups_filter_following" = "Following";

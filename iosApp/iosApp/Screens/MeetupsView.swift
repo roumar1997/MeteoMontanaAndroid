@@ -48,6 +48,9 @@ final class MeetupsViewModel: ObservableObject {
         Task { await loadGender() }
     }
 
+    /// Sin red conocida: el fallo de carga es «sin conexión», no un error del servidor.
+    var isOffline: Bool { !(AppDependencies.shared.container.networkMonitor?.isOnlineNow() ?? true) }
+
     func load(relation: String? = nil) async {
         loading = true
         error = nil
@@ -462,7 +465,9 @@ struct MeetupsView: View {
                     SkeletonList(count: 3, dividers: false) { SkeletonCard() }.padding(.vertical, 6)
                 } else if vm.error != nil && vm.meetups.isEmpty {
                     VStack(spacing: 12) {
-                        Text("No se pudo cargar").foregroundColor(Cumbre.ink.opacity(0.6))
+                        Text(vm.isOffline ? NSLocalizedString("meetups_offline", comment: "") : NSLocalizedString("No se pudo cargar", comment: ""))
+                            .multilineTextAlignment(.center).padding(.horizontal, 24)
+                            .foregroundColor(Cumbre.ink.opacity(0.6))
                         Button(NSLocalizedString("common_retry", comment: "")) { Task { await vm.load() } }
                             .foregroundColor(Cumbre.terra)
                     }

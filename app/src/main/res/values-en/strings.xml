@@ -848,6 +848,7 @@
     <string name="meetups_screen_v2_quedadas_no_mixto">Women-only meetups</string>
     <string name="meetups_screen_v2_crea_una_para_quedar_a">Create one to meet up and climb</string>
     <string name="meetups_screen_v2_no_se_pudo_cargar">Couldn\'t load</string>
+    <string name="meetups_offline">You\'re offline. Meetups will load when you\'re back in coverage</string>
     <string name="meetups_screen_v2_crear_quedada">Create meetup</string>
     <string name="meetups_screen_v2_configurar_alertas">Configure alerts</string>
     <string name="meetups_screen_v2_recargar">Reload</string>

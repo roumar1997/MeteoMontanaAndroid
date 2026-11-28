@@ -907,6 +907,7 @@
     <string name="meetups_screen_v2_quedadas_no_mixto">Quedadas No Mixto</string>
     <string name="meetups_screen_v2_crea_una_para_quedar_a">Crea una para quedar a escalar</string>
     <string name="meetups_screen_v2_no_se_pudo_cargar">No se pudo cargar</string>
+    <string name="meetups_offline">Sin conexión. Las quedadas se cargarán cuando vuelvas a tener cobertura</string>
     <string name="meetups_screen_v2_crear_quedada">Crear quedada</string>
     <string name="meetups_screen_v2_configurar_alertas">Configurar alertas</string>
     <string name="meetups_screen_v2_recargar">Recargar</string>
