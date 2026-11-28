@@ -169,9 +169,9 @@ struct ClimbGradientCard: View {
                     (L("profile_card_schools"), "\(st?.schoolCount ?? 0)")
                 ], onRock)
                 half(L("profile_line_gym"), climb.summaryKnown ? LP("profile_sessions", Int(s.sessions)) : "—", [
-                    (L("profile_card_gyms"), "\(s.gyms)"),
-                    (L("profile_card_ascents"), "\(s.ascents)"),
-                    (L("profile_card_max"), s.maxGrade?.uppercased() ?? "—")
+                    (L("profile_card_gyms"), climb.summaryKnown ? "\(s.gyms)" : "—"),
+                    (L("profile_card_ascents"), climb.summaryKnown ? "\(s.ascents)" : "—"),
+                    (L("profile_card_max"), (climb.summaryKnown ? s.maxGrade?.uppercased() : nil) ?? "—")
                 ], onGym)
             }
             .fixedSize(horizontal: false, vertical: true)
