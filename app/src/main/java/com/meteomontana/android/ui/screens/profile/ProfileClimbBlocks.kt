@@ -137,7 +137,7 @@ internal fun ClimbGradientCard(
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.profile_climb_card_title).uppercase(), style = EyebrowTextStyle, color = Color.White.copy(alpha = 0.9f), maxLines = 1)
                 Text(
-                    pluralStringResource(R.plurals.profile_days_climbing, state.totalDays, state.totalDays),
+                    if (state.summaryKnown) pluralStringResource(R.plurals.profile_days_climbing, state.totalDays, state.totalDays) else "—",
                     fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White, maxLines = 1
                 )
             }
@@ -159,11 +159,11 @@ internal fun ClimbGradientCard(
             )
             CardHalf(
                 stringResource(R.string.profile_line_gym),
-                pluralStringResource(R.plurals.profile_sessions, s.sessions, s.sessions),
+                if (state.summaryKnown) pluralStringResource(R.plurals.profile_sessions, s.sessions, s.sessions) else "—",
                 listOf(
-                    stringResource(R.string.profile_card_gyms) to s.gyms.toString(),
-                    stringResource(R.string.profile_card_ascents) to s.ascents.toString(),
-                    stringResource(R.string.profile_card_max) to (s.maxGrade?.uppercase() ?: "—")
+                    stringResource(R.string.profile_card_gyms) to if (state.summaryKnown) s.gyms.toString() else "—",
+                    stringResource(R.string.profile_card_ascents) to if (state.summaryKnown) s.ascents.toString() else "—",
+                    stringResource(R.string.profile_card_max) to (s.maxGrade?.uppercase()?.takeIf { state.summaryKnown } ?: "—")
                 ),
                 Modifier.weight(1f).fillMaxHeight(), onSessions
             )

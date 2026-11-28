@@ -28,8 +28,8 @@ struct AccountProfileBody: View {
                          onBoulders: { route = .blocks }, onRoutes: { route = .routes }, onMax: { route = .stats(1) })
             ProfileMiniTiles(posts: postCount, onPosts: { route = .posts }, schools: Int(s?.schoolCount ?? 0),
                              onSchools: { route = .schools }, projects: Int(s?.projectCount ?? 0), onProjects: { route = .projects },
-                             boards: gymsOn ? Int(GymBreakdown.shared.boardCount(items: climb.summary.items)) : nil,
-                             onBoards: gymsOn ? { route = .boards } : nil)
+                             boards: gymsOn && climb.summaryKnown ? Int(GymBreakdown.shared.boardCount(items: climb.summary.items)) : nil,
+                             onBoards: gymsOn ? { route = .boards } : nil, boardsUnknown: gymsOn && !climb.summaryKnown)
             if gymsOn {
                 ClimbGradientCard(climb: climb, onStats: { route = .stats(0) }, onRock: { route = .stats(1) }, onGym: { route = .stats(2) })
                     .guideTarget("profile.stats")

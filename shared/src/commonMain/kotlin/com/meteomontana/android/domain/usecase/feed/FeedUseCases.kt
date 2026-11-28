@@ -2,6 +2,7 @@ package com.meteomontana.android.domain.usecase.feed
 
 import com.meteomontana.android.domain.model.FeedComment
 import com.meteomontana.android.domain.model.FeedPost
+import com.meteomontana.android.domain.port.KeyValueStore
 import com.meteomontana.android.domain.repository.FeedRepository
 
 /** Ámbitos del feed que entiende el backend. */
@@ -35,9 +36,19 @@ class GetFeedPageUseCase(private val repo: FeedRepository) {
 }
 
 /** Cuantas publicaciones enseña un perfil (el propio si [uid] es null); sirve para la ficha «Publicaciones». */
-class GetFeedPostCountUseCase(private val repo: FeedRepository) {
+class GetFeedPostCountUseCase(private val repo: FeedRepository, private val store: KeyValueStore? = null) {
+    /** Con red, el del servidor (y se guarda). Sin red, el último que se vio; si nunca se vio, lanza (la UI enseña «—», no 0). */
     @Throws(Exception::class)
-    suspend operator fun invoke(uid: String? = null): Int = repo.postCount(uid)
+    suspend operator fun invoke(uid: String? = null): Int {
+        val key = "post_count_v1:${uid ?: "me"}"
+        return try {
+            repo.postCount(uid).also { n -> runCatching { store?.putString(key, n.toString()) } }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            runCatching { store?.getString(key) }.getOrNull()?.toIntOrNull() ?: throw e
+        }
+    }
 }
 
 /** Post individual (push/campanita). Lanza si no existe (404). */

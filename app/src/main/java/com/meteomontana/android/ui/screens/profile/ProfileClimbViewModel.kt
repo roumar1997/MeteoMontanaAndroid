@@ -61,7 +61,9 @@ data class ProfileClimbState(
     val rockBoulders: Int = 0,
     val rockRoutes: Int = 0,
     val rockMaxBoulder: String? = null,
-    val rockMaxRoute: String? = null
+    val rockMaxRoute: String? = null,
+    /** false = sin red y sin copia guardada del resumen de rocódromo: la pantalla enseña «—», nunca un 0 falso. */
+    val summaryKnown: Boolean = true
 ) {
     /** Días escalando en total: roca + sesiones de rocódromo (un día en cada sitio cuenta aparte). */
     val totalDays: Int get() = (rockDays ?: 0) + summary.sessions
@@ -99,7 +101,7 @@ class ProfileClimbViewModel @Inject constructor(
     fun load(uid: String?, myUid: String?) {
         val own = uid == null || uid == myUid
         val gyms = getCachedGyms().associateBy { it.id }
-        if (own) _state.update { build(getSummary.local { gyms[it]?.name }, it.rockDays, gyms, own = true, it.favorites).copy(rockMax = it.rockMax, schools = it.schools, rockBoulders = it.rockBoulders, rockRoutes = it.rockRoutes, rockMaxBoulder = it.rockMaxBoulder, rockMaxRoute = it.rockMaxRoute) }
+        if (own) _state.update { build(if (myUid != null) getSummary.offline(myUid) { gyms[it]?.name } else getSummary.local { gyms[it]?.name }, it.rockDays, gyms, own = true, it.favorites).copy(rockMax = it.rockMax, schools = it.schools, rockBoulders = it.rockBoulders, rockRoutes = it.rockRoutes, rockMaxBoulder = it.rockMaxBoulder, rockMaxRoute = it.rockMaxRoute) }
         _state.update { it.copy(expandedBoards = boardsExpandedPref.get()) }
         viewModelScope.launch {
             val favs = runCatching { getFavorites.execute() }.getOrDefault(_state.value.favorites)
@@ -109,13 +111,15 @@ class ProfileClimbViewModel @Inject constructor(
             val target = if (own) myUid else uid
             val remote = target?.let { runCatching { getSummary.remote(it) }.getOrNull() }
             val summary = remote?.let { r -> r.copy(byGym = r.byGym.map { g -> g.copy(name = g.name ?: gyms[g.gymId]?.name) }) }
-                ?: if (own) getSummary.local { gyms[it]?.name } else GymSummary()
+                ?: if (own && target != null) getSummary.offline(target) { gyms[it]?.name } else if (own) getSummary.local { gyms[it]?.name } else GymSummary()
             if (own) { syncHomeGym(remote); syncAscentOrder(remote); syncGymOrder(remote) }
             // Sin conexión las llamadas fallan: lo propio cae a la última copia guardada (antes salían ceros).
             val js = jstats.await() ?: if (own) runCatching { profileCache.load()?.stats }.getOrNull() else null
             val rockDays = rock.await()?.also { if (own) runCatching { profileCache.saveRockDays(it) } }
                 ?: if (own) runCatching { profileCache.loadRockDays() }.getOrNull() else null
+            val known = remote != null || !own || summary.sessions > 0 || (target != null && getSummary.hasOfflineCopy(target))
             _state.update { build(summary, rockDays ?: it.rockDays, gyms, own, favs).copy(
+                summaryKnown = known,
                 rockMax = js?.maxGrade, schools = js?.schoolCount ?: it.schools, rockBoulders = js?.boulderCount ?: it.rockBoulders,
                 rockRoutes = js?.routeCount ?: it.rockRoutes, rockMaxBoulder = js?.maxBoulderGrade, rockMaxRoute = js?.maxRouteGrade
             ) }

@@ -74,6 +74,9 @@ interface GymSessionRepository {
     /** Todo el historial de [uidOrUsername] según el servidor; null si no se puede ver (privado) o no hay red. */
     suspend fun summary(uidOrUsername: String): com.meteomontana.android.domain.model.gym.GymSummary?
 
+    /** Última copia buena del resumen de [uidOrUsername] guardada en el móvil (sin red); null si nunca se guardó. */
+    fun cachedSummary(uidOrUsername: String): com.meteomontana.android.domain.model.gym.GymSummary?
+
     /** Mi rocódromo habitual según el servidor; null si no tiene. Lanza si no hay red. */
     suspend fun myHomeGym(): com.meteomontana.android.domain.model.gym.HomeGym?
 

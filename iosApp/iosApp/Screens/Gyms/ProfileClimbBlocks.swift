@@ -111,14 +111,17 @@ struct ProfileMiniTiles: View {
     let onProjects: (() -> Void)?
     var boards: Int?
     var onBoards: (() -> Void)?
+    /// Ficha de boards visible pero sin saber la cuenta (sin red y sin copia): «—», nunca un 0 inventado.
+    var boardsUnknown = false
 
     var body: some View {
-        let compact = boards != nil && onBoards != nil && onProjects != nil
+        let showBoards = onBoards != nil && (boards != nil || boardsUnknown)
+        let compact = showBoards && onProjects != nil
         HStack(spacing: compact ? 4 : 6) {
             tile("newspaper", ProfileTint.purple, L("feed_posts_section"), posts, onPosts, compact)
             tile("mountain.2", Cumbre.ok, L("profile_schools"), schools, onSchools, compact)
             if let onProjects { tile("flag", Cumbre.terraFill, L("profile_projects"), projects, onProjects, compact) }
-            if let boards, let onBoards { tile("square.grid.2x2", ProfileTint.blue, L("profile_boards"), boards, onBoards, compact) }
+            if showBoards, let onBoards { tile("square.grid.2x2", ProfileTint.blue, L("profile_boards"), boards, onBoards, compact) }
         }
     }
 
@@ -127,7 +130,7 @@ struct ProfileMiniTiles: View {
         Button(action: action) {
             VStack(spacing: 3) {
                 TintedSymbol(symbol: symbol, tint: tint, size: 30)
-                Text(count.map { "\($0)" } ?? "›").font(Cumbre.serif(18, .bold)).foregroundStyle(Cumbre.ink).lineLimit(1)
+                Text(count.map { "\($0)" } ?? "—").font(Cumbre.serif(18, .bold)).foregroundStyle(Cumbre.ink).lineLimit(1)
                 Text(label.uppercased()).font(Cumbre.mono(compact ? 7 : 8)).tracking(compact ? 0.2 : 0.8).foregroundStyle(Cumbre.ink2)
                     .lineLimit(1).minimumScaleFactor(0.7)
             }
@@ -153,7 +156,7 @@ struct ClimbGradientCard: View {
             HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(L("profile_climb_card_title").uppercased()).eyebrow(Color.white.opacity(0.9)).lineLimit(1)
-                    Text(LP("profile_days_climbing", climb.totalDays)).font(Cumbre.serif(20, .bold)).foregroundStyle(.white).lineLimit(1)
+                    Text(climb.summaryKnown ? LP("profile_days_climbing", climb.totalDays) : "—").font(Cumbre.serif(20, .bold)).foregroundStyle(.white).lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Text(L("gym_stats_see_all").uppercased() + " ›").eyebrow(Color(hex: 0x2A2924)).lineLimit(1)
@@ -165,7 +168,7 @@ struct ClimbGradientCard: View {
                     (L("profile_card_routes"), withMax(Int(st?.routeCount ?? 0), st?.maxRouteGrade)),
                     (L("profile_card_schools"), "\(st?.schoolCount ?? 0)")
                 ], onRock)
-                half(L("profile_line_gym"), LP("profile_sessions", Int(s.sessions)), [
+                half(L("profile_line_gym"), climb.summaryKnown ? LP("profile_sessions", Int(s.sessions)) : "—", [
                     (L("profile_card_gyms"), "\(s.gyms)"),
                     (L("profile_card_ascents"), "\(s.ascents)"),
                     (L("profile_card_max"), s.maxGrade?.uppercased() ?? "—")

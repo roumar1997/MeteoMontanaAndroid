@@ -76,6 +76,8 @@ final class ProfileClimbModel: ObservableObject {
     @Published var streakWeeks = 0
     @Published var stats: JournalStats?
     @Published var loaded = false
+    /// false = sin red y sin copia guardada del resumen de rocódromo: la pantalla enseña «—», nunca un 0 falso.
+    @Published var summaryKnown = true
     /// Uid de la persona (nil = perfil propio).
     private(set) var uid: String?
 
@@ -89,7 +91,11 @@ final class ProfileClimbModel: ObservableObject {
         self.uid = uid
         let me = AppDependencies.shared.authBridge.currentUid()
         let gymsById = gyms
-        if own { apply(c.gyms.getGymSummary.local(name: { gymsById[$0.int64Value]?.name }), gymsById) }
+        if own {
+            let first = me.map { c.gyms.getGymSummary.offline(uidOrUsername: $0, name: { gymsById[$0.int64Value]?.name }) }
+                ?? c.gyms.getGymSummary.local(name: { gymsById[$0.int64Value]?.name })
+            apply(first, gymsById)
+        }
         if let ids = try? await c.gyms.getGymFavorites.execute() { favorites = Set(ids.map { $0.int64Value }) }
         if own {
             stats = try? await c.getMyJournalStats.invoke()
@@ -111,7 +117,15 @@ final class ProfileClimbModel: ObservableObject {
             await ProfileOrderPref.ascents.sync(server: remote.ascentOrder) { _ = try await self.c.gyms.ascentOrder.set(order: $0) }
             await ProfileOrderPref.gyms.sync(server: remote.gymOrder) { _ = try await self.c.gyms.gymOrder.set(order: $0) }
         }
-        let fallback = own ? c.gyms.getGymSummary.local(name: { gymsById[$0.int64Value]?.name }) : summary
+        let fallback: GymSummary
+        if own {
+            fallback = target.map { c.gyms.getGymSummary.offline(uidOrUsername: $0, name: { gymsById[$0.int64Value]?.name }) }
+                ?? c.gyms.getGymSummary.local(name: { gymsById[$0.int64Value]?.name })
+        } else {
+            fallback = summary
+        }
+        summaryKnown = remote != nil || !own || fallback.sessions > 0
+            || (target.map { c.gyms.getGymSummary.hasOfflineCopy(uidOrUsername: $0) } ?? false)
         apply(remote ?? fallback, gymsById)
         loaded = true
     }

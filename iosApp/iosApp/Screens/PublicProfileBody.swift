@@ -35,8 +35,8 @@ struct PublicProfileBody: View {
                              onMax: { route = .stats(1) })
                 ProfileMiniTiles(posts: postCount, onPosts: { route = .posts }, schools: Int(st.schoolCount),
                                  onSchools: { route = .schools }, projects: 0, onProjects: nil,
-                                 boards: gymsOn ? Int(GymBreakdown.shared.boardCount(items: climb.summary.items)) : nil,
-                                 onBoards: gymsOn ? { route = .boards } : nil)
+                                 boards: gymsOn && climb.summaryKnown ? Int(GymBreakdown.shared.boardCount(items: climb.summary.items)) : nil,
+                                 onBoards: gymsOn ? { route = .boards } : nil, boardsUnknown: gymsOn && !climb.summaryKnown)
             }
             if gymsOn {
                 ClimbGradientCard(climb: climb, onStats: { route = .stats(0) }, onRock: { route = .stats(1) }, onGym: { route = .stats(2) })

@@ -139,6 +139,19 @@ class GetGymSummaryUseCase(private val repo: GymSessionRepository) {
     @Throws(Exception::class)
     suspend fun remote(uidOrUsername: String): com.meteomontana.android.domain.model.gym.GymSummary? = repo.summary(uidOrUsername)
 
+    /** Hay una copia guardada del resumen de esa persona (si no, sin red solo se sabría lo apuntado en el móvil). */
+    fun hasOfflineCopy(uidOrUsername: String): Boolean = repo.cachedSummary(uidOrUsername) != null
+
+    /**
+     * Lo mejor que se sabe SIN red: la última copia buena del servidor (todo el historial) o, si el móvil tiene más sesiones
+     * (apuntadas sin red desde entonces), lo calculado con ellas. Nunca ceros inventados si hubo una copia buena.
+     */
+    fun offline(uidOrUsername: String, name: (Long) -> String? = { null }): com.meteomontana.android.domain.model.gym.GymSummary {
+        val local = local(name)
+        val cached = repo.cachedSummary(uidOrUsername)?.let { c -> c.copy(byGym = c.byGym.map { g -> g.copy(name = g.name ?: name(g.gymId)) }) }
+        return if (cached != null && cached.sessions >= local.sessions) cached else local
+    }
+
     /** Sesiones propias, para refrescar antes de calcular. */
     @Throws(Exception::class)
     suspend fun refresh() { repo.refresh() }

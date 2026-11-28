@@ -79,14 +79,14 @@ private fun MiniTile(icon: ImageVector, tint: Color, label: String, count: Int?,
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         TintedIcon(icon, tint, 30)
-        Text(count?.toString() ?: "›", fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 18.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
+        Text(count?.toString() ?: "—", fontFamily = Serif, fontWeight = FontWeight.Bold, fontSize = 18.sp, maxLines = 1, color = MaterialTheme.colorScheme.onBackground)
         Text(label.uppercase(), fontFamily = Mono, fontSize = if (compact) 7.sp else 8.sp, letterSpacing = if (compact) 0.2.sp else 0.8.sp, maxLines = 1, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 /**
  * Fichas pequenas bajo los numeros: Publicaciones, Escuelas, Proyectos y Boards (con su cuenta; Boards cuenta las ascensiones de board de todos los rocodromos). Publicaciones lleva la cuenta que da el servidor (feed/count);
- * mientras no llega (o si falla) lleva solo la flecha ([posts] null). Proyectos solo cuando [onProjects] no es null
+ * mientras no llega (o si falla y no hay copia) lleva una raya ([posts] null). Proyectos solo cuando [onProjects] no es null
  * (el de otra persona no lo enseña).
  */
 @Composable
@@ -94,14 +94,17 @@ internal fun ProfileMiniTiles(
     posts: Int?, onPosts: () -> Unit, schools: Int, onSchools: () -> Unit,
     projects: Int, onProjects: (() -> Unit)?, modifier: Modifier = Modifier,
     /** Ascensiones de board de todos los rocódromos; null = sin ficha (rocódromos apagados). */
-    boards: Int? = null, onBoards: (() -> Unit)? = null
+    boards: Int? = null, onBoards: (() -> Unit)? = null,
+    /** Con la ficha de boards visible pero sin saber la cuenta (sin red y sin copia): «—», nunca un 0 inventado. */
+    boardsUnknown: Boolean = false
 ) {
-    val compact = boards != null && onBoards != null && onProjects != null // 4 fichas: etiquetas mas finas para que quepan en 360 dp
+    val showBoards = onBoards != null && (boards != null || boardsUnknown)
+    val compact = showBoards && onProjects != null // 4 fichas: etiquetas mas finas para que quepan en 360 dp
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 6.dp)) {
         MiniTile(Icons.Outlined.Newspaper, Purple, stringResource(R.string.feed_posts_section), posts, onPosts, Modifier.weight(1f), compact)
         MiniTile(Icons.Outlined.Landscape, Ok, stringResource(R.string.profile_schools), schools, onSchools, Modifier.weight(1f), compact)
         if (onProjects != null) MiniTile(Icons.Outlined.Flag, terraFillColor(), stringResource(R.string.profile_projects), projects, onProjects, Modifier.weight(1f), compact)
-        if (boards != null && onBoards != null) MiniTile(Icons.Outlined.GridView, RainBlue, stringResource(R.string.profile_boards), boards, onBoards, Modifier.weight(1f), compact)
+        if (showBoards && onBoards != null) MiniTile(Icons.Outlined.GridView, RainBlue, stringResource(R.string.profile_boards), boards, onBoards, Modifier.weight(1f), compact)
     }
 }
 

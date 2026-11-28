@@ -123,8 +123,11 @@ object SocialUseCasesModule {
 
     // Feed social "Comunidad"
     @Provides @Singleton
-    fun provideGetFeedPostCountUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =
-        com.meteomontana.android.domain.usecase.feed.GetFeedPostCountUseCase(repo)
+    fun provideGetFeedPostCountUseCase(
+        repo: com.meteomontana.android.domain.repository.FeedRepository,
+        @dagger.hilt.android.qualifiers.ApplicationContext context: android.content.Context
+    ) = com.meteomontana.android.domain.usecase.feed.GetFeedPostCountUseCase(
+        repo, com.meteomontana.android.data.local.SharedPrefsKeyValueStore(context, "cumbre_profile_prefs"))
 
     @Provides @Singleton
     fun provideGetFeedPageUseCase(repo: com.meteomontana.android.domain.repository.FeedRepository) =

@@ -385,7 +385,8 @@ internal fun Content(
                 ProfileCells(stats.boulderCount, stats.routeCount, stats.maxBoulderGrade, stats.maxRouteGrade, onOpenBoulders, onOpenRoutes, onOpenMaxGrade)
                 ProfileMiniTiles(
                     com.meteomontana.android.ui.screens.community.rememberPostCount(null, visible), onOpenMyPosts, stats.schoolCount, onOpenAllSchools, stats.projectCount, onOpenProjects,
-                    boards = if (gymsOn) com.meteomontana.android.domain.model.gym.GymBreakdown.boardCount(climb.summary.items) else null, onBoards = onOpenBoards
+                    boards = if (gymsOn && climb.summaryKnown) com.meteomontana.android.domain.model.gym.GymBreakdown.boardCount(climb.summary.items) else null,
+                    onBoards = if (gymsOn) onOpenBoards else null, boardsUnknown = gymsOn && !climb.summaryKnown
                 )
                 // Entrenos en rocódromo (solo con el interruptor `gyms_enabled` encendido).
                 if (gymsOn) {

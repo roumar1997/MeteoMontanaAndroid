@@ -4,6 +4,7 @@ import com.meteomontana.android.data.api.KtorGymSessionApi
 import com.meteomontana.android.data.api.dto.GymAscentStatsDto
 import com.meteomontana.android.data.api.dto.GymAscentsRequestDto
 import com.meteomontana.android.data.api.dto.GymSessionDto
+import com.meteomontana.android.data.api.dto.GymSummaryDto
 import com.meteomontana.android.data.api.dto.toDomainOrNull
 import com.meteomontana.android.data.api.dto.toDomain
 import com.meteomontana.android.data.api.dto.toDto
@@ -193,12 +194,21 @@ class LocalFirstGymSessionRepository(
 
     override suspend fun summary(uidOrUsername: String): com.meteomontana.android.domain.model.gym.GymSummary? =
         try {
-            api.summary(uidOrUsername).toDomain()
+            val dto = api.summary(uidOrUsername)
+            // La última copia buena queda guardada: sin conexión el perfil enseña lo último que se vio, no ceros.
+            runCatching { store.putString(summaryKey(uidOrUsername), JSON.encodeToString(GymSummaryDto.serializer(), dto)) }
+            dto.toDomain()
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
             null
         }
+
+    override fun cachedSummary(uidOrUsername: String): com.meteomontana.android.domain.model.gym.GymSummary? =
+        runCatching { store.getString(summaryKey(uidOrUsername)) }.getOrNull()
+            ?.let { raw -> runCatching { JSON.decodeFromString(GymSummaryDto.serializer(), raw).toDomain() }.getOrNull() }
+
+    private fun summaryKey(uidOrUsername: String) = "gym_summary_v1:$uidOrUsername"
 
     override suspend fun myHomeGym(): com.meteomontana.android.domain.model.gym.HomeGym? =
         api.homeGym().homeGym?.toDomain()
