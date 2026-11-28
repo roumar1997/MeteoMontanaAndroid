@@ -28,8 +28,13 @@ struct AssistantBubble: View {
         }
     }
 
+    /// La insignia del dibujo dice «IA» en español y «AI» en inglés (dos imágenes).
+    fileprivate static var imageName: String {
+        LanguageManager.shared.effectiveCode == "en" ? "assistant_bubble_en" : "assistant_bubble"
+    }
+
     private var bubble: some View {
-        Image("assistant_bubble")
+        Image(Self.imageName)
             .resizable().scaledToFit()
             .frame(width: 58, height: 58)
             .shadow(color: .black.opacity(0.28), radius: 3, x: 0, y: 2)
@@ -97,7 +102,7 @@ extension AssistantBubble {
 struct AssistantAvatar: View {
     let size: CGFloat
     var body: some View {
-        Image("assistant_bubble")
+        Image(Self.imageName)
             .resizable().scaledToFit()
             .frame(width: size, height: size)
             .clipShape(Circle())
