@@ -327,6 +327,16 @@ fun magnetizeStroke(
     return out.filterIndexed { i, p -> i == 0 || p != out[i - 1] }
 }
 
+/** Etiqueta corta de la marca de salida dibujada sobre la foto, o null si el tipo no se reconoce. */
+fun startBadgeLabel(startType: String?, english: Boolean = false): String? = when (startType?.uppercase()) {
+    "PIE", "STAND"  -> if (english) "STAND" else "PIE"
+    "SIT"           -> "SIT"
+    "SEMI"          -> if (english) "SEMI" else "SEM"
+    "LANCE", "JUMP" -> if (english) "DYNO" else "LAN"
+    "TRAV"          -> if (english) "TRAV" else "TRV"
+    else            -> null
+}
+
 /**
  * Convierte una lista de líneas topo en instrucciones de dibujo independientes de plataforma.
  *
@@ -361,7 +371,9 @@ fun renderTopo(
      * para que el trazo no engorde, pero si el abanico encoge con ellos los
      * numeros se van juntando y parece que la linea se desliza sobre la roca.
      */
-    fanSpacingPx: Pair<Float, Float>? = null
+    fanSpacingPx: Pair<Float, Float>? = null,
+    /** Idioma de las etiquetas de salida dibujadas sobre la foto (PIE → STAND en inglés). */
+    english: Boolean = false
 ): List<DrawOp> {
     val ops = mutableListOf<DrawOp>()
     // Los BADGES se acumulan aparte y se emiten al FINAL: si no, la línea de
@@ -452,14 +464,7 @@ fun renderTopo(
         badgeOps += DrawOp.TextLabel(fx, fy, "${idx + 1}", textArgb, badgeTextPx.first, bold = true, badgeTextPx.second)
 
         // Badge de tipo de inicio en el punto final (desplazado si hay abanico)
-        val label = when (line.startType?.uppercase()) {
-            "PIE", "STAND"  -> "PIE"
-            "SIT"           -> "SIT"
-            "SEMI"          -> "SEM"
-            "LANCE", "JUMP" -> "LAN"
-            "TRAV"          -> "TRV"
-            else            -> null
-        }
+        val label = startBadgeLabel(line.startType, english)
         if (label != null) {
             val (lx0, ly) = pts.last()
             val lx = lx0 + endFan[idx]

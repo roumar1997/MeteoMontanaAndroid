@@ -346,7 +346,8 @@ fun ContributionTopoDialog(
                         dashPx = 12f * dens * z to 9f * dens * z,
                         stripePx = 22f * dens * z,
                         // Sin escalar, para que los badges no se junten al ampliar.
-                        fanSpacingPx = (16f * 2f + 4f) to (26f * 2f + 4f)
+                        fanSpacingPx = (16f * 2f + 4f) to (26f * 2f + 4f),
+                        english = java.util.Locale.getDefault().language == "en"
                     ).forEach { op -> drawOp(op, nc) }
                     // Vertices de la via seleccionada: si no se ven, nadie
                     // adivina que se pueden arrastrar. Pero NO mientras el dedo

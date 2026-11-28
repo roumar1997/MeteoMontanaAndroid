@@ -212,14 +212,15 @@ enum TopoPainter {
         }
     }
 
-    /// Etiqueta corta del tipo de inicio (PIE/SIT/SEM/LAN/TRV) o nil.
-    static func startLabel(_ t: String?) -> String? {
+    /// Etiqueta corta del tipo de inicio (PIE/SIT/SEM/LAN/TRV; en inglés STAND/SIT/SEMI/DYNO/TRAV) o nil.
+    /// Espejo de `startBadgeLabel` de TopoRenderer.kt.
+    static func startLabel(_ t: String?, english: Bool = LanguageManager.shared.effectiveCode == "en") -> String? {
         switch t?.uppercased() {
-        case "PIE", "STAND": return "PIE"
+        case "PIE", "STAND": return english ? "STAND" : "PIE"
         case "SIT": return "SIT"
-        case "SEMI": return "SEM"
-        case "LANCE", "JUMP": return "LAN"
-        case "TRAV": return "TRV"
+        case "SEMI": return english ? "SEMI" : "SEM"
+        case "LANCE", "JUMP": return english ? "DYNO" : "LAN"
+        case "TRAV": return english ? "TRAV" : "TRV"
         default: return nil
         }
     }

@@ -373,7 +373,8 @@ internal class GuidePdfWriter(
             badgeR = 9f to 7.2f, badgeTextPx = 9.5f to 3.3f,
             startR = 10.5f to 8.5f, startTextPx = 7f to 2.5f,
             dashPx = 12f * s to 9f * s, stripePx = 22f * s,
-            fanSpacingPx = (9f * 2 + 4) to (10.5f * 2 + 4)
+            fanSpacingPx = (9f * 2 + 4) to (10.5f * 2 + 4),
+            english = java.util.Locale.getDefault().language == "en"
         ).forEach { drawOpNative(it, c, r.left, r.top) }
     }
 

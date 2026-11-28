@@ -134,7 +134,8 @@ fun TopoPhotoCanvas(
                     startR = 10.5f * d to 8.5f * d,
                     startTextPx = 7f * d to 2.5f * d,
                     dashPx = 12f * d to 9f * d,
-                    stripePx = 22f * d
+                    stripePx = 22f * d,
+                    english = java.util.Locale.getDefault().language == "en"
                 )
                 val nc = drawContext.canvas.nativeCanvas
                 ops.forEach { op -> drawOp(op, nc) }

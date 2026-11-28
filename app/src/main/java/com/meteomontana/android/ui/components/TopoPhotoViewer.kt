@@ -97,7 +97,8 @@ fun TopoPhotoViewer(
                         // SIN el zoom: si el abanico encoge al ampliar, los
                         // numeros se van juntando y parece que la linea se
                         // desliza sobre la roca.
-                        fanSpacingPx = (9f * d * 2f + 4f) to (10.5f * d * 2f + 4f)
+                        fanSpacingPx = (9f * d * 2f + 4f) to (10.5f * d * 2f + 4f),
+                        english = java.util.Locale.getDefault().language == "en"
                     )
                     val nc = drawContext.canvas.nativeCanvas
                     ops.forEach { op -> drawOp(op, nc) }
